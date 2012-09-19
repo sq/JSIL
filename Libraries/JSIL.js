@@ -6,110 +6,132 @@
 //
 
 if (typeof (contentManifest) !== "object") { 
-	contentManifest = {}; 
+  contentManifest = {}; 
 };
 contentManifest["JSIL"] = [
     ["Library", "JSIL.Storage.js"],
     ["Library", "JSIL.IO.js"],
-    ["Library", "JSIL.JSON.js"],	
+    ["Library", "JSIL.JSON.js"],  
     ["Library", "JSIL.XML.js"]
 ];
 
-(function loadJSIL (config) {
+var $jsilloaderstate = {
+  loadFailures: []
+};
 
-	if (config.showFullscreenButton) {
-		document.write(
-			'<button id="fullscreenButton">Full Screen</button>'
-		);
-	}
+(function loadJSIL (config) { 
+  var scriptIndex = 0;
+  var libraryRoot = (config.libraryRoot = config.libraryRoot || "../Libraries/");
+  var manifestRoot = (config.manifestRoot = config.manifestRoot || "");
+  config.scriptRoot = config.scriptRoot || "";
+  config.fileRoot = config.fileRoot || "";
+  config.assetRoot = config.assetRoot || "";
+  config.contentRoot = config.contentRoot || "Content/";
+  config.fileVirtualRoot = config.fileVirtualRoot || config.fileRoot || "";
 
-	if (config.showStats) {
-		document.write(
-			'<div id="stats"></div>'
-		);
-	}
+  var scriptURIs = {};
 
-	if (config.showProgressBar) {
-		document.write(
-			'<div id="loadingProgress">' +
-      		'  <div id="progressBar"></div>' +
-			'  <span id="progressText"></span>' +
-	    	'</div>'
-    	);
+  window.$scriptLoadFailed = function (i) {
+    var uri = scriptURIs[i];
 
-	}	
-	
-	var libraryRoot = config.libraryRoot || "../Libraries/";
-	var manifestRoot = config.manifestRoot || "";
+    if (window.JSIL && window.JSIL.Host && window.JSIL.Host.logWriteLine)
+      JSIL.Host.logWriteLine("JSIL.js failed to load script '" + uri + "'");
+    else if (window.console && window.console.log)
+      console.error("JSIL.js failed to load script '" + uri + "'");
 
-	function loadScript (uri) {
-		if (window.console && window.console.log)
-			window.console.log("Loading '" + uri + "'...");
+    $jsilloaderstate.loadFailures.push([uri]);
 
-		document.write(
-			"<script type=\"text/javascript\" src=\"" + uri + "\"></script>"
-		);
-	};
+    if (jsilConfig.onLoadFailure) {
+      try {
+        jsilConfig.onLoadFailure(uri);
+      } catch (exc) {
+      }
+    }
+  }
 
-	if (config.printStackTrace)
-		loadScript(libraryRoot + "printStackTrace.js");
+  function loadScript (uri) {
+    if (window.console && window.console.log)
+      window.console.log("Loading '" + uri + "'...");
 
-	if (config.webgl2d)
-		loadScript(libraryRoot + "webgl-2d.js");
+    scriptIndex += 1;
+    scriptURIs[scriptIndex] = uri;
 
-	loadScript(libraryRoot + "JSIL.Core.js");
-	loadScript(libraryRoot + "JSIL.Bootstrap.js");
-	loadScript(libraryRoot + "JSIL.Browser.js");
+    document.write(
+      "<script type=\"text/javascript\" src=\"" + uri + "\" onerror=\"$scriptLoadFailed(" +
+      scriptIndex +
+      ")\"></script>"
+    );
+  };
 
-	var manifests = config.manifests || [];
+  if (config.printStackTrace)
+    loadScript(libraryRoot + "printStackTrace.js");
 
-	for (var i = 0, l = manifests.length; i < l; i++)
-		loadScript(manifestRoot + manifests[i] + ".manifest.js");
+  if (config.webgl2d)
+    loadScript(libraryRoot + "webgl-2d.js");
 
-	if (config.winForms) {
-		contentManifest["JSIL"].push(
-			["Library", "System.Drawing.js"]
-		);
-		contentManifest["JSIL"].push(
-			["Library", "System.Windows.js"]
-		);
-	}
+  if (config.gamepad)
+    loadScript(libraryRoot + "gamepad.js");
 
-	if (config.xna) {
-		contentManifest["JSIL"].push(
-			["Library", "JSIL.XNACore.js"]
-		);
+  loadScript(libraryRoot + "JSIL.Core.js");
+  loadScript(libraryRoot + "JSIL.Bootstrap.js");
+  loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
+  loadScript(libraryRoot + "JSIL.Browser.js");
+  loadScript(libraryRoot + "JSIL.Browser.Audio.js");
+  loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
 
-		switch (Number(config.xna)) {
-			case 3:
-				contentManifest["JSIL"].push(
-					["Library", "JSIL.XNA3.js"]
-				);
-				break;
-			case 4:
-				contentManifest["JSIL"].push(
-					["Library", "JSIL.XNA4.js"]
-				);
-				break;
-			default:
-				throw new Error("Unsupported XNA version");
-		}
+  if (config.testFixture || (document.location.search.indexOf("testFixture") >= 0)) {
+    loadScript(libraryRoot + "JSIL.TestFixture.js");
+  }
 
-		contentManifest["JSIL"].push(
-			["Library", "JSIL.XNAStorage.js"]
-		);
-	}
+  var manifests = config.manifests || [];
 
-	if (config.readOnlyStorage) {
-		contentManifest["JSIL"].push(
-		    ["Library", "JSIL.ReadOnlyStorage.js"]
-	    );
-	}
+  for (var i = 0, l = manifests.length; i < l; i++)
+    loadScript(manifestRoot + manifests[i] + ".manifest.js");
 
-	if (config.localStorage) {
-		contentManifest["JSIL"].push(
-	        ["Library", "JSIL.LocalStorage.js"]
+  if (config.winForms) {
+    contentManifest["JSIL"].push(
+      ["Library", "System.Drawing.js"]
+    );
+    contentManifest["JSIL"].push(
+      ["Library", "System.Windows.js"]
+    );
+  }
+
+  if (config.xna) {
+    contentManifest["JSIL"].push(
+      ["Library", "JSIL.XNACore.js"]
+    );
+
+    switch (Number(config.xna)) {
+      case 3:
+        contentManifest["JSIL"].push(
+          ["Library", "JSIL.XNA3.js"]
         );
-	}
+        break;
+      case 4:
+        contentManifest["JSIL"].push(
+          ["Library", "JSIL.XNA4.js"]
+        );
+        break;
+      default:
+        throw new Error("Unsupported XNA version");
+    }
+
+    contentManifest["JSIL"].push(
+      ["Library", "JSIL.XNAStorage.js"]
+    );
+  }
+
+  if (config.readOnlyStorage) {
+    contentManifest["JSIL"].push(
+        ["Library", "JSIL.ReadOnlyStorage.js"]
+      );
+  }
+
+  if (config.localStorage) {
+    contentManifest["JSIL"].push(
+          ["Library", "JSIL.LocalStorage.js"]
+        );
+  }
 
 })(jsilConfig || {});

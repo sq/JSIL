@@ -683,6 +683,11 @@ namespace JSIL.Internal {
                 return;
             }
 
+            if (TypeUtil.TypesAreEqual(context.EnclosingType, type, true)) {
+                WriteRaw("$thisType");
+                return;
+            }
+
             if (type.IsGenericParameter) {
                 var gp = (GenericParameter)type;
                 var ownerType = gp.Owner as TypeReference;

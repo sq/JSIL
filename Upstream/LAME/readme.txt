@@ -1,0 +1,1 @@
+For JSIL to automatically convert your sound assets to MP3, you need to put a version of the LAME MP3 encoder in this folder (lame.exe). The version used by Audacity should work fine.

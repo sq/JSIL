@@ -12,8 +12,9 @@ using MethodInfo = System.Reflection.MethodInfo;
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
-        public readonly Stack<string> NameStack = new Stack<string>(); 
-        
+        public readonly Stack<string> NameStack = new Stack<string>();
+        public readonly Stack<int> NodeIndexStack = new Stack<int>(); 
+
         protected int NodeIndex, NextNodeIndex;
         protected int StatementIndex, NextStatementIndex;
         protected JSNode PreviousSibling = null;
@@ -45,11 +46,17 @@ namespace JSIL.Ast {
                 }
             }
 
-            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>(); 
+            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>();
+            protected static ConcurrentCache<Type, VisitorCache>.CreatorFunction CreateCacheEntry;
 
             protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>();
             protected readonly ConcurrentCache<Type, NodeVisitor> Cache = new ConcurrentCache<Type, NodeVisitor>();
+            protected ConcurrentCache<Type, NodeVisitor>.CreatorFunction FindNodeVisitor;
             public readonly Type VisitorType;
+
+            static VisitorCache () {
+                CreateCacheEntry = (key) => new VisitorCache(key);
+            }
 
             protected VisitorCache (Type visitorType) {
                 VisitorType = visitorType;
@@ -66,14 +73,26 @@ namespace JSIL.Ast {
 
                     Methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
                 }
+
+                FindNodeVisitor = (key) => {
+                    Type currentType = key;
+
+                    while (currentType != null) {
+                        NodeVisitor result;
+                        if (Methods.TryGetValue(currentType, out result))
+                            return result;
+
+                        currentType = currentType.BaseType;
+                    }
+
+                    return null;
+                };
             }
 
             public static VisitorCache Get (JSAstVisitor visitor) {
                 var visitorType = visitor.GetType();
 
-                return VisitorCaches.GetOrCreate(
-                    visitorType, () => new VisitorCache(visitorType)
-                );
+                return VisitorCaches.GetOrCreate(visitorType, CreateCacheEntry);
             }
 
             protected static NodeVisitor MakeVisitorAdapter (MethodInfo method, Type visitorType, Type nodeType) {
@@ -100,20 +119,9 @@ namespace JSIL.Ast {
                     return null;
 
                 var nodeType = node.GetType();
-                var currentType = nodeType;
 
                 return Cache.GetOrCreate(
-                    nodeType, () => {
-                        while (currentType != null) {
-                            NodeVisitor result;
-                            if (Methods.TryGetValue(currentType, out result))
-                                return result;
-
-                            currentType = currentType.BaseType;
-                        }
-
-                        return null;
-                    }
+                    nodeType, FindNodeVisitor
                 );
             }
         }
@@ -152,7 +160,7 @@ namespace JSIL.Ast {
             NameStack.Push(name);
 
             try {
-                NodeIndex = NextNodeIndex;
+                NodeIndexStack.Push(NodeIndex = NextNodeIndex);
                 NextNodeIndex += 1;
 
                 if (node is JSStatement) {
@@ -167,8 +175,10 @@ namespace JSIL.Ast {
                 else
                     VisitNode(node);
             } finally {
+                NodeIndexStack.Pop();
                 Stack.Pop();
                 NameStack.Pop();
+
                 NodeIndex = oldNodeIndex;
                 StatementIndex = oldStatementIndex;
             }

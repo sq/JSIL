@@ -35,7 +35,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
-        [JSReplacement("$objA === $objB")]
+        [JSNeverReplace]
         public static bool ReferenceEquals (object objA, object objB) {
             throw new InvalidOperationException();
         }

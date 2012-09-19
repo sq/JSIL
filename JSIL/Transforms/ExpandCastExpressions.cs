@@ -86,7 +86,13 @@ namespace JSIL.Transforms {
                     // Debugger.Break();
                 }
             } else if (
-                targetType.MetadataType == MetadataType.Boolean
+                (targetType.MetadataType == MetadataType.Boolean) &&
+                // A cast from Object to Boolean can occur in two forms:
+                // An implied conversion, where an object expression is treated as a boolean (logicnot operation, etc).
+                //  In this case, we want to do 'obj != null' to make it a boolean.
+                // An explicit conversion, where an object expression is unboxed to boolean.
+                //  In this case we want to leave it as-is.
+                (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
                 newExpression = new JSBinaryOperatorExpression(
                     JSBinaryOperator.NotEqual,

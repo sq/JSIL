@@ -1,0 +1,2386 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Selenium.WebDriverBackedSelenium</name>
+    </assembly>
+    <members>
+        <member name="T:Selenium.WebDriverBackedSelenium">
+            <summary>
+            Provides a Selenium instance that processes its commands via an IWebDriver instance.
+            </summary>
+        </member>
+        <member name="M:Selenium.WebDriverBackedSelenium.#ctor(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.WebDriverBackedSelenium"/> class using the specified
+            WebDriver driver and base URL.
+            </summary>
+            <param name="baseDriver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> instance used to drive the browser.</param>
+            <param name="baseUrl">The base URL of the Selenium server.</param>
+        </member>
+        <member name="M:Selenium.WebDriverBackedSelenium.#ctor(OpenQA.Selenium.IWebDriver,System.Uri)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.WebDriverBackedSelenium"/> class using the specified
+            WebDriver driver and base URL.
+            </summary>
+            <param name="baseDriver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> instance used to drive the browser.</param>
+            <param name="baseUrl">The base URL of the Selenium server.</param>
+        </member>
+        <member name="P:Selenium.WebDriverBackedSelenium.UnderlyingWebDriver">
+            <summary>
+            Gets the underlying <see cref="T:OpenQA.Selenium.IWebDriver"/> object used to drive the browser for this instance of Selenium.
+            </summary>
+        </member>
+        <member name="T:Selenium.WebDriverCommandProcessor">
+            <summary>
+            Provides an implementation the ICommandProcessor interface which uses WebDriver to complete
+            the Selenium commands.
+            </summary>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.#ctor(System.String,OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.WebDriverCommandProcessor"/> class.
+            </summary>
+            <param name="baseUrl">The base URL of the Selenium server.</param>
+            <param name="baseDriver">The IWebDriver object used for executing commands.</param>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.#ctor(System.Uri,OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.WebDriverCommandProcessor"/> class.
+            </summary>
+            <param name="baseUrl">The base URL of the Selenium server.</param>
+            <param name="baseDriver">The IWebDriver object used for executing commands.</param>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.DoCommand(System.String,System.String[])">
+            <summary>
+            Sends the specified remote command to the browser to be performed
+            </summary>
+            <param name="command">The remote command verb.</param>
+            <param name="args">The arguments to the remote command (depends on the verb).</param>
+            <returns>the command result, defined by the remote JavaScript. "getX" style
+            commands may return data from the browser</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.SetExtensionJs(System.String)">
+            <summary>
+            Sets the script to use as user extensions.
+            </summary>
+            <param name="extensionJs">The script to use as user extensions.</param>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.Start">
+            <summary>
+            Starts the command processor.
+            </summary>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.Start(System.String)">
+            <summary>
+            Starts the command processor using the specified options.
+            </summary>
+            <param name="optionsString">A string representing the options to use.</param>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.Start(System.Object)">
+            <summary>
+            Starts the command processor using the specified options.
+            </summary>
+            <param name="optionsObject">An object representing the options to use.</param>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.Stop">
+            <summary>
+            Stops the command processor.
+            </summary>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetString(System.String,System.String[])">
+            <summary>
+            Gets a string from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetStringArray(System.String,System.String[])">
+            <summary>
+            Gets a string array from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetNumber(System.String,System.String[])">
+            <summary>
+            Gets a number from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetNumberArray(System.String,System.String[])">
+            <summary>
+            Gets a number array from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetBoolean(System.String,System.String[])">
+            <summary>
+            Gets a boolean value from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.WebDriverCommandProcessor.GetBooleanArray(System.String,System.String[])">
+            <summary>
+            Gets an array of boolean values from the command processor.
+            </summary>
+            <param name="command">The command to send.</param>
+            <param name="args">The arguments of the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="P:Selenium.WebDriverCommandProcessor.UnderlyingWebDriver">
+            <summary>
+            Gets the <see cref="T:OpenQA.Selenium.IWebDriver"/> object that executes the commands for this command processor.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.AlertOverride">
+            <summary>
+            Provides methods for overriding the JavaScript alert() and confirm() methods.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.#ctor(OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the AlertOverride class.
+            </summary>
+            <param name="driver">The driver to use in overriding the JavaScript alert() and confirm() methods.</param>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.ReplaceAlertMethod">
+            <summary>
+            Replaces the JavaScript alert() and confirm() methods.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.GetNextAlert">
+            <summary>
+            Gets the next JavaScript alert message.
+            </summary>
+            <returns>The text of the next alert message.</returns>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.IsAlertPresent">
+            <summary>
+            Gets a value indicating whether a JavaScript alert is present.
+            </summary>
+            <returns><see langword="true"/> if an alert is present; otherwise <see langword="false"/>.</returns>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.GetNextConfirmation">
+            <summary>
+            Gets the next JavaScript confirm message.
+            </summary>
+            <returns>The text of the next confirm message.</returns>
+        </member>
+        <member name="M:Selenium.Internal.AlertOverride.IsConfirmationPresent">
+            <summary>
+            Gets a value indicating whether a JavaScript confirm is present.
+            </summary>
+            <returns><see langword="true"/> if an confirm is present; otherwise <see langword="false"/>.</returns>
+        </member>
+        <member name="T:Selenium.Internal.CommandTimer">
+            <summary>
+            Provides a timer for running SeleneseCommands
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.CommandTimer.#ctor(System.Int32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.CommandTimer"/> class.
+            </summary>
+            <param name="timeout">The timeout, in milliseconds, of the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.CommandTimer.Execute(Selenium.Internal.SeleniumEmulation.SeleneseCommand,OpenQA.Selenium.IWebDriver,System.String[])">
+            <summary>
+            Executes a command.
+            </summary>
+            <param name="commandToExecute">The <see cref="T:Selenium.Internal.SeleniumEmulation.SeleneseCommand"/> to execute.</param>
+            <param name="commandDriver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> to use in executing the command.</param>
+            <param name="commandArguments">An array of strings containng the command arguments.</param>
+            <returns>The result of the command.</returns>
+            <remarks>This method executes the command on a separate thread.</remarks>
+        </member>
+        <member name="P:Selenium.Internal.CommandTimer.Timeout">
+            <summary>
+            Gets or sets the timeout for running the command, in milliseconds.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AddLocationStrategy">
+            <summary>
+            Defines the command for the addLocationStrategy keyword.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SeleneseCommand">
+            <summary>
+            Defines the base class for a command.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleneseCommand.Apply(OpenQA.Selenium.IWebDriver,System.String[])">
+            <summary>
+            Applies the arguments to the command.
+            </summary>
+            <param name="driver">The driver to use in executing the command.</param>
+            <param name="args">The command arguments.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleneseCommand.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AddLocationStrategy.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AddLocationStrategy"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> object used to locate elements.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AddLocationStrategy.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AddSelection">
+            <summary>
+            Defines the command for the addSelection keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AddSelection.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AddSelection"/> class.
+            </summary>
+            <param name="elementFinder">The <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> to use in finding elements.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AddSelection.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AltKeyDown">
+            <summary>
+            Defines the command for the altKeyDown keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AltKeyDown.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AltKeyDown"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AltKeyDown.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AltKeyUp">
+            <summary>
+            Defines the command for the altKeyUp keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AltKeyUp.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AltKeyUp"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AltKeyUp.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AssignId">
+            <summary>
+            Defines the command for the assignId keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AssignId.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AssignId"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used in finding the element to which to assign the ID.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AssignId.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.AttachFile">
+            <summary>
+            Defines the command for the attachFile keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AttachFile.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.AttachFile"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used in finding the element.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.AttachFile.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.CaptureScreenshotToString">
+            <summary>
+            Defines the command for the captureScreenshotToString keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.CaptureScreenshotToString.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Check">
+            <summary>
+            Defines the command for the check keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Check.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Check"/> class.
+            </summary>
+            <param name="alert">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Check.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Click">
+            <summary>
+            Defines the command for the click keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Click.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Click"/> class.
+            </summary>
+            <param name="alert">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Click.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ClickAt">
+            <summary>
+            Defines the command for the click keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ClickAt.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ClickAt"/> class.
+            </summary>
+            <param name="alert">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ClickAt.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Close">
+            <summary>
+            Defines the command for the close keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Close.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.CompoundMutator">
+            <summary>
+            A class that collects together a group of other mutators and applies
+            them in the order they've been added to any script that needs modification.
+            Any JS to be executed will be wrapped in an "eval" block so that a
+            meaningful return value can be created.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IScriptMutator">
+            <summary>
+            A mechanism for taking a single method from a script meant for Selenium Core
+            and converting to something that webdriver can evaluate.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IScriptMutator.Mutate(System.String,System.Text.StringBuilder)">
+            <summary>
+            Mutate a script. The original, unmodified script is used to generate a
+            script on the StringBuilder, the "ToString" method of which should be
+            used to get the result. We make use of a StringBuilder rather than a
+            normal String so that we can efficiently chain mutators.
+            </summary>
+            <param name="script">The original script.</param>
+            <param name="outputTo">The mutated script</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.CompoundMutator.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.CompoundMutator"/> class.
+            </summary>
+            <param name="basePath">The URL to use in mutating the script.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.CompoundMutator.Mutate(System.String,System.Text.StringBuilder)">
+            <summary>
+            Mutate a script so by calling all component mutators on it in turn.
+            The original, unmodified script is used to generate a script
+            on the StringBuilder, the "ToString" method of which should be
+            used to get the result. We make use of a StringBuilder rather than a
+            normal String so that we can efficiently chain mutators.
+            </summary>
+            <param name="script">The original script.</param>
+            <param name="outputTo">The mutated script.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.CompoundMutator.AddMutator(Selenium.Internal.SeleniumEmulation.IScriptMutator)">
+            <summary>
+            Adds a mutator to the collection
+            </summary>
+            <param name="mutator">The <see cref="T:Selenium.Internal.SeleniumEmulation.IScriptMutator"/> to add.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ControlKeyDown">
+            <summary>
+            Defines the command for the controlKeyDown keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ControlKeyDown.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ControlKeyDown"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ControlKeyDown.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ControlKeyUp">
+            <summary>
+            Defines the command for the controlKeyUp keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ControlKeyUp.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ControlKeyUp"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ControlKeyUp.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.CreateCookie">
+            <summary>
+            Defines the command for the createCookie keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.CreateCookie.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.DeleteAllVisibleCookies">
+            <summary>
+            Defines the command for the deleteAllVisibleCookies keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DeleteAllVisibleCookies.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="ignored">The first parameter to the command.</param>
+            <param name="alsoIgnored">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.DeleteCookie">
+            <summary>
+            Defines the command for the deleteCookie keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DeleteCookie.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.DoubleClick">
+            <summary>
+            Defines the command for the doubleClick keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DoubleClick.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.DoubleClick"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DoubleClick.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.DragAndDrop">
+            <summary>
+            Defines the command for the dragAndDrop keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DragAndDrop.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.DragAndDrop"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DragAndDrop.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.DragAndDropToObject">
+            <summary>
+            Defines the command for the dragAndDropToObject keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DragAndDropToObject.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.DragAndDropToObject"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.DragAndDropToObject.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ElementFinder">
+            <summary>
+            Provides methods for finding elements.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ElementFinder.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> class.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ElementFinder.FindElement(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Finds an element.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> to use in finding the elements.</param>
+            <param name="locator">The locator string describing how to find the element.</param>
+            <returns>An <see cref="T:OpenQA.Selenium.IWebElement"/> described by the locator.</returns>
+            <exception cref="T:Selenium.SeleniumException">There is no element matching the locator.</exception>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ElementFinder.FindStrategy(System.String)">
+            <summary>
+            Gets the strategy used to find elements.
+            </summary>
+            <param name="locator">The locator string that defines the strategy.</param>
+            <returns>A string used in finding elements.</returns>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ElementFinder.AddStrategy(System.String,System.String)">
+            <summary>
+            Adds a strategy to the dictionary of known lookup strategies.
+            </summary>
+            <param name="strategyName">The name used to identify the lookup strategy.</param>
+            <param name="strategy">The string used in finding elements.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.FindFirstSelectedOptionProperty">
+            <summary>
+            Defines the command for the findFirstSelectedOptionProperty keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FindFirstSelectedOptionProperty.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.FindFirstSelectedOptionProperty"/> class.
+            </summary>
+            <param name="finder">A <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> that gets options from the element.</param>
+            <param name="property">The property on which to select the options.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FindFirstSelectedOptionProperty.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.FindSelectedOptionProperties">
+            <summary>
+            Defines the command for the findSelectedOptionProperties keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FindSelectedOptionProperties.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.FindSelectedOptionProperties"/> class.
+            </summary>
+            <param name="finder">A <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> that gets options from the element.</param>
+            <param name="property">The property on which to select the options.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FindSelectedOptionProperties.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.FireEvent">
+            <summary>
+            Defines the command for the fireEvent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FireEvent.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.FireEvent"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FireEvent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.FireNamedEvent">
+            <summary>
+            Defines the command for the fireEventNamed keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FireNamedEvent.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.FireNamedEvent"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+            <param name="eventName">The name of the event to fire.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FireNamedEvent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.FunctionDeclaration">
+            <summary>
+            A mechanism for taking a function declaration from a script meant for Selenium Core
+            and converting to something that webdriver can evaluate.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FunctionDeclaration.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.FunctionDeclaration"/> class.
+            </summary>
+            <param name="raw">The raw term to mutate.</param>
+            <param name="result">The result to which to set the term.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.FunctionDeclaration.Mutate(System.String,System.Text.StringBuilder)">
+            <summary>
+            Mutate a script so that function declarations have the correct scope.
+            The original, unmodified script is used to generate a script
+            on the StringBuilder, the "ToString" method of which should be
+            used to get the result. We make use of a StringBuilder rather than a
+            normal String so that we can efficiently chain mutators.
+            </summary>
+            <param name="script">The original script.</param>
+            <param name="outputTo">The mutated script.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAlert">
+            <summary>
+            Defines the command for the getAlert keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAlert.#ctor(Selenium.Internal.AlertOverride)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetAlert"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAlert.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAllButtons">
+            <summary>
+            Defines the command for the getAllButtons keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAllButtons.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAllFields">
+            <summary>
+            Defines the command for the getAllFields keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAllFields.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAllLinks">
+            <summary>
+            Defines the command for the getAllLinks keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAllLinks.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAllWindowTitles">
+            <summary>
+            Defines the command for the getAllWindowTitles keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAllWindowTitles.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAttribute">
+            <summary>
+            Defines the command for the getAttribute keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAttribute.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetAttribute"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAttribute.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetAttributeFromAllWindows">
+            <summary>
+            Defines the command for the getAttributeFromAllWindows keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetAttributeFromAllWindows.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetBodyText">
+            <summary>
+            Defines the command for the getBodyText keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetBodyText.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetConfirmation">
+            <summary>
+            Defines the command for the getConfirmation keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetConfirmation.#ctor(Selenium.Internal.AlertOverride)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetConfirmation"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetConfirmation.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetCookie">
+            <summary>
+            Defines the command for the getCookie keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetCookie.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetCookieByName">
+            <summary>
+            Defines the command for the getCookieByName keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetCookieByName.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetCssCount">
+            <summary>
+            Defines the command for the getCssCount keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetCssCount.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetElementHeight">
+            <summary>
+            Defines the command for the getElementHeight keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementHeight.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetElementHeight"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementHeight.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetElementIndex">
+            <summary>
+            Defines the command for the getElementIndex keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementIndex.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetElementIndex"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementIndex.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetElementPositionLeft">
+            <summary>
+            Defines the command for the getElementPositionLeft keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementPositionLeft.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetElementPositionLeft"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementPositionLeft.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetElementPositionTop">
+            <summary>
+            Defines the command for the getElementPositionTop keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementPositionTop.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetElementPositionTop"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementPositionTop.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetElementWidth">
+            <summary>
+            Defines the command for the getElementWidth keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementWidth.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetElementWidth"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetElementWidth.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetEval">
+            <summary>
+            Defines the command for the getEval keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetEval.#ctor(Selenium.Internal.SeleniumEmulation.IScriptMutator)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetEval"/> class.
+            </summary>
+            <param name="mutator">The <see cref="T:Selenium.Internal.SeleniumEmulation.IScriptMutator"/> used to replace terms in the script being run.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetEval.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetExpression">
+            <summary>
+            Defines the command for the getExpression keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetExpression.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetHtmlSource">
+            <summary>
+            Defines the command for the getHtmlSource keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetHtmlSource.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="ignored">The first parameter to the command.</param>
+            <param name="alsoIgnored">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetLocation">
+            <summary>
+            Defines the command for the getLocation keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetLocation.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetSelectOptions">
+            <summary>
+            Defines the command for the getSelectOptions keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetSelectOptions.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetSelectOptions"/> class.
+            </summary>
+            <param name="finder">A <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used in getting the select options.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetSelectOptions.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetTable">
+            <summary>
+            Defines the command for the getTable keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetTable.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetTable"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetTable.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetText">
+            <summary>
+            Defines the command for the getText keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetText.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetText"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetText.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetTitle">
+            <summary>
+            Defines the command for the getTitle keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetTitle.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetValue">
+            <summary>
+            Defines the command for the getValue keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetValue.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.GetValue"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetValue.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GetXpathCount">
+            <summary>
+            Defines the command for the getXpathCount keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GetXpathCount.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.GoBack">
+            <summary>
+            Defines the command for the goBack keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.GoBack.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="ignored">The first parameter to the command.</param>
+            <param name="alsoIgnored">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Highlight">
+            <summary>
+            Defines the command for the highlight keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Highlight.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Highlight"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Highlight.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IFilterFunction">
+            <summary>
+            Provides a method by which to filter elements.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IFilterFunction.FilterElements(System.Collections.Generic.IList{OpenQA.Selenium.IWebElement},System.String)">
+            <summary>
+            Filters elements by the specified criteria.
+            </summary>
+            <param name="allElements">A list of all elements to be filtered.</param>
+            <param name="filterValue">The filter string containing the criteria on which to filter.</param>
+            <returns>A list of element, filtered by the criteria.</returns>
+        </member>
+        <member name="T:Selenium.ILookupStrategy">
+            <summary>
+            Provides methods for finding elements.
+            </summary>
+        </member>
+        <member name="M:Selenium.ILookupStrategy.Find(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Finds an element.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> to use in finding the element.</param>
+            <param name="use">The locator string to use.</param>
+            <returns>An <see cref="T:OpenQA.Selenium.IWebElement"/> that matches the locator string.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IOptionSelectStrategy">
+            <summary>
+            Provides a method by which to select options.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IOptionSelectStrategy.SelectOption(System.Collections.ObjectModel.ReadOnlyCollection{OpenQA.Selenium.IWebElement},System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Selects an option.
+            </summary>
+            <param name="fromOptions">A list of options to select from.</param>
+            <param name="selectThis">The option to select.</param>
+            <param name="setSelected"><see langword="true"/> to select the option; <see langword="false"/> to unselect.</param>
+            <param name="allowMultipleSelect"><see langword="true"/> to allow multiple selections; otherwise, <see langword="false"/>.</param>
+            <returns><see langword="true"/> if the option is selected; otherwise, <see langword="false"/>.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsAlertPresent">
+            <summary>
+            Defines the command for the isAlertPresent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsAlertPresent.#ctor(Selenium.Internal.AlertOverride)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsAlertPresent"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsAlertPresent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsChecked">
+            <summary>
+            Defines the command for the isChecked keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsChecked.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsChecked"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsChecked.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsConfirmationPresent">
+            <summary>
+            Defines the command for the isConfirmationPresent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsConfirmationPresent.#ctor(Selenium.Internal.AlertOverride)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsConfirmationPresent"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsConfirmationPresent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsCookiePresent">
+            <summary>
+            Defines the command for the isCookiePresent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsCookiePresent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsEditable">
+            <summary>
+            Defines the command for the isEditable keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsEditable.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsEditable"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsEditable.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsElementPresent">
+            <summary>
+            Defines the command for the isElementPresent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsElementPresent.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsElementPresent"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsElementPresent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsOrdered">
+            <summary>
+            Defines the command for the isOrdered keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsOrdered.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsOrdered"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsOrdered.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsSomethingSelected">
+            <summary>
+            Defines the command for the isSomethingSelected keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsSomethingSelected.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsSomethingSelected"/> class.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsSomethingSelected.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsTextPresent">
+            <summary>
+            Defines the command for the isTextPresent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsTextPresent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.IsVisible">
+            <summary>
+            Defines the command for the isVisible keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsVisible.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.IsVisible"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.IsVisible.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ITextMatchingStrategy">
+            <summary>
+            Provides methods to determine if the text is a match.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ITextMatchingStrategy.IsAMatch(System.String,System.String)">
+            <summary>
+            Gets a value indicating whether the specified text is a match.
+            </summary>
+            <param name="compareThis">The text to compare.</param>
+            <param name="compareTo">The text to compare to.</param>
+            <returns><see langword="true"/> if the strings match; otherwise, <see langword="false"/>.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.JavaScriptLibrary">
+            <summary>
+            Provides the internal JavaScript library.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.JavaScriptLibrary.CallEmbeddedSelenium(OpenQA.Selenium.IWebDriver,System.String,OpenQA.Selenium.IWebElement,System.Object[])">
+            <summary>
+            Calls the embedded selenium library in a web page.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object used to call the script.</param>
+            <param name="functionName">The function name to call.</param>
+            <param name="element">An <see cref="T:OpenQA.Selenium.IWebElement"/> used as an argument to the JavaScript function.</param>
+            <param name="values">An array of values containing additional arguments to the function.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.JavaScriptLibrary.CallEmbeddedHtmlUtilities(OpenQA.Selenium.IWebDriver,System.String,OpenQA.Selenium.IWebElement,System.Object[])">
+            <summary>
+            Calls the embedded HTML utilities library in a web page.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object used to call the script.</param>
+            <param name="functionName">The function name to call.</param>
+            <param name="element">An <see cref="T:OpenQA.Selenium.IWebElement"/> used as an argument to the JavaScript function.</param>
+            <param name="values">An array of values containing additional arguments to the function.</param>
+            <returns>The result of the script</returns>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.JavaScriptLibrary.ExecuteScript(OpenQA.Selenium.IWebDriver,System.String,System.Object[])">
+            <summary>
+            Executes a script in a web page.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object used to call the script.</param>
+            <param name="script">The script to run.</param>
+            <param name="args">An array of values containing additional arguments to the function.</param>
+            <returns>The result of the script</returns>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.JavaScriptLibrary.GetSeleniumScript(System.String)">
+            <summary>
+            Loads the named Selenium script and returns it wrapped in an anonymous function.
+            </summary>
+            <param name="libraryName">The script to load.</param>
+            <returns>The loaded script wrapped in an anonymous function.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.KeyEvent">
+            <summary>
+            Defines the command for the keyEvent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.KeyEvent.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,Selenium.Internal.SeleniumEmulation.KeyState,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.KeyEvent"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+            <param name="state">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object defining the state of modifier keys.</param>
+            <param name="eventName">The name of the event to send.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.KeyEvent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.KeyState">
+            <summary>
+            Defines the state of modifier keys.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.KeyState.AltKeyDown">
+            <summary>
+            Gets or sets a value indicating whether the Alt key is down.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.KeyState.ControlKeyDown">
+            <summary>
+            Gets or sets a value indicating whether the Control key is down.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.KeyState.ShiftKeyDown">
+            <summary>
+            Gets or sets a value indicating whether the Shift key is down.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.KeyState.MetaKeyDown">
+            <summary>
+            Gets or sets a value indicating whether the Meta key is down.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.MetaKeyDown">
+            <summary>
+            Defines the command for the metaKeyDown keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MetaKeyDown.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.MetaKeyDown"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MetaKeyDown.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.MetaKeyUp">
+            <summary>
+            Defines the command for the metaKeyUp keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MetaKeyUp.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.MetaKeyUp"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MetaKeyUp.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.MouseEvent">
+            <summary>
+            Defines the command for the mouseEvent keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MouseEvent.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.MouseEvent"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+            <param name="eventType">Type of event to trigger.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MouseEvent.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.MouseEventAt">
+            <summary>
+            Defines the command for the mouseEventAt keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MouseEventAt.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.MouseEventAt"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+            <param name="eventType">The type of event to trigger.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.MouseEventAt.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.NoOp">
+            <summary>
+            Defines the command for the noOp keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.NoOp.#ctor(System.Object)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.NoOp"/> class.
+            </summary>
+            <param name="toReturn">An object to return as the result of the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.NoOp.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Open">
+            <summary>
+            Defines the command for the open keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Open.#ctor(System.Uri)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Open"/> class.
+            </summary>
+            <param name="baseUrl">The base URL to open with the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Open.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.OpenWindow">
+            <summary>
+            Defines the command for the openWindow keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.OpenWindow.#ctor(Selenium.Internal.SeleniumEmulation.GetEval)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.OpenWindow"/> class.
+            </summary>
+            <param name="windowOpener">A <see cref="T:Selenium.Internal.SeleniumEmulation.GetEval"/> object that opens the window.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.OpenWindow.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Refresh">
+            <summary>
+            Defines the command for the refresh keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Refresh.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.RemoveAllSelections">
+            <summary>
+            Defines the command for the removeAllSelections keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RemoveAllSelections.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.RemoveAllSelections"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RemoveAllSelections.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.RemoveSelection">
+            <summary>
+            Defines the command for the removeSelection keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RemoveSelection.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.RemoveSelection"/> class.
+            </summary>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RemoveSelection.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.RunScript">
+            <summary>
+            Defines the command for the runScript keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RunScript.#ctor(Selenium.Internal.SeleniumEmulation.IScriptMutator)">
+            <summary>
+            Initializes a new instance of the RunScript class.
+            </summary>
+            <param name="mutator">The <see cref="T:Selenium.Internal.SeleniumEmulation.IScriptMutator"/> object to modify the 
+            script so that WebDriver can use it.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.RunScript.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SelectFrame">
+            <summary>
+            Defines the command for the selectFrame keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectFrame.#ctor(Selenium.Internal.SeleniumEmulation.WindowSelector)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SelectFrame"/> class.
+            </summary>
+            <param name="windowSelector">An <see cref="T:Selenium.Internal.SeleniumEmulation.WindowSelector"/> object used to select windows.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectFrame.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SelectOption">
+            <summary>
+            Defines the command for the selectOption keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectOption.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SelectOption"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="finder">The <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used in selecting the option.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectOption.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SelectWindow">
+            <summary>
+            Defines the command for the selectWindow keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectWindow.#ctor(Selenium.Internal.SeleniumEmulation.WindowSelector)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SelectWindow"/> class.
+            </summary>
+            <param name="windowSelector">An <see cref="T:Selenium.Internal.SeleniumEmulation.WindowSelector"/> object used to select windows.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SelectWindow.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SeleniumMutator">
+            <summary>
+            A mechanism for taking a script meant for Selenium Core
+            and converting to something that webdriver can evaluate.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumMutator.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SeleniumMutator"/> class.
+            </summary>
+            <param name="method">The name of the atom to mutate.</param>
+            <param name="atom">The source code of the atom to execute.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumMutator.Mutate(System.String,System.Text.StringBuilder)">
+            <summary>
+            Mutate an atom script so that it has the correct scope.
+            The original, unmodified script is used to generate a script
+            on the StringBuilder, the "ToString" method of which should be
+            used to get the result. We make use of a StringBuilder rather than a
+            normal String so that we can efficiently chain mutators.
+            </summary>
+            <param name="script">The original script.</param>
+            <param name="outputTo">The mutated script.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SeleniumSelect">
+            <summary>
+            Provides a set of methods designed to help selecting options in select lists.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumSelect.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder,OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SeleniumSelect"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used in finding options.</param>
+            <param name="driver">An <see cref="T:OpenQA.Selenium.IWebDriver"/> used to drive the browser.</param>
+            <param name="locator">A locator used to find options.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumSelect.SetSelected(System.String)">
+            <summary>
+            Selects the indicated option.
+            </summary>
+            <param name="optionLocator">The locator to use to find the option to select.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumSelect.AddSelection(System.String)">
+            <summary>
+            Adds a selection to the currently selected options.
+            </summary>
+            <param name="optionLocator">The locator to use to find the option to select.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SeleniumSelect.RemoveSelection(System.String)">
+            <summary>
+            Deselects a currently selected option.
+            </summary>
+            <param name="optionLocator">The locator to use to find the option to select.</param>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.SeleniumSelect.AllOptions">
+            <summary>
+            Gets a collection of elements representing all options for the select list.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.SeleniumSelect.SelectedOptions">
+            <summary>
+            Gets a collection of elements representing all currently selected options for the select list.
+            </summary>
+        </member>
+        <member name="P:Selenium.Internal.SeleniumEmulation.SeleniumSelect.IsMultiple">
+            <summary>
+            Gets a value indicating whether the select list supports multiple selections.
+            </summary>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SetNextConfirmationState">
+            <summary>
+            Defines the command for the setNextConfirmationState keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SetNextConfirmationState.#ctor(System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SetNextConfirmationState"/> class.
+            </summary>
+            <param name="result"><see langword="true"/> to click OK the next confirmation; <see langword="false"/> to click Cancel.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SetNextConfirmationState.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.SetTimeout">
+            <summary>
+            Defines the command for the setTimeout keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SetTimeout.#ctor(Selenium.Internal.CommandTimer)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.SetTimeout"/> class.
+            </summary>
+            <param name="timer">The <see cref="T:Selenium.Internal.CommandTimer"/> object used to monitor timeouts for commands.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.SetTimeout.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ShiftKeyDown">
+            <summary>
+            Defines the command for the shiftKeyDown keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ShiftKeyDown.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ShiftKeyDown"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ShiftKeyDown.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.ShiftKeyUp">
+            <summary>
+            Defines the command for the shiftKeyUp keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ShiftKeyUp.#ctor(Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.ShiftKeyUp"/> class.
+            </summary>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.ShiftKeyUp.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Submit">
+            <summary>
+            Defines the command for the submit keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Submit.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Submit"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Submit.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Type">
+            <summary>
+            Defines the command for the type keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Type.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder,Selenium.Internal.SeleniumEmulation.KeyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Type"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+            <param name="keyState">A <see cref="T:Selenium.Internal.SeleniumEmulation.KeyState"/> object tracking the state of modifier keys.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Type.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.TypeKeys">
+            <summary>
+            Defines the command for the typeKeys keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.TypeKeys.#ctor(Selenium.Internal.AlertOverride,Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.TypeKeys"/> class.
+            </summary>
+            <param name="alertOverride">An <see cref="T:Selenium.Internal.AlertOverride"/> object used to handle JavaScript alerts.</param>
+            <param name="elementFinder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.TypeKeys.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Uncheck">
+            <summary>
+            Defines the command for the uncheck keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Uncheck.#ctor(Selenium.Internal.SeleniumEmulation.ElementFinder)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Uncheck"/> class.
+            </summary>
+            <param name="finder">An <see cref="T:Selenium.Internal.SeleniumEmulation.ElementFinder"/> used to find the element on which to execute the command.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Uncheck.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.VariableDeclaration">
+            <summary>
+            A mechanism for taking a variable declaration from a script meant for Selenium Core
+            and converting to something that webdriver can evaluate.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.VariableDeclaration.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.VariableDeclaration"/> class.
+            </summary>
+            <param name="raw">The raw term to mutate.</param>
+            <param name="declaration">The declaration to which to set the term.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.VariableDeclaration.Mutate(System.String,System.Text.StringBuilder)">
+            <summary>
+            Mutate a script so that variable declarations have the correct scope.
+            The original, unmodified script is used to generate a script
+            on the StringBuilder, the "ToString" method of which should be
+            used to get the result. We make use of a StringBuilder rather than a
+            normal String so that we can efficiently chain mutators.
+            </summary>
+            <param name="script">The original script.</param>
+            <param name="outputTo">The mutated script.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Waiter">
+            <summary>
+            Provides methods to wait for a condition to be true.
+            </summary>
+        </member>
+        <member name="F:Selenium.Internal.SeleniumEmulation.Waiter.DefaultTimeout">
+            The amount of time to wait before giving up; the default is 30 seconds 
+        </member>
+        <member name="F:Selenium.Internal.SeleniumEmulation.Waiter.DefaultInterval">
+            The interval to pause between checking; the default is 500 milliseconds 
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Waiter"/> class.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.Wait(System.String)">
+            <summary>
+            Wait Until the "Until" condition returns true or time runs out.
+            </summary>
+            <param name="message">the failure message</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.Wait(System.String,System.Int64)">
+            <summary>
+            Wait Until the "Until" condition returns true or time runs out.
+            </summary>
+            <param name="message">the failure message</param>
+            <param name="timeoutInMilliseconds">the amount of time to wait before giving up</param>
+            <exception cref="T:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException">if "Until" doesn't return true Until the timeout</exception>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.Wait(System.String,System.Int64,System.Int64)">
+            <summary>
+            Wait Until the "Until" condition returns true or time runs out.
+            </summary>
+            <param name="message">the failure message</param>
+            <param name="timeoutInMilliseconds">the amount of time to wait before giving up</param>
+            <param name="intervalInMilliseconds">intervalInMilliseconds the interval to pause between checking "Until"</param>
+            <exception cref="T:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException">if "Until" doesn't return true Until the timeout</exception>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.Until">
+            <summary>
+            The function called to wait for the condition
+            </summary>
+            <returns>Returns true when it's time to stop waiting </returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException">
+            <summary>
+            The exception that is thrown when the time allotted for a wait has expired.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException"/> class with the specified error message.
+            </summary>
+            <param name="message">The message used as part of the exception.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.Waiter.WaitTimedOutException"/> class with serialized data.
+            </summary>
+            <param name="info">The <see cref="T:System.Runtime.Serialization.SerializationInfo"/> object that contains serialized object data about the exception being thrown.</param>
+            <param name="context">The <see cref="T:System.Runtime.Serialization.StreamingContext"/> object that contains contextual information about the source or destination.</param>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForCondition">
+            <summary>
+            Defines the command for the waitForCondition keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForCondition.#ctor(Selenium.Internal.SeleniumEmulation.IScriptMutator)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForCondition"/> class.
+            </summary>
+            <param name="mutator">An <see cref="T:Selenium.Internal.SeleniumEmulation.IScriptMutator"/> used to modify the script 
+            into something WebDriver can parse.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForCondition.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForCondition.ConditionWaiter">
+            <summary>
+            Provides methods to wait for a condition to be true.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForCondition.ConditionWaiter.#ctor(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForCondition.ConditionWaiter"/> class.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object to use to wait.</param>
+            <param name="script">The JavaScript script to use defining the wait condition.</param>
+            <remarks>The JavaScript script must return a boolean (true or false) value.</remarks>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForCondition.ConditionWaiter.Until">
+            <summary>
+            The function called to wait for the condition
+            </summary>
+            <returns>Returns true when it's time to stop waiting.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad">
+            <summary>
+            Defines the command for the waitForPageToLoad keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.ReadyStateWaiter">
+            <summary>
+            Provides methods to wait for the page ready state to be 'complete'.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.ReadyStateWaiter.#ctor(OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.ReadyStateWaiter"/> class.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object to use to wait.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.ReadyStateWaiter.Until">
+            <summary>
+            The function called to wait for the ready state to be 'complete'.
+            </summary>
+            <returns>Returns true when it's time to stop waiting.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.LengthCheckingWaiter">
+            <summary>
+            Provides methods to wait for the page body has a length other than zero.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.LengthCheckingWaiter.#ctor(OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.LengthCheckingWaiter"/> class.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object to use to wait.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPageToLoad.LengthCheckingWaiter.Until">
+            <summary>
+            The function called to wait for the body text length to be greater than zero.
+            </summary>
+            <returns>Returns true when it's time to stop waiting.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForPopup">
+            <summary>
+            Defines the command for the waitForPopup keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPopup.#ctor(Selenium.Internal.SeleniumEmulation.WindowSelector)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForPopup"/> class.
+            </summary>
+            <param name="windowSelector">An <see cref="T:Selenium.Internal.SeleniumEmulation.WindowSelector"/> object used to select windows.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPopup.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WaitForPopup.PopupWaiter">
+            <summary>
+            Provides methods to wait for a popup to appear.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPopup.PopupWaiter.#ctor(OpenQA.Selenium.IWebDriver,System.String,Selenium.Internal.SeleniumEmulation.WindowSelector)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WaitForPopup.PopupWaiter"/> class.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> object to use to wait.</param>
+            <param name="windowId">The window ID used to identify the window.</param>
+            <param name="windows">The <see cref="T:Selenium.Internal.SeleniumEmulation.WindowSelector"/> object used to select the window.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WaitForPopup.PopupWaiter.Until">
+            <summary>
+            The function called to wait for the condition
+            </summary>
+            <returns>Returns true when it's time to stop waiting.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WindowFocus">
+            <summary>
+            Defines the command for the windowFocus keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowFocus.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WindowMaximize">
+            <summary>
+            Defines the command for the windowMaximize keyword.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowMaximize.HandleSeleneseCommand(OpenQA.Selenium.IWebDriver,System.String,System.String)">
+            <summary>
+            Handles the command.
+            </summary>
+            <param name="driver">The driver used to execute the command.</param>
+            <param name="locator">The first parameter to the command.</param>
+            <param name="value">The second parameter to the command.</param>
+            <returns>The result of the command.</returns>
+        </member>
+        <member name="T:Selenium.Internal.SeleniumEmulation.WindowSelector">
+            <summary>
+            Provides methods for selecting a window.
+            </summary>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowSelector.#ctor(OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Selenium.Internal.SeleniumEmulation.WindowSelector"/> class.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> used in selecting the windows.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowSelector.SelectWindow(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Selects a window.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> used in selecting the windows.</param>
+            <param name="windowId">The window ID to select.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowSelector.SelectFrame(OpenQA.Selenium.IWebDriver,System.String)">
+            <summary>
+            Selects a frame.
+            </summary>
+            <param name="driver">The <see cref="T:OpenQA.Selenium.IWebDriver"/> used in selecting the windows.</param>
+            <param name="locator">The locator used to select the frame.</param>
+        </member>
+        <member name="M:Selenium.Internal.SeleniumEmulation.WindowSelector.SelectBlankWindow(OpenQA.Selenium.IWebDriver)">
+            <summary>
+            Selects the only <code>_blank</code> window. A window open with
+            <code>target='_blank'</code> will have a <code>window.name = null</code>. 
+            </summary>
+            <param name="driver">The driver to use to select the window.</param>
+            <remarks>
+            <para>This method assumes that there will only be one single
+            <code>_blank</code> window and selects the first one with no name.
+            Therefore if for any reasons there are multiple windows with
+            <code>window.name = null</code> the first found one will be selected.
+            </para>
+            <para>If none of the windows have <code>window.name = null</code> the last
+            selected one will be re-selected and a <see cref="T:Selenium.SeleniumException"/> will
+            be thrown.
+            </para>
+            </remarks>
+        </member>
+    </members>
+</doc>

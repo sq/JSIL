@@ -104,6 +104,15 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSCachedType : JSType {
+        public readonly int Index;
+
+        public JSCachedType (TypeReference type, int index)
+            : base(type) {
+            Index = index;
+        }
+    }
+
     public class JSField : JSIdentifier {
         public readonly FieldReference Reference;
         public readonly FieldInfo Field;
@@ -238,7 +247,8 @@ namespace JSIL.Ast {
                 return String.Format("{0}<{1}>.{2}", parentTypeName, genericArgsText, Reference.Name);
             } else
              */
-                return Method.GetName(true);
+
+            return Method.GetName(false);
         }
     }
 
@@ -439,8 +449,18 @@ namespace JSIL.Ast {
     }
 
     public class JSParameter : JSVariable {
-        internal JSParameter (string name, TypeReference type, MethodReference function)
-            : base(name, type, function) {
+        internal JSParameter (string name, TypeReference type, MethodReference function, bool escapeName = true)
+            : base(MaybeEscapeName(name, escapeName), type, function) {
+        }
+
+        public static string MaybeEscapeName (string name, bool actuallyEscape) {
+            if (!actuallyEscape)
+                return name;
+
+            if (name == "this")
+                return "@this";
+
+            return name;
         }
 
         public override bool IsParameter {
@@ -484,7 +504,8 @@ namespace JSIL.Ast {
 
     public class JSThisParameter : JSParameter {
         public JSThisParameter (TypeReference type, MethodReference function) :
-            base("this", type, function) {
+            base("this", type, function, false) 
+        {
         }
 
         public override bool IsThis {

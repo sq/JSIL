@@ -55,6 +55,8 @@ namespace JSIL.Meta {
     /// <summary>
     /// Specifies that references to this identifier should be replaced with a specified javascript expression when translating code to JavaScript.
     /// To refer to a parameter within the replacement expression, prefix the parameter name with a dollar sign - the this-reference becomes $this, for example.
+    /// To insert a dollar sign into the replacement expression, write '$$'.
+    /// When replacing a constructor, '$this' can be used to refer to the this-reference if the constructor is being called in-place on a struct instance.
     /// </summary>
     [AttributeUsage(
         AttributeTargets.Method | AttributeTargets.Constructor |
@@ -76,6 +78,17 @@ namespace JSIL.Meta {
     )]
     public class JSChangeName : Attribute {
         public JSChangeName (string newName) {
+        }
+    }
+
+    /// <summary>
+    /// Specifies that uses of this constructor should be replaced with invocations of a static method.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Constructor
+    )]
+    public class JSChangeToStaticMethod : Attribute {
+        public JSChangeToStaticMethod (string staticMethodName) {
         }
     }
 
@@ -135,5 +148,15 @@ namespace JSIL.Meta {
         AttributeTargets.Field
     )]
     public class JSImmutable : Attribute {
+    }
+
+    /// <summary>
+    /// Specifies that it is invalid to access this property by invoking its getter/setter
+    ///  methods directly in JavaScript.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Property
+    )]
+    public class JSAlwaysAccessAsProperty : Attribute {
     }
 }

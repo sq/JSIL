@@ -172,10 +172,15 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 var argumentValues = arguments.Skip(2).ToArray();
+                var memberName = MemberName;
+
+                if ((TypeArguments != null) && (TypeArguments.Length > 0)) {
+                    memberName += "`" + TypeArguments.Length;
+                }
 
                 return JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod(
-                        MemberName, returnType, 
+                        memberName, returnType, 
                         (from av in argumentValues select av.GetActualType(translator.TypeSystem)).ToArray(),
                         translator.MethodTypes, TypeArguments
                     ), thisArgument,

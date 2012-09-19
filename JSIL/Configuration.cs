@@ -29,6 +29,8 @@ namespace JSIL.Translator {
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
             public bool? EliminatePointlessFinallyBlocks;
+            public bool? CacheTypeExpressions;
+            public bool? PreferAccessorMethods;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -45,6 +47,10 @@ namespace JSIL.Translator {
                     result.CacheMethodSignatures = CacheMethodSignatures;
                 if (EliminatePointlessFinallyBlocks.HasValue)
                     result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
+                if (CacheTypeExpressions.HasValue)
+                    result.CacheTypeExpressions = CacheTypeExpressions;
+                if (PreferAccessorMethods.HasValue)
+                    result.PreferAccessorMethods = PreferAccessorMethods;
             }
         }
 

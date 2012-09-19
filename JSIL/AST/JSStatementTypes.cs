@@ -111,16 +111,22 @@ namespace JSIL.Ast {
         public readonly int GroupIndex;
         public readonly OrderedDictionary<string, JSStatement> Labels = new OrderedDictionary<string, JSStatement>();
 
-        public JSLabelGroupStatement (int index, params JSStatement[] labels) {
+        private LinkedListNode<string> EntryLabelNode, ExitLabelNode;
+
+        public JSLabelGroupStatement (int index, JSStatement entryLabel, JSStatement exitLabel) {
             GroupIndex = index;
 
-            foreach (var lb in labels) {
-                var labelBlock = lb as JSBlockStatement;
-                if (labelBlock != null)
-                    labelBlock.IsControlFlow = true;
+            MarkAsControlFlow(entryLabel);
+            MarkAsControlFlow(exitLabel);
 
-                Labels.Enqueue(lb.Label, lb);
-            }
+            EntryLabelNode = Labels.Enqueue(entryLabel.Label, entryLabel);
+            ExitLabelNode = Labels.Enqueue(exitLabel.Label, exitLabel);
+        }
+
+        private void MarkAsControlFlow (JSStatement s) {
+            var bs = s as JSBlockStatement;
+            if (bs != null)
+                bs.IsControlFlow = true;
         }
 
         public override IEnumerable<JSNode> Children {
@@ -164,7 +170,9 @@ namespace JSIL.Ast {
             if (statement.Label == null)
                 throw new InvalidOperationException("Cannot add an unlabeled statement to a label group");
 
-            Labels.Enqueue(statement.Label, statement);
+            MarkAsControlFlow(statement);
+
+            Labels.EnqueueBefore(ExitLabelNode, statement.Label, statement);
         }
     }
 

@@ -226,13 +226,14 @@ namespace JSIL.Try {
                             "System.EnterpriseServices,",
                             "JSIL.Meta,"
                         }
-                    },
+                    },                    
                     FrameworkVersion = 4.0,
                     GenerateSkeletonsForStubbedAssemblies = false,
                     GenerateContentManifest = false,
                     IncludeDependencies = false,
                     UseSymbols = true,
-                    UseThreads = false
+                    UseThreads = false,
+                    RunBugChecks = false
                 };
 
                 var translatorOutput = new StringBuilder();

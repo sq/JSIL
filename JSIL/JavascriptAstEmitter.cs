@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
 using JSIL.Transforms;
+using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -22,7 +23,7 @@ namespace JSIL {
     public class JavascriptAstEmitter : JSAstVisitor {
         public readonly ITypeInfoSource TypeInfo;
         public readonly JavascriptFormatter Output;
-
+        public readonly Configuration Configuration;
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
@@ -33,7 +34,12 @@ namespace JSIL {
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
 
-        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem, ITypeInfoSource typeInfo) {
+        public JavascriptAstEmitter (
+            JavascriptFormatter output, JSILIdentifier jsil, 
+            TypeSystem typeSystem, ITypeInfoSource typeInfo,
+            Configuration configuration
+        ) {
+            Configuration = configuration;
             Output = output;
             JSIL = jsil;
             TypeSystem = typeSystem;
@@ -180,13 +186,20 @@ namespace JSIL {
 
                 var nonNullChildren = kvp.Value.Children.Where(isNotNull);
 
-                var lastStatement = nonNullChildren.LastOrDefault();
+                var originalLastStatement = nonNullChildren.LastOrDefault();
+                var lastStatement = originalLastStatement;
                 JSBlockStatement lastBlockStatement;
 
                 while ((lastBlockStatement = lastStatement as JSBlockStatement) != null) {
-                    if (lastBlockStatement.IsControlFlow)
+                    if (
+                        (lastBlockStatement.IsControlFlow) &&
+                        !(
+                            (lastBlockStatement == originalLastStatement) &&
+                            (originalLastStatement is JSBlockStatement)
+                        )
+                    ) {
                         break;
-                    else {
+                    } else {
                         nonNullChildren = lastStatement.Children.Where(isNotNull);
                         lastStatement = nonNullChildren.LastOrDefault();
                     }
@@ -302,13 +315,13 @@ namespace JSIL {
 
             var prop = pa.Property.Property;
 
-            // When possible, access the property's backing field instead of using the property itself.
-            // Property accesses are stupid slow in JavaScript :(
             if (
                 prop.IsAutoProperty && 
                 !prop.IsVirtual && 
                 !prop.DeclaringType.IsInterface
             ) {
+                // When possible, access the property's backing field instead of using the property itself.
+                // Property accesses are stupid slow in JavaScript :(
                 Output.WriteRaw(prop.BackingFieldName);
             } else {
                 if (pa.TypeQualified) {
@@ -341,8 +354,15 @@ namespace JSIL {
             Visit(ma.Member);
         }
 
+        private void WritePossiblyCachedTypeIdentifier (TypeReference type, int? index) {
+            if (index.HasValue)
+                Output.WriteRaw("$T{0:X2}", index.Value);
+            else
+                Output.Identifier(type, ReferenceContext, false);
+        }
+
         public void VisitNode (JSIsExpression ie) {
-            Output.Identifier(ie.Type, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$Is");
             Output.LPar();
@@ -353,7 +373,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSAsExpression ae) {
-            Output.Identifier(ae.NewType, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$As");
             Output.LPar();
@@ -364,7 +384,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
-            Output.Identifier(ce.NewType, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$Cast");
             Output.LPar();
@@ -454,7 +474,7 @@ namespace JSIL {
             bool parens =
                 (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
 
-            var regex = new Regex(@"(\$(?'name'(typeof\(this\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+            var regex = new Regex(@"(\$\$|\$(?'name'(typeof\(this\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
             if (parens)
                 Output.LPar();
@@ -479,6 +499,9 @@ namespace JSIL {
                             Visit(verbatim.Variables[key]);
                         else
                             Output.WriteRaw("null");
+                    } else {
+                        if (m.Value == "$$")
+                            Output.WriteRaw("$");
                     }
                 }
 
@@ -655,6 +678,10 @@ namespace JSIL {
             );
         }
 
+        public void VisitNode (JSCachedType cachedType) {
+            Output.WriteRaw("$T{0:X2}", cachedType.Index);
+        }
+
         public void VisitNode (JSTypeOfExpression toe) {
             Output.Identifier(
                 toe.Type, ReferenceContext, IncludeTypeParens.Peek()
@@ -767,6 +794,18 @@ namespace JSIL {
                 function.DisplayName,
                 (o) => o.WriteParameterList(function.Parameters)
             );
+
+            if (function.TemporaryVariableCount > 0) {
+                Output.WriteRaw("var ");
+                for (var i = 0; i < function.TemporaryVariableCount; i++) {
+                    Output.WriteRaw("$temp{0:X2}", i);
+
+                    if (i < (function.TemporaryVariableCount - 1))
+                        Output.WriteRaw(", ");
+                    else
+                        Output.Semicolon();
+                }
+            }
 
             Visit(function.Body);
 
@@ -1036,16 +1075,13 @@ namespace JSIL {
                 Output.WriteRaw(uop.Operator.Token);
         }
 
-        public void VisitNode (JSBinaryOperatorExpression bop) {
-            bool parens = true;
-            bool needsTruncation = false, needsCast = false;
-
+        private bool NeedParensForBinaryOperator (JSBinaryOperatorExpression bop) {
             if (ParentNode is JSIfStatement)
-                parens = false;
+                return false;
             else if ((ParentNode is JSWhileLoop) && ((JSWhileLoop)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if ((ParentNode is JSDoLoop) && ((JSDoLoop)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if (ParentNode is JSForLoop) {
                 var fl = (JSForLoop)ParentNode;
                 if (
@@ -1053,39 +1089,46 @@ namespace JSIL {
                     (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
                     (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
                 ) {
-                    parens = false;
+                    return false;
                 }
             } else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if (
                 (ParentNode is JSBinaryOperatorExpression) &&
                 ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator &&
                 bop.Operator is JSLogicalOperator
             ) {
-                parens = false;
+                return false;
             } else if (ParentNode is JSVariableDeclarationStatement)
-                parens = false;
+                return false;
             else if (ParentNode is JSExpressionStatement)
-                parens = false;
+                return false;
 
-            var leftType = bop.Left.GetActualType(TypeSystem);
-            var rightType = bop.Right.GetActualType(TypeSystem);
-            var resultType = bop.GetActualType(TypeSystem);
+            return true;
+        }
 
+        private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
-                needsTruncation =                     
+                var leftType = bop.Left.GetActualType(TypeSystem);
+                var rightType = bop.Right.GetActualType(TypeSystem);
+
+                return
                     (TypeUtil.IsIntegral(leftType) ||
                     TypeUtil.IsIntegral(rightType)) &&
                     TypeUtil.IsIntegral(resultType);
             }
 
-            // Arithmetic on enum types needs a cast at the end.
-            if (bop.Operator is JSArithmeticOperator) {
-                if (TypeUtil.IsEnum(TypeUtil.StripNullable(resultType))) {
-                    needsCast = true;
-                }
-            }
+            return false;
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression bop) {
+            var resultType = bop.GetActualType(TypeSystem);
+
+            bool needsCast = (bop.Operator is JSArithmeticOperator) && 
+                TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
+            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
+            bool parens = NeedParensForBinaryOperator(bop);
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
@@ -1308,7 +1351,7 @@ namespace JSIL {
         protected bool CanUseFastOverloadDispatch (MethodInfo method) {
             MethodSignatureSet mss;
 
-            if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
+            if (method.DeclaringType.MethodSignatures.TryGet(method.NamedSignature.Name, out mss)) {
                 int overloadCount = 0;
 
                 var gaCount = method.GenericParameterNames.Length;
@@ -1507,6 +1550,14 @@ namespace JSIL {
             Output.WriteRaw("new JSIL.ObjectInitializer");
             Output.LPar();
             Visit(noie.Initializer);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSCommaExpression comma) {
+            Output.LPar();
+
+            CommaSeparatedList(comma.SubExpressions, false);
+
             Output.RPar();
         }
     }

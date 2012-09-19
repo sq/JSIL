@@ -1,0 +1,1 @@
+For JSIL to automatically convert your sound assets to OGG, you need to put a version of the command line OGG Vorbis encoder in this folder (oggenc2.exe).

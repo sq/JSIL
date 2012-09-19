@@ -56,7 +56,13 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
 
     if (json) {
       JSIL.Host.logWriteLine("Loaded '" + name + "' from local storage.");
-      return JSON.parse(json);
+
+      var array = JSON.parse(json);
+      if (window.Uint8Array) {
+        return new Uint8Array(array);
+      } else {
+        return array;
+      }
     } else {
       JSIL.Host.logWriteLine("Could not find '" + name + "' in local storage.");
       return null;
@@ -66,7 +72,17 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
   $.RawMethod(false, "setFileBytes", function (name, value) {    
     var key = getKey(this.name) + "_blobs_" + name;
 
-    var json = JSON.stringify(value);
+    // JSON.stringify turns typed arrays into dictionaries :|
+
+    var json = "[";
+    for (var i = 0; i < value.length; i++) {
+      if (i !== 0)
+        json += ",";
+
+      json += value[i];
+    }
+    json += "]";
+
     localStorage.setItem(key, json);
 
     JSIL.Host.logWriteLine("Saved '" + name + "' to local storage.");

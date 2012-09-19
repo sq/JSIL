@@ -193,6 +193,8 @@ namespace JSIL.Tests {
         public readonly TimeSpan CompilationElapsed;
         public readonly EvaluatorPool EvaluatorPool;
 
+        protected bool? MainAcceptsArguments;
+
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
             var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
@@ -301,15 +303,23 @@ namespace JSIL.Tests {
         }
 
         protected MethodInfo GetTestMethod () {
-            var program = Assembly.GetType("Program");
-            if (program == null)
-                throw new Exception("Test missing 'Program' main class");
+            var entryPoint = Assembly.EntryPoint;
+            
+            if (entryPoint == null) {
+                var program = Assembly.GetType("Program");
+                if (program == null)
+                    throw new Exception("Test missing 'Program' main class");
 
-            var testMethod = program.GetMethod("Main");
-            if (testMethod == null)
-                throw new Exception("Test missing 'Main' method of 'Program' main class");
+                var testMethod = program.GetMethod("Main");
+                if (testMethod == null)
+                    throw new Exception("Test missing 'Main' method of 'Program' main class");
 
-            return testMethod;
+                entryPoint = testMethod;
+            }
+
+            MainAcceptsArguments = entryPoint.GetParameters().Length > 0;
+
+            return entryPoint;
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
@@ -324,14 +334,13 @@ namespace JSIL.Tests {
                     var testMethod = GetTestMethod();
                     long startedCs = DateTime.UtcNow.Ticks;
 
-                    var argCount = testMethod.GetParameters().Length;
-
-                    if (argCount == 1) {
+                    if (MainAcceptsArguments.Value) {
                         testMethod.Invoke(null, new object[] { args });
-                    } else if (argCount == 0) {
-                        testMethod.Invoke(null, new object[] { });
                     } else {
-                        throw new Exception("Test's Main method must take either 0 or 1 argument(s)");
+                        if ((args != null) && (args.Length > 0))
+                            throw new ArgumentException("Test case does not accept arguments");
+
+                        testMethod.Invoke(null, new object[] { });
                     }
 
                     long endedCs = DateTime.UtcNow.Ticks;
@@ -354,10 +363,16 @@ namespace JSIL.Tests {
         }
 
         public string GenerateJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation
+            string[] args, out string generatedJavascript, out long elapsedTranslation,
+            Func<Configuration> makeConfiguration = null
         ) {
             var tempFilename = Path.GetTempFileName();
-            var configuration = MakeDefaultConfiguration();
+            Configuration configuration;
+
+            if (makeConfiguration != null)
+                configuration = makeConfiguration();
+            else
+                configuration = MakeDefaultConfiguration();
 
             if (StubbedAssemblies != null)
                 configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);
@@ -395,13 +410,23 @@ namespace JSIL.Tests {
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
             var testMethod = GetTestMethod();
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
+            var declaringType = JSIL.Internal.Util.EscapeIdentifier(
+                testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier
+            );
 
             string argsJson;
-            var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
-            using (var ms2 = new MemoryStream()) {
-                jsonSerializer.WriteObject(ms2, args);
-                argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
+
+            if (MainAcceptsArguments.Value) {
+                var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
+                using (var ms2 = new MemoryStream()) {
+                    jsonSerializer.WriteObject(ms2, args);
+                    argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
+                }
+            } else {
+                if ((args != null) && (args.Length > 0))
+                    throw new ArgumentException("Test case does not accept arguments");
+
+                argsJson = "";
             }
 
             var prefixJs =
@@ -412,9 +437,12 @@ namespace JSIL.Tests {
                 @"if (typeof (elapsed) !== 'function') {{ if (typeof (Date) === 'object') elapsed = Date.now; else elapsed = function () {{ return 0; }} }}" +
                 @"timeout({0});" +
                 @"JSIL.Initialize(); var started = elapsed(); " +
-                @"{1}.Main({2}); " +
+                @"JSIL.GetAssembly({1}).{2}.{3}({4}); " +
                 @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
-                JavascriptExecutionTimeout, declaringType, argsJson
+                JavascriptExecutionTimeout, 
+                Util.EscapeString(testMethod.Module.Assembly.FullName),
+                declaringType, Util.EscapeIdentifier(testMethod.Name), 
+                argsJson
             );
 
             generatedJavascript = translatedJs;
@@ -432,9 +460,10 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs
+            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
+            Func<Configuration> makeConfiguration = null
         ) {
-            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation);
+            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration);
 
             using (var evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
@@ -606,9 +635,13 @@ namespace JSIL.Tests {
             );
         }
 
+        protected virtual Configuration MakeConfiguration () {
+            return ComparisonTest.MakeDefaultConfiguration();
+        }
+
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).GetTypeInfoProvider();
+            return (new AssemblyTranslator(MakeConfiguration())).GetTypeInfoProvider();
         }
 
         /// <summary>
@@ -700,7 +733,8 @@ namespace JSIL.Tests {
                 RunComparisonTest(
                     filename, stubbedAssemblies, typeInfo, 
                     errorCheckPredicate, failureList, 
-                    commonFile, shouldRunJs, asmCache
+                    commonFile, shouldRunJs, asmCache, 
+                    MakeConfiguration
                 );
             }
 
@@ -724,7 +758,8 @@ namespace JSIL.Tests {
 
         private void RunComparisonTest(
             string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
-            List<string> failureList = null, string commonFile = null,  bool shouldRunJs = true, AssemblyCache asmCache = null
+            List<string> failureList = null, string commonFile = null,  bool shouldRunJs = true, AssemblyCache asmCache = null,
+            Func<Configuration> makeConfiguration = null
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
@@ -751,7 +786,7 @@ namespace JSIL.Tests {
                         try
                         {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            test.GenerateJavascript(new string[0], out js, out elapsed);
+                            test.GenerateJavascript(new string[0], out js, out elapsed, makeConfiguration);
 
                             Console.WriteLine("generated");
 
@@ -786,7 +821,7 @@ namespace JSIL.Tests {
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;
@@ -811,7 +846,7 @@ namespace JSIL.Tests {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
-                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
 
                     Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
                     Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
@@ -833,7 +868,7 @@ namespace JSIL.Tests {
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
                     if (!jse.ErrorText.Contains(jsErrorSubstring)) {

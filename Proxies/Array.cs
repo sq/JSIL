@@ -9,10 +9,12 @@ namespace JSIL.Proxies {
     )]
     public abstract class ArrayProxy {
         [JSChangeName("length")]
+        [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
         abstract public int Length { get; }
 
         [JSChangeName("length")]
+        [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
         abstract public long LongLength { get; } 
 

@@ -1,0 +1,1 @@
+You need to include a command-line version of FFMPEG (ffmpeg.exe) in this folder for JSIL to be able to process audio content that is not stored in .wav format (i.e. if your sounds are already encoded to MP3 or WMA).

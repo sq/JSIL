@@ -296,15 +296,19 @@ namespace JSIL {
                                 useSymbols, path
                             );
 
-                            if (AssemblyLoaded != null)
-                                AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
-
                             if (refAssembly != null) {
+                                if (AssemblyLoaded != null)
+                                    AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
+
                                 lock (result)
                                     result.Add(refAssembly);
 
                                 lock (modulesToVisit)
                                     modulesToVisit.AddRange(refAssembly.Modules);
+                            } else {
+                                Warning(String.Format(
+                                    "Failed to load assembly '{0}'", anr.FullName
+                                ));
                             }
                         }
                     );
@@ -354,47 +358,14 @@ namespace JSIL {
                 GetMethodsToAnalyze(assemblies[i], methodsToAnalyze);
             }
 
-            {
-                int i = 0, mc = methodsToAnalyze.Count;
-                Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
-                    MethodToAnalyze m;
-                    if (!methodsToAnalyze.TryTake(out m))
-                        throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
-
-                    ctx.CurrentModule = m.MD.Module;
-                    ctx.CurrentType = m.MD.DeclaringType;
-                    ctx.CurrentMethod = m.MD;
-
-                    try {
-                        TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
-                    } catch (Exception exc) {
-                        throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
-                    }
-
-                    var j = Interlocked.Increment(ref i);
-                    pr.OnProgressChanged(mc + j, mc * 2);
-
-                    return ctx;
-                };
-
-                if (Configuration.UseThreads.GetValueOrDefault(true)) {
-                    Parallel.For(
-                        0, methodsToAnalyze.Count, parallelOptions,
-                        () => MakeDecompilerContext(assemblies[0].MainModule),
-                        analyzeAMethod,
-                        (ctx) => { }
-                    );
-                } else {
-                    var ctx = MakeDecompilerContext(assemblies[0].MainModule);
-
-                    while (methodsToAnalyze.Count > 0)
-                        analyzeAMethod(0, default(ParallelLoopState), ctx);
-                }
-            }
+            AnalyzeFunctions(
+                parallelOptions, assemblies, 
+                methodsToAnalyze, pr
+            );
 
             pr.OnFinished();
 
-            OptimizeAll();
+            OptimizeAllFunctions();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -496,7 +467,48 @@ namespace JSIL {
             }
         }
 
-        protected void OptimizeAll () {
+        private void AnalyzeFunctions (
+            ParallelOptions parallelOptions, AssemblyDefinition[] assemblies,
+            ConcurrentBag<MethodToAnalyze> methodsToAnalyze, ProgressReporter pr
+        ) {
+            int i = 0, mc = methodsToAnalyze.Count;
+            Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
+                MethodToAnalyze m;
+                if (!methodsToAnalyze.TryTake(out m))
+                    throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
+
+                ctx.CurrentModule = m.MD.Module;
+                ctx.CurrentType = m.MD.DeclaringType;
+                ctx.CurrentMethod = m.MD;
+
+                try {
+                    TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
+                } catch (Exception exc) {
+                    throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
+                }
+
+                var j = Interlocked.Increment(ref i);
+                pr.OnProgressChanged(mc + j, mc * 2);
+
+                return ctx;
+            };
+
+            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                Parallel.For(
+                    0, methodsToAnalyze.Count, parallelOptions,
+                    () => MakeDecompilerContext(assemblies[0].MainModule),
+                    analyzeAMethod,
+                    (ctx) => { }
+                );
+            } else {
+                var ctx = MakeDecompilerContext(assemblies[0].MainModule);
+
+                while (methodsToAnalyze.Count > 0)
+                    analyzeAMethod(0, default(ParallelLoopState), ctx);
+            }
+        }
+
+        protected void OptimizeAllFunctions () {
             var pr = new ProgressReporter();
             if (Optimizing != null)
                 Optimizing(pr);
@@ -517,6 +529,8 @@ namespace JSIL {
             pr.OnFinished();
         }
 
+        // Invoking this function populates the type information graph, and builds a list
+        //  of functions to analyze/optimize/translate (omitting ignored functions, etc).
         private void GetMethodsToAnalyze (AssemblyDefinition assembly, ConcurrentBag<MethodToAnalyze> allMethods) {
             bool isStubbed = IsStubbed(assembly);
 
@@ -662,7 +676,9 @@ namespace JSIL {
             var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, js);
 
             var astEmitter = new JavascriptAstEmitter(
-                output, jsil, context.CurrentModule.TypeSystem, this._TypeInfoProvider
+                output, jsil, 
+                context.CurrentModule.TypeSystem, this._TypeInfoProvider,
+                Configuration
             );
 
             foreach (var typedef in module.Types)
@@ -884,14 +900,9 @@ namespace JSIL {
             try {
                 declaredTypes.Add(typedef);
 
-                // type has a JS replacement, we can't correctly emit a stub or definition for it.
-                // We do want to process nested types and the type definition, though.
+                // type has a JS replacement, we can't correctly emit a stub or definition for it. 
+                // We do want to process nested types, though.
                 if (typeInfo.Replacement != null) {
-                    TranslateTypeDefinition(
-                        context, typedef, astEmitter, output, stubbed,
-                        (o) => o.WriteRaw(typeInfo.Replacement), makingSkeletons
-                    );
-
                     output.NewLine();
 
                     oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
@@ -1132,25 +1143,83 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
+            output.WriteRaw("var $thisType = $.publicInterface");
+            output.Semicolon(true);
+
+            var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
+
+            var typeCacher = new TypeExpressionCacher(typedef);
+            if (
+                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(false)
+            ) {
+                foreach (var method in methodsToTranslate) {
+                    var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+
+                    bool isExternal, b, c;
+                    if (!ShouldTranslateMethodBody(
+                        method, mi, stubbed, out isExternal, out b, out c
+                    ))
+                        continue;
+
+                    var functionBody = GetFunctionBodyForMethod(isExternal, mi);
+                    if (functionBody == null)
+                        continue;
+
+                    typeCacher.CacheTypesForFunction(functionBody);
+                }
+
+                var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
+                if (cts.Length > 0) {
+                    output.WriteRaw("var ");
+
+                    bool isFirst = true;
+                    foreach (var ct in cts) {
+                        if (!isFirst)
+                            output.WriteRaw(", ");
+
+                        output.WriteRaw("$T{0:X2}", ct.Index);
+                        isFirst = false;
+                    }
+
+                    output.Semicolon(true);
+                    output.NewLine();
+
+                    output.WriteRaw("$.TypeCacher");
+                    output.LPar();
+                    output.OpenFunction(null, null);
+
+                    foreach (var ct in cts) {
+                        output.WriteRaw("$T{0:X2} = ", ct.Index);
+                        output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
+                        output.Semicolon(true);
+                    }
+
+                    output.CloseBrace(false);
+                    output.RPar();
+
+                    output.Semicolon(true);
+                }
+            }
+
             context.CurrentType = typedef;
 
             if (typedef.IsPrimitive)
                 TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
-            foreach (var method in typedef.Methods.OrderBy((md) => md.Name)) {
+            foreach (var method in methodsToTranslate) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
 
                 TranslateMethod(
                     context, method, method, astEmitter, output, 
-                    stubbed, dollar
+                    stubbed, dollar, typeCacher
                 );
             }
 
             Action initializeOverloadsAndProperties = () => {
                 foreach (var property in typedef.Properties.OrderBy((p) => p.Name))
-                    TranslateProperty(context, output, property, dollar);
+                    TranslateProperty(context, astEmitter, output, property, dollar);
             };
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
@@ -1350,8 +1419,7 @@ namespace JSIL {
             };
 
             var la = new LabelAnalyzer();
-            la.Visit(function);
-            la.BuildLabelGroups();
+            la.BuildLabelGroups(function);
 
             temporaryEliminationPass();
 
@@ -1446,6 +1514,16 @@ namespace JSIL {
             new ExpandCastExpressions(
                 si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
             ).Visit(function);
+
+            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
+                new OptimizePropertyMutationAssignments(
+                    si.TypeSystem, _TypeInfoProvider
+                ).Visit(function);
+
+                new ConvertPropertyAccessesToInvocations(
+                    si.TypeSystem, _TypeInfoProvider
+                ).Visit(function);
+            }
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
@@ -1466,7 +1544,7 @@ namespace JSIL {
 
         protected JSExpression TranslateField (
             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
-            bool cctorContext, Action<JavascriptFormatter> dollar
+            bool cctorContext, Action<JavascriptFormatter> dollar, JSStringIdentifier fieldSelfIdentifier
         ) {
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
@@ -1537,9 +1615,9 @@ namespace JSIL {
                     defaultValue = new JSFunctionExpression(
                         // No method or variables. This could break things.
                         null, null, 
-                        // We redefine $ within the function so that it points to the public interface,
-                        //  instead of pointing to the outside interface builder.
-                        new JSVariable[] { new JSParameter("$", field.DeclaringType, null) },
+                        new JSVariable[] { 
+                            new JSParameter(fieldSelfIdentifier.Identifier, fieldSelfIdentifier.Type, null) 
+                        },
                         new JSBlockStatement(
                             new JSExpressionStatement(new JSReturnExpression(defaultValue))
                         ),
@@ -1615,11 +1693,14 @@ namespace JSIL {
             //  carried over even if the static constructor (and other methods) are ignored/external.
 
             var fieldDefaults = new Dictionary<FieldDefinition, JSExpression>();
+            JSStringIdentifier fieldSelfIdentifier = null;
 
             // It's possible for a proxy to replace the cctor, so we need to pull default values
             //  from the real cctor (if the type has one)
             var realCctor = typedef.Methods.FirstOrDefault((m) => m.Name == ".cctor");
             if ((realCctor != null) && (realCctor.HasBody)) {
+                fieldSelfIdentifier = new JSStringIdentifier("$pi", realCctor.DeclaringType);
+
                 // Do the simplest possible IL disassembly of the static cctor, 
                 //  because all we're looking for is static field assignments.
                 var ctx = new DecompilerContext(realCctor.Module) {
@@ -1711,7 +1792,7 @@ namespace JSIL {
                             var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
                             foreach (var typeReference in typeReferences) {
                                 if (TypeUtil.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
-                                    defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", realCctor.DeclaringType));
+                                    defaultValue.ReplaceChildRecursive(typeReference, fieldSelfIdentifier);
                             }
 
                             var es = new JSExpressionStatement(defaultValue);
@@ -1752,7 +1833,7 @@ namespace JSIL {
 
                 // Generate field initializations that were not generated by the compiler
                 foreach (var field in fieldsToEmit) {
-                    var expr = TranslateField(field, fieldDefaults, true, dollar);
+                    var expr = TranslateField(field, fieldDefaults, true, dollar, fieldSelfIdentifier);
 
                     if (expr != null) {
                         var stmt = new JSExpressionStatement(expr);
@@ -1772,7 +1853,7 @@ namespace JSIL {
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
 
-                var expr = TranslateField(f, fieldDefaults, false, dollar);
+                var expr = TranslateField(f, fieldDefaults, false, dollar, fieldSelfIdentifier);
 
                 if (expr != null) {
                     output.NewLine();
@@ -1781,7 +1862,7 @@ namespace JSIL {
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1797,7 +1878,7 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -1806,7 +1887,7 @@ namespace JSIL {
 
                 TranslateMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, extraCctor,
+                    output, false, dollar, null, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -1821,46 +1902,89 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateMethod (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null,
-            Action<JSFunctionExpression> bodyTransformer = null
+        protected void CreateMethodInformation (
+            MethodInfo methodInfo, bool stubbed,
+            out bool isExternal, out bool isReplaced, 
+            out bool methodIsProxied
         ) {
-            if (methodInfo == null) {
-                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
-            }
-
-            if (methodInfo == null)
-                return;
-
-            bool isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
-            bool methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) && 
+            isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
+            methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
                 !methodInfo.IsExternal && !isReplaced;
 
-            bool isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+        }
+
+        protected bool ShouldTranslateMethodBody (
+            MethodDefinition method, MethodInfo methodInfo, bool stubbed,
+            out bool isExternal, out bool isReplaced,
+            out bool methodIsProxied
+        ) {
+            if (methodInfo == null) {
+                isExternal = isReplaced = methodIsProxied = false;
+                return false;
+            }
+
+            CreateMethodInformation(
+                methodInfo, stubbed,
+                out isExternal, out isReplaced, out methodIsProxied
+            );
+
             if (isExternal) {
                 if (isReplaced)
-                    return;
+                    return false;
 
                 var isProperty = methodInfo.DeclaringProperty != null;
 
                 if (isProperty && methodInfo.DeclaringProperty.IsExternal)
-                    return;
+                    return false;
 
                 if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
-
                 } else {
                     isExternal = false;
                 }
             }
 
+            if (methodInfo.IsIgnored)
+                return false;
+            if (!method.HasBody && !isExternal)
+                return false;
+
+            return true;
+        }
+
+        protected JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {
+            if (!isExternal) {
+                return FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                    methodInfo.DeclaringType.Identifier,
+                    methodInfo.Identifier
+                ));
+            }
+
+            return null;
+        }
+
+        protected void TranslateMethod (
+            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
+            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
+            Action<JSFunctionExpression> bodyTransformer = null
+        ) {
+            if (methodInfo == null)
+                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+
+            bool isExternal, isReplaced, methodIsProxied;
+
+            if (!ShouldTranslateMethodBody(
+                method, methodInfo, stubbed,
+                out isExternal, out isReplaced, out methodIsProxied
+            ))
+                return;
+
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            if (methodInfo.IsIgnored)
-                return;
-            if (!method.HasBody && !isExternal)
-                return;
+            JSFunctionExpression function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
@@ -1897,12 +2021,6 @@ namespace JSIL {
                 if (!isExternal) {
                     output.Comma();
                     output.NewLine();
-
-                    JSFunctionExpression function;
-                    function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
-                        methodInfo.DeclaringType.Identifier,
-                        methodInfo.Identifier
-                    ));
 
                     if (function != null) {
                         if (bodyTransformer != null)
@@ -1951,11 +2069,12 @@ namespace JSIL {
         }
 
         protected void TranslateProperty (
-            DecompilerContext context, JavascriptFormatter output,
+            DecompilerContext context, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             PropertyDefinition property, Action<JavascriptFormatter> dollar
         ) {
             var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
-            if ((propertyInfo == null) || propertyInfo.IsIgnored || propertyInfo.IsExternal)
+            if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
 
             var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
@@ -1965,7 +2084,9 @@ namespace JSIL {
             dollar(output);
             output.Dot();
 
-            if (property.DeclaringType.HasGenericParameters && isStatic)
+            if (propertyInfo.IsExternal)
+                output.Identifier("ExternalProperty", null);
+            else if (property.DeclaringType.HasGenericParameters && isStatic)
                 output.Identifier("GenericProperty", null);
             else
                 output.Identifier("Property", null);
@@ -1978,11 +2099,16 @@ namespace JSIL {
 
             output.Value(Util.EscapeIdentifier(propertyInfo.Name, EscapingMode.String));
 
+            output.Comma();
+            output.TypeReference(property.PropertyType, astEmitter.ReferenceContext);
+
             output.RPar();
             output.Semicolon();
         }
 
         public void Dispose () {
+            // _TypeInfoProvider.DumpSignatureCollectionStats();
+
             if (OwnsTypeInfoProvider)
                 _TypeInfoProvider.Dispose();
 

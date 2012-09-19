@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using JSIL.Ast;
 using Mono.Cecil;
@@ -187,7 +188,15 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSVariableDeclarationStatement vds)  {
             var parentBlock = (JSBlockStatement)ParentNode;
-            Declarations.Add(vds, parentBlock);
+
+            // FIXME: Is this right?
+            JSBlockStatement existing;
+            if (Declarations.TryGetValue(vds, out existing)) {
+                if (existing != parentBlock)
+                    throw new InvalidDataException("Multiple parents for a single declaration statement");
+            } else {
+                Declarations.Add(vds, parentBlock);
+            }
 
             VisitChildren(vds);
         }

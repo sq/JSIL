@@ -8,6 +8,13 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class FormattingTests : GenericTestFixture {
+        // Type expression caching makes it hard to write these tests.
+        protected override Translator.Configuration MakeConfiguration () {
+            var configuration = base.MakeConfiguration();
+            configuration.Optimizer.CacheTypeExpressions = false;
+            return configuration;
+        }
+
         [Test]
         public void ChainedElseIfs () {
             var generatedJs = GetJavascript(
@@ -189,14 +196,11 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(Regex.IsMatch(
-                    generatedJs,
-                    @"!!(\$asm([0-9A-F])*).Program.P"
-                ));
-                Assert.IsTrue(Regex.IsMatch(
-                    generatedJs, 
-                    @"!(\$asm([0-9A-F])*).Program.P"
-                ));
+                Assert.IsFalse(generatedJs.Contains("!!$thisType"));
+                Assert.IsTrue(
+                    generatedJs.Contains("!$thisType.P") ||
+                    generatedJs.Contains("!$thisType.get_P()")
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -520,9 +524,9 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("CallStatic($asm00.Program, \"A\", "));
-                Assert.IsTrue(generatedJs.Contains("$asm00.Program.B();"));
-                Assert.IsTrue(generatedJs.Contains("CallStatic($asm00.Program, \"B\", "));
+                Assert.IsFalse(generatedJs.Contains("CallStatic($thisType, \"A\", "));
+                Assert.IsTrue(generatedJs.Contains("$thisType.B();"));
+                Assert.IsTrue(generatedJs.Contains("CallStatic($thisType, \"B\", "));
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -631,12 +635,12 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains(".CallVirtual"));
-                Assert.IsFalse(generatedJs.Contains(".Call"));
+                Assert.IsFalse(generatedJs.Contains(".CallVirtual"), "CallVirtual was used");
+                Assert.IsFalse(generatedJs.Contains(".Call"), "Call was used");
 
-                Assert.IsTrue(generatedJs.Contains("this.Equals("));
-                Assert.IsTrue(generatedJs.Contains("a.Equals(b)"));
-                Assert.IsFalse(generatedJs.Contains(".Object_Equals("));
+                Assert.IsTrue(generatedJs.Contains("this.Equals("), "Equals was not invoked on this");
+                Assert.IsTrue(generatedJs.Contains("a.Equals(b)"), "Equals was not invoked on a and b");
+                Assert.IsFalse(generatedJs.Contains(".Object_Equals("), "Object_Equals was used");
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -703,9 +707,43 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("instance.A"));
-                Assert.IsTrue(generatedJs.Contains("instance.B"));
-                Assert.IsTrue(generatedJs.Contains("instance.C"));
+                Assert.IsFalse(
+                    generatedJs.Contains("instance.A") ||
+                    generatedJs.Contains("instance.get_A")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.B") ||
+                    generatedJs.Contains("instance.get_B")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.C") ||
+                    generatedJs.Contains("instance.get_C")
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void PropertyIncrementEfficiency () {
+            var output = "0\r\n2\r\n4\r\n4";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\PropertyIncrementEfficiency.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("instance.Value"), "Property accessed directly"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.get_Value")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.set_Value")
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 

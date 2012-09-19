@@ -66,6 +66,10 @@ namespace JSIL.Transforms {
             return result;
         }
 
+        private int[] GetParentNodeIndices () {
+            return NodeIndexStack.ToArray();
+        }
+
         public void VisitNode (JSReturnExpression ret) {
             ReturnsSeen++;
 
@@ -190,7 +194,7 @@ namespace JSIL.Transforms {
                 if (variable != null) {
                     State.Assignments.Add(
                         new FunctionAnalysis1stPass.Assignment(
-                            StatementIndex, NodeIndex,
+                            GetParentNodeIndices(), StatementIndex, NodeIndex,
                             variable, uoe, uoe.Operator,
                             variable.GetActualType(TypeSystem), uoe.GetActualType(TypeSystem)
                         )
@@ -230,7 +234,7 @@ namespace JSIL.Transforms {
 
                     State.Assignments.Add(
                         new FunctionAnalysis1stPass.Assignment(
-                            StatementIndex, NodeIndex,
+                            GetParentNodeIndices(), StatementIndex, NodeIndex,
                             leftVar, boe.Right, boe.Operator,
                             leftType, rightType
                         )
@@ -257,11 +261,11 @@ namespace JSIL.Transforms {
 
             if (fa.HasGlobalStateDependency) {
                 State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
-                    StatementIndex, NodeIndex, field.Field.DeclaringType
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, field.Field.DeclaringType
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    StatementIndex, NodeIndex, v
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, v
                 ));
             }
 
@@ -275,7 +279,7 @@ namespace JSIL.Transforms {
 
             if (prop.HasGlobalStateDependency) {
                 State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
-                    StatementIndex, NodeIndex, p.DeclaringType
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, p.DeclaringType
                 ));
             }
 
@@ -287,7 +291,7 @@ namespace JSIL.Transforms {
                 // Setter
                 if (v != null) {
                     State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        StatementIndex, NodeIndex, v
+                        GetParentNodeIndices(), StatementIndex, NodeIndex, v
                     ));
                 }
                 /*
@@ -330,11 +334,11 @@ namespace JSIL.Transforms {
                 ModifiedVariable(thisVar);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    StatementIndex, NodeIndex, thisVar, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, variables
                 ));
             } else {
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    StatementIndex, NodeIndex, type, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, type, method, variables
                 ));
             }
 
@@ -345,7 +349,7 @@ namespace JSIL.Transforms {
             if (tcb.CatchVariable != null) {
                 State.Assignments.Add(
                     new FunctionAnalysis1stPass.Assignment(
-                        StatementIndex, NodeIndex,
+                        GetParentNodeIndices(), StatementIndex, NodeIndex,
                         tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
                         tcb.CatchVariable.Type, tcb.CatchVariable.Type
                     )
@@ -381,7 +385,8 @@ namespace JSIL.Transforms {
                 !(enclosingStatement is JSTryCatchBlock) &&
                 !(enclosingStatement is JSVariableDeclarationStatement)
             )) {
-                bool isControlFlow = (enclosingStatement is JSIfStatement) || (enclosingStatement is JSSwitchStatement);
+                bool isControlFlow = (enclosingStatement is JSIfStatement) || 
+                    (enclosingStatement is JSSwitchStatement);
 
                 var enclosingBlock = enclosingStatement as JSBlockStatement;
                 if (enclosingBlock != null)
@@ -389,7 +394,7 @@ namespace JSIL.Transforms {
 
                 State.Accesses.Add(
                     new FunctionAnalysis1stPass.Access(
-                        StatementIndex, NodeIndex,
+                        GetParentNodeIndices(), StatementIndex, NodeIndex,
                         variable, isControlFlow
                     )
                 );
@@ -413,10 +418,12 @@ namespace JSIL.Transforms {
 
     public class FunctionAnalysis1stPass {
         public class Item {
+            public readonly int[] ParentNodeIndices;
             public readonly int StatementIndex;
             public readonly int NodeIndex;
 
-            public Item (int statementIndex, int nodeIndex) {
+            public Item (int[] parentNodeIndices, int statementIndex, int nodeIndex) {
+                ParentNodeIndices = parentNodeIndices;
                 StatementIndex = statementIndex;
                 NodeIndex = nodeIndex;
             }
@@ -426,8 +433,10 @@ namespace JSIL.Transforms {
             public readonly JSVariable Source;
             public readonly bool IsControlFlow;
 
-            public Access (int statementIndex, int nodeIndex, JSVariable source, bool isControlFlow)
-                : base (statementIndex, nodeIndex) {
+            public Access (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                JSVariable source, bool isControlFlow
+            ) : base (parentNodeIndices, statementIndex, nodeIndex) { 
                 Source = source;
                 IsControlFlow = isControlFlow;
             }
@@ -449,11 +458,11 @@ namespace JSIL.Transforms {
             public readonly bool IsConversion;
 
             public Assignment (
-                int statementIndex, int nodeIndex, 
+                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSVariable target, JSExpression newValue,
                 JSOperator @operator,
                 TypeReference targetType, TypeReference sourceType
-            ) : base (statementIndex, nodeIndex) {
+            ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Target = target;
                 NewValue = newValue;
                 SourceVariable = newValue as JSVariable;
@@ -471,8 +480,10 @@ namespace JSIL.Transforms {
         public class StaticReference : Item {
             public readonly TypeInfo Type;
 
-            public StaticReference (int statementIndex, int nodeIndex, TypeInfo type)
-                : base(statementIndex, nodeIndex) {
+            public StaticReference (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                TypeInfo type
+            ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 Type = type;
             }
         }
@@ -480,8 +491,10 @@ namespace JSIL.Transforms {
         public class SideEffect : Item {
             public readonly JSVariable Variable;
 
-            public SideEffect (int statementIndex, int nodeIndex, JSVariable variable)
-                : base (statementIndex, nodeIndex) {
+            public SideEffect (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                JSVariable variable
+            ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
             }
         }
@@ -492,16 +505,23 @@ namespace JSIL.Transforms {
             public readonly JSMethod Method;
             public readonly IDictionary<string, string[]> Variables;
 
-            public Invocation (int statementIndex, int nodeIndex, JSType type, JSMethod method, IDictionary<string, string[]> variables) 
-                : base (statementIndex, nodeIndex) {
+            public Invocation (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                JSType type, JSMethod method, 
+                IDictionary<string, string[]> variables
+            )
+                : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
                 ThisVariable = null;
                 Method = method;
                 Variables = variables;
             }
 
-            public Invocation (int statementIndex, int nodeIndex, JSVariable thisVariable, JSMethod method, IDictionary<string, string[]> variables)
-                : base(statementIndex, nodeIndex) {
+            public Invocation (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                JSVariable thisVariable, JSMethod method, 
+                IDictionary<string, string[]> variables
+            ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisVariable = thisVariable.Identifier;
                 ThisType = null;
                 Method = method;

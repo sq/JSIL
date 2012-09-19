@@ -18,6 +18,20 @@ namespace JSIL.Transforms {
         private readonly HashSet<JSOperator> LogicalOperators;
         private readonly HashSet<JSOperator> BitwiseOperators;
 
+        public static readonly Dictionary<JSAssignmentOperator, JSBinaryOperator> ReverseCompoundAssignments = new Dictionary<JSAssignmentOperator, JSBinaryOperator> {
+            { JSOperator.AddAssignment, JSOperator.Add },
+            { JSOperator.SubtractAssignment, JSOperator.Subtract },
+            { JSOperator.MultiplyAssignment, JSOperator.Multiply },
+            { JSOperator.DivideAssignment, JSOperator.Divide },
+            { JSOperator.RemainderAssignment, JSOperator.Remainder },
+            { JSOperator.ShiftLeftAssignment, JSOperator.ShiftLeft },
+            { JSOperator.ShiftRightAssignment, JSOperator.ShiftRight },
+            { JSOperator.ShiftRightUnsignedAssignment, JSOperator.ShiftRightUnsigned },
+            { JSOperator.BitwiseAndAssignment, JSOperator.BitwiseAnd },
+            { JSOperator.BitwiseOrAssignment, JSOperator.BitwiseOr },
+            { JSOperator.BitwiseXorAssignment, JSOperator.BitwiseXor },
+        };
+
         public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
@@ -69,19 +83,86 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        private JSBinaryOperatorExpression MakeUnaryMutation (
+            JSExpression expressionToMutate, JSBinaryOperator mutationOperator,
+            TypeReference type
+        ) {
+            var newValue = new JSBinaryOperatorExpression(
+                mutationOperator, expressionToMutate, JSLiteral.New(1),
+                TypeSystem.Int32
+            );
+            var assignment = new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                expressionToMutate, JSCastExpression.New(
+                    newValue, type, TypeSystem, true
+                ), type
+            );
+
+            return assignment;
+        }
+
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var type = uoe.Expression.GetActualType(TypeSystem);
             var isEnum = IsEnumOrNullableEnum(type);
 
             if (isEnum) {
-                var cast = JSInvocationExpression.InvokeMethod(
+                var castToInt = JSInvocationExpression.InvokeMethod(
                     JS.valueOf(TypeSystem.Int32), uoe.Expression, null, true
                 );
 
                 if (LogicalOperators.Contains(uoe.Operator)) {
-                    uoe.ReplaceChild(uoe.Expression, cast);
+                    uoe.ReplaceChild(uoe.Expression, castToInt);
                 } else if (uoe.Operator == JSOperator.Negation) {
-                    uoe.ReplaceChild(uoe.Expression, cast);
+                    uoe.ReplaceChild(uoe.Expression, castToInt);
+                } else if (uoe.Operator is JSUnaryMutationOperator) {
+                    if (
+                        (uoe.Operator == JSOperator.PreIncrement) || 
+                        (uoe.Operator == JSOperator.PreDecrement)
+                    ) {
+                        var assignment = MakeUnaryMutation(
+                            uoe.Expression,
+                            (uoe.Operator == JSOperator.PreDecrement) 
+                                ? JSOperator.Subtract 
+                                : JSOperator.Add,
+                            type
+                        );
+
+                        ParentNode.ReplaceChild(uoe, assignment);
+                        VisitReplacement(assignment);
+                        return;
+
+                    } else if (
+                        (uoe.Operator == JSOperator.PostIncrement) || 
+                        (uoe.Operator == JSOperator.PostDecrement)
+                    ) {
+                        // FIXME: Terrible hack
+                        var tempVariable = TemporaryVariable.ForFunction(
+                            Stack.Last() as JSFunctionExpression, type
+                        );
+                        var makeTempCopy = new JSBinaryOperatorExpression(
+                            JSOperator.Assignment, tempVariable, uoe.Expression, type
+                        );
+                        var assignment = MakeUnaryMutation(
+                            uoe.Expression,
+                            (uoe.Operator == JSOperator.PostDecrement)
+                                ? JSOperator.Subtract
+                                : JSOperator.Add,
+                            type
+                        );
+
+                        var comma = new JSCommaExpression(
+                            makeTempCopy,
+                            assignment,
+                            tempVariable
+                        );
+
+                        ParentNode.ReplaceChild(uoe, comma);
+                        VisitReplacement(comma);
+                        return;
+
+                    } else {
+                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe.ToString());
+                    }
                 }
             }
 
@@ -97,6 +178,9 @@ namespace JSIL.Transforms {
             var resultIsEnum = IsEnumOrNullableEnum(resultType);
 
             var eitherIsEnum = leftIsEnum || rightIsEnum;
+
+            var assignmentOperator = boe.Operator as JSAssignmentOperator;
+            JSBinaryOperator replacementOperator;
 
             if (LogicalOperators.Contains(boe.Operator)) {
                 if (eitherIsEnum) {
@@ -126,6 +210,24 @@ namespace JSIL.Transforms {
                     ParentNode.ReplaceChild(boe, cast);
                     VisitReplacement(cast);
                 }
+            } else if (
+                (assignmentOperator != null) &&
+                ReverseCompoundAssignments.TryGetValue(assignmentOperator, out replacementOperator) &&
+                leftIsEnum
+            ) {
+                var replacement = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, boe.Left, 
+                    JSCastExpression.New(
+                        new JSBinaryOperatorExpression(
+                            replacementOperator, boe.Left, boe.Right, TypeSystem.Int32
+                        ), leftType, TypeSystem, true
+                    ),
+                    leftType
+                );
+
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+                return;
             }
 
             VisitChildren(boe);

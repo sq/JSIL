@@ -1,10 +1,11 @@
 ﻿{
-  "OutputDirectory": "%assemblypath%",
+  "OutputDirectory": "%configdirectory%",
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",
       "System.*",
-      "Microsoft.*"
+      "Microsoft.*",
+      "FSharp.Core"
     ],
     "Ignored": [
       "Microsoft.VisualC,",
@@ -17,5 +18,9 @@
       "System.Data.SqlXml,",
       "JSIL.Meta,"
     ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%outputdirectory%/Content"
   }
 }

@@ -38,35 +38,35 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"a = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"a = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\((\$asm([0-9A-F])*).Program.B\).MemberwiseClone\(\)"
+                @"b = \$thisType.ReturnArgument\($thisType.B\).MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"c = (\$asm([0-9A-F])*).Program.B.MemberwiseClone\(\)"
+                @"c = \$thisType.B.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"d = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"d = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"e = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"e = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.Field = e.MemberwiseClone\(\)"
+                @"\$thisType.Field = e.MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.StoreArgument\(d.MemberwiseClone\(\)\)"
+                @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"f = new JSIL.Variable\((\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)\)"
+                @"f = new JSIL.Variable\(\$thisType.A.MemberwiseClone\(\)\)"
             ));
         }
 
@@ -82,11 +82,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnArgument\(a.MemberwiseClone\(\)\)"
+                @"\$thisType.ReturnArgument\(a.MemberwiseClone\(\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\(a\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnArgument\(a\).MemberwiseClone\(\);"
             ));
         }
 
@@ -102,11 +102,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
             ));
         }
 
@@ -122,11 +122,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
             ));
         }
 
@@ -254,8 +254,8 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\((\$asm([0-9A-F])*)." +
-                @"Program.ReturnIncrementedArgument\((\$asm([0-9A-F])*).Program.ReturnArgument\(a\)." +
+                @"b = \$thisType.ReturnArgument\(" +
+                @"\$thisType.ReturnIncrementedArgument\(\$thisType.ReturnArgument\(a\)." +
                 @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
             ));
         }
@@ -346,11 +346,83 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReuseEnumeratorLocal () {
+            var output = "1\r\n2\r\n3";
+
+            output += "\r\n" + output + "\r\n" + output;
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ReuseEnumeratorLocal.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".GetEnumerator"
+            ), "GetEnumerator was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".MoveNext()"
+            ), "MoveNext was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".Current"
+            ), "Current was used");
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Dispose was called");
+        }
+
+        [Test]
         public void StructLoopInteraction () {
             var output = "0\r\n1\r\n2";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\StructLoopInteraction.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void PropertyTemporaries () {
+            var output = 
+@"Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Right, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Up, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Left, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Down, 384)";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\PropertyTemporaries.cs",
+                output, output
+            );
+
+            Assert.IsTrue(generatedJs.Contains("var x = "));
+            Assert.IsTrue(generatedJs.Contains("var y = "));
+            Assert.IsTrue(generatedJs.Contains("/ 8) | 0) * 8"));
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void TemporaryArraySize () {
+            var output = "tempArray.Length=64";
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\TemporaryArraySize.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void AddToStructProperty () {
+            var output = "0\r\n1\r\n2";
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\AddToStructProperty.cs",
                 output, output
             );
 

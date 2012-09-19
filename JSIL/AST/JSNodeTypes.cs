@@ -22,6 +22,15 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<JSNode> SelfAndChildren {
+            get {
+                yield return this;
+
+                foreach (var ch in Children)
+                    yield return ch;
+            }
+        }
+
         public IEnumerable<JSNode> SelfAndChildrenRecursive {
             get {
                 yield return this;
@@ -127,7 +136,16 @@ namespace JSIL.Ast {
                         return type;
                 } else {
                     var declaringType = member.DeclaringType.Resolve();
-                    var ownerIdentifier = new TypeIdentifier(((TypeReference)gp.Owner).Resolve());
+                    // FIXME: Is this right?
+                    if (declaringType == null)
+                        return type;
+
+                    var ownerResolved = ((TypeReference)gp.Owner).Resolve();
+                    // FIXME: Is this right?
+                    if (ownerResolved == null)
+                        return type;
+
+                    var ownerIdentifier = new TypeIdentifier(ownerResolved);
                     var typeIdentifier = new TypeIdentifier(declaringType);
 
                     if (!ownerIdentifier.Equals(typeIdentifier))

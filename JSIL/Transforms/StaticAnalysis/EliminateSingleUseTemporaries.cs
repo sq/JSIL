@@ -45,7 +45,7 @@ namespace JSIL.Transforms {
 
                         FirstPass.Assignments.Add(
                             new FunctionAnalysis1stPass.Assignment(
-                                a.StatementIndex, a.NodeIndex,
+                                a.ParentNodeIndices, a.StatementIndex, a.NodeIndex,
                                 a.Target, replaceWith, a.Operator,
                                 a.TargetType, a.SourceType
                             )
@@ -288,7 +288,7 @@ namespace JSIL.Transforms {
                     foreach (var access in accesses) {
                         FirstPass.Accesses.Remove(access);
                         FirstPass.Accesses.Add(new FunctionAnalysis1stPass.Access(
-                            access.StatementIndex, access.NodeIndex,
+                            access.ParentNodeIndices, access.StatementIndex, access.NodeIndex,
                             transferDataTo, access.IsControlFlow
                         ));
                     }
@@ -296,7 +296,7 @@ namespace JSIL.Transforms {
                     foreach (var assignment in assignments) {
                         FirstPass.Assignments.Remove(assignment);
                         FirstPass.Assignments.Add(new FunctionAnalysis1stPass.Assignment(
-                            assignment.StatementIndex, assignment.NodeIndex,
+                            assignment.ParentNodeIndices, assignment.StatementIndex, assignment.NodeIndex,
                             transferDataTo, assignment.NewValue, assignment.Operator,
                             assignment.TargetType, assignment.SourceType                            
                        ));
@@ -305,7 +305,7 @@ namespace JSIL.Transforms {
                     foreach (var invocation in invocations) {
                         FirstPass.Invocations.Remove(invocation);
                         FirstPass.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                            invocation.StatementIndex, invocation.NodeIndex,
+                            invocation.ParentNodeIndices, invocation.StatementIndex, invocation.NodeIndex,
                             transferDataTo, invocation.Method, invocation.Variables
                         ));
                     }

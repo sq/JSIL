@@ -14,6 +14,7 @@ using JSIL.Compiler;
 using JSIL.Utilities;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using EncoderParameter = System.Drawing.Imaging.EncoderParameter;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
@@ -67,6 +68,8 @@ public static class Common {
 
     public const int IMAGE_BITMAP = 0;
     public const int LR_LOADFROMFILE = 0x0010;
+
+    static bool WarnedAboutLAME = false, WarnedAboutOggENC = false, WarnedAboutFFMPEG = false;
 
     public static string MakeXNAColors () {
         var result = new StringBuilder();
@@ -174,11 +177,15 @@ public static class Common {
         return true;
     }
 
-    public static string FFMPEGDecode (string sourcePath) {
+    public static string FFMPEGDecode (string sourcePath, ProfileSettings settings) {
         var outputPath = Path.GetTempFileName();
-        var ffmpegPath = Path.GetFullPath(@"..\Upstream\FFMPEG\ffmpeg.exe");
+        var ffmpegPath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\FFMPEG\ffmpeg.exe", false));
         if (!File.Exists(ffmpegPath)) {
-            Console.Error.WriteLine(@"// Warning: ffmpeg.exe was not found at ..\Upstream\FFMPEG\ffmpeg.exe. Can't decode '{0}'.", Path.GetFileName(sourcePath));
+            if (!WarnedAboutFFMPEG) {
+                WarnedAboutFFMPEG = true;
+                Console.Error.WriteLine(@"// Warning: ffmpeg.exe was not found at ..\Upstream\FFMPEG\ffmpeg.exe. Can't decode '{0}'.", Path.GetFileName(sourcePath));
+            }
+
             return null;
         }
 
@@ -202,10 +209,14 @@ public static class Common {
             return null;
     }
 
-    public static bool CompressMP3 (string sourcePath, string outputPath, Dictionary<string, object> settings) {
-        var lamePath = Path.GetFullPath(@"..\Upstream\LAME\lame.exe");
+    public static bool CompressMP3 (string sourcePath, string outputPath, ProfileSettings settings) {
+        var lamePath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\LAME\lame.exe", false));
         if (!File.Exists(lamePath)) {
-            Console.Error.WriteLine(@"// Warning: lame.exe was not found at ..\Upstream\LAME\lame.exe. Can't encode MP3.");
+            if (!WarnedAboutLAME) {
+                WarnedAboutLAME = true;
+                Console.Error.WriteLine(@"// Warning: lame.exe was not found at ..\Upstream\LAME\lame.exe. Can't encode MP3.");
+            }
+
             return false;
         }
 
@@ -228,10 +239,14 @@ public static class Common {
         return File.Exists(outputPath);
     }
 
-    public static bool CompressOGG (string sourcePath, string outputPath, Dictionary<string, object> settings) {
-        var lamePath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
-        if (!File.Exists(lamePath)) {
-            Console.Error.WriteLine(@"// Warning: oggenc2.exe was not found at ..\Upstream\OggEnc\oggenc2.exe. Can't encode OGG.");
+    public static bool CompressOGG (string sourcePath, string outputPath, ProfileSettings settings) {
+        var oggencPath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\OggEnc\oggenc2.exe", false));
+        if (!File.Exists(oggencPath)) {
+            if (!WarnedAboutOggENC) {
+                WarnedAboutOggENC = true;
+                Console.Error.WriteLine(@"// Warning: oggenc2.exe was not found at ..\Upstream\OggEnc\oggenc2.exe. Can't encode OGG.");
+            }
+
             return false;
         }
 
@@ -243,7 +258,7 @@ public static class Common {
             File.Delete(outputPath);
 
         RunProcess(
-            lamePath, arguments, null, out stderr, out stdout
+            oggencPath, arguments, null, out stderr, out stdout
         );
 
         if (!String.IsNullOrWhiteSpace(stderr))
@@ -254,7 +269,9 @@ public static class Common {
         return File.Exists(outputPath);
     }
 
-    public static IEnumerable<CompressResult> CompressAudio (string fileName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, Dictionary<string, CompressResult> existingJournal) {
+    public static IEnumerable<CompressResult> CompressAudio (
+        string fileName, string sourceFolder, string outputFolder, ProfileSettings settings, Dictionary<string, CompressResult> existingJournal
+    ) {
         const int CompressVersion = 4;
 
         EnsureDirectoryExists(outputFolder);
@@ -275,7 +292,7 @@ public static class Common {
                 case ".wma":
                 case ".mp3":
                 case ".aac":
-                    sourceWave = FFMPEGDecode(sourcePath);
+                    sourceWave = FFMPEGDecode(sourcePath, settings);
                     if (sourceWave == null)
                         yield break;
 
@@ -465,8 +482,8 @@ public static class Common {
     }
 
     public static void CompressImage (
-        string imageName, string sourceFolder, 
-        string outputFolder, Dictionary<string, object> settings, 
+        string imageName, string sourceFolder,
+        string outputFolder, ProfileSettings settings, 
         Dictionary<string, ProjectMetadata> itemMetadata,
         CompressResult? oldResult, Action<CompressResult?> writeResult,
         int? colorChannel = null
@@ -478,8 +495,8 @@ public static class Common {
         var sourcePath = Path.Combine(sourceFolder, imageName);
         FileInfo sourceInfo, resultInfo;
 
-        bool forceJpeg = GetFileSettings(settings, imageName).Contains("forcejpeg");
-        bool generateChannels = GetFileSettings(settings, imageName).Contains("generatechannels");
+        bool forceJpeg = settings.Files[imageName].Contains("forcejpeg");
+        bool generateChannels = settings.Files[imageName].Contains("generatechannels");
 
         if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo)) {
             writeResult(oldResult);
@@ -540,7 +557,7 @@ public static class Common {
         } else if (justCopy) {
             outputPath += Path.GetExtension(sourcePath);
 
-            File.Copy(sourcePath, outputPath, true);
+            CopyFile(sourcePath, outputPath, true);
         } else {
             bool hasAlphaChannel;
             System.Drawing.Color? existingColorKey;
@@ -588,7 +605,7 @@ public static class Common {
         if (
             usePNGQuant && 
             (Path.GetExtension(outputPath).ToLower() == ".png") &&
-            !GetFileSettings(settings, imageName).Contains("nopngquant")
+            !settings.Files[imageName].Contains("nopngquant")
         ) {
             byte[] result;
             string stderr;
@@ -681,72 +698,23 @@ public static class Common {
         };
     }
 
-    public static void InitConfiguration (JSIL.Compiler.Configuration result) {
-        result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
-        result.ProfileSettings.SetDefault("JPEGQuality", 90);
-        result.ProfileSettings.SetDefault("MP3Quality", "-V 3");
-        result.ProfileSettings.SetDefault("OGGQuality", "-q 6");
+    public static void ProcessContentProjects (
+        VariableSet variables,
+        Configuration configuration, 
+        JSIL.SolutionBuilder.BuildResult buildResult, 
+        HashSet<string> contentProjectsProcessed
+    ) {
+        var settings = new ProfileSettings(variables, configuration);
 
-        result.ProfileSettings.SetDefault("UsePNGQuant", false);
-        result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
-        result.ProfileSettings.SetDefault("PNGQuantOptions", "");
-
-        result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
-        result.ProfileSettings.SetDefault("FileSettingsRegexes", null);
-
-        result.ProfileSettings.SetDefault("ForceCopyXNBImporters", new string[0]);
-        result.ProfileSettings.SetDefault("ForceCopyXNBProcessors", new string[0]);
-    }
-
-    public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
-        var fileSettings = profileSettings["FileSettings"] as Dictionary<string, object>;
-        object settings;
-
-        if (fileSettings.TryGetValue(fileName, out settings))
-            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-        else if (fileSettings.TryGetValue(fileName.Replace("\\", "/"), out settings))
-            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-
-        var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
-        if (fileSettingsRegexes == null) {
-            profileSettings["FileSettingsRegexes"] = fileSettingsRegexes = new Dictionary<string, Regex>();
-
-            var globChars = new char[] { '?', '*' };
-
-            foreach (var key in fileSettings.Keys) {
-                if (key.IndexOfAny(globChars) < 0)
-                    continue;
-
-                var regex = new Regex(
-                    Regex.Escape(key)
-                        .Replace("/", "\\\\")
-                        .Replace("\\*", "(.*)")
-                        .Replace("\\?", "(.)"),
-                    RegexOptions.Compiled | RegexOptions.IgnoreCase
-                );
-
-                fileSettingsRegexes[key] = regex;
-            }
-        }
-
-        foreach (var kvp in fileSettingsRegexes) {
-            if (kvp.Value.IsMatch(fileName))
-                return new HashSet<string>(fileSettings[kvp.Key].ToString().ToLower().Split(' '));
-        }
-
-        return new HashSet<string>();
-    }
-
-    public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
         var contentOutputDirectory =
             configuration.ProfileSettings.GetValueOrDefault("ContentOutputDirectory", null) as string;
 
-        if (contentOutputDirectory == null)
+        if (contentOutputDirectory == null) {
+            Console.Error.WriteLine("// ContentOutputDirectory is not set. Skipping XNA content processing.");
             return;
+        }
 
-        contentOutputDirectory = contentOutputDirectory
-            .Replace("%configpath%", configuration.Path)
-            .Replace("%outputpath%", configuration.OutputDirectory);
+        contentOutputDirectory = variables.ExpandPath(contentOutputDirectory, false);
 
         var projectCollection = new ProjectCollection();
         var contentProjects = buildResult.ProjectsBuilt.Where(
@@ -832,12 +800,20 @@ public static class Common {
             }
 
             var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
-            var localOutputDirectory = contentOutputDirectory
-                .Replace("%contentprojectpath%", contentProjectDirectory)
-                .Replace("/", "\\");
+            var myvars = variables.Clone();
+            myvars.Add("ContentProjectDirectory", contentProjectDirectory);
 
-            var contentManifestPath = Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js");
-            var contentManifest = new ContentManifestWriter(contentManifestPath, Path.GetFileName(contentProjectPath));
+            var localOutputDirectory =
+                myvars.ExpandPath(contentOutputDirectory, false);
+
+            EnsureDirectoryExists(localOutputDirectory);
+
+            var contentManifestPath = Path.Combine(
+                localOutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"
+            );
+            var contentManifest = new ContentManifestWriter(
+                contentManifestPath, Path.GetFileName(contentProjectPath)
+            );
 
             Action<string, string, Dictionary<string, object>> logOutput =
             (type, filename, properties) => {
@@ -863,41 +839,12 @@ public static class Common {
             };
 
             Action<ProjectItem> copyRawFile =
-            (item) => {
-                var sourcePath = Path.Combine(
-                    contentProjectDirectory,
-                    item.EvaluatedInclude
-                );
-                var outputPath = FixupOutputDirectory(
-                    localOutputDirectory,
-                    item.EvaluatedInclude
-                );
-
-                Common.EnsureDirectoryExists(
-                    Path.GetDirectoryName(outputPath));
-
-                File.Copy(sourcePath, outputPath, true);
-                logOutput("File", outputPath, null);
-            };
+            (item) =>
+                CopyRawFile(localOutputDirectory, logOutput, item, contentProjectDirectory);
 
             Action<ProjectItem, string, string> copyRawXnb =
-            (item, xnbPath, type) => {
-                if (xnbPath == null)
-                    throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
-
-                var outputPath = FixupOutputDirectory(
-                    localOutputDirectory,
-                    item.EvaluatedInclude.Replace(
-                        Path.GetExtension(item.EvaluatedInclude),
-                        ".xnb")
-                    );
-
-                Common.EnsureDirectoryExists(
-                    Path.GetDirectoryName(outputPath));
-
-                File.Copy(xnbPath, outputPath, true);
-                logOutput(type, outputPath, null);
-            };
+            (item, xnbPath, type) =>
+                CopyXNB(logOutput, type, localOutputDirectory, xnbPath, item);
 
             foreach (var item in project.Items) {
                 switch (item.ItemType) {
@@ -964,7 +911,7 @@ public static class Common {
                         throw new FileNotFoundException("Asset " + xnbPath + " not found.");
                 }
 
-                if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
+                if (settings.Files[item.EvaluatedInclude].Contains("usexnb")) {
                     copyRawXnb(item, xnbPath, "XNB");
                 } else if (
                     forceCopyProcessors.Contains(processorName) || 
@@ -976,10 +923,9 @@ public static class Common {
                         case "XactProcessor":
                             Common.ConvertXactProject(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournal,
+                                settings, existingJournal,
                                 journal, logOutput
                             );
-
                             continue;
 
                         case "FontTextureProcessor":
@@ -991,7 +937,7 @@ public static class Common {
                         case "SongProcessor":
                             journal.AddRange(CompressAudioGroup(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournal, logOutput
+                                settings, existingJournal, logOutput
                             ));
                             continue;
 
@@ -1003,7 +949,7 @@ public static class Common {
 
                             Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, metadata, existingJournalEntry,
+                                settings, metadata, existingJournalEntry,
                                 (result) => {
                                     if (result.HasValue) {
                                         journal.Add(result.Value);
@@ -1044,17 +990,117 @@ public static class Common {
             Console.Error.WriteLine("// Done processing content.");
     }
 
+    private static void CopyRawFile (
+        string localOutputDirectory, Action<string, string, Dictionary<string, object>> logOutput, ProjectItem item,                                    
+        string contentProjectDirectory
+    ) {
+        var sourcePath = Path.Combine(
+            contentProjectDirectory,
+            item.EvaluatedInclude
+            );
+        var outputPath = FixupOutputDirectory(
+            localOutputDirectory,
+            item.EvaluatedInclude
+            );
+
+        Common.EnsureDirectoryExists(
+            Path.GetDirectoryName(outputPath));
+
+        try {
+            CopyFile(sourcePath, outputPath, true);
+            logOutput("File", outputPath, null);
+        } catch (Exception exc) {
+            Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+        }
+    }
+
+    private static void DecompressXNB (string sourcePath, string destinationPath) {
+        Console.Error.Write("// Decompressing {0}... ", Path.GetFileName(sourcePath));
+
+        var assetBytes = File.ReadAllBytes(sourcePath);
+
+        // Decompress the contents of the asset.
+        var decompressedSize = BitConverter.ToInt32(assetBytes, 10);
+        var tDecompressStream = typeof(ContentReader).Assembly.GetType("Microsoft.Xna.Framework.Content.DecompressStream", true);
+
+        var baseStream = new MemoryStream(assetBytes, 14, assetBytes.Length - 14, false);
+        var decompressor = (Stream)Activator.CreateInstance(
+            tDecompressStream, (Stream)baseStream, (int)baseStream.Length, (int)decompressedSize
+        );
+
+        var resultBytesStream = new MemoryStream();
+        var resultBytesWriter = new BinaryWriter(resultBytesStream);
+        resultBytesWriter.Write(assetBytes, 0, 5);
+        resultBytesWriter.Write((byte)(assetBytes[5] & ~0x80));
+        resultBytesWriter.Write(decompressedSize + 10);
+        var buf = new byte[decompressedSize];
+
+        int bytesToDecompress = buf.Length, bytesDecompressed = 0, decompressOffset = 0;
+
+        while ((bytesDecompressed = decompressor.Read(buf, decompressOffset, bytesToDecompress)) > 0) {
+            decompressOffset += bytesDecompressed;
+            bytesToDecompress -= bytesDecompressed;
+        }
+
+        resultBytesWriter.Write(buf, 0, buf.Length);
+        resultBytesWriter.Flush();
+        using (var stream = File.Open(destinationPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)) {
+            stream.SetLength(resultBytesStream.Length);
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.Write(resultBytesStream.GetBuffer(), 0, (int)resultBytesStream.Length);
+        }
+
+        Console.Error.WriteLine("done.");
+    }
+
+    private static void CopyXNB (Action<string, string, Dictionary<string, object>> logOutput, string type, string localOutputDirectory, string xnbPath, ProjectItem item) {
+        if (xnbPath == null)
+            throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
+
+        bool isCompressed = false;
+        using (var stream = File.OpenRead(xnbPath)) {
+            var bytes = new byte[6];
+            stream.Read(bytes, 0, bytes.Length);
+            isCompressed = (bytes[5] & 0x80) == 0x80;
+        }
+
+        var outputPath = FixupOutputDirectory(
+            localOutputDirectory,
+            item.EvaluatedInclude.Replace(
+                Path.GetExtension(item.EvaluatedInclude),
+                ".xnb")
+            );
+
+        Common.EnsureDirectoryExists(
+            Path.GetDirectoryName(outputPath));
+
+        try {
+            if (isCompressed)
+                DecompressXNB(xnbPath, outputPath);
+            else
+                CopyFile(xnbPath, outputPath, true);
+            logOutput(type, outputPath, null);
+        } catch (Exception exc) {
+            Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+        }
+    }
+
     private static IEnumerable<CompressResult> CompressAudioGroup(
         string fileName, string contentProjectDirectory, string itemOutputDirectory,
-        Dictionary<string, object> profileSettings, Dictionary<string, CompressResult> existingJournal, 
+        ProfileSettings settings, Dictionary<string, CompressResult> existingJournal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
-        var fileSettings = GetFileSettings(profileSettings, fileName);
+        var fileSettings = settings.Files[fileName];
 
         var results = Common.CompressAudio(
             fileName, contentProjectDirectory, itemOutputDirectory,
-            profileSettings, existingJournal
+            settings, existingJournal
         ).ToArray();
+
+        if (results.Length == 0) {
+            Console.Error.WriteLine("// No audio files generated for '{0}'. Skipping.", fileName);
+            yield break;
+        }
 
         var formats = new List<string>();
         var properties = new Dictionary<string, object> {
@@ -1145,8 +1191,8 @@ public static class Common {
     }
 
     private static void ConvertXactProject (
-        string projectFile, string sourceFolder, 
-        string outputFolder, Dictionary<string, object> profileSettings, 
+        string projectFile, string sourceFolder,
+        string outputFolder, ProfileSettings settings, 
         Dictionary<string, CompressResult> existingJournal, List<CompressResult> journal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
@@ -1179,7 +1225,7 @@ public static class Common {
 
                 journal.AddRange(CompressAudioGroup(
                     Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
-                    waveOutputFolder, profileSettings, existingJournal, logOutput
+                    waveOutputFolder, settings, existingJournal, logOutput
                 ));
             }
         }
@@ -1235,5 +1281,134 @@ public static class Common {
         }
 
         Console.Error.WriteLine("// Done processing {0}.", projectFile);
+    }
+
+    public static void CopyFile (string sourcePath, string destinationPath, bool overwrite) {
+        const int maxRetries = 5;
+        const int retryDelayMs = 500;
+
+        bool wroteFailureMessage = false;
+
+        for (int retries = 0; retries < maxRetries; retries++) {
+            try {
+                File.Copy(sourcePath, destinationPath, overwrite);
+                if (wroteFailureMessage)
+                    Console.Error.WriteLine();
+
+                break;
+            } catch (IOException ioe) {
+                if (!wroteFailureMessage) {
+                    Console.Error.Write("// Copy failed for '{0}' -> '{1}'! Retrying ", sourcePath, destinationPath);
+                    wroteFailureMessage = true;
+                }
+
+                if (retries < (maxRetries - 1)) {
+                    Console.Error.Write(".");
+                } else {
+                    if (wroteFailureMessage)
+                        Console.Error.WriteLine();
+                    throw;
+                }
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            Thread.Sleep(retryDelayMs);
+        }
+    }
+
+    public class ProfileSettings {
+        public readonly VariableSet Variables;
+        public readonly Configuration Configuration;
+        public readonly FileSettings Files;
+
+        private readonly Dictionary<string, object> Dict;
+
+        public ProfileSettings (VariableSet variables, Configuration configuration) {
+            Variables = variables;
+            Configuration = configuration;
+            Dict = Configuration.ProfileSettings;
+            Files = new FileSettings(this);
+
+            Dict.SetDefault("ContentOutputDirectory", null);
+            Dict.SetDefault("JPEGQuality", 90);
+            Dict.SetDefault("MP3Quality", "-V 3");
+            Dict.SetDefault("OGGQuality", "-q 6");
+
+            Dict.SetDefault("UsePNGQuant", false);
+            Dict.SetDefault("PNGQuantColorCount", 256);
+            Dict.SetDefault("PNGQuantOptions", "");
+
+            Dict.SetDefault("FileSettings", new Dictionary<string, object>());
+
+            Dict.SetDefault("ForceCopyXNBImporters", new string[0]);
+            Dict.SetDefault("ForceCopyXNBProcessors", new string[0]);
+        }
+
+        public object this[string key] {
+            get {
+                return Dict.GetValueOrDefault(key, null);
+            }
+        }
+    }
+
+    public class FileSettings {
+        private readonly ProfileSettings Profile;
+        private readonly Dictionary<string, object> SettingsDict = new Dictionary<string, object>();
+        private readonly Dictionary<string, Regex> Regexes = new Dictionary<string, Regex>();
+
+        public FileSettings (ProfileSettings profile) {
+            Profile = profile;
+
+            SettingsDict = profile["FileSettings"] as Dictionary<string, object>;
+            if (SettingsDict == null)
+                SettingsDict = new Dictionary<string, object>();
+
+            var globChars = new char[] { '?', '*' };
+
+            foreach (var key in SettingsDict.Keys) {
+                if (key.IndexOfAny(globChars) < 0)
+                    continue;
+
+                var regex = new Regex(
+                    Regex.Escape(key)
+                        .Replace("/", "\\\\")
+                        .Replace("\\*", "(.*)")
+                        .Replace("\\?", "(.)"),
+                    RegexOptions.Compiled | RegexOptions.IgnoreCase
+                );
+
+                Regexes[key] = regex;
+            }
+        }
+
+        public HashSet<string> this[string filename] {
+            get {
+                string result = null;
+                object settings;
+
+                if (SettingsDict.TryGetValue(filename, out settings)) {
+                    result = settings.ToString();
+                } else if (SettingsDict.TryGetValue(filename.Replace("\\", "/"), out settings)) {
+                    result = settings.ToString();
+                } else {
+                    foreach (var kvp in Regexes) {
+                        if (kvp.Value.IsMatch(filename)) {
+                            result = SettingsDict[kvp.Key].ToString();
+                            break;
+                        }
+                    }
+                }
+
+                if (result != null) {
+                    return new HashSet<string>(
+                        Profile.Variables.Expand(result).ToLower().Split(' ')
+                    );
+                } else {
+                    return new HashSet<string>();
+                }
+            }
+        }
     }
 }

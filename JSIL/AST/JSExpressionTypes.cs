@@ -22,6 +22,8 @@ namespace JSIL.Ast {
         public readonly IEnumerable<JSVariable> Parameters;
         public readonly JSBlockStatement Body;
 
+        public int TemporaryVariableCount = 0;
+
         public string DisplayName = null;
 
         public JSFunctionExpression (
@@ -757,13 +759,22 @@ namespace JSIL.Ast {
 
     public class JSPropertyAccess : JSDotExpressionBase {
         public readonly bool IsWrite;
+        public readonly bool IsVirtualCall;
         public readonly bool TypeQualified;
 
-        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite, bool typeQualified)
+        public readonly JSMethod OriginalMethod;
+
+        public JSPropertyAccess (
+            JSExpression thisReference, JSProperty property, 
+            bool isWrite, bool typeQualified, JSMethod originalMethod,
+            bool isVirtualCall
+        )
             : base(thisReference, property) {
 
             IsWrite = isWrite;
+            IsVirtualCall = isVirtualCall;
             TypeQualified = typeQualified;
+            OriginalMethod = originalMethod;
         }
 
         public JSExpression ThisReference {
@@ -875,7 +886,10 @@ namespace JSIL.Ast {
         public readonly TypeReference ElementType;
         public readonly ArrayType ArrayType;
 
-        public readonly JSExpression SizeOrArrayInitializer;
+        public JSExpression SizeOrArrayInitializer {
+            get;
+            private set;
+        }
         public readonly JSExpression[] Dimensions;
 
         public JSNewArrayExpression (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
@@ -902,6 +916,19 @@ namespace JSIL.Ast {
 
                 if (SizeOrArrayInitializer != null)
                     yield return SizeOrArrayInitializer;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (Dimensions != null) {
+                for (var i = 0; i < Dimensions.Length; i++) {
+                    if (Dimensions[i] == oldChild)
+                        Dimensions[i] = (JSExpression)newChild;
+                }
+            }
+
+            if (SizeOrArrayInitializer == oldChild) {
+                SizeOrArrayInitializer = (JSExpression)newChild;
             }
         }
 
@@ -1648,6 +1675,7 @@ namespace JSIL.Ast {
     }
 
     public class JSIsExpression : JSExpression {
+        public int? CachedTypeIndex;
         public readonly TypeReference Type;
 
         public JSIsExpression (JSExpression inner, TypeReference type)
@@ -1687,7 +1715,7 @@ namespace JSIL.Ast {
 
     public class JSAsExpression : JSCastExpression {
         protected JSAsExpression (JSExpression inner, TypeReference newType)
-            : base(inner, newType) {
+            : base(inner, newType, false) {
         }
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
@@ -1699,18 +1727,24 @@ namespace JSIL.Ast {
     }
 
     public class JSCastExpression : JSExpression {
+        public int? CachedTypeIndex;
+
+        public readonly bool IsCoercion;
         public readonly TypeReference NewType;
 
-        protected JSCastExpression (JSExpression inner, TypeReference newType)
+        protected JSCastExpression (JSExpression inner, TypeReference newType, bool isCoercion = false)
             : base(inner) {
 
             NewType = newType;
+            IsCoercion = isCoercion;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false) {
+        public static JSExpression New (
+            JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false, bool isCoercion = false
+        ) {
             return NewInternal(
                 inner, newType, typeSystem, force,
-                () => new JSCastExpression(inner, newType)
+                () => new JSCastExpression(inner, newType, isCoercion)
             );
         }
 
@@ -1976,6 +2010,30 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Struct.GetActualType(typeSystem);
+        }
+    }
+
+    public class JSCommaExpression : JSExpression {
+        public JSCommaExpression (params JSExpression[] subExpressions) 
+            : base (subExpressions) {
+        }
+
+        public IEnumerable<JSExpression> SubExpressions {
+            get {
+                return Values;
+            }
+        }
+
+        public override bool Equals (object obj) {
+            return EqualsImpl(obj, true);
+        }
+
+        public override string ToString () {
+            return "(" + String.Join(",", Values) + ")";
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Values.Last().GetActualType(typeSystem);
         }
     }
 }

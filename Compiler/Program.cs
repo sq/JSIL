@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using System.Xml.Serialization;
 using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Translator;
@@ -14,13 +15,18 @@ using Mono.Cecil;
 
 namespace JSIL.Compiler {
     class Program {
+        static TypeInfoProvider CachedTypeInfoProvider = null;
+        static Configuration CachedTypeInfoProviderConfiguration = null;
+
         public static string ShortenPath (string path) {
             var cwd = new Uri(Environment.CurrentDirectory);
 
             Uri pathUri;
             if (Uri.TryCreate(path, UriKind.Absolute, out pathUri)) {
                 var relativeUri = cwd.MakeRelativeUri(pathUri);
-                return Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+                var shortened = Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+                if (shortened.Length < path.Length)
+                    return shortened;
             }
 
             return path;
@@ -32,17 +38,10 @@ namespace JSIL.Compiler {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
 
+                var variables = result.ApplyTo(new VariableSet());
+
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
-
-                if (result.OutputDirectory != null)
-                    result.OutputDirectory = MapConfigPath(result.OutputDirectory, result.Path);
-
-                var newProxies = (from p in result.Assemblies.Proxies
-                                 let newP = MapConfigPath(p, result.Path)
-                                 select newP).ToArray();
-
-                result.Assemblies.Proxies.Clear();
-                result.Assemblies.Proxies.AddRange(newProxies);
+                result.ContributingPaths = new[] { Path.GetFullPath(filename) };
 
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
@@ -53,21 +52,13 @@ namespace JSIL.Compiler {
             }
         }
 
-        static string MapConfigPath (string reference, string configPath) {
-            return reference
-                .Replace("%configpath%", configPath)
-                .Replace('/', Path.DirectorySeparatorChar);
-        }
-
-        static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists, bool reportErrors = false) {
-            var result = reference
-                .Replace("%assemblypath%", assemblyPath)
-                .Replace('/', Path.DirectorySeparatorChar);
+        static string MapPath (string path, VariableSet variables, bool ensureExists, bool reportErrors = false) {
+            var result = variables.ExpandPath(path, false);
 
             if (ensureExists) {
-                if (!File.Exists(result)) {
+                if (!Directory.Exists(result) && !File.Exists(result)) {
                     if (reportErrors)
-                        Console.Error.WriteLine("// Could not find proxy assembly '{0}'!", reference);
+                        Console.Error.WriteLine("// Could not find file '{0}'!", path);
 
                     return null;
                 }
@@ -85,8 +76,12 @@ namespace JSIL.Compiler {
             return result;
         }
 
-        static void ParseCommandLine (IEnumerable<string> arguments, List<BuildGroup> buildGroups, Dictionary<string, IProfile> profiles) {
+        static Configuration ParseCommandLine (
+            IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
+            Dictionary<string, IProfile> profiles
+        ) {
             var baseConfig = new Configuration();
+            var commandLineConfig = new Configuration();
             IProfile defaultProfile = new Profiles.Default();
             var profileAssemblies = new List<string>();
             bool[] autoloadProfiles = new bool[] { true };
@@ -96,58 +91,57 @@ namespace JSIL.Compiler {
             {
                 var os = new Mono.Options.OptionSet {
                     {"o=|out=", 
-                        "Specifies the output directory for generated javascript and manifests. " +
-                        "You can use '%configpath%' in jsilconfig files to refer to the directory containing the configuration file, and '%assemblypath%' to refer to the directory containing the assembly being translated.",
-                        (path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
+                        "Specifies the output directory for generated javascript and manifests.",
+                        (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
                     {"nac|noautoconfig", 
                         "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
-                        (b) => baseConfig.AutoLoadConfigFiles = b == null },
+                        (b) => commandLineConfig.AutoLoadConfigFiles = b == null },
                     {"nt|nothreads",
                         "Suppresses use of multiple threads to speed up the translation process.",
-                        (b) => baseConfig.UseThreads = b == null },
+                        (b) => commandLineConfig.UseThreads = b == null },
                     {"sbc|suppressbugcheck",
                         "Suppresses JSIL bug checks that detect bugs in .NET runtimes and standard libraries.",
-                        (b) => baseConfig.RunBugChecks = b == null },
+                        (b) => commandLineConfig.RunBugChecks = b == null },
 
                     "Solution Builder options",
                     {"configuration=", 
                         "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
-                        (v) => baseConfig.SolutionBuilder.Configuration = v },
+                        (v) => commandLineConfig.SolutionBuilder.Configuration = v },
                     {"platform=", 
                         "When building one or more solution files, specifies the build platform to use (like 'x86').",
-                        (v) => baseConfig.SolutionBuilder.Platform = v },
+                        (v) => commandLineConfig.SolutionBuilder.Platform = v },
                     {"target=", 
                         "When building one or more solution files, specifies the build target to use (like 'Build'). The default is 'Build'.",
-                        (v) => baseConfig.SolutionBuilder.Target = v },
+                        (v) => commandLineConfig.SolutionBuilder.Target = v },
                     {"logVerbosity=", 
                         "When building one or more solution files, specifies the level of log verbosity. Valid options are 'Quiet', 'Minimal', 'Normal', 'Detailed', and 'Diagnostic'.",
-                        (v) => baseConfig.SolutionBuilder.LogVerbosity = v },
+                        (v) => commandLineConfig.SolutionBuilder.LogVerbosity = v },
 
                     "Assembly options",
                     {"p=|proxy=", 
                         "Loads a type proxy assembly to provide type information for the translator.",
-                        (name) => baseConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
+                        (name) => commandLineConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
                     {"i=|ignore=", 
                         "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
-                        (regex) => baseConfig.Assemblies.Ignored.Add(regex) },
+                        (regex) => commandLineConfig.Assemblies.Ignored.Add(regex) },
                     {"s=|stub=", 
                         "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. " +
                         "Stubbing forces all methods to be externals.",
-                        (regex) => baseConfig.Assemblies.Stubbed.Add(regex) },
+                        (regex) => commandLineConfig.Assemblies.Stubbed.Add(regex) },
                     {"nd|nodeps", 
                         "Suppresses the automatic loading and translation of assembly dependencies.",
-                        (b) => baseConfig.IncludeDependencies = b == null},
+                        (b) => commandLineConfig.IncludeDependencies = b == null},
                     {"nodefaults", 
                         "Suppresses the default list of stubbed assemblies.",
-                        (b) => baseConfig.ApplyDefaults = b == null},
+                        (b) => commandLineConfig.ApplyDefaults = b == null},
                     {"nolocal", 
                         "Disables using local proxy types from translated assemblies.",
-                        (b) => baseConfig.UseLocalProxies = b == null},
+                        (b) => commandLineConfig.UseLocalProxies = b == null},
                     {"fv=|frameworkVersion=", 
                         "Specifies the version of the .NET framework proxies to use. " +
                         "This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). " +
                         "Accepted values are '3.5' and '4.0'. Default: '4.0'",
-                        (fv) => baseConfig.FrameworkVersion = double.Parse(fv)},
+                        (fv) => commandLineConfig.FrameworkVersion = double.Parse(fv)},
 
                     "Profile options",
                     {"nap|noautoloadprofiles",
@@ -163,16 +157,16 @@ namespace JSIL.Compiler {
                     "Optimizer options",
                     {"os", 
                         "Suppresses struct copy elimination.",
-                        (b) => baseConfig.Optimizer.EliminateStructCopies = b == null},
+                        (b) => commandLineConfig.Optimizer.EliminateStructCopies = b == null},
                     {"ot", 
                         "Suppresses temporary local variable elimination.",
-                        (b) => baseConfig.Optimizer.EliminateTemporaries = b == null},
+                        (b) => commandLineConfig.Optimizer.EliminateTemporaries = b == null},
                     {"oo", 
                         "Suppresses simplification of operator expressions and special method calls.",
-                        (b) => baseConfig.Optimizer.SimplifyOperators = b == null},
+                        (b) => commandLineConfig.Optimizer.SimplifyOperators = b == null},
                     {"ol", 
                         "Suppresses simplification of loop blocks.",
-                        (b) => baseConfig.Optimizer.SimplifyLoops = b == null},
+                        (b) => commandLineConfig.Optimizer.SimplifyLoops = b == null},
                 };
 
                 filenames = os.Parse(arguments);
@@ -186,13 +180,26 @@ namespace JSIL.Compiler {
 
                     os.WriteOptionDescriptions(Console.Out);
 
-                    return;
+                    return null;
                 }
+            }
+
+            if (commandLineConfig.ApplyDefaults.GetValueOrDefault(true)) {
+                baseConfig = MergeConfigurations(
+                    LoadConfiguration(Path.Combine(
+                        GetJSILDirectory(), 
+                        "defaults.jsilconfig"
+                    )), 
+                    baseConfig
+                );
             }
 
             {
                 if (autoloadProfiles[0])
-                    profileAssemblies.AddRange(Directory.GetFiles(".", "JSIL.Profiles.*.dll"));
+                    profileAssemblies.AddRange(Directory.GetFiles(
+                        GetJSILDirectory(), 
+                        "JSIL.Profiles.*.dll"
+                    ));
 
                 foreach (var filename in profileAssemblies) {
                     var fullPath = Path.GetFullPath(filename);
@@ -222,8 +229,8 @@ namespace JSIL.Compiler {
                 }
             }
 
-            baseConfig = MergeConfigurations(
-                baseConfig,
+            commandLineConfig = MergeConfigurations(
+                commandLineConfig,
                 (from fn in filenames
                  where Path.GetExtension(fn) == ".jsilconfig"
                  select LoadConfiguration(fn)).ToArray()
@@ -233,24 +240,38 @@ namespace JSIL.Compiler {
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
 
+                var solutionFullPath = Path.GetFullPath(solution);
+                var solutionDir = Path.GetDirectoryName(solutionFullPath);
+
+                if ((solutionDir == null) || (solutionFullPath == null)) {
+                    Console.Error.WriteLine("// Can't process solution '{0}' - path seems malformed", solution);
+                    continue;
+                }
+
                 var solutionConfigPath = Path.Combine(
-                    Path.GetDirectoryName(solution),
-                    String.Format("{0}.jsilconfig", Path.GetFileName(solution))
+                    solutionDir,
+                    String.Format("{0}.jsilconfig", Path.GetFileName(solutionFullPath))
                 );
                 var solutionConfig = File.Exists(solutionConfigPath)
                     ? new Configuration[] { LoadConfiguration(solutionConfigPath) }
-                    : new Configuration[] { };
+                    : new Configuration[] {  };
 
-                var config = MergeConfigurations(baseConfig, solutionConfig);
+                var mergedSolutionConfig = MergeConfigurations(baseConfig, solutionConfig);
+                var config = MergeConfigurations(mergedSolutionConfig, commandLineConfig);
                 var buildStarted = DateTime.UtcNow.Ticks;
                 
-                var buildResult = SolutionBuilder.Build(
-                    solution,
+                var buildResult = SolutionBuilder.SolutionBuilder.Build(
+                    solutionFullPath,
                     config.SolutionBuilder.Configuration,
                     config.SolutionBuilder.Platform,
                     config.SolutionBuilder.Target ?? "Build",
                     config.SolutionBuilder.LogVerbosity
                 );
+
+                var jss = new JavaScriptSerializer();
+                jss.MaxJsonLength = (1024 * 1024) * 64;
+                var buildResultJson = jss.Serialize(buildResult);
+                buildResult = jss.Deserialize<SolutionBuilder.BuildResult>(buildResultJson);
 
                 var buildEnded = DateTime.UtcNow.Ticks;
 
@@ -265,19 +286,25 @@ namespace JSIL.Compiler {
                     break;
                 }
 
+                var localVariables = config.ApplyTo(new VariableSet());
+                localVariables["SolutionDirectory"] = () => solutionDir;
+
                 var processStarted = DateTime.UtcNow.Ticks;
                 profile.ProcessBuildResult(
+                    localVariables,
                     profile.GetConfiguration(config),
                     buildResult
                 );
                 var processEnded = DateTime.UtcNow.Ticks;
 
                 {
-                    var logPath = Path.Combine(
-                        config.OutputDirectory,
-                        String.Format("{0}.buildlog", Path.GetFileName(solution))
-                    );
+                    var logPath = localVariables.ExpandPath(String.Format(
+                        "%outputdirectory%/{0}.buildlog", Path.GetFileName(solution)
+                    ), false);
 
+                    if (!Directory.Exists(Path.GetDirectoryName(logPath)))
+                        Directory.CreateDirectory(Path.GetDirectoryName(logPath));
+                    
                     using (var logWriter = new StreamWriter(logPath, false, Encoding.UTF8)) {
                         logWriter.WriteLine(
                             "Build of solution '{0}' processed {1} task(s) and produced {2} result file(s):",
@@ -294,11 +321,18 @@ namespace JSIL.Compiler {
                     }
                 }
 
-                if (buildResult.OutputFiles.Length > 0) {
+                var outputFiles = buildResult.OutputFiles.Concat(
+                    (from eo in config.SolutionBuilder.ExtraOutputs
+                     let expanded = localVariables.ExpandPath(eo, true)
+                     select expanded)
+                ).ToArray();
+
+                if (outputFiles.Length > 0) {
                     buildGroups.Add(new BuildGroup {
-                        BaseConfiguration = config,
-                        FilesToBuild = buildResult.OutputFiles,
-                        Profile = profile
+                        BaseConfiguration = mergedSolutionConfig,
+                        BaseVariables = localVariables,
+                        FilesToBuild = outputFiles,
+                        Profile = profile,
                     });
                 }
             }
@@ -330,12 +364,21 @@ namespace JSIL.Compiler {
                              .ToArray();
 
             if (mainGroup.Length > 0) {
+                var variables = commandLineConfig.ApplyTo(new VariableSet());
+
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = baseConfig,
+                    BaseVariables = variables,
                     FilesToBuild = mainGroup,
                     Profile = defaultProfile
                 });
             }
+
+            return commandLineConfig;
+        }
+
+        internal static string GetJSILDirectory () {
+            return Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
@@ -367,8 +410,20 @@ namespace JSIL.Compiler {
             };
         }
 
-        static AssemblyTranslator CreateTranslator (Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache) {
-            var translator = new AssemblyTranslator(configuration, null, manifest, assemblyCache);
+        static AssemblyTranslator CreateTranslator (
+            Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache
+        ) {
+            TypeInfoProvider typeInfoProvider = null;
+
+            if (
+                configuration.ReuseTypeInfoAcrossAssemblies.GetValueOrDefault(true) && 
+                (CachedTypeInfoProvider != null)
+            ) {
+                if (CachedTypeInfoProviderConfiguration.Assemblies.Equals(configuration.Assemblies))
+                    typeInfoProvider = CachedTypeInfoProvider;
+            }
+
+            var translator = new AssemblyTranslator(configuration, typeInfoProvider, manifest, assemblyCache);
 
             translator.Decompiling += MakeProgressHandler("Decompiling   ");
             translator.Optimizing += MakeProgressHandler ("Optimizing    ");
@@ -386,30 +441,36 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
 
+            if (typeInfoProvider == null) {
+                if (CachedTypeInfoProvider != null)
+                    CachedTypeInfoProvider.Dispose();
+
+                CachedTypeInfoProvider = translator.GetTypeInfoProvider();
+                CachedTypeInfoProviderConfiguration = configuration;
+            }
+
             return translator;
         }
 
         static void Main (string[] arguments) {
+            SolutionBuilder.SolutionBuilder.HandleCommandLine();
+
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
 
-            ParseCommandLine(arguments, buildGroups, profiles);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles);
 
-            if (buildGroups.Count < 1) {
+            if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
-                return;
             }
 
             foreach (var buildGroup in buildGroups) {
                 var config = buildGroup.BaseConfiguration;
-                if (config.ApplyDefaults.GetValueOrDefault(true))
-                    config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
+                var variables = buildGroup.BaseVariables;
 
                 foreach (var filename in buildGroup.FilesToBuild) {
-                    GC.Collect();
-
                     if (config.Assemblies.Ignored.Any(
                         (ignoreRegex) => Regex.IsMatch(filename, ignoreRegex, RegexOptions.IgnoreCase))
                     ) {
@@ -422,8 +483,8 @@ namespace JSIL.Compiler {
                         String.Format("{0}.jsilconfig", Path.GetFileName(filename))
                     );
                     var fileConfig = File.Exists(fileConfigPath)
-                        ? new Configuration[] { LoadConfiguration(fileConfigPath) }
-                        : new Configuration[] { };
+                        ? new Configuration[] { LoadConfiguration(fileConfigPath), commandLineConfiguration }
+                        : new Configuration[] { commandLineConfiguration };
 
                     var localConfig = MergeConfigurations(config, fileConfig);
 
@@ -438,33 +499,41 @@ namespace JSIL.Compiler {
                     }
 
                     localConfig = localProfile.GetConfiguration(localConfig);
+                    var localVariables = localConfig.ApplyTo(variables);
 
                     var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
+                    localVariables["AssemblyDirectory"] = () => assemblyPath;
 
                     var newProxies = (from p in localConfig.Assemblies.Proxies
-                                      let newP = MapAssemblyPath(p, assemblyPath, true, true)
+                                      let newP = MapPath(p, localVariables, true, true)
                                       where newP != null
                                       select newP).ToArray();
 
                     localConfig.Assemblies.Proxies.Clear();
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
-                    var translator = CreateTranslator(localConfig, manifest, assemblyCache);
-                    var outputs = buildGroup.Profile.Translate(translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
-                    if (localConfig.OutputDirectory == null)
-                        throw new Exception("No output directory was specified!");
+                    using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
+                        var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                        if (localConfig.OutputDirectory == null)
+                            throw new Exception("No output directory was specified!");
 
-                    var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
+                        var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
 
-                    Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
+                        Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 
-                    // Ensures that the log file contains the name of the profile that was actually used.
-                    localConfig.Profile = localProfile.GetType().Name;
+                        // Ensures that the log file contains the name of the profile that was actually used.
+                        localConfig.Profile = localProfile.GetType().Name;
 
-                    EmitLog(outputDir, localConfig, filename, outputs);
+                        EmitLog(outputDir, localConfig, filename, outputs);
 
-                    buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
+                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
+                    }
                 }
+            }
+            
+            if (Environment.UserInteractive && Debugger.IsAttached) {
+                Console.Error.WriteLine("// Press the any key to continue.");
+                Console.ReadKey();
             }
         }
 
@@ -475,8 +544,13 @@ namespace JSIL.Compiler {
             var logText = new StringBuilder();
             var asmName = Assembly.GetExecutingAssembly().GetName();
             logText.AppendLine(String.Format("// JSILc v{0}.{1}.{2}", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision));
-            logText.AppendLine(String.Format("// The following settings were used when translating '{0}':", inputFile));
+            logText.AppendLine(String.Format("// The following configuration was used when translating '{0}':", inputFile));
             logText.AppendLine((new JavaScriptSerializer()).Serialize(configuration));
+            logText.AppendLine("// The configuration was generated from the following configuration files:");
+
+            foreach (var cf in configuration.ContributingPaths)
+                logText.AppendLine(cf);
+
             logText.AppendLine("// The following outputs were produced:");
 
             foreach (var fe in outputs.OrderedFiles)

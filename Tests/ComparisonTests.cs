@@ -44,6 +44,17 @@ namespace JSIL.Tests {
                 test.Run("8");
             }
         }
+
+        [Test]
+        [Ignore]
+        public void FSharpExecutable () {
+            // FIXME: Doesn't work yet.
+            var js = GetJavascript(
+                @"BinaryTestCases\ConsoleApplication8.exe"
+            );
+            Console.WriteLine(js);
+        }
+
         [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
@@ -161,6 +172,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithInterface.cs",
                     @"TestCases\MethodGenericParameterAsTypeParameter.cs",
                     @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
+                    @"TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
@@ -192,6 +204,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithConstrainedInterface.cs",
                     @"TestCases\RefStructThisWithInterface.cs",
                     @"TestCases\MutatedStructGenericParameter.cs",
+                    @"TestCases\StructBoxing.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
@@ -297,6 +310,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("GotoTestCasesSource")]
+        public void Goto (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> GotoTestCasesSource () {
+            return FilenameTestSource(
+                new[] { 
+                    @"TestCases\Goto.cs",
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs",
+                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs"
+                }, MakeDefaultProvider(), new AssemblyCache()
+            );
+        }
+
+        [Test]
         [TestCaseSource("UncategorizedTestCasesSource")]
         public void UncategorizedTestCases (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
@@ -315,7 +344,6 @@ namespace JSIL.Tests {
                     @"TestCases\ForEach.cs",
                     @"TestCases\CastToBoolean.cs",
                     @"TestCases\CastingFromNull.cs",
-                    @"TestCases\Goto.cs",
                     @"TestCases\YieldReturn.cs",
                     @"TestCases\FaultBlock.cs",
                     @"TestCases\StaticArrayInitializer.cs",
@@ -380,6 +408,8 @@ namespace JSIL.Tests {
                     @"TestCases\ComplexSwitch.cs",
                     @"TestCases\CharSwitch.cs",
                     @"TestCases\ContinueInsideSwitch.cs",
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs",
+                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs"
                 }, null, defaultProvider
             );
         }
@@ -450,6 +480,16 @@ namespace JSIL.Tests {
                     @"TestCases\IndirectInterleavedTemporaries.cs",
                     @"TestCases\DirectTemporaryAssignment.cs"
                 }, MakeDefaultProvider(), new AssemblyCache()
+            );
+        }
+
+        [Test]
+        public void TypeReferences () {
+            RunComparisonTests(
+                new[] { 
+                    @"SpecialTestCases\CyclicTypeReferences.cs",
+                    @"SpecialTestCases\CyclicTypeInheritance.cs"
+                }, null, MakeDefaultProvider()
             );
         }
 

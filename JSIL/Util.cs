@@ -199,7 +199,7 @@ namespace JSIL.Internal {
             return result;
         }
 
-        public static string EscapeCharacter (char character) {
+        public static string EscapeCharacter (char character, bool forJson) {
             switch (character) {
                 case '\0':
                     return @"\0";
@@ -216,7 +216,7 @@ namespace JSIL.Internal {
                 case '\n':
                     return @"\n";
                 default: {
-                    if (character > 255)
+                    if (forJson || (character > 255))
                         return String.Format(@"\u{0:x4}", (int)character);
                     else
                         return String.Format(@"\x{0:x2}", (int)character);
@@ -224,7 +224,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public static string EscapeString (string text, char quoteCharacter = '\"') {
+        public static string EscapeString (string text, char quoteCharacter = '\"', bool forJson = false) {
             if (text == null)
                 return "null";
 
@@ -234,11 +234,11 @@ namespace JSIL.Internal {
 
             foreach (var ch in text) {
                 if (ch == quoteCharacter)
-                    sb.Append(EscapeCharacter(ch));
+                    sb.Append(EscapeCharacter(ch, forJson));
                 else if (ch == '\\')
                     sb.Append(@"\\");
                 else if ((ch < ' ') || (ch > 127))
-                    sb.Append(EscapeCharacter(ch));
+                    sb.Append(EscapeCharacter(ch, forJson));
                 else
                     sb.Append(ch);
             }
@@ -384,6 +384,9 @@ namespace JSIL.Internal {
     }
 
     public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable {
+        public delegate TValue CreatorFunction (TKey key);
+        public delegate TValue CreatorFunction<TUserData> (TKey key, TUserData userData);
+
         protected class ConstructionState : IDisposable {
             private volatile bool IsDisposed;
             private int WaiterCount = 0, DisposePending = 0;
@@ -503,45 +506,81 @@ namespace JSIL.Internal {
             return Storage.TryGetValue(key, out result);
         }
 
-        public bool TryCreate (TKey key, Func<TValue> creator) {
-            ConstructionState state;
-
-            if (Storage.ContainsKey(key))
+        private bool TryCreateSetup (TKey key, out ConstructionState state) {
+            if (Storage.ContainsKey(key)) {
+                state = null;
                 return false;
+            }
 
             state = new ConstructionState();
             if (States.TryAdd(key, state)) {
-                try {
-                    if (Storage.ContainsKey(key))
-                        return false;
+                if (Storage.ContainsKey(key)) {
+                    TryCreateTeardown(key, state);
+                    return false;
+                }
 
-                    var result = creator();
+                return true;
+            } else {
+                state.Dispose();
+                return false;
+            }
+        }
+
+        private void TryCreateTeardown (TKey key, ConstructionState state) {
+            States.TryRemove(key, out state);
+            state.Set();
+            state.Dispose();
+        }
+
+        public bool TryCreate (TKey key, CreatorFunction creator) {
+            ConstructionState state;
+            if (TryCreateSetup(key, out state)) {
+                try {
+                    var result = creator(key);
 
                     if (!Storage.TryAdd(key, result))
                         throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
 
                     return true;
                 } finally {
-                    States.TryRemove(key, out state);
-                    state.Set();
-                    state.Dispose();
+                    TryCreateTeardown(key, state);
                 }
-            } else {
-                state.Dispose();
             }
 
             return false;
         }
 
-        public TValue GetOrCreate (TKey key, Func<TValue> creator) {
-            while (true) {
-                ConstructionState state;
+        public bool TryCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator) {
+            ConstructionState state;
+            if (TryCreateSetup(key, out state)) {
+                try {
+                    var result = creator(key, userData);
 
-                bool waitFailed = false;
+                    if (!Storage.TryAdd(key, result))
+                        throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
 
-                while (States.TryGetValue(key, out state)) {
-                    waitFailed = !state.Wait();
+                    return true;
+                } finally {
+                    TryCreateTeardown(key, state);
                 }
+            }
+
+            return false;
+        }
+
+        private bool TryWaitForConstruction (TKey key) {
+            ConstructionState state;
+
+            bool waitFailed = false;
+            while (States.TryGetValue(key, out state))
+                waitFailed = !state.Wait();
+
+            return waitFailed;
+        }
+
+        public TValue GetOrCreate (TKey key, CreatorFunction creator) {
+            while (true) {
+                bool waitFailed = TryWaitForConstruction(key);
 
                 TValue result;
                 if (Storage.TryGetValue(key, out result))
@@ -550,6 +589,20 @@ namespace JSIL.Internal {
                     throw new ObjectDisposedException("Cache", "The cache was cleared or disposed.");
 
                 TryCreate(key, creator);
+            }
+        }
+
+        public TValue GetOrCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator) {
+            while (true) {
+                bool waitFailed = TryWaitForConstruction(key);
+
+                TValue result;
+                if (Storage.TryGetValue(key, out result))
+                    return result;
+                else if (waitFailed)
+                    throw new ObjectDisposedException("Cache", "The cache was cleared or disposed.");
+
+                TryCreate(key, userData, creator);
             }
         }
 
@@ -583,6 +636,17 @@ namespace JSIL.Internal {
 
         public int GetHashCode (T obj) {
             return obj.GetHashCode();
+        }
+    }
+
+    public class TemporaryVariable {
+        public static JSRawOutputIdentifier ForFunction (
+            JSFunctionExpression function, TypeReference type
+        ) {
+            var id = String.Format("$temp{0:X2}", function.TemporaryVariableCount++);
+            return new JSRawOutputIdentifier(
+                (jsf) => jsf.WriteRaw(id), type
+            );
         }
     }
 }
