@@ -316,10 +316,16 @@ namespace JSIL.Transforms {
                     variables.Add(String.Format("#{0}", i++), value);
                 } else {
                     if (
-                        variables.ContainsKey(kvp.Key.Name) &&
-                        kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute")
+                        variables.ContainsKey(kvp.Key.Name)
                     ) {
-                        variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToArray();
+                        if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute"))
+                            variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToArray();
+                        else
+                            throw new InvalidDataException(String.Format(
+                                "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
+                                kvp.Key.Name, ie.Method,
+                                String.Join(", ", ie.Parameters)
+                            ));
                     } else {
                         variables.Add(kvp.Key.Name, value);
                     }

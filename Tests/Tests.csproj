@@ -221,6 +221,7 @@
     <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
     <None Include="SpecialTestCases\ReplaceConstructor.cs" />
     <None Include="SimpleTestCases\UnboxBoolean.cs" />
+    <None Include="TestCases\LinqExpressionSimple.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

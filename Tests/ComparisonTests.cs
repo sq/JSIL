@@ -93,6 +93,7 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\LinqSelect.cs",
                     @"TestCases\LinqToArray.cs",
+                    @"TestCases\LinqExpressionSimple.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
