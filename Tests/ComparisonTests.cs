@@ -120,6 +120,7 @@ namespace JSIL.Tests {
                     @"Int64TestCases\Int64Parse.cs",
                     @"Int64TestCases\Int64Shifts.cs",
                     @"Int64TestCases\Int64Subtraction.cs",
+                    @"Int64TestCases\Int64Type.cs",
                     @"Int64TestCases\UInt64Addition.cs",
                     @"Int64TestCases\UInt64Bitwise.cs",
                     @"Int64TestCases\UInt64Equality.cs",

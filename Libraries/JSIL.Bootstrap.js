@@ -6477,8 +6477,6 @@ JSIL.ImplementExternals("System.Int64", function($) {
     );
 });
 
+JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) { });
 
-
-//JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) { });
-
-//JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) { });
+JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) { });
