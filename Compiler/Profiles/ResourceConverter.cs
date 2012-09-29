@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Resources;
+using System.Security.Policy;
 using System.Text;
 using JSIL.Compiler;
 
@@ -16,25 +17,32 @@ namespace JSIL.Utilities {
         }
 
         public static void ConvertEmbeddedResources (Configuration configuration, string assemblyPath, TranslationResult result) {
-            var asm = Assembly.ReflectionOnlyLoadFrom(assemblyPath);
+            using (var domain = new TemporaryAppDomain("ConvertEmbeddedResources")) {
+                var resourceExtractor = domain.CreateInstanceAndUnwrap<
+                    ManifestResourceExtractor, IManifestResourceExtractor
+                >();
 
-            var resourceFiles = (from fn in asm.GetManifestResourceNames() where fn.EndsWith(".resources") select fn).ToArray();
-            var encoding = new UTF8Encoding(false);
-
-            foreach (var resourceName in resourceFiles) {
-                Console.WriteLine(resourceName);
-
-                if (!resourceName.EndsWith(".resources"))
-                    continue;
-
-                var resourceJson = ConvertEmbeddedResourceFile(configuration, assemblyPath, asm, resourceName);
-                var bytes = encoding.GetBytes(resourceJson);
-
-                result.AddFile(
-                    "Resources",
-                    Path.GetFileNameWithoutExtension(resourceName) + ".resj",
-                    new ArraySegment<byte>(bytes)
+                var manifestResources = resourceExtractor.GetManifestResources(
+                    assemblyPath, (fn) => fn.EndsWith(".resources")
                 );
+
+                var encoding = new UTF8Encoding(false);
+
+                foreach (var kvp in manifestResources) {
+                    Console.WriteLine(kvp.Key);
+
+                    string resourceJson;
+                    using (var memoryStream = new MemoryStream(kvp.Value, false))
+                        resourceJson = ConvertResources(memoryStream);
+
+                    var bytes = encoding.GetBytes(resourceJson);
+
+                    result.AddFile(
+                        "Resources",
+                        Path.GetFileNameWithoutExtension(kvp.Key) + ".resj",
+                        new ArraySegment<byte>(bytes)
+                    );
+                }
             }
         }
 
@@ -98,10 +106,63 @@ namespace JSIL.Utilities {
 
             return output.ToString();
         }
+    }
 
-        public static string ConvertEmbeddedResourceFile (Configuration configuration, string assemblyName, Assembly assembly, string resourceName) {
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
-                return ConvertResources(stream);
+    public class TemporaryAppDomain : IDisposable {
+        public readonly AppDomain Domain;
+
+        public TemporaryAppDomain (string name) {
+            var currentDomain = AppDomain.CurrentDomain;
+            var currentSetup = currentDomain.SetupInformation;
+            var domainSetup = new AppDomainSetup {
+                ApplicationBase = currentSetup.ApplicationBase,
+                ApplicationName = currentSetup.ApplicationName,
+                ApplicationTrust = currentSetup.ApplicationTrust,
+                CachePath = currentSetup.CachePath,
+                ConfigurationFile = currentSetup.ConfigurationFile,
+                DisallowCodeDownload = true,
+                DynamicBase = currentSetup.DynamicBase,
+                PrivateBinPath = currentSetup.PrivateBinPath,
+                PrivateBinPathProbe = currentSetup.PrivateBinPathProbe,
+                ShadowCopyDirectories = currentSetup.ShadowCopyDirectories,
+                ShadowCopyFiles = currentSetup.ShadowCopyFiles,
+                LoaderOptimization = LoaderOptimization.MultiDomain
+            };
+
+            Domain = AppDomain.CreateDomain(name, null, domainSetup);
+        }
+
+        public TResult CreateInstanceAndUnwrap<TInstance, TResult> ()
+            where TInstance : MarshalByRefObject
+        {
+            var tInstance = typeof(TInstance);
+            return (TResult)Domain.CreateInstanceFromAndUnwrap(tInstance.Assembly.Location, tInstance.FullName);
+        }
+
+        public void Dispose () {
+            AppDomain.Unload(Domain);
+        }
+    }
+
+    public interface IManifestResourceExtractor {
+        Dictionary<string, byte[]> GetManifestResources (string assemblyPath, Func<string, bool> filenamePredicate);
+    }
+
+    public class ManifestResourceExtractor : MarshalByRefObject, IManifestResourceExtractor {
+        public Dictionary<string, byte[]> GetManifestResources (string assemblyPath, Func<string, bool> filenamePredicate) {
+            var asm = Assembly.ReflectionOnlyLoadFrom(assemblyPath);
+            var resourceFiles = (from fn in asm.GetManifestResourceNames() where filenamePredicate(fn) select fn).ToArray();
+            var result = new Dictionary<string, byte[]>();
+
+            foreach (var resourceFile in resourceFiles) {
+                using (var stream = asm.GetManifestResourceStream(resourceFile)) {
+                    var buffer = new byte[stream.Length];
+                    stream.Read(buffer, 0, buffer.Length);
+                    result[resourceFile] = buffer;
+                }
+            }
+
+            return result;
         }
     }
 }
