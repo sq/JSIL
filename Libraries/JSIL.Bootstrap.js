@@ -5722,7 +5722,7 @@ JSIL.Make64BitInt = function ($, ctor) {
   var mscorlib = JSIL.GetCorlib();
 
   var me = $.Type.__PublicInterface__;
-
+  /*
   $.Method({ Static: false, Public: true }, ".ctor",
         (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], [])),
         function (a, b, c) {
@@ -5731,6 +5731,7 @@ JSIL.Make64BitInt = function ($, ctor) {
           // c contains the highest 16 bits
           this.data = [a, b, c];
         });
+   */
 
   var tryParse =
     function (text, style, result) {
@@ -5775,8 +5776,8 @@ JSIL.Make64BitInt = function ($, ctor) {
       return result.value;
     });
 
-  $.Method({ Static: true, Public: true }, "Create",
-        (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], [])),
+  $.RawMethod({ Static: true, Public: true }, "Create",
+        //(new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], [])),
         ctor);
 
   $.Method({ Static: true, Public: true }, "op_Addition",
@@ -5939,11 +5940,10 @@ JSIL.Make64BitInt = function ($, ctor) {
 
 };
 
-JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
-
+JSIL.ImplementExternals("System.UInt64", function($) {
   var ctor =
         function (a, b, c) {
-          var r = JSIL.CreateInstanceOfType($.Type, null);
+          var r = new mscorlib.System.UInt64();
           r.data = [a, b, c];
           return r;
         };
@@ -5954,6 +5954,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
 
   var me = $.Type.__PublicInterface__;
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_Division",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function (n, d) {
@@ -5982,6 +5983,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return q;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_Modulus",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function (n, d) {
@@ -6008,6 +6010,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return r;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_RightShift",
       (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
       function (a, n) {
@@ -6031,6 +6034,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
         return ctor(at | br, bt | cr, ct);
       });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_LessThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6054,6 +6058,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return ad[0] < bd[0];
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_LessThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6077,6 +6082,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return ad[0] <= bd[0];
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_GreaterThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6100,6 +6106,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return ad[0] > bd[0];
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_GreaterThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6123,6 +6130,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return ad[0] >= bd[0];
     });
 
+  // Might need to be implemented externally
   $.Method({ Static: false, Public: true }, "toString",
     new JSIL.MethodSignature("System.String", []),
     function () {
@@ -6140,6 +6148,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return s;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "ToHex",
     new JSIL.MethodSignature("System.String", []),
     function () {
@@ -6164,6 +6173,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return s;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "ToInt64",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int64"), []),
     function () {
@@ -6171,6 +6181,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return new mscorlib.System.Int64(d[0], d[1], d[2]);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "Clone",
     new JSIL.MethodSignature($.Type, []),
     function () {
@@ -6194,12 +6205,14 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
     return ctor(0xffffff, 0xffffff, 0xffff);
   });
 
+  // Might need to be implemented externally
   $.Method({ Static: false, Public: true }, "Object.Equals",
     new JSIL.MethodSignature(System.Boolean, [System.Object]),
     function (rhs) {
       return UInt64.op_Equality(this, rhs);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Int32")], [])),
     function (n) {
@@ -6214,7 +6227,8 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
             (n0 >>> 24) & 0xffffff,
             0);
     });
-
+  
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [], [])),
     function () {
@@ -6222,8 +6236,7 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
     });
 });
 
-
-JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
+JSIL.ImplementExternals("System.Int64", function($) {
 
   // The unsigned range 0 to 0x7FFFFFFFFFFFFFFF (= Int64.MaxValue) is positive: 0 to 9223372036854775807
   // The directly following unsigned range 0x8000000000000000 (= Int64.MaxValue + 1 = Int64.MinValue) to 0xFFFFFFFFFFFFFFFF is negative: -9223372036854775808 to -1
@@ -6243,7 +6256,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
 
   var ctor =
   function (a, b, c) {
-    var r = JSIL.CreateInstanceOfType($.Type, null);
+    var r = new mscorlib.System.Int64();
     r.data = [a, b, c];
     return r;
   };
@@ -6252,11 +6265,10 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
 
   var mscorlib = JSIL.GetCorlib();
 
-  var uint64 = mscorlib.System.UInt64;
   var me = $.Type.__PublicInterface__;
 
   var isNegative = function (a) {
-    return uint64.op_GreaterThan(a, me.MaxValue);
+      return mscorlib.System.UInt64.op_GreaterThan(a, me.MaxValue);
   };
 
   $.Field({ Static: true, Public: true }, "MaxValue", $.Type, function () {
@@ -6275,12 +6287,14 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
     return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
   });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_UnaryNegation",
     (new JSIL.MethodSignature($.Type, [$.Type], [])),
     function (a) {
-      return me.op_Addition(me.op_Subtraction(uint64.MaxValue, a), uint64.One);
+        return me.op_Addition(me.op_Subtraction(mscorlib.System.UInt64.MaxValue, a), mscorlib.System.UInt64.One);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_Division",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function (n, d) {
@@ -6293,9 +6307,10 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_UnaryNegation(me.op_Division(me.op_UnaryNegation(n), d));
       else
       // fix return type error
-        return uint64.op_Division(n, d).ToInt64();
+          return mscorlib.System.UInt64.op_Division(n, d).ToInt64();
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_Modulus",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function (n, d) {
@@ -6308,9 +6323,10 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_UnaryNegation(me.op_Modulus(me.op_UnaryNegation(n), d));
       else
       // fix return type error
-        return uint64.op_Modulus(n, d);
+          return mscorlib.System.UInt64.op_Modulus(n, d);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_RightShift",
     (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
     function (a, n) {
@@ -6324,7 +6340,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_UnaryNegation(mscorlib.System.UInt64.op_RightShift(a, n));
       }
       else {
-        return mscorlib.System.UInt64.op_RightShift(a, n);
+        return mscorlib.System.UInt64.op_RightShift(a, n).ToInt64();
       }
 
 
@@ -6345,6 +6361,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       //      return ctor(at | br, bt | cr | sb, ct | sc);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_GreaterThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6352,11 +6369,12 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       var bn = isNegative(b);
 
       if (an === bn)
-        return uint64.op_GreaterThan(a, b);
+        return mscorlib.System.UInt64.op_GreaterThan(a, b);
       else
         return bn;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_GreaterThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6364,11 +6382,12 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       var bn = isNegative(b);
 
       if (an === bn)
-        return uint64.op_GreaterThanOrEqual(a, b);
+        return mscorlib.System.UInt64.op_GreaterThanOrEqual(a, b);
       else
         return bn;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_LessThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function Int64_op_LessThan(a, b) {
@@ -6376,11 +6395,12 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       var bn = isNegative(b);
 
       if (an === bn)
-        return uint64.op_LessThan(a, b);
+        return mscorlib.System.UInt64.op_LessThan(a, b);
       else
         return an;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: true }, "op_LessThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
     function (a, b) {
@@ -6388,17 +6408,19 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       var bn = isNegative(b);
 
       if (an === bn)
-        return uint64.op_LessThanOrEqual(a, b);
+        return mscorlib.System.UInt64.op_LessThanOrEqual(a, b);
       else
         return an;
     });
 
+  // Might need to be implemented externally
   $.Method({ Static: false, Public: true }, "Equals",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), []),
     function (a) {
       return me.op_Equality(this, a);
     });
 
+  // Might need to be implemented externally
   $.Method({ Static: false, Public: true }, "toString",
     new JSIL.MethodSignature("System.String", []),
     function () {
@@ -6408,10 +6430,11 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         s += "-";
         a = me.op_UnaryNegation(this);
       }
-      s += uint64.prototype.toString.apply(a);
+      s += mscorlib.System.UInt64.prototype.toString.apply(a);
       return s;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Int32")], [])),
     function (n) {
@@ -6427,6 +6450,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return r;
     });
 
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "ToUInt64",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt64"), []),
     function () {
@@ -6434,6 +6458,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       return new mscorlib.System.UInt64(d[0], d[1], d[2]);
     });
 
+  // Not present in mscorlib
   $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [], [])),
     function () {
@@ -6451,3 +6476,9 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       $.publicInterface, $.typeObject, "int64"
     );
 });
+
+
+
+//JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) { });
+
+//JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) { });
