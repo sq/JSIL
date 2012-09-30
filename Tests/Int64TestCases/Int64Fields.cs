@@ -10,6 +10,7 @@ public class Program
     public static void Main()
     {
         // fields
+        Print(long.MaxValue);
         Print(TEST_CONST);
         Print(new Program().TEST_READONLY_FIELD);
         Print(TEST_STATIC_FIELD);

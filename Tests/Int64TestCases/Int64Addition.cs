@@ -8,6 +8,7 @@ public class Program
         var y = 10000053450L;
 
         // addition
+        Console.WriteLine(-x);
         Console.WriteLine(1000000000000L + x);
         Console.WriteLine(1L + 0L);
         Console.WriteLine(1L + x);
