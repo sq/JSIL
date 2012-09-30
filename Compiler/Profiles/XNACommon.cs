@@ -899,7 +899,7 @@ public static class Common {
                 var evaluatedXnbPath = item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb");
                 var matchingBuiltPaths = (from bi in builtXNBs where 
                                               bi.OutputPath.Contains(":\\") && 
-                                              bi.OutputPath.EndsWith(evaluatedXnbPath)
+                                              bi.OutputPath.EndsWith("\\" + evaluatedXnbPath)
                                               select bi.Metadata["FullPath"]).Distinct().ToArray();
 
                 if (matchingBuiltPaths.Length == 0) {

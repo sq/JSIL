@@ -222,6 +222,7 @@
     <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
     <None Include="SpecialTestCases\ReplaceConstructor.cs" />
     <None Include="SimpleTestCases\UnboxBoolean.cs" />
+    <None Include="TestCases\LinqExpressionSimple.cs" />
     <None Include="Int64TestCases\Int64Addition.cs" />
     <None Include="Int64TestCases\UInt64Bitwise.cs" />
     <None Include="Int64TestCases\Int64Boxing.cs" />
