@@ -1588,7 +1588,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
     }
   );
 
-  var playImpl = function (song) {
+  var playImpl = function MediaPlayer_Play (song) {
     var oldInstance = Microsoft.Xna.Framework.Media.MediaPlayer.currentSong;
     var newInstance = null;
 
@@ -1610,6 +1610,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
   $.Method({Static:true , Public:true }, "Play", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Media.Song")], [])), 
     playImpl
+  );
+
+  $.Method({Static:true , Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function MediaPlayer_Stop () {
+      if (Microsoft.Xna.Framework.Media.MediaPlayer.currentSong)
+        Microsoft.Xna.Framework.Media.MediaPlayer.currentSong.pause();
+
+      Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = null;
+    }
   );
 
   $.Method({Static:true , Public:true }, "set_IsRepeating", 
