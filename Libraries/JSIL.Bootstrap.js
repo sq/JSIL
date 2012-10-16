@@ -8,6 +8,7 @@ if (!$jsilcore)
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
+JSIL.DeclareNamespace("System.Linq.Expressions");
 JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
@@ -5712,4 +5713,85 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
 });
 
 JSIL.MakeStaticClass("System.BitConverter", true, [], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Linq.Expressions.Expression", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({Static:true , Public:true }, "Constant", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object], []))
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "Constant", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object, $jsilcore.TypeRef("System.Type")], []))
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "Lambda", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.Expression`1", ["!!0"]), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression")])], ["TDelegate"]))
+  );
+});
+
+JSIL.ImplementExternals("System.Linq.Expressions.Expression", function ($) {
+  $.Method({Static:true , Public:true }, "Constant", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object], [])), 
+    function Constant (value) {
+      return new System.Linq.Expressions.ConstantExpression(value);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Constant", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
+    function Constant (value, type) {
+      return System.Linq.Expressions.ConstantExpression.Make(value, type);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Lambda", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.Expression`1", ["!!0"]), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression")])], ["TDelegate"])), 
+    function Lambda$b1 (TDelegate, body, parameters) {
+      var name = null;
+      var tailCall = false;
+      return new ( System.Linq.Expressions.Expression$b1.Of(TDelegate) )(body, name, tailCall, parameters);
+    }
+  );
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ConstantExpression", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({Static:true , Public:false}, "Make", 
+    (new JSIL.MethodSignature($.Type, [$.Object, $jsilcore.TypeRef("System.Type")], []))
+  );
+});
+
+JSIL.ImplementExternals("System.Linq.Expressions.ConstantExpression", function ($) {
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Object], [])), 
+    function _ctor (value) {
+      this._value = value;
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "Make", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
+    function Make (value, type) {
+      return new System.Linq.Expressions.ConstantExpression(value);
+    }
+  );
+
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ParameterExpression", true, [], function ($) {
+  var $thisType = $.publicInterface;
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.LambdaExpression", true, [], function ($) {
+  var $thisType = $.publicInterface;
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.LambdaExpression"), "System.Linq.Expressions.Expression`1", true, ["TDelegate"], function ($) {
+  var $thisType = $.publicInterface;
+});
+
+JSIL.ImplementExternals("System.Linq.Expressions.Expression`1", function ($) {
 });
