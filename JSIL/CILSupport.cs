@@ -161,4 +161,14 @@ namespace JSIL.Internal {
             );
         }
     }
+
+    public class FullNameAssemblyComparer : IEqualityComparer<AssemblyDefinition> {
+        public bool Equals (AssemblyDefinition x, AssemblyDefinition y) {
+            return x.FullName.Equals(y.FullName);
+        }
+
+        public int GetHashCode (AssemblyDefinition obj) {
+            return obj.FullName.GetHashCode();
+        }
+    }
 }

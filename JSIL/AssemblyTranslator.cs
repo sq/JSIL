@@ -316,7 +316,10 @@ namespace JSIL {
                 }
             }
 
-            return result.ToArray();
+            // HACK: If an assembly we loaded has indirect references to multiple versions of BCL assemblies,
+            //  Cecil will resolve them all to the same version. As a result, we'll end up with multiple copies
+            //  of the same assembly in result. We need to filter those out so we only return each assembly once.
+            return result.Distinct(new FullNameAssemblyComparer()).ToArray();
         }
 
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
@@ -717,7 +720,7 @@ namespace JSIL {
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
-                    if ((methodInfo != null) && methodInfo.IsIgnored)
+                    if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
                         continue;
 
                     output.Identifier("$", null);
