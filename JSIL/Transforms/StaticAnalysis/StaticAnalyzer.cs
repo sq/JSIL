@@ -306,12 +306,17 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVerbatimLiteral verbatim) {
-            foreach (var kvp in verbatim.Variables) {
+            if (verbatim.Variables != null) {
                 var variables = new Dictionary<string, JSVariable>();
 
-                foreach (var v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>()) {
-                    if (!variables.ContainsKey(v.Name))
-                        variables[v.Name] = v;
+                foreach (var kvp in verbatim.Variables) {
+                    if (kvp.Value == null)
+                        continue;
+
+                    foreach (var v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>()) {
+                        if (!variables.ContainsKey(v.Name))
+                            variables[v.Name] = v;
+                    }
                 }
 
                 foreach (var variable in variables.Values) {
@@ -319,6 +324,8 @@ namespace JSIL.Transforms {
                     State.EscapingVariables.Add(variable.Name);
                 }
             }
+
+            VisitChildren(verbatim);
         }
 
         public void VisitNode (JSInvocationExpression ie) {
