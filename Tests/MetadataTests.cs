@@ -449,6 +449,15 @@ namespace JSIL.Tests {
             }
         }
 
+        // Mono generates really weird control flow for this
+        [Test]
+        public void ForeachInEnumeratorFunctionMonoBinary () {
+            GenericTest(
+                @"BinaryTestCases\MonoForeachEnumerator.exe",
+                "", ""
+            );
+        }
+
         [Test]
         public void JSReplacementReplacesConstructors () {
             var generatedJs = GenericTest(

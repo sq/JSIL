@@ -817,24 +817,29 @@ namespace JSIL {
                 }
             }
 
+            var temporaryBlock = new ILBlock(block.Body);
+            temporaryBlock.EntryGoto = block.EntryGoto;
+
             return new JSSwitchCase(
                 values,
-                TranslateNode(new ILBlock(block.Body))
+                TranslateNode(temporaryBlock)
             );
         }
 
-        public JSSwitchStatement TranslateNode (ILSwitch swtch) {
+        public JSBlockStatement TranslateNode (ILSwitch swtch) {
             var condition = TranslateNode(swtch.Condition);
             var conditionType = condition.GetActualType(TypeSystem);
-            var result = new JSSwitchStatement(condition);
+            var resultSwitch = new JSSwitchStatement(condition);
 
-            Blocks.Push(result);
+            Blocks.Push(resultSwitch);
 
-            result.Cases.AddRange(
+            resultSwitch.Cases.AddRange(
                 (from cb in swtch.CaseBlocks select TranslateNode(cb, conditionType))
             );
 
             Blocks.Pop();
+
+            var result = new JSBlockStatement(resultSwitch);
 
             return result;
         }

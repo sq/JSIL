@@ -207,10 +207,10 @@ namespace JSIL.Transforms {
                 if (NullChecks.TryGetValue(indexLookup.SwitchVariable, out nullCheck))
                     ParentNode.ReplaceChild(nullCheck.Statement, new JSNullStatement());
 
-                Stack.Skip(2).First().ReplaceChildRecursive(initializer.Statement, new JSNullStatement());
+                Stack.Skip(3).First().ReplaceChildRecursive(initializer.Statement, new JSNullStatement());
 
                 if (indexLookup.IsInverted)
-                    ParentNode.ReplaceChild(indexLookup.Statement, new JSNullStatement());
+                    Stack.Skip(2).First().ReplaceChildRecursive(indexLookup.Statement, new JSNullStatement());
 
                 var switchCases = new List<JSSwitchCase>();
                 JSExpression[] values;
