@@ -31,6 +31,7 @@ namespace JSIL {
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
         protected int UnlabelledBlockCount = 0;
+        protected int NextSwitchId = 0;
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
@@ -614,8 +615,23 @@ namespace JSIL {
                     )));
                 } else {
                     var translated = TranslateStatement(node);
-                    if (translated != null)
-                        currentBlock.Statements.Add(translated);
+
+                    if (translated != null) {
+                        // Hoist statements from child blocks up into parent blocks if they're unlabelled.
+                        // This makes things easier for LabelGroupBuilder and makes it possible for 
+                        //  TranslateNode to produce multiple statements where necessary without breaking 
+                        //  things.
+                        var subBlock = translated as JSBlockStatement;
+                        if (
+                            (subBlock != null) && 
+                            (subBlock.Label == null) && 
+                            (subBlock.GetType() == typeof(JSBlockStatement))
+                        ) {
+                            currentBlock.Statements.AddRange(subBlock.Statements);
+                        } else {
+                            currentBlock.Statements.Add(translated);
+                        }
+                    }
                 }
             }
 
@@ -806,11 +822,15 @@ namespace JSIL {
             return result;
         }
 
-        public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block, TypeReference conditionType = null) {
+        public JSSwitchCase TranslateSwitchCase (
+            ILSwitch.CaseBlock block, TypeReference conditionType, 
+            string exitLabelName, ref bool needExitLabel, out JSBlockStatement epilogue
+        ) {
             JSExpression[] values = null;
+            epilogue = null;
 
             if (block.Values != null) {
-                if ((conditionType != null) && (conditionType.MetadataType == MetadataType.Char)) {
+                if (conditionType.MetadataType == MetadataType.Char) {
                     values = (from v in block.Values select JSLiteral.New(Convert.ToChar(v))).ToArray();
                 } else {
                     values = (from v in block.Values select JSLiteral.New(v)).ToArray();
@@ -820,10 +840,33 @@ namespace JSIL {
             var temporaryBlock = new ILBlock(block.Body);
             temporaryBlock.EntryGoto = block.EntryGoto;
 
-            return new JSSwitchCase(
-                values,
-                TranslateNode(temporaryBlock)
-            );
+            var jsBlock = TranslateNode(temporaryBlock);
+
+            var firstBlockChild = jsBlock.Children.OfType<JSStatement>().FirstOrDefault();
+
+            // If a switch case contains labels, they might be the target of a goto.
+            // In order to support this we need to move the entire switch case outside of the switch statement,
+            //  and then replace the switch case itself with a goto that points to the new location of the case.
+            if ((firstBlockChild != null) && (firstBlockChild.Label != null)) {
+                var standinBlock = new JSBlockStatement(
+                    new JSExpressionStatement(new JSGotoExpression(firstBlockChild.Label))
+                );
+
+                var switchBreaks = (from be in jsBlock.AllChildrenRecursive.OfType<JSBreakExpression>() where be.TargetLoop == null select be);
+
+                foreach (var sb in switchBreaks)
+                    jsBlock.ReplaceChildRecursive(sb, new JSNullExpression());
+
+                needExitLabel = true;
+                jsBlock.Statements.Add(new JSExpressionStatement(new JSGotoExpression(exitLabelName)));
+
+                epilogue = jsBlock;
+                return new JSSwitchCase(values, standinBlock);
+            } else {
+                return new JSSwitchCase(
+                    values, jsBlock
+                );
+            }
         }
 
         public JSBlockStatement TranslateNode (ILSwitch swtch) {
@@ -831,15 +874,30 @@ namespace JSIL {
             var conditionType = condition.GetActualType(TypeSystem);
             var resultSwitch = new JSSwitchStatement(condition);
 
+            JSBlockStatement epilogue;
+            var result = new JSBlockStatement(resultSwitch);
+
             Blocks.Push(resultSwitch);
 
-            resultSwitch.Cases.AddRange(
-                (from cb in swtch.CaseBlocks select TranslateNode(cb, conditionType))
-            );
+            bool needExitLabel = false;
+            string exitLabelName = String.Format("$switchExit{0}", NextSwitchId++);
+
+            foreach (var cb in swtch.CaseBlocks) {
+                resultSwitch.Cases.Add(TranslateSwitchCase(
+                    cb, conditionType, exitLabelName, ref needExitLabel, out epilogue
+                ));
+
+                if (epilogue != null)
+                    result.Statements.Add(epilogue);
+            }
 
             Blocks.Pop();
 
-            var result = new JSBlockStatement(resultSwitch);
+            if (needExitLabel) {
+                var exitLabel = new JSNoOpStatement();
+                exitLabel.Label = exitLabelName;
+                result.Statements.Add(exitLabel);
+            }
 
             return result;
         }

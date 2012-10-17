@@ -44,6 +44,8 @@ namespace JSIL.Transforms {
             public bool IsInverted;
         }
 
+        private JSFunctionExpression CurrentFunction = null;
+
         public readonly Dictionary<JSVariable, NullCheck> NullChecks = new Dictionary<JSVariable, NullCheck>(
             new VariableComparer()            
         );
@@ -57,6 +59,12 @@ namespace JSIL.Transforms {
 
         public DeoptimizeSwitchStatements (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
+        }
+
+        public void VisitNode (JSFunctionExpression fe) {
+            CurrentFunction = fe;
+
+            VisitChildren(fe);
         }
 
         public void VisitNode (JSIfStatement ifs) {
@@ -205,12 +213,12 @@ namespace JSIL.Transforms {
                 Initializers.TryGetValue(indexLookup.Field, out initializer)
             ) {
                 if (NullChecks.TryGetValue(indexLookup.SwitchVariable, out nullCheck))
-                    ParentNode.ReplaceChild(nullCheck.Statement, new JSNullStatement());
+                    CurrentFunction.ReplaceChildRecursive(nullCheck.Statement, new JSNullStatement());
 
-                Stack.Skip(3).First().ReplaceChildRecursive(initializer.Statement, new JSNullStatement());
+                CurrentFunction.ReplaceChildRecursive(initializer.Statement, new JSNullStatement());
 
                 if (indexLookup.IsInverted)
-                    Stack.Skip(2).First().ReplaceChildRecursive(indexLookup.Statement, new JSNullStatement());
+                    CurrentFunction.ReplaceChildRecursive(indexLookup.Statement, new JSNullStatement());
 
                 var switchCases = new List<JSSwitchCase>();
                 JSExpression[] values;

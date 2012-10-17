@@ -452,9 +452,11 @@ namespace JSIL.Tests {
         // Mono generates really weird control flow for this
         [Test]
         public void ForeachInEnumeratorFunctionMonoBinary () {
+            var output = "a\r\nb\r\nc";
+
             GenericTest(
                 @"BinaryTestCases\MonoForeachEnumerator.exe",
-                "", ""
+                output, output
             );
         }
 

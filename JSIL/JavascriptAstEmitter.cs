@@ -259,6 +259,9 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSNoOpStatement nop) {
+        }
+
         public void VisitNode (JSExpressionStatement statement) {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
