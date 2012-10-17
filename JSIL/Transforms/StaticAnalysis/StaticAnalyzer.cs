@@ -305,6 +305,22 @@ namespace JSIL.Transforms {
             VisitChildren(prop);
         }
 
+        public void VisitNode (JSVerbatimLiteral verbatim) {
+            foreach (var kvp in verbatim.Variables) {
+                var variables = new Dictionary<string, JSVariable>();
+
+                foreach (var v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>()) {
+                    if (!variables.ContainsKey(v.Name))
+                        variables[v.Name] = v;
+                }
+
+                foreach (var variable in variables.Values) {
+                    ModifiedVariable(variable);
+                    State.EscapingVariables.Add(variable.Name);
+                }
+            }
+        }
+
         public void VisitNode (JSInvocationExpression ie) {
             var variables = new Dictionary<string, string[]>();
 
