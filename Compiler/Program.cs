@@ -151,7 +151,7 @@ namespace JSIL.Compiler {
                         "Loads one or more project profiles from the specified profile assembly. Note that this does not force the profiles to be used.",
                         (filename) => profileAssemblies.Add(filename)},
                     {"dp=|defaultProfile=",
-                        "Overrides the default profile to use for projects by specifying the name of the new default profile..",
+                        "Overrides the default profile to use for projects by specifying the name of the new default profile.",
                         (profileName) => newDefaultProfile[0] = profileName},
 
                     "Optimizer options",

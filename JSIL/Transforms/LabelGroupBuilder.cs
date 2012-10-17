@@ -73,7 +73,7 @@ namespace JSIL.Transforms {
                         bs.Statements.Clear();
                         bs.Statements.Add(LabelGroup);
                     } else {
-                        throw new NotImplementedException("Unsupported enclosing block type");
+                        throw new NotImplementedException("Unsupported enclosing block type: " + EnclosingBlock.Block.GetType().Name);
                     }
                 }
             }
