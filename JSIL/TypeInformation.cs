@@ -855,30 +855,73 @@ namespace JSIL.Internal {
             return AddMember(evt, proxy);
         }
 
-        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__(.*)", RegexOptions.Compiled);
+        /*
+            Test strings:
+            <<$$>>__0
+            <>2__current
+            <baseType>5__1
+            <o>__2
+            <B>k__BackingField
+            <$>things
+         */
+
+        static readonly Regex MangledNameRegex = new Regex(
+            "(" +
+                @"\<(\<?)(?'class'[^>]*)(\>?)\>(?'id'[a-zA-Z0-9]*)(_+)(?'name'[a-zA-Z0-9_]*)|" +
+                @"\<(?'class'[^>]*)\>(?'id'[^_]*)(_+)(?'name'[a-zA-Z0-9_]*)|" +
+                @"\<(\<?)(?'class'[^>]*)(\>?)\>(?'name'[a-zA-Z0-9_]*)" +
+            ")", 
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
+
         static readonly Regex IgnoredKeywordRegex = new Regex(
             @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__DynamicSite|__CachedAnonymousMethodDelegate", RegexOptions.Compiled
+            @"__DynamicSite|__CachedAnonymousMethodDelegate", 
+            RegexOptions.Compiled
         );
 
+        private static string GetGroup (Match m, string groupName, string defaultValue = null) {
+            if (m.Groups[groupName].Success)
+                return m.Groups[groupName].Value;
+            else
+                return defaultValue;
+        }
+
         public static string GetOriginalName (string memberName, out bool isBackingField) {
-            isBackingField = memberName.EndsWith("__BackingField", StringComparison.Ordinal);
+            isBackingField = false;
 
             var m = MangledNameRegex.Match(memberName);
             if (!m.Success)
                 return null;
 
-            var originalName = m.Groups[1].Value;
-            if (String.IsNullOrWhiteSpace(originalName))
-                originalName = String.Format("${0}", m.Groups[3].Value.Trim());
-            if (String.IsNullOrWhiteSpace(originalName))
-                return null;
+            var @class = GetGroup(m, "class", "");
+            var name = GetGroup(m, "name", "");
 
-            if (isBackingField)
-                return String.Format("{0}$value", originalName);
-            else
-                return originalName;
+            isBackingField = name.Trim() == "BackingField";
+
+            if (isBackingField) {
+                return String.Format("{0}$value", @class);
+            } else {
+                int temp;
+                string result;
+
+                if (int.TryParse(name, out temp))
+                    result = @class;
+                else if (String.IsNullOrWhiteSpace(@class))
+                    result = "$" + name;
+                else
+                    result = @class + "$" + name;
+
+                // <<$$>>__1
+                if ((result == "$") || (result == "$$"))
+                    result += name;
+
+                if (String.IsNullOrWhiteSpace(result))
+                    return null;
+                else 
+                    return result;
+            }
         }
 
         public string Name {

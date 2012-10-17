@@ -883,12 +883,18 @@ namespace JSIL {
             string exitLabelName = String.Format("$switchExit{0}", NextSwitchId++);
 
             foreach (var cb in swtch.CaseBlocks) {
+                var previousNeedExitLabel = needExitLabel;
+
                 resultSwitch.Cases.Add(TranslateSwitchCase(
                     cb, conditionType, exitLabelName, ref needExitLabel, out epilogue
                 ));
 
-                if (epilogue != null)
+                if (epilogue != null) {
+                    if (needExitLabel != previousNeedExitLabel)
+                        result.Statements.Add(new JSExpressionStatement(new JSGotoExpression(exitLabelName)));
+
                     result.Statements.Add(epilogue);
+                }
             }
 
             Blocks.Pop();

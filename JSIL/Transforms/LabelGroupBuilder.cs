@@ -65,6 +65,11 @@ namespace JSIL.Transforms {
                             } else if (populatingExitBlock) {
                                 if (s.Label == null)
                                     exitBlock.Statements.Add(s);
+                                // HACK: The synthesized switch exit labels generated when hoisting a block out of
+                                //  a switch statement shouldn't terminate statement collection. Without this hack,
+                                //  ForeachInEnumeratorFunctionMonoBinary fails.
+                                else if (s.Label.StartsWith("$switchExit"))
+                                    ;
                                 else
                                     populatingExitBlock = false;
                             }
