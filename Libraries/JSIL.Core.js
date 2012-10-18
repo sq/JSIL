@@ -769,11 +769,16 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
 
   if (isPublic) {
     var key = JSIL.EscapeName(name);
+
     var existing = JSIL.$PublicTypes[key];
-    if (typeof (existing) === "function") {
+    var existingAssembly = JSIL.$PublicTypeAssemblies[key];
+
+    if ((typeof (existing) === "function") && (existingAssembly !== $jsilcore)) {
       JSIL.$PublicTypes[key] = function AmbiguousPublicTypeReference () {
         throw new Error("Type '" + name + "' has multiple public definitions. You must access it through a specific assembly.");
       };
+
+      JSIL.Host.warning("Public type '" + name + "' defined twice: ", existingAssembly.toString(), " and ", $private.toString());
 
       delete JSIL.$PublicTypeAssemblies[key];
     } else {
