@@ -441,4 +441,31 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        new[] {
+            "Microsoft.Xna.Framework.Color",
+            "Microsoft.Xna.Framework.Graphics.Color",
+        },
+        JSProxyMemberPolicy.ReplaceNone,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        JSProxyInterfacePolicy.ReplaceDeclared
+    )]
+    public abstract class ColorProxy {
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, 255)")]
+        public ColorProxy (int r, int g, int b) {
+        }
+
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, $a)")]
+        public ColorProxy (int r, int g, int b, int a) {
+        }
+
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, 1.0)")]
+        public ColorProxy (float r, float g, float b) {
+        }
+
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, $a)")]
+        public ColorProxy (float r, float g, float b, float a) {
+        }
+    }
 }

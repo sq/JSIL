@@ -611,12 +611,21 @@ JSIL.EscapeName = function (name) {
   var caretRe = /\`/g;
   var ltRe = /\</g;
   var gtRe = /\>/g;
+  var commaRe = /\,/g;
+  var equalsRe = /\=/g;
 
   name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
     return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
   });
 
-  return name.replace(caretRe, "$$b").replace(JSIL.UnderscoreRegex, "_").replace(ltRe, "$$l").replace(gtRe, "$$g");
+  return (
+    name.replace(caretRe, "$$b")
+      .replace(JSIL.UnderscoreRegex, "_")
+      .replace(ltRe, "$$l")
+      .replace(gtRe, "$$g")
+      .replace(commaRe, "$$cm")
+      .replace(equalsRe, "$$eq")
+  );
 };
 
 JSIL.GetParentName = function (name) {
@@ -1459,7 +1468,12 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
     $.SetValue("__IsIntegral__", isIntegral);
 
     if (typedArrayName) {
-      var typedArrayCtorExists = eval("typeof (" + typedArrayName + ") !== undefined");
+      var typedArrayCtorExists = false;
+      var fn = new Function("return typeof (" + typedArrayName + ") !== \"undefined\"");
+      try {
+        typedArrayCtorExists = fn();
+      } catch (exc) {
+      }
 
       if (typedArrayCtorExists)
         $.SetValue("__TypedArray__", eval(typedArrayName));
@@ -2213,13 +2227,15 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     var members = iface.__Members__;
     var proto = publicInterface.prototype;
 
+    var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
+
     __members__:
     for (var key in members) {
       if (!members.hasOwnProperty(key))
         continue __members__;
 
       var memberType = members[key];
-      var qualifiedName = JSIL.EscapeName(ifaceLocalName + "." + key);
+      var qualifiedName = escapedLocalName + "_" + key;
 
       var hasShort = proto.hasOwnProperty(key);
       var hasQualified = proto.hasOwnProperty(qualifiedName);
@@ -3602,11 +3618,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   if (!publicInterface)
     throw new Error("Null public interface");
 
+  JSIL.InitializeType(publicInterface);
+
   var castFunction, asFunction, isFunction;
   var customCheckOnly = false;
   var checkMethod = publicInterface.CheckType || null;
   var typeId = typeObject.__TypeId__;
-  var assignableFromTypes = typeObject.__AssignableFromTypes__;
+  var assignableFromTypes = typeObject.__AssignableFromTypes__ || {};
 
   typeObject.__CastSpecialType__ = specialType;
   var typeName = JSIL.GetTypeName(typeObject);

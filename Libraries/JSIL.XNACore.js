@@ -548,64 +548,12 @@ JSIL.MakeClass("HTML5Asset", "SoundAssetBase", true, [], function ($) {
 
 });
 
-JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName, sound) {
+JSIL.MakeClass("SoundAssetBase", "CallbackSoundAsset", true, [], function ($) {
+  $.RawMethod(false, ".ctor", function (assetName, createInstance) {
     HTML5Asset.prototype._ctor.call(this, assetName);
-    this.sound = sound;
-    this.freeInstances = [
-      this.$createInstance(0)
-    ];
-  });
 
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var node = this.sound.cloneNode(true);
-
-    var result = {
-      source: node,
-      isPlaying: false,
-      loopCount: loopCount
-    };
-
-    result.play = function () {
-      result.isPlaying = true;
-      node.play();
-    };
-    result.pause = function () {
-      result.isPlaying = false;
-      node.pause();
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return node.volume;
-      },
-      set: function (value) {
-        node.volume = value;
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return instance.loopCount > 0;
-      },
-      set: function (value) {
-        instance.loopCount = value ? 99999 : 0;
-      }
-    });
-
-    node.addEventListener("ended", function () {
-      result.isPlaying = false;
-
-      if (result.loopCount > 0) {
-        result.loopCount--;
-        result.play();
-      } else {
-        if (this.freeInstances.length < 16)
-          this.freeInstances.push(result);
-      }
-    }.bind(this), true);
-
-    return result;
+    this.$createInstance = createInstance;
+    this.freeInstances = [];
   });
 
   $.RawMethod(false, "$newInstance", function () {
@@ -615,130 +563,6 @@ JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
       return this.$createInstance(0);
     }
   });
-});
-
-JSIL.MakeClass("SoundAssetBase", "WebkitSoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName, audioContext, buffer) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-    this.audioContext = audioContext;
-    this.buffer = buffer;
-  });
-
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var instance = this.audioContext.createBufferSource();
-    var gainNode = this.audioContext.createGainNode();
-
-    instance.buffer = this.buffer;
-    instance.loop = loopCount > 0;
-    instance.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
-
-    var context = this.audioContext;
-
-    var result = {
-      source: instance,
-      started: null,
-      duration: this.buffer.duration
-    };
-
-    result.play = function () {
-      if (result.started !== null)
-        return;
-
-      result.started = context.currentTime;
-      instance.noteOn(0);
-    };
-    result.pause = function () {
-      if (result.started === null)
-        return;
-
-      result.started = null;
-      instance.noteOff(0);
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return gainNode.gain.value;
-      },
-      set: function (value) {
-        gainNode.gain.value = value;
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return instance.loop;
-      },
-      set: function (value) {
-        instance.loop = value;
-      }
-    });
-
-    Object.defineProperty(result, "isPlaying", {
-      configurable: true,
-      enumerable: true,
-      get: function () {
-        if (result.started === null)
-          return false;
-
-        var elapsed = context.currentTime - result.started;
-        return (elapsed <= result.duration);
-      }
-    });
-
-    return result;
-  });
-
-  $.RawMethod(false, "$newInstance", function () {
-    return this.$createInstance(0);
-  });
-
-});
-
-JSIL.MakeClass("SoundAssetBase", "NullSoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-  });
-
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var result = {};
-
-    result.play = function () {
-    };
-    result.pause = function () {
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return 1;
-      },
-      set: function (value) {
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return false;
-      },
-      set: function (value) {
-      }
-    });
-
-    Object.defineProperty(result, "isPlaying", {
-      configurable: true,
-      enumerable: true,
-      get: function () {
-        return false;
-      }
-    });
-
-    return result;
-  });
-
-  $.RawMethod(false, "$newInstance", function () {
-    return this.$createInstance(0);
-  });
-
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", function ($) {
@@ -1764,11 +1588,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
     }
   );
 
-  var playImpl = function (song) {
+  var playImpl = function MediaPlayer_Play (song) {
     var oldInstance = Microsoft.Xna.Framework.Media.MediaPlayer.currentSong;
     var newInstance = null;
 
-    if (song !== null) {
+    if (song) {
       newInstance = song.$createInstance(
         Microsoft.Xna.Framework.Media.MediaPlayer.repeat ? 9999 : 0
       );
@@ -1786,6 +1610,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
   $.Method({Static:true , Public:true }, "Play", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Media.Song")], [])), 
     playImpl
+  );
+
+  $.Method({Static:true , Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function MediaPlayer_Stop () {
+      if (Microsoft.Xna.Framework.Media.MediaPlayer.currentSong)
+        Microsoft.Xna.Framework.Media.MediaPlayer.currentSong.pause();
+
+      Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = null;
+    }
   );
 
   $.Method({Static:true , Public:true }, "set_IsRepeating", 
@@ -2887,7 +2721,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:true }, "get_IsActive", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsActive () {
-      return true && !Microsoft.Xna.Framework.Game._QuitForced && !this._isDead;
+      return JSIL.Host.isPageVisible() && !Microsoft.Xna.Framework.Game._QuitForced && !this._isDead;
     }
   );
 
@@ -2926,15 +2760,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsMouseVisible () {
-      // FIXME
-      return true;
+      var oc = this.graphicsDeviceService.GraphicsDevice.originalCanvas;
+      return (oc.style.cursor !== "none");
     }
   );
 
   $.Method({Static:false, Public:true }, "set_IsMouseVisible", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function set_IsMouseVisible (value) {
-      // FIXME
+      var oc = this.graphicsDeviceService.GraphicsDevice.originalCanvas;
+      oc.style.cursor = value ? "default" : "none";
     }
   );
 
@@ -3553,17 +3388,145 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($)
   );
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
+$jsilxna.deadZone = function (value, max, deadZoneSize) {
+  if (value < -deadZoneSize)
+    value += deadZoneSize;
+  else if (value <= deadZoneSize)
+    return 0;
+  else
+    value -= deadZoneSize;
+
+  var scaled = value / (max - deadZoneSize);
+  if (scaled < -1)
+    scaled = -1;
+  else if (scaled > 1)
+    scaled = 1;
+
+  return scaled;
+};
+
+$jsilxna.deadZoneToPressed = function (value, max, deadZoneSize) {
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
 
-  var getStateImpl = function (playerIndex) {
-    var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
-    var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
-    var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
-    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad(released, released, released, released);
+  var scaled = $jsilxna.deadZone(value, max, deadZoneSize);
+  if (Math.abs(scaled) > 0)
+    return pressed;
+  else
+    return released;
+};
 
-    return new Microsoft.Xna.Framework.Input.GamePadState(thumbs, triggers, buttons, dpad);
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
+  var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+  var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+
+  var buttonsFromGamepadState = function (state) {
+    var buttonStates = 0;
+
+    if (state.faceButton0)
+      buttonStates |= buttons.A;
+    if (state.faceButton1)
+      buttonStates |= buttons.B;
+    if (state.faceButton2)
+      buttonStates |= buttons.X;
+    if (state.faceButton3)
+      buttonStates |= buttons.Y;
+
+    if (state.leftShoulder0)
+      buttonStates |= buttons.LeftShoulder;
+    if (state.rightShoulder0)
+      buttonStates |= buttons.RightShoulder;
+
+    if (state.select)
+      buttonStates |= buttons.Back;
+    if (state.start)
+      buttonStates |= buttons.Start;
+
+    if (state.leftStickButton)
+      buttonStates |= buttons.LeftStick;
+    if (state.rightStickButton)
+      buttonStates |= buttons.RightStick;
+
+    var result = buttons.$Cast(buttonStates);
+    return result;
+  };
+
+  var getRawStateForPlayerIndex = function (playerIndex) {
+    if (window && window.Gamepad && window.Gamepad.supported) {
+      var states = window.Gamepad.getStates();
+      if (states) {
+        var state = states[playerIndex.valueOf()];
+        if (state) {
+          return state;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  var getStateImpl = function (playerIndex) {
+    var connected = false;
+    var buttonStates = 0;
+    var leftThumbstick = new Microsoft.Xna.Framework.Vector2(0, 0);
+    var rightThumbstick = new Microsoft.Xna.Framework.Vector2(0, 0);
+    var leftTrigger = 0, rightTrigger = 0;
+    var dpadUp = released, dpadDown = released, dpadLeft = released, dpadRight = released;
+
+    var state = getRawStateForPlayerIndex(playerIndex);
+
+    if (state) {
+      connected = true;
+
+      var blockInput = $jsilbrowserstate && $jsilbrowserstate.blockGamepadInput;
+
+      if (!blockInput) {
+        buttonStates = buttonsFromGamepadState(state);
+
+        // FIXME: This is IndependentAxes mode. Maybe handle Circular too?
+        var leftStickDeadZone = 7849 / 32767;
+        var rightStickDeadZone = 8689 / 32767;
+
+        leftThumbstick.X  = $jsilxna.deadZone(state.leftStickX, 1, leftStickDeadZone);
+        rightThumbstick.X = $jsilxna.deadZone(state.rightStickX, 1, rightStickDeadZone);
+
+        // gamepad.js returns inverted Y compared to XInput... weird.
+        leftThumbstick.Y  = -$jsilxna.deadZone(state.leftStickY, 1, leftStickDeadZone);
+        rightThumbstick.Y = -$jsilxna.deadZone(state.rightStickY, 1, rightStickDeadZone);
+
+        leftTrigger  = state.leftShoulder1;
+        rightTrigger = state.rightShoulder1;
+
+        dpadUp    = state.dpadUp    ? pressed : released;
+        dpadDown  = state.dpadDown  ? pressed : released;
+        dpadLeft  = state.dpadLeft  ? pressed : released;
+        dpadRight = state.dpadRight ? pressed : released;
+      }
+    }
+
+    var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons(
+      buttonStates
+    );
+
+    var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks(
+      leftThumbstick, rightThumbstick
+    );
+
+    var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers(
+      leftTrigger, rightTrigger
+    );
+
+    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad(
+      dpadUp, dpadDown, dpadLeft, dpadRight
+    );
+
+    var result = JSIL.CreateInstanceOfType(
+      Microsoft.Xna.Framework.Input.GamePadState.__Type__,
+      "$internalCtor",
+      [connected, thumbs, triggers, buttons, dpad]
+    );
+    return result;
   };
 
   $.Method({Static:true , Public:true }, "GetState", 
@@ -3576,33 +3539,65 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     getStateImpl
   );
 
+  $.Method({Static:true , Public:true }, "SetVibration", 
+    (new JSIL.MethodSignature($.Boolean, [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex"), $.Single, 
+          $.Single
+        ], [])), 
+    function SetVibration (playerIndex, leftMotor, rightMotor) {
+      // FIXME
+    }
+  );
+
   $.Method({Static:true , Public:true }, "GetCapabilities", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadCapabilities"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex")], [])), 
     function GetCapabilities (playerIndex) {
-      return new Microsoft.Xna.Framework.Input.GamePadCapabilities(null, null);
+      var state = getRawStateForPlayerIndex(playerIndex);
+
+      var result = JSIL.CreateInstanceOfType(
+        Microsoft.Xna.Framework.Input.GamePadCapabilities.__Type__,
+        "$internalCtor",
+        [Boolean(state)]
+      );
+      return result;
     }
   );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadCapabilities", function ($) {
   
+  $.RawMethod(false, "$internalCtor", function (connected) {
+    this._connected = connected;
+  });
+
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.XINPUT_CAPABILITIES")]), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.ErrorCodes")], [])), 
     function _ctor (/* ref */ caps, result) {
-      // FIXME
+      this._connected = false;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_IsConnected", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsConnected () {
-      return false;
+      return this._connected;
     }
   );
 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function ($) {
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
+  var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+  var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+
+  $.RawMethod(false, "$internalCtor", function GamePadState_internalCtor (connected, thumbSticks, triggers, buttons, dPad) {
+    this._connected = connected;
+    this._thumbs = thumbSticks;
+    this._buttons = buttons;
+    this._triggers = triggers;
+    this._dpad = dPad;
+  });
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
@@ -3610,10 +3605,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
           $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadButtons"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadDPad")
         ], [])), 
     function _ctor (thumbSticks, triggers, buttons, dPad) {
-      this._thumbs = thumbSticks;
-      this._buttons = buttons;
-      this._triggers = triggers;
-      this._dpad = dPad;
+      this.$internalCtor(false, thumbSticks, triggers, buttons, dPad);
     }
   );
 
@@ -3635,7 +3627,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsConnected () {
       // FIXME
-      return false;
+      return this._connected;
     }
   );
 
@@ -3653,19 +3645,47 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
     }
   );
 
+  var getButtonState = function (self, button) {
+    var s = self._buttons._state;
+    var key = button.valueOf();
+
+    if (s && s[key])
+      return s[key].valueOf();
+
+    var triggerDeadZone = 30 / 255;
+
+    switch (key) {
+      // DPad
+      case 1:
+        return self._dpad._up;
+      case 2:
+        return self._dpad._down;
+      case 4:
+        return self._dpad._left;
+      case 8:
+        return self._dpad._right;
+
+      // Triggers
+      case 8388608:
+        return $jsilxna.deadZoneToPressed(self._triggers._left, 1, triggerDeadZone);
+      case 4194304:
+        return $jsilxna.deadZoneToPressed(self._triggers._right, 1, triggerDeadZone);
+    }
+
+    return released;
+  };
+
   $.Method({Static:false, Public:true }, "IsButtonDown", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
     function IsButtonDown (button) {
-      // FIXME
-      return false;
+      return (getButtonState(this, button).valueOf() !== 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "IsButtonUp", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
     function IsButtonUp (button) {
-      // FIXME
-      return false;
+      return (getButtonState(this, button).valueOf() === 0);
     }
   );
 
@@ -3678,17 +3698,54 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function
     "Start", "X", "Y"
   ];
 
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
 
+  var makeButtonGetter = function (buttonName) {
+    return function getButtonState () {
+      var key = buttons[buttonName].valueOf();
+      return this._state[key] || released;
+    };
+  }
+
   for (var i = 0; i < buttonNames.length; i++) {
-    $.Method({Static:false, Public:true }, "get_" + buttonNames[i], 
+    var buttonName = buttonNames[i];
+
+    $.Method({Static:false, Public:true }, "get_" + buttonName, 
       (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
-      function () {
-        return released;
-      }
+      makeButtonGetter(buttonName)
     );
   }
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
+    function _ctor (buttonState) {
+      this._state = {};
+
+      buttonState = buttonState.valueOf();
+
+      for (var i = 0; i < buttonNames.length; i++) {
+        var buttonName = buttonNames[i];
+        var buttonMask = buttons[buttonName].valueOf();
+
+        this._state[buttonMask] = (buttonState & buttonMask) ? pressed : released;
+      }
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__", 
+    function GamePadButtons_CopyMembers (source, target) {
+      target._state = {};
+
+      for (var k in source._state) {
+        if (!source._state.hasOwnProperty(k))
+          continue;
+
+        target._state[k] = source._state[k];
+      }
+    }
+  );
 
 });
 
@@ -3761,6 +3818,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadDPad", function ($
 
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadTriggers", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Single, $.Single], [])), 
+    function _ctor (leftTrigger, rightTrigger) {
+      this._left = leftTrigger;
+      this._right = rightTrigger;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Left () {
+      return this._left;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Right () {
+      return this._right;
+    }
+  );
+
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", function ($) {
   var mscorlib = JSIL.GetCorlib();
 
@@ -3793,6 +3875,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
     Public: true
   }, "set_PreferredBackBufferHeight", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._height = value;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "get_IsFullScreen", new JSIL.MethodSignature($.Boolean, [], []), function (value) {
+    return true;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "set_IsFullScreen", new JSIL.MethodSignature(null, [$.Boolean], []), function (value) {
+    // FIXME
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
+    var oc = this.device.originalCanvas;
+
+    $jsilbrowserstate.nativeWidth = this.device.originalWidth = oc.width = this._width;
+    $jsilbrowserstate.nativeHeight = this.device.originalHeight = oc.height = this._height;
   });
 });
 
@@ -4211,25 +4317,69 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
   return result;
 };
 
+$jsilxna.makeColorInstance = ( function () {
+  var tColor = null;
+  var ctor = null;
+
+  return function makeColorInstance () {
+    if (tColor === null) {
+      var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
+      var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
+
+      tColor = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || JSIL.GetTypeInternal(typeName2, $jsilxna, false);
+      var prototype = tColor.__PublicInterface__.prototype;
+
+      ctor = function Color () {
+      };
+      ctor.prototype = prototype;      
+    }
+
+    return new ctor();
+  }
+})();
+
+$jsilxna.ColorFromPremultipliedInts = function (result, r, g, b, a) {
+  if (!result)
+    result = $jsilxna.makeColorInstance();
+
+  result.r = $jsilxna.ClampByte(r);
+  result.g = $jsilxna.ClampByte(g);
+  result.b = $jsilxna.ClampByte(b);
+
+  if (arguments.length === 5)
+    result.a = $jsilxna.ClampByte(a);
+  else
+    result.a = 255;
+
+  return result;
+};
+
+$jsilxna.ColorFromPremultipliedFloats = function (result, r, g, b, a) {
+  if (!result)
+    result = $jsilxna.makeColorInstance();
+
+  result.r = $jsilxna.ClampByte(r * 255);
+  result.g = $jsilxna.ClampByte(g * 255);
+  result.b = $jsilxna.ClampByte(b * 255);
+
+  if (arguments.length === 5)
+    result.a = $jsilxna.ClampByte(a * 255);
+  else
+    result.a = 255;
+
+  return result;
+};
+
 $jsilxna.Color = function ($) {
   (function BindColorExternals () {
     var makeColor = $jsilxna.makeColor;
     var colors = $jsilxna.colors || [];
 
-    var tColor = null;
-
     var makeLazyColor = function (r, g, b, a) {
       var state = null;
       return function () {
         if (state === null) {
-          if (tColor === null) {
-            var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
-            var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
-
-            tColor = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || JSIL.GetTypeInternal(typeName2, $jsilxna, false);
-          }
-
-          state = JSIL.CreateInstanceOfType(tColor, null);
+          state = $jsilxna.makeColorInstance();
           state.a = a;
           state.r = r;
           state.g = g;
@@ -4300,18 +4450,18 @@ $jsilxna.Color = function ($) {
   });
 
   var ctorRgba = function (_, r, g, b, a) {
-      _.a = a;
-      _.r = r;
-      _.g = g;
-      _.b = b;
-    };
+    _.a = a;
+    _.r = r;
+    _.g = g;
+    _.b = b;
+  };
 
   var ctorRgbaFloat = function (_, r, g, b, a) {
-      _.a = $jsilxna.ClampByte(a * 255);
-      _.r = $jsilxna.ClampByte(r * 255);
-      _.g = $jsilxna.ClampByte(g * 255);
-      _.b = $jsilxna.ClampByte(b * 255);
-    };
+    _.a = $jsilxna.ClampByte(a * 255);
+    _.r = $jsilxna.ClampByte(r * 255);
+    _.g = $jsilxna.ClampByte(g * 255);
+    _.b = $jsilxna.ClampByte(b * 255);
+  };
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
@@ -5575,9 +5725,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
     this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
-    this.context.globalCompositeOperation = "copy";
+    this.context.globalCompositeOperation = "source-over";
     this.context.globalAlpha = 1.0;
     this.context.fillStyle = colorCss || "rgba(0, 0, 0, 1)";
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.restore();
   });
@@ -6277,6 +6428,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     function get_Bounds () {
       if (!this._bounds)
         this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.width, this.height);
+      else
+        this._bounds._ctor(0, 0, this.width, this.height);
 
       return this._bounds;
     }
@@ -7346,7 +7499,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:true }, "get_ClientBounds", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_ClientBounds () {
-      // FIXME
+      var canvas = JSIL.Host.getCanvas();
+      this._clientBounds._ctor(
+        0, 0, canvas.width, canvas.height
+      );
+      
       return this._clientBounds;
     }
   );
@@ -7364,6 +7521,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     function get_Title () {
       // FIXME
       return document.title;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_Handle", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], [])), 
+    function get_Handle () {
+      // FIXME
+      return null;
     }
   );
 

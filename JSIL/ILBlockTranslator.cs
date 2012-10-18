@@ -31,6 +31,7 @@ namespace JSIL {
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
         protected int UnlabelledBlockCount = 0;
+        protected int NextSwitchId = 0;
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
@@ -89,8 +90,10 @@ namespace JSIL {
                 if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
                     continue;
 
-                ParameterNames.Add(parameter.Name);
-                Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type, methodReference));
+                var jsp = new JSParameter(parameter.Name, parameter.Type, methodReference);
+
+                ParameterNames.Add(jsp.Name);
+                Variables.Add(jsp.Name, jsp);
             }
 
             foreach (var variable in allVariables) {
@@ -361,29 +364,92 @@ namespace JSIL {
             return result;
         }
 
-        protected JSExpression Translate_MethodReplacement (
-            JSMethod method, JSExpression thisExpression, 
-            JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
+        protected JSVerbatimLiteral HandleJSReplacement (
+            MethodReference method, Internal.MethodInfo methodInfo, 
+            JSExpression thisExpression, JSExpression[] arguments,
+            TypeReference resultType
         ) {
-            var methodInfo = method.Method;
             var metadata = methodInfo.Metadata;
-
             if (metadata != null) {
                 var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
                 if (parms != null) {
                     var argsDict = new Dictionary<string, JSExpression>();
-                    argsDict["this"] = thisExpression;
-                    argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
+
+                    if (thisExpression != null) {
+                        argsDict["this"] = thisExpression;
+                        argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
+                    }
 
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
                     }
 
                     return new JSVerbatimLiteral(
-                        method, (string)parms[0].Value, argsDict, method.Method.ReturnType
+                        method, (string)parms[0].Value, argsDict, resultType
                     );
                 }
             }
+
+            return null;
+        }
+
+        protected JSExpression Translate_ConstructorReplacement (
+            MethodReference constructor, Internal.MethodInfo constructorInfo, JSNewExpression newExpression
+        ) {
+            var instanceType = newExpression.GetActualType(TypeSystem);
+            var jsr = HandleJSReplacement(
+                constructor, constructorInfo, new JSNullLiteral(instanceType), newExpression.Arguments.ToArray(),
+                instanceType
+            );
+            if (jsr != null)
+                return jsr;
+
+            return newExpression;
+        }
+
+        protected JSExpression Translate_MethodReplacement (
+            JSMethod method, JSExpression thisExpression, 
+            JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
+        ) {
+            var methodInfo = method.Method;
+
+            bool retry = false;
+            do {
+                retry = false;
+                var metadata = methodInfo.Metadata;
+                if (metadata != null) {
+                    var jsr = HandleJSReplacement(
+                        method.Reference, methodInfo, thisExpression, arguments,
+                        method.Reference.ReturnType
+                    );
+                    if (jsr != null)
+                        return jsr;
+
+                    // Proxy method bodies can call other methods declared on the proxy
+                    //  that are actually stand-ins for methods declared on the proxied type.
+                    if (
+                        metadata.HasAttribute("JSIL.Proxy.JSNeverReplace") &&
+                        !TypeUtil.TypesAreEqual(method.Reference.DeclaringType, methodInfo.DeclaringType.Definition) &&
+                        !methodInfo.DeclaringType.IsProxy
+                    ) {
+                        var proxyTypeInfo = TypeInfo.GetExisting(method.Reference.DeclaringType);
+                        if ((proxyTypeInfo != null) && proxyTypeInfo.IsProxy) {
+                            var originalMethod =
+                                (from m in methodInfo.DeclaringType.Definition.Methods
+                                 let mi = TypeInfo.GetMethod(m)
+                                 where (mi != null) &&
+                                    mi.NamedSignature.Equals(methodInfo.NamedSignature)
+                                 select m).FirstOrDefault();
+
+                            if (originalMethod != null) {
+                                methodInfo = TypeInfo.GetMethod(originalMethod);
+                                method = new JSMethod(originalMethod, methodInfo, method.MethodTypes, method.GenericArguments);
+                                retry = true;
+                            }
+                        }
+                    }
+                }
+            } while (retry);
 
             if (methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, new[] { thisExpression }.Concat(arguments).ToArray());
@@ -399,7 +465,7 @@ namespace JSIL {
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
                     return new JSVerbatimLiteral(
-                        method, expression.Value, null, null
+                        method.Reference, expression.Value, null, null
                     );
                 }
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
@@ -457,8 +523,10 @@ namespace JSIL {
 
             var parms = method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement") ??
                 propertyInfo.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
+
             if (parms != null) {
                 var argsDict = new Dictionary<string, JSExpression>();
+
                 argsDict["this"] = thisExpression;
                 argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
 
@@ -466,7 +534,9 @@ namespace JSIL {
                     argsDict.Add(kvp.Name, kvp.Value);
                 }
 
-                return new JSVerbatimLiteral(method, (string)parms[0].Value, argsDict, propertyInfo.ReturnType);
+                return new JSVerbatimLiteral(
+                    method.Reference, (string)parms[0].Value, argsDict, propertyInfo.ReturnType
+                );
             }
 
             var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
@@ -545,8 +615,23 @@ namespace JSIL {
                     )));
                 } else {
                     var translated = TranslateStatement(node);
-                    if (translated != null)
-                        currentBlock.Statements.Add(translated);
+
+                    if (translated != null) {
+                        // Hoist statements from child blocks up into parent blocks if they're unlabelled.
+                        // This makes things easier for LabelGroupBuilder and makes it possible for 
+                        //  TranslateNode to produce multiple statements where necessary without breaking 
+                        //  things.
+                        var subBlock = translated as JSBlockStatement;
+                        if (
+                            (subBlock != null) && 
+                            (subBlock.Label == null) && 
+                            (subBlock.GetType() == typeof(JSBlockStatement))
+                        ) {
+                            currentBlock.Statements.AddRange(subBlock.Statements);
+                        } else {
+                            currentBlock.Statements.Add(translated);
+                        }
+                    }
                 }
             }
 
@@ -669,7 +754,7 @@ namespace JSIL {
             ) {
                 // ILSpy bug
 
-                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
+                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
             } else {
                 return result;
             }
@@ -737,35 +822,88 @@ namespace JSIL {
             return result;
         }
 
-        public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block, TypeReference conditionType = null) {
+        public JSSwitchCase TranslateSwitchCase (
+            ILSwitch.CaseBlock block, TypeReference conditionType, 
+            string exitLabelName, ref bool needExitLabel, out JSBlockStatement epilogue
+        ) {
             JSExpression[] values = null;
+            epilogue = null;
 
             if (block.Values != null) {
-                if ((conditionType != null) && (conditionType.MetadataType == MetadataType.Char)) {
+                if (conditionType.MetadataType == MetadataType.Char) {
                     values = (from v in block.Values select JSLiteral.New(Convert.ToChar(v))).ToArray();
                 } else {
                     values = (from v in block.Values select JSLiteral.New(v)).ToArray();
                 }
             }
 
-            return new JSSwitchCase(
-                values,
-                TranslateNode(new ILBlock(block.Body))
-            );
+            var temporaryBlock = new ILBlock(block.Body);
+            temporaryBlock.EntryGoto = block.EntryGoto;
+
+            var jsBlock = TranslateNode(temporaryBlock);
+
+            var firstBlockChild = jsBlock.Children.OfType<JSStatement>().FirstOrDefault();
+
+            // If a switch case contains labels, they might be the target of a goto.
+            // In order to support this we need to move the entire switch case outside of the switch statement,
+            //  and then replace the switch case itself with a goto that points to the new location of the case.
+            if ((firstBlockChild != null) && (firstBlockChild.Label != null)) {
+                var standinBlock = new JSBlockStatement(
+                    new JSExpressionStatement(new JSGotoExpression(firstBlockChild.Label))
+                );
+
+                var switchBreaks = (from be in jsBlock.AllChildrenRecursive.OfType<JSBreakExpression>() where be.TargetLoop == null select be);
+
+                foreach (var sb in switchBreaks)
+                    jsBlock.ReplaceChildRecursive(sb, new JSNullExpression());
+
+                needExitLabel = true;
+                jsBlock.Statements.Add(new JSExpressionStatement(new JSGotoExpression(exitLabelName)));
+
+                epilogue = jsBlock;
+                return new JSSwitchCase(values, standinBlock);
+            } else {
+                return new JSSwitchCase(
+                    values, jsBlock
+                );
+            }
         }
 
-        public JSSwitchStatement TranslateNode (ILSwitch swtch) {
+        public JSBlockStatement TranslateNode (ILSwitch swtch) {
             var condition = TranslateNode(swtch.Condition);
             var conditionType = condition.GetActualType(TypeSystem);
-            var result = new JSSwitchStatement(condition);
+            var resultSwitch = new JSSwitchStatement(condition);
 
-            Blocks.Push(result);
+            JSBlockStatement epilogue;
+            var result = new JSBlockStatement(resultSwitch);
 
-            result.Cases.AddRange(
-                (from cb in swtch.CaseBlocks select TranslateNode(cb, conditionType))
-            );
+            Blocks.Push(resultSwitch);
+
+            bool needExitLabel = false;
+            string exitLabelName = String.Format("$switchExit{0}", NextSwitchId++);
+
+            foreach (var cb in swtch.CaseBlocks) {
+                var previousNeedExitLabel = needExitLabel;
+
+                resultSwitch.Cases.Add(TranslateSwitchCase(
+                    cb, conditionType, exitLabelName, ref needExitLabel, out epilogue
+                ));
+
+                if (epilogue != null) {
+                    if (needExitLabel != previousNeedExitLabel)
+                        result.Statements.Add(new JSExpressionStatement(new JSGotoExpression(exitLabelName)));
+
+                    result.Statements.Add(epilogue);
+                }
+            }
 
             Blocks.Pop();
+
+            if (needExitLabel) {
+                var exitLabel = new JSNoOpStatement();
+                exitLabel.Label = exitLabelName;
+                result.Statements.Add(exitLabel);
+            }
 
             return result;
         }
@@ -1317,14 +1455,27 @@ namespace JSIL {
             }
         }
 
-        protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
-            JSExpression result;
-            JSVariable renamed;
+        protected JSVariable MapVariable (ILVariable variable) {
+            JSVariable renamed, theVariable;
 
-            if (RenamedVariables.TryGetValue(variable, out renamed))
-                result = new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
-            else
-                result = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            var escapedName = JSParameter.MaybeEscapeName(variable.Name, true);
+            bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
+
+            if (RenamedVariables.TryGetValue(variable, out renamed)) {
+                return new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
+            } else if (
+                !isThis &&
+                Variables.TryGetValue(escapedName, out theVariable)
+            ) {
+                // Handle cases where the variable's identifier must be escaped (like @this)
+                return new JSIndirectVariable(Variables, theVariable.Name, ThisMethodReference);
+            } else {
+                return new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            }
+        }
+
+        protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
+            JSExpression result = MapVariable(variable);
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
             if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, variable.Type))
@@ -1352,12 +1503,7 @@ namespace JSIL {
             if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
-            JSVariable jsv;
-
-            if (RenamedVariables.TryGetValue(variable, out jsv))
-                jsv = new JSIndirectVariable(Variables, jsv.Identifier, ThisMethodReference);
-            else
-                jsv = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            JSVariable jsv = MapVariable(variable);
 
             if (jsv.IsReference) {
                 JSExpression materializedValue;
@@ -2043,9 +2189,11 @@ namespace JSIL {
             if ((methodInfo == null) || methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, arguments);
 
-            return new JSNewExpression(
+            var result = new JSNewExpression(
                 constructor.DeclaringType, constructor, methodInfo, arguments
             );
+
+            return Translate_ConstructorReplacement(constructor, methodInfo, result);
         }
 
         protected JSExpression Translate_DefaultValue (ILExpression node, TypeReference type) {

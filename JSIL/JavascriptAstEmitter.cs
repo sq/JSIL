@@ -259,6 +259,9 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSNoOpStatement nop) {
+        }
+
         public void VisitNode (JSExpressionStatement statement) {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
@@ -474,7 +477,7 @@ namespace JSIL {
             bool parens =
                 (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
 
-            var regex = new Regex(@"(\$(?'name'(typeof\(this\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+            var regex = new Regex(@"(\$\$|\$(?'name'(typeof\(this\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
             if (parens)
                 Output.LPar();
@@ -499,6 +502,9 @@ namespace JSIL {
                             Visit(verbatim.Variables[key]);
                         else
                             Output.WriteRaw("null");
+                    } else {
+                        if (m.Value == "$$")
+                            Output.WriteRaw("$");
                     }
                 }
 
@@ -791,6 +797,18 @@ namespace JSIL {
                 function.DisplayName,
                 (o) => o.WriteParameterList(function.Parameters)
             );
+
+            if (function.TemporaryVariableCount > 0) {
+                Output.WriteRaw("var ");
+                for (var i = 0; i < function.TemporaryVariableCount; i++) {
+                    Output.WriteRaw("$temp{0:X2}", i);
+
+                    if (i < (function.TemporaryVariableCount - 1))
+                        Output.WriteRaw(", ");
+                    else
+                        Output.Semicolon();
+                }
+            }
 
             Visit(function.Body);
 

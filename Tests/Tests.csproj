@@ -68,6 +68,9 @@
     <None Include="AnalysisTestCases\StructLoopInteraction.cs" />
     <None Include="AnalysisTestCases\ReuseEnumeratorLocal.cs" />
     <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
+    <None Include="AnalysisTestCases\TemporaryArraySize.cs" />
+    <None Include="AnalysisTestCases\AddToStructProperty.cs" />
+    <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -113,6 +116,8 @@
     <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <None Include="TestCases\NullableObjectCast.cs" />
     <None Include="EncodingTestCases\Common.cs" />
+    <None Include="EncodingTestCases\ToBase64String.cs" />
+    <None Include="EncodingTestCases\FromBase64String.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
@@ -209,7 +214,15 @@
     <None Include="SpecialTestCases\CyclicTypeReferences.cs" />
     <None Include="SpecialTestCases\CyclicTypeInheritance.cs" />
     <None Include="SimpleTestCases\Type.cs" />
-    <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />    
+    <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />
+    <None Include="SpecialTestCases\ReplaceMethodBodyAndCallOtherMethod.cs" />
+    <None Include="SimpleTestCases\ParameterNamedThis.cs" />
+    <None Include="SimpleTestCases\EnumInPlaceAdd.cs" />
+    <None Include="SpecialTestCases\PropertyIncrementEfficiency.cs" />
+    <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
+    <None Include="SpecialTestCases\ReplaceConstructor.cs" />
+    <None Include="SimpleTestCases\UnboxBoolean.cs" />
+    <None Include="TestCases\LinqExpressionSimple.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
@@ -522,7 +535,9 @@
       <Name>Mono.Cecil</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="BinaryTestCases\ConsoleApplication8.exe" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

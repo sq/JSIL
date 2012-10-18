@@ -21,6 +21,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSNoOpStatement : JSStatement {
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            return;
+        }
+
+        public override string ToString () {
+            return PrependLabel("nop");
+        }
+    }
+
     public class JSBlockStatement : JSAnnotatedStatement {
         public readonly List<JSStatement> Statements;
         private bool _IsControlFlow = false;

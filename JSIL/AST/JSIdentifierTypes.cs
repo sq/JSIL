@@ -449,8 +449,18 @@ namespace JSIL.Ast {
     }
 
     public class JSParameter : JSVariable {
-        internal JSParameter (string name, TypeReference type, MethodReference function)
-            : base(name, type, function) {
+        internal JSParameter (string name, TypeReference type, MethodReference function, bool escapeName = true)
+            : base(MaybeEscapeName(name, escapeName), type, function) {
+        }
+
+        public static string MaybeEscapeName (string name, bool actuallyEscape) {
+            if (!actuallyEscape)
+                return name;
+
+            if (name == "this")
+                return "@this";
+
+            return name;
         }
 
         public override bool IsParameter {
@@ -494,7 +504,8 @@ namespace JSIL.Ast {
 
     public class JSThisParameter : JSParameter {
         public JSThisParameter (TypeReference type, MethodReference function) :
-            base("this", type, function) {
+            base("this", type, function, false) 
+        {
         }
 
         public override bool IsThis {

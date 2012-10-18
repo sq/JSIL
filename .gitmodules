@@ -10,3 +10,6 @@
 [submodule "Examples/PlatformerStarterKit"]
 	path = Examples/PlatformerStarterKit
 	url = git@github.com:kevingadd/PlatformerStarterKit.git
+[submodule "Upstream/Gamepad.js"]
+	path = Upstream/Gamepad.js
+	url = https://github.com/kevingadd/gamepad.js.git

@@ -138,6 +138,20 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReplaceMethodBodyWithProxyMethodBodyAndCallOtherMethod () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceMethodBodyAndCallOtherMethod.cs",
+                "ProxiedClass.ProxiedMethod\r\nProxiedClass.UnproxiedMethod",
+                "ProxiedClassProxy.ProxiedMethod\r\nProxiedClass.UnproxiedMethod"
+            );
+
+            Assert.IsFalse(
+                generatedJs.Contains("\"ProxiedClass.ProxiedMethod"),
+                "Replaced methods should not have their body emitted"
+            );
+        }
+
+        [Test]
         public void MethodsContainingActualUnsafeCodeIgnored () {
             GenericTest(
                 @"SpecialTestCases\IgnoreUnsafeCode.cs",
@@ -433,6 +447,26 @@ namespace JSIL.Tests {
             } catch (JavaScriptException jse) {
                 Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
             }
+        }
+
+        // Mono generates really weird control flow for this
+        [Test]
+        public void ForeachInEnumeratorFunctionMonoBinary () {
+            var output = "a\r\nb\r\nc";
+
+            GenericTest(
+                @"BinaryTestCases\MonoForeachEnumerator.exe",
+                output, output
+            );
+        }
+
+        [Test]
+        public void JSReplacementReplacesConstructors () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceConstructor.cs",
+                "1",
+                "myclass1"
+            );
         }
     }
 }

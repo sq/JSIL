@@ -16,7 +16,7 @@ namespace JSIL.Compiler.Profiles {
         public virtual TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ResourceConverter.ConvertEmbeddedResources(configuration, assemblyPath, result);
+            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
 
             AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
 

@@ -35,7 +35,7 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ResourceConverter.ConvertEmbeddedResources(configuration, assemblyPath, result);
+            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
 
             result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()

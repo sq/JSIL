@@ -15,43 +15,51 @@ contentManifest["JSIL"] = [
     ["Library", "JSIL.XML.js"]
 ];
 
-(function loadJSIL (config) {
+var $jsilloaderstate = {
+  loadFailures: []
+};
 
-  if (config.showFullscreenButton) {
-    document.write(
-      '<button id="fullscreenButton">Full Screen</button>'
-    );
-  }
-
-  if (config.showStats) {
-    document.write(
-      '<div id="stats"></div>'
-    );
-  }
-
-  if (config.showProgressBar) {
-    document.write(
-      '<div id="loadingProgress">' +
-          '  <div id="progressBar"></div>' +
-      '  <span id="progressText"></span>' +
-        '</div>'
-      );
-
-  } 
-  
+(function loadJSIL (config) { 
+  var scriptIndex = 0;
   var libraryRoot = (config.libraryRoot = config.libraryRoot || "../Libraries/");
   var manifestRoot = (config.manifestRoot = config.manifestRoot || "");
   config.scriptRoot = config.scriptRoot || "";
   config.fileRoot = config.fileRoot || "";
   config.assetRoot = config.assetRoot || "";
   config.contentRoot = config.contentRoot || "Content/";
+  config.fileVirtualRoot = config.fileVirtualRoot || config.fileRoot || "";
+
+  var scriptURIs = {};
+
+  window.$scriptLoadFailed = function (i) {
+    var uri = scriptURIs[i];
+
+    if (window.JSIL && window.JSIL.Host && window.JSIL.Host.logWriteLine)
+      JSIL.Host.logWriteLine("JSIL.js failed to load script '" + uri + "'");
+    else if (window.console && window.console.log)
+      console.error("JSIL.js failed to load script '" + uri + "'");
+
+    $jsilloaderstate.loadFailures.push([uri]);
+
+    if (jsilConfig.onLoadFailure) {
+      try {
+        jsilConfig.onLoadFailure(uri);
+      } catch (exc) {
+      }
+    }
+  }
 
   function loadScript (uri) {
     if (window.console && window.console.log)
       window.console.log("Loading '" + uri + "'...");
 
+    scriptIndex += 1;
+    scriptURIs[scriptIndex] = uri;
+
     document.write(
-      "<script type=\"text/javascript\" src=\"" + uri + "\"></script>"
+      "<script type=\"text/javascript\" src=\"" + uri + "\" onerror=\"$scriptLoadFailed(" +
+      scriptIndex +
+      ")\"></script>"
     );
   };
 
@@ -61,9 +69,15 @@ contentManifest["JSIL"] = [
   if (config.webgl2d)
     loadScript(libraryRoot + "webgl-2d.js");
 
+  if (config.gamepad)
+    loadScript(libraryRoot + "gamepad.js");
+
   loadScript(libraryRoot + "JSIL.Core.js");
-  loadScript(libraryRoot + "JSIL.Bootstrap.js");  
+  loadScript(libraryRoot + "JSIL.Bootstrap.js");
+  loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
   loadScript(libraryRoot + "JSIL.Browser.js");
+  loadScript(libraryRoot + "JSIL.Browser.Audio.js");
+  loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
 
   if (config.testFixture || (document.location.search.indexOf("testFixture") >= 0)) {
     loadScript(libraryRoot + "JSIL.TestFixture.js");

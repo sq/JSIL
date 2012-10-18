@@ -302,17 +302,23 @@ namespace JSIL.Tests {
         }
 
         protected MethodInfo GetTestMethod () {
-            var program = Assembly.GetType("Program");
-            if (program == null)
-                throw new Exception("Test missing 'Program' main class");
+            var entryPoint = Assembly.EntryPoint;
+            
+            if (entryPoint == null) {
+                var program = Assembly.GetType("Program");
+                if (program == null)
+                    throw new Exception("Test missing 'Program' main class");
 
-            var testMethod = program.GetMethod("Main");
-            if (testMethod == null)
-                throw new Exception("Test missing 'Main' method of 'Program' main class");
+                var testMethod = program.GetMethod("Main");
+                if (testMethod == null)
+                    throw new Exception("Test missing 'Main' method of 'Program' main class");
 
-            MainAcceptsArguments = testMethod.GetParameters().Length > 0;
+                entryPoint = testMethod;
+            }
 
-            return testMethod;
+            MainAcceptsArguments = entryPoint.GetParameters().Length > 0;
+
+            return entryPoint;
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
@@ -403,7 +409,9 @@ namespace JSIL.Tests {
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
             var testMethod = GetTestMethod();
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
+            var declaringType = JSIL.Internal.Util.EscapeIdentifier(
+                testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier
+            );
 
             string argsJson;
 
@@ -428,9 +436,12 @@ namespace JSIL.Tests {
                 @"if (typeof (elapsed) !== 'function') {{ if (typeof (Date) === 'object') elapsed = Date.now; else elapsed = function () {{ return 0; }} }}" +
                 @"timeout({0});" +
                 @"JSIL.Initialize(); var started = elapsed(); " +
-                @"{1}.Main({2}); " +
+                @"JSIL.GetAssembly({1}).{2}.{3}({4}); " +
                 @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
-                JavascriptExecutionTimeout, declaringType, argsJson
+                JavascriptExecutionTimeout, 
+                Util.EscapeString(testMethod.Module.Assembly.FullName),
+                declaringType, Util.EscapeIdentifier(testMethod.Name), 
+                argsJson
             );
 
             generatedJavascript = translatedJs;

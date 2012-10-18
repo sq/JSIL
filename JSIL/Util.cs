@@ -199,7 +199,7 @@ namespace JSIL.Internal {
             return result;
         }
 
-        public static string EscapeCharacter (char character) {
+        public static string EscapeCharacter (char character, bool forJson) {
             switch (character) {
                 case '\0':
                     return @"\0";
@@ -216,7 +216,7 @@ namespace JSIL.Internal {
                 case '\n':
                     return @"\n";
                 default: {
-                    if (character > 255)
+                    if (forJson || (character > 255))
                         return String.Format(@"\u{0:x4}", (int)character);
                     else
                         return String.Format(@"\x{0:x2}", (int)character);
@@ -224,7 +224,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public static string EscapeString (string text, char quoteCharacter = '\"') {
+        public static string EscapeString (string text, char quoteCharacter = '\"', bool forJson = false) {
             if (text == null)
                 return "null";
 
@@ -234,11 +234,11 @@ namespace JSIL.Internal {
 
             foreach (var ch in text) {
                 if (ch == quoteCharacter)
-                    sb.Append(EscapeCharacter(ch));
+                    sb.Append(EscapeCharacter(ch, forJson));
                 else if (ch == '\\')
                     sb.Append(@"\\");
                 else if ((ch < ' ') || (ch > 127))
-                    sb.Append(EscapeCharacter(ch));
+                    sb.Append(EscapeCharacter(ch, forJson));
                 else
                     sb.Append(ch);
             }
@@ -636,6 +636,17 @@ namespace JSIL.Internal {
 
         public int GetHashCode (T obj) {
             return obj.GetHashCode();
+        }
+    }
+
+    public class TemporaryVariable {
+        public static JSRawOutputIdentifier ForFunction (
+            JSFunctionExpression function, TypeReference type
+        ) {
+            var id = String.Format("$temp{0:X2}", function.TemporaryVariableCount++);
+            return new JSRawOutputIdentifier(
+                (jsf) => jsf.WriteRaw(id), type
+            );
         }
     }
 }

@@ -316,7 +316,10 @@ namespace JSIL {
                 }
             }
 
-            return result.ToArray();
+            // HACK: If an assembly we loaded has indirect references to multiple versions of BCL assemblies,
+            //  Cecil will resolve them all to the same version. As a result, we'll end up with multiple copies
+            //  of the same assembly in result. We need to filter those out so we only return each assembly once.
+            return result.Distinct(new FullNameAssemblyComparer()).ToArray();
         }
 
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
@@ -717,7 +720,7 @@ namespace JSIL {
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
-                    if ((methodInfo != null) && methodInfo.IsIgnored)
+                    if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
                         continue;
 
                     output.Identifier("$", null);
@@ -1407,115 +1410,134 @@ namespace JSIL {
             SpecialIdentifiers si, HashSet<string> parameterNames,
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
-            Action temporaryEliminationPass = () => {
-                if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
-                    bool eliminated;
-                    do {
-                        var visitor = new EliminateSingleUseTemporaries(
-                            si.TypeSystem, variables, FunctionCache
-                        );
-                        visitor.Visit(function);
-                        eliminated = visitor.EliminatedVariables.Count > 0;
-                    } while (eliminated);
+            try {
+                Action temporaryEliminationPass = () => {
+                    if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
+                        bool eliminated;
+                        do {
+                            var visitor = new EliminateSingleUseTemporaries(
+                                si.TypeSystem, variables, FunctionCache
+                            );
+                            visitor.Visit(function);
+                            eliminated = visitor.EliminatedVariables.Count > 0;
+                        } while (eliminated);
+                    }
+                };
+
+                var la = new LabelAnalyzer();
+                la.BuildLabelGroups(function);
+
+                temporaryEliminationPass();
+
+                new EmulateStructAssignment(
+                    si.TypeSystem,
+                    FunctionCache,
+                    si.CLR,
+                    Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
+                ).Visit(function);
+
+                new IntroduceVariableDeclarations(
+                    variables,
+                    _TypeInfoProvider
+                ).Visit(function);
+
+                new IntroduceVariableReferences(
+                    si.JSIL,
+                    variables,
+                    parameterNames
+                ).Visit(function);
+
+                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                    new SimplifyLoops(
+                        si.TypeSystem, false
+                    ).Visit(function);
+
+                // Temporary elimination makes it possible to simplify more operators, so do it later
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
+
+                new ReplaceMethodCalls(
+                    function.Method.Reference,
+                    si.JSIL, si.JS, si.TypeSystem
+                ).Visit(function);
+
+                new HandleBooleanAsInteger(
+                    si.TypeSystem, si.JS
+                ).Visit(function);
+
+                new IntroduceCharCasts(
+                    si.TypeSystem, si.JS
+                ).Visit(function);
+
+                new IntroduceEnumCasts(
+                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
+                ).Visit(function);
+
+                new ExpandCastExpressions(
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                ).Visit(function);
+
+                // We need another operator simplification pass to simplify expressions created by cast expressions
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
+
+                var dss = new DeoptimizeSwitchStatements(
+                    si.TypeSystem
+                );
+                dss.Visit(function);
+
+                new CollapseNulls().Visit(function);
+
+                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                    new SimplifyLoops(
+                        si.TypeSystem, true
+                    ).Visit(function);
+
+                temporaryEliminationPass();
+
+                if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
+                    new ControlFlowSimplifier().Visit(function);
+
+                var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
+                epf.Visit(function);
+
+                var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
+                oae.Visit(function);
+
+                var lnd = new LoopNameDetector();
+                lnd.Visit(function);
+                lnd.EliminateUnusedLoopNames();
+
+                new ExpandCastExpressions(
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                ).Visit(function);
+
+                if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
+                    new OptimizePropertyMutationAssignments(
+                        si.TypeSystem, _TypeInfoProvider
+                    ).Visit(function);
+
+                    new ConvertPropertyAccessesToInvocations(
+                        si.TypeSystem, _TypeInfoProvider
+                    ).Visit(function);
                 }
-            };
+            } catch (Exception exc) {
+                string functionName;
 
-            var la = new LabelAnalyzer();
-            la.BuildLabelGroups(function);
+                if ((function.Method != null) && (function.Method.Reference != null))
+                    functionName = function.Method.Reference.FullName;
+                else
+                    functionName = function.DisplayName ?? "<unknown>";
 
-            temporaryEliminationPass();
-
-            new EmulateStructAssignment(
-                si.TypeSystem,
-                FunctionCache,
-                si.CLR,
-                Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
-            ).Visit(function);
-
-            new IntroduceVariableDeclarations(
-                variables,
-                _TypeInfoProvider
-            ).Visit(function);
-
-            new IntroduceVariableReferences(
-                si.JSIL,
-                variables,
-                parameterNames
-            ).Visit(function);
-
-            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
-                new SimplifyLoops(
-                    si.TypeSystem, false
-                ).Visit(function);
-
-            // Temporary elimination makes it possible to simplify more operators, so do it later
-            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
-                new SimplifyOperators(
-                    si.JSIL, si.JS, si.TypeSystem
-                ).Visit(function);
-
-            new ReplaceMethodCalls(
-                function.Method.Reference,
-                si.JSIL, si.JS, si.TypeSystem
-            ).Visit(function);
-
-            new HandleBooleanAsInteger(
-                si.TypeSystem, si.JS
-            ).Visit(function);
-
-            new IntroduceCharCasts(
-                si.TypeSystem, si.JS
-            ).Visit(function);
-
-            new IntroduceEnumCasts(
-                si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
-            ).Visit(function);
-
-            new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
-            ).Visit(function);
-            
-            // We need another operator simplification pass to simplify expressions created by cast expressions
-            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
-                new SimplifyOperators(
-                    si.JSIL, si.JS, si.TypeSystem
-                ).Visit(function);
-
-            var dss = new DeoptimizeSwitchStatements(
-                si.TypeSystem
-            );
-            dss.Visit(function);
-
-            new CollapseNulls().Visit(function);
-
-            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
-                new SimplifyLoops(
-                    si.TypeSystem, true
-                ).Visit(function);
-
-            temporaryEliminationPass();
-
-            if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
-                new ControlFlowSimplifier().Visit(function);
-
-            var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
-            epf.Visit(function);
-
-            var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
-            oae.Visit(function);
-
-            var lnd = new LoopNameDetector();
-            lnd.Visit(function);
-            lnd.EliminateUnusedLoopNames();
-
-            new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
-            ).Visit(function);
-
-            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true))
-                new ConvertPropertyAccessesToInvocations(
-                    si.TypeSystem, _TypeInfoProvider
-                ).Visit(function);
+                throw new Exception(
+                    String.Format("An error occurred while translating the function '{0}':", functionName),
+                    exc
+                );
+            }
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {

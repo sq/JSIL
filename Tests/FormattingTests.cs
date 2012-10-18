@@ -725,5 +725,30 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void PropertyIncrementEfficiency () {
+            var output = "0\r\n2\r\n4\r\n4";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\PropertyIncrementEfficiency.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("instance.Value"), "Property accessed directly"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.get_Value")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.set_Value")
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
