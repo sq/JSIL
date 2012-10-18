@@ -1160,6 +1160,8 @@ JSIL.GenericParameter = function (name, context) {
   } else {
     JSIL.SetValueProperty(this, "__TypeId__", JSIL.$GenericParameterTypeIds[key]);
   }
+
+  JSIL.SetValueProperty(this, "__FullName__", this.name.humanReadable);
 };
 JSIL.GenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
@@ -1875,7 +1877,20 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
 
-  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ",") + "]";
+  var fullName = typeObject.__FullName__ + "[";
+  for (var i = 0; i < resolvedArguments.length; i++) {
+    if (i > 0)
+      fullName += ",";
+
+    var arg = resolvedArguments[i];
+    var stringified = arg.__FullName__; // || String(arg);
+    if (!stringified)
+      throw new Error("No name for generic argument #" + i + " to closed form of type " + typeObject.__FullName__);
+
+    fullName += stringified;
+  }
+  
+  fullName += "]";
 
   var typeId = typeObject.__TypeId__ + "[";
   for (var i = 0; i < resolvedArguments.length; i++) {
