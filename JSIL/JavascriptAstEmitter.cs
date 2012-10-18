@@ -359,7 +359,7 @@ namespace JSIL {
 
         private void WritePossiblyCachedTypeIdentifier (TypeReference type, int? index) {
             if (index.HasValue)
-                Output.WriteRaw("$T{0:X2}", index.Value);
+                Output.WriteRaw("($T{0:X2}())", index.Value);
             else
                 Output.Identifier(type, ReferenceContext, false);
         }
@@ -682,7 +682,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCachedType cachedType) {
-            Output.WriteRaw("$T{0:X2}", cachedType.Index);
+            Output.WriteRaw("($T{0:X2}())", cachedType.Index);
         }
 
         public void VisitNode (JSTypeOfExpression toe) {

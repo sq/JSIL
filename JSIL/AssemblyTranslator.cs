@@ -1175,34 +1175,19 @@ namespace JSIL {
 
                 var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
                 if (cts.Length > 0) {
-                    output.WriteRaw("var ");
-
-                    bool isFirst = true;
                     foreach (var ct in cts) {
-                        if (!isFirst)
-                            output.WriteRaw(", ");
-
-                        output.WriteRaw("$T{0:X2}", ct.Index);
-                        isFirst = false;
-                    }
-
-                    output.Semicolon(true);
-                    output.NewLine();
-
-                    output.WriteRaw("$.TypeCacher");
-                    output.LPar();
-                    output.OpenFunction(null, null);
-
-                    foreach (var ct in cts) {
-                        output.WriteRaw("$T{0:X2} = ", ct.Index);
+                        output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
+                        output.OpenBrace();
+                        output.WriteRaw("var value = ");
                         output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
                         output.Semicolon(true);
+                        output.WriteRaw("$T{0:X2} = function () {{ return value; }}", ct.Index);
+                        output.Semicolon(true);
+                        output.WriteRaw("return value");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
+                        output.Semicolon(true);
                     }
-
-                    output.CloseBrace(false);
-                    output.RPar();
-
-                    output.Semicolon(true);
                 }
             }
 

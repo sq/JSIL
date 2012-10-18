@@ -1325,8 +1325,6 @@ JSIL.ExternalsQueue = {};
 // FIXME: Used to prevent cycles in type cachers from causing problems. Not sure if this is right.
 $jsilcore.SuppressRecursiveConstructionErrors = 0;
 
-$jsilcore.TypeGetterDepth = 0;
-
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, true);
   if (isPublic)
@@ -1354,11 +1352,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   var getter = function (unseal) {
     var result;
 
-    $jsilcore.TypeGetterDepth += 1;
     try {
-      if ($jsilcore.TypeGetterDepth > 2)
-        JSIL.Host.logWriteLine("DEPTH " + $jsilcore.TypeGetterDepth + " - " + name);
-
       if (state.constructing) {
         if (($jsilcore.SuppressRecursiveConstructionErrors > 0) && state.value) {
           JSIL.Host.warning("Ignoring recursive construction of type '" + name + "'.");
@@ -1431,7 +1425,6 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
         });
       }
     } finally {
-      $jsilcore.TypeGetterDepth -= 1;
     }
 
     return result;
@@ -1846,28 +1839,8 @@ $jsilcore.$Of$NoInitialize = function () {
 
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
-  
-  var fullNameUnqualified = typeObject.__FullName__;
-  if (resolvedArguments.length > 0) {
-    fullNameUnqualified += "[";
-    for (var i = 0; i < resolvedArguments.length; ++i) {
-      fullNameUnqualified += "[";
-      fullNameUnqualified += resolvedArguments[i].__FullNameUnqualified__;
-      fullNameUnqualified += "]";
-    }
-    fullNameUnqualified += "]";
-  }
 
-  var fullName = typeObject.__FullName__;
-  if (resolvedArguments.length > 0) {
-    fullName += "[";
-    for (var i = 0; i < resolvedArguments.length; ++i) {
-      fullName += "[";
-      fullName += resolvedArguments[i].AssemblyQualifiedName;
-      fullName += "]";
-    }
-    fullName += "]";
-  }
+  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ",") + "]";
 
   var typeId = typeObject.__TypeId__ + "[";
   for (var i = 0; i < resolvedArguments.length; i++) {
@@ -1883,11 +1856,10 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__GenericArgumentValues__ = resolvedArguments;
   resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
-  resultTypeObject.__FullNameUnqualified__ = fullNameUnqualified;
 
   JSIL.SetValueProperty(resultTypeObject, "toString", 
     function GenericType_ToString () {
-      return this.__FullNameUnqualified__;
+      return this.__FullName__;
     }
   );
 
@@ -1902,7 +1874,7 @@ $jsilcore.$Of$NoInitialize = function () {
   if (typeof (result.prototype) !== "undefined") {
     JSIL.SetValueProperty(result.prototype, "__ThisType__", resultTypeObject);
     JSIL.SetValueProperty(result.prototype, "__ThisTypeId__", resultTypeObject.__TypeId__);
-    result.prototype.__FullName__ = fullNameUnqualified;
+    result.prototype.__FullName__ = fullName;
   }
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
@@ -3241,7 +3213,7 @@ JSIL.BuildTypeList = function (type, publicInterface) {
   }
 };
 
-$jsilcore.cctorKeys = ["__TypeCacher__", "_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
+$jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
 
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
@@ -4464,13 +4436,13 @@ JSIL.GetTypeName = function (type) {
   if (typeof (type) === "string")
     return type;
 
-  var result = type.__FullNameUnqualified__ || type.__FullName__;
+  var result = type.__FullName__ || type.__FullName__;
 
   if ((typeof (result) === "undefined") && (typeof (type.prototype) !== "undefined"))
-    result = type.prototype.__FullNameUnqualified__ || type.prototype.__FullName__;
+    result = type.prototype.__FullName__;
 
   if ((typeof (result) === "undefined") && (typeof (type.__Type__) === "object"))
-    return type.__Type__.__FullNameUnqualified__ || type.__Type__.__FullName__;
+    return type.__Type__.__FullName__;
 
   if (typeof (result) === "string")
     return result;
@@ -4910,17 +4882,6 @@ JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propert
   );
 
   this.Property(descriptor, propertyName, propertyType);
-};
-
-JSIL.InterfaceBuilder.prototype.TypeCacher = function (fn) {
-  if (typeof (fn) !== "function")
-    throw new Error("TypeCacher only accepts function arguments");
-
-  JSIL.SetValueProperty(
-    this.publicInterface, "__TypeCacher__", fn
-  );
-
-  this.typeObject.__RawMethods__.push([true, "__TypeCacher__"]);
 };
 
 JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) {
