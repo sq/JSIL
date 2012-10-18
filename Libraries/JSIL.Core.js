@@ -1512,16 +1512,51 @@ JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
 
-JSIL.TypeObjectPrototype.get_Assembly = function() { return this.__Context__; }
-JSIL.TypeObjectPrototype.get_Namespace = function() { return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); }
-JSIL.TypeObjectPrototype.get_Name = function() { return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); }
-JSIL.TypeObjectPrototype.get_FullName = function() { return this.__FullName__; }
-JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { return this.get_FullName() + ", " + this.get_Assembly().toString(); }
-JSIL.TypeObjectPrototype.get_IsEnum = function() { return this.__IsEnum__; }
-JSIL.TypeObjectPrototype.get_IsGenericType = function() { return this.__OpenType__ !== undefined || this.__IsClosed__ === false; }
-JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { return this.__IsClosed__ === false; }
-JSIL.TypeObjectPrototype.get_IsValueType = function() { return this.__IsValueType__; }
-JSIL.TypeObjectPrototype.get_IsArray = function() { return this.__IsArray__; }
+JSIL.TypeObjectPrototype.get_Assembly = function() { 
+  return this.__Context__; 
+}
+JSIL.TypeObjectPrototype.get_Namespace = function() { 
+  // FIXME: Probably wrong for nested types.
+  return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+}
+JSIL.TypeObjectPrototype.get_Name = function() { 
+  return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+}
+JSIL.TypeObjectPrototype.get_FullName = function() {
+  if (this.get_IsGenericType() && !this.get_IsGenericTypeDefinition()) {
+    var result = this.__FullNameWithoutArguments__;    
+    result += "[";
+
+    var ga = this.__GenericArgumentValues__;
+    for (var i = 0, l = ga.length; i < l; i++) {
+      var type = ga[i];
+      result += "[" + type.get_AssemblyQualifiedName() + "]";
+    }
+
+    result += "]";
+    return result;
+  } else {
+    return this.__FullName__;
+  }
+}
+JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { 
+  return this.get_FullName() + ", " + this.get_Assembly().toString(); 
+}
+JSIL.TypeObjectPrototype.get_IsEnum = function() { 
+  return this.__IsEnum__; 
+}
+JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
+  return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
+}
+JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
+  return this.__IsClosed__ === false; 
+}
+JSIL.TypeObjectPrototype.get_IsValueType = function() { 
+  return this.__IsValueType__; 
+}
+JSIL.TypeObjectPrototype.get_IsArray = function() { 
+  return this.__IsArray__; 
+}
 
 
 JSIL.ResolveGenericTypeReference = function (obj, context) {
@@ -5822,16 +5857,12 @@ JSIL.ImplementExternals(
 
     $.Method({Static:false, Public:true }, "get_IsGenericType",
       new JSIL.MethodSignature("System.Boolean", []),
-      function () {
-        return this.__OpenType__ !== undefined || this.__IsClosed__ === false;
-      }
+      JSIL.TypeObjectPrototype.get_IsGenericType
     );
 
     $.Method({Static:false, Public:true }, "get_IsGenericTypeDefinition",
       new JSIL.MethodSignature("System.Boolean", []),
-      function () {
-        return this.__IsClosed__ === false;
-      }
+      JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition
     );
     
     $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
@@ -5850,7 +5881,6 @@ JSIL.ImplementExternals(
       }
     );
 
-
     $.Method({Static:false, Public:true }, "MakeGenericType",
       (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Type])], [])), 
       function (typeArguments) {
@@ -5860,24 +5890,17 @@ JSIL.ImplementExternals(
 
     $.Method({Static:false, Public:true }, "get_IsArray",
       new JSIL.MethodSignature("System.Boolean", []),
-      function () {
-        return this.__IsArray__;
-      }
+      JSIL.TypeObjectPrototype.get_IsArray
     );
     
     $.Method({Public: true , Static: false}, "get_IsValueType",
       new JSIL.MethodSignature("System.Boolean", []),
-      function() {
-        return this.__IsValueType__;
-      }
+      JSIL.TypeObjectPrototype.get_IsValueType
     );
-
     
     $.Method({Public: true , Static: false}, "get_IsEnum",
       new JSIL.MethodSignature("System.Boolean", []),
-      function () {
-        return this.__IsEnum__;
-      }
+      JSIL.TypeObjectPrototype.get_IsEnum
     );
 
     $.Method({Static:false, Public:true }, "GetElementType",
@@ -5889,39 +5912,27 @@ JSIL.ImplementExternals(
 
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
-      function () {
-        return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__);
-      }
+      JSIL.TypeObjectPrototype.get_Name
     );
 
     $.Method({Public: true , Static: false}, "get_FullName",
       new JSIL.MethodSignature("System.String", []),
-      function () {
-        return this.__FullName__;
-      }
+      JSIL.TypeObjectPrototype.get_FullName
     );
 
     $.Method({Public: true , Static: false}, "get_Assembly",
       new JSIL.MethodSignature("System.Reflection.Assembly", []),
-      function () {
-        // FIXME: Probably wrong for nested types.
-        return this.__Context__;
-      }
+      JSIL.TypeObjectPrototype.get_Assembly
     );
 
     $.Method({Public: true , Static: false}, "get_Namespace",
       new JSIL.MethodSignature("System.String", []),
-      function () {
-        // FIXME: Probably wrong for nested types.
-        return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__);
-      }
+      JSIL.TypeObjectPrototype.get_Namespace
     );
     
     $.Method({Public: true , Static: false}, "get_AssemblyQualifiedName",
       new JSIL.MethodSignature("System.String", []),
-      function () {
-        return this.get_FullName() + ", " + this.get_Assembly().toString();
-      }
+      JSIL.TypeObjectPrototype.get_AssemblyQualifiedName
     );
 
     $.Method({Public: true , Static: false}, "toString",
