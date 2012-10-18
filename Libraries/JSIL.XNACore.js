@@ -6467,6 +6467,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       textures.appendChild(this.image);
   });
 
+  $.Method({Static:false, Public:true }, "get_IsContentLost", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsContentLost () {
+      return false;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "SetData", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"])], ["T"])), 
     function SetData$b1 (T, data) {
@@ -6608,17 +6615,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_IsContentLost", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsContentLost () {
+      return false;
+    }
+  );
+
   $.Method({
     Static: false,
     Public: true
   }, "SetData", new JSIL.MethodSignature(null, [], ["T"]), function (T, data) {
     throw new System.NotImplementedException();
-  }), $.Method({
+  });
+  $.Method({
     Static: false,
     Public: true
   }, "SetData", new JSIL.MethodSignature(null, [], []), function (T, level, rect, data, startIndex, elementCount) {
     throw new System.NotImplementedException();
-  }), $.Method({
+  });
+  $.Method({
     Static: false,
     Public: true
   }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {
