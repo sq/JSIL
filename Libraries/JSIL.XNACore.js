@@ -5686,7 +5686,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 
   $.RawMethod(false, "$UpdateBlendState", function GraphicsDevice_$UpdateBlendState () {
-    if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
+    if (!this.blendState) {
+      // XNA 3
+      this.context.globalCompositeOperation = "source-over";
+    } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
       this.context.globalCompositeOperation = "copy";
     } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Additive) {
       this.context.globalCompositeOperation = "lighter";
