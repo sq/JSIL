@@ -3232,6 +3232,21 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])), 
+    function _ctor (dictionary) {
+      this._dict = {};
+      this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
+
+      var enumerator = JSIL.GetEnumerator(dictionary);
+      while (enumerator.MoveNext())
+        this.Add(enumerator.Current.Key, enumerator.Current.Value);
+      enumerator.Dispose();
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Add", 
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
     function Add (key, value) {
