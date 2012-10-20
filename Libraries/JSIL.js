@@ -79,6 +79,9 @@ var $jsilloaderstate = {
   loadScript(libraryRoot + "JSIL.Browser.Audio.js");
   loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
 
+  if (config.touch)
+    loadScript(libraryRoot + "JSIL.Browser.Touch.js");
+
   if (config.testFixture || (document.location.search.indexOf("testFixture") >= 0)) {
     loadScript(libraryRoot + "JSIL.TestFixture.js");
   }

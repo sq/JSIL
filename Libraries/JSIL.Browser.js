@@ -390,6 +390,9 @@ function initBrowserHooks () {
       return false;
     }, true
   );
+
+  if (initTouchEvents)
+    initTouchEvents();
 };
 
 function getAssetName (filename, preserveCase) {
