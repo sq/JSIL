@@ -752,15 +752,23 @@ public static class Common {
             if (File.Exists(journalPath)) {
                 var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
 
-                if (journalEntries != null)
-                    existingJournal = journalEntries.ToDictionary(
-                        (je) => {
-                            if (je.Key != null)
-                                return je.SourceFilename + ":" + je.Key;
-                            else
-                                return je.SourceFilename;
-                        }
-                    );
+                if (journalEntries != null) {
+                    existingJournal = new Dictionary<string, CompressResult>();
+
+                    foreach (var je in journalEntries) {
+                        string uniqueKey;
+
+                        if (je.Key != null)
+                            uniqueKey = je.SourceFilename + ":" + je.Key;
+                        else
+                            uniqueKey = je.SourceFilename;
+
+                        if (existingJournal.ContainsKey(uniqueKey))
+                            Console.Error.WriteLine("// Duplicate content build journal entry for '{0}'! Ignoring...", uniqueKey);
+                        else
+                            existingJournal.Add(uniqueKey, je);
+                    }
+                }
             }
 
             contentProjectsProcessed.Add(contentProjectPath);
