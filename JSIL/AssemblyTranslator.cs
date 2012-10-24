@@ -1342,12 +1342,24 @@ namespace JSIL {
                     return null;
                 }
 
-                IEnumerable<ILVariable> allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb);
-                if (allVariables == null)
-                    return null;
+                IEnumerable<ILVariable> allVariables;
+                {
+                    var ignoredVariables = new List<string>();
+                    allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb, ignoredVariables);
+                    if (allVariables == null) {
+                        WarningFormat(
+                            "Ignoring method '{0}' because of {1} untranslatable variables:\r\n{2}", 
+                            method.FullName, ignoredVariables.Count, String.Join(", ", ignoredVariables)
+                        );
+
+                        FunctionCache.CreateNull(methodInfo, method, identifier);
+                        pr.OnFinished();
+                        return null;
+                    }
+                }
 
                 var translator = new ILBlockTranslator(
-                    this, context, method, methodDef, 
+                    this, context, method, methodDef,
                     ilb, decompiler.Parameters, allVariables,
                     typeReplacer
                 );
@@ -1376,7 +1388,7 @@ namespace JSIL {
                 }
 
                 function = FunctionCache.Create(
-                    methodInfo, methodDef, method, identifier, 
+                    methodInfo, methodDef, method, identifier,
                     translator, parameters, body
                 );
 
@@ -1388,16 +1400,22 @@ namespace JSIL {
         }
 
         internal static ILVariable[] GetAllVariablesForMethod(
-            DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody
+            DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody,
+            List<string> ignoredVariables
         ) {
             var allVariables = methodBody.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                 .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
+            bool ignored = false;
 
             foreach (var v in allVariables) {
                 if (TypeUtil.IsIgnoredType(v.Type)) {
-                    return null; // return null;
+                    ignoredVariables.Add(v.Name);
+                    ignored = true;
                 }
             }
+
+            if (ignored)
+                return null;
 
             NameVariables.AssignNamesToVariables(context, parameters, allVariables, methodBody);
 
@@ -1733,8 +1751,9 @@ namespace JSIL {
 
                 // We need the set of variables used by the method in order to
                 //  properly map default values.
+                var ignoreReasons = new List<string>();
                 var variables = GetAllVariablesForMethod(
-                    context, astBuilder.Parameters, block
+                    context, astBuilder.Parameters, block, ignoreReasons
                 );
                 if (variables != null) {
                     // We need a translator to map the IL expressions for the default
@@ -1994,9 +2013,14 @@ namespace JSIL {
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            JSFunctionExpression function = GetFunctionBodyForMethod(
-                isExternal, methodInfo
-            );
+            JSFunctionExpression function;
+            try {
+                function = GetFunctionBodyForMethod(
+                    isExternal, methodInfo
+                );
+            } catch (KeyNotFoundException knf) {
+                throw;
+            }
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
