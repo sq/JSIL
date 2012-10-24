@@ -1094,7 +1094,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
   $.Method({Static:false, Public:true }, "get_AssetName", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_AssetName () {
-      return this.assetName;
+      // XNA ContentReader.AssetName always has backslashes, so we need to preserve that
+      //  because some content readers do stuff with AssetName
+      return this.assetName.replace(/\//g, "\\");
     }
   );
 

@@ -391,7 +391,7 @@ function initBrowserHooks () {
     }, true
   );
 
-  if (initTouchEvents)
+  if (typeof(initTouchEvents) !== "undefined")
     initTouchEvents();
 };
 
