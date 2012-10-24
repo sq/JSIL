@@ -1696,7 +1696,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
     function Sort (comparer) {
       this._items.sort(function (lhs, rhs) {
-        return comparer.Compare(lhs, rhs);
+        return comparer.IComparer$b1_Compare(lhs, rhs);
       });
     }
   );
