@@ -3974,7 +3974,10 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   };
 
   var initializer = function ($) {
-    var asm = JSIL.GetAssembly("mscorlib");
+    var asm = JSIL.GetAssembly("mscorlib", true) || $jsilcore;
+    if (!asm)
+      throw new Error("mscorlib not found!");
+    
     var enumType = JSIL.GetTypeFromAssembly(asm, "System.Enum");
     var prototype = JSIL.CloneObject(enumType.__PublicInterface__.prototype);
     prototype.__BaseType__ = enumType;
