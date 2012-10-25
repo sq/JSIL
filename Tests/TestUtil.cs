@@ -396,11 +396,10 @@ namespace JSIL.Tests {
             };
         }
 
-        public string GenerateJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation,
+        public TOutput Translate<TOutput> (
+            Func<TranslationResult, TOutput> processResult,
             Func<Configuration> makeConfiguration = null
         ) {
-            var tempFilename = Path.GetTempFileName();
             Configuration configuration;
 
             if (makeConfiguration != null)
@@ -411,25 +410,24 @@ namespace JSIL.Tests {
             if (StubbedAssemblies != null)
                 configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);
 
-            var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache);
+            TOutput result;
 
-            string translatedJs;
-            var translationStarted = DateTime.UtcNow.Ticks;
-            var assemblyPath = Util.GetPathOfAssembly(Assembly);
-            translatedJs = null;
-            try {
-                var result = translator.Translate(
+            using (var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache)) {
+                var assemblyPath = Util.GetPathOfAssembly(Assembly);
+
+                var translationResult = translator.Translate(
                     assemblyPath, TypeInfo == null
                 );
 
-                AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
-                translatedJs = result.WriteToString();
+                AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, translationResult);
+
+                result = processResult(translationResult);
 
                 // If we're using a preconstructed type information provider, we need to remove the type information
                 //  from the assembly we just translated
                 if (TypeInfo != null) {
-                    Assert.AreEqual(1, result.Assemblies.Count);
-                    TypeInfo.Remove(result.Assemblies.ToArray());
+                    Assert.AreEqual(1, translationResult.Assemblies.Count);
+                    TypeInfo.Remove(translationResult.Assemblies.ToArray());
                 }
 
                 // If we're using a preconstructed assembly cache, make sure the test case assembly didn't get into
@@ -437,9 +435,21 @@ namespace JSIL.Tests {
                 if (AssemblyCache != null) {
                     AssemblyCache.TryRemove(Assembly.FullName);
                 }
-            } finally {
-                translator.Dispose();
             }
+
+            return result;
+        }
+
+        public string GenerateJavascript (
+            string[] args, out string generatedJavascript, out long elapsedTranslation,
+            Func<Configuration> makeConfiguration = null
+        ) {
+
+            var translationStarted = DateTime.UtcNow.Ticks;
+
+            string translatedJs = Translate(
+                (tr) => tr.WriteToString(), makeConfiguration
+            );
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
@@ -480,6 +490,7 @@ namespace JSIL.Tests {
 
             generatedJavascript = translatedJs;
 
+            var tempFilename = Path.GetTempFileName();
             File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
 
             var jsFile = OutputPath;
