@@ -6403,11 +6403,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
         throw new Error("Non-function passed to Delegate.New");
       }
 
-      var resultDelegate = method.bind(object);
-      var self = this;
-
-      JSIL.SetValueProperty(resultDelegate, "__ThisType__", self.__Type__);
-
+      var resultDelegate = method.bind(object);      
+      JSIL.SetValueProperty(resultDelegate, "__ThisType__", this.__Type__);
       JSIL.SetValueProperty(resultDelegate, "toString", toStringImpl);
 
       resultDelegate.__object__ = object;

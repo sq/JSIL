@@ -1857,7 +1857,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Clear () {
-      this._size = 0;
+      this._items.length = this._size = 0;
     }
   );
 
@@ -1927,7 +1927,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Clear () {
-      this._size = 0;
+      this._items.length = this._size = 0;
     }
   );
 
