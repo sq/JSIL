@@ -6,8 +6,11 @@ JSIL.Host.logWrite = function (text) {
 JSIL.Host.logWriteLine = function (text) {
   print(text);
 };
-
 JSIL.Host.throwException = function (e) {
+  throw e;
+};
+
+function reportException (e) {
   var stack = "";
   try {
     stack = e.stack || "";

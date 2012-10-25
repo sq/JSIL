@@ -198,7 +198,7 @@ namespace JSIL.Tests {
         public float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
-            @"// elapsed: (?'elapsed'[0-9]*(\.[0-9]*)?)", 
+            @"// elapsed: (?'elapsed'[0-9]+(\.[0-9]*)?)", 
             RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
         public static readonly Regex ExceptionRegex = new Regex(
@@ -507,7 +507,7 @@ namespace JSIL.Tests {
                 evaluator.WriteInput(
                     "contentManifest['Test'] = [['Script', {0}]]; " +
                     "function runMain () {{ " +
-                    "print({1}); var elapsedTime = runTestCase(timeout, elapsed); print({2}); print({3} + elapsedTime);" +
+                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, elapsed); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
                     "}}; shellStartup();",
                     Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),

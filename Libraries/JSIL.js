@@ -83,6 +83,7 @@ var $jsilloaderstate = {
 
     contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
     contentManifest["JSIL"].push(["Library", "JSIL.IO.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XML.js"]);
   };
 
   Environment_SpidermonkeyShell.prototype.getUserSetting = function (key) {
