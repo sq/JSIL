@@ -338,7 +338,10 @@ namespace JSIL {
 
         protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
             var result = assemblyName.ToString();
-            return Regex.Replace(result.Replace(",", ""), "[^A-Za-z0-9 _]", "_");
+            if (Configuration.FilenameEscapeRegex != null)
+                return Regex.Replace(result, Configuration.FilenameEscapeRegex, "_");
+            else
+                return result;
         }
 
         public TranslationResult Translate (

@@ -470,14 +470,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void NoCommasInOutputFilenames () {
+        public void EscapesOutputFilenames () {
             using (var test = new ComparisonTest(
                 EvaluatorPool,
                 new[] { @"TestCases\HelloWorld.cs" },
-                @"MetadataTests\NoCommasInOutputFilenames"
+                @"MetadataTests\EscapesOutputFilenames"
             )) {
                 var filenames = test.Translate((tr) => {
                     return (from file in tr.OrderedFiles select file.Filename).ToArray();
+                }, () => {
+                    var configuration = MakeConfiguration();
+                    configuration.FilenameEscapeRegex = "[^A-Za-z0-9 _]";
+                    return configuration;
                 });
 
                 Assert.AreEqual(1, filenames.Length);
