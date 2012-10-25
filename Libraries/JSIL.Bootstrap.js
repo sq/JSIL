@@ -1252,6 +1252,9 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
     function (array, startPosition) {
       this._array = array;
       this._length = array.length;
+      if (typeof (startPosition) !== "number")
+        throw new Error("ArrayEnumerator ctor second argument must be number");
+
       this._index = startPosition;
     }
   );
@@ -1696,7 +1699,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
     function Sort (comparer) {
       this._items.sort(function (lhs, rhs) {
-        return comparer.Compare(lhs, rhs);
+        return comparer.IComparer$b1_Compare(lhs, rhs);
       });
     }
   );
@@ -1854,7 +1857,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Clear () {
-      this._size = 0;
+      this._items.length = this._size = 0;
     }
   );
 
@@ -1924,7 +1927,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Clear () {
-      this._size = 0;
+      this._items.length = this._size = 0;
     }
   );
 
@@ -3232,6 +3235,21 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])), 
+    function _ctor (dictionary) {
+      this._dict = {};
+      this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
+
+      var enumerator = JSIL.GetEnumerator(dictionary);
+      while (enumerator.MoveNext())
+        this.Add(enumerator.Current.Key, enumerator.Current.Value);
+      enumerator.Dispose();
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Add", 
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
     function Add (key, value) {
@@ -4458,21 +4476,37 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
 
 });
 
+JSIL.MakeEnum(
+  "System.Text.RegularExpressions.RegexOptions", true, {
+    None: 0, 
+    IgnoreCase: 1, 
+    Multiline: 2, 
+    ExplicitCapture: 4, 
+    Compiled: 8, 
+    Singleline: 16, 
+    IgnorePatternWhitespace: 32, 
+    RightToLeft: 64, 
+    ECMAScript: 256, 
+    CultureInvariant: 512
+  }, true
+);
+
 JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
   var system = JSIL.GetAssembly("System", true);
 
   var makeRegex = function (pattern, options) {
-    if ((options & System.Text.RegularExpressions.RegexOptions.ECMAScript) === 0) {
+    var tRegexOptions = system.System.Text.RegularExpressions.RegexOptions;
+    if ((options & tRegexOptions.ECMAScript) === 0) {
       throw new Error("Non-ECMAScript regexes are not currently supported.");
     }
 
     var flags = "g";
 
-    if ((options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) !== 0) {
+    if ((options & tRegexOptions.IgnoreCase) !== 0) {
       flags += "i";
     }
 
-    if ((options & System.Text.RegularExpressions.RegexOptions.Multiline) !== 0) {
+    if ((options & tRegexOptions.Multiline) !== 0) {
       flags += "m";
     }
 
@@ -4495,20 +4529,35 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
 
   $.Method({Static:false, Public:true }, "Matches", 
     (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.MatchCollection"), [$.String], [])), 
-    function Matches (input) {
-      var matches = input.match(this._regex);
-
+    function Matches (input) {      
       var matchObjects = [];
-      var tMatch = System.Text.RegularExpressions.Match.__Type__;
+      var tMatch = system.System.Text.RegularExpressions.Match.__Type__;
+      var tGroup = system.System.Text.RegularExpressions.Group.__Type__;
+      var tGroupCollection = system.System.Text.RegularExpressions.GroupCollection.__Type__;
 
-      if (JSIL.IsArray(matches)) {
-        for (var i = 0; i < matches.length; i++) {
-          matchObjects.push(
-            JSIL.CreateInstanceOfType(
-              tMatch, "$internalCtor", [matches[i]]
-            )
+      var current = null;
+      while ((current = this._regex.exec(input)) !== null) {
+        var groupObjects = [];
+        for (var i = 0, l = current.length; i < l; i++) {
+          var groupObject = JSIL.CreateInstanceOfType(
+            tGroup, "$internalCtor", [
+              current[i], 
+              (current[i] !== null) && (current[i].length > 0)
+            ]
           );
+          groupObjects.push(groupObject);
         }
+
+        var groupCollection = JSIL.CreateInstanceOfType(
+          tGroupCollection, "$internalCtor", [groupObjects]
+        );
+
+        var matchObject = JSIL.CreateInstanceOfType(
+          tMatch, "$internalCtor", [
+            current[0], groupCollection
+          ]
+        );
+        matchObjects.push(matchObject);
       }
 
       var result = JSIL.CreateInstanceOfType(
@@ -4533,10 +4582,14 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
   );
 });
 
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.RegularExpressions.Regex", true, [], function ($) {
+  var $thisType = $.publicInterface;
+});
+
 JSIL.ImplementExternals("System.Text.RegularExpressions.MatchCollection", function ($) {
   var system = JSIL.GetAssembly("System", true);
   var mscorlib = JSIL.GetCorlib();
-  var tEnumerator = JSIL.ArrayEnumerator.Of(System.Text.RegularExpressions.Match);
+  var tEnumerator = JSIL.ArrayEnumerator.Of(system.System.Text.RegularExpressions.Match);
 
   $.RawMethod(false, "$internalCtor", function (matches) {
     this._matches = matches;
@@ -4566,13 +4619,15 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.MatchCollection", functi
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], [])), 
     function GetEnumerator () {
-      return new tEnumerator(this._matches);
+      return new tEnumerator(this._matches, -1);
     }
   );
 });
 
-JSIL.ImplementExternals("System.Text.RegularExpressions.Capture", function ($) {
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.RegularExpressions.MatchCollection", true, [], function ($) {
+});
 
+JSIL.ImplementExternals("System.Text.RegularExpressions.Capture", function ($) {
   $.Method({Static:false, Public:true }, "get_Length", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Length () {
@@ -4595,17 +4650,78 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Capture", function ($) {
   );
 });
 
-JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
-  $.RawMethod(false, "$internalCtor", function (text) {
+JSIL.ImplementExternals("System.Text.RegularExpressions.Group", function ($) {
+  $.RawMethod(false, "$internalCtor", function (text, success) {
     this._text = text;
+    this._success = success;
     this._length = text.length;
   });
+
+  $.Method({Static:false, Public:true }, "get_Success", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_Success () {
+      return this._success;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
+  $.RawMethod(false, "$internalCtor", function (text, groups) {
+    this._text = text;
+    this._groupcoll = groups;
+    this._length = text.length;
+  });
+
+  $.Method({Static:false, Public:true }, "get_Groups", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Text.RegularExpressions.GroupCollection"), [], [])), 
+    function get_Groups () {
+      return this._groupcoll;
+    }
+  );
 });
 
 JSIL.MakeStruct("System.ValueType", "System.EventArgs", true, [], function ($) {
   $.Field({Static:true , Public:true }, "Empty", $jsilcore.TypeRef("System.EventArgs"), function ($) {
     return new System.EventArgs();
   });
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.GroupCollection", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+  var $thisType = $.publicInterface;
+  var tEnumerator = JSIL.ArrayEnumerator.Of(system.System.Text.RegularExpressions.Group);
+
+  $.RawMethod(false, "$internalCtor", function (groups) {
+    this._groups = groups;
+  });
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._groups.length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Text.RegularExpressions.Group"), [$.Int32], [])), 
+    function get_Item (groupnum) {
+      return this._groups[groupnum];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Text.RegularExpressions.Group"), [$.String], [])), 
+    function get_Item (groupname) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), 
+    function GetEnumerator () {
+      return new tEnumerator(this._groups, -1);
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.Diagnostics.Debug", function ($) {

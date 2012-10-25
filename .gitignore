@@ -71,3 +71,5 @@ Skeletons/*.js
 /SmokeTests/bin
 /SmokeTests/obj
 /Upstream/V8
+*.sublime-*
+*.VisualState.xml

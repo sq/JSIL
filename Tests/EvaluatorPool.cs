@@ -103,7 +103,13 @@ namespace JSIL.Tests {
     }
 
     public class Evaluator : IDisposable {
+        public const bool TraceInput = false;
+        public const bool TraceOutput = false;
+
         public readonly Process Process;
+        public readonly int Id;
+
+        private static int NextId = 0;
 
         private volatile int InputClosed = 0;
         private volatile int IsDisposed = 0;
@@ -112,6 +118,8 @@ namespace JSIL.Tests {
         private Action _JoinImpl;
 
         public Evaluator (string jsShellPath, string options) {
+            Id = Interlocked.Increment(ref NextId);
+
             var psi = new ProcessStartInfo(
                 jsShellPath, options
             ) {
@@ -176,15 +184,24 @@ namespace JSIL.Tests {
             }
         }
 
-        public void WriteInput (string format, params object[] args) {
+        public void WriteInput (string text) {
             if (IsDisposed != 0)
                 throw new ObjectDisposedException("evaluator");
 
             if (InputClosed != 0)
                 throw new InvalidOperationException("Input stream already closed");
 
-            Process.StandardInput.Write(String.Format(format, args));
+            if (TraceInput) {
+                foreach (var line in text.Split(new [] { Environment.NewLine }, StringSplitOptions.None))
+                    Debug.WriteLine("{0:X2} in : {1}", Id, line);
+            }
+
+            Process.StandardInput.Write(text);
             Process.StandardInput.Flush();
+        }
+
+        public void WriteInput (string format, params object[] args) {
+            WriteInput(String.Format(format, args));
         }
 
         public void CloseInput () {
@@ -207,6 +224,16 @@ namespace JSIL.Tests {
             _JoinImpl();
             Process.WaitForExit();
             _ExitCode = Process.ExitCode;
+
+            if (TraceOutput) {
+                Debug.WriteLine("{0:X2} exit {1}", Id, _ExitCode);
+
+                foreach (var line in _StdOut.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+                    Debug.WriteLine("{0:X2} out: {1}", Id, line);
+
+                foreach (var line in _StdErr.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+                    Debug.WriteLine("{0:X2} err: {1}", Id, line);
+            }
         }
 
         public void Dispose () {

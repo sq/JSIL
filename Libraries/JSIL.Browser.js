@@ -249,11 +249,13 @@ function releaseKeys (keyCodes) {
 
 function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
-  $jsilbrowserstate.nativeWidth = canvas.width;
-  $jsilbrowserstate.nativeHeight = canvas.height;
+  if (canvas) {
+    $jsilbrowserstate.nativeWidth = canvas.width;
+    $jsilbrowserstate.nativeHeight = canvas.height;
 
-  canvas.draggable = false;
-  canvas.unselectable = true;
+    canvas.draggable = false;
+    canvas.unselectable = true;
+  }
 
   // Be a good browser citizen!
   // Disabling commonly used hotkeys makes people rage.
@@ -322,20 +324,16 @@ function initBrowserHooks () {
     }, true
   );
 
-  canvas.addEventListener(
-    "contextmenu", function (evt) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      return false;
-    }, true
-  );
-
   var mapMouseCoords = function (evt) {
-    var currentWidth = canvas.clientWidth;
-    var currentHeight = canvas.clientHeight;
+    var localCanvas = canvas || document.getElementById("canvas");
+    if (!localCanvas)
+      return;
 
-    var x = evt.clientX - canvas.offsetLeft;
-    var y = evt.clientY - canvas.offsetTop;
+    var currentWidth = localCanvas.clientWidth;
+    var currentHeight = localCanvas.clientHeight;
+
+    var x = evt.clientX - localCanvas.offsetLeft;
+    var y = evt.clientY - localCanvas.offsetTop;
 
     x = x * $jsilbrowserstate.nativeWidth / currentWidth;
     y = y * $jsilbrowserstate.nativeHeight / currentHeight;
@@ -344,30 +342,56 @@ function initBrowserHooks () {
     $jsilbrowserstate.mousePosition[1] = y;
   };
 
-  canvas.addEventListener(
-    "mousedown", function (evt) {     
-      mapMouseCoords(evt);
+  if (canvas) {
+    canvas.addEventListener(
+      "contextmenu", function (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+      }, true
+    );
 
-      var button = evt.button;
-      if (Array.prototype.indexOf.call($jsilbrowserstate.heldButtons, button) === -1)
-        $jsilbrowserstate.heldButtons.push(button);
+    canvas.addEventListener(
+      "mousedown", function (evt) {     
+        mapMouseCoords(evt);
 
-      return false;
-    }, true
-  );
+        var button = evt.button;
+        if (Array.prototype.indexOf.call($jsilbrowserstate.heldButtons, button) === -1)
+          $jsilbrowserstate.heldButtons.push(button);
 
-  canvas.addEventListener(
-    "mouseup", function (evt) {
-      mapMouseCoords(evt);
-      
-      var button = evt.button;
-      $jsilbrowserstate.heldButtons = $jsilbrowserstate.heldButtons.filter(function (element, index, array) {
-        (element !== button);
-      });
+        return false;
+      }, true
+    );
 
-      return false;
-    }, true
-  );
+    canvas.addEventListener(
+      "mouseup", function (evt) {
+        mapMouseCoords(evt);
+        
+        var button = evt.button;
+        $jsilbrowserstate.heldButtons = $jsilbrowserstate.heldButtons.filter(function (element, index, array) {
+          (element !== button);
+        });
+
+        return false;
+      }, true
+    );
+
+    canvas.addEventListener(
+      "onselectstart", function (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+      }, true
+    );
+
+    canvas.addEventListener(
+      "ondragstart", function (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+      }, true
+    );
+  };
 
   document.addEventListener(
     "mousemove", function (evt) {
@@ -375,21 +399,8 @@ function initBrowserHooks () {
     }, true
   );
 
-  canvas.addEventListener(
-    "onselectstart", function (evt) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      return false;
-    }, true
-  );
-
-  canvas.addEventListener(
-    "ondragstart", function (evt) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      return false;
-    }, true
-  );
+  if (typeof(initTouchEvents) !== "undefined")
+    initTouchEvents();
 };
 
 function getAssetName (filename, preserveCase) {
@@ -794,11 +805,13 @@ function beginLoading () {
       if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0)) {
         jsilConfig.onLoadFailed(loadFailures);
       } else {
-        $jsilbrowserstate.mainRunAtTime = Date.now();
-        $jsilbrowserstate.isMainRunning = true;
-        runMain();
-        $jsilbrowserstate.isMainRunning = false;
-        $jsilbrowserstate.hasMainRun = true;
+        if (typeof (runMain) === "function") {
+          $jsilbrowserstate.mainRunAtTime = Date.now();
+          $jsilbrowserstate.isMainRunning = true;
+          runMain();
+          $jsilbrowserstate.isMainRunning = false;
+          $jsilbrowserstate.hasMainRun = true;
+        }
       }
 
       // Main doesn't block since we're using the browser's event loop          

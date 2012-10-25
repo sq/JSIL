@@ -30,7 +30,7 @@ namespace JSIL.Tests {
                     }
 
                     passedTests.Add(Path.GetFileName(filename));
-                } catch (JavaScriptException jse) {
+                } catch (JavaScriptEvaluatorException jse) {
                     Console.WriteLine(jse.ToString());
                 } catch (AssertionException ex) {
                     Console.WriteLine(ex.ToString());

@@ -20,17 +20,37 @@ using System.Web.Script.Serialization;
 using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
-    public class JavaScriptException : Exception {
+    public class JavaScriptEvaluatorException : Exception {
         public readonly int ExitCode;
         public readonly string ErrorText;
         public readonly string Output;
+        public readonly JavaScriptException[] Exceptions;
 
-        public JavaScriptException (int exitCode, string stdout, string stderr)
-            : base(String.Format("JavaScript interpreter exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr)) 
+        public JavaScriptEvaluatorException (int exitCode, string stdout, string stderr, JavaScriptException[] exceptions)
+            : base(String.Format("JavaScript interpreter exited with code {0} after throwing {3} exception(s):\r\n{1}\r\n{2}", exitCode, stdout, stderr, exceptions.Length)) 
         {
             ExitCode = exitCode;
             ErrorText = stderr;
             Output = stdout;
+            Exceptions = exceptions;
+        }
+    }
+
+    public class JavaScriptException : Exception {
+        new public readonly string Message;
+        public readonly string Stack;
+
+        private static string FormatMessage (string message, string stack) {
+            if (stack != null)
+                return String.Format("JavaScript Exception: {0}\r\n{1}", message, stack);
+            else
+                return String.Format("JavaScript Exception: {0}", message);
+        }
+
+        public JavaScriptException (string message, string stack) 
+            : base (FormatMessage(message, stack)) {
+            Message = message;
+            Stack = stack;
         }
     }
 
@@ -178,12 +198,18 @@ namespace JSIL.Tests {
         public float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
-            @"// elapsed: (?'elapsed'[0-9]*(\.[0-9]*)?)", RegexOptions.Compiled | RegexOptions.ExplicitCapture
+            @"// elapsed: (?'elapsed'[0-9]+(\.[0-9]*)?)", 
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
+        public static readonly Regex ExceptionRegex = new Regex(
+            @"(// EXCEPTION:)(?'errorText'.*)(// STACK:(?'stack'.*))(// ENDEXCEPTION)",
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.Singleline
         );
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath, IOJSPath;
+        public static readonly string LoaderJSPath;
+        public static readonly string EvaluatorSetupCode;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
@@ -201,10 +227,19 @@ namespace JSIL.Tests {
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Tests\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\js.exe"));
-            CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
-            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
-            XMLJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.XML.js"));
-            IOJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.IO.js"));
+
+            var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\"));
+
+            LoaderJSPath = Path.Combine(librarySourceFolder, @"JSIL.js");
+
+            EvaluatorSetupCode = String.Format(
+@"var jsilConfig = {{
+    libraryRoot: {1},
+    environment: 'spidermonkey_shell'
+}}; load({0});",
+             Util.EscapeString(LoaderJSPath),
+             Util.EscapeString(librarySourceFolder)
+           );
         }
 
         public static string MapSourceFileToTestFile (string sourceFile) {
@@ -282,7 +317,7 @@ namespace JSIL.Tests {
 
         public static string GetTestRunnerLink (string testFile) {
             var rootPath = Path.GetFullPath(Path.Combine(
-                Path.GetDirectoryName(CoreJSPath),
+                Path.GetDirectoryName(LoaderJSPath),
                 @"..\"
             ));
 
@@ -428,16 +463,15 @@ namespace JSIL.Tests {
                 argsJson = "";
             }
 
-            var prefixJs =
-                @"JSIL.SuppressInterfaceWarnings = true; ";
-
             var invocationJs = String.Format(
-                @"if (typeof (timeout) !== 'function') timeout = function () {{}};" +
-                @"if (typeof (elapsed) !== 'function') {{ if (typeof (Date) === 'object') elapsed = Date.now; else elapsed = function () {{ return 0; }} }}" +
-                @"timeout({0});" +
-                @"JSIL.Initialize(); var started = elapsed(); " +
-                @"JSIL.GetAssembly({1}).{2}.{3}({4}); " +
-                @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
+                "function runTestCase (timeout, elapsed) {{\r\n" +
+                "  timeout({0});\r\n" +
+                "  var started = elapsed();\r\n" +
+                "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
+                "  testAssembly.{2}.{3}({4});\r\n" +
+                "  var ended = elapsed();\r\n" +
+                "  return ended - started;\r\n" +
+                "}}",
                 JavascriptExecutionTimeout, 
                 Util.EscapeString(testMethod.Module.Assembly.FullName),
                 declaringType, Util.EscapeIdentifier(testMethod.Name), 
@@ -446,7 +480,7 @@ namespace JSIL.Tests {
 
             generatedJavascript = translatedJs;
 
-            File.WriteAllText(tempFilename, prefixJs + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs);
+            File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
 
             var jsFile = OutputPath;
             if (File.Exists(jsFile))
@@ -468,12 +502,17 @@ namespace JSIL.Tests {
                 var startedJs = DateTime.UtcNow.Ticks;
                 var sentinelStart = "// Test output begins here //";
                 var sentinelEnd = "// Test output ends here //";
+                var elapsedPrefix = "// elapsed: ";
 
                 evaluator.WriteInput(
-                    "print({1}); load({0}); print({2});",
+                    "contentManifest['Test'] = [['Script', {0}]]; " +
+                    "function runMain () {{ " +
+                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, elapsed); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
+                    "}}; shellStartup();",
                     Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),
-                    Util.EscapeString(sentinelEnd)
+                    Util.EscapeString(sentinelEnd),
+                    Util.EscapeString(elapsedPrefix)
                 );
 
                 evaluator.Join();
@@ -482,10 +521,25 @@ namespace JSIL.Tests {
                 elapsedJs = endedJs - startedJs;
 
                 if (evaluator.ExitCode != 0) {
-                    throw new JavaScriptException(
-                        evaluator.ExitCode,
-                        (evaluator.StandardOutput ?? "").Trim(),
-                        (evaluator.StandardError ?? "").Trim()
+                    var _stdout = (evaluator.StandardOutput ?? "").Trim();
+                    var _stderr = (evaluator.StandardError ?? "").Trim();
+
+                    var exceptions = new List<JavaScriptException>();
+
+                    var exceptionMatches = ExceptionRegex.Matches(_stdout);
+                    foreach (Match match in exceptionMatches) {
+                        var errorText = match.Groups["errorText"].Value;
+                        string stackText = null;
+
+                        if (match.Groups["stack"].Success)
+                            stackText = match.Groups["stack"].Value;
+
+                        var exception = new JavaScriptException(errorText, stackText);
+                        exceptions.Add(exception);
+                    }
+
+                    throw new JavaScriptEvaluatorException(
+                        evaluator.ExitCode, _stdout, _stderr, exceptions.ToArray()
                     );
                 }
 
@@ -606,13 +660,7 @@ namespace JSIL.Tests {
             EvaluatorPool = new EvaluatorPool(
                 ComparisonTest.JSShellPath, "",
                 (e) =>
-                    e.WriteInput(
-                        "load({0}, {1}, {2}, {3});",
-                        Util.EscapeString(ComparisonTest.CoreJSPath),
-                        Util.EscapeString(ComparisonTest.BootstrapJSPath),
-                        Util.EscapeString(ComparisonTest.XMLJSPath),
-                        Util.EscapeString(ComparisonTest.IOJSPath)
-                    )
+                    e.WriteInput(ComparisonTest.EvaluatorSetupCode)
             );
         }
 
@@ -868,8 +916,18 @@ namespace JSIL.Tests {
                 try {
                     jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains(jsErrorSubstring)) {
+                } catch (JavaScriptEvaluatorException jse) {
+                    bool foundMatch = false;
+
+                    foreach (var exc in jse.Exceptions) {
+                        if (exc.Message.Contains(jsErrorSubstring)) {
+                            foundMatch = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundMatch) {
+                        Console.Error.WriteLine("// Was looking for a JS exception containing the string '{0}' but didn't find it.", jsErrorSubstring);
                         Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                         if (jsOutput != null)
                             Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
