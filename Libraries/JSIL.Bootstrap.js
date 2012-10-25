@@ -4619,7 +4619,7 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.MatchCollection", functi
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], [])), 
     function GetEnumerator () {
-      return new tEnumerator(this._matches, 0);
+      return new tEnumerator(this._matches, -1);
     }
   );
 });
@@ -4719,7 +4719,7 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.GroupCollection", functi
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), 
     function GetEnumerator () {
-      return new tEnumerator(this._groups, 0);
+      return new tEnumerator(this._groups, -1);
     }
   );
 });
