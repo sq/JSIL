@@ -132,6 +132,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
     return null;
 
   var isMscorlib = (shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0);
+  var isSystem = (shortName === "System") || (assemblyName.indexOf("System,") === 0);
   var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
   var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
 
@@ -139,7 +140,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var template = {};
 
   // Ensure that BCL private namespaces inherit from the JSIL namespace.
-  if (isMscorlib || isSystemCore || isSystemXml)
+  if (isMscorlib || isSystem || isSystemCore || isSystemXml)
     template = $jsilcore;
 
   var result = Object.create(template);
