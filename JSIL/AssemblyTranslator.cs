@@ -336,6 +336,11 @@ namespace JSIL {
             return context;
         }
 
+        protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
+            var result = assemblyName.ToString();
+            return Regex.Replace(result.Replace(",", ""), "[^A-Za-z0-9 _]", "_");
+        }
+
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
@@ -381,7 +386,7 @@ namespace JSIL {
 
             Action<int> writeAssembly = (i) => {
                 var assembly = assemblies[i];
-                var outputPath = assembly.Name + ".js";
+                var outputPath = FormatOutputFilename(assembly.Name) + ".js";
 
                 long existingSize;
 

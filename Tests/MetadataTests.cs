@@ -468,5 +468,25 @@ namespace JSIL.Tests {
                 "myclass1"
             );
         }
+
+        [Test]
+        public void NoCommasInOutputFilenames () {
+            using (var test = new ComparisonTest(
+                EvaluatorPool,
+                new[] { @"TestCases\HelloWorld.cs" },
+                @"MetadataTests\NoCommasInOutputFilenames"
+            )) {
+                var filenames = test.Translate((tr) => {
+                    return (from file in tr.OrderedFiles select file.Filename).ToArray();
+                });
+
+                Assert.AreEqual(1, filenames.Length);
+
+                foreach (var filename in filenames) {
+                    Assert.IsTrue(Regex.IsMatch(filename, @"^([A-Za-z0-9 _]*)\.js$"), "Filename '{0}' does not match regex.", filename);
+                    Console.WriteLine(filename);
+                }
+            }
+        }
     }
 }
