@@ -62,6 +62,7 @@ namespace JSIL.Translator {
         public bool? GenerateSkeletonsForStubbedAssemblies;
         public bool? GenerateContentManifest;
         public bool? RunBugChecks;
+        public string FilenameEscapeRegex;
 
         public double? FrameworkVersion;
 
@@ -88,6 +89,9 @@ namespace JSIL.Translator {
                 result.GenerateContentManifest = GenerateContentManifest;
             if (RunBugChecks.HasValue)
                 result.RunBugChecks = RunBugChecks;
+
+            if (FilenameEscapeRegex != null)
+                result.FilenameEscapeRegex = FilenameEscapeRegex;
 
             Assemblies.MergeInto(result.Assemblies);
             Optimizer.MergeInto(result.Optimizer);
