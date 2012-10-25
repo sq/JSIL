@@ -142,7 +142,9 @@ var $jsilloaderstate = {
   if (config.gamepad)
     environment.loadScript(libraryRoot + "gamepad.js");
 
+  environment.loadScript(libraryRoot + "ES5.js");
   environment.loadScript(libraryRoot + "JSIL.Core.js");
+  environment.loadScript(libraryRoot + "JSIL.Core.Types.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
 
