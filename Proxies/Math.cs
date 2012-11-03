@@ -40,8 +40,43 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("Math.acos($d)")]
+        public static double Acos (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.asin($d)")]
+        public static double Asin (double d) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("Math.tan($d)")]
         public static double Tan (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.atan($d)")]
+        public static double Atan (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.atan2($y, $x)")]
+        public static double Atan2 (double y, double x) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.log($d)")]
+        public static double Log (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("(Math.log($a) / Math.log($newBase))")]
+        public static double Log (double a, double newBase) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("(Math.log($d) / Math.LN10)")]
+        public static double Log10 (double d) {
             throw new InvalidOperationException();
         }
 
