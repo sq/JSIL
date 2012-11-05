@@ -1,3 +1,11 @@
+"use strict";
+
+if (typeof (JSIL) === "undefined")
+  throw new Error("JSIL.Core is required");
+
+if (!$jsilcore)  
+  throw new Error("JSIL.Core is required");
+
 JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.RawMethod(false, "$fromBaseNameAndAssembly", function (baseName, assembly) {
     this._baseName = baseName;
