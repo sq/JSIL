@@ -2239,6 +2239,77 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "CreatePerspective", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspective", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveFieldOfView", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveFieldOfView", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveOffCenter", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveOffCenter", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
   $.Method({Static:true , Public:true }, "CreateRotationX", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [$.Single], [])), 
     function CreateRotationX (radians) {
@@ -5610,7 +5681,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.Method({Static:false, Public:true }, "set_Viewport", 
     (new JSIL.MethodSignature(null, [$jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Viewport")], [])), 
     function set_Viewport (value) {
-      this.viewport = newViewport.MemberwiseClone();
+      this.viewport = value.MemberwiseClone();
 
       this.$UpdateViewport();
     }
