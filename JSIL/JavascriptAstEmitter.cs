@@ -452,7 +452,16 @@ namespace JSIL {
             var ga = method.GenericArguments;
             if (ga != null) {
                 Output.LPar();
-                Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
+
+                var cga = method.CachedGenericArguments;
+                if (cga != null) {
+                    CommaSeparatedList(
+                        cga.Zip(ga, (cached, uncached) => cached ?? new JSType(uncached)),
+                        false
+                    );
+                } else {
+                    Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
+                }
                 Output.RPar();
             }
         }
@@ -682,7 +691,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCachedType cachedType) {
-            Output.WriteRaw("($T{0:X2}())", cachedType.Index);
+            bool needParens = !(ParentNode is JSMethod);
+
+            if (needParens)
+                Output.WriteRaw("($T{0:X2}())", cachedType.Index);
+            else
+                Output.WriteRaw("$T{0:X2}()", cachedType.Index);
         }
 
         public void VisitNode (JSTypeOfExpression toe) {

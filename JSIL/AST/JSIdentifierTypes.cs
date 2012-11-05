@@ -250,6 +250,15 @@ namespace JSIL.Ast {
 
             return Method.GetName(false);
         }
+
+        public JSCachedType[] CachedGenericArguments {
+            get;
+            private set;
+        }
+
+        internal void SetCachedGenericArguments (IEnumerable<JSCachedType> cachedTypes) {
+            CachedGenericArguments = cachedTypes.ToArray();
+        }
     }
 
     public class JSFakeMethod : JSIdentifier {

@@ -1021,6 +1021,16 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<JSCachedType> CachedGenericArguments {
+            get {
+                var jsm = JSMethod;
+                if (jsm != null)
+                    return jsm.CachedGenericArguments;
+
+                return null;
+            }
+        }
+
         public JSExpression Type {
             get {
                 return Values[0];

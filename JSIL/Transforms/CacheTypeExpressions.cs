@@ -105,6 +105,16 @@ namespace JSIL.Transforms {
             VisitChildren(cast);
         }
 
+        public void VisitNode (JSInvocationExpression ie) {
+            if ((ie.GenericArguments != null) && (ie.JSMethod != null)) {
+                ie.JSMethod.SetCachedGenericArguments(
+                    from ga in ie.GenericArguments select GetCachedType(ga)
+                );
+            }
+
+            VisitChildren(ie);
+        }
+
         public JSCachedType[] CacheTypesForFunction (JSFunctionExpression function) {
             var currentKeys = new HashSet<GenericTypeIdentifier>(CachedTypes.Keys);
 
