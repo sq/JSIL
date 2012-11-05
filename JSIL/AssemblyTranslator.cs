@@ -1154,8 +1154,10 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            output.WriteRaw("var $thisType = $.publicInterface");
-            output.Semicolon(true);
+            if (!makingSkeletons) {
+                output.WriteRaw("var $thisType = $.publicInterface");
+                output.Semicolon(true);
+            }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
