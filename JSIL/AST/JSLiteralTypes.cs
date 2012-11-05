@@ -199,6 +199,21 @@ namespace JSIL.Ast {
                 " | ", (from n in Names select String.Format("{0}.{1}", EnumType.Name, n)).ToArray()
             ));
         }
+
+        public JSCachedType CachedEnumType {
+            get;
+            private set;
+        }
+
+        internal void SetCachedType (JSCachedType cachedType) {
+            if (cachedType == null)
+                return;
+
+            if (CachedEnumType != null)
+                throw new InvalidOperationException("Cached type already set");
+
+            CachedEnumType = cachedType;
+        }
     }
 
     public class JSNumberLiteral : JSLiteralBase<double> {

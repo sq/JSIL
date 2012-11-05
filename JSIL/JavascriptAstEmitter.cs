@@ -545,15 +545,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEnumLiteral enm) {
-            bool isFirst = true;
+            if (enm.CachedEnumType != null)
+                Visit(enm.CachedEnumType);
+            else
+                Output.Identifier(enm.EnumType, ReferenceContext);
+
+            Output.Dot();
 
             if (enm.Names.Length == 1) {
-                Output.Identifier(enm.EnumType, ReferenceContext);
-                Output.Dot();
                 Output.Identifier(enm.Names[0]);
             } else {
-                Output.Identifier(enm.EnumType, ReferenceContext);
-                Output.Dot();
                 Output.Identifier("Flags");
                 Output.LPar();
 
@@ -691,7 +692,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCachedType cachedType) {
-            bool needParens = !(ParentNode is JSMethod);
+            bool needParens = IncludeTypeParens.Peek();
 
             if (needParens)
                 Output.WriteRaw("($T{0:X2}())", cachedType.Index);

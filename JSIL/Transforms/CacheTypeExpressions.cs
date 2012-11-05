@@ -115,6 +115,12 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        public void VisitNode (JSEnumLiteral el) {
+            el.SetCachedType(GetCachedType(el.EnumType));
+
+            VisitChildren(el);
+        }
+
         public JSCachedType[] CacheTypesForFunction (JSFunctionExpression function) {
             var currentKeys = new HashSet<GenericTypeIdentifier>(CachedTypes.Keys);
 
