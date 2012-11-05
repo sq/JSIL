@@ -168,6 +168,10 @@ $jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
 
 $jsilcore.PropertyNotInitialized = {};
 
+JSIL.Memoize = function (value) {
+  return function () { return value };
+};
+
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var state = $jsilcore.PropertyNotInitialized;
 

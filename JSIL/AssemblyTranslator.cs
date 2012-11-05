@@ -1188,12 +1188,9 @@ namespace JSIL {
                     foreach (var ct in cts) {
                         output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
                         output.OpenBrace();
-                        output.WriteRaw("var value = ");
+                        output.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
                         output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
-                        output.Semicolon(true);
-                        output.WriteRaw("$T{0:X2} = function () {{ return value; }}", ct.Index);
-                        output.Semicolon(true);
-                        output.WriteRaw("return value");
+                        output.WriteRaw(")) ()");
                         output.Semicolon(true);
                         output.CloseBrace(false);
                         output.Semicolon(true);
