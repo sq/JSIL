@@ -664,6 +664,8 @@ function pollAssetQueue () {
         return 0;
     };
 
+    state.assetsLoadingNames = {};
+
     state.finishQueue.sort(function (lhs, rhs) {
       var lhsTypeIndex = 2, rhsTypeIndex = 2;
       var lhsIndex = lhs[1];
