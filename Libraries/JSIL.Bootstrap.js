@@ -1297,6 +1297,33 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
   );
 });
 
+JSIL.MakeClass("System.Object", "JSIL.EnumerableArrayOverlay", true, ["T"], function ($) {
+  $.RawMethod(false, ".ctor", 
+    function (array) {
+      this._array = array;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IEnumerable.GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
+    function () {
+      return JSIL.GetEnumerator(this._array);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.EnumerableArrayOverlay")]), [], []),
+    function () {
+      return JSIL.GetEnumerator(this._array);
+    }
+  );
+
+  $.ImplementInterfaces(
+    System.Collections.IEnumerable,
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.EnumerableArrayOverlay")])
+  );
+});
+
 JSIL.ImplementExternals(
   "System.Threading.Thread", function ($) {
     $.Method({Static:true , Public:true }, ".cctor2", 

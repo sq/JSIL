@@ -224,6 +224,7 @@
     <None Include="SimpleTestCases\UnboxBoolean.cs" />
     <None Include="TestCases\LinqExpressionSimple.cs" />
     <None Include="SimpleTestCases\MathIntrinsics.cs" />
+    <None Include="SimpleTestCases\CastArrayToIEnumerable.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

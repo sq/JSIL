@@ -23,6 +23,20 @@ namespace JSIL {
             return String.Join("_", result);
         }
 
+        public static bool IsArray (TypeReference type) {
+            var at = type as ArrayType;
+            if (at != null)
+                return true;
+
+            if (type == null)
+                return false;
+
+            if (type.FullName == "System.Array")
+                return true;
+
+            return false;
+        }
+
         public static bool IsStruct (TypeReference type) {
             if (type == null)
                 return false;
