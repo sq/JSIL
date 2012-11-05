@@ -755,6 +755,19 @@ namespace JSIL {
                 // ILSpy bug
 
                 return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+            } else if (
+                // HACK: Can't apply this to InitArray instructions because it breaks dynamic call sites.
+                (expression.Code != ILCode.InitArray) &&
+
+                (expression.ExpectedType != null) &&
+                (expression.InferredType != null) &&
+                (TypeUtil.IsArray(expression.InferredType)) &&
+                expression.ExpectedType.FullName.Contains(".IEnumerable")
+            ) {
+                // HACK: Workaround for the fact that JS array instances don't expose IEnumerable methods
+                // This can go away if we introduce a CLRArray type and use that instead of JS arrays.
+
+                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: false);
             } else {
                 return result;
             }

@@ -146,6 +146,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Core.js");
   environment.loadScript(libraryRoot + "JSIL.Core.Types.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.js");
+  environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
 
   environment.loadEnvironmentScripts();

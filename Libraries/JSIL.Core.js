@@ -3633,6 +3633,19 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + typeName + "'.");
   };
 
+  var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
+
+  // HACK: Handle casting arrays to IEnumerable by creating an overlay.
+  if (isIEnumerable) {
+    checkMethod = function Check_IEnumerable (value) {
+      // FIXME: IEnumerable<int>.Is(float[]) will return true.
+      if (JSIL.IsArray(value))
+        return true;
+
+      return false;
+    };
+  }
+
   if (checkMethod) {
     isFunction = JSIL.CreateNamedFunction(
       "Is_" + typeName, 
@@ -3777,6 +3790,29 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
         return expression;
       else
         return null;
+    };
+  }
+
+  if (isIEnumerable) {
+    var innerAsFunction = asFunction;
+    var innerCastFunction = castFunction;
+
+    var createOverlay = function Overlay_IEnumerable (value) {
+      if (JSIL.IsArray(value)) {
+        var tOverlay = JSIL.EnumerableArrayOverlay.Of(System.Object);
+
+        return new tOverlay(value);
+      }
+
+      return value;
+    };
+
+    asFunction = function As_IEnumerable (value) {
+      return createOverlay(innerAsFunction(value));
+    };
+
+    castFunction = function Cast_IEnumerable (value) {
+      return createOverlay(innerCastFunction(value));
     };
   }
 
