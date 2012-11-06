@@ -25,9 +25,11 @@ namespace JSIL.Transforms {
             if (!IsCacheable(type))
                 return null;
 
-            var resolved = TypeUtil.GetTypeDefinition(type, false);
+            var resolved = TypeUtil.GetTypeDefinition(type);
             if (resolved == null)
                 return null;
+
+            var at = type as ArrayType;
 
             TypeDefinition[] arguments;
             var git = type as GenericInstanceType;
@@ -38,7 +40,7 @@ namespace JSIL.Transforms {
                 arguments = new TypeDefinition[0];
             }
 
-            var identifier = new GenericTypeIdentifier(resolved, arguments);
+            var identifier = new GenericTypeIdentifier(resolved, arguments, (at != null) ? at.Rank : 0);
             JSCachedType result;
             if (!CachedTypes.TryGetValue(identifier, out result))
                 CachedTypes.Add(identifier, result = MakeCachedType(type));

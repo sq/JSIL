@@ -124,10 +124,12 @@ namespace JSIL.Internal {
     public struct GenericTypeIdentifier {
         public readonly TypeIdentifier Type;
         public readonly TypeIdentifier[] Arguments;
+        public readonly int ArrayRank;
 
-        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments) {
+        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments, int arrayRank) {
             Type = new TypeIdentifier(type);
             Arguments = (from a in arguments select new TypeIdentifier(a)).ToArray();
+            ArrayRank = arrayRank;
         }
 
         public bool Equals (GenericTypeIdentifier rhs) {
@@ -135,6 +137,9 @@ namespace JSIL.Internal {
                 return false;
 
             if (Arguments.Length != rhs.Arguments.Length)
+                return false;
+
+            if (ArrayRank != rhs.ArrayRank)
                 return false;
 
             for (var i = 0; i < Arguments.Length; i++) {
@@ -153,13 +158,25 @@ namespace JSIL.Internal {
         }
 
         public override int GetHashCode () {
-            return Type.GetHashCode() ^ Arguments.Length;
+            return Type.GetHashCode() ^ Arguments.Length ^ ArrayRank;
+        }
+
+        private static string GetRankSuffix (int rank) {
+            if (rank <= 0)
+                return "";
+            else {
+                var result = "[";
+                for (var i = 1; i < rank; i++)
+                    result += ",";
+                result += "]";
+                return result;
+            }
         }
 
         public override string ToString () {
             return String.Format(
                 "{0}<{1}>",
-                Type,
+                (Type + GetRankSuffix(ArrayRank)),
                 String.Join<TypeIdentifier>(", ", Arguments)
             );
         }

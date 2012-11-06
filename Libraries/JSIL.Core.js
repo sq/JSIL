@@ -2396,7 +2396,7 @@ JSIL.MakeFieldInitializer = function (typeObject) {
   for (var i = 0, l = fl.length; i < l; i++) {
     var field = fl[i];
 
-    if (field.type === typeObject) {
+    if ((field.type === typeObject) && (field.isStruct)) {
       JSIL.Host.warning("Ignoring self-typed struct field " + field.name);
       continue;
     }
