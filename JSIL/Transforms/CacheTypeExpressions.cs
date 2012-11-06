@@ -137,6 +137,14 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        public void VisitNode (JSDefaultValueLiteral dvl) {
+            var ct = GetCachedType(dvl.Value);
+            if (ct != null)
+                dvl.CachedTypeIndex = ct.Index;
+
+            VisitChildren(dvl);
+        }
+
         public void VisitNode (JSEnumLiteral el) {
             el.SetCachedType(GetCachedType(el.EnumType));
 

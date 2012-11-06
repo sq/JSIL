@@ -702,9 +702,17 @@ namespace JSIL {
                     case "System.Boolean":
                         Output.WriteRaw("false");
                         break;
-                    default:
-                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null, null));
+                    default: {
+                        JSType theType;
+                        if (defaultValue.CachedTypeIndex.HasValue)
+                            theType = new JSCachedType(defaultValue.Value, defaultValue.CachedTypeIndex.Value);
+                        else
+                            theType = new JSType(defaultValue.Value);
+
+                        VisitNode(new JSNewExpression(theType, null, null));
+
                         break;
+                    }
                 }
             }
         }
