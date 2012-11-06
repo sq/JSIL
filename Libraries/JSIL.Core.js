@@ -1448,14 +1448,15 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
 
     if (typedArrayName) {
       var typedArrayCtorExists = false;
-      var fn = new Function("return typeof (" + typedArrayName + ") !== \"undefined\"");
+      var checkFn = new Function("return typeof (" + typedArrayName + ") !== \"undefined\"");
+      var getFn = new Function("return " + typedArrayName);
       try {
         typedArrayCtorExists = fn();
       } catch (exc) {
       }
 
       if (typedArrayCtorExists)
-        $.SetValue("__TypedArray__", eval(typedArrayName));
+        $.SetValue("__TypedArray__", getFn());
       else
         $.SetValue("__TypedArray__", null);
 
