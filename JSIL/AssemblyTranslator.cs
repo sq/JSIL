@@ -1629,7 +1629,8 @@ namespace JSIL {
                         defaultValue is JSNewExpression ||
                         defaultValue is JSArrayExpression ||
                         defaultValue is JSInvocationExpressionBase ||
-                        defaultValue is JSNewArrayExpression
+                        defaultValue is JSNewArrayExpression ||
+                        defaultValue is JSEnumLiteral
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
