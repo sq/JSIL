@@ -328,19 +328,19 @@ $jsilxna.getImageChannels = function (image, key) {
     var rBytes = rData.data, gBytes = gData.data, bBytes = bData.data, aBytes = aData.data;
 
     for (var i = 0, l = (result.width * result.height * 4); i < l; i += 4) {
-      var alpha = aBytes[i + 3];
+      var alpha = aBytes[(i + 3) | 0];
 
-      rBytes[i + 0] = alpha;
-      rBytes[i + 3] = aBytes[i + 0]; 
+      rBytes[(i + 0) | 0] = alpha;
+      rBytes[(i + 3) | 0] = aBytes[(i + 0) | 0]; 
 
-      gBytes[i + 1] = alpha;
-      gBytes[i + 3] = aBytes[i + 1];
+      gBytes[(i + 1) | 0] = alpha;
+      gBytes[(i + 3) | 0] = aBytes[(i + 1) | 0];
 
-      bBytes[i + 2] = alpha;
-      bBytes[i + 3] = aBytes[i + 2];
+      bBytes[(i + 2) | 0] = alpha;
+      bBytes[(i + 3) | 0] = aBytes[(i + 2) | 0];
 
-      aBytes[i + 0] = aBytes[i + 1] = aBytes[i + 2] = 0;
-      aBytes[i + 3] = alpha;
+      aBytes[(i + 0) | 0] = aBytes[(i + 1) | 0] = aBytes[(i + 2) | 0] = 0;
+      aBytes[(i + 3) | 0] = alpha;
     }
 
     result.putImageData("r", rData);
@@ -4132,17 +4132,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   );
 
   var intersectImpl = function (lhs, rhs) {
-    var lhsX2 = lhs.X + lhs.Width;
-    var rhsX2 = rhs.X + rhs.Width;
-    var lhsY2 = lhs.Y + lhs.Height;
-    var rhsY2 = rhs.Y + rhs.Height;
+    var lhsX2 = (lhs.X + lhs.Width) | 0;
+    var rhsX2 = (rhs.X + rhs.Width) | 0;
+    var lhsY2 = (lhs.Y + lhs.Height) | 0;
+    var rhsY2 = (rhs.Y + rhs.Height) | 0;
 
     var x1 = (lhs.X > rhs.X) ? lhs.X : rhs.X;
     var y1 = (lhs.Y > rhs.Y) ? lhs.Y : rhs.Y;
     var x2 = (lhsX2 < rhsX2) ? lhsX2 : rhsX2;
     var y2 = (lhsY2 < rhsY2) ? lhsY2 : rhsY2;
 
-    if (x2 > x1 && y2 > y1) return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+    if (x2 > x1 && y2 > y1) 
+      return new Microsoft.Xna.Framework.Rectangle(
+        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+      );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
   };
@@ -4163,10 +4166,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   );
 
   var unionImpl = function (lhs, rhs) {
-    var lhsX2 = lhs.X + lhs.Width;
-    var rhsX2 = rhs.X + rhs.Width;
-    var lhsY2 = lhs.Y + lhs.Height;
-    var rhsY2 = rhs.Y + rhs.Height;
+    var lhsX2 = (lhs.X + lhs.Width) | 0;
+    var rhsX2 = (rhs.X + rhs.Width) | 0;
+    var lhsY2 = (lhs.Y + lhs.Height) | 0;
+    var rhsY2 = (rhs.Y + rhs.Height) | 0;
 
     var x1 = (lhs.X < rhs.X) ? lhs.X : rhs.X;
     var y1 = (lhs.Y < rhs.Y) ? lhs.Y : rhs.Y;
@@ -4174,7 +4177,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     var y2 = (lhsY2 > rhsY2) ? lhsY2 : rhsY2;
 
     if (x2 > x1 && y2 > y1) 
-      return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+      return new Microsoft.Xna.Framework.Rectangle(
+        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+      );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
   };
@@ -4211,9 +4216,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
     function Contains (x, y) {
       return this.X <= x && 
-        x < this.X + this.Width && 
+        x < ((this.X + this.Width) | 0) && 
         this.Y <= y && 
-        y < this.Y + this.Height;
+        y < ((this.Y + this.Height) | 0);
     }
   );
   
@@ -4221,9 +4226,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function ContainsPoint (value) {
       return this.X <= value.X && 
-        value.X < this.X + this.Width && 
+        value.X < ((this.X + this.Width) | 0) && 
         this.Y <= value.Y && 
-        value.Y < this.Y + this.Height;
+        value.Y < ((this.Y + this.Height) | 0);
     }
   );
 
@@ -4231,16 +4236,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
     function ContainsRectangle (value) {
       return this.X <= value.X && 
-        value.X + value.Width <= this.X + this.Width && 
+        ((value.X + value.Width) | 0) <= ((this.X + this.Width) | 0) && 
         this.Y <= value.Y && 
-        value.Y + value.Height <= this.Y + this.Height;
+        ((value.Y + value.Height) | 0) <= ((this.Y + this.Height) | 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Bottom", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Bottom () {
-      return this.Y + this.Height;
+      return (this.Y + this.Height) | 0;
     }
   );
 
@@ -4248,8 +4253,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point"), [], [])), 
     function get_Center () {
       return new Microsoft.Xna.Framework.Point(
-        Math.floor(this.X + (this.Width / 2)), 
-        Math.floor(this.Y + (this.Height / 2))
+        (this.X + (this.Width / 2)) | 0, 
+        (this.Y + (this.Height / 2)) | 0
       );
     }
   );
@@ -4271,7 +4276,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "get_Right", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Right () {
-      return this.X + this.Width;
+      return (this.X + this.Width) | 0;
     }
   );
 
@@ -4295,10 +4300,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "Intersects", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
     function Intersects (value) {
-      return value.X < this.X + this.Width && 
-              this.X < value.X + value.Width && 
-              value.Y < this.Y + this.Height && 
-              this.Y < value.Y + value.Height;
+      return value.X < ((this.X + this.Width) | 0) && 
+              this.X < ((value.X + value.Width) | 0) && 
+              value.Y < ((this.Y + this.Height) | 0) && 
+              this.Y < ((value.Y + value.Height) | 0);
     }
   );
 
