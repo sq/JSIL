@@ -358,9 +358,12 @@ namespace JSIL {
         }
 
         private void WritePossiblyCachedTypeIdentifier (TypeReference type, int? index) {
-            if (index.HasValue)
-                Output.WriteRaw("($T{0:X2}())", index.Value);
-            else
+            if (index.HasValue) {
+                if (IncludeTypeParens.Peek())
+                    Output.WriteRaw("($T{0:X2}())", index.Value);
+                else
+                    Output.WriteRaw("$T{0:X2}()", index.Value);
+            } else
                 Output.Identifier(type, ReferenceContext, false);
         }
 
@@ -376,7 +379,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSAsExpression ae) {
-            WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$As");
             Output.LPar();
@@ -387,7 +396,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
-            WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$Cast");
             Output.LPar();
