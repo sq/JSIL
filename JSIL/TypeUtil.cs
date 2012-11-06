@@ -111,6 +111,21 @@ namespace JSIL {
             }
         }
 
+        public static bool Is32BitIntegral (TypeReference type) {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType) {
+                case MetadataType.Byte:
+                case MetadataType.SByte:
+                case MetadataType.Int16:
+                case MetadataType.Int32:
+                case MetadataType.UInt16:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public static bool IsNullable (TypeReference type) {
             int temp;
             type = FullyDereferenceType(type, out temp);

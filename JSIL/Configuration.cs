@@ -31,6 +31,7 @@ namespace JSIL.Translator {
             public bool? EliminatePointlessFinallyBlocks;
             public bool? CacheTypeExpressions;
             public bool? PreferAccessorMethods;
+            public bool? HintIntegerArithmetic;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -51,6 +52,8 @@ namespace JSIL.Translator {
                     result.CacheTypeExpressions = CacheTypeExpressions;
                 if (PreferAccessorMethods.HasValue)
                     result.PreferAccessorMethods = PreferAccessorMethods;
+                if (HintIntegerArithmetic.HasValue)
+                    result.HintIntegerArithmetic = HintIntegerArithmetic;
             }
         }
 

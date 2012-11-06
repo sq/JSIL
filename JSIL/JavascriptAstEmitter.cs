@@ -1160,15 +1160,27 @@ namespace JSIL {
         }
 
         private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
-            // We need to perform manual truncation to maintain the semantics of C#'s division operator
-            if ((bop.Operator == JSOperator.Divide)) {
-                var leftType = bop.Left.GetActualType(TypeSystem);
-                var rightType = bop.Right.GetActualType(TypeSystem);
+            var leftType = bop.Left.GetActualType(TypeSystem);
+            var rightType = bop.Right.GetActualType(TypeSystem);
 
+            if (bop.Operator == JSOperator.Divide) {
+                // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
                     (TypeUtil.IsIntegral(leftType) ||
                     TypeUtil.IsIntegral(rightType)) &&
                     TypeUtil.IsIntegral(resultType);
+            }
+
+            if (
+                !(bop.Operator is JSAssignmentOperator) &&
+                Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true)
+            ) {
+                // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
+                // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
+                return
+                    TypeUtil.Is32BitIntegral(leftType) &&
+                    TypeUtil.Is32BitIntegral(rightType) &&
+                    TypeUtil.Is32BitIntegral(resultType);
             }
 
             return false;
