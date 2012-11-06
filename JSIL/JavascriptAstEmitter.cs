@@ -90,7 +90,18 @@ namespace JSIL {
                 Output.CloseBrace();
         }
 
+        private Dictionary<string, int> AssignIndicesToLabels (JSLabelGroupStatement labelGroup) {
+            var result = new Dictionary<string, int>();
+
+            foreach (var label in labelGroup.Labels)
+                result[label.Key] = result.Count;
+
+            return result;
+        }
+
         public void VisitNode (JSLabelGroupStatement labelGroup) {
+            var labelToIndex = AssignIndicesToLabels(labelGroup);
+
             Output.NewLine();
 
             var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
@@ -101,7 +112,7 @@ namespace JSIL {
             Output.Space();
             Output.Identifier(labelVar);
             Output.WriteRaw(" = ");
-            Output.Value(firstLabel);
+            Output.Value(labelToIndex[firstLabel]);
             Output.Semicolon();
 
             Output.Label(stepLabel);
@@ -133,7 +144,9 @@ namespace JSIL {
 
                     Output.Identifier(labelVar);
                     Output.WriteRaw(" = ");
-                    Output.Value(labelName);
+                    Output.Value(labelToIndex[labelName]);
+                    Output.WriteRaw(" ");
+                    Output.Comment("goto {0}", labelName);
                     Output.Semicolon();
                 }
 
@@ -158,8 +171,9 @@ namespace JSIL {
 
                 Output.WriteRaw("case");
                 Output.Space();
-                Output.Value(kvp.Key);
-                Output.WriteRaw(":");
+                Output.Value(labelToIndex[kvp.Key]);
+                Output.WriteRaw(": ");
+                Output.Comment("{0}", kvp.Key);
                 Output.Indent();
                 Output.NewLine();
 
