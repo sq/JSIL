@@ -636,7 +636,7 @@ JSIL.ResolvedName = function (parent, parentName, key, allowInheritance) {
 };
 JSIL.ResolvedName.prototype.exists = function (allowInheritance) {
   if (this.allowInheritance && (allowInheritance !== false))
-    return JSIL.HasOwnPropertyRecursive(this.parent, this.key);
+    return (this.key in this.parent);
   else
     return this.parent.hasOwnProperty(this.key);
 };
@@ -689,7 +689,7 @@ JSIL.ResolveName = function (root, name, allowInheritance, throwOnFail) {
   for (var i = 0, l = parts.length - 1; i < l; i++) {
     var key = JSIL.EscapeName(parts[i]);
 
-    if (!JSIL.HasOwnPropertyRecursive(current, key)) {
+    if (!(key in current)) {
       if (throwOnFail !== false)
         throw makeError(key, current);
       else
@@ -2409,10 +2409,14 @@ JSIL.MakeFieldInitializer = function (typeObject) {
     } else {
       body[i] = JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";";
 
-      if (field.name in prototype)
-        defaults[key] = prototype[field.name];
-      else
-        throw new Error("Field " + field.name + " has no default value in prototype!");
+      if (typeof (field.defaultValueExpression) === "function") {
+        // FIXME: This wants a this-reference?
+        defaults[key] = field.defaultValueExpression();
+      } else if (field.defaultValueExpression) {
+        defaults[key] = field.defaultValueExpression;
+      } else {
+        defaults[key] = JSIL.DefaultValue(field.type);
+      }
     }
 
   }
@@ -2598,7 +2602,8 @@ JSIL.$BuildFieldList = function (typeObject) {
       fl.push({
         name: field.Name,
         type: fieldType,
-        isStruct: isStruct
+        isStruct: isStruct,
+        defaultValueExpression: field._data.defaultValueExpression
       });
   }
 
@@ -4843,9 +4848,15 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, p
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
-  var data = { fieldType: fieldType };
+  var data = { 
+    fieldType: fieldType,
+    defaultValueExpression: defaultValueExpression 
+  };
 
   var fieldIndex = this.PushMember("FieldInfo", descriptor, data);
+
+  if (!descriptor.Static)
+    return;
 
   var maybeRunCctors = this.maybeRunCctors;
 
@@ -4861,8 +4872,6 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       return;
 
     if (typeof (defaultValueExpression) === "function") {
-      data.defaultValueExpression = defaultValueExpression;
-
       JSIL.DefineLazyDefaultProperty(
         actualTarget, descriptor.EscapedName,
         function InitFieldDefaultExpression () {
