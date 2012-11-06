@@ -669,7 +669,7 @@ namespace JSIL.Tests {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",
                 @"SimpleTestCases\CollectionInitializers.cs",
-                @"TestCases\DictionaryInitializer.cs",
+                @"TestCases\DictionaryInitializer2.cs",
             };
 
             RunComparisonTests(testNames, null, null, 

@@ -181,13 +181,13 @@ namespace JSIL.Transforms {
 
             var initializer = new JSVariableDeclarationStatement(
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, arrayVariable, arrayVariable.DefaultValue, arrayVariable.Type
+                    JSOperator.Assignment, arrayVariable, arrayVariable.DefaultValue, arrayVariable.IdentifierType
                 ),
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, indexVariable, indexVariable.DefaultValue, indexVariable.Type
+                    JSOperator.Assignment, indexVariable, indexVariable.DefaultValue, indexVariable.IdentifierType
                 ),
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, lengthVariable, lengthVariable.DefaultValue, lengthVariable.Type
+                    JSOperator.Assignment, lengthVariable, lengthVariable.DefaultValue, lengthVariable.IdentifierType
                 )
             );
 
@@ -244,13 +244,13 @@ namespace JSIL.Transforms {
 
             var initializer = new JSVariableDeclarationStatement(
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, arrayVariable, arrayVariable.DefaultValue, arrayVariable.Type
+                    JSOperator.Assignment, arrayVariable, arrayVariable.DefaultValue, arrayVariable.IdentifierType
                 ),
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, indexVariable, indexVariable.DefaultValue, indexVariable.Type
+                    JSOperator.Assignment, indexVariable, indexVariable.DefaultValue, indexVariable.IdentifierType
                 ),
                 new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, lengthVariable, lengthVariable.DefaultValue, lengthVariable.Type
+                    JSOperator.Assignment, lengthVariable, lengthVariable.DefaultValue, lengthVariable.IdentifierType
                 )
             );
 

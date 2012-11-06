@@ -275,7 +275,7 @@ namespace JSIL {
         protected JSVariable DeclareVariable (JSVariable variable) {
             JSVariable existing;
             if (Variables.TryGetValue(variable.Identifier, out existing)) {
-                if (!TypeUtil.TypesAreEqual(variable.Type, existing.Type)) {
+                if (!TypeUtil.TypesAreEqual(variable.IdentifierType, existing.IdentifierType)) {
                     throw new InvalidOperationException(String.Format(
                         "A variable with the name '{0}' is already declared in this scope, with a different type.",
                         variable.Identifier

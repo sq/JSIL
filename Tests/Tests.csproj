@@ -416,6 +416,7 @@
     <None Include="TestCases\StructLateDeclaration.cs" />
     <None Include="TestCases\StructCompoundAssignment.cs" />
     <None Include="TestCases\DictionaryInitializer.cs" />
+    <None Include="TestCases\DictionaryInitializer2.cs" />
     <None Include="SimpleTestCases\NestedLambdas.cs" />
     <None Include="SpecialTestCases\RenameMethod.cs" />
     <None Include="SpecialTestCases\RenameProperty.cs" />

@@ -593,7 +593,11 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTypeOfExpression : JSType {
+    public interface ITypeOfExpression {
+        TypeReference Type { get; }
+    }
+
+    public class JSTypeOfExpression : JSType, ITypeOfExpression {
         public JSTypeOfExpression (TypeReference type) 
             : base (type) {
         }
@@ -612,6 +616,20 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("typeof ({0})", base.ToString());
+        }
+
+        public new TypeReference Type {
+            get { return base.Type; }
+        }
+    }
+
+    public class JSCachedTypeOfExpression : JSCachedType, ITypeOfExpression {
+        public JSCachedTypeOfExpression (TypeReference type, int index) 
+            : base (type, index) {
+        }
+
+        public new TypeReference Type {
+            get { return base.Type; }
         }
     }
 

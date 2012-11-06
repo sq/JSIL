@@ -46,6 +46,14 @@ namespace JSIL.Transforms {
             return result;
         }
 
+        private JSCachedTypeOfExpression GetCachedTypeOf (TypeReference type) {
+            var ct = GetCachedType(type);
+            if (ct == null)
+                return null;
+
+            return new JSCachedTypeOfExpression(ct.Type, ct.Index);
+        }
+
         public bool IsCacheable (TypeReference type) {
             if (TypeUtil.TypesAreEqual(type, ThisType))
                 return false;
@@ -81,8 +89,14 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSTypeOfExpression toe) {
-            // TODO: Cache these types too.
-            VisitChildren(toe);
+            var ct = GetCachedTypeOf(toe.Type);
+
+            if (ct != null) {
+                ParentNode.ReplaceChild(toe, ct);
+                VisitReplacement(ct);
+            } else {
+                VisitChildren(toe);
+            }
         }
 
         public void VisitNode (JSCachedType ct) {

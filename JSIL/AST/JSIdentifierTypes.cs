@@ -43,6 +43,9 @@ namespace JSIL.Ast {
         new public readonly AssemblyDefinition Assembly;
 
         public JSAssembly (AssemblyDefinition assembly) {
+            if (assembly == null)
+                throw new ArgumentNullException("assembly");
+
             Assembly = assembly;
         }
 
@@ -63,6 +66,9 @@ namespace JSIL.Ast {
         new public readonly TypeReference Type;
 
         public JSType (TypeReference type) {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
             Type = type;
         }
 
@@ -396,7 +402,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Type;
+            return IdentifierType;
         }
 
         public override bool IsConstant {
@@ -416,13 +422,13 @@ namespace JSIL.Ast {
                 defaultValueText = String.Format(" = {0}", DefaultValue.ToString());
 
             if (IsReference)
-                return String.Format("<ref {0} {1}{2}>", Type, Identifier, defaultValueText);
+                return String.Format("<ref {0} {1}{2}>", IdentifierType, Identifier, defaultValueText);
             else if (IsThis)
-                return String.Format("<this {0}>", Type);
+                return String.Format("<this {0}>", IdentifierType);
             else if (IsParameter)
-                return String.Format("<parameter {0} {1}>", Type, Identifier);
+                return String.Format("<parameter {0} {1}>", IdentifierType, Identifier);
             else
-                return String.Format("<var {0} {1}{2}>", Type, Identifier, defaultValueText);
+                return String.Format("<var {0} {1}{2}>", IdentifierType, Identifier, defaultValueText);
         }
 
         public override bool Equals (object obj) {
@@ -436,7 +442,7 @@ namespace JSIL.Ast {
                     return false;
                 else if (rhs.IsThis != IsThis)
                     return false;
-                else if (!TypeUtil.TypesAreEqual(Type, rhs.Type))
+                else if (!TypeUtil.TypesAreEqual(IdentifierType, rhs.IdentifierType))
                     return false;
                 else
                     return true;
@@ -559,15 +565,15 @@ namespace JSIL.Ast {
             return DeReferenceType(Referent.GetActualType(typeSystem), true);
         }
 
-        public override TypeReference Type {
+        public override TypeReference IdentifierType {
             get {
-                return DeReferenceType(Referent.Type, true);
+                return DeReferenceType(Referent.IdentifierType, true);
             }
         }
 
         public override bool IsReference {
             get {
-                return DeReferenceType(Referent.Type, true) is ByReferenceType;
+                return DeReferenceType(Referent.IdentifierType, true) is ByReferenceType;
             }
         }
 
@@ -605,9 +611,9 @@ namespace JSIL.Ast {
             return Variables[Identifier].GetActualType(typeSystem);
         }
 
-        public override TypeReference Type {
+        public override TypeReference IdentifierType {
             get {
-                return Variables[Identifier].Type;
+                return Variables[Identifier].IdentifierType;
             }
         }
 
@@ -688,9 +694,9 @@ namespace JSIL.Ast {
             return new ByReferenceType(Referent.GetActualType(typeSystem));
         }
 
-        public override TypeReference Type {
+        public override TypeReference IdentifierType {
             get {
-                return new ByReferenceType(Referent.Type);
+                return new ByReferenceType(Referent.IdentifierType);
             }
         }
 

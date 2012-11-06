@@ -700,6 +700,19 @@ namespace JSIL {
                 Output.WriteRaw("$T{0:X2}()", cachedType.Index);
         }
 
+        public void VisitNode (JSCachedTypeOfExpression cachedTypeOf) {
+            IncludeTypeParens.Push(false);
+
+            try {
+                VisitNode((JSCachedType)cachedTypeOf);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
+            Output.Dot();
+            Output.Identifier("__Type__");
+        }
+
         public void VisitNode (JSTypeOfExpression toe) {
             Output.Identifier(
                 toe.Type, ReferenceContext, IncludeTypeParens.Peek()
@@ -750,12 +763,12 @@ namespace JSIL {
 
             if (variable.IsReference) {
                 if (variable.IsThis) {
-                    if (JSExpression.DeReferenceType(variable.Type).IsValueType)
+                    if (JSExpression.DeReferenceType(variable.IdentifierType).IsValueType)
                         return;
                     else
                         throw new InvalidOperationException(String.Format(
                             "The this-reference '{0}' was a reference to a non-value type: {1}",
-                            variable, variable.Type
+                            variable, variable.IdentifierType
                         ));
                 }
 

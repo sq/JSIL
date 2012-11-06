@@ -1640,7 +1640,7 @@ namespace JSIL {
                         // No method or variables. This could break things.
                         null, null, 
                         new JSVariable[] { 
-                            new JSParameter(fieldSelfIdentifier.Identifier, fieldSelfIdentifier.Type, null) 
+                            new JSParameter(fieldSelfIdentifier.Identifier, fieldSelfIdentifier.IdentifierType, null) 
                         },
                         new JSBlockStatement(
                             new JSExpressionStatement(new JSReturnExpression(defaultValue))

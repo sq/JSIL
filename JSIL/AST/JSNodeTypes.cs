@@ -228,10 +228,10 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSIdentifier : JSExpression {
-        protected readonly TypeReference _Type;
+        protected readonly TypeReference _IdentifierType;
 
-        public JSIdentifier (TypeReference type = null) {
-            _Type = type;
+        public JSIdentifier (TypeReference identifierType = null) {
+            _IdentifierType = identifierType;
         }
 
         public override bool Equals (object obj) {
@@ -240,16 +240,16 @@ namespace JSIL.Ast {
 
             if (id != null) {
                 return String.Equals(Identifier, id.Identifier) &&
-                    TypeUtil.TypesAreEqual(Type, id.Type) &&
+                    TypeUtil.TypesAreEqual(IdentifierType, id.IdentifierType) &&
                     EqualsImpl(obj, true);
             } else {
                 return EqualsImpl(obj, true);
             }
         }
 
-        public virtual TypeReference Type {
+        public virtual TypeReference IdentifierType {
             get {
-                return _Type;
+                return _IdentifierType;
             }
         }
 
@@ -258,8 +258,8 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            if (_Type != null)
-                return _Type;
+            if (_IdentifierType != null)
+                return _IdentifierType;
             else
                 return base.GetActualType(typeSystem);
         }

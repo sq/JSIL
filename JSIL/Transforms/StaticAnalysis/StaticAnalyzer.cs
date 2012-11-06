@@ -380,7 +380,7 @@ namespace JSIL.Transforms {
                     new FunctionAnalysis1stPass.Assignment(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
                         tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
-                        tcb.CatchVariable.Type, tcb.CatchVariable.Type
+                        tcb.CatchVariable.IdentifierType, tcb.CatchVariable.IdentifierType
                     )
                 );
 
