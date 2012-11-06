@@ -103,6 +103,14 @@ namespace JSIL.Transforms {
             VisitChildren(ct);
         }
 
+        public void VisitNode (JSNewArrayExpression na) {
+            var ct = GetCachedType(na.ElementType);
+            if (ct != null)
+                na.CachedElementTypeIndex = ct.Index;
+
+            VisitChildren(na);
+        }
+
         public void VisitNode (JSIsExpression @is) {
             var ct = GetCachedType(@is.Type);
             if (ct != null)

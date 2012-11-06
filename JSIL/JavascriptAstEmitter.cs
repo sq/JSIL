@@ -368,7 +368,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIsExpression ie) {
-            WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$Is");
             Output.LPar();
@@ -1235,7 +1241,13 @@ namespace JSIL {
                 Output.WriteRaw("JSIL.Array.New");
 
             Output.LPar();
-            Output.Identifier(newarray.ElementType, ReferenceContext);
+
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(newarray.ElementType, newarray.CachedElementTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
 
             if (newarray.Dimensions != null) {
                 Output.Comma();

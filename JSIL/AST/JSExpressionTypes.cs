@@ -910,6 +910,8 @@ namespace JSIL.Ast {
         }
         public readonly JSExpression[] Dimensions;
 
+        public int? CachedElementTypeIndex;
+
         public JSNewArrayExpression (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
             ElementType = elementType;
             ArrayType = new ArrayType(elementType);
