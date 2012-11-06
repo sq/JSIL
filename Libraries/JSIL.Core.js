@@ -1451,7 +1451,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
       var checkFn = new Function("return typeof (" + typedArrayName + ") !== \"undefined\"");
       var getFn = new Function("return " + typedArrayName);
       try {
-        typedArrayCtorExists = fn();
+        typedArrayCtorExists = checkFn();
       } catch (exc) {
       }
 
