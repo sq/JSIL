@@ -967,40 +967,48 @@ namespace JSIL.Internal {
 
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
-                    switch (m2.Value) {
-                        case "__BackingField":
-                        case "__DisplayClass":
-                            return false;
+                    var length = m2.Length;
+                    var index = m2.Index;
+                    if (
+                        (length >= 2) &&
+                        (shortName[index] == '_') && 
+                        (shortName[index + 1] == '_')
+                    ) {
+                        switch (m2.Value) {
+                            case "__BackingField":
+                            case "__DisplayClass":
+                                return false;
 
-                        case "CS$<":
-                            if (!isField)
-                                return true;
-
+                            case "__CachedAnonymousMethodDelegate":
+                                if (isField)
+                                    return true;
                             break;
-
-                        case "__CachedAnonymousMethodDelegate":
-                            if (isField)
-                                return true;
-
-                            break;
-
-                        default:
-                            defaultResult = true;
-                            break;
+                        }
+                    } else if (
+                        (length >= 4) &&
+                        (shortName[index] == 'C') && 
+                        (shortName[index + 1] == 'S') &&
+                        (shortName[index + 2] == '$') &&
+                        (shortName[index + 3] == '<')
+                    ) {
+                        if (!isField)
+                            return true;
+                    } else {
+                        defaultResult = true;
                     }
                 }
             }
 
             var m = MangledNameRegex.Match(shortName);
             if (m.Success) {
-                switch (m.Groups[2].Value) {
-                    case "b":
+                switch (shortName[m.Groups[2].Index]) {
+                    case 'b':
                         // Lambda
                         return true;
-                    case "c":
+                    case 'c':
                         // Class
                         return false;
-                    case "d":
+                    case 'd':
                         // Enumerator
                         return false;
                 }
