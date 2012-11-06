@@ -25,7 +25,7 @@ namespace JSIL.Transforms {
             if (!IsCacheable(type))
                 return null;
 
-            var resolved = TypeUtil.GetTypeDefinition(type);
+            var resolved = TypeUtil.GetTypeDefinition(type, false);
             if (resolved == null)
                 return null;
 
