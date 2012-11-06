@@ -2316,16 +2316,16 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   $jsilcore.RuntimeType = runtimeType;
 } )();
 
-JSIL.GetStructFieldList = function (typeObject) {
-  var sf = typeObject.__StructFields__;
+JSIL.GetFieldList = function (typeObject) {
+  var fl = typeObject.__FieldList__;
 
-  if (sf === $jsilcore.ArrayNotInitialized)
-    sf = JSIL.$BuildStructFieldList(typeObject);
+  if (fl === $jsilcore.ArrayNotInitialized)
+    fl = JSIL.$BuildFieldList(typeObject);
 
-  if ((sf === $jsilcore.ArrayNull) || (!JSIL.IsArray(sf)))
+  if ((fl === $jsilcore.ArrayNull) || (!JSIL.IsArray(fl)))
     return $jsilcore.ArrayNull;
 
-  return sf;
+  return fl;
 };
 
 JSIL.EscapeJSIdentifier = function (identifier) {
@@ -2368,36 +2368,57 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   return result;
 };
 
-JSIL.MakeStructFieldInitializer = function (typeObject) {
-  // The definition for native types often includes a self-typed struct field, which is just plain busted.
-  if (typeObject.__IsNativeType__)
+JSIL.FormatMemberAccess = function (targetExpression, memberName) {
+  // Can't reuse a global instance because .test mutates the RegExp. JavaScript is stupid.
+  var shortMemberRegex = /^[_a-zA-Z][a-zA-Z_0-9]*$/g;
+
+  if (shortMemberRegex.test(memberName)) {
+    return targetExpression + "." + memberName;
+  } else {
+    return targetExpression + "['" + memberName + "']";
+  }
+};
+
+JSIL.MakeFieldInitializer = function (typeObject) {
+  var fl = JSIL.GetFieldList(typeObject);
+  if (fl.length < 1)
     return $jsilcore.FunctionNull;
 
-  var sf = JSIL.GetStructFieldList(typeObject);
-  if (sf.length < 1)
-    return $jsilcore.FunctionNull;
-
+  var prototype = typeObject.__PublicInterface__.prototype;
   var body = [];
-  var types = [];
-  for (var i = 0, l = sf.length; i < l; i++) {
-    var fieldName = sf[i][0];
-    var fieldType = sf[i][1];
+  
+  var types = {};
+  var defaults = {};
 
-    if (fieldType === typeObject) {
-      JSIL.Host.warning("Ignoring self-typed struct field " + fieldName);
+  for (var i = 0, l = fl.length; i < l; i++) {
+    var field = fl[i];
+
+    if (field.type === typeObject) {
+      JSIL.Host.warning("Ignoring self-typed struct field " + field.name);
       continue;
     }
 
-    body[i] = "target['" + fieldName + "'] = new (types[" + i.toString() + "]);";
+    var key = "f" + i.toString();
 
-    types[i] = fieldType.__PublicInterface__;
+    if (field.isStruct) {
+      body[i] = JSIL.FormatMemberAccess("target", field.name) + " = new types." + key + "();";
+      types[key] = field.type.__PublicInterface__;
+    } else {
+      body[i] = JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";";
+
+      if (field.name in prototype)
+        defaults[key] = prototype[field.name];
+      else
+        throw new Error("Field " + field.name + " has no default value in prototype!");
+    }
+
   }
 
   var boundFunction = JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + ".InitializeStructFields",
+    typeObject.__FullName__ + ".InitializeFields",
     ["target"],
     body.join("\r\n"),
-    { types: types }
+    { types: types, defaults: defaults }
   );
 
   boundFunction.__ThisType__ = typeObject;
@@ -2406,14 +2427,14 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
   return boundFunction;
 };
 
-JSIL.InitializeStructFields = function (instance, typeObject) {
-  var sfi = typeObject.__StructFieldInitializer__;
-  if (sfi === $jsilcore.FunctionNotInitialized)
-    typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
-  if (sfi === $jsilcore.FunctionNull)
+JSIL.InitializeInstanceFields = function (instance, typeObject) {
+  var fi = typeObject.__FieldInitializer__;
+  if (fi === $jsilcore.FunctionNotInitialized)
+    typeObject.__FieldInitializer__ = fi = JSIL.MakeFieldInitializer(typeObject);
+  if (fi === $jsilcore.FunctionNull)
     return;
 
-  sfi(instance);
+  fi(instance);
 };
 
 JSIL.CopyObjectValues = function (source, target) {
@@ -2435,9 +2456,7 @@ JSIL.CopyMembers = function (source, target) {
 };
 
 JSIL.$MakeComparerCore = function (typeObject, context, body) {
-  var fields = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
-  );
+  var fields = JSIL.GetFieldList(typeObject);
 
   if (context.prototype.__CompareMembers__) {
     context.comparer = context.prototype.__CompareMembers__;
@@ -2445,14 +2464,14 @@ JSIL.$MakeComparerCore = function (typeObject, context, body) {
   } else {
     for (var i = 0; i < fields.length; i++) {
       var field = fields[i];
-      var fieldType = field.get_FieldType();
+      var fieldType = field.type;
 
       if (fieldType.__IsNumeric__ || fieldType.__IsEnum__) {
-        body.push("  if (lhs['" + field.Name + "'] !== rhs['" + field.Name + "'])");
-      } else if (fieldType.__IsStruct__) {
-        body.push("  if (!lhs['" + field.Name + "'].Equals(rhs['" + field.Name + "']))");
+        body.push("  if (" + JSIL.FormatMemberAccess("lhs", field.name) + " !== " + JSIL.FormatMemberAccess("rhs", field.name) + ")");
+      } else if (field.isStruct) {
+        body.push("  if (!" + JSIL.FormatMemberAccess("lhs", field.name) + ".Equals(" + JSIL.FormatMemberAccess("rhs", field.name) + "))");
       } else {
-        body.push("  if (!JSIL.ObjectEquals(lhs['" + field.Name + "'], rhs['" + field.Name + "']))");
+        body.push("  if (!JSIL.ObjectEquals(" + JSIL.FormatMemberAccess("lhs", field.name) + ", " + JSIL.FormatMemberAccess("rhs", field.name) + "))");
       }
 
       body.push("    return false;");
@@ -2480,27 +2499,18 @@ JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
 };
 
 JSIL.$MakeCopierCore = function (typeObject, context, body) {
-  var sf = JSIL.GetStructFieldList(typeObject);
-  var fields = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
-  );
+  var fields = JSIL.GetFieldList(typeObject);
 
   if (context.prototype.__CopyMembers__) {
     context.copier = context.prototype.__CopyMembers__;
     body.push("  context.copier(source, result);");
   } else {
     for (var i = 0; i < fields.length; i++) {
+      // FIXME
       var field = fields[i];
-      var isStruct = false;
+      var isStruct = field.isStruct;
 
-      for (var j = 0; j < sf.length; j++) {
-        if (sf[j][0] == field.Name) {
-          isStruct = true;
-          break;
-        }
-      }
-
-      var line = "  result['" + field.Name + "'] = source['" + field.Name + "']";
+      var line = "  " + JSIL.FormatMemberAccess("result", field.name) + " = " + JSIL.FormatMemberAccess("source", field.name);
       if (isStruct)
         line += ".MemberwiseClone();"
       else
@@ -2565,11 +2575,11 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   return memberwiseCloner;
 };
 
-JSIL.$BuildStructFieldList = function (typeObject) {
+JSIL.$BuildFieldList = function (typeObject) {
   var fields = JSIL.GetMembersInternal(
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
-  var sf = typeObject.__StructFields__ = [];
+  var fl = typeObject.__FieldList__ = [];
 
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
@@ -2581,13 +2591,25 @@ JSIL.$BuildStructFieldList = function (typeObject) {
     // Native types may derive from System.ValueType but we can't treat them as structs.
     var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
-    // console.log(String(typeObject) + ".isStruct=" + isStruct + "\r\n");
-    if (isStruct && !field.IsStatic) {
-      sf.push([field.Name, fieldType]);
-    }
+    if (!field.IsStatic)
+      fl.push({
+        name: field.Name,
+        type: fieldType,
+        isStruct: isStruct
+      });
   }
 
-  return sf;
+  // Sort fields by name so that we get a predictable initialization order.
+  fl.sort(function (lhs, rhs) {
+    if (lhs > rhs)
+      return 1;
+    else if (lhs < rhs)
+      return -1;
+    else
+      return 0;
+  })
+
+  return fl;
 };
 
 JSIL.$ResolveGenericTypeReferences = function (context, types) {
@@ -3279,7 +3301,6 @@ JSIL.InitializeType = function (type) {
     }
 
     JSIL.InitializeFields(classObject, typeObject);
-
     JSIL.InstantiateProperties(classObject, typeObject);
 
     if (typeObject.IsInterface !== true) {
@@ -3881,7 +3902,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     typeName: typeObject.__FullName__,
     isStruct: typeObject.__IsStruct__,
     hasInnerCtor: false,
-    sfi: $jsilcore.FunctionNotInitialized,
+    fi: $jsilcore.FunctionNotInitialized,
     innerCtor: $jsilcore.FunctionNotInitialized,
     ctorToCall: $jsilcore.FunctionNotInitialized
   };
@@ -3893,7 +3914,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   var oneTime = function Type__ctor_Once () {
     maybeRunCctors();
 
-    typeObject.__StructFieldInitializer__ = state.sfi = JSIL.MakeStructFieldInitializer(typeObject);
+    typeObject.__FieldInitializer__ = state.fi = JSIL.MakeFieldInitializer(typeObject);
 
     state.innerCtor = this._ctor;
     state.hasInnerCtor = typeof (state.innerCtor) === "function";
@@ -3903,10 +3924,10 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     } else {
 
       if (state.isStruct) {
-        if (state.sfi !== $jsilcore.FunctionNull) {
+        if (state.fi !== $jsilcore.FunctionNull) {
           if (state.hasInnerCtor) {
             state.ctorToCall = function Type__ctor () {
-              state.sfi(this);
+              state.fi(this);
 
               if (arguments.length === 0)
                 return;
@@ -3915,7 +3936,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
             };
 
           } else {
-            state.ctorToCall = state.sfi;
+            state.ctorToCall = state.fi;
             
           }
 
@@ -3935,16 +3956,16 @@ JSIL.MakeTypeConstructor = function (typeObject) {
         }
 
       } else {
-        if (state.sfi !== $jsilcore.FunctionNull) {
+        if (state.fi !== $jsilcore.FunctionNull) {
           if (state.hasInnerCtor) {
             state.ctorToCall = function Type__ctor () {
-              state.sfi(this);
+              state.fi(this);
 
               return state.innerCtor.apply(this, arguments);
             };
 
           } else {
-            state.ctorToCall = state.sfi;
+            state.ctorToCall = state.fi;
 
           }
 
@@ -3999,8 +4020,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
-    typeObject.__StructFields__ = $jsilcore.ArrayNotInitialized;
-    typeObject.__StructFieldInitializer__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
+    typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
     typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
@@ -5146,9 +5167,8 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
     result = Object.create(proto);
   }
 
-  JSIL.RunStaticConstructors(publicInterface, typeObject);
-  
-  JSIL.InitializeStructFields(result, typeObject);
+  JSIL.RunStaticConstructors(publicInterface, typeObject);  
+  JSIL.InitializeInstanceFields(result, typeObject);
 
   var argc = arguments.length;
 
@@ -5537,7 +5557,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   var constructor = $jsilcore.FunctionNotInitialized;
 
   JSIL.RunStaticConstructors(publicInterface, type);
-  JSIL.InitializeStructFields(instance, type);
+  JSIL.InitializeInstanceFields(instance, type);
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
   } else if (constructorName === null) {
@@ -5785,10 +5805,17 @@ JSIL.DefaultValue = function (type) {
     typePublicInterface = type.__PublicInterface__;
   }
 
-  if (typeObject && typePublicInterface)
+  if (typeObject && typePublicInterface) {
     return JSIL.DefaultValueInternal(typeObject, typePublicInterface);
-  else
+  } else {
+    // Handle stupid special cases
+    if ((type === Object) || (type === Array) || (type === String))
+      return null;
+    else if (type === Number)
+      return 0;
+
     throw new Error("Invalid type passed into DefaultValue");
+  }
 };
 
 JSIL.Array.GetElements = function (array) {
