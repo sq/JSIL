@@ -3673,7 +3673,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
   if (checkMethod) {
     isFunction = JSIL.CreateNamedFunction(
-      "Is_" + typeName, 
+      typeName + ".$Is", 
       ["expression", "bypassCustomCheckMethod"],
       "if (!bypassCustomCheckMethod && checkMethod(expression))\r\n" +
       "  return true;\r\n" +
@@ -3688,7 +3688,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     );
   } else {
     isFunction = JSIL.CreateNamedFunction(
-      "Is_" + typeName, 
+      typeName + ".$Is", 
       ["expression"],
       "if (expression)\r\n" +
       "  return assignableFromTypes[expression.__ThisTypeId__] === true;\r\n" +
@@ -3702,7 +3702,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
   if (checkMethod) {
     asFunction = JSIL.CreateNamedFunction(
-      "As_" + typeName, 
+      typeName + ".$As", 
       ["expression"],
       "if (checkMethod(expression))\r\n" +
       "  return expression;\r\n" +
@@ -3717,7 +3717,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     );
   } else {
     asFunction = JSIL.CreateNamedFunction(
-      "As_" + typeName, 
+      typeName + ".$As", 
       ["expression"],
       "if (expression && assignableFromTypes[expression.__ThisTypeId__])\r\n" +
       "  return expression;\r\n" +
