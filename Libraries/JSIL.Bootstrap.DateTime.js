@@ -8,11 +8,7 @@ if (!$jsilcore)
 
 JSIL.ImplementExternals(
   "System.TimeSpan", function ($) {
-    var dTicksPerMillisecond = 10000;
-    var dTicksPerSecond = 10000000;
-    var dTicksPerMinute = 600000000;
-    var dTicksPerHour = 36000000000;
-    var dTicksPerDay = 864000000000;
+    var TicksPerMillisecond, TicksPerSecond, TicksPerMinute, TicksPerHour, TicksPerDay;
 
     var fromTicks = function (ticks) {
       return JSIL.CreateInstanceOfType(
@@ -27,38 +23,47 @@ JSIL.ImplementExternals(
       );
     };
 
+    $.RawMethod(true, ".cctor", function () {
+      var tInt64 = $jsilcore.System.Int64;
+      TicksPerMillisecond = tInt64.FromNumber(10000);
+      TicksPerSecond = tInt64.FromNumber(10000000);
+      TicksPerMinute = tInt64.FromNumber(600000000);
+      TicksPerHour = tInt64.FromNumber(36000000000);
+      TicksPerDay = tInt64.FromNumber(864000000000);
+    });
+
     $.Method({Static:true , Public:true }, "FromMilliseconds", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromMilliseconds (value) {
-        return fromDoubleTicks(value * dTicksPerMillisecond);
+        return fromDoubleTicks(value * TicksPerMillisecond.valueOf());
       }
     );
 
     $.Method({Static:true , Public:true }, "FromSeconds", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromSeconds (value) {
-        return fromDoubleTicks(value * dTicksPerSecond);
+        return fromDoubleTicks(value * TicksPerSecond.valueOf());
       }
     );
 
     $.Method({Static:true , Public:true }, "FromMinutes", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromMinutes (value) {
-        return fromDoubleTicks(value * dTicksPerMinute);
+        return fromDoubleTicks(value * TicksPerMinute.valueOf());
       }
     );
 
     $.Method({Static:true , Public:true }, "FromHours", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromHours (value) {
-        return fromDoubleTicks(value * dTicksPerHour);
+        return fromDoubleTicks(value * TicksPerHour.valueOf());
       }
     );
 
     $.Method({Static:true , Public:true }, "FromDays", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromDays (value) {
-        return fromDoubleTicks(value * dTicksPerDay);
+        return fromDoubleTicks(value * TicksPerDay.valueOf());
       }
     );
 
@@ -146,9 +151,9 @@ JSIL.ImplementExternals(
             $.Int32
           ], [])), 
       function _ctor (hours, minutes, seconds) {
-        this.$accumulate(dTicksPerHour, hours);
-        this.$accumulate(dTicksPerMinute, minutes);
-        this.$accumulate(dTicksPerSecond, seconds);
+        this.$accumulate(TicksPerHour, hours);
+        this.$accumulate(TicksPerMinute, minutes);
+        this.$accumulate(TicksPerSecond, seconds);
       }
     );
 
@@ -158,10 +163,10 @@ JSIL.ImplementExternals(
             $.Int32, $.Int32
           ], [])), 
       function _ctor (days, hours, minutes, seconds) {
-        this.$accumulate(dTicksPerDay, days);
-        this.$accumulate(dTicksPerHour, hours);
-        this.$accumulate(dTicksPerMinute, minutes);
-        this.$accumulate(dTicksPerSecond, seconds);
+        this.$accumulate(TicksPerDay, days);
+        this.$accumulate(TicksPerHour, hours);
+        this.$accumulate(TicksPerMinute, minutes);
+        this.$accumulate(TicksPerSecond, seconds);
       }
     );
 
@@ -172,46 +177,46 @@ JSIL.ImplementExternals(
             $.Int32
           ], [])), 
       function _ctor (days, hours, minutes, seconds, milliseconds) {
-        this.$accumulate(dTicksPerDay, days);
-        this.$accumulate(dTicksPerHour, hours);
-        this.$accumulate(dTicksPerMinute, minutes);
-        this.$accumulate(dTicksPerSecond, seconds);
-        this.$accumulate(dTicksPerMillisecond, milliseconds);
+        this.$accumulate(TicksPerDay, days);
+        this.$accumulate(TicksPerHour, hours);
+        this.$accumulate(TicksPerMinute, minutes);
+        this.$accumulate(TicksPerSecond, seconds);
+        this.$accumulate(TicksPerMillisecond, milliseconds);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Days", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Days () {
-        return this.$divide(dTicksPerDay);
+        return this.$divide(TicksPerDay);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Hours", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Hours () {
-        return this.$modDiv(dTicksPerDay, dTicksPerHour);
+        return this.$modDiv(TicksPerDay, TicksPerHour);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Milliseconds", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Milliseconds () {
-        return this.$modDiv(dTicksPerSecond, dTicksPerMillisecond);
+        return this.$modDiv(TicksPerSecond, TicksPerMillisecond);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Minutes", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Minutes () {
-        return this.$modDiv(dTicksPerHour, dTicksPerMinute);
+        return this.$modDiv(TicksPerHour, TicksPerMinute);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Seconds", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Seconds () {
-        return this.$modDiv(dTicksPerMinute, dTicksPerSecond);
+        return this.$modDiv(TicksPerMinute, TicksPerSecond);
       }
     );
 
@@ -223,37 +228,23 @@ JSIL.ImplementExternals(
     );
 
     $.RawMethod(false, "$modDiv", function $modulus (modulus, divisor) {
-      modulus = Math.floor(modulus);
-      divisor = Math.floor(divisor);
-
       var tInt64 = $jsilcore.System.Int64;
-      var intModulus = tInt64.FromNumber(modulus);
-      var intDivisor = tInt64.FromNumber(divisor);
-
-      var result = tInt64.op_Modulus(this._ticks, intModulus);
-      result = tInt64.op_Division(result, intDivisor);
+      var result = tInt64.op_Modulus(this._ticks, modulus);
+      result = tInt64.op_Division(result, divisor);
       return result.ToInt32();
     });
 
     $.RawMethod(false, "$divide", function $divide (divisor) {
-      divisor = Math.floor(divisor);
-
       var tInt64 = $jsilcore.System.Int64;
-      var intDivisor = tInt64.FromNumber(divisor);
-
-      var result = tInt64.op_Division(this._ticks, intDivisor);
+      var result = tInt64.op_Division(this._ticks, divisor);
       return result.ToInt32();
     });
 
     $.RawMethod(false, "$toNumberDivided", function $toNumberDivided (divisor) {
-      divisor = Math.floor(divisor);
-
       var tInt64 = $jsilcore.System.Int64;
-      var intDivisor = tInt64.FromNumber(divisor);
-
-      var integral = tInt64.op_Division(this._ticks, intDivisor);
-      var remainder = tInt64.op_Modulus(this._ticks, intDivisor);
-      var scaledRemainder = remainder.ToNumber() / divisor;
+      var integral = tInt64.op_Division(this._ticks, divisor);
+      var remainder = tInt64.op_Modulus(this._ticks, divisor);
+      var scaledRemainder = remainder.ToNumber() / divisor.valueOf();
 
       var result = integral.ToNumber() + scaledRemainder;
       return result;
@@ -262,35 +253,35 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalMilliseconds () {
-        return this.$toNumberDivided(dTicksPerMillisecond);
+        return this.$toNumberDivided(TicksPerMillisecond);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalSeconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalSeconds () {
-        return this.$toNumberDivided(dTicksPerSecond);
+        return this.$toNumberDivided(TicksPerSecond);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalMinutes", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalMinutes () {
-        return this.$toNumberDivided(dTicksPerMinute);
+        return this.$toNumberDivided(TicksPerMinute);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalHours", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalHours () {
-        return this.$toNumberDivided(dTicksPerHour);
+        return this.$toNumberDivided(TicksPerHour);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalDays", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalDays () {
-        return this.$toNumberDivided(dTicksPerDay);
+        return this.$toNumberDivided(TicksPerDay);
       }
     );
   }
