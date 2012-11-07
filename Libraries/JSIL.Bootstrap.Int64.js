@@ -9,7 +9,6 @@ if (!$jsilcore)
 //
 //  Since alot of operators are shared between Int64 and UInt64, we construct both types using this function
 JSIL.Make64BitInt = function ($, ctor, me) {
-
   var mscorlib = JSIL.GetCorlib();
 
   function lazy(f) {
@@ -76,7 +75,11 @@ JSIL.Make64BitInt = function ($, ctor, me) {
       return result.value;
     });
 
-  $.RawMethod({ Static: true, Public: true }, "Create",
+  $.RawMethod(false, "__CopyMembers__", function (source, target) {
+  	target.data = Array.prototype.slice.call(source.data);
+  });
+
+  $.RawMethod(true, "Create",
         //(new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], [])),
         ctor);
 

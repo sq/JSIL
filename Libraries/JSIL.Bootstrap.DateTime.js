@@ -15,7 +15,10 @@ JSIL.ImplementExternals(
     var dTicksPerDay = 864000000000;
 
     var fromTicks = function (ticks) {
-      return $jsilcore.System.TimeSpan.FromTicks(ticks);
+      return JSIL.CreateInstanceOfType(
+        $jsilcore.System.TimeSpan.__Type__, "$fromTicks", 
+        [ticks]
+      );
     };
 
     var fromDoubleTicks = function (ticks) {
@@ -61,17 +64,13 @@ JSIL.ImplementExternals(
 
     $.Method({Static:true , Public:true }, "FromTicks", 
       (new JSIL.MethodSignature($.Type, [$.Int64], [])), 
-      function FromTicks (value) {
-        return JSIL.CreateInstanceOfType($jsilcore.System.TimeSpan.__Type__, "$fromTicks", [value]);
-      }
+      fromTicks
     );
 
     $.Method({Static:true , Public:true }, "op_Addition", 
       (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
       function op_Addition (t1, t2) {
-        var result = Object.create(System.TimeSpan.prototype);
-        result._ticks = t1._ticks + t2._ticks;
-        return result;
+        return fromTicks($jsilcore.System.Int64.op_Addition(t1._ticks, t2._ticks));
       }
     );
 
@@ -106,9 +105,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "op_Subtraction", 
       (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
       function op_Subtraction (t1, t2) {
-        var result = Object.create(System.TimeSpan.prototype);
-        result._ticks = t1._ticks - t2._ticks;
-        return result;
+        return fromTicks($jsilcore.System.Int64.op_Subtraction(t1._ticks, t2._ticks));
       }
     );
 
@@ -198,9 +195,9 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.RawMethod(false, "$toNumberDivided", function (divisor) {
+    $.RawMethod(false, "$toNumberDivided", function $toNumberDivided (divisor) {
       divisor = Math.floor(divisor);
-      
+
       var tInt64 = $jsilcore.System.Int64;
       var intDivisor = tInt64.FromNumber(divisor);
 
