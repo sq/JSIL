@@ -4771,7 +4771,8 @@ JSIL.ImplementExternals("System.DateTime", function ($) {
   $.Method({Static:false, Public:true }, "ToLongTimeString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function ToLongTimeString () {
-      throw new Error('Not implemented');
+      // FIXME
+      return "ToLongTimeString";
     }
   );
 
