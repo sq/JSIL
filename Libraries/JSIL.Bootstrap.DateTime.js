@@ -156,35 +156,35 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_Days", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Days () {
-        return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
+        return this.$divide(dTicksPerDay);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Hours", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Hours () {
-        return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
+        return this.$modDiv(dTicksPerDay, dTicksPerHour);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Milliseconds", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Milliseconds () {
-        return Math.floor(this._ticks / 10000) % 1000;
+        return this.$modDiv(dTicksPerSecond, dTicksPerMillisecond);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Minutes", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Minutes () {
-        return Math.floor((this._ticks / 10000000) / 60) % 60;
+        return this.$modDiv(dTicksPerHour, dTicksPerMinute);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_Seconds", 
       (new JSIL.MethodSignature($.Int32, [], [])), 
       function get_Seconds () {
-        return Math.floor(this._ticks / 10000000) % 60;
+        return this.$modDiv(dTicksPerMinute, dTicksPerSecond);
       }
     );
 
@@ -194,6 +194,29 @@ JSIL.ImplementExternals(
         return this._ticks;
       }
     );
+
+    $.RawMethod(false, "$modDiv", function $modulus (modulus, divisor) {
+      modulus = Math.floor(modulus);
+      divisor = Math.floor(divisor);
+
+      var tInt64 = $jsilcore.System.Int64;
+      var intModulus = tInt64.FromNumber(modulus);
+      var intDivisor = tInt64.FromNumber(divisor);
+
+      var result = tInt64.op_Modulus(this._ticks, intModulus);
+      result = tInt64.op_Division(result, intDivisor);
+      return result.ToInt32();
+    });
+
+    $.RawMethod(false, "$divide", function $divide (divisor) {
+      divisor = Math.floor(divisor);
+
+      var tInt64 = $jsilcore.System.Int64;
+      var intDivisor = tInt64.FromNumber(divisor);
+
+      var result = tInt64.op_Division(this._ticks, intDivisor);
+      return result.ToInt32();
+    });
 
     $.RawMethod(false, "$toNumberDivided", function $toNumberDivided (divisor) {
       divisor = Math.floor(divisor);

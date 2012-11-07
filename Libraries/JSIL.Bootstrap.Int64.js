@@ -559,6 +559,13 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     });
 
     // Not present in mscorlib
+    $.Method({ Static: false, Public: true }, "ToUInt32",
+    (new JSIL.MethodSignature($.UInt32, [], [])),
+    function () {
+        return ((0x1000000 * this.data[1]) + this.data[0]) >>> 0;
+    });
+
+    // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
     function () {
@@ -800,12 +807,26 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     });
 
     // Not present in mscorlib
+    $.Method({ Static: false, Public: true }, "ToInt32",
+    (new JSIL.MethodSignature($.Int32, [], [])),
+    function () {
+        var neg = isNegative(this);
+        var n = neg ? me().op_UnaryNegation(this) : this;
+        var r = (0x1000000 * (n.data[1]) + n.data[0]) >>> 0;
+
+        if (neg)
+            return -r;
+        else
+            return r;
+    });
+
+    // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
     function () {
         var neg = isNegative(this);
         var n = neg ? me().op_UnaryNegation(this) : this;
-        var r = 0x1000000 * (0x1000000 * n.data[2] + n.data[1]) + n.data[0]; ;
+        var r = 0x1000000 * (0x1000000 * n.data[2] + n.data[1]) + n.data[0];
 
         if (neg)
             return -r;
