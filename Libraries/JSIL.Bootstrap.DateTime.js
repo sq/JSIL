@@ -109,6 +109,18 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.RawMethod(false, "$accumulate", function (multiplier, amount) {
+      var tInt64 = $jsilcore.System.Int64;
+      var multiplier64 = tInt64.FromNumber(multiplier);
+      var amount64 = tInt64.FromNumber(amount);
+      var scaled = tInt64.op_Multiplication(multiplier64, amount64);
+
+      if (!this._ticks)
+        this._ticks = scaled;
+      else
+        this._ticks = tInt64.op_Addition(this._ticks, scaled);
+    });
+
     $.RawMethod(false, "$fromTicks", 
       function fromTicks (ticks) {
         this._ticks = ticks;
@@ -128,7 +140,9 @@ JSIL.ImplementExternals(
             $.Int32
           ], [])), 
       function _ctor (hours, minutes, seconds) {
-        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
+        this.$accumulate(dTicksPerHour, hours);
+        this.$accumulate(dTicksPerMinute, minutes);
+        this.$accumulate(dTicksPerSecond, seconds);
       }
     );
 
@@ -138,7 +152,10 @@ JSIL.ImplementExternals(
             $.Int32, $.Int32
           ], [])), 
       function _ctor (days, hours, minutes, seconds) {
-        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+        this.$accumulate(dTicksPerDay, days);
+        this.$accumulate(dTicksPerHour, hours);
+        this.$accumulate(dTicksPerMinute, minutes);
+        this.$accumulate(dTicksPerSecond, seconds);
       }
     );
 
@@ -149,7 +166,11 @@ JSIL.ImplementExternals(
             $.Int32
           ], [])), 
       function _ctor (days, hours, minutes, seconds, milliseconds) {
-        this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+        this.$accumulate(dTicksPerDay, days);
+        this.$accumulate(dTicksPerHour, hours);
+        this.$accumulate(dTicksPerMinute, minutes);
+        this.$accumulate(dTicksPerSecond, seconds);
+        this.$accumulate(dTicksPerMillisecond, milliseconds);
       }
     );
 

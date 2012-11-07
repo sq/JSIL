@@ -119,6 +119,8 @@
     <None Include="EncodingTestCases\ToBase64String.cs" />
     <None Include="EncodingTestCases\FromBase64String.cs" />
     <None Include="DateTimeTestCases\TimeSpanArithmetic.cs" />
+    <None Include="DateTimeTestCases\Common.cs" />
+    <None Include="DateTimeTestCases\TimeSpanCtor.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />

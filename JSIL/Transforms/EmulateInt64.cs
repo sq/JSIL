@@ -28,8 +28,7 @@ namespace JSIL.Transforms
 
         }
 
-        public JSInvocationExpression GetLongLiteralExpression(JSIntegerLiteral literal, bool unsigned = false)
-        {
+        public JSInvocationExpression GetLongLiteralExpression(JSIntegerLiteral literal, bool unsigned = false) {
             var number = literal.Value;
             var type = unsigned ? TypeSystem.UInt64 : TypeSystem.Int64;
             uint a = (uint)(number & 0xffffff);
