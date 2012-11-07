@@ -98,38 +98,6 @@ namespace JSIL.Tests {
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
-        
-        [Test]
-        [TestCaseSource("Int64Source")]
-        public void Int64(object[] parameters) {
-            RunSingleComparisonTestCase(parameters);
-        }
-
-        protected IEnumerable<TestCaseData> Int64Source() {
-            return FilenameTestSource(
-                new[] { 
-                    @"Int64TestCases\Int64Addition.cs",
-                    @"Int64TestCases\Int64Boxing.cs",
-                    @"Int64TestCases\Int64Comparisons.cs",
-                    @"Int64TestCases\Int64Convert.cs",
-                    @"Int64TestCases\Int64DateTimeArithmetic.cs",
-                    @"Int64TestCases\Int64Division.cs",
-                    @"Int64TestCases\Int64Fields.cs",
-                    @"Int64TestCases\Int64Interfaces.cs",
-                    @"Int64TestCases\Int64Literals.cs",
-                    @"Int64TestCases\Int64Multiplication.cs",
-                    @"Int64TestCases\Int64Nullable.cs",
-                    @"Int64TestCases\Int64Parse.cs",
-                    @"Int64TestCases\Int64Shifts.cs",
-                    @"Int64TestCases\Int64Subtraction.cs",
-                    @"Int64TestCases\Int64Type.cs",
-                    @"Int64TestCases\UInt64Addition.cs",
-                    @"Int64TestCases\UInt64Bitwise.cs",
-                    @"Int64TestCases\UInt64Equality.cs",
-                    @"Int64TestCases\UInt64Literals.cs",
-                    @"Int64TestCases\UInt64Ref.cs",
-                }, MakeDefaultProvider(), new AssemblyCache());
-        }
 
         [Test]
         [TestCaseSource("GenericsSource")]
