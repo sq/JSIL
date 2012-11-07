@@ -360,7 +360,7 @@ var $bytestream = function ($) {
   $.Method({Static:false, Public:true }, "get_Length", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_Length () {
-      return this._length;
+      return $jsilcore.System.Int64.$Cast(this._length);
     }
   );
 
