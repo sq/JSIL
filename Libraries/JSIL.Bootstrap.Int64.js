@@ -13,7 +13,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   function lazy(f) {
       var state = null;
-      return function () {
+      return function getLazyValue () {
           if (state === null)
               state = f();
           return state;
@@ -22,7 +22,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   var me = lazy(_me);
 
-  var ctor = function (a, b, c) {
+  var ctor = function ctor (a, b, c) {
     return new (me())(a, b, c);
   };
 
@@ -48,7 +48,7 @@ JSIL.Make64BitInt = function ($, _me) {
   var tempMul1 = mktemp();
   var tempMul2 = mktemp();
 
-  var makeOrReturn = function (result, a, b, c) {
+  var makeOrReturn = function makeOrReturn (result, a, b, c) {
     if (result) {
       result.a = a & 0xffffff;
       result.b = b & 0xffffff;
@@ -60,7 +60,7 @@ JSIL.Make64BitInt = function ($, _me) {
   };
 
   var tryParse =
-    function (text, style, result) {
+    function xInt64_TryParse (text, style, result) {
       var r = zero();
 
       var radix = 10;
@@ -92,11 +92,11 @@ JSIL.Make64BitInt = function ($, _me) {
       return true;
     };
 
-  $.RawMethod(true, "Create", function (a, b, c) {
+  $.RawMethod(true, "Create", function xInt64_Create (a, b, c) {
     return new (me())(a, b, c);
   });
 
-  $.RawMethod(false, ".ctor", function (a, b, c) {
+  $.RawMethod(false, ".ctor", function xInt64__ctor (a, b, c) {
     this.a = a;
     this.b = b;
     this.c = c;
@@ -104,7 +104,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "Parse",
     (new JSIL.MethodSignature($.Type, ["System.String"], [])),
-    function (text) {
+    function xInt64_Parse (text) {
       var result = { value: null };
       if (!tryParse(text, 0, result))
         throw new System.Exception("NumberParseException");
@@ -114,7 +114,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_Addition",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_Addition (a, b, result) {
           var ca = a.a + b.a;
           var ra = (ca & 0xffffff000000) >> 24;
           var cb = ra + a.b + b.b;
@@ -126,7 +126,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_Subtraction",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_Subtraction (a, b, result) {
           var ca = a.a - b.a;
           var ra = 0;
           if (ca < 0) {
@@ -149,7 +149,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_LeftShift",
         (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
-         function (a, n, result) { // a is UInt64, n is Int32
+         function xInt64_op_LeftShift (a, n, result) { // a is UInt64, n is Int32
           if (!result)
             result = ctor(0, 0, 0);
 
@@ -175,44 +175,44 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_OnesComplement",
         (new JSIL.MethodSignature($.Type, [$.Type], [])),
-        function (a, result) {
+        function xInt64_op_OnesComplement (a, result) {
           return makeOrReturn(result, ~a.a, ~a.b, ~a.c);
         });
 
   $.Method({ Static: true, Public: true }, "op_ExclusiveOr",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_ExclusiveOr (a, b, result) {
           return makeOrReturn(result, a.a ^ b.a, a.b ^ b.b, a.c ^ b.c);
         });
 
   $.Method({ Static: true, Public: true }, "op_BitwiseAnd",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_BitwiseAnd (a, b, result) {
           return makeOrReturn(result, a.a & b.a, a.b & b.b, a.c & b.c);
         });
 
   $.Method({ Static: true, Public: true }, "op_BitwiseOr",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_BitwiseOr (a, b, result) {
           return makeOrReturn(result, a.a | b.a, a.b | b.b, a.c | b.c);
         });
 
 
   $.Method({ Static: true, Public: true }, "op_Equality",
         (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-        function (a, b) {
+        function xInt64_op_Equality (a, b) {
           return a.a === b.a && a.b === b.b && a.c === b.c;
         });
 
   $.Method({ Static: true, Public: true }, "op_Inequality",
         (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-        function (a, b) {
+        function xInt64_op_Inequality (a, b) {
           return a.a !== b.a || a.b !== b.b || a.c !== b.c;
         });
 
   $.Method({ Static: true, Public: true }, "op_Decrement",
         (new JSIL.MethodSignature($.Type, [$.Type], [])),
-        function (a, result) {
+        function xInt64_op_Decrement (a, result) {
           if (a.a > 0)
             return makeOrReturn(result, a.a - 1, a.b, a.c);
           else
@@ -221,7 +221,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_Increment",
         (new JSIL.MethodSignature($.Type, [$.Type], [])),
-        function (a, result) {
+        function xInt64_op_Increment (a, result) {
           if (a.a < 0xffffff)
             return makeOrReturn(result, a.a + 1, a.b, a.c);
           else
@@ -230,7 +230,7 @@ JSIL.Make64BitInt = function ($, _me) {
 
   $.Method({ Static: true, Public: true }, "op_Multiplication",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-        function (a, b, result) {
+        function xInt64_op_Multiplication (a, b, result) {
           if (me().op_Equality(a, zero()) || me().op_Equality(b, zero()))
             return zero();
 
@@ -260,14 +260,14 @@ JSIL.Make64BitInt = function ($, _me) {
           return s;
         });
 
-  $.RawMethod(true, "CheckType", function (value) {
+  $.RawMethod(true, "CheckType", function xInt64_CheckType (value) {
     return value && 
       (typeof value.a === "number") && 
       (typeof value.b === "number") && 
       (typeof value.c === "number");
   });
 
-  $.RawMethod(false, "valueOf", function valueOf () {
+  $.RawMethod(false, "valueOf", function xInt64_valueOf () {
     return this.ToNumber();
   });
 
@@ -312,7 +312,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_Division",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-    function (n, d, result) {
+    function UInt64_op_Division (n, d, result) {
       if (me().op_Equality(d, minValue()))
           throw new Error("System.DivideByZeroException");
       
@@ -348,7 +348,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_Modulus",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-    function (n, d, result) {
+    function UInt64_op_Modulus (n, d, result) {
         if (me().op_Equality(d, minValue()))
             throw new Error("System.DivideByZeroException");
 
@@ -377,7 +377,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_RightShift",
       (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
-      function (a, n, result) {
+      function UInt64_op_RightShift (a, n, result) {
           if (n < 0) {
               return me().op_LeftShift(a, -n, result);
           }
@@ -411,7 +411,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_LessThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function UInt64_op_LessThan (a, b) {
         var adiff = a.c - b.c;
         if (adiff < 0)
             return true;
@@ -432,7 +432,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_LessThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function UInt64_op_LessThanOrEqual (a, b) {
         var adiff = a.c - b.c;
         if (adiff < 0)
             return true;
@@ -453,7 +453,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_GreaterThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function UInt64_op_GreaterThan (a, b) {
         var adiff = a.c - b.c;
         if (adiff > 0)
             return true;
@@ -474,7 +474,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_GreaterThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function UInt64_op_GreaterThanOrEqual (a, b) {
         var adiff = a.c - b.c;
         if (adiff > 0)
             return true;
@@ -494,7 +494,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
 
     $.Method({ Static: false, Public: true }, "toString",
     new JSIL.MethodSignature("System.String", []),
-    function () {
+    function UInt64_toString () {
         var a = this;
         var ten = me().FromNumber(10);
 
@@ -512,7 +512,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToHex",
     new JSIL.MethodSignature("System.String", []),
-    function () {
+    function UInt64_ToHex () {
         var s = this.a.toString(16);
 
         if (this.b > 0 || this.c > 0) {
@@ -535,27 +535,27 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToInt64",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int64"), []),
-    function () {
+    function UInt64_ToInt64 () {
         return new mscorlib.System.Int64(this.a, this.b, this.c);
     });
 
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "Clone",
     new JSIL.MethodSignature($.Type, []),
-    function () {
+    function UInt64_Clone () {
         return ctor(this.a, this.b, this.c);
     });
 
     $.Method({ Static: false, Public: true }, "Object.Equals",
     new JSIL.MethodSignature(System.Boolean, [System.Object]),
-    function (rhs) {
+    function UInt64_Equals (rhs) {
         return UInt64.op_Equality(this, rhs);
     });
 
     // Not present in mscorlib
     $.Method({ Static: true, Public: false }, "FromInt32",
     (new JSIL.MethodSignature($.Type, [$.Int32], [])),
-    function (n) {
+    function UInt64_FromInt32 (n) {
         if (n < 0)
             throw new Error("cannot construct UInt64 from negative number");
 
@@ -571,7 +571,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [$.Double], [])),
-    function (n) {
+    function UInt64_FromNumber (n) {
         if (n < 0)
             throw new Error("cannot construct UInt64 from negative number");
 
@@ -591,14 +591,14 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToUInt32",
     (new JSIL.MethodSignature($.UInt32, [], [])),
-    function () {
+    function UInt64_FromUInt32 () {
         return ((0x1000000 * this.b) + this.a) >>> 0;
     });
 
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function () {
+    function UInt64_ToNumber () {
         return 0x1000000 * (0x1000000 * this.c + this.b) + this.a;
     });
 });
@@ -663,14 +663,14 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     var tempMod4 = mktemp();
     var tempN = mktemp();
 
-    var isNegative = function (a) {
+    var isNegative = function Int64_IsNegative (a) {
         return mscorlib.System.UInt64.op_GreaterThan(a, signedMaxValue());
     };
 
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_UnaryNegation",
     (new JSIL.MethodSignature($.Type, [$.Type], [])),
-    function (a, result) {
+    function Int64_op_UnaryNegation (a, result) {
       var complement = me().op_Subtraction(unsignedMaxValue(), a, tempN());
       return me().op_Addition(complement, one(), result);
     });
@@ -678,7 +678,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_Division",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-    function (n, d, result) {
+    function Int64_op_Division (n, d, result) {
         if (me().op_Equality(d, zero()))
             throw new Error("System.DivideByZeroException");
 
@@ -704,7 +704,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_Modulus",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
-    function (n, d, result) {
+    function Int64_op_Modulus (n, d, result) {
         if (me().op_Equality(d, zero()))
             throw new Error("System.DivideByZeroException");
 
@@ -729,7 +729,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_RightShift",
     (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
-    function (a, n, result) {
+    function Int64_op_RightShift (a, n, result) {
         // Int64 (signed) uses arithmetic shift, UIn64 (unsigned) uses logical shift
         if (!result)
           result = ctor(0, 0, 0);
@@ -748,7 +748,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_GreaterThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function Int64_op_GreaterThan (a, b) {
         var an = isNegative(a);
         var bn = isNegative(b);
 
@@ -761,7 +761,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_GreaterThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function Int64_op_GreaterThanOrEqual (a, b) {
         var an = isNegative(a);
         var bn = isNegative(b);
 
@@ -774,7 +774,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_LessThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function Int64_op_LessThan(a, b) {
+    function Int64_op_LessThan (a, b) {
         var an = isNegative(a);
         var bn = isNegative(b);
 
@@ -787,7 +787,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_LessThanOrEqual",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
-    function (a, b) {
+    function Int64_op_LessThanOrEqual (a, b) {
         var an = isNegative(a);
         var bn = isNegative(b);
 
@@ -800,14 +800,14 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Might need to be implemented externally
     $.Method({ Static: false, Public: true }, "Equals",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), []),
-    function (a) {
+    function Int64_Equals (a) {
         return me().op_Equality(this, a);
     });
 
     // Might need to be implemented externally
     $.Method({ Static: false, Public: true }, "toString",
     new JSIL.MethodSignature("System.String", []),
-    function () {
+    function Int64_toString () {
         var s = "";
         var a = this;
         if (isNegative(this)) {
@@ -821,7 +821,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: false }, "FromInt32",
     (new JSIL.MethodSignature($.Type, [$.Int32], [])),
-    function (n) {
+    function Int64_FromInt32 (n) {
         var sign = n < 0 ? -1 : 1;
         n = Math.abs(n);
 
@@ -837,7 +837,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [$.Double], [])),
-    function (n) {
+    function Int64_FromNumber (n) {
         var sign = n < 0 ? -1 : 1;
         var r = $jsilcore.System.UInt64.FromNumber(Math.abs(n));
 
@@ -850,14 +850,14 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToUInt64",
     new JSIL.MethodSignature($.UInt64, []),
-    function () {
+    function Int64_ToUInt64 () {
         return new mscorlib.System.UInt64(this.a, this.b, this.c);
     });
 
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToInt32",
     (new JSIL.MethodSignature($.Int32, [], [])),
-    function () {
+    function Int64_ToInt32 () {
         var neg = isNegative(this);
         var n = neg ? me().op_UnaryNegation(this) : this;
         var r = (0x1000000 * (n.b) + n.a) >>> 0;
@@ -871,7 +871,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function () {
+    function Int64_ToNumber () {
         var neg = isNegative(this);
         var n = neg ? me().op_UnaryNegation(this) : this;
         var r = 0x1000000 * (0x1000000 * n.c + n.b) + n.a;
