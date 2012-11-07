@@ -236,6 +236,10 @@ JSIL.Make64BitInt = function ($, _me) {
       (typeof value.c === "number");
   });
 
+  $.RawMethod(false, "valueOf", function valueOf () {
+    return this.ToNumber();
+  });
+
   return {
     lazy: lazy,
     me: me,

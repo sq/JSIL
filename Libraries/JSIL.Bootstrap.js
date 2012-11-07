@@ -1611,11 +1611,6 @@ JSIL.ImplementExternals("System.Math", function ($) {
   );
 
   $.Method({Static:true , Public:true }, "Sign", 
-    (new JSIL.MethodSignature($.Int32, [$.Int64], [])), 
-    JSIL.$MathSign
-  );
-
-  $.Method({Static:true , Public:true }, "Sign", 
     (new JSIL.MethodSignature($.Int32, [$.Single], [])), 
     JSIL.$MathSign
   );
@@ -2717,14 +2712,20 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
       if (this.isRunning)
         result += Date.now() - this.startedWhen;
 
-      return result;
+      return $jsilcore.System.Int64.FromNumber(result);
     }
   );
 
   $.Method({Static:false, Public:true }, "get_ElapsedTicks", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_ElapsedTicks () {
-      return this.get_ElapsedMilliseconds() * 10000;
+      var result = this.elapsed;
+      if (this.isRunning)
+        result += Date.now() - this.startedWhen;
+
+      result *= 10000;
+
+      return $jsilcore.System.Int64.FromNumber(result);
     }
   );
 
@@ -3016,6 +3017,10 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     return value;
   };
 
+  var returnValueOf = function (value) {
+    return value.valueOf();
+  };
+
   var makeAdapter = function (adapter) {
     if (!adapter)
       throw new Error("No adapter provided");
@@ -3056,22 +3061,28 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     $.Method(descriptor, methodName, makeSignature($.SByte), from.int);
     $.Method(descriptor, methodName, makeSignature($.Int16), from.int);
     $.Method(descriptor, methodName, makeSignature($.Int32), from.int);
-    $.Method(descriptor, methodName, makeSignature($.Int64), from.int);
 
     $.Method(descriptor, methodName, makeSignature($.SByte, true), from.int);
     $.Method(descriptor, methodName, makeSignature($.Int16, true), from.int);
     $.Method(descriptor, methodName, makeSignature($.Int32, true), from.int);
-    $.Method(descriptor, methodName, makeSignature($.Int64, true), from.int);
     
     $.Method(descriptor, methodName, makeSignature($.Byte), from.uint);
     $.Method(descriptor, methodName, makeSignature($.UInt16), from.uint);
     $.Method(descriptor, methodName, makeSignature($.UInt32), from.uint);
-    $.Method(descriptor, methodName, makeSignature($.UInt64), from.uint);
     
     $.Method(descriptor, methodName, makeSignature($.Byte, true), from.uint);
     $.Method(descriptor, methodName, makeSignature($.UInt16, true), from.uint);
     $.Method(descriptor, methodName, makeSignature($.UInt32, true), from.uint);
-    $.Method(descriptor, methodName, makeSignature($.UInt64, true), from.uint);    
+
+    if (from.int64) {
+      $.Method(descriptor, methodName, makeSignature($.Int64), from.int64);
+      $.Method(descriptor, methodName, makeSignature($.Int64, true), from.int64);
+    }
+
+    if (from.uint64) {
+      $.Method(descriptor, methodName, makeSignature($.UInt64), from.uint64);
+      $.Method(descriptor, methodName, makeSignature($.UInt64, true), from.uint64);
+    }
 
     $.Method(descriptor, methodName, makeSignature($.Single), from.float);
     $.Method(descriptor, methodName, makeSignature($.Double), from.float);
@@ -3089,6 +3100,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: makeAdapter(Boolean),
     int: makeAdapter(Boolean),
     float: makeAdapter(Boolean),
+    int64: makeAdapter(Boolean),    
+    uint64: makeAdapter(Boolean),    
     string: makeAdapter($jsilcore.$ParseBoolean)
   });
 
@@ -3097,6 +3110,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
@@ -3105,6 +3120,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
@@ -3113,6 +3130,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
@@ -3121,6 +3140,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
@@ -3129,6 +3150,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
@@ -3137,9 +3160,13 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
+  // FIXME
+  /*
   makeConvertMethods("UInt64", $.UInt64, {
     boolean: boolToInt,
     uint: returnSame,
@@ -3155,12 +3182,15 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     float: returnSame,
     string: makeAdapter($jsilcore.$ParseInt)
   });
+  */
   
   makeConvertMethods("Single", $.Single, {
     boolean: boolToInt,
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseFloat)
   });
 
@@ -3169,6 +3199,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: returnSame,
     int: returnSame,
     float: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf,
     string: makeAdapter($jsilcore.$ParseFloat)
   });
 
@@ -3177,6 +3209,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     uint: makeAdapter(String),
     int: makeAdapter(String),
     float: makeAdapter(String),
+    int64: makeAdapter(String),
+    uint64: makeAdapter(String),
     string: returnSame
   });
 
