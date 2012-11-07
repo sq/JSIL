@@ -520,8 +520,8 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     });
 
     // Not present in mscorlib
-    $.Method({ Static: true, Public: false }, "FromNumber",
-    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Int32")], [])),
+    $.Method({ Static: true, Public: false }, "FromInt32",
+    (new JSIL.MethodSignature($.Type, [$.Int32], [])),
     function (n) {
         if (n < 0)
             throw new Error("cannot construct UInt64 from negative number");
@@ -536,8 +536,28 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     });
 
     // Not present in mscorlib
+    $.Method({ Static: true, Public: false }, "FromNumber",
+    (new JSIL.MethodSignature($.Type, [$.Double], [])),
+    function (n) {
+        if (n < 0)
+            throw new Error("cannot construct UInt64 from negative number");
+
+        var bits24 = 0xffffff;
+
+        var n0 = Math.floor(n) | 0;
+        var n1 = (Math.floor(n) / 0x1000000) | 0;
+        var n2 = (Math.floor(n) / 0x1000000000000) | 0;
+
+        return ctor(
+            (n0 & bits24),
+            (n1 & bits24),
+            (n2 & bits24)
+        );
+    });
+
+    // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
-    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [], [])),
+    (new JSIL.MethodSignature($.Double, [], [])),
     function () {
         return 0x1000000 * (0x1000000 * this.data[2] + this.data[1]) + this.data[0];
     });
@@ -740,8 +760,8 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     });
 
     // Not present in mscorlib
-    $.Method({ Static: true, Public: false }, "FromNumber",
-    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Int32")], [])),
+    $.Method({ Static: true, Public: false }, "FromInt32",
+    (new JSIL.MethodSignature($.Type, [$.Int32], [])),
     function (n) {
         var sign = n < 0 ? -1 : 1;
         n = Math.abs(n);
@@ -756,8 +776,21 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     });
 
     // Not present in mscorlib
+    $.Method({ Static: true, Public: false }, "FromNumber",
+    (new JSIL.MethodSignature($.Type, [$.Double], [])),
+    function (n) {
+        var sign = n < 0 ? -1 : 1;
+        var r = $jsilcore.System.UInt64.FromNumber(Math.abs(n));
+
+        if (sign == -1)
+            return me().op_UnaryNegation(r);
+        else
+            return r;
+    });
+
+    // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToUInt64",
-    new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt64"), []),
+    new JSIL.MethodSignature($.UInt64, []),
     function () {
         var d = this.data;
         return mscorlib.System.UInt64.Create(d[0], d[1], d[2]);
@@ -765,7 +798,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
 
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
-    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [], [])),
+    (new JSIL.MethodSignature($.Double, [], [])),
     function () {
         var neg = isNegative(this);
         var n = neg ? me().op_UnaryNegation(this) : this;
