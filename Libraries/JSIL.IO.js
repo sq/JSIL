@@ -906,7 +906,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
         break;
       }
 
-      this.m_stream.Position = oldPosition + actualLength;
+      this.m_stream.Position = $jsilcore.System.Int64.op_Addition(
+        oldPosition, $jsilcore.System.Int64.FromInt32(actualLength)
+      );
       return firstChar;
     }
   );
