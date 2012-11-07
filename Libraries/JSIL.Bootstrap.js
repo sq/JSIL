@@ -3407,6 +3407,7 @@ $jsilcore.BytesFromInt32 = function (value) {
 };
 
 $jsilcore.BytesFromInt64 = function (value) {
+  // FIXME: Access Int64 subvalues directly.
   return [
     (value >> 0) & 0xFF,
     (value >> 8) & 0xFF,
@@ -3438,6 +3439,7 @@ $jsilcore.BytesFromUInt32 = function (value) {
 };
 
 $jsilcore.BytesFromUInt64 = function (value) {
+  // FIXME: Access Int64 subvalues directly.
   return [
     (value >>> 0) & 0xFF,
     (value >>> 8) & 0xFF,
@@ -3472,8 +3474,7 @@ $jsilcore.BytesToInt32 = function (bytes, offset) {
 };
 
 $jsilcore.BytesToInt64 = function (bytes, offset) {
-  // FIXME: Does this work right for negative numbers or does 53-bit rounding kill it?
-  // FIXME: Generate warnings for values out of 53-bit range.
+  // FIXME: Use Int64 piecewise constructor.
   var value = $jsilcore.BytesToUInt64(bytes, offset);
   if (value > System.Int64.MaxValue)
     return value - 18446744073709551616;
@@ -3493,7 +3494,7 @@ $jsilcore.BytesToUInt32 = function (bytes, offset) {
 };
 
 $jsilcore.BytesToUInt64 = function (bytes, offset) {
-  // FIXME: Generate warnings for values out of 53-bit range.
+  // FIXME: Use UInt64 piecewise constructor.
   return bytes[offset] + 
     (bytes[offset + 1] << 8) + 
     (bytes[offset + 2] << 16) + 
