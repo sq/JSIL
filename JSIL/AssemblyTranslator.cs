@@ -71,9 +71,9 @@ namespace JSIL {
             "System.Byte", "System.SByte", 
             "System.UInt16", "System.Int16",
             "System.UInt32", "System.Int32",
+            "System.UInt64", "System.Int64",
             "System.Single", "System.Double", 
             "System.Boolean",
-            // "System.UInt64", "System.Int64",
         }; 
 
         public AssemblyTranslator (
