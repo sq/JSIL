@@ -17,5 +17,10 @@ public class Program {
         PrintTimeSpan("Days + Ticks", days + ticks);
         PrintTimeSpan("Hours + Minutes", hours + minutes);
         PrintTimeSpan("Hours + Minutes + Seconds", hours + minutes + seconds);
+
+        // FIXME: Why is this value's TotalSeconds off by 1???
+        // PrintTimeSpan("Days - Ticks", days - ticks);
+        PrintTimeSpan("Hours - Minutes", hours - minutes);
+        PrintTimeSpan("Hours - Minutes - Seconds", hours - minutes - seconds);
     }
 }
