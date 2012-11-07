@@ -9,6 +9,7 @@ if (!$jsilcore)
 JSIL.ImplementExternals(
   "System.TimeSpan", function ($) {
     var TicksPerMillisecond, TicksPerSecond, TicksPerMinute, TicksPerHour, TicksPerDay;
+    var TempI64A, TempI64B;
 
     var fromTicks = function (ticks) {
       return JSIL.CreateInstanceOfType(
@@ -30,6 +31,9 @@ JSIL.ImplementExternals(
       TicksPerMinute = tInt64.FromNumber(600000000);
       TicksPerHour = tInt64.FromNumber(36000000000);
       TicksPerDay = tInt64.FromNumber(864000000000);
+
+      TempI64A = new tInt64();
+      TempI64B = new tInt64();
     });
 
     $.Method({Static:true , Public:true }, "FromMilliseconds", 
@@ -75,7 +79,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "op_Addition", 
       (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
       function op_Addition (t1, t2) {
-        return fromTicks($jsilcore.System.Int64.op_Addition(t1._ticks, t2._ticks));
+        return fromTicks($jsilcore.System.Int64.op_Addition(t1._ticks, t2._ticks, TempI64A));
       }
     );
 
@@ -110,15 +114,15 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "op_Subtraction", 
       (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
       function op_Subtraction (t1, t2) {
-        return fromTicks($jsilcore.System.Int64.op_Subtraction(t1._ticks, t2._ticks));
+        return fromTicks($jsilcore.System.Int64.op_Subtraction(t1._ticks, t2._ticks, TempI64A));
       }
     );
 
     $.RawMethod(false, "$accumulate", function (multiplier, amount) {
+      // FIXME: unnecessary garbage
       var tInt64 = $jsilcore.System.Int64;
-      var multiplier64 = tInt64.FromNumber(multiplier);
       var amount64 = tInt64.FromNumber(amount);
-      var scaled = tInt64.op_Multiplication(multiplier64, amount64);
+      var scaled = tInt64.op_Multiplication(multiplier, amount64);
 
       if (!this._ticks)
         this._ticks = scaled;
@@ -131,7 +135,7 @@ JSIL.ImplementExternals(
         if (typeof (ticks) === "number")
           throw new Error("Argument must be an Int64");
 
-        this._ticks = ticks;
+        this._ticks = ticks.MemberwiseClone();
       }
     );
 
@@ -141,7 +145,7 @@ JSIL.ImplementExternals(
         if (typeof (ticks) === "number")
           throw new Error("Argument must be an Int64");
         
-        this._ticks = ticks;
+        this._ticks = ticks.MemberwiseClone();
       }
     );
 
@@ -229,21 +233,21 @@ JSIL.ImplementExternals(
 
     $.RawMethod(false, "$modDiv", function $modulus (modulus, divisor) {
       var tInt64 = $jsilcore.System.Int64;
-      var result = tInt64.op_Modulus(this._ticks, modulus);
-      result = tInt64.op_Division(result, divisor);
+      var result = tInt64.op_Modulus(this._ticks, modulus, TempI64A);
+      result = tInt64.op_Division(result, divisor, TempI64B);
       return result.ToInt32();
     });
 
     $.RawMethod(false, "$divide", function $divide (divisor) {
       var tInt64 = $jsilcore.System.Int64;
-      var result = tInt64.op_Division(this._ticks, divisor);
+      var result = tInt64.op_Division(this._ticks, divisor, TempI64A);
       return result.ToInt32();
     });
 
     $.RawMethod(false, "$toNumberDivided", function $toNumberDivided (divisor) {
       var tInt64 = $jsilcore.System.Int64;
-      var integral = tInt64.op_Division(this._ticks, divisor);
-      var remainder = tInt64.op_Modulus(this._ticks, divisor);
+      var integral = tInt64.op_Division(this._ticks, divisor, TempI64A);
+      var remainder = tInt64.op_Modulus(this._ticks, divisor, TempI64B);
       var scaledRemainder = remainder.ToNumber() / divisor.valueOf();
 
       var result = integral.ToNumber() + scaledRemainder;
@@ -253,14 +257,20 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalMilliseconds () {
-        return this.$toNumberDivided(TicksPerMillisecond);
+        if (this._cachedTotalMs)
+          return this._cachedTotalMs;
+        else
+          return this._cachedTotalMs = this.$toNumberDivided(TicksPerMillisecond);
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalSeconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalSeconds () {
-        return this.$toNumberDivided(TicksPerSecond);
+        if (this._cachedTotalS)
+          return this._cachedTotalS;
+        else
+          return this._cachedTotalS = this.$toNumberDivided(TicksPerSecond);
       }
     );
 

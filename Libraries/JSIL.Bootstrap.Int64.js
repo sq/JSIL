@@ -356,7 +356,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
         r.a = r.b = r.c = 0;
 
         for (var i = 63; i >= 0; i--) {
-            r = me().op_LeftShift(r, 1);
+            r = me().op_LeftShift(r, 1, r);
 
             var li = i < 24 ? 0 :
                       i < 48 ? 1 : 2;
@@ -367,7 +367,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
             r.a |= (n[lk] & (1 << s)) >>> s;
 
             if (me().op_Equality(r, d) || me().op_GreaterThan(r, d)) {
-                r = me().op_Subtraction(r, d);
+                r = me().op_Subtraction(r, d, r);
             }
         }
 
@@ -651,7 +651,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
     });
 
-    var tempRS = mktemp();
+    var tempRS = mktemp(); 
     var tempTS = mktemp();
     var tempDiv = mktemp();
     var tempDiv2 = mktemp();

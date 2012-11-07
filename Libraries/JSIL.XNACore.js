@@ -3061,7 +3061,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     for (var i = 0; i < numFrames; i++) {
       this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
-        this._gameTime.totalGameTime._ticks, frameLength64
+        this._gameTime.totalGameTime._ticks, frameLength64, this._gameTime.totalGameTime._ticks
       );
 
       this._TimedUpdate(longFrame);
@@ -3082,7 +3082,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     this._gameTime.elapsedGameTime._ticks = elapsed64;
     this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
-      this._gameTime.totalGameTime._ticks, elapsed64
+      this._gameTime.totalGameTime._ticks, elapsed64, this._gameTime.totalGameTime._ticks
     );
 
     this._TimedUpdate(longFrame);
@@ -3103,6 +3103,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var now = this._GetNow();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
+    if (frameDelay <= 0)
+      throw new Error("Game frame duration must be a positive, nonzero number!");
 
     if (this._lastFrame === 0) {
       var elapsed = frameDelay;
