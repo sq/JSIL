@@ -353,66 +353,69 @@ public static class Common {
 
         switch (Path.GetExtension(filename).ToLower()) {
             case ".bmp":
-                var hImage = LoadImage(IntPtr.Zero, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-                var texture = System.Drawing.Image.FromHbitmap(hImage);
-                try {
-                    switch (texture.PixelFormat) {
-                        case PixelFormat.Gdi:
-                        case PixelFormat.Extended:
-                        case PixelFormat.Canonical:
-                        case PixelFormat.Undefined:
-                        case PixelFormat.Format16bppRgb555:
-                        case PixelFormat.Format16bppRgb565:
-                        case PixelFormat.Format24bppRgb:
-                            hasAlphaChannel = false;
-                            return texture;
+                int bitsPerPixel;
 
-                        case PixelFormat.Format32bppArgb:
-                        case PixelFormat.Format32bppPArgb:
-                        case PixelFormat.Format32bppRgb: {
-                            // Do an elaborate song and dance to extract the alpha channel from the PNG, because
-                            //  GDI+ is too utterly shitty to do that itself
-                                var dc = CreateCompatibleDC(IntPtr.Zero);
+                using (var bitmapHandle = File.OpenRead(filename)) {
+                    var buffer = new byte[4];
+                    if (bitmapHandle.Read(buffer, 0, 2) != 2)
+                        throw new InvalidOperationException("Could not read bitmap header");
 
-                                var newImage = new System.Drawing.Bitmap(
-                                    texture.Width, texture.Height, PixelFormat.Format32bppArgb
-                                );
-                                var bits = newImage.LockBits(
-                                    new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
-                                    ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
-                                );
+                    if ((buffer[0] != 'B') || (buffer[1] != 'M'))
+                        throw new InvalidOperationException("Invalid bitmap header");
 
-                                var info = new BITMAPINFO {
-                                    biBitCount = 32,
-                                    biClrImportant = 0,
-                                    biClrUsed = 0,
-                                    biCompression = 0,
-                                    biHeight = -texture.Height,
-                                    biPlanes = 1,
-                                    biSizeImage = bits.Stride * bits.Height,
-                                    biWidth = bits.Width,
-                                };
-                                info.biSize = Marshal.SizeOf(info);
+                    bitmapHandle.Seek(28, SeekOrigin.Begin);
+                    if (bitmapHandle.Read(buffer, 0, 4) != 4)
+                        throw new InvalidOperationException("Could not read bitmap bits per pixel");
 
-                                var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
+                    bitsPerPixel = BitConverter.ToInt32(buffer, 0);
 
-                                newImage.UnlockBits(bits);
+                    if ((bitsPerPixel < 0) || (bitsPerPixel > 32))
+                        throw new InvalidOperationException("Unsupported bitmap format");
+                }
 
-                                DeleteObject(dc);
+                if (bitsPerPixel == 32) {
+                    var hImage = LoadImage(IntPtr.Zero, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+                    try {
+                        var texture = System.Drawing.Image.FromHbitmap(hImage);
+                        // Do an elaborate song and dance to extract the alpha channel from the PNG, because
+                        //  GDI+ is too utterly shitty to do that itself
+                        var dc = CreateCompatibleDC(IntPtr.Zero);
 
-                                texture.Dispose();
-                                hasAlphaChannel = true;
-                                return newImage;
-                            }
+                        var newImage = new System.Drawing.Bitmap(
+                            texture.Width, texture.Height, PixelFormat.Format32bppArgb
+                        );
+                        var bits = newImage.LockBits(
+                            new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
+                            ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
+                        );
 
-                        default:
-                            Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(filename), texture.PixelFormat);
-                            texture.Dispose();
-                            hasAlphaChannel = false;
-                            return null;
+                        var info = new BITMAPINFO {
+                            biBitCount = 32,
+                            biClrImportant = 0,
+                            biClrUsed = 0,
+                            biCompression = 0,
+                            biHeight = -texture.Height,
+                            biPlanes = 1,
+                            biSizeImage = bits.Stride * bits.Height,
+                            biWidth = bits.Width,
+                        };
+                        info.biSize = Marshal.SizeOf(info);
+
+                        var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
+
+                        newImage.UnlockBits(bits);
+
+                        DeleteObject(dc);
+
+                        texture.Dispose();
+                        hasAlphaChannel = true;
+                        return newImage;
+                    } finally {
+                        DeleteObject(hImage);
                     }
-                } finally {
-                    DeleteObject(hImage);
+                } else {
+                    hasAlphaChannel = false;
+                    return (System.Drawing.Bitmap)System.Drawing.Image.FromFile(filename);
                 }
 
             default: {
@@ -752,15 +755,23 @@ public static class Common {
             if (File.Exists(journalPath)) {
                 var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
 
-                if (journalEntries != null)
-                    existingJournal = journalEntries.ToDictionary(
-                        (je) => {
-                            if (je.Key != null)
-                                return je.SourceFilename + ":" + je.Key;
-                            else
-                                return je.SourceFilename;
-                        }
-                    );
+                if (journalEntries != null) {
+                    existingJournal = new Dictionary<string, CompressResult>();
+
+                    foreach (var je in journalEntries) {
+                        string uniqueKey;
+
+                        if (je.Key != null)
+                            uniqueKey = je.SourceFilename + ":" + je.Key;
+                        else
+                            uniqueKey = je.SourceFilename;
+
+                        if (existingJournal.ContainsKey(uniqueKey))
+                            Console.Error.WriteLine("// Duplicate content build journal entry for '{0}'! Ignoring...", uniqueKey);
+                        else
+                            existingJournal.Add(uniqueKey, je);
+                    }
+                }
             }
 
             contentProjectsProcessed.Add(contentProjectPath);

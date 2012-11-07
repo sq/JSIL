@@ -28,7 +28,7 @@ namespace JSIL.Transforms {
             VisitChildren(poe);
 
             // Replace foo.__Type__.__PublicInterface__ with foo
-            var innerTypeOf = poe.Inner as JSTypeOfExpression;
+            var innerTypeOf = poe.Inner as ITypeOfExpression;
             if (innerTypeOf != null) {
                 var replacement = new JSType(innerTypeOf.Type);
 

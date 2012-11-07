@@ -29,6 +29,8 @@ namespace JSIL.Transforms {
             if (resolved == null)
                 return null;
 
+            var at = type as ArrayType;
+
             TypeDefinition[] arguments;
             var git = type as GenericInstanceType;
 
@@ -38,12 +40,20 @@ namespace JSIL.Transforms {
                 arguments = new TypeDefinition[0];
             }
 
-            var identifier = new GenericTypeIdentifier(resolved, arguments);
+            var identifier = new GenericTypeIdentifier(resolved, arguments, (at != null) ? at.Rank : 0);
             JSCachedType result;
             if (!CachedTypes.TryGetValue(identifier, out result))
                 CachedTypes.Add(identifier, result = MakeCachedType(type));
 
             return result;
+        }
+
+        private JSCachedTypeOfExpression GetCachedTypeOf (TypeReference type) {
+            var ct = GetCachedType(type);
+            if (ct == null)
+                return null;
+
+            return new JSCachedTypeOfExpression(ct.Type, ct.Index);
         }
 
         public bool IsCacheable (TypeReference type) {
@@ -81,12 +91,26 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSTypeOfExpression toe) {
-            // TODO: Cache these types too.
-            VisitChildren(toe);
+            var ct = GetCachedTypeOf(toe.Type);
+
+            if (ct != null) {
+                ParentNode.ReplaceChild(toe, ct);
+                VisitReplacement(ct);
+            } else {
+                VisitChildren(toe);
+            }
         }
 
         public void VisitNode (JSCachedType ct) {
             VisitChildren(ct);
+        }
+
+        public void VisitNode (JSNewArrayExpression na) {
+            var ct = GetCachedType(na.ElementType);
+            if (ct != null)
+                na.CachedElementTypeIndex = ct.Index;
+
+            VisitChildren(na);
         }
 
         public void VisitNode (JSIsExpression @is) {
@@ -103,6 +127,30 @@ namespace JSIL.Transforms {
                 cast.CachedTypeIndex = ct.Index;
 
             VisitChildren(cast);
+        }
+
+        public void VisitNode (JSInvocationExpression ie) {
+            if ((ie.GenericArguments != null) && (ie.JSMethod != null)) {
+                ie.JSMethod.SetCachedGenericArguments(
+                    from ga in ie.GenericArguments select GetCachedType(ga)
+                );
+            }
+
+            VisitChildren(ie);
+        }
+
+        public void VisitNode (JSDefaultValueLiteral dvl) {
+            var ct = GetCachedType(dvl.Value);
+            if (ct != null)
+                dvl.CachedTypeIndex = ct.Index;
+
+            VisitChildren(dvl);
+        }
+
+        public void VisitNode (JSEnumLiteral el) {
+            el.SetCachedType(GetCachedType(el.EnumType));
+
+            VisitChildren(el);
         }
 
         public JSCachedType[] CacheTypesForFunction (JSFunctionExpression function) {

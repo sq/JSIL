@@ -428,5 +428,20 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void VerbatimVariableMutation () {
+            var output = "a=1, b=2\r\na=1, b=1\r\na=1, b=3";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\VerbatimVariableMutation.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains(
+                @"b = a.MemberwiseClone()"
+            ), "Copy was not cloned");
+        }
     }
 }

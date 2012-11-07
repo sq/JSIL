@@ -305,6 +305,29 @@ namespace JSIL.Transforms {
             VisitChildren(prop);
         }
 
+        public void VisitNode (JSVerbatimLiteral verbatim) {
+            if (verbatim.Variables != null) {
+                var variables = new Dictionary<string, JSVariable>();
+
+                foreach (var kvp in verbatim.Variables) {
+                    if (kvp.Value == null)
+                        continue;
+
+                    foreach (var v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>()) {
+                        if (!variables.ContainsKey(v.Name))
+                            variables[v.Name] = v;
+                    }
+                }
+
+                foreach (var variable in variables.Values) {
+                    ModifiedVariable(variable);
+                    State.EscapingVariables.Add(variable.Name);
+                }
+            }
+
+            VisitChildren(verbatim);
+        }
+
         public void VisitNode (JSInvocationExpression ie) {
             var variables = new Dictionary<string, string[]>();
 
@@ -357,7 +380,7 @@ namespace JSIL.Transforms {
                     new FunctionAnalysis1stPass.Assignment(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
                         tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
-                        tcb.CatchVariable.Type, tcb.CatchVariable.Type
+                        tcb.CatchVariable.IdentifierType, tcb.CatchVariable.IdentifierType
                     )
                 );
 

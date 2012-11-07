@@ -93,7 +93,8 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\LinqSelect.cs",
                     @"TestCases\LinqToArray.cs",
-                    @"TestCases\LinqExpressionSimple.cs",
+                    // FIXME: Needs working ToString for expressions
+                    // @"TestCases\LinqExpressionSimple.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

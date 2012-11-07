@@ -65,7 +65,7 @@ namespace JSIL.Transforms {
                 return false;
 
             // Can't eliminate struct temporaries, since that might eliminate some implied copies.
-            if (TypeUtil.IsStruct(target.Type))
+            if (TypeUtil.IsStruct(target.IdentifierType))
                 return false;
 
             // Handle special cases where our interpretation of 'constant' needs to be more flexible

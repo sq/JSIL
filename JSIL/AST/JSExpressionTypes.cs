@@ -593,7 +593,11 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTypeOfExpression : JSType {
+    public interface ITypeOfExpression {
+        TypeReference Type { get; }
+    }
+
+    public class JSTypeOfExpression : JSType, ITypeOfExpression {
         public JSTypeOfExpression (TypeReference type) 
             : base (type) {
         }
@@ -612,6 +616,20 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("typeof ({0})", base.ToString());
+        }
+
+        public new TypeReference Type {
+            get { return base.Type; }
+        }
+    }
+
+    public class JSCachedTypeOfExpression : JSCachedType, ITypeOfExpression {
+        public JSCachedTypeOfExpression (TypeReference type, int index) 
+            : base (type, index) {
+        }
+
+        public new TypeReference Type {
+            get { return base.Type; }
         }
     }
 
@@ -892,6 +910,8 @@ namespace JSIL.Ast {
         }
         public readonly JSExpression[] Dimensions;
 
+        public int? CachedElementTypeIndex;
+
         public JSNewArrayExpression (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
             ElementType = elementType;
             ArrayType = new ArrayType(elementType);
@@ -1016,6 +1036,16 @@ namespace JSIL.Ast {
                 var jsm = JSMethod;
                 if (jsm != null)
                     return jsm.GenericArguments;
+
+                return null;
+            }
+        }
+
+        public IEnumerable<JSCachedType> CachedGenericArguments {
+            get {
+                var jsm = JSMethod;
+                if (jsm != null)
+                    return jsm.CachedGenericArguments;
 
                 return null;
             }

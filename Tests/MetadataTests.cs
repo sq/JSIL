@@ -430,7 +430,7 @@ namespace JSIL.Tests {
                 );
 
                 Assert.Fail("Translated JS ran successfully");
-            } catch (JavaScriptException jse) {
+            } catch (JavaScriptEvaluatorException jse) {
                 Assert.IsTrue(jse.ToString().Contains("TypeError: document is undefined"), jse.ToString());
             }
         }
@@ -444,9 +444,20 @@ namespace JSIL.Tests {
                 );
 
                 Assert.Fail("Translated JS ran successfully");
-            } catch (JavaScriptException jse) {
+            } catch (JavaScriptEvaluatorException jse) {
                 Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
             }
+        }
+
+        // Mono generates really weird control flow for this
+        [Test]
+        public void ForeachInEnumeratorFunctionMonoBinary () {
+            var output = "a\r\nb\r\nc";
+
+            GenericTest(
+                @"BinaryTestCases\MonoForeachEnumerator.exe",
+                output, output
+            );
         }
 
         [Test]
@@ -456,6 +467,30 @@ namespace JSIL.Tests {
                 "1",
                 "myclass1"
             );
+        }
+
+        [Test]
+        public void EscapesOutputFilenames () {
+            using (var test = new ComparisonTest(
+                EvaluatorPool,
+                new[] { @"TestCases\HelloWorld.cs" },
+                @"MetadataTests\EscapesOutputFilenames"
+            )) {
+                var filenames = test.Translate((tr) => {
+                    return (from file in tr.OrderedFiles select file.Filename).ToArray();
+                }, () => {
+                    var configuration = MakeConfiguration();
+                    configuration.FilenameEscapeRegex = "[^A-Za-z0-9 _]";
+                    return configuration;
+                });
+
+                Assert.AreEqual(1, filenames.Length);
+
+                foreach (var filename in filenames) {
+                    Assert.IsTrue(Regex.IsMatch(filename, @"^([A-Za-z0-9 _]*)\.js$"), "Filename '{0}' does not match regex.", filename);
+                    Console.WriteLine(filename);
+                }
+            }
         }
     }
 }

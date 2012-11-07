@@ -57,7 +57,7 @@ namespace JSIL.Transforms {
                          select new JSBinaryOperatorExpression(
                             JSOperator.Assignment, v,
                             v.DefaultValue, 
-                            v.Type
+                            v.IdentifierType
                         )).ToArray()
                     )
                 );

@@ -452,7 +452,7 @@ namespace JSIL.Proxies {
         JSProxyInterfacePolicy.ReplaceDeclared
     )]
     public abstract class ColorProxy {
-        [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, 1)")]
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, 255)")]
         public ColorProxy (int r, int g, int b) {
         }
 
@@ -460,7 +460,7 @@ namespace JSIL.Proxies {
         public ColorProxy (int r, int g, int b, int a) {
         }
 
-        [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, 1)")]
+        [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, 1.0)")]
         public ColorProxy (float r, float g, float b) {
         }
 

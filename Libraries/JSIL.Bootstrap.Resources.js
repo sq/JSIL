@@ -1,3 +1,11 @@
+"use strict";
+
+if (typeof (JSIL) === "undefined")
+  throw new Error("JSIL.Core is required");
+
+if (!$jsilcore)  
+  throw new Error("JSIL.Core is required");
+
 JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.RawMethod(false, "$fromBaseNameAndAssembly", function (baseName, assembly) {
     this._baseName = baseName;
@@ -40,15 +48,15 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   );
 
   $.RawMethod(false, "$findResourcesForCulture", function (culture) {
-      var key = this._baseName + "." + culture.get_TwoLetterISOLanguageName() + ".resj";
-      if (JSIL.Host.doesAssetExist(key))
-        return JSIL.Host.getAsset(key);
+    var key = this._baseName + "." + culture.get_TwoLetterISOLanguageName() + ".resj";
+    if (JSIL.Host.doesAssetExist(key))
+      return JSIL.Host.getAsset(key);
 
-      key = this._baseName + ".resj";
-      if (JSIL.Host.doesAssetExist(key))
-        return JSIL.Host.getAsset(key);
+    key = this._baseName + ".resj";
+    if (JSIL.Host.doesAssetExist(key))
+      return JSIL.Host.getAsset(key);
 
-      return null;
+    return null;
   });
 
   $.Method({Static:false, Public:true }, "GetResourceSet", 
@@ -57,6 +65,9 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
           $.Boolean
         ], [])), 
     function GetResourceSet (culture, createIfNotExists, tryParents) {
+      if (!culture)
+        culture = $jsilcore.getCurrentUICultureImpl();
+
       var resources = this.$findResourcesForCulture(culture);
       if (!resources)
         throw new System.Exception("No resources available for culture '" + culture.get_Name() + "'.");
@@ -259,12 +270,28 @@ JSIL.ImplementExternals("System.Threading.Thread", function ($) {
       return $jsilcore.getCurrentUICultureImpl();
     }
   );
+
+  $.Method({Static:false, Public:true }, "get_CurrentCulture", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], [])), 
+    function get_CurrentCulture () {
+      // FIXME
+      return $jsilcore.getCurrentUICultureImpl();
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
   $.Method({Static:true , Public:true }, "get_CurrentUICulture", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], [])), 
     function get_CurrentUICulture () {
+      return $jsilcore.getCurrentUICultureImpl();
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_CurrentCulture", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], [])), 
+    function get_CurrentCulture () {
+      // FIXME
       return $jsilcore.getCurrentUICultureImpl();
     }
   );

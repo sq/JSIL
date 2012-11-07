@@ -70,6 +70,7 @@
     <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
     <None Include="AnalysisTestCases\TemporaryArraySize.cs" />
     <None Include="AnalysisTestCases\AddToStructProperty.cs" />
+    <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -243,6 +244,9 @@
     <None Include="Int64TestCases\UInt64Ref.cs" />
     <None Include="Int64TestCases\Int64Nullable.cs" />
     <None Include="Int64TestCases\Int64Type.cs" />
+    <None Include="SimpleTestCases\MathIntrinsics.cs" />
+    <None Include="SimpleTestCases\CastArrayToIEnumerable.cs" />
+    <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
@@ -434,6 +438,7 @@
     <None Include="TestCases\StructLateDeclaration.cs" />
     <None Include="TestCases\StructCompoundAssignment.cs" />
     <None Include="TestCases\DictionaryInitializer.cs" />
+    <None Include="TestCases\DictionaryInitializer2.cs" />
     <None Include="SimpleTestCases\NestedLambdas.cs" />
     <None Include="SpecialTestCases\RenameMethod.cs" />
     <None Include="SpecialTestCases\RenameProperty.cs" />

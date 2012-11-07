@@ -328,19 +328,19 @@ $jsilxna.getImageChannels = function (image, key) {
     var rBytes = rData.data, gBytes = gData.data, bBytes = bData.data, aBytes = aData.data;
 
     for (var i = 0, l = (result.width * result.height * 4); i < l; i += 4) {
-      var alpha = aBytes[i + 3];
+      var alpha = aBytes[(i + 3) | 0];
 
-      rBytes[i + 0] = alpha;
-      rBytes[i + 3] = aBytes[i + 0]; 
+      rBytes[(i + 0) | 0] = alpha;
+      rBytes[(i + 3) | 0] = aBytes[(i + 0) | 0]; 
 
-      gBytes[i + 1] = alpha;
-      gBytes[i + 3] = aBytes[i + 1];
+      gBytes[(i + 1) | 0] = alpha;
+      gBytes[(i + 3) | 0] = aBytes[(i + 1) | 0];
 
-      bBytes[i + 2] = alpha;
-      bBytes[i + 3] = aBytes[i + 2];
+      bBytes[(i + 2) | 0] = alpha;
+      bBytes[(i + 3) | 0] = aBytes[(i + 2) | 0];
 
-      aBytes[i + 0] = aBytes[i + 1] = aBytes[i + 2] = 0;
-      aBytes[i + 3] = alpha;
+      aBytes[(i + 0) | 0] = aBytes[(i + 1) | 0] = aBytes[(i + 2) | 0] = 0;
+      aBytes[(i + 3) | 0] = alpha;
     }
 
     result.putImageData("r", rData);
@@ -1094,7 +1094,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
   $.Method({Static:false, Public:true }, "get_AssetName", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_AssetName () {
-      return this.assetName;
+      // XNA ContentReader.AssetName always has backslashes, so we need to preserve that
+      //  because some content readers do stuff with AssetName
+      return this.assetName.replace(/\//g, "\\");
     }
   );
 
@@ -1588,7 +1590,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
     }
   );
 
-  var playImpl = function (song) {
+  var playImpl = function MediaPlayer_Play (song) {
     var oldInstance = Microsoft.Xna.Framework.Media.MediaPlayer.currentSong;
     var newInstance = null;
 
@@ -1610,6 +1612,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
   $.Method({Static:true , Public:true }, "Play", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Media.Song")], [])), 
     playImpl
+  );
+
+  $.Method({Static:true , Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function MediaPlayer_Stop () {
+      if (Microsoft.Xna.Framework.Media.MediaPlayer.currentSong)
+        Microsoft.Xna.Framework.Media.MediaPlayer.currentSong.pause();
+
+      Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = null;
+    }
   );
 
   $.Method({Static:true , Public:true }, "set_IsRepeating", 
@@ -2222,6 +2234,77 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
           $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
         ], [])), 
     function CreateOrthographicOffCenter (left, right, bottom, top, zNearPlane, zFarPlane, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspective", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspective", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveFieldOfView", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveFieldOfView", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
+      // FIXME
+      result.value = Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveOffCenter", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance) {
+      // FIXME
+      return Microsoft.Xna.Framework.Matrix._identity;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreatePerspectiveOffCenter", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $.Single, $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")])
+        ], [])), 
+    function CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
       // FIXME
       result.value = Microsoft.Xna.Framework.Matrix._identity;
     }
@@ -4049,17 +4132,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   );
 
   var intersectImpl = function (lhs, rhs) {
-    var lhsX2 = lhs.X + lhs.Width;
-    var rhsX2 = rhs.X + rhs.Width;
-    var lhsY2 = lhs.Y + lhs.Height;
-    var rhsY2 = rhs.Y + rhs.Height;
+    var lhsX2 = (lhs.X + lhs.Width) | 0;
+    var rhsX2 = (rhs.X + rhs.Width) | 0;
+    var lhsY2 = (lhs.Y + lhs.Height) | 0;
+    var rhsY2 = (rhs.Y + rhs.Height) | 0;
 
     var x1 = (lhs.X > rhs.X) ? lhs.X : rhs.X;
     var y1 = (lhs.Y > rhs.Y) ? lhs.Y : rhs.Y;
     var x2 = (lhsX2 < rhsX2) ? lhsX2 : rhsX2;
     var y2 = (lhsY2 < rhsY2) ? lhsY2 : rhsY2;
 
-    if (x2 > x1 && y2 > y1) return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+    if (x2 > x1 && y2 > y1) 
+      return new Microsoft.Xna.Framework.Rectangle(
+        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+      );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
   };
@@ -4080,10 +4166,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   );
 
   var unionImpl = function (lhs, rhs) {
-    var lhsX2 = lhs.X + lhs.Width;
-    var rhsX2 = rhs.X + rhs.Width;
-    var lhsY2 = lhs.Y + lhs.Height;
-    var rhsY2 = rhs.Y + rhs.Height;
+    var lhsX2 = (lhs.X + lhs.Width) | 0;
+    var rhsX2 = (rhs.X + rhs.Width) | 0;
+    var lhsY2 = (lhs.Y + lhs.Height) | 0;
+    var rhsY2 = (rhs.Y + rhs.Height) | 0;
 
     var x1 = (lhs.X < rhs.X) ? lhs.X : rhs.X;
     var y1 = (lhs.Y < rhs.Y) ? lhs.Y : rhs.Y;
@@ -4091,7 +4177,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     var y2 = (lhsY2 > rhsY2) ? lhsY2 : rhsY2;
 
     if (x2 > x1 && y2 > y1) 
-      return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+      return new Microsoft.Xna.Framework.Rectangle(
+        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+      );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
   };
@@ -4128,9 +4216,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
     function Contains (x, y) {
       return this.X <= x && 
-        x < this.X + this.Width && 
+        x < ((this.X + this.Width) | 0) && 
         this.Y <= y && 
-        y < this.Y + this.Height;
+        y < ((this.Y + this.Height) | 0);
     }
   );
   
@@ -4138,9 +4226,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function ContainsPoint (value) {
       return this.X <= value.X && 
-        value.X < this.X + this.Width && 
+        value.X < ((this.X + this.Width) | 0) && 
         this.Y <= value.Y && 
-        value.Y < this.Y + this.Height;
+        value.Y < ((this.Y + this.Height) | 0);
     }
   );
 
@@ -4148,16 +4236,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
     function ContainsRectangle (value) {
       return this.X <= value.X && 
-        value.X + value.Width <= this.X + this.Width && 
+        ((value.X + value.Width) | 0) <= ((this.X + this.Width) | 0) && 
         this.Y <= value.Y && 
-        value.Y + value.Height <= this.Y + this.Height;
+        ((value.Y + value.Height) | 0) <= ((this.Y + this.Height) | 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Bottom", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Bottom () {
-      return this.Y + this.Height;
+      return (this.Y + this.Height) | 0;
     }
   );
 
@@ -4165,8 +4253,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point"), [], [])), 
     function get_Center () {
       return new Microsoft.Xna.Framework.Point(
-        Math.floor(this.X + (this.Width / 2)), 
-        Math.floor(this.Y + (this.Height / 2))
+        (this.X + (this.Width / 2)) | 0, 
+        (this.Y + (this.Height / 2)) | 0
       );
     }
   );
@@ -4188,7 +4276,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "get_Right", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Right () {
-      return this.X + this.Width;
+      return (this.X + this.Width) | 0;
     }
   );
 
@@ -4212,10 +4300,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "Intersects", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
     function Intersects (value) {
-      return value.X < this.X + this.Width && 
-              this.X < value.X + value.Width && 
-              value.Y < this.Y + this.Height && 
-              this.Y < value.Y + value.Height;
+      return value.X < ((this.X + this.Width) | 0) && 
+              this.X < ((value.X + value.Width) | 0) && 
+              value.Y < ((this.Y + this.Height) | 0) && 
+              this.Y < ((value.Y + value.Height) | 0);
     }
   );
 
@@ -5598,7 +5686,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.Method({Static:false, Public:true }, "set_Viewport", 
     (new JSIL.MethodSignature(null, [$jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Viewport")], [])), 
     function set_Viewport (value) {
-      this.viewport = newViewport.MemberwiseClone();
+      this.viewport = value.MemberwiseClone();
 
       this.$UpdateViewport();
     }
@@ -5676,7 +5764,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 
   $.RawMethod(false, "$UpdateBlendState", function GraphicsDevice_$UpdateBlendState () {
-    if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
+    if (!this.blendState) {
+      // XNA 3
+      this.context.globalCompositeOperation = "source-over";
+    } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
       this.context.globalCompositeOperation = "copy";
     } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Additive) {
       this.context.globalCompositeOperation = "lighter";
@@ -6454,6 +6545,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       textures.appendChild(this.image);
   });
 
+  $.Method({Static:false, Public:true }, "get_IsContentLost", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsContentLost () {
+      return false;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "SetData", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"])], ["T"])), 
     function SetData$b1 (T, data) {
@@ -6595,17 +6693,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_IsContentLost", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsContentLost () {
+      return false;
+    }
+  );
+
   $.Method({
     Static: false,
     Public: true
   }, "SetData", new JSIL.MethodSignature(null, [], ["T"]), function (T, data) {
     throw new System.NotImplementedException();
-  }), $.Method({
+  });
+  $.Method({
     Static: false,
     Public: true
   }, "SetData", new JSIL.MethodSignature(null, [], []), function (T, level, rect, data, startIndex, elementCount) {
     throw new System.NotImplementedException();
-  }), $.Method({
+  });
+  $.Method({
     Static: false,
     Public: true
   }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {

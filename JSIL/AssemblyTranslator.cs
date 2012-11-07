@@ -63,7 +63,7 @@ namespace JSIL {
         protected bool OwnsTypeInfoProvider;
 
         protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
-            "System.Object", "System.Type", "System.RuntimeType",
+            "System.Object", "System.ValueType", "System.Type", "System.RuntimeType",
             "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
             "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
             "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo",
@@ -316,7 +316,10 @@ namespace JSIL {
                 }
             }
 
-            return result.ToArray();
+            // HACK: If an assembly we loaded has indirect references to multiple versions of BCL assemblies,
+            //  Cecil will resolve them all to the same version. As a result, we'll end up with multiple copies
+            //  of the same assembly in result. We need to filter those out so we only return each assembly once.
+            return result.Distinct(new FullNameAssemblyComparer()).ToArray();
         }
 
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
@@ -331,6 +334,14 @@ namespace JSIL {
             context.Settings.ForEachStatement = false;
 
             return context;
+        }
+
+        protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
+            var result = assemblyName.ToString();
+            if (Configuration.FilenameEscapeRegex != null)
+                return Regex.Replace(result, Configuration.FilenameEscapeRegex, "_");
+            else
+                return result;
         }
 
         public TranslationResult Translate (
@@ -378,7 +389,7 @@ namespace JSIL {
 
             Action<int> writeAssembly = (i) => {
                 var assembly = assemblies[i];
-                var outputPath = assembly.Name + ".js";
+                var outputPath = FormatOutputFilename(assembly.Name) + ".js";
 
                 long existingSize;
 
@@ -717,7 +728,7 @@ namespace JSIL {
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
-                    if ((methodInfo != null) && methodInfo.IsIgnored)
+                    if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
                         continue;
 
                     output.Identifier("$", null);
@@ -1002,15 +1013,17 @@ namespace JSIL {
 
                         output.Identifier("$jsilcore");
                         output.Dot();
-                        output.Identifier("System");
-                        output.Dot();
-                        output.Identifier("Object");
+                        output.Identifier("TypeRef");
+                        output.LPar();
+                        output.Value("System.Object");
+                        output.RPar();
                     } else if (typedef.FullName == "System.ValueType") {
                         output.Identifier("$jsilcore");
                         output.Dot();
-                        output.Identifier("System");
-                        output.Dot();
-                        output.Identifier("ValueType");
+                        output.Identifier("TypeRef");
+                        output.LPar();
+                        output.Value("System.ValueType");
+                        output.RPar();
                     } else {
                         output.TypeReference(baseClass, astEmitter.ReferenceContext);
                     }
@@ -1143,14 +1156,16 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            output.WriteRaw("var $thisType = $.publicInterface");
-            output.Semicolon(true);
+            if (!makingSkeletons) {
+                output.WriteRaw("var $thisType = $.publicInterface");
+                output.Semicolon(true);
+            }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
             var typeCacher = new TypeExpressionCacher(typedef);
             if (
-                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(false)
+                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)
             ) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -1170,34 +1185,16 @@ namespace JSIL {
 
                 var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
                 if (cts.Length > 0) {
-                    output.WriteRaw("var ");
-
-                    bool isFirst = true;
                     foreach (var ct in cts) {
-                        if (!isFirst)
-                            output.WriteRaw(", ");
-
-                        output.WriteRaw("$T{0:X2}", ct.Index);
-                        isFirst = false;
-                    }
-
-                    output.Semicolon(true);
-                    output.NewLine();
-
-                    output.WriteRaw("$.TypeCacher");
-                    output.LPar();
-                    output.OpenFunction(null, null);
-
-                    foreach (var ct in cts) {
-                        output.WriteRaw("$T{0:X2} = ", ct.Index);
+                        output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
+                        output.OpenBrace();
+                        output.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
                         output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
+                        output.WriteRaw(")) ()");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
                         output.Semicolon(true);
                     }
-
-                    output.CloseBrace(false);
-                    output.RPar();
-
-                    output.Semicolon(true);
                 }
             }
 
@@ -1339,12 +1336,24 @@ namespace JSIL {
                     return null;
                 }
 
-                IEnumerable<ILVariable> allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb);
-                if (allVariables == null)
-                    return null;
+                IEnumerable<ILVariable> allVariables;
+                {
+                    var ignoredVariables = new List<string>();
+                    allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb, ignoredVariables);
+                    if (allVariables == null) {
+                        WarningFormat(
+                            "Ignoring method '{0}' because of {1} untranslatable variables:\r\n{2}", 
+                            method.FullName, ignoredVariables.Count, String.Join(", ", ignoredVariables)
+                        );
+
+                        FunctionCache.CreateNull(methodInfo, method, identifier);
+                        pr.OnFinished();
+                        return null;
+                    }
+                }
 
                 var translator = new ILBlockTranslator(
-                    this, context, method, methodDef, 
+                    this, context, method, methodDef,
                     ilb, decompiler.Parameters, allVariables,
                     typeReplacer
                 );
@@ -1373,7 +1382,7 @@ namespace JSIL {
                 }
 
                 function = FunctionCache.Create(
-                    methodInfo, methodDef, method, identifier, 
+                    methodInfo, methodDef, method, identifier,
                     translator, parameters, body
                 );
 
@@ -1385,16 +1394,22 @@ namespace JSIL {
         }
 
         internal static ILVariable[] GetAllVariablesForMethod(
-            DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody
+            DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody,
+            List<string> ignoredVariables
         ) {
             var allVariables = methodBody.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                 .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
+            bool ignored = false;
 
             foreach (var v in allVariables) {
                 if (TypeUtil.IsIgnoredType(v.Type)) {
-                    return null; // return null;
+                    ignoredVariables.Add(v.Name);
+                    ignored = true;
                 }
             }
+
+            if (ignored)
+                return null;
 
             NameVariables.AssignNamesToVariables(context, parameters, allVariables, methodBody);
 
@@ -1405,70 +1420,75 @@ namespace JSIL {
             SpecialIdentifiers si, HashSet<string> parameterNames,
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
-            Action temporaryEliminationPass = () => {
-                if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
-                    bool eliminated;
-                    do {
-                        var visitor = new EliminateSingleUseTemporaries(
-                            si.TypeSystem, variables, FunctionCache
-                        );
-                        visitor.Visit(function);
-                        eliminated = visitor.EliminatedVariables.Count > 0;
-                    } while (eliminated);
-                }
-            };
+            try {
+                Action temporaryEliminationPass = () => {
+                    if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
+                        bool eliminated;
+                        do {
+                            var visitor = new EliminateSingleUseTemporaries(
+                                si.TypeSystem, variables, FunctionCache
+                            );
+                            visitor.Visit(function);
+                            eliminated = visitor.EliminatedVariables.Count > 0;
+                        } while (eliminated);
+                    }
+                };
 
-            var la = new LabelAnalyzer();
-            la.BuildLabelGroups(function);
+                var la = new LabelAnalyzer();
+                la.BuildLabelGroups(function);
 
-            temporaryEliminationPass();
+                temporaryEliminationPass();
 
-            new EmulateInt64(
-                FunctionCache.MethodTypes,
-                si.TypeSystem
-            ).Visit(function);
-
-            new EmulateStructAssignment(
-                si.TypeSystem,
-                FunctionCache,
-                si.CLR,
-                Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
-            ).Visit(function);
-
-            new IntroduceVariableDeclarations(
-                variables,
-                _TypeInfoProvider
-            ).Visit(function);
-
-            new IntroduceVariableReferences(
-                si.JSIL,
-                variables,
-                parameterNames
-            ).Visit(function);
-
-            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
-                new SimplifyLoops(
-                    si.TypeSystem, false
+                new EmulateInt64(
+                    FunctionCache.MethodTypes,
+                    si.TypeSystem
                 ).Visit(function);
 
-            // Temporary elimination makes it possible to simplify more operators, so do it later
-            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
-                new SimplifyOperators(
+                new EmulateStructAssignment(
+                    si.TypeSystem,
+                    FunctionCache,
+                    si.CLR,
+                    Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
+                ).Visit(function);
+
+                new IntroduceVariableDeclarations(
+                    variables,
+                    _TypeInfoProvider
+                ).Visit(function);
+
+                new IntroduceVariableReferences(
+                    si.JSIL,
+                    variables,
+                    parameterNames
+                ).Visit(function);
+
+                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                    new SimplifyLoops(
+                        si.TypeSystem, false
+                    ).Visit(function);
+
+                // Temporary elimination makes it possible to simplify more operators, so do it later
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
+
+                new ReplaceMethodCalls(
+                    function.Method.Reference,
                     si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);
 
-            new ReplaceMethodCalls(
-                function.Method.Reference,
-                si.JSIL, si.JS, si.TypeSystem
-            ).Visit(function);
+                new HandleBooleanAsInteger(
+                    si.TypeSystem, si.JS
+                ).Visit(function);
 
-            new HandleBooleanAsInteger(
-                si.TypeSystem, si.JS
-            ).Visit(function);
+                new IntroduceCharCasts(
+                    si.TypeSystem, si.JS
+                ).Visit(function);
 
-            new IntroduceCharCasts(
-                si.TypeSystem, si.JS
-            ).Visit(function);
+                new IntroduceEnumCasts(
+                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
+                ).Visit(function);
 
             new IntroduceEnumCasts(
                 si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
@@ -1484,45 +1504,64 @@ namespace JSIL {
                     si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);
 
-            var dss = new DeoptimizeSwitchStatements(
-                si.TypeSystem
-            );
-            dss.Visit(function);
+                // We need another operator simplification pass to simplify expressions created by cast expressions
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
 
-            new CollapseNulls().Visit(function);
+                var dss = new DeoptimizeSwitchStatements(
+                    si.TypeSystem
+                );
+                dss.Visit(function);
 
-            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
-                new SimplifyLoops(
-                    si.TypeSystem, true
+                new CollapseNulls().Visit(function);
+
+                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                    new SimplifyLoops(
+                        si.TypeSystem, true
+                    ).Visit(function);
+
+                temporaryEliminationPass();
+
+                if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
+                    new ControlFlowSimplifier().Visit(function);
+
+                var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
+                epf.Visit(function);
+
+                var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
+                oae.Visit(function);
+
+                var lnd = new LoopNameDetector();
+                lnd.Visit(function);
+                lnd.EliminateUnusedLoopNames();
+
+                new ExpandCastExpressions(
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
-            temporaryEliminationPass();
+                if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
+                    new OptimizePropertyMutationAssignments(
+                        si.TypeSystem, _TypeInfoProvider
+                    ).Visit(function);
 
-            if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
-                new ControlFlowSimplifier().Visit(function);
+                    new ConvertPropertyAccessesToInvocations(
+                        si.TypeSystem, _TypeInfoProvider
+                    ).Visit(function);
+                }
+            } catch (Exception exc) {
+                string functionName;
 
-            var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
-            epf.Visit(function);
+                if ((function.Method != null) && (function.Method.Reference != null))
+                    functionName = function.Method.Reference.FullName;
+                else
+                    functionName = function.DisplayName ?? "<unknown>";
 
-            var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
-            oae.Visit(function);
-
-            var lnd = new LoopNameDetector();
-            lnd.Visit(function);
-            lnd.EliminateUnusedLoopNames();
-
-            new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
-            ).Visit(function);
-
-            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
-                new OptimizePropertyMutationAssignments(
-                    si.TypeSystem, _TypeInfoProvider
-                ).Visit(function);
-
-                new ConvertPropertyAccessesToInvocations(
-                    si.TypeSystem, _TypeInfoProvider
-                ).Visit(function);
+                throw new Exception(
+                    String.Format("An error occurred while translating the function '{0}':", functionName),
+                    exc
+                );
             }
         }
 
@@ -1605,7 +1644,8 @@ namespace JSIL {
                         defaultValue is JSNewExpression ||
                         defaultValue is JSArrayExpression ||
                         defaultValue is JSInvocationExpressionBase ||
-                        defaultValue is JSNewArrayExpression
+                        defaultValue is JSNewArrayExpression ||
+                        defaultValue is JSEnumLiteral
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
@@ -1616,7 +1656,7 @@ namespace JSIL {
                         // No method or variables. This could break things.
                         null, null, 
                         new JSVariable[] { 
-                            new JSParameter(fieldSelfIdentifier.Identifier, fieldSelfIdentifier.Type, null) 
+                            new JSParameter(fieldSelfIdentifier.Identifier, fieldSelfIdentifier.IdentifierType, null) 
                         },
                         new JSBlockStatement(
                             new JSExpressionStatement(new JSReturnExpression(defaultValue))
@@ -1721,8 +1761,9 @@ namespace JSIL {
 
                 // We need the set of variables used by the method in order to
                 //  properly map default values.
+                var ignoreReasons = new List<string>();
                 var variables = GetAllVariablesForMethod(
-                    context, astBuilder.Parameters, block
+                    context, astBuilder.Parameters, block, ignoreReasons
                 );
                 if (variables != null) {
                     // We need a translator to map the IL expressions for the default
@@ -1982,9 +2023,14 @@ namespace JSIL {
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            JSFunctionExpression function = GetFunctionBodyForMethod(
-                isExternal, methodInfo
-            );
+            JSFunctionExpression function;
+            try {
+                function = GetFunctionBodyForMethod(
+                    isExternal, methodInfo
+                );
+            } catch (KeyNotFoundException knf) {
+                throw;
+            }
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;

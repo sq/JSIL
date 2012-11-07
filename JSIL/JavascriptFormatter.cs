@@ -1022,7 +1022,7 @@ namespace JSIL.Internal {
                 WriteRaw(defineNew ? "$sig.make" : "$sig.get");
                 LPar();
 
-                Value(signature.ID);
+                WriteRaw("0x{0:X}", signature.ID);
 
                 /*
                  * FIXME: Not possible since IDs for jsil.core/jsil.bootstrap APIs aren't defined.

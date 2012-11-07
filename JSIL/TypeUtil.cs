@@ -23,6 +23,20 @@ namespace JSIL {
             return String.Join("_", result);
         }
 
+        public static bool IsArray (TypeReference type) {
+            var at = type as ArrayType;
+            if (at != null)
+                return true;
+
+            if (type == null)
+                return false;
+
+            if (type.FullName == "System.Array")
+                return true;
+
+            return false;
+        }
+
         public static bool IsStruct (TypeReference type) {
             if (type == null)
                 return false;
@@ -91,6 +105,21 @@ namespace JSIL {
                     // Blech
                 case MetadataType.UIntPtr:
                 case MetadataType.IntPtr:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool Is32BitIntegral (TypeReference type) {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType) {
+                case MetadataType.Byte:
+                case MetadataType.SByte:
+                case MetadataType.Int16:
+                case MetadataType.Int32:
+                case MetadataType.UInt16:
                     return true;
                 default:
                     return false;

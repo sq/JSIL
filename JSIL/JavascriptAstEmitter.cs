@@ -90,7 +90,18 @@ namespace JSIL {
                 Output.CloseBrace();
         }
 
+        private Dictionary<string, int> AssignIndicesToLabels (JSLabelGroupStatement labelGroup) {
+            var result = new Dictionary<string, int>();
+
+            foreach (var label in labelGroup.Labels)
+                result[label.Key] = result.Count;
+
+            return result;
+        }
+
         public void VisitNode (JSLabelGroupStatement labelGroup) {
+            var labelToIndex = AssignIndicesToLabels(labelGroup);
+
             Output.NewLine();
 
             var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
@@ -101,7 +112,7 @@ namespace JSIL {
             Output.Space();
             Output.Identifier(labelVar);
             Output.WriteRaw(" = ");
-            Output.Value(firstLabel);
+            Output.Value(labelToIndex[firstLabel]);
             Output.Semicolon();
 
             Output.Label(stepLabel);
@@ -133,7 +144,9 @@ namespace JSIL {
 
                     Output.Identifier(labelVar);
                     Output.WriteRaw(" = ");
-                    Output.Value(labelName);
+                    Output.Value(labelToIndex[labelName]);
+                    Output.WriteRaw(" ");
+                    Output.Comment("goto {0}", labelName);
                     Output.Semicolon();
                 }
 
@@ -158,8 +171,9 @@ namespace JSIL {
 
                 Output.WriteRaw("case");
                 Output.Space();
-                Output.Value(kvp.Key);
-                Output.WriteRaw(":");
+                Output.Value(labelToIndex[kvp.Key]);
+                Output.WriteRaw(": ");
+                Output.Comment("{0}", kvp.Key);
                 Output.Indent();
                 Output.NewLine();
 
@@ -259,6 +273,9 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSNoOpStatement nop) {
+        }
+
         public void VisitNode (JSExpressionStatement statement) {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
@@ -355,14 +372,23 @@ namespace JSIL {
         }
 
         private void WritePossiblyCachedTypeIdentifier (TypeReference type, int? index) {
-            if (index.HasValue)
-                Output.WriteRaw("$T{0:X2}", index.Value);
-            else
+            if (index.HasValue) {
+                if (IncludeTypeParens.Peek())
+                    Output.WriteRaw("($T{0:X2}())", index.Value);
+                else
+                    Output.WriteRaw("$T{0:X2}()", index.Value);
+            } else
                 Output.Identifier(type, ReferenceContext, false);
         }
 
         public void VisitNode (JSIsExpression ie) {
-            WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$Is");
             Output.LPar();
@@ -373,7 +399,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSAsExpression ae) {
-            WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$As");
             Output.LPar();
@@ -384,7 +416,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
-            WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
             Output.Dot();
             Output.WriteRaw("$Cast");
             Output.LPar();
@@ -449,7 +487,16 @@ namespace JSIL {
             var ga = method.GenericArguments;
             if (ga != null) {
                 Output.LPar();
-                Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
+
+                var cga = method.CachedGenericArguments;
+                if (cga != null) {
+                    CommaSeparatedList(
+                        cga.Zip(ga, (cached, uncached) => cached ?? new JSType(uncached)),
+                        false
+                    );
+                } else {
+                    Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
+                }
                 Output.RPar();
             }
         }
@@ -533,15 +580,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEnumLiteral enm) {
-            bool isFirst = true;
+            if (enm.CachedEnumType != null)
+                Visit(enm.CachedEnumType);
+            else
+                Output.Identifier(enm.EnumType, ReferenceContext);
+
+            Output.Dot();
 
             if (enm.Names.Length == 1) {
-                Output.Identifier(enm.EnumType, ReferenceContext);
-                Output.Dot();
                 Output.Identifier(enm.Names[0]);
             } else {
-                Output.Identifier(enm.EnumType, ReferenceContext);
-                Output.Dot();
                 Output.Identifier("Flags");
                 Output.LPar();
 
@@ -654,9 +702,17 @@ namespace JSIL {
                     case "System.Boolean":
                         Output.WriteRaw("false");
                         break;
-                    default:
-                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null, null));
+                    default: {
+                        JSType theType;
+                        if (defaultValue.CachedTypeIndex.HasValue)
+                            theType = new JSCachedType(defaultValue.Value, defaultValue.CachedTypeIndex.Value);
+                        else
+                            theType = new JSType(defaultValue.Value);
+
+                        VisitNode(new JSNewExpression(theType, null, null));
+
                         break;
+                    }
                 }
             }
         }
@@ -679,7 +735,25 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCachedType cachedType) {
-            Output.WriteRaw("$T{0:X2}", cachedType.Index);
+            bool needParens = IncludeTypeParens.Peek();
+
+            if (needParens)
+                Output.WriteRaw("($T{0:X2}())", cachedType.Index);
+            else
+                Output.WriteRaw("$T{0:X2}()", cachedType.Index);
+        }
+
+        public void VisitNode (JSCachedTypeOfExpression cachedTypeOf) {
+            IncludeTypeParens.Push(false);
+
+            try {
+                VisitNode((JSCachedType)cachedTypeOf);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
+
+            Output.Dot();
+            Output.Identifier("__Type__");
         }
 
         public void VisitNode (JSTypeOfExpression toe) {
@@ -732,12 +806,12 @@ namespace JSIL {
 
             if (variable.IsReference) {
                 if (variable.IsThis) {
-                    if (JSExpression.DeReferenceType(variable.Type).IsValueType)
+                    if (JSExpression.DeReferenceType(variable.IdentifierType).IsValueType)
                         return;
                     else
                         throw new InvalidOperationException(String.Format(
                             "The this-reference '{0}' was a reference to a non-value type: {1}",
-                            variable, variable.Type
+                            variable, variable.IdentifierType
                         ));
                 }
 
@@ -1108,15 +1182,27 @@ namespace JSIL {
         }
 
         private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
-            // We need to perform manual truncation to maintain the semantics of C#'s division operator
-            if ((bop.Operator == JSOperator.Divide)) {
-                var leftType = bop.Left.GetActualType(TypeSystem);
-                var rightType = bop.Right.GetActualType(TypeSystem);
+            var leftType = bop.Left.GetActualType(TypeSystem);
+            var rightType = bop.Right.GetActualType(TypeSystem);
 
+            if (bop.Operator == JSOperator.Divide) {
+                // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
                     (TypeUtil.IsIntegral(leftType) ||
                     TypeUtil.IsIntegral(rightType)) &&
                     TypeUtil.IsIntegral(resultType);
+            }
+
+            if (
+                !(bop.Operator is JSAssignmentOperator) &&
+                Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true)
+            ) {
+                // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
+                // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
+                return
+                    TypeUtil.Is32BitIntegral(leftType) &&
+                    TypeUtil.Is32BitIntegral(rightType) &&
+                    TypeUtil.Is32BitIntegral(resultType);
             }
 
             return false;
@@ -1189,7 +1275,13 @@ namespace JSIL {
                 Output.WriteRaw("JSIL.Array.New");
 
             Output.LPar();
-            Output.Identifier(newarray.ElementType, ReferenceContext);
+
+            IncludeTypeParens.Push(false);
+            try {
+                WritePossiblyCachedTypeIdentifier(newarray.ElementType, newarray.CachedElementTypeIndex);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
 
             if (newarray.Dimensions != null) {
                 Output.Comma();

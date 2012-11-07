@@ -124,10 +124,12 @@ namespace JSIL.Internal {
     public struct GenericTypeIdentifier {
         public readonly TypeIdentifier Type;
         public readonly TypeIdentifier[] Arguments;
+        public readonly int ArrayRank;
 
-        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments) {
+        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments, int arrayRank) {
             Type = new TypeIdentifier(type);
             Arguments = (from a in arguments select new TypeIdentifier(a)).ToArray();
+            ArrayRank = arrayRank;
         }
 
         public bool Equals (GenericTypeIdentifier rhs) {
@@ -135,6 +137,9 @@ namespace JSIL.Internal {
                 return false;
 
             if (Arguments.Length != rhs.Arguments.Length)
+                return false;
+
+            if (ArrayRank != rhs.ArrayRank)
                 return false;
 
             for (var i = 0; i < Arguments.Length; i++) {
@@ -153,13 +158,25 @@ namespace JSIL.Internal {
         }
 
         public override int GetHashCode () {
-            return Type.GetHashCode() ^ Arguments.Length;
+            return Type.GetHashCode() ^ Arguments.Length ^ ArrayRank;
+        }
+
+        private static string GetRankSuffix (int rank) {
+            if (rank <= 0)
+                return "";
+            else {
+                var result = "[";
+                for (var i = 1; i < rank; i++)
+                    result += ",";
+                result += "]";
+                return result;
+            }
         }
 
         public override string ToString () {
             return String.Format(
                 "{0}<{1}>",
-                Type,
+                (Type + GetRankSuffix(ArrayRank)),
                 String.Join<TypeIdentifier>(", ", Arguments)
             );
         }
@@ -855,30 +872,73 @@ namespace JSIL.Internal {
             return AddMember(evt, proxy);
         }
 
-        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__(.*)", RegexOptions.Compiled);
+        /*
+            Test strings:
+            <<$$>>__0
+            <>2__current
+            <baseType>5__1
+            <o>__2
+            <B>k__BackingField
+            <$>things
+         */
+
+        static readonly Regex MangledNameRegex = new Regex(
+            "(" +
+                @"\<(\<?)(?'class'[^>]*)(\>?)\>(?'id'[a-zA-Z0-9]*)(_+)(?'name'[a-zA-Z0-9_]*)|" +
+                @"\<(?'class'[^>]*)\>(?'id'[^_]*)(_+)(?'name'[a-zA-Z0-9_]*)|" +
+                @"\<(\<?)(?'class'[^>]*)(\>?)\>(?'name'[a-zA-Z0-9_]*)" +
+            ")", 
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
+
         static readonly Regex IgnoredKeywordRegex = new Regex(
             @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__DynamicSite|__CachedAnonymousMethodDelegate", RegexOptions.Compiled
+            @"__DynamicSite|__CachedAnonymousMethodDelegate", 
+            RegexOptions.Compiled
         );
 
+        private static string GetGroup (Match m, string groupName, string defaultValue = null) {
+            if (m.Groups[groupName].Success)
+                return m.Groups[groupName].Value;
+            else
+                return defaultValue;
+        }
+
         public static string GetOriginalName (string memberName, out bool isBackingField) {
-            isBackingField = memberName.EndsWith("__BackingField", StringComparison.Ordinal);
+            isBackingField = false;
 
             var m = MangledNameRegex.Match(memberName);
             if (!m.Success)
                 return null;
 
-            var originalName = m.Groups[1].Value;
-            if (String.IsNullOrWhiteSpace(originalName))
-                originalName = String.Format("${0}", m.Groups[3].Value.Trim());
-            if (String.IsNullOrWhiteSpace(originalName))
-                return null;
+            var @class = GetGroup(m, "class", "");
+            var name = GetGroup(m, "name", "");
 
-            if (isBackingField)
-                return String.Format("{0}$value", originalName);
-            else
-                return originalName;
+            isBackingField = name.Trim() == "BackingField";
+
+            if (isBackingField) {
+                return String.Format("{0}$value", @class);
+            } else {
+                int temp;
+                string result;
+
+                if (int.TryParse(name, out temp))
+                    result = @class;
+                else if (String.IsNullOrWhiteSpace(@class))
+                    result = "$" + name;
+                else
+                    result = @class + "$" + name;
+
+                // <<$$>>__1
+                if ((result == "$") || (result == "$$"))
+                    result += name;
+
+                if (String.IsNullOrWhiteSpace(result))
+                    return null;
+                else 
+                    return result;
+            }
         }
 
         public string Name {
@@ -907,40 +967,48 @@ namespace JSIL.Internal {
 
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
-                    switch (m2.Value) {
-                        case "__BackingField":
-                        case "__DisplayClass":
-                            return false;
+                    var length = m2.Length;
+                    var index = m2.Index;
+                    if (
+                        (length >= 2) &&
+                        (shortName[index] == '_') && 
+                        (shortName[index + 1] == '_')
+                    ) {
+                        switch (m2.Value) {
+                            case "__BackingField":
+                            case "__DisplayClass":
+                                return false;
 
-                        case "CS$<":
-                            if (!isField)
-                                return true;
-
+                            case "__CachedAnonymousMethodDelegate":
+                                if (isField)
+                                    return true;
                             break;
-
-                        case "__CachedAnonymousMethodDelegate":
-                            if (isField)
-                                return true;
-
-                            break;
-
-                        default:
-                            defaultResult = true;
-                            break;
+                        }
+                    } else if (
+                        (length >= 4) &&
+                        (shortName[index] == 'C') && 
+                        (shortName[index + 1] == 'S') &&
+                        (shortName[index + 2] == '$') &&
+                        (shortName[index + 3] == '<')
+                    ) {
+                        if (!isField)
+                            return true;
+                    } else {
+                        defaultResult = true;
                     }
                 }
             }
 
             var m = MangledNameRegex.Match(shortName);
             if (m.Success) {
-                switch (m.Groups[2].Value) {
-                    case "b":
+                switch (shortName[m.Groups[2].Index]) {
+                    case 'b':
                         // Lambda
                         return true;
-                    case "c":
+                    case 'c':
                         // Class
                         return false;
-                    case "d":
+                    case 'd':
                         // Enumerator
                         return false;
                 }
