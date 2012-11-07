@@ -26,6 +26,12 @@ JSIL.Make64BitInt = function ($, _me) {
     return new (me())(a, b, c);
   };
 
+  var mktemp = function () {
+    return lazy(function () {
+      return ctor(0, 0, 0);
+    });
+  };
+
   var maxValue = lazy(function () {
       return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
   });
@@ -38,17 +44,9 @@ JSIL.Make64BitInt = function ($, _me) {
       return ctor(1, 0, 0);
   });
 
-  var tempLS = lazy(function () {
-      return ctor(0, 0, 0);
-  });
-
-  var tempMul1 = lazy(function () {
-      return ctor(0, 0, 0);
-  });
-
-  var tempMul2 = lazy(function () {
-      return ctor(0, 0, 0);
-  });
+  var tempLS = mktemp();
+  var tempMul1 = mktemp();
+  var tempMul2 = mktemp();
 
   var makeOrReturn = function (result, a, b, c) {
     if (result) {
@@ -276,7 +274,8 @@ JSIL.Make64BitInt = function ($, _me) {
   return {
     lazy: lazy,
     me: me,
-    ctor: ctor
+    ctor: ctor,
+    mktemp: mktemp
   };
 };
 
@@ -289,6 +288,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     var lazy = locals.lazy;
     var me = locals.me;
     var ctor = locals.ctor;
+    var mktemp = locals.mktemp;
 
     var maxValue = lazy(function () {
         return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
@@ -306,13 +306,8 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
         return ctor(1, 0, 0);
     });
 
-    var tempRS = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempDiv = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
+    var tempRS = mktemp();
+    var tempDiv = mktemp();
 
     // Not present in mscorlib
     $.Method({ Static: true, Public: true }, "op_Division",
@@ -634,6 +629,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     var lazy = locals.lazy;
     var me = locals.me;
     var ctor = locals.ctor;
+    var mktemp = locals.mktemp;
 
     var zero = lazy(function () {
         return ctor(0, 0, 0);
@@ -655,49 +651,17 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
     });
 
-    var tempRS = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempTS = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempDiv = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempDiv2 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempDiv3 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempDiv4 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempMod = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempMod2 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempMod3 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempMod4 = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
-
-    var tempN = lazy(function () { 
-        return ctor(0, 0, 0); 
-    });
+    var tempRS = mktemp();
+    var tempTS = mktemp();
+    var tempDiv = mktemp();
+    var tempDiv2 = mktemp();
+    var tempDiv3 = mktemp();
+    var tempDiv4 = mktemp();
+    var tempMod = mktemp();
+    var tempMod2 = mktemp();
+    var tempMod3 = mktemp();
+    var tempMod4 = mktemp();
+    var tempN = mktemp();
 
     var isNegative = function (a) {
         return mscorlib.System.UInt64.op_GreaterThan(a, signedMaxValue());
