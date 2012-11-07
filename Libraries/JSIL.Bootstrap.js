@@ -185,20 +185,6 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Int32", true, "Int32Array");
 
-//JSIL.ImplementExternals(
-//  "System.Int64", function ($) {
-//    $.RawMethod(true, "CheckType", function (value) {
-//      return value.constructor === goog.math.Long;
-//    });
-
-//    $jsilcore.$MakeParseExternals($, $.Int64, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
-
-//		$.Constant({Public: true, Static: true}, "MaxValue", 9223372036854775807);
-//		$.Constant({Public: true, Static: true}, "MinValue", -9223372036854775808);
-//  }
-//);
-//JSIL.MakeNumericType(Number, "System.Int64", true, "Int64Array");
-
 $jsilcore.$ParseFloat = function (text, style) {
   var temp = {};
   if ($jsilcore.$TryParseFloat(text, style, temp))
