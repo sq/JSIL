@@ -2405,10 +2405,10 @@ JSIL.MakeFieldInitializer = function (typeObject) {
     var key = "f" + i.toString();
 
     if (field.isStruct) {
-      body[i] = JSIL.FormatMemberAccess("target", field.name) + " = new types." + key + "();";
+      body.push(JSIL.FormatMemberAccess("target", field.name) + " = new types." + key + "();");
       types[key] = field.type.__PublicInterface__;
     } else {
-      body[i] = JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";";
+      body.push(JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";");
 
       if (typeof (field.defaultValueExpression) === "function") {
         // FIXME: This wants a this-reference?
