@@ -7,5 +7,8 @@ public class Program {
         Util.PrintTimeSpan("Minutes", TimeSpan.FromMinutes(451));
         Util.PrintTimeSpan("Hours", TimeSpan.FromHours(379));
         Util.PrintTimeSpan("Days", TimeSpan.FromDays(1075));
+        Util.PrintTimeSpan("Fractional Seconds", TimeSpan.FromSeconds(0.333));
+        Util.PrintTimeSpan("Fractional Minutes", TimeSpan.FromMinutes(0.333));
+        Util.PrintTimeSpan("Fractional Hours", TimeSpan.FromHours(0.333));
     }
 }

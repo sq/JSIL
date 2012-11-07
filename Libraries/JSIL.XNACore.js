@@ -2750,7 +2750,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this.components = JSIL.CreateInstanceOfType(
         Microsoft.Xna.Framework.GameComponentCollection.__Type__, "$internalCtor", [this]
       );
-      this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
+      this.targetElapsedTime = System.TimeSpan.FromTicks(System.Int64.FromInt32(166667));
       this.isFixedTimeStep = true;
       this.forceElapsedTimeToZero = true;
       this._isDead = false;
@@ -3041,7 +3041,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (
     elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
   ) {
-    this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
+    var tInt64 = $jsilcore.System.Int64;
+    var frameLength64 = tInt64.FromNumber(frameDelay * millisecondInTicks);
+    this._gameTime.elapsedGameTime._ticks = frameLength64;
 
     elapsed += this._extraTime;
     this._extraTime = 0;
@@ -3058,7 +3060,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
 
     for (var i = 0; i < numFrames; i++) {
-      this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
+      this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
+        this._gameTime.totalGameTime._ticks, frameLength64
+      );
 
       this._TimedUpdate(longFrame);
     }
@@ -3073,8 +3077,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     if (elapsed > maxElapsedTimeMs)
       elapsed = maxElapsedTimeMs;
 
-    this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
-    this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
+    var tInt64 = $jsilcore.System.Int64;
+    var elapsed64 = tInt64.FromNumber(elapsed * millisecondInTicks);
+
+    this._gameTime.elapsedGameTime._ticks = elapsed64;
+    this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
+      this._gameTime.totalGameTime._ticks, elapsed64
+    );
 
     this._TimedUpdate(longFrame);
   });
