@@ -73,3 +73,4 @@ Skeletons/*.js
 /Upstream/V8
 *.sublime-*
 *.VisualState.xml
+/jsil.org/try/Libraries
