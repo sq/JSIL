@@ -1851,7 +1851,8 @@ $jsilcore.$Of$NoInitialize = function () {
     "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
-    "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__"
+    "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
+    "__FieldList__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -2591,7 +2592,21 @@ JSIL.$BuildFieldList = function (typeObject) {
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
 
-    var fieldType = JSIL.ResolveTypeReference(field._data.fieldType, typeObject.__Context__)[1];
+    var fieldTypeRef = field._data.fieldType, fieldType = null;
+    if (Object.getPrototypeOf(fieldTypeRef) === JSIL.GenericParameter.prototype) {
+      fieldType = JSIL.ResolveGenericTypeReference(fieldTypeRef, typeObject.__PublicInterface__.prototype);
+
+      if (!fieldType) {
+        JSIL.Host.warning(
+          "Could not resolve open generic parameter '" + fieldTypeRef.name + 
+          "' when building field list for type '" + typeObject.__FullName__ + "'"
+        );
+        continue;
+      }
+    } else {
+      fieldType = JSIL.ResolveTypeReference(fieldTypeRef, typeObject.__Context__)[1];
+    }
+
     if ((typeof (fieldType) === "undefined") || (fieldType === null))
       throw new Error("Invalid field type");
 
@@ -5826,7 +5841,7 @@ JSIL.DefaultValue = function (type) {
     else if (type === Number)
       return 0;
 
-    throw new Error("Invalid type passed into DefaultValue");
+    throw new Error("Invalid type passed into DefaultValue: " + String(type));
   }
 };
 
