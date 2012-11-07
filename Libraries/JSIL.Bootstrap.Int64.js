@@ -96,6 +96,18 @@ JSIL.Make64BitInt = function ($, _me) {
     return new (me())(a, b, c);
   });
 
+  $.RawMethod(true, "FromBytes", function xInt64_FromBytes (bytes, offset) {
+    var a = (bytes[offset + 0] << 0) |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16);
+    var b = (bytes[offset + 3] << 0) |
+      (bytes[offset + 4] << 8) |
+      (bytes[offset + 5] << 16);
+    var c = (bytes[offset + 6] << 0) |
+      (bytes[offset + 7] << 8);
+    return new (me())(a, b, c);
+  });
+
   $.RawMethod(false, ".ctor", function xInt64__ctor (a, b, c) {
     this.a = a;
     this.b = b;

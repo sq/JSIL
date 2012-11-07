@@ -250,10 +250,11 @@
     <None Include="SimpleTestCases\MathIntrinsics.cs" />
     <None Include="SimpleTestCases\CastArrayToIEnumerable.cs" />
     <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
-    <None Include="IOTestCases\StreamInt64.cs" />
+    <None Include="IOTestCases\StreamInt64Properties.cs" />
     <None Include="Int64TestCases\Int64InPlaceAddition.cs" />
     <None Include="Int64TestCases\Int64InPlaceArrayAddition.cs" />
     <None Include="Int64TestCases\Int64ArrayLiterals.cs" />
+    <None Include="IOTestCases\Int64Serialization.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

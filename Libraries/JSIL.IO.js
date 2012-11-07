@@ -84,6 +84,50 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
       End: 2
     }, false
   );
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryWriter", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ExternalMethod({Static:false, Public:false}, ".ctor", 
+      new JSIL.MethodSignature(null, [], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:false}, "Dispose", 
+      new JSIL.MethodSignature(null, [$.Boolean], [])
+    );
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryReader", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, "Close", 
+      new JSIL.MethodSignature(null, [], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:false}, "Dispose", 
+      new JSIL.MethodSignature(null, [$.Boolean], [])
+    );
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
 }
 
 var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
@@ -768,6 +812,13 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
 
       buf[0] = (value & 0xFF);
       this.$writeBytes(buf);
+    }
+  );
+
+  $.Method({Static: false, Public: true}, "Dispose",
+    (new JSIL.MethodSignature(null, [], [])),
+    function () {
+      this.m_stream = null;
     }
   );
 });

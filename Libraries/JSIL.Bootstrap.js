@@ -3407,16 +3407,15 @@ $jsilcore.BytesFromInt32 = function (value) {
 };
 
 $jsilcore.BytesFromInt64 = function (value) {
-  // FIXME: Access Int64 subvalues directly.
   return [
-    (value >> 0) & 0xFF,
-    (value >> 8) & 0xFF,
-    (value >> 16) & 0xFF,
-    (value >> 24) & 0xFF,
-    (value >> 32) & 0xFF,
-    (value >> 40) & 0xFF,
-    (value >> 48) & 0xFF,
-    (value >> 56) & 0xFF
+    (value.a >> 0) & 0xFF,
+    (value.a >> 8) & 0xFF,
+    (value.a >> 16) & 0xFF,
+    (value.b >> 0) & 0xFF,
+    (value.b >> 8) & 0xFF,
+    (value.b >> 16) & 0xFF,
+    (value.c >> 0) & 0xFF,
+    (value.c >> 8) & 0xFF
   ];
 };
 
@@ -3439,16 +3438,15 @@ $jsilcore.BytesFromUInt32 = function (value) {
 };
 
 $jsilcore.BytesFromUInt64 = function (value) {
-  // FIXME: Access Int64 subvalues directly.
   return [
-    (value >>> 0) & 0xFF,
-    (value >>> 8) & 0xFF,
-    (value >>> 16) & 0xFF,
-    (value >>> 24) & 0xFF,
-    (value >>> 32) & 0xFF,
-    (value >>> 40) & 0xFF,
-    (value >>> 48) & 0xFF,
-    (value >>> 56) & 0xFF
+    (value.a >>> 0) & 0xFF,
+    (value.a >>> 8) & 0xFF,
+    (value.a >>> 16) & 0xFF,
+    (value.b >>> 0) & 0xFF,
+    (value.b >>> 8) & 0xFF,
+    (value.b >>> 16) & 0xFF,
+    (value.c >>> 0) & 0xFF,
+    (value.c >>> 8) & 0xFF
   ];
 };
 
@@ -3474,12 +3472,7 @@ $jsilcore.BytesToInt32 = function (bytes, offset) {
 };
 
 $jsilcore.BytesToInt64 = function (bytes, offset) {
-  // FIXME: Use Int64 piecewise constructor.
-  var value = $jsilcore.BytesToUInt64(bytes, offset);
-  if (value > System.Int64.MaxValue)
-    return value - 18446744073709551616;
-  else
-    return value;
+  return $jsilcore.System.Int64.FromBytes(bytes, offset);
 };
 
 $jsilcore.BytesToUInt16 = function (bytes, offset) {
@@ -3494,15 +3487,7 @@ $jsilcore.BytesToUInt32 = function (bytes, offset) {
 };
 
 $jsilcore.BytesToUInt64 = function (bytes, offset) {
-  // FIXME: Use UInt64 piecewise constructor.
-  return bytes[offset] + 
-    (bytes[offset + 1] << 8) + 
-    (bytes[offset + 2] << 16) + 
-    (bytes[offset + 3] << 24) + 
-    (bytes[offset + 4] << 32) + 
-    (bytes[offset + 5] << 40) + 
-    (bytes[offset + 6] << 48) + 
-    (bytes[offset + 7] << 56);
+  return $jsilcore.System.UInt64.FromBytes(bytes, offset);
 };
 
 JSIL.ImplementExternals("System.BitConverter", function ($) {
