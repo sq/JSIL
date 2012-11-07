@@ -3044,6 +3044,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var tInt64 = $jsilcore.System.Int64;
     var frameLength64 = tInt64.FromNumber(frameDelay * millisecondInTicks);
     this._gameTime.elapsedGameTime._ticks = frameLength64;
+    this._gameTime.elapsedGameTime.$invalidate();
 
     elapsed += this._extraTime;
     this._extraTime = 0;
@@ -3063,6 +3064,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
         this._gameTime.totalGameTime._ticks, frameLength64, this._gameTime.totalGameTime._ticks
       );
+      this._gameTime.totalGameTime.$invalidate();
 
       this._TimedUpdate(longFrame);
     }
@@ -3081,9 +3083,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var elapsed64 = tInt64.FromNumber(elapsed * millisecondInTicks);
 
     this._gameTime.elapsedGameTime._ticks = elapsed64;
+    this._gameTime.elapsedGameTime.$invalidate();
     this._gameTime.totalGameTime._ticks = tInt64.op_Addition(
       this._gameTime.totalGameTime._ticks, elapsed64, this._gameTime.totalGameTime._ticks
     );
+    this._gameTime.totalGameTime.$invalidate();
 
     this._TimedUpdate(longFrame);
   });

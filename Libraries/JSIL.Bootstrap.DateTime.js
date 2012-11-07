@@ -128,6 +128,8 @@ JSIL.ImplementExternals(
         this._ticks = scaled;
       else
         this._ticks = tInt64.op_Addition(this._ticks, scaled);
+
+      this.$invalidate();
     });
 
     $.RawMethod(false, "$fromTicks", 
@@ -252,6 +254,10 @@ JSIL.ImplementExternals(
 
       var result = integral.ToNumber() + scaledRemainder;
       return result;
+    });
+
+    $.RawMethod(false, "$invalidate", function () {
+      this._cachedTotalMs = this._cachedTotalS = null;
     });
 
     $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
