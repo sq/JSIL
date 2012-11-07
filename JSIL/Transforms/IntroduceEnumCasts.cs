@@ -181,6 +181,7 @@ namespace JSIL.Transforms {
 
             var assignmentOperator = boe.Operator as JSAssignmentOperator;
             JSBinaryOperator replacementOperator;
+            JSBinaryOperatorExpression replacement;
 
             if (LogicalOperators.Contains(boe.Operator)) {
                 if (eitherIsEnum) {
@@ -211,26 +212,39 @@ namespace JSIL.Transforms {
                     VisitReplacement(cast);
                 }
             } else if (
-                (assignmentOperator != null) &&
-                ReverseCompoundAssignments.TryGetValue(assignmentOperator, out replacementOperator) &&
-                leftIsEnum
+                leftIsEnum &&
+                ((replacement = DeconstructMutationAssignment(boe, TypeSystem, TypeSystem.Int32)) != null)
             ) {
-                var replacement = new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, boe.Left, 
-                    JSCastExpression.New(
-                        new JSBinaryOperatorExpression(
-                            replacementOperator, boe.Left, boe.Right, TypeSystem.Int32
-                        ), leftType, TypeSystem, true
-                    ),
-                    leftType
-                );
-
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
                 return;
             }
 
             VisitChildren(boe);
+        }
+
+        public static JSBinaryOperatorExpression DeconstructMutationAssignment (
+            JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
+        ) {
+            var assignmentOperator = boe.Operator as JSAssignmentOperator;
+            if (assignmentOperator == null)
+                return null;
+
+            JSBinaryOperator replacementOperator;
+            if (!ReverseCompoundAssignments.TryGetValue(assignmentOperator, out replacementOperator))
+                return null;
+
+            var leftType = boe.Left.GetActualType(typeSystem);
+
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment, boe.Left,
+                JSCastExpression.New(
+                    new JSBinaryOperatorExpression(
+                        replacementOperator, boe.Left, boe.Right, intermediateType
+                    ), leftType, typeSystem, false
+                ),
+                leftType
+            );
         }
 
         public void VisitNode (JSSwitchStatement ss) {

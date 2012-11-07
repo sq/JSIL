@@ -102,7 +102,7 @@ namespace JSIL.Transforms {
             } else if (
                 TypeUtil.IsNumeric(targetType) &&
                 TypeUtil.IsNumeric(currentType) &&
-                targetType != currentType
+                !TypeUtil.TypesAreEqual(targetType, currentType, true)
             ) {
                 if (currentType.MetadataType == MetadataType.Int64) {
                     if (targetType.MetadataType == MetadataType.UInt64) {

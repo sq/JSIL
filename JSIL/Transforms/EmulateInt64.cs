@@ -28,8 +28,7 @@ namespace JSIL.Transforms
 
         }
 
-        public JSInvocationExpression GetLongLiteralExpression(JSIntegerLiteral literal, bool unsigned = false) {
-            var number = literal.Value;
+        public JSInvocationExpression GetLongLiteralExpression(long number, bool unsigned = false) {
             var type = unsigned ? TypeSystem.UInt64 : TypeSystem.Int64;
             uint a = (uint)(number & 0xffffff);
             uint b = (uint)((number >> 24) & 0xffffff);
@@ -44,18 +43,41 @@ namespace JSIL.Transforms
                         new JSIntegerLiteral((long)c, typeof(uint))
                     });
         }
-        
-        public void VisitNode(JSIntegerLiteral literal)
-        {
-            if (literal.GetActualType(TypeSystem) == TypeSystem.Int64)
-            {
-                ParentNode.ReplaceChild(literal, GetLongLiteralExpression(literal));
+
+        public void VisitNode (JSDefaultValueLiteral dvl) {
+            var literalType = dvl.GetActualType(TypeSystem);
+            if (IsLongOrULong(literalType)) {
+                JSNode replacement;
+
+                if (literalType.MetadataType == MetadataType.Int64)
+                    replacement = GetLongLiteralExpression(0);
+                else
+                    replacement = GetLongLiteralExpression(0, unsigned: true);
+
+                ParentNode.ReplaceChild(dvl, replacement);
+                VisitReplacement(replacement);
+                return;
             }
 
-            if (literal.GetActualType(TypeSystem) == TypeSystem.UInt64)
-            {
-                ParentNode.ReplaceChild(literal, GetLongLiteralExpression(literal, unsigned: true));
+            VisitChildren(dvl);
+        }
+        
+        public void VisitNode(JSIntegerLiteral literal) {
+            var literalType = literal.GetActualType(TypeSystem);
+            if (IsLongOrULong(literalType)) {
+                JSNode replacement;
+
+                if (literalType.MetadataType == MetadataType.Int64)
+                    replacement = GetLongLiteralExpression(literal.Value);
+                else
+                    replacement = GetLongLiteralExpression(literal.Value, unsigned: true);
+
+                ParentNode.ReplaceChild(literal, replacement);
+                VisitReplacement(replacement);
+                return;
             }
+
+            VisitChildren(literal);
         }
 
         public void VisitNode(JSUnaryOperatorExpression uoe)
@@ -81,8 +103,9 @@ namespace JSIL.Transforms
                 {
                     var type = exType == TypeSystem.Int64 ? int64 : uint64;
                     var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
-                    ParentNode.ReplaceChild(uoe,
-                        JSInvocationExpression.InvokeStatic(exType, method, new [] { uoe.Expression }, true));
+                    var replacement = JSInvocationExpression.InvokeStatic(exType, method, new[] { uoe.Expression }, true);
+                    ParentNode.ReplaceChild(uoe, replacement);
+                    VisitReplacement(replacement);
                     return;
                 }
             }
@@ -107,38 +130,49 @@ namespace JSIL.Transforms
                 expectedType = null;
             }
 
-            if (boe.Operator.Token != "=" && (IsLongOrULong(leftType) || IsLongOrULong(rightType)))
-            {
-                var verb = GetVerb(boe.Operator);
+            var isLongExpression = IsLongOrULong(leftType) || IsLongOrULong(rightType);
 
-                if (verb == null)
-                {
-                    if (Tracing)
-                        Debug.WriteLine("Operator not yet supported: " + boe.Operator.Token);
+            bool isUnsigned = (leftType.MetadataType == MetadataType.UInt64) || (rightType.MetadataType == MetadataType.UInt64);
+            var resultType = isUnsigned ? TypeSystem.UInt64 : TypeSystem.Int64;
 
-                    // TODO: this should probably generate an error
-
+            var assignmentOperator = boe.Operator as JSAssignmentOperator;
+            if ((assignmentOperator != null) && (isLongExpression)) {
+                if (assignmentOperator == JSOperator.Assignment) {
                     VisitChildren(boe);
                     return;
                 }
 
-                JSIdentifier method = new JSFakeMethod(verb, expectedType, new[] { leftType, rightType }, MethodTypeFactory);
+                // Deconstruct the mutation assignment so we can insert the appropriate operator call.
+                var replacement = IntroduceEnumCasts.DeconstructMutationAssignment(boe, TypeSystem, resultType);
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+            } else if (isLongExpression) {
+                var verb = GetVerb(boe.Operator);
+
+                if (verb == null) {
+                    throw new NotImplementedException("Int64 operator not yet supported: " + boe.Operator.Token);
+                }
+
+                JSIdentifier method = new JSFakeMethod(
+                    verb, resultType, 
+                    new[] { leftType, rightType }, MethodTypeFactory
+                );
 
                 var replacement = JSInvocationExpression
                     .InvokeStatic(leftType, method, new[] { boe.Left, boe.Right }, true);
 
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
-            }
-            else
-            {
+            } else {
                 VisitChildren(boe);
             }
         }
 
-        private bool IsLongOrULong(TypeReference type)
-        {
-            return type == TypeSystem.Int64 || type == TypeSystem.UInt64;
+        private bool IsLongOrULong(TypeReference type) {
+            var result = (type.MetadataType == MetadataType.Int64) || 
+                (type.MetadataType == MetadataType.UInt64);
+
+            return result;
         }
 
         private string GetVerb(JSBinaryOperator op)
