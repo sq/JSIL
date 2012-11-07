@@ -519,6 +519,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("IOTestCasesSource")]
+        public void IOTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> IOTestCasesSource () {
+            return FolderTestSource("IOTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
         [TestCaseSource("DateTimeTestCasesSource")]
         public void DateTimeTestCases (object[] parameters) {
             RunSingleComparisonTestCase(parameters);

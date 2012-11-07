@@ -250,6 +250,7 @@
     <None Include="SimpleTestCases\MathIntrinsics.cs" />
     <None Include="SimpleTestCases\CastArrayToIEnumerable.cs" />
     <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
+    <None Include="IOTestCases\StreamInt64.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
@@ -535,6 +536,7 @@
     <None Include="TestCases\CastEnumNullableToInt.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <None Include="DateTimeTestCases\TimeSpanFrom.cs" />
+    <None Include="IOTestCases\BasicStreamNavigation.cs" />
     <Compile Include="TestUtil.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
