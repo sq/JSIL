@@ -509,6 +509,26 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("Int64TestCasesSource")]
+        public void Int64TestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> Int64TestCasesSource () {
+            return FolderTestSource("Int64TestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("DateTimeTestCasesSource")]
+        public void DateTimeTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> DateTimeTestCasesSource () {
+            return FolderTestSource("DateTimeTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
         [TestCaseSource("EncodingTestCasesSource")]
         public void EncodingTestCases (object[] parameters) {
             RunSingleComparisonTestCase(parameters);

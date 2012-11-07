@@ -531,6 +531,7 @@
     <None Include="SimpleTestCases\ArrayOfNullable.cs" />
     <None Include="TestCases\CastEnumNullableToInt.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
+    <None Include="DateTimeTestCases\TimeSpanFrom.cs" />
     <Compile Include="TestUtil.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

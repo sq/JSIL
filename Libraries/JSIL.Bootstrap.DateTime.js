@@ -8,20 +8,17 @@ if (!$jsilcore)
 
 JSIL.ImplementExternals(
   "System.TimeSpan", function ($) {
+    var TicksPerMillisecond = 10000;
+    var TicksPerSecond = 10000000;
+    var TicksPerMinute = 600000000;
+    var TicksPerHour = 36000000000;
+    var TicksPerDay = 864000000000;
+
     $.Method({Static:true , Public:true }, "FromMilliseconds", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromMilliseconds (value) {
         var result = Object.create(System.TimeSpan.prototype);
-        result._ticks = Math.floor(value * 10000);
-        return result;
-      }
-    );
-
-    $.Method({Static:true , Public:true }, "FromMinutes", 
-      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
-      function FromMinutes (value) {
-        var result = Object.create(System.TimeSpan.prototype);
-        result._ticks = Math.floor(value * 60 * 10000000);
+        result._ticks = Math.floor(value * TicksPerMillisecond);
         return result;
       }
     );
@@ -30,7 +27,34 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromSeconds (value) {
         var result = Object.create(System.TimeSpan.prototype);
-        result._ticks = Math.floor(value * 10000000);
+        result._ticks = Math.floor(value * TicksPerSecond);
+        return result;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "FromMinutes", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromMinutes (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * TicksPerMinute);
+        return result;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "FromHours", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromHours (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * TicksPerHour);
+        return result;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "FromDays", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromDays (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * TicksPerDay);
         return result;
       }
     );
@@ -173,21 +197,35 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalMilliseconds () {
-        return this._ticks / 10000;
-      }
-    );
-
-    $.Method({Static:false, Public:true }, "get_TotalMinutes", 
-      (new JSIL.MethodSignature($.Double, [], [])), 
-      function get_TotalMinutes () {
-        return this._ticks / 600000000;
+        return this._ticks / TicksPerMillisecond;
       }
     );
 
     $.Method({Static:false, Public:true }, "get_TotalSeconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalSeconds () {
-        return this._ticks / 10000000;
+        return this._ticks / TicksPerSecond;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalMinutes", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalMinutes () {
+        return this._ticks / TicksPerMinute;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalHours", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalHours () {
+        return this._ticks / TicksPerHour;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalDays", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalDays () {
+        return this._ticks / TicksPerDay;
       }
     );
   }
