@@ -255,6 +255,7 @@
     <None Include="Int64TestCases\Int64InPlaceArrayAddition.cs" />
     <None Include="Int64TestCases\Int64ArrayLiterals.cs" />
     <None Include="IOTestCases\Int64Serialization.cs" />
+    <None Include="SimpleTestCases\CompoundAssignmentToMultiDimArray.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

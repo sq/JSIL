@@ -1648,7 +1648,7 @@ namespace JSIL {
         public void VisitNode (JSCommaExpression comma) {
             Output.LPar();
 
-            CommaSeparatedList(comma.SubExpressions, false);
+            CommaSeparatedList(comma.SubExpressions, true);
 
             Output.RPar();
         }

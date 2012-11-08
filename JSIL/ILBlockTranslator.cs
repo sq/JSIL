@@ -30,6 +30,7 @@ namespace JSIL {
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
+        public int TemporaryVariableCount = 0;
         protected int UnlabelledBlockCount = 0;
         protected int NextSwitchId = 0;
 
@@ -1243,7 +1244,13 @@ namespace JSIL {
                     op = JSOperator.SubtractAssignment;
                     break;
                 case ILCode.Mul:
+                case ILCode.Mul_Ovf:
+                case ILCode.Mul_Ovf_Un:
                     op = JSOperator.MultiplyAssignment;
+                    break;
+                case ILCode.Div:
+                case ILCode.Div_Un:
+                    op = JSOperator.DivideAssignment;
                     break;
                 case ILCode.Rem:
                     op = JSOperator.RemainderAssignment;
@@ -1266,6 +1273,11 @@ namespace JSIL {
                 case ILCode.Xor:
                     op = JSOperator.BitwiseXorAssignment;
                     break;
+                default:
+                    if (boe != null) {
+                        throw new NotImplementedException(node.Arguments[0].Code.ToString());
+                    }
+                    break;
             }
 
             if (boe != null) {
@@ -1284,28 +1296,8 @@ namespace JSIL {
                     (leftInvocation.JSMethod != null) &&
                     (leftInvocation.JSMethod.Method.Name == "Get")
                 ) {
-                    // Compound assignments to elements of multidimensional arrays must be handled specially, because
-                    //  getting/setting elements of those arrays is actually a method call
-
                     var indices = leftInvocation.Arguments.ToArray();
-                    if (!indices.All(
-                        (e) => (e is JSVariable) || (e.IsConstant)
-                    ))
-                        throw new NotImplementedException(String.Format(
-                            "Compound assignment to element of multidimensional array with non-constant indices: '{0}'", node
-                        ));
-
-                    var setter = new JSFakeMethod(
-                        "Set", boe.ActualType,
-                        (from i in indices select i.GetActualType(TypeSystem)).Concat(new[] { boe.ActualType }).ToArray(),
-                        MethodTypes
-                    );
-                    var setExpression = JSInvocationExpression.InvokeMethod(
-                        setter, leftThisReference,
-                        indices.Concat(new[] { boe }).ToArray()
-                    );
-
-                    return setExpression;
+                    return Translate_CompoundAssignment_MultidimensionalArray(node, boe, leftThisReference, indices);
                 } else if (op == null) {
                     // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
                     return new JSBinaryOperatorExpression(
@@ -1325,6 +1317,76 @@ namespace JSIL {
                 );
             } else {
                 throw new NotImplementedException(String.Format("Compound assignments of this type not supported: '{0}'", node));
+            }
+        }
+
+        private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type) {
+            var id = String.Format("$temp{0:X2}", TemporaryVariableCount++);
+            return new JSRawOutputIdentifier(
+                (jsf) => jsf.WriteRaw(id), type
+            );
+        }
+
+        private JSExpression Translate_CompoundAssignment_MultidimensionalArray (
+            ILExpression node, JSBinaryOperatorExpression boe, JSExpression leftThisReference, JSExpression[] indices
+        ) {
+            // Compound assignments to elements of multidimensional arrays must be handled specially, because
+            //  getting/setting elements of those arrays is actually a method call
+            var returnType = boe.ActualType;
+            var setter = new JSFakeMethod(
+                "Set", returnType,
+                (from i in indices select i.GetActualType(TypeSystem)).Concat(new[] { returnType }).ToArray(),
+                MethodTypes
+            );
+
+            bool useCommaExpression = !indices.All(
+                (e) => (e is JSVariable) || (e.IsConstant)
+            );
+
+            Func<JSExpression[], JSExpression, JSInvocationExpressionBase> makeSetter = (_indices, _value) => JSInvocationExpression.InvokeMethod(
+                setter, leftThisReference, _indices.Concat(new[] { _value }).ToArray()
+            );
+
+            if (useCommaExpression) {
+                // The indices aren't constant so we need to ensure we only evaluate them once.
+                // We do this by temporarily caching them in a local and then wrapping that in a comma expression.
+                var oldIndices = indices;
+                indices = new JSExpression[oldIndices.Length];
+                var initIndices = new JSExpression[oldIndices.Length];
+
+                for (var i = 0; i < oldIndices.Length; i++) {
+                    var indexType = oldIndices[i].GetActualType(TypeSystem);
+
+                    indices[i] = MakeTemporaryVariable(indexType);
+                    initIndices[i] = new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, indices[i], oldIndices[i], indexType
+                    );
+
+                    boe.ReplaceChildRecursive(oldIndices[i], indices[i]);
+                }
+
+                var resultVar = MakeTemporaryVariable(returnType);
+                var newValueVar = MakeTemporaryVariable(returnType);
+                var initNewValue = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, newValueVar, boe, returnType
+                );
+                var initResult = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, resultVar, makeSetter(indices, newValueVar), returnType
+                );
+
+                var commaExpression = new JSCommaExpression(
+                    initIndices.Concat(new JSExpression[] { initNewValue, initResult, resultVar }).ToArray()
+                );
+                return commaExpression;
+            } else {
+                var resultVar = MakeTemporaryVariable(returnType);
+                var initResult = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, resultVar, makeSetter(indices, boe), returnType
+                );
+                var commaExpression = new JSCommaExpression(
+                    new JSExpression[] { initResult, resultVar }
+                );
+                return commaExpression;
             }
         }
 
