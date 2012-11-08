@@ -1797,6 +1797,11 @@ JSIL.ImplementExternals("System.Environment", function ($) {
 $jsilcore.hashContainerBase = function ($) {
   var mscorlib = JSIL.GetCorlib();
 
+  var BucketEntry = function (key, value) {
+    this.key = key;
+    this.value = value;
+  };
+
   $.RawMethod(false, "$areEqual", function HashContainer_AreEqual (lhs, rhs) {
     if (lhs === rhs)
       return true;
@@ -1807,13 +1812,13 @@ $jsilcore.hashContainerBase = function ($) {
   $.RawMethod(false, "$searchBucket", function HashContainer_SearchBucket (key) {
     var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
-    if (!JSIL.IsArray(bucket))
+    if (!bucket)
       return null;
 
-    for (var i = 0; i < bucket.length; i++) {
+    for (var i = 0, l = bucket.length; i < l; i++) {
       var bucketEntry = bucket[i];
 
-      if (this.$areEqual(bucketEntry[0], key))
+      if (this.$areEqual(bucketEntry.key, key))
         return bucketEntry;
     }
 
@@ -1823,13 +1828,13 @@ $jsilcore.hashContainerBase = function ($) {
   $.RawMethod(false, "$removeByKey", function HashContainer_Remove (key) {
     var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
-    if (!JSIL.IsArray(bucket))
+    if (!bucket)
       return false;
 
-    for (var i = 0; i < bucket.length; i++) {
+    for (var i = 0, l = bucket.length; i < l; i++) {
       var bucketEntry = bucket[i];
 
-      if (this.$areEqual(bucketEntry[0], key)) {
+      if (this.$areEqual(bucketEntry.key, key)) {
         bucket.splice(i, 1);
         this._count -= 1;
         return true;
@@ -1842,10 +1847,10 @@ $jsilcore.hashContainerBase = function ($) {
   $.RawMethod(false, "$addToBucket", function HashContainer_Add (key, value) {
     var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
-    if (!JSIL.IsArray(bucket))
+    if (!bucket)
       this._dict[hashCode] = bucket = [];
 
-    bucket.push([key, value]);
+    bucket.push(new BucketEntry(key, value));
     this._count += 1;
     return value;
   });
@@ -1937,7 +1942,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function get_Item (key) {
       var bucketEntry = this.$searchBucket(key);
       if (bucketEntry !== null)
-        return bucketEntry[1];
+        return bucketEntry.value;
       else
         throw new System.Exception("Key not found");
     }
@@ -1960,7 +1965,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
             var bucket = this._dict[k];
 
             for (var i = 0; i < bucket.length; i++)
-              keys.push(bucket[i][0]);
+              keys.push(bucket[i].key);
           }
 
           return new (this.tKeysEnumerator)(keys, -1);
@@ -1986,7 +1991,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
             var bucket = this._dict[k];
 
             for (var i = 0; i < bucket.length; i++)
-              values.push(bucket[i][1]);
+              values.push(bucket[i].value);
           }
 
           return new (this.tValuesEnumerator)(values, -1);
@@ -2014,8 +2019,8 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
 
             if ((valueIndex >= 0) && (valueIndex < bucket.length)) {
               var current = this._state.current;
-              current.key = bucket[valueIndex][0];
-              current.value = bucket[valueIndex][1];
+              current.key = bucket[valueIndex].key;
+              current.value = bucket[valueIndex].value;
               result.value = current;
               return true;
             } else {
@@ -2046,7 +2051,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function set_Item (key, value) {
       var bucketEntry = this.$searchBucket(key);
       if (bucketEntry !== null)
-        return bucketEntry[1] = value;
+        return bucketEntry.value = value;
       else
         return this.$addToBucket(key, value);
     }
@@ -2057,7 +2062,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function TryGetValue (key, /* ref */ value) {
       var bucketEntry = this.$searchBucket(key);
       if (bucketEntry !== null) {
-        value.value = bucketEntry[1];
+        value.value = bucketEntry.value;
         return true;
       } else {
         value.value = JSIL.DefaultValue(this.TValue);
