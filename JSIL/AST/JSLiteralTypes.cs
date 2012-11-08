@@ -58,6 +58,8 @@ namespace JSIL.Ast {
 
         public JSDefaultValueLiteral (TypeReference type)
             : base(type) {
+            if (type == null)
+                throw new ArgumentNullException("type");
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {

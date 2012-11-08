@@ -329,7 +329,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSVariable : JSIdentifier {
+    public class JSVariable : JSIdentifier, IAnnotatedChildren {
         public readonly MethodReference Function;
 
         public readonly string Name;
@@ -340,6 +340,9 @@ namespace JSIL.Ast {
         public JSVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null)
             : base(type) {
             Name = name;
+
+            if (type == null)
+                throw new ArgumentNullException("type");
 
             if (type is ByReferenceType) {
                 type = ((ByReferenceType)type).ElementType;
@@ -464,6 +467,12 @@ namespace JSIL.Ast {
                 yield return DefaultValue;
             }
         }
+
+        public IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("DefaultValue", DefaultValue);
+            }
+        }
     }
 
     public class JSParameter : JSVariable {
@@ -556,7 +565,7 @@ namespace JSIL.Ast {
         public readonly JSVariable Referent;
 
         public JSVariableDereference (JSVariable referent, MethodReference function)
-            : base(referent.Identifier, null, function) {
+            : base(referent.Identifier, DeReferenceType(referent.IdentifierType), function) {
 
             Referent = referent;
         }
@@ -602,7 +611,7 @@ namespace JSIL.Ast {
         public readonly IDictionary<string, JSVariable> Variables;
 
         public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier, MethodReference function)
-            : base(identifier, null, function) {
+            : base(identifier, variables[identifier].IdentifierType, function) {
 
             Variables = variables;
         }
@@ -685,7 +694,7 @@ namespace JSIL.Ast {
         public readonly JSVariable Referent;
 
         public JSVariableReference (JSVariable referent, MethodReference function)
-            : base(referent.Identifier, null, function) {
+            : base(referent.Identifier, new ByReferenceType(referent.IdentifierType), function) {
 
             Referent = referent;
         }

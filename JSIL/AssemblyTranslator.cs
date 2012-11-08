@@ -1492,19 +1492,19 @@ namespace JSIL {
                     si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
-            new IntroduceEnumCasts(
-                si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
-            ).Visit(function);
-
-            new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
-            ).Visit(function);
-            
-            // We need another operator simplification pass to simplify expressions created by cast expressions
-            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
-                new SimplifyOperators(
-                    si.JSIL, si.JS, si.TypeSystem
+                new IntroduceEnumCasts(
+                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
+
+                new ExpandCastExpressions(
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
+                ).Visit(function);
+            
+                // We need another operator simplification pass to simplify expressions created by cast expressions
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
 
                 // We need another operator simplification pass to simplify expressions created by cast expressions
                 if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
@@ -1523,6 +1523,9 @@ namespace JSIL {
                     new SimplifyLoops(
                         si.TypeSystem, true
                     ).Visit(function);
+
+                var fsci = new FoldStructConstructorInvocations(si.TypeSystem);
+                fsci.Visit(function);
 
                 temporaryEliminationPass();
 
@@ -1552,6 +1555,7 @@ namespace JSIL {
                         si.TypeSystem, _TypeInfoProvider
                     ).Visit(function);
                 }
+
             } catch (Exception exc) {
                 string functionName;
 
