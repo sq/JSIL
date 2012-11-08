@@ -70,6 +70,8 @@
     <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
     <None Include="AnalysisTestCases\TemporaryArraySize.cs" />
     <None Include="AnalysisTestCases\AddToStructProperty.cs" />
+    <None Include="AnalysisTestCases\StructImmutabilityDetection.cs" />
+    <None Include="AnalysisTestCases\ImmutableStructThisAssignment.cs" />
     <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />

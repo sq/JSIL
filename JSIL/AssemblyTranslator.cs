@@ -1448,6 +1448,7 @@ namespace JSIL {
                 new EmulateStructAssignment(
                     si.TypeSystem,
                     FunctionCache,
+                    _TypeInfoProvider, 
                     si.CLR,
                     Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
                 ).Visit(function);

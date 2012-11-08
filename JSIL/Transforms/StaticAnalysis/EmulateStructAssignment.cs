@@ -11,6 +11,7 @@ namespace JSIL.Transforms {
     public class EmulateStructAssignment : JSAstVisitor {
         public const bool Tracing = false;
 
+        public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
         public readonly IFunctionSource FunctionSource;
         public readonly TypeSystem TypeSystem;
@@ -20,9 +21,10 @@ namespace JSIL.Transforms {
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
-        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, CLRSpecialIdentifiers clr, bool optimizeCopies) {
+        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, TypeInfoProvider typeInfo, CLRSpecialIdentifiers clr, bool optimizeCopies) {
             TypeSystem = typeSystem;
             FunctionSource = functionSource;
+            TypeInfo = typeInfo;
             CLR = clr;
             OptimizeCopies = optimizeCopies;
         }
@@ -33,7 +35,7 @@ namespace JSIL.Transforms {
 
             var fieldAccess = target as JSFieldAccess;
             if (fieldAccess != null) {
-                return fieldAccess.Field.Field.Metadata.HasAttribute("JSIL.Meta.JSImmutable");
+                return fieldAccess.Field.Field.IsImmutable;
             }
 
             var dot = target as JSDotExpressionBase;
@@ -121,6 +123,10 @@ namespace JSIL.Transforms {
 
             if (IsImmutable(value))
                 return false;
+
+            var valueTypeInfo = TypeInfo.GetExisting(valueType);
+            if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable)
+                return false;
             
             // If the expression is a parameter that is only used once and isn't aliased,
             //  we don't need to copy it.
@@ -182,7 +188,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, CLR, OptimizeCopies);
+                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, TypeInfo, CLR, OptimizeCopies);
                 nested.Visit(fn);
                 return;
             }
@@ -250,6 +256,31 @@ namespace JSIL.Transforms {
                 } else {
                     if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
                         Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
+                }
+            }
+
+            var thisReference = invocation.ThisReference;
+            if (
+                (thisReference != null) && 
+                (sa != null) && 
+                sa.ViolatesThisReferenceImmutability && 
+                !(ParentNode is JSCommaExpression)
+            ) {
+                // The method we're calling violates immutability so we need to clone the this-reference
+                //  before we call it.
+                var thisReferenceType = thisReference.GetActualType(TypeSystem);
+                if (TypeUtil.IsStruct(thisReferenceType)) {
+                    if (!(thisReference is JSVariable) && !(thisReference is JSFieldAccess))
+                        throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation.ToString());
+
+                    var cloneExpr = new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
+                    );
+                    var commaExpression = new JSCommaExpression(cloneExpr, invocation);
+
+                    ParentNode.ReplaceChild(invocation, commaExpression);
+                    VisitReplacement(commaExpression);
+                    return;
                 }
             }
 

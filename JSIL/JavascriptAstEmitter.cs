@@ -1177,6 +1177,8 @@ namespace JSIL {
                 return false;
             else if (ParentNode is JSExpressionStatement)
                 return false;
+            else if (ParentNode is JSCommaExpression)
+                return false;
 
             return true;
         }

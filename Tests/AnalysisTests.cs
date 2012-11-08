@@ -443,5 +443,38 @@ Shockwave.TryMove(Down, 384)";
                 @"b = a.MemberwiseClone()"
             ), "Copy was not cloned");
         }
+
+        [Test]
+        public void StructImmutabilityDetection () {
+            var output = "1 1 2 2\r\n1 2 2 5\r\n2 2 5 5";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\StructImmutabilityDetection.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @"ICT.MemberwiseClone"
+            ));
+            Assert.IsTrue(generatedJs.Contains(
+                @"CT.MemberwiseClone"
+            ));
+        }
+
+        [Test]
+        public void ImmutableStructThisAssignment () {
+            var output = "2 2\r\n1 2";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ImmutableStructThisAssignment.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains(
+                @"ict = ict.MemberwiseClone(),"
+            ));
+        }
     }
 }

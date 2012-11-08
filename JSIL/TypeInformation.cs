@@ -400,6 +400,7 @@ namespace JSIL.Internal {
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
         public readonly bool IsInterface;
+        public readonly bool IsImmutable;
         public readonly string Replacement;
 
         // Matches JSIL runtime name escaping rules
@@ -653,6 +654,17 @@ namespace JSIL.Internal {
                             Members.TryAdd(member.Key, member.Value);
                     }
                 }
+            }
+
+            if (
+                !IsInterface &&
+                !IsDelegate &&
+                !Definition.IsEnum && 
+                !Definition.IsAbstract && 
+                !Definition.IsPrimitive
+            ) {
+                IsImmutable = Metadata.HasAttribute("JSIL.Meta.JSImmutable") ||
+                    Members.Values.OfType<FieldInfo>().All((f) => f.IsStatic || f.IsImmutable);
             }
 
             DoDeferredMethodSignatureSetUpdate();
@@ -1517,6 +1529,12 @@ namespace JSIL.Internal {
 
         public override TypeReference ReturnType {
             get { return Member.FieldType; }
+        }
+
+        public bool IsImmutable {
+            get {
+                return Member.IsInitOnly || Metadata.HasAttribute("JSIL.Meta.JSImmutable") || DeclaringType.Metadata.HasAttribute("JSIL.Meta.JSImmutable");
+            }
         }
 
         public override bool IsStatic {

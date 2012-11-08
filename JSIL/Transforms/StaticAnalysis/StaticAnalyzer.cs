@@ -229,6 +229,9 @@ namespace JSIL.Transforms {
 
             if (isAssignment) {
                 if (leftVar != null) {
+                    if ((left == leftVar) && leftVar.IsThis)
+                        State.ReassignsThisReference = true;
+
                     var leftType = left.GetActualType(TypeSystem);
                     var rightType = boe.Right.GetActualType(TypeSystem);
 
@@ -574,6 +577,8 @@ namespace JSIL.Transforms {
         public string ResultVariable = null;
         // If true, this method's return value is always a 'new' expression.
         public bool ResultIsNew = false;
+        // If true, somewhere within the body of the method, the this-reference is reassigned (only valid for structs).
+        public bool ReassignsThisReference = false;
 
         public FunctionAnalysis1stPass (JSFunctionExpression function) {
             Function = function;
@@ -600,6 +605,7 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
         public readonly bool ResultIsNew;
+        public readonly bool ViolatesThisReferenceImmutability;
 
         public readonly IFunctionSource FunctionSource;
         public readonly FunctionAnalysis1stPass Data;
@@ -704,6 +710,14 @@ namespace JSIL.Transforms {
 
                 rm = rmfp.ResultMethod;
                 ResultIsNew = rmfp.ResultIsNew;
+            }
+
+            if (
+                !data.Function.Method.Method.IsStatic && 
+                data.Function.Method.Method.DeclaringType.IsImmutable &&
+                data.ReassignsThisReference
+            ) {
+                ViolatesThisReferenceImmutability = true;
             }
 
             Trace(data.Function.Method.Reference.FullName);
