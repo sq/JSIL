@@ -53,7 +53,7 @@ namespace JSIL {
         }
 
         public readonly MethodTypeFactory MethodTypes;
-        public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
+        public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> PendingTransformsQueue;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<JSMethod> MakeCacheEntry;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<PopulatedCacheEntryArgs> MakePopulatedCacheEntry;
@@ -64,13 +64,13 @@ namespace JSIL {
             Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(
                 Environment.ProcessorCount, 4096, comparer
             );
-            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(
+            PendingTransformsQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(
                 Math.Max(1, Environment.ProcessorCount / 4), 4096, comparer
             );
             MethodTypes = new MethodTypeFactory();
 
             MakeCacheEntry = (id, method) => {
-                OptimizationQueue.TryEnqueue(id);
+                PendingTransformsQueue.TryEnqueue(id);
 
                 return new Entry {
                     Info = method.Method,
@@ -90,7 +90,7 @@ namespace JSIL {
                     MethodTypes
                 );
 
-                OptimizationQueue.TryEnqueue(id);
+                PendingTransformsQueue.TryEnqueue(id);
 
                 return new Entry {
                     Identifier = id,
@@ -237,7 +237,7 @@ namespace JSIL {
 
         public void Dispose () {
             Cache.Dispose();
-            OptimizationQueue.Clear();
+            PendingTransformsQueue.Clear();
             MethodTypes.Dispose();
         }
     }

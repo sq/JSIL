@@ -48,7 +48,7 @@ namespace JSIL {
         public event Action<string> AssemblyLoaded;
 
         public event Action<ProgressReporter> Decompiling;
-        public event Action<ProgressReporter> Optimizing;
+        public event Action<ProgressReporter> RunningTransforms;
         public event Action<ProgressReporter> Writing;
         public event Action<string, ProgressReporter> DecompilingMethod;
 
@@ -376,7 +376,7 @@ namespace JSIL {
 
             pr.OnFinished();
 
-            OptimizeAllFunctions();
+            RunTransformsOnAllFunctions();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -519,22 +519,22 @@ namespace JSIL {
             }
         }
 
-        protected void OptimizeAllFunctions () {
+        protected void RunTransformsOnAllFunctions () {
             var pr = new ProgressReporter();
-            if (Optimizing != null)
-                Optimizing(pr);
+            if (RunningTransforms != null)
+                RunningTransforms(pr);
 
             int i = 0;
             QualifiedMemberIdentifier id;
-            while (FunctionCache.OptimizationQueue.TryDequeue(out id)) {
+            while (FunctionCache.PendingTransformsQueue.TryDequeue(out id)) {
                 var e = FunctionCache.GetCacheEntry(id);
                 if (e.Expression == null) {
                     i++;
                     continue;
                 }
 
-                pr.OnProgressChanged(i++, i + FunctionCache.OptimizationQueue.Count);
-                OptimizeFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
+                pr.OnProgressChanged(i++, i + FunctionCache.PendingTransformsQueue.Count);
+                RunTransformsOnFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
             }
 
             pr.OnFinished();
@@ -1417,7 +1417,7 @@ namespace JSIL {
             return allVariables;
         }
 
-        private void OptimizeFunction (
+        private void RunTransformsOnFunction (
             SpecialIdentifiers si, HashSet<string> parameterNames,
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
