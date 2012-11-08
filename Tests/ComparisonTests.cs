@@ -394,6 +394,7 @@ namespace JSIL.Tests {
         protected IEnumerable<TestCaseData> ArithmeticSource () {
             return FilenameTestSource(
                 new[] { 
+                    @"TestCases\LongArithmetic.cs",
                     @"TestCases\IntegerArithmetic.cs",
                     @"TestCases\TernaryArithmetic.cs",
                     @"TestCases\NullableArithmetic.cs",
@@ -473,6 +474,36 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
             return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("Int64TestCasesSource")]
+        public void Int64TestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> Int64TestCasesSource () {
+            return FolderTestSource("Int64TestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("IOTestCasesSource")]
+        public void IOTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> IOTestCasesSource () {
+            return FolderTestSource("IOTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("DateTimeTestCasesSource")]
+        public void DateTimeTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> DateTimeTestCasesSource () {
+            return FolderTestSource("DateTimeTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
         [Test]

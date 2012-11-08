@@ -1177,6 +1177,8 @@ namespace JSIL {
                 return false;
             else if (ParentNode is JSExpressionStatement)
                 return false;
+            else if (ParentNode is JSCommaExpression)
+                return false;
 
             return true;
         }
@@ -1648,7 +1650,7 @@ namespace JSIL {
         public void VisitNode (JSCommaExpression comma) {
             Output.LPar();
 
-            CommaSeparatedList(comma.SubExpressions, false);
+            CommaSeparatedList(comma.SubExpressions, true);
 
             Output.RPar();
         }

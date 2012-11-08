@@ -141,11 +141,12 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
-    /// Specifies that you wish for JSIL to treat the specified field as if it is immutable.
+    /// If applied to a field, specifies that you wish for JSIL to treat the specified field as if it is immutable.
     /// Struct copies will not be generated for the annotated field or any of its members.
+    /// If applied to a class/struct, the class/struct and all its fields are treated as if they are immutable.
     /// </summary>
     [AttributeUsage(
-        AttributeTargets.Field
+        AttributeTargets.Field | AttributeTargets.Class | AttributeTargets.Struct
     )]
     public class JSImmutable : Attribute {
     }

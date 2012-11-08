@@ -88,8 +88,9 @@ var $xmlasms = new JSIL.AssemblyCollection({
 JSIL.XML.ReaderFromStream = function (stream) {
   // FIXME: Won't work if the stream is written to while being read from.
 
-  var bytes = new Array(stream.Length);
-  stream.Read(bytes, 0, stream.Length);
+  var streamLength = stream.Length.ToInt32();
+  var bytes = new Array(streamLength);
+  stream.Read(bytes, 0, streamLength);
 
   var xml;
 

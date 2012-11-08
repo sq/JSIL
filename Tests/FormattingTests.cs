@@ -750,5 +750,27 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void StructConstructorInvocationEfficiency () {
+            var output = "ct=3, mc=(a=2 b=1)";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\StructCtorInvocation.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("CustomType.prototype._ctor"), "CustomType constructor invoked indirectly"
+                );
+                Assert.IsFalse(
+                    generatedJs.Contains("CustomType();"), "CustomType instance constructed without arguments"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

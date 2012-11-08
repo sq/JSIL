@@ -14,12 +14,14 @@ namespace JSIL.Transforms {
         public readonly JSSpecialIdentifiers JS;
         public readonly JSILIdentifier JSIL;
         public readonly ITypeInfoSource TypeInfo;
+        public readonly MethodTypeFactory MethodTypeFactory;
 
-        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo) {
+        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo, MethodTypeFactory methodTypeFactory) {
             TypeSystem = typeSystem;
             JS = js;
             JSIL = jsil;
             TypeInfo = typeInfo;
+            MethodTypeFactory = methodTypeFactory;
         }
 
         public void VisitNode (JSCastExpression ce) {
@@ -99,15 +101,65 @@ namespace JSIL.Transforms {
                 );
             } else if (
                 TypeUtil.IsNumeric(targetType) &&
-                TypeUtil.IsNumeric(currentType)
+                TypeUtil.IsNumeric(currentType) &&
+                !TypeUtil.TypesAreEqual(targetType, currentType, true)
             ) {
-                if (
+                if (currentType.MetadataType == MetadataType.Int64) {
+                    if (targetType.MetadataType == MetadataType.UInt64) {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToUInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                    else {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                }
+                else if (currentType.MetadataType == MetadataType.UInt64) { 
+                    if (targetType.MetadataType == MetadataType.Int64) { 
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                    else {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                }
+                else if (targetType.MetadataType == MetadataType.Int64) {
+                    newExpression = JSInvocationExpression.InvokeStatic(
+                        new JSType(TypeSystem.Int64),
+                        new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
+                        new[] { ce.Expression },
+                        true);
+                }
+                else if (targetType.MetadataType == MetadataType.UInt64) {
+                    newExpression = JSInvocationExpression.InvokeStatic(
+                        new JSType(TypeSystem.UInt64),
+                        new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
+                        new[] { ce.Expression },
+                        true);
+                }
+                else if (
                     TypeUtil.IsIntegral(currentType) ||
-                    !TypeUtil.IsIntegral(targetType)
-                )
+                    !TypeUtil.IsIntegral(targetType))
+                {
                     newExpression = ce.Expression;
+                }
                 else
+                {
                     newExpression = new JSTruncateExpression(ce.Expression);
+                }
             } else {
                 // newExpression = JSIL.Cast(ce.Expression, targetType);
             }

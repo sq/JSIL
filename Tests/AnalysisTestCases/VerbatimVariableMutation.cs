@@ -20,7 +20,7 @@ public static class Program {
 public struct CustomType {
     public int Value;
   
-    [JSReplacement("($this.Value = $value, $this)")]
+    [JSReplacement("(($this.Value = $value), $this)")]
     public CustomType (int value) {
         Value = value;
     }

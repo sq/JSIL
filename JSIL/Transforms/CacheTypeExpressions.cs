@@ -25,7 +25,9 @@ namespace JSIL.Transforms {
             if (!IsCacheable(type))
                 return null;
 
-            var resolved = TypeUtil.GetTypeDefinition(type);
+            bool mapArraysToSystemArray = false;
+
+            var resolved = TypeUtil.GetTypeDefinition(type, mapArraysToSystemArray);
             if (resolved == null)
                 return null;
 
@@ -35,7 +37,7 @@ namespace JSIL.Transforms {
             var git = type as GenericInstanceType;
 
             if (git != null) {
-                arguments = (from a in git.GenericArguments select TypeUtil.GetTypeDefinition(a)).ToArray();
+                arguments = (from a in git.GenericArguments select TypeUtil.GetTypeDefinition(a, mapArraysToSystemArray)).ToArray();
             } else {
                 arguments = new TypeDefinition[0];
             }

@@ -425,9 +425,9 @@ namespace JSIL.Compiler {
 
             var translator = new AssemblyTranslator(configuration, typeInfoProvider, manifest, assemblyCache);
 
-            translator.Decompiling += MakeProgressHandler("Decompiling   ");
-            translator.Optimizing += MakeProgressHandler ("Optimizing    ");
-            translator.Writing += MakeProgressHandler    ("Generating JS ");
+            translator.Decompiling += MakeProgressHandler       ("Decompiling ");
+            translator.RunningTransforms += MakeProgressHandler ("Translating ");
+            translator.Writing += MakeProgressHandler           ("Writing JS  ");
 
             translator.AssemblyLoaded += (fn) => {
                 Console.Error.WriteLine("// Loaded {0}", ShortenPath(fn));

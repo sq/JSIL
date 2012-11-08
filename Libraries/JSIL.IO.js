@@ -6,7 +6,6 @@ if (typeof (JSIL) === "undefined")
 $private = $jsilcore;
 
 if (!JSIL.GetAssembly("mscorlib", true)) {
-
   JSIL.DeclareNamespace("System");
   JSIL.DeclareNamespace("System.IO");
 
@@ -78,6 +77,57 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     $.Property({Static:false, Public:true, Virtual: true }, "Position");
   });
 
+  JSIL.MakeEnum(
+    "System.IO.SeekOrigin", true, {
+      Begin: 0, 
+      Current: 1, 
+      End: 2
+    }, false
+  );
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryWriter", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ExternalMethod({Static:false, Public:false}, ".ctor", 
+      new JSIL.MethodSignature(null, [], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:false}, "Dispose", 
+      new JSIL.MethodSignature(null, [$.Boolean], [])
+    );
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryReader", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, "Close", 
+      new JSIL.MethodSignature(null, [], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:false}, "Dispose", 
+      new JSIL.MethodSignature(null, [$.Boolean], [])
+    );
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
 }
 
 var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
@@ -346,21 +396,47 @@ var $bytestream = function ($) {
   $.Method({Static:false, Public:true }, "get_Position", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_Position () {
-      return this._pos;
+      return $jsilcore.System.Int64.FromInt32(this._pos);
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Position", 
     (new JSIL.MethodSignature(null, [$.Int64], [])), 
     function set_Position (value) {
-      this._pos = value;
+      this._pos = value.ToInt32();
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Length", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_Length () {
-      return this._length;
+      return $jsilcore.System.Int64.FromInt32(this._length);
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "get_CanSeek", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanSeek () {
+      return true;
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "Seek", 
+    (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
+    function Seek (offset, origin) {
+      switch (origin)
+      {
+      case System.IO.SeekOrigin.Begin:
+        this._pos = offset.ToInt32();
+        break;
+      case System.IO.SeekOrigin.Current:
+        this._pos += offset.ToInt32();
+        break;
+      case System.IO.SeekOrigin.End:
+        this._pos = this._buffer.length - offset.ToInt32();
+        break;
+      }
+      return $jsilcore.System.Int64.FromInt32(this._pos);
     }
   );
 
@@ -476,32 +552,6 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), $jsilcore.TypeRef("System.IO.FileShare")], [])), 
     // FIXME: access, share
     ctorImpl
-  );
-  
-  $.Method({Static:false, Public:true }, "get_CanSeek", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function get_CanSeek () {
-      return true;
-    }
-  );
-  
-  $.Method({Static:false, Public:true }, "Seek", 
-    (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
-    function Seek (offset, origin) {
-      switch (origin)
-      {
-      case System.IO.SeekOrigin.Begin:
-        this._pos = offset;
-        break;
-      case System.IO.SeekOrigin.Current:
-        this._pos += offset;
-        break;
-      case System.IO.SeekOrigin.End:
-        this._pos = this._buffer.length - offset;
-        break;
-      }
-      return this._pos;
-    }
   );
 
   $.RawMethod(false, "$applyMode", function (fileMode) {
@@ -764,6 +814,13 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
       this.$writeBytes(buf);
     }
   );
+
+  $.Method({Static: false, Public: true}, "Dispose",
+    (new JSIL.MethodSignature(null, [], [])),
+    function () {
+      this.m_stream = null;
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
@@ -900,7 +957,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
         break;
       }
 
-      this.m_stream.Position = oldPosition + actualLength;
+      this.m_stream.Position = $jsilcore.System.Int64.op_Addition(
+        oldPosition, $jsilcore.System.Int64.FromInt32(actualLength)
+      );
       return firstChar;
     }
   );

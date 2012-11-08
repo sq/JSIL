@@ -48,7 +48,7 @@ namespace JSIL {
         public event Action<string> AssemblyLoaded;
 
         public event Action<ProgressReporter> Decompiling;
-        public event Action<ProgressReporter> Optimizing;
+        public event Action<ProgressReporter> RunningTransforms;
         public event Action<ProgressReporter> Writing;
         public event Action<string, ProgressReporter> DecompilingMethod;
 
@@ -71,9 +71,9 @@ namespace JSIL {
             "System.Byte", "System.SByte", 
             "System.UInt16", "System.Int16",
             "System.UInt32", "System.Int32",
+            "System.UInt64", "System.Int64",
             "System.Single", "System.Double", 
             "System.Boolean",
-            // "System.UInt64", "System.Int64",
         }; 
 
         public AssemblyTranslator (
@@ -376,7 +376,7 @@ namespace JSIL {
 
             pr.OnFinished();
 
-            OptimizeAllFunctions();
+            RunTransformsOnAllFunctions();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -519,22 +519,22 @@ namespace JSIL {
             }
         }
 
-        protected void OptimizeAllFunctions () {
+        protected void RunTransformsOnAllFunctions () {
             var pr = new ProgressReporter();
-            if (Optimizing != null)
-                Optimizing(pr);
+            if (RunningTransforms != null)
+                RunningTransforms(pr);
 
             int i = 0;
             QualifiedMemberIdentifier id;
-            while (FunctionCache.OptimizationQueue.TryDequeue(out id)) {
+            while (FunctionCache.PendingTransformsQueue.TryDequeue(out id)) {
                 var e = FunctionCache.GetCacheEntry(id);
                 if (e.Expression == null) {
                     i++;
                     continue;
                 }
 
-                pr.OnProgressChanged(i++, i + FunctionCache.OptimizationQueue.Count);
-                OptimizeFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
+                pr.OnProgressChanged(i++, i + FunctionCache.PendingTransformsQueue.Count);
+                RunTransformsOnFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
             }
 
             pr.OnFinished();
@@ -1385,6 +1385,7 @@ namespace JSIL {
                     methodInfo, methodDef, method, identifier,
                     translator, parameters, body
                 );
+                function.TemporaryVariableCount += translator.TemporaryVariableCount;
 
                 pr.OnFinished();
                 return function;
@@ -1416,7 +1417,7 @@ namespace JSIL {
             return allVariables;
         }
 
-        private void OptimizeFunction (
+        private void RunTransformsOnFunction (
             SpecialIdentifiers si, HashSet<string> parameterNames,
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
@@ -1439,9 +1440,15 @@ namespace JSIL {
 
                 temporaryEliminationPass();
 
+                new EmulateInt64(
+                    FunctionCache.MethodTypes,
+                    si.TypeSystem
+                ).Visit(function);
+
                 new EmulateStructAssignment(
                     si.TypeSystem,
                     FunctionCache,
+                    _TypeInfoProvider, 
                     si.CLR,
                     Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
                 ).Visit(function);
@@ -1485,9 +1492,19 @@ namespace JSIL {
                     si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
-                new ExpandCastExpressions(
-                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                new IntroduceEnumCasts(
+                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
+
+                new ExpandCastExpressions(
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
+                ).Visit(function);
+            
+                // We need another operator simplification pass to simplify expressions created by cast expressions
+                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                    new SimplifyOperators(
+                        si.JSIL, si.JS, si.TypeSystem
+                    ).Visit(function);
 
                 // We need another operator simplification pass to simplify expressions created by cast expressions
                 if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
@@ -1507,6 +1524,9 @@ namespace JSIL {
                         si.TypeSystem, true
                     ).Visit(function);
 
+                var fsci = new FoldStructConstructorInvocations(si.TypeSystem);
+                fsci.Visit(function);
+
                 temporaryEliminationPass();
 
                 if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
@@ -1523,7 +1543,7 @@ namespace JSIL {
                 lnd.EliminateUnusedLoopNames();
 
                 new ExpandCastExpressions(
-                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
                 if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
@@ -1535,6 +1555,7 @@ namespace JSIL {
                         si.TypeSystem, _TypeInfoProvider
                     ).Visit(function);
                 }
+
             } catch (Exception exc) {
                 string functionName;
 
@@ -1823,7 +1844,7 @@ namespace JSIL {
 
                             var es = new JSExpressionStatement(defaultValue);
                             var ece = new ExpandCastExpressions(
-                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo
+                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo, FunctionCache.MethodTypes
                             );
                             ece.Visit(es);
 

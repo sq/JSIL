@@ -89,6 +89,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
+    <Compile Include="Transforms\FoldStructConstructorInvocations.cs" />
+    <Compile Include="Transforms\EmulateInt64.cs" />
+    <Compile Include="AST\JSAstBuilder.cs" />
     <Compile Include="Transforms\CollapseNulls.cs" />
     <Compile Include="Transforms\ConvertPropertyAccessesToInvocations.cs" />
     <Compile Include="Transforms\OptimizePropertyMutationAssignments.cs" />
