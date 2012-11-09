@@ -453,10 +453,17 @@ JSIL.ImplementExternals(
   "System.Exception", function ($) {
     var mscorlib = JSIL.GetCorlib();
 
+    function captureStackTrace () {
+      var e = new Error();
+      var stackText = e.stack || "";
+      return stackText;
+    };
+
     $.Method({Static:false, Public:true }, ".ctor", 
       (new JSIL.MethodSignature(null, [], [])), 
       function _ctor () {
         this._message = null;
+        this._stackTrace = captureStackTrace();
       }
     );
 
@@ -464,6 +471,7 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature(null, [$.String], [])), 
       function _ctor (message) {
         this._message = message;
+        this._stackTrace = captureStackTrace();
       }
     );
 
@@ -472,6 +480,7 @@ JSIL.ImplementExternals(
       function _ctor (message, innerException) {
         this._message = message;
         this._innerException = innerException;
+        this._stackTrace = captureStackTrace();
       }
     );
 
@@ -489,6 +498,13 @@ JSIL.ImplementExternals(
           return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
         else
           return this._message;
+      }
+    );
+
+    $.Method({Static: false, Public: true }, "get_StackTrace",
+      new JSIL.MethodSignature($.String, []),
+      function () {
+        return this._stackTrace || "";
       }
     );
 

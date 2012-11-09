@@ -396,7 +396,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentLoadException", 
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.String], []), function (message) {
-    this._message = String(message);
+    System.Exception.prototype._ctor.call(this, message);
   });
 });
 
@@ -1112,19 +1112,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
     }
   );
 
+  $.RawMethod(false, "makeError", function throwError (text) {
+    return new Microsoft.Xna.Framework.Content.ContentLoadException(text);
+  });
 
   $.Method({Static:false, Public:false}, "ReadHeader", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ReadHeader () {
       var formatHeader = String.fromCharCode.apply(String, this.ReadBytes(3));
-      if (formatHeader != "XNB") throw new Error("Invalid XNB format");
+      if (formatHeader != "XNB") 
+        throw this.makeError("Invalid XNB format");
 
       var platformId = String.fromCharCode(this.ReadByte());
       switch (platformId) {
       case "w":
         break;
       default:
-        throw new Error("Unsupported XNB platform: " + platformId);
+        throw this.makeError("Unsupported XNB platform: " + platformId);
       }
 
       var formatVersion = this.ReadByte();
@@ -1133,7 +1137,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
       case 5:
         break;
       default:
-        throw new Error("Unsupported XNB format version: " + formatVersion);
+        throw this.makeError("Unsupported XNB format version: " + formatVersion);
       }
 
       var formatFlags = this.ReadByte();
@@ -1142,12 +1146,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
       var isCompressed = (formatFlags & 0x80) != 0;
 
       if (isCompressed) 
-        throw new Error("Compressed XNBs are not supported");
+        throw this.makeError("Compressed XNBs are not supported");
 
       var uncompressedSize = this.ReadUInt32();
 
       var typeReaderCount = this.Read7BitEncodedInt();
       this.typeReaders = Microsoft.Xna.Framework.Content.ContentTypeReaderManager.ReadTypeManifest(typeReaderCount, this);
+
+      if (!this.typeReaders)
+        throw this.makeError("Failed to construct type readers");
     }
   );
 
