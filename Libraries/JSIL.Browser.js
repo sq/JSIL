@@ -332,11 +332,14 @@ function initBrowserHooks () {
     var currentWidth = localCanvas.clientWidth;
     var currentHeight = localCanvas.clientHeight;
 
-    var x = evt.clientX - localCanvas.offsetLeft;
-    var y = evt.clientY - localCanvas.offsetTop;
+    var x = (evt.clientX - localCanvas.offsetLeft) | 0;
+    var y = (evt.clientY - localCanvas.offsetTop) | 0;
 
-    x = x * $jsilbrowserstate.nativeWidth / currentWidth;
-    y = y * $jsilbrowserstate.nativeHeight / currentHeight;
+    var xScale = $jsilbrowserstate.nativeWidth / currentWidth;
+    var yScale = $jsilbrowserstate.nativeHeight / currentHeight;
+
+    x = (x * xScale) | 0;
+    y = (y * yScale) | 0;
 
     $jsilbrowserstate.mousePosition[0] = x;
     $jsilbrowserstate.mousePosition[1] = y;

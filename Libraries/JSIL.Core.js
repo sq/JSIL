@@ -166,8 +166,6 @@ $jsilcore.ArrayNull = [];
 $jsilcore.FunctionNotInitialized = function () { throw new Error("FunctionNotInitialized"); };
 $jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
 
-$jsilcore.PropertyNotInitialized = {};
-
 JSIL.Memoize = function (value) {
   return function MemoizedValue () { 
     return value 
@@ -175,7 +173,8 @@ JSIL.Memoize = function (value) {
 };
 
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
-  var state = $jsilcore.PropertyNotInitialized;
+  var isInitialized = false;
+  var defaultValue;
 
   var descriptor = {
     configurable: true,
@@ -201,16 +200,19 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   };
 
   var initIfNeeded = function (self) {
-    if (state === $jsilcore.PropertyNotInitialized) {
-      state = getDefault.call(self);
-      JSIL.Host.runLater(cleanup);
+    if (!isInitialized) {
+      defaultValue = getDefault.call(self);
+      if (!isInitialized) {
+        isInitialized = true;
+        JSIL.Host.runLater(cleanup);
+      }
     }
   };
 
   var getter = function LazyDefaultProperty_Get () {
     initIfNeeded(this);
 
-    return state;
+    return defaultValue;
   };
 
   var setter = function LazyDefaultProperty_Set (value) {
@@ -237,7 +239,8 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
 };
 
 JSIL.SetLazyValueProperty = function (target, key, getValue) {
-  var state = $jsilcore.PropertyNotInitialized;
+  var isInitialized = false;
+  var value;
 
   var descriptor = {
     configurable: true,
@@ -253,16 +256,19 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
       currentDescriptor &&
       (currentDescriptor.get === descriptor.get)
     )
-      JSIL.SetValueProperty(target, key, state);
+      JSIL.SetValueProperty(target, key, value);
   };
 
   var getter = function LazyValueProperty_Get () {
-    if (state === $jsilcore.PropertyNotInitialized) {
-      state = getValue.call(this);
-      JSIL.Host.runLater(cleanup);
+    if (!isInitialized) {
+      value = getValue.call(this);
+      if (!isInitialized) {
+        isInitialized = true;
+        JSIL.Host.runLater(cleanup);
+      }
     }
 
-    return state;
+    return value;
   };
 
   descriptor.get = getter;
