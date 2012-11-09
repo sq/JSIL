@@ -1024,6 +1024,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
 
         var typeReaderInstance = JSIL.CreateInstanceOfType(typeReaderType);
         var targetType = typeReaderInstance.TargetType;
+        if (!targetType) {
+          JSIL.Host.error(new Error("The type reader '" + typeReaderName + "' is broken or not implemented."));
+          return null;
+        }
+
         var targetTypeName = targetType.toString();
 
         thisType.AddTypeReader(typeReaderName, contentReader, typeReaderInstance);

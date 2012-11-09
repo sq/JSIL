@@ -823,6 +823,42 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   );
 });
 
+$jsilio.ReadUTF8CharFromStream = function ReadCharFromStream (stream) {
+  var utf8Encoding = new System.Text.UTF8Encoding();
+  utf8Encoding.fallbackCharacter = "\uFFFF";
+  var oldPosition = stream.Position;
+  var firstChar = -1, actualLength;
+
+  for (var i = 1; i < 5; i++) {
+    stream.Position = oldPosition;
+    
+    // A valid UTF-8 codepoint is 1-4 bytes
+    var bytes = [false, false, false, false];
+    stream.Read(bytes, 0, bytes.length);
+
+    var str = utf8Encoding.$decode(bytes);
+    if (str.length < 1)
+      continue;
+
+    firstChar = str[0];
+
+    if (firstChar === utf8Encoding.fallbackCharacter)
+      continue;
+
+    // We need to ensure that if we grabbed extra bytes, we rewind
+    // FIXME: This is wrong if the chars aren't normalized. Augh.
+    var actualCharEncoded = utf8Encoding.$encode(str.substr(0, 1));
+    actualLength = actualCharEncoded.length;
+
+    break;
+  }
+
+  stream.Position = $jsilcore.System.Int64.op_Addition(
+    oldPosition, $jsilcore.System.Int64.FromInt32(actualLength)
+  );
+  return firstChar;
+};
+
 JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])), 
@@ -928,39 +964,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
-      var oldPosition = this.m_stream.Position;
-      var utf8Encoding = new System.Text.UTF8Encoding();
-      utf8Encoding.fallbackCharacter = "\uFFFF";
-      var firstChar, actualLength;
-
-      for (var i = 1; i < 5; i++) {
-        this.m_stream.Position = oldPosition;
-        
-        // A valid UTF-8 codepoint is 1-4 bytes
-        var bytes = [false, false, false, false];
-        this.m_stream.Read(bytes, 0, bytes.length);
-
-        var str = utf8Encoding.$decode(bytes);
-        if (str.length < 1)
-          continue;
-
-        firstChar = str[0];
-
-        if (firstChar === utf8Encoding.fallbackCharacter)
-          continue;
-
-        // We need to ensure that if we grabbed extra bytes, we rewind
-        // FIXME: This is wrong if the chars aren't normalized. Augh.
-        var actualCharEncoded = utf8Encoding.$encode(str.substr(0, 1));
-        actualLength = actualCharEncoded.length;
-
-        break;
-      }
-
-      this.m_stream.Position = $jsilcore.System.Int64.op_Addition(
-        oldPosition, $jsilcore.System.Int64.FromInt32(actualLength)
-      );
-      return firstChar;
+      return $jsilio.ReadUTF8CharFromStream(this.m_stream);
     }
   );
 
@@ -1148,10 +1152,10 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadLine", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function ReadLine () {
-      var line = [];
+      var line = "";
 
       while (true) {
-        var ch = this.stream.ReadByte();
+        var ch = $jsilio.ReadUTF8CharFromStream(this.stream);
         if (ch === -1) {
           if (line.length === 0)
             return null;
@@ -1172,10 +1176,10 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
           break;
         }
 
-        line.push(ch);
+        line += ch;
       };
 
-      return JSIL.StringFromByteArray(line);
+      return line;
     }
   );
 });
