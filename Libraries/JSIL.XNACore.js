@@ -4322,9 +4322,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "Offset", 
+  $.Method({Static:false, Public:true }, "OffsetPoint", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
-    function Offset (amount) {
+    function OffsetPoint (amount) {
       this.X += amount.X;
       this.Y += amount.Y;
     }

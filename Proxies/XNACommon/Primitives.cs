@@ -63,6 +63,19 @@ namespace JSIL.Proxies {
         public static bool operator != (RectangleProxy a, RectangleProxy b) {
             throw new InvalidOperationException();
         }
+
+        [JSIsPure]
+        [JSResultIsNew]
+        public static RectangleProxy Offset (int x, int y) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        [JSResultIsNew]
+        [JSChangeName("OffsetPoint")]
+        public static RectangleProxy Offset (PointProxy pt) {
+            throw new InvalidOperationException();
+        }
     }
 
     [JSProxy(
