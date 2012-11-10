@@ -1058,16 +1058,17 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
 
     var m = typeObject.__Members__;
     for (var i = 0; i < m.length; i++) {
-      var type = m[i][0];
-      var descriptor = m[i][1];
-      var data = m[i][2];
+      var member = m[i];
+      var type = member.type;
+      var descriptor = member.descriptor;
+      var data = member.data;
 
       var name = data.mangledName || descriptor.EscapedName;
 
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
       if (data.mangledName) {
-        obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [m[i], target[name]];
+        obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [member, target[name]];
       }
     }
 
@@ -2069,7 +2070,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
 
-    switch (member[0]) {
+    switch (member.type) {
       case "MethodInfo":
       case "ConstructorInfo":
         break;
@@ -2077,8 +2078,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
         continue _loop;
     }
 
-    var descriptor = member[1];
-    var data = member[2];
+    var descriptor = member.descriptor;
+    var data = member.data;
     var signature = data.signature;
 
     var oldName = data.mangledName;
@@ -2123,11 +2124,11 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
-    if (member[0] !== "FieldInfo")
+    if (member.type !== "FieldInfo")
       continue _loop;
 
-    var descriptor = member[1];
-    var data = member[2];
+    var descriptor = member.descriptor;
+    var data = member.data;
 
     var fieldType = data.fieldType;
     resolvedFieldTypeRef = JSIL.ResolveGenericTypeReference(fieldType, resolveContext);
@@ -2139,7 +2140,7 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
     var newData = Object.create(data);
     newData.fieldType = resolvedFieldType;
 
-    members[i] = [member[0], member[1], newData];
+    members[i] = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes);
   }
 };
 
@@ -3491,11 +3492,15 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       continue;
     }
 
-    var member = externals[k][0]
+    var member = externals[k][0];
     var value = externals[k][1];
 
-    if (member !== null)
+    if (member !== null) {
+      if (Object.getPrototypeOf(member) !== JSIL.MemberRecord.prototype)
+        throw new Error("Invalid prototype");
+
       typeObject.__Members__.push(member);
+    }
 
     if (isRaw)
       typeObject.__RawMethods__.push([isStatic, key]);
@@ -4769,12 +4774,32 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   return result;
 };
 
+JSIL.MemberRecord = function (type, descriptor, data, attributes) {
+  this.type = type;
+  this.descriptor = descriptor;
+  this.data = data;
+  this.attributes = attributes;
+
+  Object.defineProperty(this, 0, {
+    get: function () { throw new Error("0 used as key"); }
+  });
+
+  Object.defineProperty(this, 1, {
+    get: function () { throw new Error("1 used as key"); }
+  });
+
+  Object.defineProperty(this, 2, {
+    get: function () { throw new Error("2 used as key"); }
+  });
+};
+
 JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, attributes) {
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
     this.typeObject.__Members__ = members = [];
 
-  Array.prototype.push.call(members, [type, descriptor, data, attributes]);
+  var record = new JSIL.MemberRecord(type, descriptor, data, attributes);
+  Array.prototype.push.call(members, record);
 
   return members.length - 1;
 };
@@ -4932,7 +4957,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
       var initFieldDefault = function InitFieldDefault () {
         var actualFieldInfo = members[fieldIndex];
-        var actualFieldType = actualFieldInfo[2].fieldType;
+        var actualFieldType = actualFieldInfo.data.fieldType;
 
         var fieldTypeResolved;
 
@@ -5745,12 +5770,12 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
-    if (!JSIL.IsArray(member))
+    if (!member)
       continue;
 
-    var type = member[0];
-    var descriptor = member[1];
-    var data = member[2];
+    var type = member.type;
+    var descriptor = member.descriptor;
+    var data = member.data;
 
     var info = makeTypeInstance(type);
 
