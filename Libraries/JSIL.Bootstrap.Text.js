@@ -312,12 +312,12 @@ JSIL.StringFromCharArray = function (chars, startIndex, length) {
 JSIL.ImplementExternals(
   "System.String", function ($) {
     $.Method({Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char")), "System.Int32", "System.Int32"], [], $jsilcore),
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")]), "System.Int32", "System.Int32"], [], $jsilcore),
       JSIL.StringFromCharArray
     );
 
     $.Method({Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char"))], [], $jsilcore),
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")])], [], $jsilcore),
       function (chars) {
         return JSIL.StringFromCharArray(chars, 0, chars.length);
       }
@@ -451,7 +451,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static:true, Public:true }, "IndexOfAny", 
-      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Array", [$jsilcore.System.Char]), $jsilcore.TypeRef("System.Int32")], []),
       function (str, chars) {
         var result = null;
         for (var i = 0; i < chars.length; i++) {
@@ -498,7 +498,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static:true , Public:true }, "LastIndexOfAny", 
-      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Array", [$jsilcore.System.Char]), $jsilcore.TypeRef("System.Int32")], []),
       function (str, chars) {
         var result = null;
         for (var i = 0; i < chars.length; i++) {

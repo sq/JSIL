@@ -2405,7 +2405,7 @@ JSIL.ImplementExternals(
     );
     
     $.Method({Static:true , Public:true }, "ToArray", 
-      new JSIL.MethodSignature(System.Array.Of("!!0"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
         return JSIL.EnumerableToArray(enumerable);
       }
@@ -2454,7 +2454,7 @@ JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
   );
 
   $.ExternalMethod({Static:true , Public:true }, "ToArray", 
-    new JSIL.MethodSignature(System.Array.Of("!!0"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
   );
 });
 
@@ -2667,7 +2667,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static:true , Public:true }, "GetNames", 
-      new JSIL.MethodSignature(System.Array.Of($jsilcore.System.String), [$jsilcore.TypeRef("System.Type")], []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$jsilcore.TypeRef("System.Type")], []),
       function (enm) {
         return enm.__Names__;
       }
