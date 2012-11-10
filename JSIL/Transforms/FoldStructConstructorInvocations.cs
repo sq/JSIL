@@ -16,6 +16,7 @@ namespace JSIL.Transforms {
             public JSDefaultValueLiteral DefaultValueLiteral;
             public JSBinaryOperatorExpression ParentBinaryExpression;
             public JSNode BinaryExpressionParent;
+            public bool Folded = false;
         }
 
         private readonly List<InitializationInfo> Initializations = new List<InitializationInfo>();
@@ -86,8 +87,12 @@ namespace JSIL.Transforms {
                         ne.ParentBinaryExpression.Left.Equals(invocation.ThisReference)
                 );
 
-                if (previousInitialization != null)
+                if (previousInitialization != null) {
+                    if (previousInitialization.Folded)
+                        return null;
+
                     return FoldInvocation(invocation, previousInitialization);
+                }
             }
 
             return null;
@@ -99,8 +104,14 @@ namespace JSIL.Transforms {
                 ii.Type, invocation.JSMethod.Reference, invocation.JSMethod.Method, arguments
             );
 
+            // Constructor call contains a reference to the struct being initialized.
+            // For some reason the C# compiler lets you do this even though it would be undefined
+            //  if not for a nuance in how struct locals work in MSIL.
+            if (newExpression.SelfAndChildrenRecursive.Any((n) => n.Equals(invocation.ThisReference)))
+                return null;
+
+            ii.Folded = true;
             ii.BinaryExpressionParent.ReplaceChild(ii.ParentBinaryExpression, new JSNullExpression());
-            Initializations.Remove(ii);
 
             var newBoe = new JSBinaryOperatorExpression(
                 JSOperator.Assignment, 

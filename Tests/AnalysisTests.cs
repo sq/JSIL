@@ -500,5 +500,17 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void UnfoldableStructConstructor () {
+            var output = "(1, 2)";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\UnfoldableStructConstructor.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
