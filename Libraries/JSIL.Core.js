@@ -1002,6 +1002,18 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
   return result;
 };
 
+JSIL.MemberRecord = function (type, descriptor, data, attributes) {
+  this.type = type;
+  this.descriptor = descriptor;
+  this.data = data;
+  this.attributes = attributes;
+};
+
+JSIL.RawMethodRecord = function (name, isStatic) {
+  this.name = name;
+  this.isStatic = isStatic;
+};
+
 JSIL.ImplementExternals = function (namespaceName, externals) {
   if (typeof (namespaceName) !== "string") {
     JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
@@ -1077,10 +1089,10 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
       var rawMethod = rm[i];
       var suffix = "$raw";
 
-      if (rawMethod[0]) {
-        obj[rawMethod[1] + suffix] = [null, publicInterface[rawMethod[1]]];
+      if (rawMethod.isStatic) {
+        obj[rawMethod.name + suffix] = [null, publicInterface[rawMethod.name]];
       } else {
-        obj[prefix + rawMethod[1] + suffix] = [null, publicInterface.prototype[rawMethod[1]]];
+        obj[prefix + rawMethod.name + suffix] = [null, publicInterface.prototype[rawMethod.name]];
       }
     }
     
@@ -1845,7 +1857,7 @@ $jsilcore.$Of$NoInitialize = function () {
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
     "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
-    "__FieldList__"
+    "__FieldList__", "__InterfaceMembers__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -2031,11 +2043,10 @@ JSIL.RebindRawMethods = function (publicInterface, typeObject) {
     for (var i = 0; i < rm.length; i++) {
       var item = rm[i];
 
-      // Only static methods
-      if (!item[0])
+      if (!item.isStatic)
         continue;
 
-      var methodName = item[1];
+      var methodName = item.name;
       var method = publicInterface[methodName];
 
       var boundMethod = method.bind(publicInterface);
@@ -2225,7 +2236,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = iface.__Members__;
+    var members = iface.__InterfaceMembers__;
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
@@ -3502,8 +3513,10 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       typeObject.__Members__.push(member);
     }
 
-    if (isRaw)
-      typeObject.__RawMethods__.push([isStatic, key]);
+    if (isRaw) {
+      var rawRecord = new JSIL.RawMethodRecord(key, isStatic);
+      typeObject.__RawMethods__.push(rawRecord);
+    }
 
     JSIL.SetValueProperty(target, key, value);
   }
@@ -4221,7 +4234,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
-    typeObject.__Members__ = {};
+    typeObject.__InterfaceMembers__ = {};
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
@@ -4774,25 +4787,6 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   return result;
 };
 
-JSIL.MemberRecord = function (type, descriptor, data, attributes) {
-  this.type = type;
-  this.descriptor = descriptor;
-  this.data = data;
-  this.attributes = attributes;
-
-  Object.defineProperty(this, 0, {
-    get: function () { throw new Error("0 used as key"); }
-  });
-
-  Object.defineProperty(this, 1, {
-    get: function () { throw new Error("1 used as key"); }
-  });
-
-  Object.defineProperty(this, 2, {
-    get: function () { throw new Error("2 used as key"); }
-  });
-};
-
 JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, attributes) {
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
@@ -4889,7 +4883,7 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSou
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, propertyType) {
   if (this.typeObject.IsInterface) {
-    this.typeObject.__Members__[name] = Property;
+    this.typeObject.__InterfaceMembers__[name] = Property;
     return;
   }
 
@@ -5073,7 +5067,8 @@ JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) 
     methodName, fn
   );
 
-  this.typeObject.__RawMethods__.push([isStatic, methodName]);
+  var rawRecord = new JSIL.RawMethodRecord(methodName, isStatic);
+  this.typeObject.__RawMethods__.push(rawRecord);
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
@@ -5082,8 +5077,8 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
   if (this.typeObject.IsInterface) {
-    this.typeObject.__Members__[methodName] = Function;
-    this.typeObject.__Members__[mangledName] = Function;
+    this.typeObject.__InterfaceMembers__[methodName] = Function;
+    this.typeObject.__InterfaceMembers__[mangledName] = Function;
     return;
   }
 
