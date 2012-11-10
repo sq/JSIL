@@ -3495,6 +3495,9 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
     if (!externals.hasOwnProperty(k))
       continue;
 
+    if (k === "__IsInitialized__")
+      continue;
+
     var target = publicInterface;
     var key = k;
     var isRaw = false, isStatic;
@@ -3522,8 +3525,12 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       continue;
     }
 
-    var member = externals[k][0];
-    var value = externals[k][1];
+    var external = externals[k];
+    if (!Array.isArray(external))
+      continue;
+
+    var member = external[0];
+    var value = external[1];
 
     if (member !== null) {
       if (Object.getPrototypeOf(member) !== JSIL.MemberRecord.prototype)
