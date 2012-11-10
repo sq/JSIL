@@ -265,6 +265,7 @@
     <None Include="ReflectionTestCases\ListTypes.cs" />
     <None Include="IOTestCases\ByteOrderMarkDetection.cs" />
     <None Include="IOTestCases\Common.cs" />
+    <None Include="IOTestCases\ReadLine.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

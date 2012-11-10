@@ -46,6 +46,11 @@ public static class Util {
     }
 
     public static void PrintString (string str) {
+        if (str == null) {
+            Console.WriteLine("null");
+            return;
+        }
+
         var sb = new StringBuilder();
         for (var i = 0; i < str.Length; i++) {
             var ch = str[i];

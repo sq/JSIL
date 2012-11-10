@@ -1307,7 +1307,7 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
             return null;
           else
             break;
-        } else if (ch === "\x13") {
+        } else if (ch === "\r") {
           var next = this.stream.$PeekByte();
           if (next === 10)
             continue;
@@ -1318,7 +1318,7 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
               break;
           } else
             break;
-        } else if (ch === 10) {
+        } else if (ch === "\n") {
           break;
         }
 
