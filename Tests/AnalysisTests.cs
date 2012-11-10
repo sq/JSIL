@@ -488,5 +488,17 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void ReadStructFromReadonlyFieldThenMutate () {
+            var output = "1, 1\r\n1, 3";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ReadStructFromReadonlyFieldThenMutate.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

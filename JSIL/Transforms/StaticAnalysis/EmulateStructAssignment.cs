@@ -35,7 +35,7 @@ namespace JSIL.Transforms {
 
             var fieldAccess = target as JSFieldAccess;
             if (fieldAccess != null) {
-                return fieldAccess.Field.Field.IsImmutable;
+                return fieldAccess.Field.Field.Metadata.HasAttribute("JSIL.Meta.JSImmutable");
             }
 
             var dot = target as JSDotExpressionBase;
@@ -121,8 +121,9 @@ namespace JSIL.Transforms {
             if (!OptimizeCopies)
                 return true;
 
-            if (IsImmutable(value))
+            if (IsImmutable(value)) {
                 return false;
+            }
 
             var valueTypeInfo = TypeInfo.GetExisting(valueType);
             if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable)

@@ -73,6 +73,7 @@
     <None Include="AnalysisTestCases\StructImmutabilityDetection.cs" />
     <None Include="AnalysisTestCases\ImmutableStructThisAssignment.cs" />
     <None Include="AnalysisTestCases\SwitchConstructorFolding.cs" />
+    <None Include="AnalysisTestCases\ReadStructFromReadonlyFieldThenMutate.cs" />
     <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
