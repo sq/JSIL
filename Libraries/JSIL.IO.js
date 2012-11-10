@@ -128,6 +128,77 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
 
     $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
   });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.TextReader", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.IO.TextReader"), "System.IO.StreamReader", true, [], function ($) {
+    var $thisType = $.publicInterface;
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $.Boolean], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"), 
+          $.Boolean
+        ], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"), 
+          $.Boolean, $.Int32
+        ], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String, $.Boolean], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.Text.Encoding")], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [
+          $.String, $jsilcore.TypeRef("System.Text.Encoding"), 
+          $.Boolean
+        ], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [
+          $.String, $jsilcore.TypeRef("System.Text.Encoding"), 
+          $.Boolean, $.Int32
+        ], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:true }, "Close", 
+      new JSIL.MethodSignature(null, [], [])
+    );
+
+    $.ExternalMethod({Static:false, Public:false}, "Dispose", 
+      new JSIL.MethodSignature(null, [$.Boolean], [])
+    );
+  });
+
 }
 
 var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
@@ -823,40 +894,36 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   );
 });
 
-$jsilio.ReadUTF8CharFromStream = function ReadCharFromStream (stream) {
-  var utf8Encoding = new System.Text.UTF8Encoding();
-  utf8Encoding.fallbackCharacter = "\uFFFF";
+$jsilio.ReadCharFromStream = function ReadCharFromStream (stream, encoding) {
+  encoding.fallbackCharacter = "\uFFFF";
   var oldPosition = stream.Position;
-  var firstChar = -1, actualLength;
+  var firstChar = null, actualLength;
 
-  for (var i = 1; i < 5; i++) {
+  var minCharLength = encoding.minimumCharLength || 1;
+  var maxCharLength = encoding.maximumCharLength || 4;
+
+  var bytes = new Array(maxCharLength);
+  for (var i = 0; i < maxCharLength; i++)
+    bytes[i] = false;
+
+  for (var i = minCharLength; i <= maxCharLength; i++) {
     stream.Position = oldPosition;
     
     // A valid UTF-8 codepoint is 1-4 bytes
-    var bytes = [false, false, false, false];
-    stream.Read(bytes, 0, bytes.length);
+    var bytesRead = stream.Read(bytes, 0, i);
 
-    var str = utf8Encoding.$decode(bytes);
+    var str = encoding.$decode(bytes, 0, bytesRead);
     if (str.length < 1)
       continue;
 
     firstChar = str[0];
-
-    if (firstChar === utf8Encoding.fallbackCharacter)
+    if (firstChar === encoding.fallbackCharacter)
       continue;
 
-    // We need to ensure that if we grabbed extra bytes, we rewind
-    // FIXME: This is wrong if the chars aren't normalized. Augh.
-    var actualCharEncoded = utf8Encoding.$encode(str.substr(0, 1));
-    actualLength = actualCharEncoded.length;
-
-    break;
+    return firstChar;
   }
 
-  stream.Position = $jsilcore.System.Int64.op_Addition(
-    oldPosition, $jsilcore.System.Int64.FromInt32(actualLength)
-  );
-  return firstChar;
+  return null;
 };
 
 JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
@@ -869,7 +936,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
         throw new Error("Invalid stream");
 
       this.m_stream = input;
-      this.m_encoding = System.Text.Encoding.ASCII;
+      this.m_encoding = $jsilcore.System.Text.Encoding.get_UTF8();
     }
   );
 
@@ -964,7 +1031,11 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
-      return $jsilio.ReadUTF8CharFromStream(this.m_stream);
+      var ch = $jsilio.ReadCharFromStream(this.m_stream, this.m_encoding);
+      if (!ch)
+        throw new System.Exception("End of stream");
+
+      return ch;
     }
   );
 
@@ -1134,11 +1205,86 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
 });
 
 JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
+  var UTF8 = function () { return $jsilcore.System.Text.Encoding.get_UTF8(); };
+  var UTF16LE = function () { return $jsilcore.System.Text.Encoding.get_Unicode(); };
+  var UTF16BE = function () { return $jsilcore.System.Text.Encoding.get_BigEndianUnicode(); };
+
+  $.RawMethod(false, "$ctorImpl", 
+    function _ctorImpl (stream, encoding, detectEncoding) {
+      this.stream = stream;
+      this.encoding = encoding;
+
+      if (detectEncoding) {
+        var originalPosition = this.stream.get_Position();
+        var buf = new Array(4);
+        var bytesRead = this.stream.Read(buf, 0, buf.length);
+        var bytesToSkip = 0;
+
+        if (
+          (bytesRead >= 3) && 
+          (buf[0] === 239) &&
+          (buf[1] === 187) &&
+          (buf[2] === 191)
+        ) {
+          bytesToSkip = 3;
+          this.encoding = UTF8();
+        } else if (
+          (bytesRead >= 2)
+        ) {
+          if (
+            (buf[0] === 255) &&
+            (buf[1] === 254)
+          ) {
+            bytesToSkip = 2;
+            this.encoding = UTF16LE();
+          } else if (
+            (buf[0] === 254) &&
+            (buf[1] === 255)
+          ) {
+            bytesToSkip = 2;
+            this.encoding = UTF16BE();
+          }
+        }
+
+
+        var tInt64 = $jsilcore.System.Int64;
+        var resultPosition = tInt64.op_Addition(originalPosition, tInt64.FromInt32(bytesToSkip));
+        this.stream.set_Position(resultPosition);
+      }
+    }
+  );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function _ctor (path) {
-      this.stream = new System.IO.FileStream(path, System.IO.FileMode.Open);
+      this.$ctorImpl(
+        new System.IO.FileStream(path, System.IO.FileMode.Open), 
+        UTF8(), true
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])), 
+    function _ctor (stream) {
+      this.$ctorImpl(stream, UTF8(), true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $.Boolean], [])), 
+    function _ctor (path, detectEncoding) {
+      this.$ctorImpl(
+        new System.IO.FileStream(path, System.IO.FileMode.Open), 
+        UTF8(), detectEncoding
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $.Boolean], [])), 
+    function _ctor (stream, detectEncoding) {
+      this.$ctorImpl(stream, UTF8(), detectEncoding);
     }
   );
 
@@ -1155,13 +1301,13 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
       var line = "";
 
       while (true) {
-        var ch = $jsilio.ReadUTF8CharFromStream(this.stream);
-        if (ch === -1) {
+        var ch = $jsilio.ReadCharFromStream(this.stream, this.encoding);
+        if (!ch) {
           if (line.length === 0)
             return null;
           else
             break;
-        } else if (ch === 13) {
+        } else if (ch === "\x13") {
           var next = this.stream.$PeekByte();
           if (next === 10)
             continue;
@@ -1182,6 +1328,24 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
       return line;
     }
   );
+
+  $.Method({Static:false, Public:true }, "ReadToEnd", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function ReadToEnd () {
+      var result = "";
+
+      while (true) {
+        var ch = $jsilio.ReadCharFromStream(this.stream, this.encoding);
+        if (!ch)
+          break;
+
+        result += ch;
+      }
+
+      return result;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("System.IO.TextReader", function ($) {

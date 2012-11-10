@@ -272,9 +272,12 @@ $jsilcore.ArrayNull = [];
 $jsilcore.FunctionNotInitialized = function () { throw new Error("FunctionNotInitialized"); };
 $jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
 
-JSIL.Memoize = function (value) {
+JSIL.Memoize = function Memoize (value) {
+  if (typeof (value) === "undefined")
+    throw new Error("Referenced type is undefined");
+
   return function MemoizedValue () { 
-    return value 
+    return value;
   };
 };
 

@@ -24,11 +24,7 @@ public class Program {
             bytes = ms.GetBuffer();
         }
 
-        Console.WriteLine("Length={0}", length);
-        for (var i = 0; i < length; i++) {
-            Console.Write("{0:X2}", bytes[i]);
-        }
-        Console.WriteLine();
+        Util.PrintByteArray(bytes, (int)length);
 
         using (var ms = new MemoryStream(bytes, false))
         using (var br = new BinaryReader(ms)) {

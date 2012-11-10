@@ -1,47 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using JSIL.Meta;
 
-public static class Common {
-    public static string ASCIIString {
-        get {
-            return "ASCII\r\n\t\0".Normalize();
-        }
-    }
-
-    public static string UTF8String {
-        get {
-            return "κόσμε\r\n\t\0".Normalize();
-        }
-    }
-
-    public static readonly byte[] ASCIIBytes = new byte[] {
-        0x41, 0x53, 0x43, 0x49, 0x49, 0x0D, 0x0A, 0x09, 0x00
-    };
-
-    public static readonly byte[] UTF8Bytes = new byte[] {
-        206, 186, 207, 140,
-        207, 131, 206, 188,
-        206, 181, 13, 10,
-        9, 0
-    };
-
-    public static readonly byte[] UTF16Bytes = new byte[] {
-        186, 3, 204, 3,
-        195, 3, 188, 3, 
-        181, 3, 13, 0,
-        10, 0, 9, 0,
-        0, 0
-    };
-
-    public static readonly byte[] UTF16BEBytes = new byte[] {
-        3, 186, 3, 204,
-        3, 195, 3, 188,
-        3, 181, 0, 13,
-        0, 10, 0, 9,
-        0, 0
-    };
-
+public static class Util {
     public static string EscapeCharacter (char ch) {
         switch (ch) {
             case '\0':
@@ -74,12 +36,13 @@ public static class Common {
         }
     }
 
-    public static void PrintByteArray (byte[] bytes) {
+    public static void PrintByteArray (byte[] bytes, int maxLength = int.MaxValue) {
         var sb = new StringBuilder();
-        for (var i = 0; i < bytes.Length; i++)
+        int length = Math.Min(bytes.Length, maxLength);
+        for (int i = 0; i < length; i++)
             sb.AppendFormat("{0:X2}", bytes[i]);
 
-        Console.WriteLine("{0:D3}b [{1}]", bytes.Length, sb.ToString());
+        Console.WriteLine("{0:D3}b [{1}]", length, sb.ToString());
     }
 
     public static void PrintString (string str) {

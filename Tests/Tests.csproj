@@ -124,6 +124,8 @@
     <None Include="DateTimeTestCases\TimeSpanArithmetic.cs" />
     <None Include="DateTimeTestCases\Common.cs" />
     <None Include="DateTimeTestCases\TimeSpanCtor.cs" />
+    <None Include="EncodingTestCases\UTF16GetBytes.cs" />
+    <None Include="EncodingTestCases\UTF16GetString.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
@@ -261,6 +263,8 @@
     <None Include="SimpleTestCases\CompoundAssignmentToMultiDimArray.cs" />
     <None Include="SpecialTestCases\StructCtorInvocation.cs" />
     <None Include="ReflectionTestCases\ListTypes.cs" />
+    <None Include="IOTestCases\ByteOrderMarkDetection.cs" />
+    <None Include="IOTestCases\Common.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
