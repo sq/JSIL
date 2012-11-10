@@ -266,6 +266,7 @@
     <None Include="IOTestCases\ByteOrderMarkDetection.cs" />
     <None Include="IOTestCases\Common.cs" />
     <None Include="IOTestCases\ReadLine.cs" />
+    <None Include="IOTestCases\EndOfStream.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -197,6 +197,8 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     $.ExternalMethod({Static:false, Public:false}, "Dispose", 
       new JSIL.MethodSignature(null, [$.Boolean], [])
     );
+
+    $.Property({Static: false, Public: true }, "EndOfStream");
   });
 
 }
@@ -1343,6 +1345,14 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
       }
 
       return result;
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "get_EndOfStream", 
+    (new JSIL.MethodSignature($.Boolean, [], [])),
+    function get_EndOfStream () {
+      var tInt64 = $jsilcore.System.Int64;
+      return tInt64.op_Equality(this.stream.get_Position(), this.stream.get_Length());
     }
   );
 
