@@ -218,6 +218,35 @@ namespace JSIL.Ast {
 
             CachedEnumType = cachedType;
         }
+
+        internal static JSEnumLiteral TryCreate (TypeInfo enumTypeInfo, long value) {
+            EnumMemberInfo[] enumMembers = null;
+            if (enumTypeInfo.IsFlagsEnum) {
+                if (value == 0) {
+                    enumMembers = (
+                        from em in enumTypeInfo.EnumMembers.Values
+                        where em.Value == 0
+                        select em
+                    ).Take(1).ToArray();
+                } else {
+                    enumMembers = (
+                        from em in enumTypeInfo.EnumMembers.Values
+                        where (em.Value != 0) &&
+                            ((value & em.Value) == em.Value)
+                        select em
+                    ).ToArray();
+                }
+            } else {
+                EnumMemberInfo em;
+                if (enumTypeInfo.ValueToEnumMember.TryGetValue(value, out em))
+                    enumMembers = new EnumMemberInfo[1] { em };
+            }
+
+            if ((enumMembers != null) && (enumMembers.Length > 0))
+                return new JSEnumLiteral(value, enumMembers);
+
+            return null;
+        }
     }
 
     public class JSNumberLiteral : JSLiteralBase<double> {

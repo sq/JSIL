@@ -1845,30 +1845,10 @@ namespace JSIL {
                 (typeInfo != null) && 
                 (typeInfo.EnumMembers != null) && (typeInfo.EnumMembers.Count > 0)
             ) {
-                EnumMemberInfo[] enumMembers = null;
-                if (typeInfo.IsFlagsEnum) {
-                    if (value == 0) {
-                        enumMembers = (
-                            from em in typeInfo.EnumMembers.Values
-                            where em.Value == 0
-                            select em
-                        ).Take(1).ToArray();
-                    } else {
-                        enumMembers = (
-                            from em in typeInfo.EnumMembers.Values
-                            where (em.Value != 0) &&
-                                ((value & em.Value) == em.Value)
-                            select em
-                        ).ToArray();
-                    }
-                } else {
-                    EnumMemberInfo em;
-                    if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
-                        enumMembers = new EnumMemberInfo[1] { em };
-                }
+                JSEnumLiteral enumLiteral = JSEnumLiteral.TryCreate(typeInfo, value);
 
-                if ((enumMembers != null) && (enumMembers.Length > 0))
-                    return new JSEnumLiteral(value, enumMembers);
+                if (enumLiteral != null)
+                    return enumLiteral;
                 else {
                     switch (node.Code) {
                         case ILCode.Ldc_I4:
