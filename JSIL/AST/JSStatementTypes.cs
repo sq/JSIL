@@ -33,7 +33,6 @@ namespace JSIL.Ast {
 
     public class JSBlockStatement : JSAnnotatedStatement {
         public readonly List<JSStatement> Statements;
-        private bool _IsControlFlow = false;
 
         public JSBlockStatement (params JSStatement[] statements) {
             Statements = new List<JSStatement>(statements);
@@ -74,15 +73,6 @@ namespace JSIL.Ast {
             return false;
         }
 
-        public virtual bool IsControlFlow {
-            get {
-                return _IsControlFlow;
-            }
-            internal set {
-                _IsControlFlow = value;
-            }
-        }
-
         public override string ToString () {
             return ToString(true);
         }
@@ -103,10 +93,8 @@ namespace JSIL.Ast {
     public abstract class JSLoopStatement : JSBlockStatement {
         public int? Index;
 
-        public override bool IsControlFlow {
-            get {
-                return true;
-            }
+        public JSLoopStatement () {
+            IsControlFlow = true;
         }
 
         protected override string PrependLabel (string text) {
@@ -134,9 +122,7 @@ namespace JSIL.Ast {
         }
 
         private void MarkAsControlFlow (JSStatement s) {
-            var bs = s as JSBlockStatement;
-            if (bs != null)
-                bs.IsControlFlow = true;
+            s.IsControlFlow = true;
         }
 
         public override IEnumerable<JSNode> Children {
@@ -312,6 +298,7 @@ namespace JSIL.Ast {
         public readonly List<JSSwitchCase> Cases = new List<JSSwitchCase>();
 
         public JSSwitchStatement (JSExpression condition, params JSSwitchCase[] cases) {
+            IsControlFlow = true;
             _Condition = condition;
             Cases.AddRange(cases);
         }
@@ -367,13 +354,10 @@ namespace JSIL.Ast {
             _TrueClause = trueClause;
             _FalseClause = falseClause;
 
-            var trueBlock = _TrueClause as JSBlockStatement;
-            if (trueBlock != null)
-                trueBlock.IsControlFlow = true;
-
-            var falseBlock = _FalseClause as JSBlockStatement;
-            if (falseBlock != null)
-                falseBlock.IsControlFlow = true;
+            if (_TrueClause != null)
+                _TrueClause.IsControlFlow = true;
+            if (_FalseClause != null)
+                _FalseClause.IsControlFlow = true;
         }
 
         public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {

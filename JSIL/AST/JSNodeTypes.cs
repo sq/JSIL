@@ -422,6 +422,11 @@ namespace JSIL.Ast {
                 String.Format("Statements of type '{0}' do not support child replacement", GetType().Name)
             );
         }
+
+        public bool IsControlFlow {
+            get;
+            internal set;
+        }
     }
 
     public class NoExpectedTypeException : NotImplementedException {

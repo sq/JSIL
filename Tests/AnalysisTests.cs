@@ -476,5 +476,17 @@ Shockwave.TryMove(Down, 384)";
                 @"ict = ict.MemberwiseClone(),"
             ));
         }
+
+        [Test]
+        public void SwitchConstructorFolding () {
+            var output = "(1, 0, 0)";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\SwitchConstructorFolding.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

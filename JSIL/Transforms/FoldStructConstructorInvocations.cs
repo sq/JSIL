@@ -79,7 +79,7 @@ namespace JSIL.Transforms {
                 (jsm != null) && 
                 (jsm.Method.Name == ".ctor") && 
                 TypeUtil.IsStruct(jsm.Method.DeclaringType.Definition) &&
-                !Stack.OfType<JSBlockStatement>().Any((n) => n.IsControlFlow)
+                !Stack.OfType<JSStatement>().Any((n) => n.IsControlFlow)
             ) {
                 var previousInitialization = Initializations.LastOrDefault(
                     (ne) => 
