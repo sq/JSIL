@@ -41,6 +41,7 @@ namespace JSIL.Compiler {
         public bool? UseLocalProxies;
         public bool? ReuseTypeInfoAcrossAssemblies;
         public string OutputDirectory;
+        public string FileOutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
         public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
@@ -56,6 +57,8 @@ namespace JSIL.Compiler {
                 result.ReuseTypeInfoAcrossAssemblies = ReuseTypeInfoAcrossAssemblies;
             if (OutputDirectory != null)
                 result.OutputDirectory = OutputDirectory;
+            if (FileOutputDirectory != null)
+                result.FileOutputDirectory = FileOutputDirectory;
             if (Profile != null)
                 result.Profile = Profile;
             if (Path != null)
@@ -90,6 +93,7 @@ namespace JSIL.Compiler {
 
             result["ConfigDirectory"] = () => Path;
             result["OutputDirectory"] = () => OutputDirectory;
+            result["FileOutputDirectory"] = () => FileOutputDirectory;
             result["Profile"] = () => Profile;
 
             result["Configuration"] = () => SolutionBuilder.Configuration;

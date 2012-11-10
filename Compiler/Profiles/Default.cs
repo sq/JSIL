@@ -22,5 +22,13 @@ namespace JSIL.Compiler.Profiles {
 
             return result;
         }
+
+        public override SolutionBuilder.BuildResult ProcessBuildResult (VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult) {
+            CopiedOutputGatherer.GatherFromProjectFiles(
+                variables, configuration, buildResult
+            );
+
+            return base.ProcessBuildResult(variables, configuration, buildResult);
+        }
     }
 }

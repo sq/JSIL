@@ -79,6 +79,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Profiles\Base.cs" />
     <Compile Include="Profiles\ContentManifestWriter.cs" />
+    <Compile Include="Profiles\CopiedOutputGatherer.cs" />
     <Compile Include="Profiles\Default.cs" />
     <Compile Include="Extensibility\IProfile.cs" />
     <Compile Include="Profiles\ResourceConverter.cs" />

@@ -51,6 +51,10 @@ namespace JSIL.Compiler.Profiles {
         ) {
             Common.ProcessContentProjects(variables, configuration, buildResult, ContentProjectsProcessed);
 
+            CopiedOutputGatherer.GatherFromProjectFiles(
+                variables, configuration, buildResult
+            );
+
             return base.ProcessBuildResult(variables, configuration, buildResult);
         }
     }

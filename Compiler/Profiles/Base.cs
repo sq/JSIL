@@ -13,7 +13,10 @@ namespace JSIL.Compiler.Profiles {
             return defaultConfiguration;
         }
 
-        public virtual TranslationResult Translate (VariableSet variables, AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
+        public virtual TranslationResult Translate (
+            VariableSet variables, AssemblyTranslator translator, Configuration configuration, 
+            string assemblyPath, bool scanForProxies
+        ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
             AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);

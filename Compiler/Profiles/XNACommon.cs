@@ -560,7 +560,7 @@ public static class Common {
         } else if (justCopy) {
             outputPath += Path.GetExtension(sourcePath);
 
-            CopyFile(sourcePath, outputPath, true);
+            CopiedOutputGatherer.CopyFile(sourcePath, outputPath, true);
         } else {
             bool hasAlphaChannel;
             System.Drawing.Color? existingColorKey;
@@ -719,286 +719,288 @@ public static class Common {
 
         contentOutputDirectory = variables.ExpandPath(contentOutputDirectory, false);
 
-        var projectCollection = new ProjectCollection();
-        var contentProjects = buildResult.ProjectsBuilt.Where(
-            (project) => project.File.EndsWith(".contentproj")
-            ).ToArray();
+        using (var projectCollection = new ProjectCollection()) {
+            var contentProjects = buildResult.ProjectsBuilt.Where(
+                (project) => project.File.EndsWith(".contentproj")
+                ).ToArray();
 
-        var builtXNBs =
-            (from bi in buildResult.AllItemsBuilt
-             where bi.OutputPath.EndsWith(".xnb", StringComparison.OrdinalIgnoreCase)
-             select bi).Distinct().ToArray();
+            var builtXNBs =
+                (from bi in buildResult.AllItemsBuilt
+                 where bi.OutputPath.EndsWith(".xnb", StringComparison.OrdinalIgnoreCase)
+                 select bi).Distinct().ToArray();
 
-        var forceCopyImporters = new HashSet<string>(
-            ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBImporters"]).Cast<string>()
-        );
+            var forceCopyImporters = new HashSet<string>(
+                ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBImporters"]).Cast<string>()
+            );
 
-        var forceCopyProcessors = new HashSet<string>(
-            ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBProcessors"]).Cast<string>()
-        );
+            var forceCopyProcessors = new HashSet<string>(
+                ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBProcessors"]).Cast<string>()
+            );
 
-        Dictionary<string, Common.CompressResult> existingJournal = new Dictionary<string, CompressResult>();
-        Common.CompressResult? existingJournalEntry;
-        var jss = new JavaScriptSerializer();
+            Dictionary<string, Common.CompressResult> existingJournal = new Dictionary<string, CompressResult>();
+            Common.CompressResult? existingJournalEntry;
+            var jss = new JavaScriptSerializer();
 
-        foreach (var builtContentProject in contentProjects) {
-            var contentProjectPath = builtContentProject.File;
+            foreach (var builtContentProject in contentProjects) {
+                var contentProjectPath = builtContentProject.File;
 
-            if (contentProjectsProcessed.Contains(contentProjectPath))
-                continue;
+                if (contentProjectsProcessed.Contains(contentProjectPath))
+                    continue;
 
-            var journal = new List<Common.CompressResult>();
-            var journalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "JSIL",
-                                           contentProjectPath.Replace("\\", "_").Replace(":", ""));
+                var journal = new List<Common.CompressResult>();
+                var journalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "JSIL",
+                                               contentProjectPath.Replace("\\", "_").Replace(":", ""));
 
-            Common.EnsureDirectoryExists(Path.GetDirectoryName(journalPath));
-            if (File.Exists(journalPath)) {
-                var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
+                Common.EnsureDirectoryExists(Path.GetDirectoryName(journalPath));
+                if (File.Exists(journalPath)) {
+                    var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
 
-                if (journalEntries != null) {
-                    existingJournal = new Dictionary<string, CompressResult>();
+                    if (journalEntries != null) {
+                        existingJournal = new Dictionary<string, CompressResult>();
 
-                    foreach (var je in journalEntries) {
-                        string uniqueKey;
+                        foreach (var je in journalEntries) {
+                            string uniqueKey;
 
-                        if (je.Key != null)
-                            uniqueKey = je.SourceFilename + ":" + je.Key;
-                        else
-                            uniqueKey = je.SourceFilename;
+                            if (je.Key != null)
+                                uniqueKey = je.SourceFilename + ":" + je.Key;
+                            else
+                                uniqueKey = je.SourceFilename;
 
-                        if (existingJournal.ContainsKey(uniqueKey))
-                            Console.Error.WriteLine("// Duplicate content build journal entry for '{0}'! Ignoring...", uniqueKey);
-                        else
-                            existingJournal.Add(uniqueKey, je);
+                            if (existingJournal.ContainsKey(uniqueKey))
+                                Console.Error.WriteLine("// Duplicate content build journal entry for '{0}'! Ignoring...", uniqueKey);
+                            else
+                                existingJournal.Add(uniqueKey, je);
+                        }
                     }
                 }
-            }
 
-            contentProjectsProcessed.Add(contentProjectPath);
-            Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
+                contentProjectsProcessed.Add(contentProjectPath);
+                Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
 
-            var project = projectCollection.LoadProject(contentProjectPath);
-            var projectProperties = project.Properties.ToDictionary(
-                (p) => p.Name
-                );
-
-            Project parentProject = null, rootProject = null;
-            Dictionary<string, ProjectProperty> parentProjectProperties = null, rootProjectProperties = null;
-
-            if (builtContentProject.Parent != null) {
-                parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
-                parentProjectProperties = parentProject.Properties.ToDictionary(
+                var project = projectCollection.LoadProject(contentProjectPath);
+                var projectProperties = project.Properties.ToDictionary(
                     (p) => p.Name
                     );
-            }
 
-            {
-                var parent = builtContentProject.Parent;
+                Project parentProject = null, rootProject = null;
+                Dictionary<string, ProjectProperty> parentProjectProperties = null, rootProjectProperties = null;
 
-                while (parent != null) {
-                    var nextParent = parent.Parent;
-                    if (nextParent != null) {
-                        parent = nextParent;
-                        continue;
-                    }
-
-                    rootProject = projectCollection.LoadProject(parent.File);
-                    rootProjectProperties = rootProject.Properties.ToDictionary(
+                if (builtContentProject.Parent != null) {
+                    parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
+                    parentProjectProperties = parentProject.Properties.ToDictionary(
                         (p) => p.Name
                         );
-                    break;
-                }                
-            }
-
-            var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
-            var myvars = variables.Clone();
-            myvars.Add("ContentProjectDirectory", contentProjectDirectory);
-
-            var localOutputDirectory =
-                myvars.ExpandPath(contentOutputDirectory, false);
-
-            EnsureDirectoryExists(localOutputDirectory);
-
-            var contentManifestPath = Path.Combine(
-                localOutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"
-            );
-            var contentManifest = new ContentManifestWriter(
-                contentManifestPath, Path.GetFileName(contentProjectPath)
-            );
-
-            Action<string, string, Dictionary<string, object>> logOutput =
-            (type, filename, properties) => {
-                var fileInfo = new FileInfo(filename);
-
-                var localPath = filename.Replace(localOutputDirectory, "");
-                if (localPath.StartsWith("\\"))
-                    localPath = localPath.Substring(1);
-
-                Console.WriteLine(localPath);
-
-                string propertiesObject;
-
-                if (properties == null) {
-                    properties = new Dictionary<string, object> {
-                        { "sizeBytes", fileInfo.Length }
-                    };
                 }
 
-                contentManifest.Add(
-                    type, localPath, properties
-                );
-            };
+                {
+                    var parent = builtContentProject.Parent;
 
-            Action<ProjectItem> copyRawFile =
-            (item) =>
-                CopyRawFile(localOutputDirectory, logOutput, item, contentProjectDirectory);
+                    while (parent != null) {
+                        var nextParent = parent.Parent;
+                        if (nextParent != null) {
+                            parent = nextParent;
+                            continue;
+                        }
 
-            Action<ProjectItem, string, string> copyRawXnb =
-            (item, xnbPath, type) =>
-                CopyXNB(logOutput, type, localOutputDirectory, xnbPath, item);
-
-            foreach (var item in project.Items) {
-                switch (item.ItemType) {
-                    case "Reference":
-                    case "ProjectReference":
-                        continue;
-                    case "Compile":
-                    case "None":
+                        rootProject = projectCollection.LoadProject(parent.File);
+                        rootProjectProperties = rootProject.Properties.ToDictionary(
+                            (p) => p.Name
+                            );
                         break;
-                    default:
-                        continue;
+                    }
                 }
 
-                var itemOutputDirectory = FixupOutputDirectory(
-                    localOutputDirectory,
-                    Path.GetDirectoryName(item.EvaluatedInclude)
+                var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
+                var myvars = variables.Clone();
+                myvars.Add("ContentProjectDirectory", contentProjectDirectory);
+
+                var localOutputDirectory =
+                    myvars.ExpandPath(contentOutputDirectory, false);
+
+                EnsureDirectoryExists(localOutputDirectory);
+
+                var contentManifestPath = Path.Combine(
+                    localOutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"
+                );
+                var contentManifest = new ContentManifestWriter(
+                    contentManifestPath, Path.GetFileName(contentProjectPath)
                 );
 
-                var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
-                var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
+                Action<string, string, Dictionary<string, object>> logOutput =
+                (type, filename, properties) => {
+                    var fileInfo = new FileInfo(filename);
 
-                if (item.ItemType == "None") {
-                    string copyToOutputDirectory = "Always";
-                    ProjectMetadata temp2;
+                    var localPath = filename.Replace(localOutputDirectory, "");
+                    if (localPath.StartsWith("\\"))
+                        localPath = localPath.Substring(1);
 
-                    if (metadata.TryGetValue("CopyToOutputDirectory", out temp2)) {
-                        copyToOutputDirectory = temp2.EvaluatedValue;
+                    Console.WriteLine(localPath);
+
+                    string propertiesObject;
+
+                    if (properties == null) {
+                        properties = new Dictionary<string, object> {
+                            { "sizeBytes", fileInfo.Length }
+                        };
                     }
 
-                    switch (copyToOutputDirectory) {
-                        case "Always":
-                        case "PreserveNewest":
-                            copyRawFile(item);
+                    contentManifest.Add(
+                        type, localPath, properties
+                    );
+                };
+
+                Action<ProjectItem> copyRawFile =
+                (item) =>
+                    CopyRawFile(localOutputDirectory, logOutput, item, contentProjectDirectory);
+
+                Action<ProjectItem, string, string> copyRawXnb =
+                (item, xnbPath, type) =>
+                    CopyXNB(logOutput, type, localOutputDirectory, xnbPath, item);
+
+                foreach (var item in project.Items) {
+                    switch (item.ItemType) {
+                        case "Reference":
+                        case "ProjectReference":
+                            continue;
+                        case "Compile":
+                        case "None":
                             break;
                         default:
-                            break;
+                            continue;
                     }
 
-                    continue;
-                }
+                    var itemOutputDirectory = FixupOutputDirectory(
+                        localOutputDirectory,
+                        Path.GetDirectoryName(item.EvaluatedInclude)
+                    );
 
-                var importerName = metadata["Importer"].EvaluatedValue;
-                var processorName = metadata["Processor"].EvaluatedValue;
-                string xnbPath = null;
+                    var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
+                    var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
 
-                Common.CompressResult temp;
-                if (existingJournal.TryGetValue(sourcePath, out temp))
-                    existingJournalEntry = temp;
-                else
-                    existingJournalEntry = null;
+                    if (item.ItemType == "None") {
+                        string copyToOutputDirectory = "Always";
+                        ProjectMetadata temp2;
 
-                var evaluatedXnbPath = item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb");
-                var matchingBuiltPaths = (from bi in builtXNBs where 
-                                              bi.OutputPath.Contains(":\\") && 
-                                              bi.OutputPath.EndsWith("\\" + evaluatedXnbPath)
+                        if (metadata.TryGetValue("CopyToOutputDirectory", out temp2)) {
+                            copyToOutputDirectory = temp2.EvaluatedValue;
+                        }
+
+                        switch (copyToOutputDirectory) {
+                            case "Always":
+                            case "PreserveNewest":
+                                copyRawFile(item);
+                                break;
+                            default:
+                                break;
+                        }
+
+                        continue;
+                    }
+
+                    var importerName = metadata["Importer"].EvaluatedValue;
+                    var processorName = metadata["Processor"].EvaluatedValue;
+                    string xnbPath = null;
+
+                    Common.CompressResult temp;
+                    if (existingJournal.TryGetValue(sourcePath, out temp))
+                        existingJournalEntry = temp;
+                    else
+                        existingJournalEntry = null;
+
+                    var evaluatedXnbPath = item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb");
+                    var matchingBuiltPaths = (from bi in builtXNBs
+                                              where
+                                                  bi.OutputPath.Contains(":\\") &&
+                                                  bi.OutputPath.EndsWith("\\" + evaluatedXnbPath)
                                               select bi.Metadata["FullPath"]).Distinct().ToArray();
 
-                if (matchingBuiltPaths.Length == 0) {
-                } else if (matchingBuiltPaths.Length > 1) {
-                    throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
-                } else {
-                    xnbPath = matchingBuiltPaths[0];
-                    if (!File.Exists(xnbPath))
-                        throw new FileNotFoundException("Asset " + xnbPath + " not found.");
-                }
+                    if (matchingBuiltPaths.Length == 0) {
+                    } else if (matchingBuiltPaths.Length > 1) {
+                        throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
+                    } else {
+                        xnbPath = matchingBuiltPaths[0];
+                        if (!File.Exists(xnbPath))
+                            throw new FileNotFoundException("Asset " + xnbPath + " not found.");
+                    }
 
-                if (settings.Files[item.EvaluatedInclude].Contains("usexnb")) {
-                    copyRawXnb(item, xnbPath, "XNB");
-                } else if (
-                    forceCopyProcessors.Contains(processorName) || 
-                    forceCopyImporters.Contains(importerName)
-                ) {
-                    copyRawXnb(item, xnbPath, "XNB");
-                } else {
-                    switch (processorName) {
-                        case "XactProcessor":
-                            Common.ConvertXactProject(
-                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                settings, existingJournal,
-                                journal, logOutput
-                            );
-                            continue;
-
-                        case "FontTextureProcessor":
-                        case "FontDescriptionProcessor":
-                            copyRawXnb(item, xnbPath, "SpriteFont");
-                            continue;
-
-                        case "SoundEffectProcessor":
-                        case "SongProcessor":
-                            journal.AddRange(CompressAudioGroup(
-                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                settings, existingJournal, logOutput
-                            ));
-                            continue;
-
-                        case "TextureProcessor":
-                            if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
-                                copyRawXnb(item, xnbPath, "Texture2D");
+                    if (settings.Files[item.EvaluatedInclude].Contains("usexnb")) {
+                        copyRawXnb(item, xnbPath, "XNB");
+                    } else if (
+                        forceCopyProcessors.Contains(processorName) ||
+                        forceCopyImporters.Contains(importerName)
+                    ) {
+                        copyRawXnb(item, xnbPath, "XNB");
+                    } else {
+                        switch (processorName) {
+                            case "XactProcessor":
+                                Common.ConvertXactProject(
+                                    item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                    settings, existingJournal,
+                                    journal, logOutput
+                                );
                                 continue;
-                            }
 
-                            Common.CompressImage(
-                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                settings, metadata, existingJournalEntry,
-                                (result) => {
-                                    if (result.HasValue) {
-                                        journal.Add(result.Value);
-                                        logOutput("Image", result.Value.Filename, null);
-                                    }
+                            case "FontTextureProcessor":
+                            case "FontDescriptionProcessor":
+                                copyRawXnb(item, xnbPath, "SpriteFont");
+                                continue;
+
+                            case "SoundEffectProcessor":
+                            case "SongProcessor":
+                                journal.AddRange(CompressAudioGroup(
+                                    item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                    settings, existingJournal, logOutput
+                                ));
+                                continue;
+
+                            case "TextureProcessor":
+                                if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
+                                    copyRawXnb(item, xnbPath, "Texture2D");
+                                    continue;
                                 }
-                            );
 
-                            continue;
+                                Common.CompressImage(
+                                    item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                    settings, metadata, existingJournalEntry,
+                                    (result) => {
+                                        if (result.HasValue) {
+                                            journal.Add(result.Value);
+                                            logOutput("Image", result.Value.Filename, null);
+                                        }
+                                    }
+                                );
 
-                        case "EffectProcessor":
-                            copyRawXnb(item, xnbPath, "XNB");
-                            continue;
-                    }
-                    
-                    switch (importerName) {
-                        case "XmlImporter":
-                            copyRawXnb(item, xnbPath, "XNB");
-                            break;
+                                continue;
 
-                        default:
-                            Console.Error.WriteLine(
-                                "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
-                                item.EvaluatedInclude, importerName, processorName);
-                            break;
+                            case "EffectProcessor":
+                                copyRawXnb(item, xnbPath, "XNB");
+                                continue;
+                        }
+
+                        switch (importerName) {
+                            case "XmlImporter":
+                                copyRawXnb(item, xnbPath, "XNB");
+                                break;
+
+                            default:
+                                Console.Error.WriteLine(
+                                    "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
+                                    item.EvaluatedInclude, importerName, processorName);
+                                break;
+                        }
                     }
                 }
+
+                contentManifest.Dispose();
+
+                File.WriteAllText(
+                    journalPath, jss.Serialize(journal).Replace("{", "\r\n{")
+                );
             }
 
-            contentManifest.Dispose();
-
-            File.WriteAllText(
-                journalPath, jss.Serialize(journal).Replace("{", "\r\n{")
-            );
+            if (contentProjects.Length > 0)
+                Console.Error.WriteLine("// Done processing content.");
         }
-
-        if (contentProjects.Length > 0)
-            Console.Error.WriteLine("// Done processing content.");
     }
 
     private static void CopyRawFile (
@@ -1018,7 +1020,7 @@ public static class Common {
             Path.GetDirectoryName(outputPath));
 
         try {
-            CopyFile(sourcePath, outputPath, true);
+            CopiedOutputGatherer.CopyFile(sourcePath, outputPath, true);
             logOutput("File", outputPath, null);
         } catch (Exception exc) {
             Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
@@ -1089,7 +1091,7 @@ public static class Common {
             if (isCompressed)
                 DecompressXNB(xnbPath, outputPath);
             else
-                CopyFile(xnbPath, outputPath, true);
+                CopiedOutputGatherer.CopyFile(xnbPath, outputPath, true);
             logOutput(type, outputPath, null);
         } catch (Exception exc) {
             Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
@@ -1292,41 +1294,6 @@ public static class Common {
         }
 
         Console.Error.WriteLine("// Done processing {0}.", projectFile);
-    }
-
-    public static void CopyFile (string sourcePath, string destinationPath, bool overwrite) {
-        const int maxRetries = 5;
-        const int retryDelayMs = 500;
-
-        bool wroteFailureMessage = false;
-
-        for (int retries = 0; retries < maxRetries; retries++) {
-            try {
-                File.Copy(sourcePath, destinationPath, overwrite);
-                if (wroteFailureMessage)
-                    Console.Error.WriteLine();
-
-                break;
-            } catch (IOException ioe) {
-                if (!wroteFailureMessage) {
-                    Console.Error.Write("// Copy failed for '{0}' -> '{1}'! Retrying ", sourcePath, destinationPath);
-                    wroteFailureMessage = true;
-                }
-
-                if (retries < (maxRetries - 1)) {
-                    Console.Error.Write(".");
-                } else {
-                    if (wroteFailureMessage)
-                        Console.Error.WriteLine();
-                    throw;
-                }
-            }
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-
-            Thread.Sleep(retryDelayMs);
-        }
     }
 
     public class ProfileSettings {
