@@ -960,6 +960,65 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", tr
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
 });
 
+JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function ($) {
+  $.RawMethod(false, ".ctor", function (publicInterface, fullName) {
+    this.__PublicInterface__ = publicInterface;
+    this.__FullName__ = fullName;
+  });
+
+  $.Method({Static:false, Public:true }, "get_FullName", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_FullName () {
+      return this.__FullName__;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Location", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Location () {
+      // FIXME
+      return "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$.String], [])), 
+    function GetType (name) {
+      return JSIL.GetTypeFromAssembly(this, name, null, true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$.String, $.Boolean], [])), 
+    function GetType (name, throwOnError) {
+      return JSIL.GetTypeFromAssembly(this, name, null, throwOnError);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [
+          $.String, $.Boolean, 
+          $.Boolean
+        ], [])), 
+    function GetType (name, throwOnError, ignoreCase) {
+      if (ignoreCase)
+        throw new Error("ignoreCase not implemented");
+      
+      return JSIL.GetTypeFromAssembly(this, name, null, throwOnError);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetTypes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])), 
+    function GetTypes () {
+      return JSIL.GetTypesFromAssembly(this.__PublicInterface__);
+    }
+  );
+});
+
+JSIL.MakeClass("System.Reflection.Assembly", "System.Reflection.RuntimeAssembly", true, [], function ($) {
+});
+
 JSIL.ImplementExternals("System.Enum", function ($) {
   $.Method({Static:true , Public:true }, "ToObject",
     (new JSIL.MethodSignature($.Object, ["System.Type", $.Int32], [])),

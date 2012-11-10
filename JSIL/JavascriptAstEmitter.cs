@@ -721,6 +721,12 @@ namespace JSIL {
             Output.AssemblyReference(asm.Assembly);
         }
 
+        public void VisitNode (JSReflectionAssembly rasm) {
+            Output.AssemblyReference(rasm.Assembly);
+            Output.Dot();
+            Output.WriteRaw("__Assembly__");
+        }
+
         public void VisitNode (JSTypeReference tr) {
             Output.TypeReference(tr.Type, new TypeReferenceContext {
                 EnclosingType = tr.Context,

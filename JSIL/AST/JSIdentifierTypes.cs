@@ -62,6 +62,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSReflectionAssembly : JSAssembly {
+        public JSReflectionAssembly (AssemblyDefinition assembly)
+            : base(assembly) {
+        }
+
+        public override JSLiteral ToLiteral () {
+            throw new InvalidOperationException();
+        }
+    }
+
     public class JSType : JSIdentifier {
         new public readonly TypeReference Type;
 

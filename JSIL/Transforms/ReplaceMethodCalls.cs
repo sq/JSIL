@@ -266,7 +266,7 @@ namespace JSIL.Transforms {
                     switch (method.Reference.Name) {
                         case "GetExecutingAssembly": {
                             var assembly = Method.DeclaringType.Module.Assembly;
-                            var asmNode = new JSAssembly(assembly);
+                            var asmNode = new JSReflectionAssembly(assembly);
                             ParentNode.ReplaceChild(ie, asmNode);
                             VisitReplacement(asmNode);
 

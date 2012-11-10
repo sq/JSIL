@@ -1638,6 +1638,21 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
       return input.replace(re, replacement);
     }
   );
+
+  $.Method({Static:false, Public:true }, "IsMatch", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function IsMatch (input) {
+      var matchCount = 0;
+
+      var current = null;
+      // Have to exec() until done because JS RegExp is stateful for some stupid reason
+      while ((current = this._regex.exec(input)) !== null) {
+        matchCount += 1;
+      }
+
+      return (matchCount > 0);
+    }
+  );
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.RegularExpressions.Regex", true, [], function ($) {

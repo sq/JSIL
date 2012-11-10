@@ -74,6 +74,7 @@ namespace JSIL {
             "System.UInt64", "System.Int64",
             "System.Single", "System.Double", 
             "System.Boolean",
+            "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly"
         }; 
 
         public AssemblyTranslator (

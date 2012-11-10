@@ -53,125 +53,6 @@ JSIL.SetValueProperty = function (target, key, value, enumerable) {
   Object.defineProperty(target, key, descriptor);
 };
 
-JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
-  if (!value)
-    value = prototype;
-
-  JSIL.SetValueProperty(typeObject, "__TypeId__", value);
-  JSIL.SetValueProperty(publicInterface, "__TypeId__", value);
-
-  if (arguments.length === 4)
-    JSIL.SetValueProperty(prototype, "__ThisTypeId__", value);
-}
-
-JSIL.DeclareAssembly = function (assemblyName) {
-  var existing = JSIL.GetAssembly(assemblyName, true);
-  if ((existing !== null) && (existing.__Declared__))
-    throw new Error("Assembly '" + assemblyName + "' already declared.");
-
-  var result = JSIL.GetAssembly(assemblyName, false);
-  JSIL.SetValueProperty(result, "__Declared__", true);
-
-  $private = result;
-  return result;
-};
-
-JSIL.GetAssembly = function (assemblyName, requireExisting) {
-  var existing = JSIL.PrivateNamespaces[assemblyName];
-  if (typeof (existing) !== "undefined")
-    return existing;
-
-  var shortName = assemblyName;
-  var commaPos = shortName.indexOf(",");
-  if (commaPos >= 0)
-    shortName = shortName.substr(0, commaPos);
-
-  if (typeof (JSIL.AssemblyShortNames[shortName]) !== "undefined") {
-    var existingFullName = JSIL.AssemblyShortNames[shortName];
-    if ((existingFullName !== null) && (commaPos <= 0)) {
-      existing = JSIL.PrivateNamespaces[existingFullName];
-      if (typeof (existing) !== "undefined")
-        return existing;
-    } else if (commaPos >= 0) {
-      // Multiple assemblies with the same short name, so disable the mapping.
-      JSIL.AssemblyShortNames[shortName] = null;
-    }
-  } else if (commaPos >= 0) {
-    JSIL.AssemblyShortNames[shortName] = assemblyName;
-  }
-
-  if (requireExisting)
-    return null;
-
-  var isMscorlib = (shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0);
-  var isSystem = (shortName === "System") || (assemblyName.indexOf("System,") === 0);
-  var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
-  var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
-
-  // Create a new private global namespace for the new assembly
-  var template = {};
-
-  // Ensure that BCL private namespaces inherit from the JSIL namespace.
-  if (isMscorlib || isSystem || isSystemCore || isSystemXml)
-    template = $jsilcore;
-
-  var result = Object.create(template);
-
-  var assemblyId;
-
-  // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
-  if (isMscorlib) {
-    assemblyId = $jsilcore.__AssemblyId__;
-  } else {
-    assemblyId = ++JSIL.$NextAssemblyId;
-  }
-
-  JSIL.SetValueProperty(result, "get_Location", function () { return ""; });
-  JSIL.SetValueProperty(result, "Location", "");
-
-  JSIL.SetValueProperty(result, "__Declared__", false);
-  JSIL.SetValueProperty(result, "__AssemblyId__", assemblyId, false);
-
-  JSIL.SetValueProperty(result, "TypeRef", 
-    function (name, ga) {
-      return new JSIL.TypeRef(result, name, ga);
-    }, false
-  );
-
-  JSIL.SetValueProperty(result, "toString", 
-    function Assembly_ToString () {
-      return assemblyName;
-    }
-  );
-
-  JSIL.SetValueProperty(result, "typesByName", {}, false);
-
-  JSIL.PrivateNamespaces[assemblyName] = result;
-  return result;
-};
-
-
-var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
-
-// Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
-// WTF? Maybe they won't suck sometime in the distant future.
-$jsilcore.SealInitializedTypes = false;
-
-// Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
-//  type inference engine.
-
-$jsilcore.ArrayNotInitialized = ["ArrayNotInitialized"];
-$jsilcore.ArrayNull = [];
-
-$jsilcore.FunctionNotInitialized = function () { throw new Error("FunctionNotInitialized"); };
-$jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
-
-JSIL.Memoize = function (value) {
-  return function MemoizedValue () { 
-    return value 
-  };
-};
-
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var isInitialized = false;
   var defaultValue;
@@ -274,6 +155,127 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
   descriptor.get = getter;
 
   Object.defineProperty(target, key, descriptor);
+};
+
+JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
+  if (!value)
+    value = prototype;
+
+  JSIL.SetValueProperty(typeObject, "__TypeId__", value);
+  JSIL.SetValueProperty(publicInterface, "__TypeId__", value);
+
+  if (arguments.length === 4)
+    JSIL.SetValueProperty(prototype, "__ThisTypeId__", value);
+}
+
+JSIL.DeclareAssembly = function (assemblyName) {
+  var existing = JSIL.GetAssembly(assemblyName, true);
+  if ((existing !== null) && (existing.__Declared__))
+    throw new Error("Assembly '" + assemblyName + "' already declared.");
+
+  var result = JSIL.GetAssembly(assemblyName, false);
+  JSIL.SetValueProperty(result, "__Declared__", true);
+
+  $private = result;
+  return result;
+};
+
+JSIL.GetAssembly = function (assemblyName, requireExisting) {
+  var existing = JSIL.PrivateNamespaces[assemblyName];
+  if (typeof (existing) !== "undefined")
+    return existing;
+
+  var shortName = assemblyName;
+  var commaPos = shortName.indexOf(",");
+  if (commaPos >= 0)
+    shortName = shortName.substr(0, commaPos);
+
+  if (typeof (JSIL.AssemblyShortNames[shortName]) !== "undefined") {
+    var existingFullName = JSIL.AssemblyShortNames[shortName];
+    if ((existingFullName !== null) && (commaPos <= 0)) {
+      existing = JSIL.PrivateNamespaces[existingFullName];
+      if (typeof (existing) !== "undefined")
+        return existing;
+    } else if (commaPos >= 0) {
+      // Multiple assemblies with the same short name, so disable the mapping.
+      JSIL.AssemblyShortNames[shortName] = null;
+    }
+  } else if (commaPos >= 0) {
+    JSIL.AssemblyShortNames[shortName] = assemblyName;
+  }
+
+  if (requireExisting)
+    return null;
+
+  var isMscorlib = (shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0);
+  var isSystem = (shortName === "System") || (assemblyName.indexOf("System,") === 0);
+  var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
+  var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
+
+  // Create a new private global namespace for the new assembly
+  var template = {};
+
+  // Ensure that BCL private namespaces inherit from the JSIL namespace.
+  if (isMscorlib || isSystem || isSystemCore || isSystemXml)
+    template = $jsilcore;
+
+  var result = Object.create(template);
+
+  var assemblyId;
+
+  // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
+  if (isMscorlib) {
+    assemblyId = $jsilcore.__AssemblyId__;
+  } else {
+    assemblyId = ++JSIL.$NextAssemblyId;
+  }
+
+  var makeReflectionAssembly = function () {
+    return new $jsilcore.System.Reflection.RuntimeAssembly(result, assemblyName);
+  };
+
+  JSIL.SetValueProperty(result, "__Declared__", false);
+  JSIL.SetLazyValueProperty(result, "__Assembly__", makeReflectionAssembly);
+  JSIL.SetValueProperty(result, "__AssemblyId__", assemblyId, false);
+
+  JSIL.SetValueProperty(result, "TypeRef", 
+    function (name, ga) {
+      return new JSIL.TypeRef(result, name, ga);
+    }, false
+  );
+
+  JSIL.SetValueProperty(result, "toString", 
+    function Assembly_ToString () {
+      return "<" + assemblyName + " Public Interface>";
+    }
+  );
+
+  JSIL.SetValueProperty(result, "$typesByName", {}, false);
+
+  JSIL.PrivateNamespaces[assemblyName] = result;
+  return result;
+};
+
+
+var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+
+// Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
+// WTF? Maybe they won't suck sometime in the distant future.
+$jsilcore.SealInitializedTypes = false;
+
+// Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
+//  type inference engine.
+
+$jsilcore.ArrayNotInitialized = ["ArrayNotInitialized"];
+$jsilcore.ArrayNull = [];
+
+$jsilcore.FunctionNotInitialized = function () { throw new Error("FunctionNotInitialized"); };
+$jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
+
+JSIL.Memoize = function (value) {
+  return function MemoizedValue () { 
+    return value 
+  };
 };
 
 
@@ -728,10 +730,10 @@ JSIL.GetTypeByName = function (name, assembly) {
     throw new Error("Positional generic method parameter '" + name + "' cannot be resolved by GetTypeByName.");
 
   if (assembly !== undefined) {
-    var tbn = assembly.typesByName;
+    var tbn = assembly.$typesByName;
 
     if (typeof (tbn) === "object") {
-      var typeFunction = assembly.typesByName[name];
+      var typeFunction = tbn[name];
       if (typeof (typeFunction) === "function")
         return typeFunction(false);
     } else {
@@ -772,11 +774,11 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
     }
   }
 
-  var existing = $private.typesByName[name];
+  var existing = $private.$typesByName[name];
   if (typeof (existing) === "function")
     throw new Error("Type '" + name + "' has already been defined.");
 
-  $private.typesByName[name] = getter;
+  $private.$typesByName[name] = getter;
 };
 
 JSIL.DeclareNamespace = function (name, sealed) {
@@ -1112,22 +1114,6 @@ JSIL.Initialize = function () {
   var arn = JSIL.AllRegisteredNames;
   for (var i = 0, l = arn.length; i < l; i++)
     arn[i].sealed = true;
-
-  var forceInitList = [
-    "System.Object",
-    "System.Reflection.MemberInfo",
-    "System.Reflection.MethodBase",
-    "System.Reflection.FieldInfo",
-    "System.Type"
-  ];
-
-  /*
-  for (var i = 0; i < forceInitList.length; i++) {
-    var typeName = forceInitList[i];
-    var type = JSIL.GetTypeByName(typeName);
-    JSIL.InitializeType(type);
-  };
-  */
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -1506,7 +1492,7 @@ JSIL.TypeObjectPrototype.toString = function () {
 };
 
 JSIL.TypeObjectPrototype.get_Assembly = function() { 
-  return this.__Context__; 
+  return this.__Context__.__Assembly__; 
 }
 JSIL.TypeObjectPrototype.get_Namespace = function() { 
   // FIXME: Probably wrong for nested types.
@@ -3932,13 +3918,14 @@ JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
 
 JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
   var context = $private;
+  var tbn = sourceAssembly.$typesByName;
 
   Object.defineProperty(
-    context.typesByName, fullName, {
+    context.$typesByName, fullName, {
       configurable: false,
       enumerable: true,
       get: function () {
-        return sourceAssembly.typesByName[fullName];
+        return tbn[fullName];
       }
     }
   );
@@ -4639,6 +4626,16 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
   return result;
 };
 
+
+JSIL.MemberBuilder = function () {
+  this.attributes = [];
+};
+
+JSIL.MemberBuilder.prototype.Attribute = function (attributeType, attributeArguments) {
+  this.attributes.push([attributeType, attributeArguments]);
+};
+
+
 JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.context = context;
   this.typeObject = typeObject;
@@ -4772,12 +4769,12 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   return result;
 };
 
-JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data) {
+JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, attributes) {
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
     this.typeObject.__Members__ = members = [];
 
-  Array.prototype.push.call(members, [type, descriptor, data]);
+  Array.prototype.push.call(members, [type, descriptor, data, attributes]);
 
   return members.length - 1;
 };
@@ -4876,7 +4873,10 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, property
   var props = this.typeObject.__Properties__;
   props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
 
-  this.PushMember("PropertyInfo", descriptor, null);
+  var memberBuilder = new JSIL.MemberBuilder();
+  this.PushMember("PropertyInfo", descriptor, null, memberBuilder.attributes);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, propertyType) {
@@ -4885,7 +4885,10 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, p
   var props = this.typeObject.__Properties__;
   props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
 
-  this.PushMember("PropertyInfo", descriptor, null);
+  var memberBuilder = new JSIL.MemberBuilder();
+  this.PushMember("PropertyInfo", descriptor, null, memberBuilder.attributes);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
@@ -4896,10 +4899,11 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
     defaultValueExpression: defaultValueExpression 
   };
 
-  var fieldIndex = this.PushMember("FieldInfo", descriptor, data);
+  var memberBuilder = new JSIL.MemberBuilder();
+  var fieldIndex = this.PushMember("FieldInfo", descriptor, data, memberBuilder.attributes);
 
   if (!descriptor.Static)
-    return;
+    return memberBuilder;
 
   var maybeRunCctors = this.maybeRunCctors;
 
@@ -4974,6 +4978,8 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
     fi = this.typeObject.__FieldInitializers__ = [];
 
   fi.push(fieldCreator);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
@@ -5007,12 +5013,15 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     JSIL.SetValueProperty(descriptor.Target, mangledName, newValue);
   }
 
+  var memberBuilder = new JSIL.MemberBuilder();
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
     mangledName: mangledName,
     isExternal: true,
     isPlaceholder: isPlaceholder
-  });
+  }, memberBuilder.attributes);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propertyName, propertyType) {
@@ -5025,7 +5034,7 @@ JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propert
     new JSIL.MethodSignature(null, [propertyType], [])
   );
 
-  this.Property(descriptor, propertyName, propertyType);
+  return this.Property(descriptor, propertyName, propertyType);
 };
 
 JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) {
@@ -5057,11 +5066,14 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 
+  var memberBuilder = new JSIL.MemberBuilder();
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
     mangledName: mangledName,
     isExternal: false
-  });
+  }, memberBuilder.attributes);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
@@ -5092,11 +5104,14 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 
+  var memberBuilder = new JSIL.MemberBuilder();
   this.PushMember("MethodInfo", descriptor, {
     signature: signature, 
     mangledName: mangledName,
     isExternal: false
-  });
+  }, memberBuilder.attributes);
+
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
@@ -5112,6 +5127,7 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
     interfaces.push(arguments[i]);
   }
 };
+
 
 JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context) {
   this.context = context || $private;
@@ -5583,7 +5599,10 @@ JSIL.GetTypeInternal = function (parsedTypeName, defaultContext, throwOnFail) {
 JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throwOnFail) {
   var resolved, result = null;
 
-  resolved = JSIL.ResolveName(assembly, typeName, true, throwOnFail === true);
+  var publicInterface = assembly.__PublicInterface__ || assembly;
+  assembly = publicInterface.__Assembly__;
+
+  resolved = JSIL.ResolveName(publicInterface, typeName, true, throwOnFail === true);
   if (resolved === null)
     return null;
 
@@ -5593,13 +5612,30 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
     if (JSIL.IsArray(genericArguments) && (genericArguments.length > 0))
       result = result.Of.apply(result, genericArguments);
   } else if (throwOnFail) {
-    throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly.");
+    throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly '" + assembly.toString() + "'.");
   }
 
   if (result !== null)
     return result.__Type__;
   else
     return null;
+};
+
+JSIL.GetTypesFromAssembly = function (assembly) {
+  var publicInterface = assembly.__PublicInterface__ || assembly;
+  assembly = publicInterface.__Assembly__;
+
+  var result = [];
+  var types = publicInterface.$typesByName;
+  for (var k in types) {
+    var typeFunction = types[k];
+    var publicInterface = typeFunction(false);
+    var type = publicInterface.__Type__;
+
+    result.push(type);
+  }
+
+  return result;
 };
 
 JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {

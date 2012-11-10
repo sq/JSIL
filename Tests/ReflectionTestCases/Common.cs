@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Common {
     public static class Util {
@@ -50,6 +51,33 @@ namespace Common {
             Console.WriteLine();
             foreach (var methodName in methodNames)
                 Console.WriteLine(methodName);
+        }
+
+        public static string[] GetTypeNames (Assembly asm, string filterRegex = null) {
+            var types = asm.GetTypes();
+
+            Regex regex = null;
+            if (filterRegex != null)
+                regex = new Regex(filterRegex, RegexOptions.ECMAScript);
+
+            var result = new List<string>();
+            for (int i = 0, l = types.Length; i < l; i++) {
+                var fullName = types[i].FullName;
+                if ((regex == null) || regex.IsMatch(fullName))
+                    result.Add(fullName);
+            }
+
+            result.Sort();
+
+            return result.ToArray();
+        }
+
+        public static void ListTypes (Assembly asm, string filterRegex = null) {
+            var typeNames = GetTypeNames(asm, filterRegex);
+
+            Console.WriteLine();
+            foreach (var typeName in typeNames)
+                Console.WriteLine(typeName);
         }
     }
 }
