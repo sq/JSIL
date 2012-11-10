@@ -47,7 +47,7 @@ namespace JSIL {
             IncludeTypeParens.Push(false);
         }
 
-        protected void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {
+        public void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {
             bool isFirst = true;
             foreach (var value in values) {
                 if (!isFirst) {
@@ -590,7 +590,7 @@ namespace JSIL {
             if (enm.Names.Length == 1) {
                 Output.Identifier(enm.Names[0]);
             } else {
-                Output.Identifier("Flags");
+                Output.WriteRaw("$Flags");
                 Output.LPar();
 
                 Output.CommaSeparatedList(

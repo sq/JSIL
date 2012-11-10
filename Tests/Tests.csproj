@@ -267,6 +267,9 @@
     <None Include="IOTestCases\Common.cs" />
     <None Include="IOTestCases\ReadLine.cs" />
     <None Include="IOTestCases\EndOfStream.cs" />
+    <None Include="ReflectionTestCases\GetFieldAttributes.cs" />
+    <None Include="ReflectionTestCases\GetPropertyAttributes.cs" />
+    <None Include="ReflectionTestCases\GetMethodAttributes.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

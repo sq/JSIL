@@ -79,5 +79,34 @@ namespace Common {
             foreach (var typeName in typeNames)
                 Console.WriteLine(typeName);
         }
+
+        public static void ListAttributes (MemberInfo member, bool inherit, Type attributeType = null) {
+            object[] attributes;
+
+            if (attributeType != null)
+                attributes = member.GetCustomAttributes(attributeType, inherit);
+            else
+                attributes = member.GetCustomAttributes(inherit);
+
+            foreach (var attribute in attributes)
+                Console.WriteLine(attribute);
+        }
+    }
+
+    public class AttributeA : Attribute {
+    }
+
+    public class AttributeB : Attribute {
+        public readonly int Arg1;
+        public readonly string Arg2;
+
+        public AttributeB (int arg1, string arg2) {
+            Arg1 = arg1;
+            Arg2 = arg2;
+        }
+
+        public override string ToString () {
+            return String.Format("AttributeB({0}, {1})", Arg1, Arg2);
+        }
     }
 }

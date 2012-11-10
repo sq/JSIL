@@ -593,10 +593,15 @@ JSIL.MakeClass("System.Object", "System.Exception", true, [], function ($) {
   $.Property({Public: true , Static: false}, "InnerException");
 });
 
-JSIL.MakeClass("System.Exception", "System.FormatException", true);
-JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
-JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
-JSIL.MakeClass("System.Exception", "System.IO.FileNotFoundException", true);
+JSIL.MakeClass("System.Exception", "System.SystemException", true);
+
+JSIL.MakeClass("System.SystemException", "System.FormatException", true);
+JSIL.MakeClass("System.SystemException", "System.InvalidCastException", true);
+JSIL.MakeClass("System.SystemException", "System.InvalidOperationException", true);
+JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
+
+JSIL.MakeClass("System.SystemException", "System.IOException", true);
+JSIL.MakeClass("System.IOException", "System.IO.FileNotFoundException", true);
 
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
@@ -2559,6 +2564,8 @@ JSIL.ImplementExternals(
       var resultValue = 0;
       var temp = new JSIL.Variable();
 
+      var publicInterface = TEnum.__PublicInterface__;
+
       for (var i = 0, l = items.length; i < l; i++) {
         var item = items[i].trim();
         if (item.length === 0)
@@ -2574,10 +2581,10 @@ JSIL.ImplementExternals(
       var name = TEnum.__ValueToName__[resultValue];
 
       if (typeof (name) === "undefined") {
-        result.value = TEnum.$MakeValue(resultValue, null);
+        result.value = publicInterface.$MakeValue(resultValue, null);
         return true;
       } else {
-        result.value = TEnum[name];
+        result.value = publicInterface[name];
         return true;
       }
     };
@@ -2590,6 +2597,8 @@ JSIL.ImplementExternals(
 
       var num = parseInt(text, 10);
 
+      var publicInterface = TEnum.__PublicInterface__;
+
       if (isNaN(num)) {
         if (ignoreCase) {
           var names = TEnum.__Names__;
@@ -2597,12 +2606,12 @@ JSIL.ImplementExternals(
             var isMatch = (names[i].toLowerCase() == text.toLowerCase());
 
             if (isMatch) {
-              result.value = TEnum[names[i]];
+              result.value = publicInterface[names[i]];
               break;
             }
           }
         } else {
-          result.value = TEnum[text];
+          result.value = publicInterface[text];
         }
 
         return (typeof (result.value) !== "undefined");
@@ -2610,10 +2619,10 @@ JSIL.ImplementExternals(
         var name = TEnum.__ValueToName__[num];
 
         if (typeof (name) === "undefined") {
-          result.value = TEnum.$MakeValue(num, null);
+          result.value = publicInterface.$MakeValue(num, null);
           return true;
         } else {
-          result.value = TEnum[name];
+          result.value = publicInterface[name];
           return true;
         }
       }

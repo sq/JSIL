@@ -74,7 +74,8 @@ namespace JSIL {
             "System.UInt64", "System.Int64",
             "System.Single", "System.Double", 
             "System.Boolean",
-            "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly"
+            "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
+            "System.Attribute"
         }; 
 
         public AssemblyTranslator (
@@ -1703,11 +1704,16 @@ namespace JSIL {
                         };
                     }
 
-                    return JSInvocationExpression.InvokeStatic(
+                    var fieldExpression = JSInvocationExpression.InvokeStatic(
                         JSDotExpression.New(
                             dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
                         ), args
                     );
+
+                    JSExpression result = fieldExpression;
+                    var resultType = result.GetActualType(field.Module.TypeSystem);
+
+                    return result;
                 }
             }
         }
@@ -1905,7 +1911,11 @@ namespace JSIL {
 
                 if (expr != null) {
                     output.NewLine();
-                    astEmitter.Visit(new JSExpressionStatement(expr));
+                    astEmitter.Visit(expr);
+
+                    TranslateCustomAttributes(context, typedef, f, astEmitter, output);
+
+                    output.Semicolon(false);
                 }
             }
 
@@ -1948,6 +1958,48 @@ namespace JSIL {
                     }
                 );
             }
+        }
+
+        private JSExpression TranslateAttributeConstructorArgument (TypeReference context, CustomAttributeArgument ca) {
+            if (ca.Type.FullName == "System.Type") {
+                return new JSTypeReference((TypeReference)ca.Value, context);
+            } else {
+                try {
+                    return JSLiteral.New(ca.Value as dynamic);
+                } catch (Exception exc) {
+                    throw new NotImplementedException(String.Format("Attribute arguments of type '{0}' are not implemented.", ca.Type.FullName));
+                }
+            }
+        }
+
+        private void TranslateCustomAttributes (
+            DecompilerContext context, 
+            TypeReference declaringType,
+            Mono.Cecil.ICustomAttributeProvider member, 
+            JavascriptAstEmitter astEmitter, 
+            JavascriptFormatter output
+        ) {
+            output.Indent();
+
+            foreach (var attribute in member.CustomAttributes) {
+                output.NewLine();
+                output.Dot();
+                output.Identifier("Attribute");
+                output.LPar();
+                output.TypeReference(attribute.AttributeType, astEmitter.ReferenceContext);
+
+                output.Comma();
+                output.OpenBracket(false);
+                astEmitter.CommaSeparatedList(
+                    (from ca in attribute.ConstructorArguments
+                     select TranslateAttributeConstructorArgument(declaringType, ca))
+                );
+                output.CloseBracket(false);
+
+                output.RPar();
+            }
+
+            output.Unindent();
         }
 
         protected void CreateMethodInformation (
@@ -2115,6 +2167,8 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+
                 output.Semicolon();
             } finally {
                 astEmitter.ReferenceContext.DefiningMethod = oldDefining;
@@ -2156,6 +2210,9 @@ namespace JSIL {
             output.TypeReference(property.PropertyType, astEmitter.ReferenceContext);
 
             output.RPar();
+
+            TranslateCustomAttributes(context, property.DeclaringType, property, astEmitter, output);
+
             output.Semicolon();
         }
 
