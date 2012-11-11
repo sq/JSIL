@@ -276,6 +276,7 @@
     <None Include="ReflectionTestCases\GetClassAttributes.cs" />
     <None Include="ReflectionTestCases\GetStructAttributes.cs" />
     <None Include="ReflectionTestCases\GetStaticClassAttributes.cs" />
+    <None Include="ReflectionTestCases\SelfTypedAttribute.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

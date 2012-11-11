@@ -22,13 +22,76 @@ namespace JSIL.Internal {
     }
 
     public class TypeReferenceContext {
-        public TypeReference EnclosingType;
-        public TypeReference DefiningType;
+        private struct _State {
+            public TypeReference EnclosingType;
+            public TypeReference DefiningType;
 
-        public MethodReference EnclosingMethod;
-        public MethodReference DefiningMethod;
-        public MethodReference InvokingMethod;
-        public MethodReference SignatureMethod;
+            public MethodReference EnclosingMethod;
+            public MethodReference DefiningMethod;
+            public MethodReference InvokingMethod;
+            public MethodReference SignatureMethod;
+        }
+
+        private readonly Stack<_State> Stack = new Stack<_State>();
+        private _State State;
+
+        public void Push () {
+            Stack.Push(State);
+        }
+
+        public void Pop () {
+            State = Stack.Pop();
+        }
+
+        public TypeReference EnclosingType {
+            get {
+                return State.EnclosingType;
+            }
+            set {
+                State.EnclosingType = value;
+            }
+        }
+        public TypeReference DefiningType {
+            get {
+                return State.DefiningType;
+            }
+            set {
+                State.DefiningType = value;
+            }
+        }
+
+        public MethodReference EnclosingMethod {
+            get {
+                return State.EnclosingMethod;
+            }
+            set {
+                State.EnclosingMethod = value;
+            }
+        }
+        public MethodReference DefiningMethod {
+            get {
+                return State.DefiningMethod;
+            }
+            set {
+                State.DefiningMethod = value;
+            }
+        }
+        public MethodReference InvokingMethod {
+            get {
+                return State.InvokingMethod;
+            }
+            set {
+                State.InvokingMethod = value;
+            }
+        }
+        public MethodReference SignatureMethod {
+            get {
+                return State.SignatureMethod;
+            }
+            set {
+                State.SignatureMethod = value;
+            }
+        }
 
         public TypeReference EnclosingMethodType {
             get {

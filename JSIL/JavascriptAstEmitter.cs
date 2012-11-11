@@ -1321,10 +1321,10 @@ namespace JSIL {
 
             bool hasArguments = newexp.Arguments.Count > 0;
 
-            var oldInvoking = ReferenceContext.InvokingMethod;
-
             if (isOverloaded && CanUseFastOverloadDispatch(ctor))
                 isOverloaded = false;
+
+            ReferenceContext.Push();
 
             try {
                 if (isOverloaded) {
@@ -1373,7 +1373,7 @@ namespace JSIL {
                         Output.RPar();
                 }
             } finally {
-                ReferenceContext.InvokingMethod = oldInvoking;
+                ReferenceContext.Pop();
             }
         }
 
@@ -1516,7 +1516,8 @@ namespace JSIL {
             if (isOverloaded && CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
-            var oldInvoking = ReferenceContext.InvokingMethod;
+            ReferenceContext.Push();
+
             try {
                 if (isOverloaded) {
 
@@ -1631,7 +1632,7 @@ namespace JSIL {
 
                 Output.RPar();
             } finally {
-                ReferenceContext.InvokingMethod = oldInvoking;
+                ReferenceContext.Pop();
             }
         }
 

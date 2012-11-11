@@ -1012,10 +1012,10 @@ JSIL.MemberRecord = function (type, descriptor, data, attributes) {
   this.attributes = attributes;
 };
 
-JSIL.AttributeRecord = function (context, type, constructorArguments, initializer) {
+JSIL.AttributeRecord = function (context, type, getConstructorArguments, initializer) {
   this.context = context;
   this.type = type;
-  this.constructorArguments = constructorArguments;
+  this.getConstructorArguments = getConstructorArguments;
   this.initializer = initializer;
 };
 
@@ -1024,7 +1024,13 @@ JSIL.AttributeRecord.prototype.Construct = function () {
   if (!resolvedType)
     throw new Error("Failed to resolve attribute type '" + this.type + "'")
 
-  var instance = JSIL.CreateInstanceOfType(resolvedType, this.constructorArguments);
+  var constructorArguments;
+  if (this.getConstructorArguments)
+    constructorArguments = this.getConstructorArguments();
+  else
+    constructorArguments = [];
+
+  var instance = JSIL.CreateInstanceOfType(resolvedType, constructorArguments);
   return instance;
 };
 
@@ -4696,8 +4702,8 @@ JSIL.MemberBuilder = function (context) {
   this.attributes = [];
 };
 
-JSIL.MemberBuilder.prototype.Attribute = function (attributeType, constructorArguments, initializer) {
-  var record = new JSIL.AttributeRecord(this.context, attributeType, constructorArguments, initializer);
+JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructorArguments, initializer) {
+  var record = new JSIL.AttributeRecord(this.context, attributeType, getConstructorArguments, initializer);
   this.attributes.push(record);
 
   // Allows call chaining for multiple attributes

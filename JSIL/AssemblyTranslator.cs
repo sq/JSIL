@@ -905,8 +905,7 @@ namespace JSIL {
                 return;
             }
 
-            TypeReference oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
-            TypeReference oldDefining = astEmitter.ReferenceContext.DefiningType;
+            astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningType = typedef;
             context.CurrentType = typedef;
 
@@ -918,14 +917,14 @@ namespace JSIL {
                 if (typeInfo.Replacement != null) {
                     output.NewLine();
 
-                    oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
+                    astEmitter.ReferenceContext.Push();
                     astEmitter.ReferenceContext.EnclosingType = typedef;
 
                     try {
                         foreach (var nestedTypeDef in typedef.NestedTypes)
                             DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
                     } finally {
-                        astEmitter.ReferenceContext.EnclosingType = oldEnclosing;
+                        astEmitter.ReferenceContext.Pop();
                     }
 
                     return;
@@ -1046,7 +1045,9 @@ namespace JSIL {
 
                 }
 
+                astEmitter.ReferenceContext.Push();
                 astEmitter.ReferenceContext.EnclosingType = typedef;
+
                 try {
                     // Hack to force the indent level for type definitions to be 1 instead of 2.
                     output.Unindent();
@@ -1075,13 +1076,13 @@ namespace JSIL {
                     output.Semicolon();
                     output.NewLine();
                 } finally {
-                    astEmitter.ReferenceContext.EnclosingType = oldEnclosing;
+                    astEmitter.ReferenceContext.Pop();
                 }
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
             } finally {
-                astEmitter.ReferenceContext.DefiningType = oldDefining;
+                astEmitter.ReferenceContext.Pop();
             }
         }
 
@@ -1997,27 +1998,41 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, 
             JavascriptFormatter output
         ) {
-            output.Indent();
+            astEmitter.ReferenceContext.Push();
+            try {
+                astEmitter.ReferenceContext.EnclosingType = null;
+                astEmitter.ReferenceContext.DefiningType = null;
 
-            foreach (var attribute in member.CustomAttributes) {
-                output.NewLine();
-                output.Dot();
-                output.Identifier("Attribute");
-                output.LPar();
-                output.TypeReference(attribute.AttributeType, astEmitter.ReferenceContext);
+                output.Indent();
 
-                output.Comma();
-                output.OpenBracket(false);
-                astEmitter.CommaSeparatedList(
-                    (from ca in attribute.ConstructorArguments
-                     select TranslateAttributeConstructorArgument(declaringType, ca))
-                );
-                output.CloseBracket(false);
+                foreach (var attribute in member.CustomAttributes) {
+                    output.NewLine();
+                    output.Dot();
+                    output.Identifier("Attribute");
+                    output.LPar();
+                    output.TypeReference(attribute.AttributeType, astEmitter.ReferenceContext);
 
-                output.RPar();
+                    var constructorArgs = attribute.ConstructorArguments.ToArray();
+                    if (constructorArgs.Length > 0) {
+                        output.Comma();
+
+                        output.WriteRaw("function () { return ");
+                        output.OpenBracket(false);
+                        astEmitter.CommaSeparatedList(
+                            (from ca in constructorArgs
+                             select TranslateAttributeConstructorArgument(declaringType, ca))
+                        );
+                        output.CloseBracket(false);
+                        output.WriteRaw("; }");
+                    }
+
+                    output.RPar();
+                }
+
+                output.Unindent();
+            } finally {
+                astEmitter.ReferenceContext.Pop();
             }
-
-            output.Unindent();
         }
 
         protected void CreateMethodInformation (
@@ -2119,7 +2134,7 @@ namespace JSIL {
                 output.NewLine();
             }
 
-            MethodReference oldDefining = astEmitter.ReferenceContext.DefiningMethod;
+            astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
             try {
@@ -2151,11 +2166,12 @@ namespace JSIL {
 
                         function.DisplayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
 
+                        astEmitter.ReferenceContext.Push();
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 
                         astEmitter.Visit(function);
 
-                        astEmitter.ReferenceContext.EnclosingMethod = null;
+                        astEmitter.ReferenceContext.Pop();
                     } else {
                         output.Identifier("JSIL.UntranslatableFunction", null);
                         output.LPar();
@@ -2189,7 +2205,7 @@ namespace JSIL {
 
                 output.Semicolon();
             } finally {
-                astEmitter.ReferenceContext.DefiningMethod = oldDefining;
+                astEmitter.ReferenceContext.Pop();
             }
         }
 
