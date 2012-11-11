@@ -1977,7 +1977,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         this.tKeysEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
       }
 
-      return new JSIL.AbstractEnumerable(
+      var result = new JSIL.AbstractEnumerable(
         (function getKeysProxy () {
           var keys = [];
 
@@ -1993,6 +1993,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
           return new (this.tKeysEnumerator)(keys, -1);
         }).bind(this)
       );
+
+      // FIXME: Terrible hack
+      result.get_Count = this.get_Count.bind(this);
+      return result;
     }
   );
 
@@ -2003,7 +2007,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         this.tValuesEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
       }
 
-      return new JSIL.AbstractEnumerable(
+      var result = new JSIL.AbstractEnumerable(
         (function getValuesProxy () {
           var values = [];
 
@@ -2019,6 +2023,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
           return new (this.tValuesEnumerator)(values, -1);
         }).bind(this)
       );
+
+      // FIXME: Terrible hack
+      result.get_Count = this.get_Count.bind(this);
+      return result;
     }
   );
 
