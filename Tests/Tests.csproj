@@ -280,7 +280,7 @@
     <None Include="ReflectionTestCases\GetFilteredAttributes.cs" />
     <None Include="ReflectionTestCases\GetInheritedAttributes.cs" />
     <None Include="Int64TestCases\Int64NullableCast.cs" />
-    <None Include="Int64TestCases\Int64NullableCastTwice.cs" />
+    <None Include="SimpleTestCases\TypeQualifiedPropertyInNestedType.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

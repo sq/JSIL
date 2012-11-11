@@ -2205,14 +2205,20 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 
         var localName = JSIL.GetLocalName(name);
         var parentName = JSIL.GetParentName(name);
-        var fullName = JSIL.EscapeName(isVirtual ? originalTypeObject.__ShortName__ : typeObject.__ShortName__);
+        var shortName = isVirtual ? originalTypeObject.__ShortName__ : typeObject.__ShortName__;
 
+        // We need to strip nested type prefixes (Foo/NestedType) so that the short name becomes
+        //  "NestedType" instead of "Foo_NestedType".
+        var shortNamePieces = shortName.split(JSIL.UnderscoreRegex);
+        shortName = shortNamePieces[shortNamePieces.length - 1];
+        var escapedShortName = JSIL.EscapeName(shortName);
+        
         var methodSource = publicInterface;
 
         if (isStatic)
-          JSIL.InterfaceBuilder.MakeProperty(fullName, name, publicInterface, methodSource);
+          JSIL.InterfaceBuilder.MakeProperty(shortName, name, publicInterface, methodSource);
         else
-          JSIL.InterfaceBuilder.MakeProperty(fullName, localName, publicInterface.prototype, methodSource.prototype, parentName);
+          JSIL.InterfaceBuilder.MakeProperty(shortName, localName, publicInterface.prototype, methodSource.prototype, parentName);
       }
     }
 
@@ -4906,7 +4912,7 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   this.constants.push([descriptor.Static, name, prop]);
 };
 
-JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSource, interfacePrefix) {
+JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource, interfacePrefix) {
   var prop = {
     configurable: true,
     enumerable: true
@@ -4932,13 +4938,13 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSou
 
   if (!prop.get && !prop.set) {
     prop["get"] = prop["set"] = function () {
-      throw new Error("Property has no getter or setter: " + typeName + "." + name + "\r\n looked for: " + getterName + " & " + setterName);
+      throw new Error("Property has no getter or setter: " + typeShortName + "." + name + "\r\n looked for: " + getterName + " & " + setterName);
     };
   }
 
   Object.defineProperty(target, interfacePrefix + name, prop);
 
-  var typeQualifiedName = typeName + "$" + interfacePrefix + name;
+  var typeQualifiedName = typeShortName + "$" + interfacePrefix + name;
   Object.defineProperty(target, typeQualifiedName, prop);
 
   if ((getter && getter.__IsMembrane__) || (setter && setter.__IsMembrane__)) {
