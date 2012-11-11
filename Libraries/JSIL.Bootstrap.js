@@ -2699,7 +2699,14 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals("System.Activator", function ($) {
   var mscorlib = JSIL.GetCorlib();
-  
+
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type")], [])), 
+    function CreateInstance (type) {
+      return JSIL.CreateInstanceOfType(type, []);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type"), mscorlib.TypeRef("System.Array", [$.Object])], [])), 
     function CreateInstance (type, args) {

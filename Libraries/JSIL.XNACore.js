@@ -4750,6 +4750,37 @@ $jsilxna.Color = function ($) {
       return this._cachedCss = "rgb(" + this.r + "," + this.g + "," + this.b + ")";
     }
   });
+
+  $.Method({Static:true , Public:true }, "FromNonPremultiplied", 
+    (new JSIL.MethodSignature($jsilxna.colorRef(), [$xnaasms.xna.TypeRef("Microsoft.Xna.Framework.Vector4")], [])), 
+    function FromNonPremultiplied (vector) {
+      var result = $jsilxna.makeColorInstance();
+
+      result.r = $jsilxna.ClampByte(vector.X * 255);
+      result.g = $jsilxna.ClampByte(vector.Y * 255);
+      result.b = $jsilxna.ClampByte(vector.Z * 255);
+      result.a = $jsilxna.ClampByte(vector.W * 255);
+
+      return result;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "FromNonPremultiplied", 
+    (new JSIL.MethodSignature($jsilxna.colorRef(), [
+          $.Int32, $.Int32, 
+          $.Int32, $.Int32
+        ], [])), 
+    function FromNonPremultiplied (r, g, b, a) {
+      var result = $jsilxna.makeColorInstance();
+
+      result.r = $jsilxna.ClampByte(r);
+      result.g = $jsilxna.ClampByte(g);
+      result.b = $jsilxna.ClampByte(b);
+      result.a = $jsilxna.ClampByte(a);
+
+      return result;
+    }
+  );  
 };
 
 $jsilxna.ClampByte = function (v) {
