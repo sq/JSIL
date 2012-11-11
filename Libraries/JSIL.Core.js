@@ -1019,16 +1019,25 @@ JSIL.AttributeRecord = function (context, type, getConstructorArguments, initial
   this.initializer = initializer;
 };
 
-JSIL.AttributeRecord.prototype.Construct = function () {
+JSIL.AttributeRecord.prototype.GetType = function () {
+  if (this.resolvedType)
+    return this.resolvedType;
+
   var resolvedType = JSIL.ResolveTypeReference(this.type, this.context)[1];
   if (!resolvedType)
     throw new Error("Failed to resolve attribute type '" + this.type + "'")
 
+  return this.resolvedType = resolvedType;
+};
+
+JSIL.AttributeRecord.prototype.Construct = function () {
+  var resolvedType = this.GetType();
+
   var constructorArguments;
   if (this.getConstructorArguments)
-    constructorArguments = this.getConstructorArguments();
+    this.constructorArguments = constructorArguments = this.getConstructorArguments();
   else
-    constructorArguments = [];
+    this.constructorArguments = constructorArguments = [];
 
   var instance = JSIL.CreateInstanceOfType(resolvedType, constructorArguments);
   return instance;
@@ -6293,6 +6302,7 @@ JSIL.ValueOfNullable = function (value) {
 };
 
 JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType) {
+  var tType = $jsilcore.System.Type;
   var memberType = memberInfo.GetType().get_FullName();
   var result = [];
 
@@ -6307,6 +6317,10 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType) {
     if (attributeRecords) {
       for (var i = 0, l = attributeRecords.length; i < l; i++) {
         var record = attributeRecords[i];
+        var recordType = record.GetType();
+        if (attributeType && !tType.op_Equality(attributeType, recordType))
+          continue;
+
         var instance = record.Construct();
         attributes.push(instance);
       }
