@@ -128,16 +128,16 @@ $jsilxna.ImageCache.prototype.evictExtraItems = function () {
 $jsilxna.imageChannelCache = new $jsilxna.ImageCache(
   1024,
   (1024 * 1024) * 256,
-  2500,
-  30000,
+  2000,
+  15000,
   500
 );
 
 $jsilxna.textCache = new $jsilxna.ImageCache(
-  1024,
-  (1024 * 1024) * 64,
-  500,
-  3000,
+  512,
+  (1024 * 1024) * 32,
+  250,
+  1000,
   250
 );
 
@@ -6223,8 +6223,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     function InternalMeasure (/* ref */ text) {
       var tVector2 = Microsoft.Xna.Framework.Vector2;
       var result = new tVector2(0, 0);
-      var lineWidth = 0;
+      var lineWidth = 0, lineHeight = 0;
       var lineCount = 1;
+
+      // FIXME: Is this handling overhang right for multiline text? Unclear.
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
@@ -6238,9 +6240,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         } else if (ch === "\n") {
           lineBreak = true;
         }
+
         if (lineBreak) {
+          if (lineHeight === 0)
+            lineHeight = this.lineSpacing;
+
           result.X = Math.max(lineWidth, result.X);
+          result.Y += lineHeight;
           lineWidth = 0;
+          lineHeight = this.lineSpacing;
 
           if (i < (l - 1)) 
             lineCount += 1;
@@ -6263,10 +6271,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         lineWidth += beforeGlyph;
         lineWidth += glyphWidth;
         lineWidth += afterGlyph;
+
+        var charRect = this.croppingData.get_Item(charIndex);
+
+        lineHeight = Math.max(lineHeight, charRect.Height);
       }
 
       result.X = Math.max(lineWidth, result.X);
-      result.Y = lineCount * this.lineSpacing;
+      result.Y += lineHeight;
 
       return result;
     }
