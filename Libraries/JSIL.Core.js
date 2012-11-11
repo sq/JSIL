@@ -6301,13 +6301,25 @@ JSIL.ValueOfNullable = function (value) {
     return value.valueOf();
 };
 
-JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType) {
+JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result) {
   var tType = $jsilcore.System.Type;
   var memberType = memberInfo.GetType().get_FullName();
-  var result = [];
 
-  if (inherit)
-    throw new System.NotImplementedException("inherited member attributes not implemented");
+  if (inherit) {
+    if (memberType !== "System.Type")
+      throw new System.NotImplementedException("Inherited attributes only supported for types");
+
+    if (!result)
+      result = [];
+
+    var currentType = memberInfo;
+    while (currentType && currentType.GetType) {
+      JSIL.GetMemberAttributes(currentType, false, attributeType, result);
+      currentType = currentType.__BaseType__;
+    }
+
+    return result;
+  }
 
   var attributes = memberInfo.__CachedAttributes__;
   if (!attributes) {
@@ -6327,5 +6339,11 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType) {
     }
   }
 
-  return attributes;
+  if (!result)
+    result = [];
+
+  for (var i = 0, l = attributes.length; i < l; i++)
+    result.push(attributes[i]);
+
+  return result;
 };

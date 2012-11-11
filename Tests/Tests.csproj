@@ -278,6 +278,7 @@
     <None Include="ReflectionTestCases\GetStaticClassAttributes.cs" />
     <None Include="ReflectionTestCases\SelfTypedAttribute.cs" />
     <None Include="ReflectionTestCases\GetFilteredAttributes.cs" />
+    <None Include="ReflectionTestCases\GetInheritedAttributes.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
