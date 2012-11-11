@@ -86,28 +86,28 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "op_Equality", 
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_Equality (t1, t2) {
-        return $jsilcore.System.Int64.op_Equality(t1._ticks, t2._ticks);
+        return t1._ticks === t2._ticks;
       }
     );
 
     $.Method({Static:true , Public:true }, "op_GreaterThan", 
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_GreaterThan (t1, t2) {
-        return $jsilcore.System.Int64.op_GreaterThan(t1._ticks, t2._ticks);
+        return t1._ticks > t2._ticks;
       }
     );
 
     $.Method({Static:true , Public:true }, "op_Inequality", 
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_Inequality (t1, t2) {
-        return $jsilcore.System.Int64.op_Inequality(t1._ticks, t2._ticks);
+        return t1._ticks !== t2._ticks;
       }
     );
 
     $.Method({Static:true , Public:true }, "op_LessThan", 
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_LessThan (t1, t2) {
-        return $jsilcore.System.Int64.op_LessThan(t1._ticks, t2._ticks);
+        return t1._ticks < t2._ticks;
       }
     );
 

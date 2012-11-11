@@ -1215,6 +1215,7 @@ public static class Common {
 
         var projectSubdir = Path.GetDirectoryName(projectFile);
         var projectPath = Path.Combine(sourceFolder, projectFile);
+        var projectDirectory = Path.GetDirectoryName(projectPath);
         var projectInfo = new FileInfo(projectPath);
 
         var project = new Xap.Project();
@@ -1226,18 +1227,23 @@ public static class Common {
         foreach (var waveBank in project.m_waveBanks) {
 
             foreach (var wave in waveBank.m_waves) {
-                var waveFolder = Path.GetDirectoryName(wave.m_fileName);
+                var waveFileName = wave.m_fileName;
+                var waveFolder = Path.GetDirectoryName(waveFileName);
+
+                waveFolder = waveFolder.ToLower().Replace(projectDirectory.ToLower(), "");
+                if (waveFolder.StartsWith("\\"))
+                    waveFolder = waveFolder.Substring(1);
 
                 var waveOutputFolder = FixupOutputDirectory(outputFolder, waveFolder);
 
                 waveManifest[wave.m_name] = FixupOutputDirectory(
                     projectSubdir, 
-                    wave.m_fileName
-                        .Replace(Path.GetExtension(wave.m_fileName), "")
+                    waveFileName
+                        .Replace(Path.GetExtension(waveFileName), "")
                 );
 
                 journal.AddRange(CompressAudioGroup(
-                    Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
+                    Path.Combine(projectSubdir, waveFileName), sourceFolder, 
                     waveOutputFolder, settings, existingJournal, logOutput
                 ));
             }
