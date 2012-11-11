@@ -506,7 +506,7 @@ var $bytestream = function ($) {
         this._pos += offset.ToInt32();
         break;
       case System.IO.SeekOrigin.End:
-        this._pos = this._buffer.length - offset.ToInt32();
+        this._pos = this._buffer.length + offset.ToInt32();
         break;
       }
       return $jsilcore.System.Int64.FromInt32(this._pos);
@@ -734,7 +734,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Seek", 
     (new JSIL.MethodSignature($.Int64, [$.Int32, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
     function Seek (offset, origin) {
-      this.m_stream.Seek(offset, origin);
+      this.m_stream.Seek($jsilcore.System.Int64.FromInt32(offset), origin);
     }
   );
 
