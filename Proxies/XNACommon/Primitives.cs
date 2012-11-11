@@ -66,14 +66,14 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
-        public static RectangleProxy Offset (int x, int y) {
+        public void Offset (int x, int y) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
         [JSResultIsNew]
         [JSChangeName("OffsetPoint")]
-        public static RectangleProxy Offset (PointProxy pt) {
+        public void Offset (PointProxy pt) {
             throw new InvalidOperationException();
         }
     }
