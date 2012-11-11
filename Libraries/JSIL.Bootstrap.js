@@ -3124,6 +3124,29 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     $.Method(descriptor, methodName, makeSignature($.String), from.string);
 
     $.Method(descriptor, methodName, makeSignature($.String, true), from.string);
+
+    var fromObject = function Convert_FromObject (value) {
+      if ($jsilcore.System.String.$Is(value))
+        return from.string(value);
+      else if (from.int64 && $jsilcore.System.Int64.$Is(value))
+        return from.int64(value);
+      else if (from.uint64 && $jsilcore.System.UInt64.$Is(value))
+        return from.uint64(value);
+      else if ($jsilcore.System.Int32.$Is(value))
+        return from.int(value);
+      else if ($jsilcore.System.UInt32.$Is(value))
+        return from.uint(value);
+      else if ($jsilcore.System.Boolean.$Is(value))
+        return from.boolean(value);
+      else if ($jsilcore.System.Double.$Is(value))
+        return from.float(value);
+      else
+        throw new System.NotImplementedException(
+          "Conversion from type '" + JSIL.GetType(value) + "' to type '" + typeName + "' not implemented."
+        );
+    };
+
+    $.Method(descriptor, methodName, makeSignature($.Object, false), fromObject);
   };
 
   makeConvertMethods("Boolean", $.Boolean, {

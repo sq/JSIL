@@ -279,6 +279,8 @@
     <None Include="ReflectionTestCases\SelfTypedAttribute.cs" />
     <None Include="ReflectionTestCases\GetFilteredAttributes.cs" />
     <None Include="ReflectionTestCases\GetInheritedAttributes.cs" />
+    <None Include="Int64TestCases\Int64NullableCast.cs" />
+    <None Include="Int64TestCases\Int64NullableCastTwice.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
