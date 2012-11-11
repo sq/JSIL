@@ -1228,11 +1228,12 @@ public static class Common {
 
             foreach (var wave in waveBank.m_waves) {
                 var waveFileName = wave.m_fileName;
-                var waveFolder = Path.GetDirectoryName(waveFileName);
 
-                waveFolder = waveFolder.ToLower().Replace(projectDirectory.ToLower(), "");
-                if (waveFolder.StartsWith("\\"))
-                    waveFolder = waveFolder.Substring(1);
+                waveFileName = waveFileName.ToLower().Replace(projectDirectory.ToLower(), "");
+                if (waveFileName.StartsWith("\\"))
+                    waveFileName = waveFileName.Substring(1);
+
+                var waveFolder = Path.GetDirectoryName(waveFileName);
 
                 var waveOutputFolder = FixupOutputDirectory(outputFolder, waveFolder);
 
