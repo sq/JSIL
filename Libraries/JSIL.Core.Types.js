@@ -443,7 +443,7 @@ JSIL.ImplementExternals(
     $.Method({Public: true , Static: false}, "GetType",
       new JSIL.MethodSignature($.Type, []),
       function () {
-        return $.Type;
+        return $jsilcore.System.Type.__Type__;
       }
     );
   }

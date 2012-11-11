@@ -3633,6 +3633,8 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   if (typeof (printStackTrace) === "function")
     callStack = printStackTrace();
 
+  var memberBuilder = new JSIL.MemberBuilder($private);
+
   var creator = function CreateStaticClassObject () {
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
     var typeObject = JSIL.CloneObject(runtimeType);
@@ -3652,6 +3654,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__RawMethods__ = [];
     typeObject.__TypeInitialized__ = false;
     typeObject.__GenericArguments__ = genericArguments || [];
+    typeObject.__Attributes__ = memberBuilder.attributes;
 
     typeObject.IsInterface = false;
 
@@ -3694,6 +3697,8 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   }
 
   JSIL.RegisterName(fullName, assembly, isPublic, creator, wrappedInitializer);
+
+  return memberBuilder;
 };
 
 JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialType) {
@@ -4085,6 +4090,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
+  var memberBuilder = new JSIL.MemberBuilder($private);
 
   var stack = null;
   if (typeof (printStackTrace) === "function")
@@ -4119,6 +4125,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
+    typeObject.__Attributes__ = memberBuilder.attributes;
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
       typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
@@ -4223,14 +4230,16 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   }
 
   JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, wrappedInitializer);
+
+  return memberBuilder;
 };
 
 JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initializer) {
-  JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments, initializer);
+  return JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments, initializer);
 };
 
 JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, initializer) {
-  JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
+  return JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
 };
 
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer, interfaces) {
@@ -5819,7 +5828,7 @@ JSIL.GetReflectionCache = function (typeObject) {
     info._typeObject = typeObject;
     info._data = data;
     info._descriptor = descriptor;
-    info._attributes = member.attributes;
+    info.__Attributes__ = member.attributes;
 
     cache.push(info);
   }
@@ -6284,15 +6293,17 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType) {
   if (inherit)
     throw new System.NotImplementedException("inherited member attributes not implemented");
 
-  var attributes = memberInfo._cachedAttributes;
+  var attributes = memberInfo.__CachedAttributes__;
   if (!attributes) {
-    attributes = memberInfo._cachedAttributes = [];
+    attributes = memberInfo.__CachedAttributes__ = [];
 
-    var attributeRecords = memberInfo._attributes;
-    for (var i = 0, l = attributeRecords.length; i < l; i++) {
-      var record = attributeRecords[i];
-      var instance = record.Construct();
-      attributes.push(instance);
+    var attributeRecords = memberInfo.__Attributes__;
+    if (attributeRecords) {
+      for (var i = 0, l = attributeRecords.length; i < l; i++) {
+        var record = attributeRecords[i];
+        var instance = record.Construct();
+        attributes.push(instance);
+      }
     }
   }
 

@@ -6223,10 +6223,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     function InternalMeasure (/* ref */ text) {
       var tVector2 = Microsoft.Xna.Framework.Vector2;
       var result = new tVector2(0, 0);
-      var lineWidth = 0, lineHeight = 0;
+      var lineWidth = 0;
       var lineCount = 1;
-
-      // FIXME: Is this handling overhang right for multiline text? Unclear.
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
@@ -6240,15 +6238,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         } else if (ch === "\n") {
           lineBreak = true;
         }
-
         if (lineBreak) {
-          if (lineHeight === 0)
-            lineHeight = this.lineSpacing;
-
           result.X = Math.max(lineWidth, result.X);
-          result.Y += lineHeight;
           lineWidth = 0;
-          lineHeight = this.lineSpacing;
 
           if (i < (l - 1)) 
             lineCount += 1;
@@ -6271,14 +6263,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         lineWidth += beforeGlyph;
         lineWidth += glyphWidth;
         lineWidth += afterGlyph;
-
-        var charRect = this.croppingData.get_Item(charIndex);
-
-        lineHeight = Math.max(lineHeight, charRect.Height);
       }
 
       result.X = Math.max(lineWidth, result.X);
-      result.Y += lineHeight;
+      result.Y = lineCount * this.lineSpacing;
 
       return result;
     }

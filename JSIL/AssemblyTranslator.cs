@@ -1069,6 +1069,9 @@ namespace JSIL {
                     output.Indent();
 
                     output.RPar();
+
+                    TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, output);
+
                     output.Semicolon();
                     output.NewLine();
                 } finally {
