@@ -19,8 +19,6 @@ var warnedAboutOpera = false;
 var warnedAboutCORS = false;
 var warnedAboutCORSImage = false;
 var hasCORSXhr = false, hasCORSImage = false;
-var blobBuilderInfo = {
-};
 
 function getAbsoluteUrl (localUrl) {
   var temp = document.createElement("a");
@@ -286,7 +284,7 @@ var assetLoaders = {
     if (jsilConfig.CORS) {
       if (hasCORSImage) {
         e.crossOrigin = "";
-      } else if (hasCORSXhr && (blobBuilderInfo.hasBlobBuilder || blobBuilderInfo.hasBlobCtor)) {
+      } else if (hasCORSXhr && ($blobBuilderInfo.hasBlobBuilder || $blobBuilderInfo.hasBlobCtor)) {
         if (!warnedAboutCORSImage) {
           JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images. Using workaround...");
           warnedAboutCORSImage = true;
@@ -390,7 +388,7 @@ function loadImageCORSHack (filename, data, onError, onDoneLoading) {
     if ((result !== null) && (!error)) {
       var objectURL = null;
       try {
-        objectURL = getObjectURLForBytes(result, mimeType);
+        objectURL = JSIL.GetObjectURLForBytes(result, mimeType);
       } catch (exc) {
         onError(exc);
         return;
@@ -427,64 +425,8 @@ function initCORSHack () {
   }
 }
 
-function initBlobBuilder () {
-  var blobBuilder = window.WebKitBlobBuilder || window.mozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-
-  blobBuilderInfo.hasObjectURL = (typeof (window.URL) !== "undefined") && (typeof (window.URL.createObjectURL) === "function");
-  blobBuilderInfo.hasBlobBuilder = Boolean(blobBuilder);
-  blobBuilderInfo.blobBuilder = blobBuilder;
-  blobBuilderInfo.hasBlobCtor = false;
-
-  try {
-    var blob = new Blob();
-    blobBuilderInfo.hasBlobCtor = Boolean(blob);
-  } catch (exc) {
-  }
-
-  if (navigator.userAgent.indexOf("Firefox/14.") >= 0) {
-    JSIL.Host.logWriteLine("Your browser has a serious bug that affects Escape Goat. Please update to a newer version.");
-    blobBuilderInfo.hasBlobBuilder = false;
-    blobBuilderInfo.hasBlobCtor = false;
-  }
-}
-
-function getObjectURLForBytes (bytes, mimeType) {
-  if (!blobBuilderInfo.hasObjectURL)
-    throw new Error("Object URLs not available");
-  else if (!("Uint8Array" in window))
-    throw new Error("Typed arrays not available");
-
-  var blob = null;
-
-  if (Object.getPrototypeOf(bytes) !== Uint8Array.prototype)
-    throw new Error("bytes must be a Uint8Array");
-
-  try {
-    if (blobBuilderInfo.hasBlobCtor) {
-      blob = new Blob([bytes], { type: mimeType });
-    }
-  } catch (exc) {
-  }
-
-  if (!blob) {
-    try {
-      if (blobBuilderInfo.hasBlobBuilder) {
-        var bb = new blobBuilderInfo.blobBuilder();
-        bb.append(bytes.buffer);
-        blob = bb.getBlob(mimeType);
-      }
-    } catch (exc) {
-    }
-  }
-
-  if (!blob)
-    throw new Error("Blob API broken or not available");
-
-  return window.URL.createObjectURL(blob);
-}
-
 function initAssetLoaders () {
-  initBlobBuilder();
+  JSIL.InitBlobBuilder();
   initCORSHack();
   initSoundLoader();
 

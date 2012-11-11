@@ -2212,7 +2212,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
         var shortNamePieces = shortName.split(JSIL.UnderscoreRegex);
         shortName = shortNamePieces[shortNamePieces.length - 1];
         var escapedShortName = JSIL.EscapeName(shortName);
-        
+
         var methodSource = publicInterface;
 
         if (isStatic)
@@ -6353,3 +6353,68 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
 
   return result;
 };
+
+var $blobBuilderInfo = {
+  initialized: false
+};
+
+JSIL.InitBlobBuilder = function () {
+  if ($blobBuilderInfo.initialized)
+    return;
+
+  var blobBuilder = window.WebKitBlobBuilder || window.mozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+
+  $blobBuilderInfo.hasObjectURL = (typeof (window.URL) !== "undefined") && (typeof (window.URL.createObjectURL) === "function");
+  $blobBuilderInfo.hasBlobBuilder = Boolean(blobBuilder);
+  $blobBuilderInfo.blobBuilder = blobBuilder;
+  $blobBuilderInfo.hasBlobCtor = false;
+
+  try {
+    var blob = new Blob();
+    $blobBuilderInfo.hasBlobCtor = Boolean(blob);
+  } catch (exc) {
+  }
+
+  if (navigator.userAgent.indexOf("Firefox/14.") >= 0) {
+    JSIL.Host.logWriteLine("Your browser is outdated and has a serious bug. Please update to a newer version.");
+    $blobBuilderInfo.hasBlobBuilder = false;
+    $blobBuilderInfo.hasBlobCtor = false;
+  }
+}
+
+JSIL.GetObjectURLForBytes = function (bytes, mimeType) {
+  JSIL.InitBlobBuilder();
+
+  if (!$blobBuilderInfo.hasObjectURL)
+    throw new Error("Object URLs not available");
+  else if (!("Uint8Array" in window))
+    throw new Error("Typed arrays not available");
+
+  var blob = null;
+
+  if (Object.getPrototypeOf(bytes) !== Uint8Array.prototype)
+    throw new Error("bytes must be a Uint8Array");
+
+  try {
+    if ($blobBuilderInfo.hasBlobCtor) {
+      blob = new Blob([bytes], { type: mimeType });
+    }
+  } catch (exc) {
+  }
+
+  if (!blob) {
+    try {
+      if ($blobBuilderInfo.hasBlobBuilder) {
+        var bb = new $blobBuilderInfo.blobBuilder();
+        bb.append(bytes.buffer);
+        blob = bb.getBlob(mimeType);
+      }
+    } catch (exc) {
+    }
+  }
+
+  if (!blob)
+    throw new Error("Blob API broken or not available");
+
+  return window.URL.createObjectURL(blob);
+}

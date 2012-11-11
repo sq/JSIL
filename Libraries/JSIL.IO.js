@@ -274,6 +274,35 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
+  var copyFileImpl = function Copy (from, to, overwrite) {
+    var storageRoot = JSIL.Host.getStorageRoot();
+
+    if (storageRoot) {
+      var fromResolved = storageRoot.resolvePath(from, false);
+
+      if (!fromResolved || fromResolved.type !== "file")
+        throw new System.FileNotFoundException(from);
+
+      var toResolved = storageRoot.createFile(to, overwrite);
+      if (!toResolved)
+        throw new System.Exception("Could not create file '" + to + "'");
+
+      toResolved.writeAllBytes(fromResolved.readAllBytes());
+    } else {
+      throw new System.NotImplementedException("No storage root available");
+    }
+  };
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
+    copyFileImpl
+  );
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    (new JSIL.MethodSignature(null, [$.String, $.String, $.Boolean], [])), 
+    copyFileImpl
+  );
+
   $.Method({Static:true , Public:true }, "Delete", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function Delete (path) {
@@ -410,21 +439,25 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
   $.Method({Static:false, Public:true }, "Close", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Close () {
-      if (this._onClose)
+      if (this._onClose) {
         this._onClose();
+        this._onClose = null;
+      }
     }
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Dispose () {
-      if (this._onClose)
+      if (this._onClose) {
         this._onClose();
+        this._onClose = null;
+      }
     }
   );
 
   $.RawMethod(false, "$GetURI", function () {
-    throw new Error("Only valid on streams created from files!");
+    return null;
   });
 });
 
@@ -497,18 +530,18 @@ var $bytestream = function ($) {
   $.Method({Static:false, Public:true }, "Seek", 
     (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
     function Seek (offset, origin) {
-      switch (origin)
-      {
-      case System.IO.SeekOrigin.Begin:
-        this._pos = offset.ToInt32();
-        break;
-      case System.IO.SeekOrigin.Current:
-        this._pos += offset.ToInt32();
-        break;
-      case System.IO.SeekOrigin.End:
-        this._pos = this._buffer.length + offset.ToInt32();
-        break;
+      switch (origin) {
+        case System.IO.SeekOrigin.Begin:
+          this._pos = offset.ToInt32();
+          break;
+        case System.IO.SeekOrigin.Current:
+          this._pos += offset.ToInt32();
+          break;
+        case System.IO.SeekOrigin.End:
+          this._pos = this._buffer.length + offset.ToInt32();
+          break;
       }
+
       return $jsilcore.System.Int64.FromInt32(this._pos);
     }
   );
@@ -891,6 +924,9 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static: false, Public: true}, "Dispose",
     (new JSIL.MethodSignature(null, [], [])),
     function () {
+      if (this.m_stream)
+        this.m_stream.Close();
+
       this.m_stream = null;
     }
   );

@@ -283,6 +283,24 @@ JSIL.Make64BitInt = function ($, _me) {
     return this.ToNumber();
   });
 
+  $.RawMethod(true, "FromNumberImpl", function (n, makeResult) {
+      if (n < 0)
+          throw new Error("cannot construct UInt64 from negative number");
+
+      var bits24 = 0xffffff;
+
+      var floorN = Math.floor(n);
+      var n0 = floorN | 0;
+      var n1 = (floorN / 0x1000000) | 0;
+      var n2 = (floorN / 0x1000000000000) | 0;
+
+      return makeResult(
+          (n0 & bits24),
+          (n1 & bits24),
+          (n2 & bits24)
+      );    
+  });
+  
   return {
     lazy: lazy,
     me: me,
@@ -584,20 +602,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [$.Double], [])),
     function UInt64_FromNumber (n) {
-        if (n < 0)
-            throw new Error("cannot construct UInt64 from negative number");
-
-        var bits24 = 0xffffff;
-
-        var n0 = Math.floor(n) | 0;
-        var n1 = (Math.floor(n) / 0x1000000) | 0;
-        var n2 = (Math.floor(n) / 0x1000000000000) | 0;
-
-        return ctor(
-            (n0 & bits24),
-            (n1 & bits24),
-            (n2 & bits24)
-        );
+      return me().FromNumberImpl(n, ctor);
     });
 
     // Not present in mscorlib
@@ -851,10 +856,10 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     (new JSIL.MethodSignature($.Type, [$.Double], [])),
     function Int64_FromNumber (n) {
         var sign = n < 0 ? -1 : 1;
-        var r = $jsilcore.System.UInt64.FromNumber(Math.abs(n));
+        var r = me().FromNumberImpl(Math.abs(n), ctor);
 
         if (sign == -1)
-            return me().op_UnaryNegation(r);
+            return me().op_UnaryNegation(r, r);
         else
             return r;
     });

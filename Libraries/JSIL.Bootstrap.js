@@ -3785,3 +3785,25 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.LambdaExpression"), "S
 
 JSIL.ImplementExternals("System.Linq.Expressions.Expression`1", function ($) {
 });
+
+JSIL.ParseDataURL = function (dataUrl) {
+  var colonIndex = dataUrl.indexOf(":");
+  if ((colonIndex != 4) || (dataUrl.substr(0, 5) !== "data:"))
+    throw new Error("Invalid Data URL header");
+
+  var semicolonIndex = dataUrl.indexOf(";");
+  var mimeType = dataUrl.substr(colonIndex + 1, semicolonIndex - colonIndex - 1);
+
+  var commaIndex = dataUrl.indexOf(",");
+  if (commaIndex <= semicolonIndex)
+    throw new Error("Invalid Data URL header");
+
+  var encodingType = dataUrl.substr(semicolonIndex + 1, commaIndex - semicolonIndex - 1);
+  if (encodingType.toLowerCase() !== "base64")
+    throw new Error("Invalid Data URL encoding type: " + encodingType);
+
+  var base64 = dataUrl.substr(commaIndex + 1);
+  var bytes = System.Convert.FromBase64String(base64);
+
+  return [mimeType, bytes];
+};

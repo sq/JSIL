@@ -249,7 +249,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
   loadBinaryFileAsync(uri, function finishBufferingSound (result, error) {
     if ((result !== null) && (!error)) {
       try {
-        var objectUrl = getObjectURLForBytes(result, mimeType[0]);
+        var objectUrl = JSIL.GetObjectURLForBytes(result, mimeType[0]);
       } catch (exc) {
         return handleError(exc);
       }
@@ -323,7 +323,7 @@ function loadSoundGeneric (audioInfo, filename, data, onError, onDoneLoading) {
 function initSoundLoader () {
   var audioContextCtor = window.webkitAudioContext || window.mozAudioContext || window.AudioContext;
 
-  var audioInfo = Object.create(blobBuilderInfo);
+  var audioInfo = Object.create($blobBuilderInfo);
 
   audioInfo.hasAudioContext = typeof (audioContextCtor) === "function";
   audioInfo.audioContext = null;

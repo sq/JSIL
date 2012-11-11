@@ -283,6 +283,7 @@
     <None Include="SimpleTestCases\TypeQualifiedPropertyInNestedType.cs" />
     <None Include="IOTestCases\BinaryWriterSeek.cs" />
     <None Include="TestCases\DictionaryValueCollectionCount.cs" />
+    <None Include="IOTestCases\StreamRelativeSeek.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
