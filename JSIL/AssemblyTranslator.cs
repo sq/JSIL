@@ -1220,8 +1220,8 @@ namespace JSIL {
                 );
             }
 
-            Action initializeOverloadsAndProperties = () => {
-                foreach (var property in typedef.Properties.OrderBy((p) => p.Name))
+            Action translateProperties = () => {
+                foreach (var property in typedef.Properties)
                     TranslateProperty(context, astEmitter, output, property, dollar);
             };
 
@@ -1249,7 +1249,7 @@ namespace JSIL {
                 );
 
             if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
-                initializeOverloadsAndProperties();
+                translateProperties();
             }
 
             var interfaces = (from i in typeInfo.Interfaces
@@ -1906,7 +1906,7 @@ namespace JSIL {
             //  by the cctor.
             // Everything else is emitted inline.
 
-            foreach (var f in typedef.Fields.OrderBy((f) => f.Name)) {
+            foreach (var f in typedef.Fields) {
                 var fi = _TypeInfoProvider.GetField(f);
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;

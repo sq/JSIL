@@ -290,6 +290,9 @@
     <None Include="TestCases\GetGenericTypeWithMultipleArgumentsByName.cs" />
     <None Include="ReflectionTestCases\GetMemberTypes.cs" />
     <None Include="ReflectionTestCases\GetPropertyMethods.cs" />
+    <None Include="ReflectionTestCases\FieldOrder.cs" />
+    <None Include="ReflectionTestCases\GetFilteredAttributesCaching.cs" />
+    <None Include="ReflectionTestCases\PropertyOrder.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

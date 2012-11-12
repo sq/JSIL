@@ -6563,9 +6563,6 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
       for (var i = 0, l = attributeRecords.length; i < l; i++) {
         var record = attributeRecords[i];
         var recordType = record.GetType();
-        if (attributeType && !tType.op_Equality(attributeType, recordType))
-          continue;
-
         var instance = record.Construct();
         attributes.push(instance);
       }
@@ -6575,8 +6572,13 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
   if (!result)
     result = [];
 
-  for (var i = 0, l = attributes.length; i < l; i++)
+  for (var i = 0, l = attributes.length; i < l; i++) {
+    var attribute = attributes[i];
+    if (attributeType && !tType.op_Equality(attributeType, attribute.GetType()))
+      continue;
+
     result.push(attributes[i]);
+  }
 
   return result;
 };
