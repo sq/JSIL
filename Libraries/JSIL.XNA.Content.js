@@ -396,8 +396,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
 
       while (count > 0) {
         var item = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
-        count--;
         existingInstance.Add(item);
+        count--;
       }
 
       return existingInstance;
@@ -817,9 +817,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", fu
     function _ctor () {
       var assembly = $xnaasms.xna;
 
-      var tKey = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Key.get(this);
-      var tValue = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Value.get(this);
-      var tDictionary = $jsilcore.System.Collections.Generic.Dictionary$b2.Of(tKey, tValue);
+      var tKey = this.TKey = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Key.get(this);
+      var tValue = this.TValue = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Value.get(this);
+      var tDictionary = this.TDictionary = $jsilcore.System.Collections.Generic.Dictionary$b2.Of(tKey, tValue).__Type__;
 
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
         this, tDictionary
@@ -827,6 +827,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", fu
     }
   );
 
+  $.Method({Static:false, Public:false}, "Initialize", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentTypeReaderManager")], [])), 
+    function Initialize (manager) {
+      this.keyReader = manager.GetTypeReader(this.TKey);
+      this.valueReader = manager.GetTypeReader(this.TValue);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($xnaasms[5].TypeRef("System.Collections.Generic.List`1", [new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.Content.ListReader`1")]), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $xnaasms[5].TypeRef("System.Collections.Generic.List`1", [new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.Content.ListReader`1")])], [])), 
+    function Read (input, existingInstance) {
+      var count = input.ReadInt32();
+      if (existingInstance === null)
+        existingInstance = new (this.TDictionary.__PublicInterface__)();
+
+      while (count > 0) {
+        var key = input.ReadObjectInternal$b1(this.TKey)(this.keyReader, null);
+        var value = input.ReadObjectInternal$b1(this.TValue)(this.valueReader, null);
+        existingInstance.Add(key, value);
+        count--;
+      }
+
+      return existingInstance;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", function ($) {
@@ -855,32 +880,96 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
     }
   );
 
-  $.RawMethod(false, "CreateMemberReaders", function (members, result) {
+  var makeMemberHelper = function (manager, type, setter) {
+    var reader = manager.GetTypeReader(type);
+
+    return function (contentReader, input, result) {
+      var value = input.ReadObjectInternal$b1(type)(reader, null);
+      if (!type.__PublicInterface__.$Is(value)) {
+        var message = "Tried to read '" + type.get_Name() + "' but got a value of type '" + JSIL.GetType(value) + "'!";
+        throw new Microsoft.Xna.Framework.Content.ContentLoadException(message);
+      }
+
+      setter(result, value);
+    };
+  };
+
+  var makeFieldSetter = function (fieldInfo) {
+    var fieldName = JSIL.EscapeName(fieldInfo.get_Name());
+
+    return function (instance, value) {
+      instance[fieldName] = value;
+    };
+  };
+
+  var makePropertySetter = function (propertyInfo) {
+    var propertySetter = propertyInfo.GetSetMethod(true);
+    var setterName = propertySetter._descriptor.EscapedName;
+
+    return function (instance, value) {
+      (instance[setterName]) (value);
+    };
+  };
+
+  var hasAttribute = function (member, attributeType) {
+    var attributes = member.GetCustomAttributes(attributeType, false);
+
+    return (attributes && attributes.length > 0);
+  };
+
+  $.RawMethod(false, "CreateMemberReaders", function (manager, members, result) {
+    var tSerializerAttribute = $xnaasms.xna.Microsoft.Xna.Framework.Content.ContentSerializerAttribute.__Type__;
+
     members_loop:
     for (var i = 0, l = members.length; i < l; i++) {
-      var member = members[i];
+      var member = members[i], memberType, memberSetter;
+
       var fi = $jsilcore.System.Reflection.FieldInfo.$As(member);
       var pi = $jsilcore.System.Reflection.PropertyInfo.$As(member);
 
       if (fi !== null) {
-        if (fi.IsInitOnly)
-          continue;
+        if (hasAttribute(fi, tSerializerAttribute)) {
+          // FIXME: SharedResource
+        } else {
+          if (!fi.IsPublic)
+            continue;
+          if (fi.IsInitOnly)
+            continue;
+        }
+
+        memberType = fi.get_FieldType();
+        memberSetter = makeFieldSetter(fi);
       } else if (pi !== null) {
         if (pi.GetIndexParameters().Length > 0)
           continue;
 
-        var accessors = pi.GetAccessors();
-        for (var j = 0, la = accessors.length; j < la; j++) {
-          var accessor = accessors[j];
+        if (hasAttribute(pi, tSerializerAttribute)) {
+          // FIXME: SharedResource
 
-          if (!accessor.IsPublic)
-            continue members_loop;
+          var setMethod = pi.GetSetMethod(true);
+          if (!setMethod)
+            continue;
+        } else {
+          var setMethod = pi.GetSetMethod();
+          if (!setMethod)
+            continue;
+
+          var accessors = pi.GetAccessors();
+          for (var j = 0, la = accessors.length; j < la; j++) {
+            var accessor = accessors[j];
+
+            if (!accessor.IsPublic)
+              continue members_loop;
+          }
         }
+
+        memberType = pi.get_PropertyType();
+        memberSetter = makePropertySetter(pi);
+      } else {
+        throw new Error("Got a member that isn't a field or a property");
       }
 
-      result.push((function (text) {
-        JSIL.Host.logWriteLine("Would have read member '" + text + "' here.");
-      }).bind(member.Name));
+      result.push(makeMemberHelper(manager, memberType, memberSetter));
     }
   });
 
@@ -903,9 +992,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
       var properties = this.targetType.GetProperties(bindingFlags);
       var fields = this.targetType.GetFields(bindingFlags);
 
-      var result = this.memberReaders = [];
-      this.CreateMemberReaders(properties, result);
-      this.CreateMemberReaders(fields, result);
+      var result = this.memberHelpers = [];
+      this.CreateMemberReaders(manager, properties, result);
+      this.CreateMemberReaders(manager, fields, result);
     }
   );
 
@@ -921,7 +1010,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
           throw new Error("Base type reader did not return existing instance");
       }
 
-      // FIXME: Read members.
+      try {
+        for (var i = 0, l = this.memberHelpers.length; i < l; i++) {
+          var helper = this.memberHelpers[i];
+          helper(this, input, existingInstance);
+        }
+      } catch (exc) {
+        var message = "ReflectiveReader failed to load a '" + this.targetType.get_Name() + "':\r\n" + exc.get_Message();
+        throw new Microsoft.Xna.Framework.Content.ContentLoadException(message, exc);
+      }
 
       return existingInstance;
     }
