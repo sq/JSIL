@@ -605,7 +605,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", func
     (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPassCollection"), [], [])), 
     function get_Passes () {
       // FIXME
-      return [new Microsoft.Xna.Framework.Graphics.EffectPass()];
+      return new Microsoft.Xna.Framework.Graphics.EffectPassCollection();
     }
   );
 });
@@ -3228,3 +3228,39 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsResource", fun
     }
   );
 });
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection", function ($) {
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      // FIXME
+      return 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass"), [$.Int32], [])), 
+    function get_Item (index) {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectPass();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass"), [$.String], [])), 
+    function get_Item (name) {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectPass();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1/Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
+    function GetEnumerator () {
+      // FIXME
+      return JSIL.GetEnumerator([]);
+    }
+  );
+
+})

@@ -6287,14 +6287,14 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     result = new (elementTypeObject.__TypedArray__)(size);
   } else {
     result = new Array(size);
+  }
 
-    if (initializerIsArray) {
-      // If non-numeric, assume array initializer
-      for (var i = 0; i < sizeOrInitializer.length; i++)
-        result[i] = sizeOrInitializer[i];
-    } else {
-      JSIL.Array.Erase(result, elementType);
-    }
+  if (initializerIsArray) {
+    // If non-numeric, assume array initializer
+    for (var i = 0; i < sizeOrInitializer.length; i++)
+      result[i] = sizeOrInitializer[i];
+  } else if (!elementTypeObject.__TypedArray__) {
+    JSIL.Array.Erase(result, elementType);
   }
 
   return result;
