@@ -68,36 +68,14 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
     image.assetName = assetName;
 
     this.image = image;
-    this.Width = image.naturalWidth;
-    this.Height = image.naturalHeight;
-    this.IsDisposed = false;
-    this.id = String(++$jsilxna.nextImageId);
-
-    Object.defineProperty(this, "Bounds", {
-      configurable: true,
-      enumerable: true,
-      get: this.get_Bounds
-    });
   });
-
-  $.RawMethod(false, "get_IsDisposed", function () {
-    return false;
-  });
-
-  $.RawMethod(false, "get_Width", function () {
-    return this.Width;
-  });
-
-  $.RawMethod(false, "get_Height", function () {
-    return this.Height;
-  });
-
-  $.RawMethod(false, "get_Bounds", function () {
-    if (!this._bounds)
-      this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.Width, this.Height);
-
-    return this._bounds;
-  });
+  
+  $.RawMethod(false, "ReadAsset",
+    function HTML5ImageAsset_ReadAsset (type) {
+      var tTexture = Microsoft.Xna.Framework.Graphics.Texture2D.__Type__;
+      return JSIL.CreateInstanceOfType(tTexture, "$fromImage", [null, this.image]);
+    }
+  );
 });
 
 JSIL.MakeClass("HTML5Asset", "SoundAssetBase", true, [], function ($) {
@@ -163,6 +141,7 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     this.bytes = rawBytes;
     this.contentManager = null;
   });
+
   $.Method({
     Static: false,
     Public: true
@@ -184,7 +163,7 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     var mainObject = contentReader.ReadObject$b1(type)();
 
     for (var i = 0; i < sharedResourceCount; i++)
-    sharedResources[i] = content.ReadObject$b1(System.Object)();
+      sharedResources[i] = content.ReadObject$b1(System.Object)();
 
     return mainObject;
   });

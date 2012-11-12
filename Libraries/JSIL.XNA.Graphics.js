@@ -2393,7 +2393,25 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }, true);
     this.image.src = uri;
 
-    this.width = this.height = 0;
+    self.width = self.image.naturalWidth;
+    self.height = self.image.naturalHeight;
+
+    var textures = document.getElementById("textures");
+    if (textures) 
+      textures.appendChild(this.image);
+  });
+
+  $.RawMethod(false, "$fromImage", function (graphicsDevice, image) {
+    this._parent = graphicsDevice;
+    this.mipMap = false;
+    this.format = Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
+    this.isDisposed = false;
+    this.id = String(++$jsilxna.nextImageId);
+
+    this.image = image;
+
+    this.width = image.naturalWidth;
+    this.height = image.naturalHeight;
 
     var textures = document.getElementById("textures");
     if (textures) 

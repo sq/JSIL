@@ -43,13 +43,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       }
     }
 
-    var rawXnb = RawXNBAsset.$As(asset);
-    if (rawXnb !== null) {
-      rawXnb.contentManager = this;
-      var result = rawXnb.ReadAsset(T);
+    if (asset.ReadAsset) {
+      asset.contentManager = this;
+      var result = asset.ReadAsset(T);
 
       if (result === null)
         JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
+      
       return result;
     }
 
