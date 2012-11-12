@@ -94,24 +94,15 @@ namespace JSIL.Transforms {
                     bool isDefaultInit = (previousInitialization.DefaultValueLiteral != null) ||
                         (previousInitialization.NewExpression.Arguments.Count == 0);
 
-                    if (!isDefaultInit) {
-                        if (jsm.Method.DeclaringType.IsImmutable) {
-                            // A constructor is being invoked on an immutable struct, which means an existing instance is being mutated.
-                            // We need to convert this into a reassignment of the local containing the struct. This creates garbage, but
-                            //  it's probably still better than not applying immutability optimizations at all. :/
-                            return ConvertInvocationIntoReassignment(invocation, previousInitialization);
-                        } else
-                            return null;
-                    }
-
-                    // Already folded
-                    if (previousInitialization.Folded)
-                        return null;
-
-                    if (!isInControlFlow)
+                    if (!previousInitialization.Folded && !isInControlFlow && isDefaultInit)
                         return FoldInvocation(invocation, previousInitialization);
-                    else
-                        return null;
+
+                    if (jsm.Method.DeclaringType.IsImmutable) {
+                        // A constructor is being invoked on an immutable struct, which means an existing instance is being mutated.
+                        // We need to convert this into a reassignment of the local containing the struct. This creates garbage, but
+                        //  it's probably still better than not applying immutability optimizations at all. :/
+                        return ConvertInvocationIntoReassignment(invocation, previousInitialization);
+                    }
                 }
             }
 

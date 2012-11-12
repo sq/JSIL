@@ -77,6 +77,7 @@
     <None Include="AnalysisTestCases\UnfoldableStructConstructor.cs" />
     <None Include="AnalysisTestCases\ImmutableStructReinitialization.cs" />
     <None Include="AnalysisTestCases\ImmutableStructReinitializationInControlFlow.cs" />
+    <None Include="AnalysisTestCases\ImmutableStructReinitializationInLoop.cs" />
     <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
