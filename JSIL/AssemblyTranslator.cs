@@ -1071,7 +1071,8 @@ namespace JSIL {
 
                     output.RPar();
 
-                    TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, output);
+                    if (!makingSkeletons)
+                        TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, output);
 
                     output.Semicolon();
                     output.NewLine();

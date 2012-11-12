@@ -6284,7 +6284,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   }
 
   if (elementTypeObject.__TypedArray__) {
-    result = new (elementTypeObject.__TypedArray__)(sizeOrInitializer);
+    result = new (elementTypeObject.__TypedArray__)(size);
   } else {
     result = new Array(size);
 
@@ -6296,12 +6296,6 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
       JSIL.Array.Erase(result, elementType);
     }
   }
-
-  /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
-  // Can't do this the right way, because .prototype for arrays in JS is insanely busted
-  result.__FullName__ = type.__FullName__ + "[]";
-  result.toString = System.Object.prototype.toString;
-  */
 
   return result;
 };
