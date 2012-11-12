@@ -1530,7 +1530,7 @@ namespace JSIL {
                         si.TypeSystem, true
                     ).Visit(function);
 
-                var fsci = new FoldStructConstructorInvocations(si.TypeSystem);
+                var fsci = new FixupStructConstructorInvocations(si.TypeSystem);
                 fsci.Visit(function);
 
                 temporaryEliminationPass();

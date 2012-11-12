@@ -76,6 +76,7 @@
     <None Include="AnalysisTestCases\ReadStructFromReadonlyFieldThenMutate.cs" />
     <None Include="AnalysisTestCases\UnfoldableStructConstructor.cs" />
     <None Include="AnalysisTestCases\ImmutableStructReinitialization.cs" />
+    <None Include="AnalysisTestCases\ImmutableStructReinitializationInControlFlow.cs" />
     <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
