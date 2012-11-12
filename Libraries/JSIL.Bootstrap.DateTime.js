@@ -118,6 +118,13 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:true , Public:true }, "op_UnaryNegation", 
+      (new JSIL.MethodSignature($.Type, [$.Type], [])), 
+      function op_UnaryNegation (self) {
+        return fromTicks($jsilcore.System.Int64.op_UnaryNegation(self._ticks));
+      }
+    );
+
     $.RawMethod(false, "$accumulate", function (multiplier, amount) {
       // FIXME: unnecessary garbage
       var tInt64 = $jsilcore.System.Int64;
