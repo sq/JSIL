@@ -2171,7 +2171,7 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms.xna.TypeRef("Microsoft.Xna.Framework.Vector3")], []), function (v) {
-    ctorRgbaFloat(this, v.X, x.Y, v.Z, 1.0);
+    ctorRgbaFloat(this, v.X, v.Y, v.Z, 1.0);
   });
 
   $.Method({

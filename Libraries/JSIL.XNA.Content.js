@@ -769,7 +769,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
   $.Method({Static:false, Public:true }, "ReadObject", 
     (new JSIL.MethodSignature("!!0", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentTypeReader"), "!!0"], ["T"])), 
     function ReadObject$b1 (T, typeReader, existingInstance) {
-      return readObjectImpl(this, T, contentTypeReader, existingInstance);
+      return readObjectImpl(this, T, typeReader, existingInstance);
     }
   );
 
@@ -882,9 +882,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
 
   var makeMemberHelper = function (manager, type, setter) {
     var reader = manager.GetTypeReader(type);
+    var tObject = $jsilcore.System.Object.__Type__;
 
     return function (contentReader, input, result) {
-      var value = input.ReadObjectInternal$b1(type)(reader, null);
+      var value = input.ReadObject$b1(tObject)(reader, null);
       if (!type.__PublicInterface__.$Is(value)) {
         var message = "Tried to read '" + type.get_Name() + "' but got a value of type '" + JSIL.GetType(value) + "'!";
         throw new Microsoft.Xna.Framework.Content.ContentLoadException(message);
@@ -918,6 +919,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
   };
 
   $.RawMethod(false, "CreateMemberReaders", function (manager, members, result) {
+    var tIgnoreAttribute = $xnaasms.xna.Microsoft.Xna.Framework.Content.ContentSerializerIgnoreAttribute.__Type__;
     var tSerializerAttribute = $xnaasms.xna.Microsoft.Xna.Framework.Content.ContentSerializerAttribute.__Type__;
 
     members_loop:
@@ -928,6 +930,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
       var pi = $jsilcore.System.Reflection.PropertyInfo.$As(member);
 
       if (fi !== null) {
+        if (hasAttribute(fi, tIgnoreAttribute))
+          continue;
+
         if (hasAttribute(fi, tSerializerAttribute)) {
           // FIXME: SharedResource
         } else {
@@ -940,6 +945,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
         memberType = fi.get_FieldType();
         memberSetter = makeFieldSetter(fi);
       } else if (pi !== null) {
+        if (hasAttribute(pi, tIgnoreAttribute))
+          continue;
+
         if (pi.GetIndexParameters().Length > 0)
           continue;
 
@@ -1016,7 +1024,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
           helper(this, input, existingInstance);
         }
       } catch (exc) {
-        var message = "ReflectiveReader failed to load a '" + this.targetType.get_Name() + "':\r\n" + exc.get_Message();
+        var message = "ReflectiveReader failed to load a '" + this.targetType.get_Name() + "': " + exc.get_Message();
         throw new Microsoft.Xna.Framework.Content.ContentLoadException(message, exc);
       }
 

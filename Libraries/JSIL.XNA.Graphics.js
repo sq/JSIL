@@ -488,6 +488,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Effect", function ($) 
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_Techniques", 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectTechniqueCollection"), [], [])), 
+    function get_Techniques () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectTechniqueCollection();
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Parameters", 
     (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
     function get_Parameters () {
