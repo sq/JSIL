@@ -310,6 +310,7 @@ namespace JSIL.Tests {
                     @"TestCases\MulticastDelegates.cs",
                     @"TestCases\GetTypeByName.cs",
                     @"TestCases\GetGenericTypeByName.cs",
+                    @"TestCases\GetGenericTypeWithMultipleArgumentsByName.cs",
                     @"TestCases\ValueTypeMethods.cs",
                     @"TestCases\Events.cs",
                     @"TestCases\Events.vb",

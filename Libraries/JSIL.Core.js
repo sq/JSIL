@@ -5604,65 +5604,290 @@ JSIL.MethodSignatureCache.prototype.toString = function () {
   return "<Method Signature Cache>";
 };
 
-JSIL.ParseTypeName = function (name) {
-  var assemblyName = "", typeName = "", parenText = "";
-  var genericArguments = [];
-  var readingAssemblyName = false;
-  var parenDepth = 0;
 
-  for (var i = 0, l = name.length; i < l; i++) {
-    var ch = name[i];
+//
+// System.Type.cs
+//
+// Author:
+//   Rodrigo Kumpera <kumpera@gmail.com>
+//
+//
+// Copyright (C) 2010 Novell, Inc (http://www.novell.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+// 
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
 
-    if (ch == ']') {
-      parenDepth -= 1;
+JSIL.TypeNameParseState = function (input, fromPosition) {
+  this.input = input;
+  this.pos = fromPosition;
+};
 
-      if (parenDepth == 0) {
-        if (parenText.length > 0) {
-          genericArguments.push(JSIL.ParseTypeName(parenText));
+Object.defineProperty(JSIL.TypeNameParseState.prototype, "eof", {
+  get: function () {
+    return this.pos >= this.input.length;
+  }
+});
+
+Object.defineProperty(JSIL.TypeNameParseState.prototype, "current", {
+  get: function () {
+    return this.input[this.pos];
+  }
+});
+
+JSIL.TypeNameParseState.prototype.substr = function (start, count) {
+  return this.input.substr(start, count);
+};
+
+JSIL.TypeNameParseState.prototype.moveNext = function () {
+  this.pos += 1;
+  return (this.pos < this.input.length);
+};
+
+JSIL.TypeNameParseState.prototype.skipWhitespace = function () {
+  var length = this.input.length;
+
+  while ((this.pos < length) && (this.current === ' '))
+    this.pos += 1;
+};
+
+JSIL.TypeNameParseResult = function () {
+  this.type = null;
+  this.assembly = null;
+  this.nested = [];
+  this.genericArguments = [];
+  this.arraySpec = [];
+  this.pointerLevel = 0;
+  this.isByRef = false;
+  this.parseEndedAt = null;
+};
+
+Object.defineProperty(JSIL.TypeNameParseResult.prototype, "isArray", {
+  get: function () {
+    return this.arraySpec.length > 0;
+  }
+});
+
+JSIL.TypeNameParseResult.prototype.addName = function (name) {
+  if (!this.type)
+    this.type = name;
+  else
+    this.nested.push(name);
+};
+
+JSIL.TypeNameParseResult.prototype.addArray = function (array) {
+  this.arraySpec.push(array);
+};
+
+JSIL.ParseTypeNameImpl = function (input, fromPosition, isRecursive, allowQualifiedNames) {
+  var state = new JSIL.TypeNameParseState(input, fromPosition);
+  var inModifiers = false;
+
+  state.skipWhitespace();
+  var startPosition = state.pos;
+
+  var result = new JSIL.TypeNameParseResult();
+
+  while (state.moveNext()) {
+    switch (state.current) {
+      case '+':
+        result.addName(state.substr(startPosition, state.pos - startPosition));
+        startPosition = state.pos + 1;
+        break;
+
+      case ',':
+      case ']':
+        result.addName(state.substr(startPosition, state.pos - startPosition));
+        startPosition = state.pos + 1;
+
+        inModifiers = true;
+
+        if (isRecursive && !allowQualifiedNames) {
+          result.parseEndedAt = state.pos;
+          return result;
         }
 
-        parenText = "";
-      } else if (parenText.length > 0) {
-        parenText += ch;
-      }
-    } else if (ch == '[') {
-      if ((parenDepth > 0) && (parenText.length > 0))
-        parenText += ch;
+        break;
 
-      parenDepth += 1;
-    } else if (ch == ',') {
-      if (parenDepth > 0) {
-        parenText += ch;
-      } else if (readingAssemblyName) {
-        assemblyName += ",";
-      } else {
-        readingAssemblyName = true;
-      }
-    } else if (parenDepth > 0) {
-      parenText += ch;
-    } else if (readingAssemblyName) {
-      assemblyName += ch;
-    } else {
-      typeName += ch;
+      case '&':
+      case '*':
+      case '[':
+        if (isRecursive && (state.current !== '['))
+          throw new Error("Generic argument must be by-value and not a pointer");
+
+        result.addName(state.substr(startPosition, state.pos - startPosition));
+        startPosition = state.pos + 1;
+        inModifiers = true;
+
+        break;
     }
+
+    if (inModifiers)
+      break;
   }
 
-  if (assemblyName.length === 0)
-    assemblyName = null;
-  else
-    assemblyName = assemblyName.trim();
+  if (startPosition < state.pos)
+    result.addName(state.substr(startPosition, state.pos - startPosition));
 
-  if (genericArguments.length === 0)
-    genericArguments = null;
+  if (!inModifiers) {
+    result.parseEndedAt = state.pos;
+    return result;
+  }
 
-  var result = {
-    assembly: assemblyName,
-    type: typeName.trim(),
-    genericArguments: genericArguments
-  };
+  state.pos -= 1;
+
+  while (state.moveNext()) {
+    switch (state.current) {
+      case '&':
+        if (result.isByRef)
+          throw new Error("Too many &s");
+
+        result.isByRef = true;
+        break;
+
+      case '*':
+        if (result.isByRef)
+          throw new Error("Can't have a pointer to a byref type");
+
+        result.pointerLevel += 1;
+        break;
+
+      case ',':
+        if (isRecursive) {
+          var length = state.input.length, end = state.pos;
+
+          while (end < length && state.input[end] !== ']')
+            end += 1;
+
+          if (end >= length)
+            throw new Error("Unmatched '['");
+
+          result.assembly = state.substr(state.pos + 1, end - state.pos - 1).trim();
+          state.pos = end + 1;
+
+          result.parseEndedAt = state.pos;
+          return result;
+        }
+
+        result.assembly = state.substr(state.pos + 1).trim();
+        state.pos = length;
+        break;
+
+      case '[':
+        if (result.isByRef)
+          throw new Error("ByRef qualifier must be last part of type");
+
+        state.pos += 1;
+        if (state.pos >= length)
+            throw new Error("Invalid array/generic spec");
+
+        state.skipWhitespace();
+
+        var sch = state.current;
+        if (
+          (sch !== ',') && 
+          (sch !== '*') && 
+          (sch !== ']')
+        ) {
+          //generic args
+          if (result.isArray)
+            throw new ArgumentException ("generic args after array spec", "typeName");
+
+          while (!state.eof) {
+            state.skipWhitespace();
+
+            var aqn = state.current === '[';
+            if (aqn)
+              state.moveNext();
+
+            var subspec = JSIL.ParseTypeNameImpl(state.input, state.pos, true, aqn);
+            state.pos = subspec.parseEndedAt;
+
+            result.genericArguments.push(subspec);
+
+            if (state.eof)
+              throw new Error("Invalid generic args spec");
+
+            if (state.current === ']')
+              break;
+            else if (state.current === ',')
+              state.moveNext();
+            else
+              throw new Error("Invalid generic args separator");
+          }
+
+          if (state.eof || (state.current !== ']'))
+            throw new Error("Invalid generic args spec");
+
+        } else { 
+          //array spec
+          var dimensions = 1, bound = false;
+
+          while (!state.eof && (state.current !== ']')) {
+            if (state.current === '*') {
+              if (bound)
+                throw new Error("Array spec has too many bound dimensions");
+
+              bound = true;
+            } else if (state.current !== ',') {
+              throw new Error("Invalid character in array spec");
+            } else {
+              dimensions += 1;
+            }
+
+            state.moveNext();
+            state.skipWhitespace();
+          }
+
+          if (state.current !== ']')
+            throw new Error("Invalid array spec");
+          if ((dimensions > 1) && bound)
+            throw new Error("Invalid array spec: Multi-dimensional array can't be bound");
+
+          result.addArray({
+            dimensions: dimensions,
+            bound: bound
+          });
+        }
+
+        break;
+
+      case ']':
+        if (isRecursive) {
+          result.parseEndedAt = state.pos;
+          return result;
+        }
+
+        throw new Error("Unmatched ']'");
+
+      default:
+        throw new Error("Invalid type spec");
+    }
+  }  
 
   return result;
 };
+
+JSIL.ParseTypeName = function (name) {
+  return JSIL.ParseTypeNameImpl(name, 0, false, true);
+};
+
 
 JSIL.GetTypeInternal = function (parsedTypeName, defaultContext, throwOnFail) {
   var context = null;
