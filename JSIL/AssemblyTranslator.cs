@@ -1603,7 +1603,7 @@ namespace JSIL {
 
             var dollarIdentifier = new JSRawOutputIdentifier(dollar, field.DeclaringType);
             var descriptor = new JSMemberDescriptor(
-                field.IsPublic, field.IsStatic
+                field.IsPublic, field.IsStatic, isReadonly: field.IsInitOnly
             );
 
             var fieldName = Util.EscapeIdentifier(fieldInfo.Name, EscapingMode.MemberIdentifier);
@@ -2146,6 +2146,7 @@ namespace JSIL {
                     output.Identifier("Method", null);
                 output.LPar();
 
+                // FIXME: Include IsVirtual?
                 output.MemberDescriptor(method.IsPublic, method.IsStatic);
 
                 output.Comma();

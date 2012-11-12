@@ -512,5 +512,17 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void ImmutableStructReinitialization () {
+            var output = "2 0 0 2\r\n2 3 0 3\r\n2 3 4 4\r\n2 3 4 5";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ImmutableStructReinitialization.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

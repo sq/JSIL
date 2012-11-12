@@ -670,7 +670,7 @@ namespace JSIL.Internal {
             TypeReference(type.Definition, context);
         }
 
-        public void MemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false) {
+        public void MemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false) {
             WriteRaw("{");
 
             WriteRaw("Static");
@@ -691,6 +691,14 @@ namespace JSIL.Internal {
                 Comma();
 
                 WriteRaw("Virtual");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
+
+            if (isReadonly) {
+                Comma();
+
+                WriteRaw("ReadOnly");
                 WriteRaw(":");
                 WriteRaw("true ");
             }

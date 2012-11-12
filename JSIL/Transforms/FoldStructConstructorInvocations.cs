@@ -88,6 +88,14 @@ namespace JSIL.Transforms {
                 );
 
                 if (previousInitialization != null) {
+                    // Not a default-init
+                    if (previousInitialization.NewExpression != null) {
+                        var newargs = previousInitialization.NewExpression.Arguments;
+                        if ((newargs != null) && (newargs.Count != 0))
+                            return null;
+                    }
+
+                    // Already folded
                     if (previousInitialization.Folded)
                         return null;
 

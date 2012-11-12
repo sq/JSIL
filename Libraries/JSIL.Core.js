@@ -2384,6 +2384,7 @@ JSIL.EscapeJSIdentifier = function (identifier) {
 
 JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
+  var strictPrefix = "\"use strict\";\r\n";
   var uriPrefix = "//@ sourceURL=jsil://closure/" + name + "\r\n";
 
   var rawFunctionText = "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
@@ -2408,7 +2409,7 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var lineBreakRE = /\r(\n?)/g;
 
   rawFunctionText = 
-    uriPrefix + "    return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n";
+    uriPrefix + strictPrefix + "    return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n";
 
   var constructor = Function.apply(Function, keys.concat([rawFunctionText]));
   result = constructor.apply(null, closureArgumentList);
@@ -4836,6 +4837,7 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
   result.Virtual = descriptor.Virtual || false;
+  result.ReadOnly = descriptor.ReadOnly || false;
 
   result.Name = name;
   result.EscapedName = escapedName;

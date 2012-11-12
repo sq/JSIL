@@ -1441,12 +1441,16 @@ namespace JSIL.Ast {
     public class JSMemberDescriptor : JSExpression {
         public readonly bool IsPublic;
         public readonly bool IsStatic;
+        public readonly bool IsVirtual;
+        public readonly bool IsReadonly;
 
-        public JSMemberDescriptor (bool isPublic, bool isStatic)
+        public JSMemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false)
             : base() {
 
             IsPublic = isPublic;
             IsStatic = isStatic;
+            IsVirtual = isVirtual;
+            IsReadonly = isReadonly;
         }
 
         public override bool IsConstant {
