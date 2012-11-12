@@ -167,7 +167,7 @@ var $jsilloaderstate = {
   }
 
   if (config.xna) {
-    contentManifest["JSIL"].push(["Library", "JSIL.XNACore.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Core.js"]);
 
     switch (Number(config.xna)) {
       case 3:
@@ -180,7 +180,11 @@ var $jsilloaderstate = {
         throw new Error("Unsupported XNA version");
     }
 
-    contentManifest["JSIL"].push(["Library", "JSIL.XNAStorage.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Content.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Graphics.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Input.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Audio.js"]);
+    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Storage.js"]);
   }
 
   if (config.readOnlyStorage)
