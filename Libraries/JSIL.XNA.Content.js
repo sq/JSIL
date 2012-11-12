@@ -119,17 +119,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", fun
       
     }
   );
-
-  /*
-    This requires overload resolution.
-  $.Method({Static:false, Public:false}, "Read", 
-    (new JSIL.MethodSignature($.Object, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Object], [])), 
-    function Read (input, existingInstance) {
-      throw new Error("Invoked abstract method (ContentTypeReader.Read)");
-    }
-  );
-  */
-
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", function ($) {
@@ -144,16 +133,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", f
     }
   );
 
-  /*
-    This requires overload resolution.
-
-  $.Method({Static:false, Public:false}, "Read", 
-    (new JSIL.MethodSignature($.Object, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Object], [])), 
-    function Read (input, existingInstance) {
-      throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
-    }
-  );
-
   var gp = new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.Content.ContentTypeReader`1");
 
   $.Method({Static:false, Public:false}, "Read", 
@@ -162,9 +141,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", f
       throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
     }
   );
-
-  */
-
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.StringReader", function ($) {
@@ -830,6 +806,124 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
     (new JSIL.MethodSignature("!!0", ["!!0"], ["T"])), 
     function ReadRawObject$b1 (T, existingInstance) {
       return readRawObjectImpl(this, T, existingInstance);
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      var assembly = $xnaasms.xna;
+
+      var tKey = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Key.get(this);
+      var tValue = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Value.get(this);
+      var tDictionary = $jsilcore.System.Collections.Generic.Dictionary$b2.Of(tKey, tValue);
+
+      assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
+        this, tDictionary
+      );
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      var assembly = $xnaasms.xna;
+
+      assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
+        this, assembly.Microsoft.Xna.Framework.Content.ReflectiveReader$b1.T.get(this)
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_CanDeserializeIntoExistingObject", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanDeserializeIntoExistingObject () {
+      return !this.TargetIsValueType;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_TypeVersion", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_TypeVersion () {
+      return this.typeVersion;
+    }
+  );
+
+  $.RawMethod(false, "CreateMemberReaders", function (members, result) {
+    members_loop:
+    for (var i = 0, l = members.length; i < l; i++) {
+      var member = members[i];
+      var fi = $jsilcore.System.Reflection.FieldInfo.$As(member);
+      var pi = $jsilcore.System.Reflection.PropertyInfo.$As(member);
+
+      if (fi !== null) {
+        if (fi.IsInitOnly)
+          continue;
+      } else if (pi !== null) {
+        if (pi.GetIndexParameters().Length > 0)
+          continue;
+
+        var accessors = pi.GetAccessors();
+        for (var j = 0, la = accessors.length; j < la; j++) {
+          var accessor = accessors[j];
+
+          if (!accessor.IsPublic)
+            continue members_loop;
+        }
+      }
+
+      result.push((function (text) {
+        JSIL.Host.logWriteLine("Would have read member '" + text + "' here.");
+      }).bind(member.Name));
+    }
+  });
+
+  $.Method({Static:false, Public:false}, "Initialize", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentTypeReaderManager")], [])), 
+    function Initialize (manager) {
+      var baseType = this.targetType.__BaseType__;
+      if (
+        baseType && 
+        baseType.get_FullName &&
+        (baseType.get_FullName() !== "System.Object") &&
+        (baseType.get_FullName() !== "System.ValueType")
+      ) {
+        this.baseReader = manager.GetTypeReader(baseType);
+      }
+
+      var bindingFlags = $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic");
+      // FIXME: The order that comes back from GetProperties/GetFields might not be the same as it is in the .NET CLR.
+      //  Given this, how can we reliably support ReflectiveReader?
+      var properties = this.targetType.GetProperties(bindingFlags);
+      var fields = this.targetType.GetFields(bindingFlags);
+
+      var result = this.memberReaders = [];
+      this.CreateMemberReaders(properties, result);
+      this.CreateMemberReaders(fields, result);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($.Object, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Object], [])), 
+    function Read (input, existingInstance) {
+      if (!existingInstance)
+        existingInstance = JSIL.CreateInstanceOfType(this.targetType, []);
+
+      if (this.baseReader) {
+        var readBaseInstance = this.baseReader.Read(input, existingInstance);
+        if (readBaseInstance !== existingInstance)
+          throw new Error("Base type reader did not return existing instance");
+      }
+
+      // FIXME: Read members.
+
+      return existingInstance;
     }
   );
 

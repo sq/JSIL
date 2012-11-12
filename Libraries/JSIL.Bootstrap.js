@@ -12,10 +12,22 @@ JSIL.DeclareNamespace("System.Linq.Expressions");
 JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
+
 // Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
   return this === rhs;
 };
+
+
+// Nasty compatibility shim for JS Error <-> C# Exception
+Error.prototype.get_Message = function () {
+  return String(this);
+};
+
+Error.prototype.get_StackTrace = function () {
+  return this.stack || "";
+};
+
 
 $jsilcore.$ParseBoolean = function (text) {
   if (arguments.length !== 1)
