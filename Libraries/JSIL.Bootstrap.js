@@ -615,6 +615,7 @@ JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchExcept
 
 JSIL.MakeClass("System.SystemException", "System.IOException", true);
 JSIL.MakeClass("System.IOException", "System.IO.FileNotFoundException", true);
+JSIL.MakeClass("System.IOException", "System.IO.EndOfStreamException", true);
 
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
@@ -911,6 +912,14 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [], []),
     function () {
       this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Capacity", 
+    new JSIL.MethodSignature(null, [$.Int32], []),
+    function List_set_Capacity (value) {
+      // FIXME
+      return;
     }
   );
 
@@ -3557,14 +3566,15 @@ $jsilcore.BytesToInt64 = function (bytes, offset) {
 };
 
 $jsilcore.BytesToUInt16 = function (bytes, offset) {
-  return bytes[offset] + (bytes[offset + 1] * 256);
+  return (bytes[offset] << 0) |
+         (bytes[offset + 1] << 8)
 };
 
 $jsilcore.BytesToUInt32 = function (bytes, offset) {
-  return bytes[offset] + 
-    (bytes[offset + 1] * 256) + 
-    (bytes[offset + 2] * 65536) + 
-    (bytes[offset + 3] * 16777216);
+  return (bytes[offset] << 0) |
+         (bytes[offset + 1] << 8) |
+         (bytes[offset + 2] << 16) |
+         (bytes[offset + 3] << 24)
 };
 
 $jsilcore.BytesToUInt64 = function (bytes, offset) {
@@ -3826,3 +3836,305 @@ JSIL.ParseDataURL = function (dataUrl) {
 
   return [mimeType, bytes];
 };
+
+
+JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._head = null;
+      this._tail = null;
+      this._count = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function _ctor (collection) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  var makeNode = function (self, value) {
+    var tNode = System.Collections.Generic.LinkedListNode$b1.Of(self.T).__Type__;
+    return JSIL.CreateInstanceOfType(tNode, [self, value]);
+  };
+
+  var addIntoEmptyImpl = function (self, node) {
+    if ((!self._head) && (!self._tail)) {
+      node._list = self;
+      self._head = self._tail = node;
+      self._count = 1;
+      return true;
+    }
+
+    return false;
+  }
+
+  var addBeforeImpl = function (self, beforeNode, node) {
+    if (addIntoEmptyImpl(self, node))
+      return;
+
+    node._list = self;
+    node._next = beforeNode;
+
+    if (beforeNode)
+      beforeNode._previous = node;
+
+    if (self._head === beforeNode)
+      self._head = node;
+
+    self._count += 1;
+  };
+
+  var addAfterImpl = function (self, afterNode, node) {
+    if (addIntoEmptyImpl(self, node))
+      return;
+
+    node._list = self;
+    node._previous = afterNode;
+
+    if (afterNode)
+      afterNode._next = node;
+
+    if (self._tail === afterNode)
+      self._tail = node;
+
+    self._count += 1;
+  };
+
+  var addFirstImpl = function (self, node) {
+      addBeforeImpl(self, self._head, node);
+  };
+
+  var addLastImpl = function (self, node) {
+      addAfterImpl(self, self._tail, node);
+  };
+
+  $.Method({Static:false, Public:true }, "AddAfter", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function AddAfter (node, value) {
+      var newNode = makeNode(self, value);
+      addAfterImpl(this, node, newNode);
+      return newNode;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddAfter", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), $jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function AddAfter (node, newNode) {
+      addAfterImpl(this, node, newNode);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddBefore", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function AddBefore (node, value) {
+      var newNode = makeNode(self, value);
+      addBeforeImpl(this, node, newNode);
+      return newNode;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddBefore", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), $jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function AddBefore (node, newNode) {
+      addBeforeImpl(this, node, newNode);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddFirst", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function AddFirst (value) {
+      var node = makeNode(this, value);
+      addFirstImpl(this, node);
+      return node;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddFirst", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function AddFirst (node) {
+      addFirstImpl(this, node);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddLast", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function AddLast (value) {
+      var node = makeNode(this, value);
+      addLastImpl(this, node);
+      return node;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddLast", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function AddLast (node) {
+      addLastImpl(this, node);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function Contains (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CopyTo", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), $.Int32], [])), 
+    function CopyTo (array, index) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Find", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function Find (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "FindLast", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function FindLast (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return _count;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_First", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [], [])), 
+    function get_First () {
+      return this._head;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Last", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [], [])), 
+    function get_Last () {
+      return this._tail;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedList`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [], [])), 
+    function GetEnumerator () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Remove", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
+    function Remove (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Remove", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
+    function Remove (node) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveFirst", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function RemoveFirst () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveLast", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function RemoveLast () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "IEnumerable`1.GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [], [])), 
+    function IEnumerable$b1_GetEnumerator () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "IEnumerable.GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), 
+    function IEnumerable_GetEnumerator () {
+      throw new Error('Not implemented');
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.LinkedListNode`1", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")], [])), 
+    function _ctor (value) {
+      this._list = null;
+      this._value = value;
+      this._previous = null;
+      this._next = null;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")]), new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")], [])), 
+    function _ctor (list, value) {
+      this._list = list;
+      this._value = value;
+      this._previous = null;
+      this._next = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_List", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")]), [], [])), 
+    function get_List () {
+      return this._list;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Next", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")]), [], [])), 
+    function get_Next () {
+      return this._next;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Previous", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")]), [], [])), 
+    function get_Previous () {
+      return this._previous;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1"), [], [])), 
+    function get_Value () {
+      return this._value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Value", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedListNode`1")], [])), 
+    function set_Value (value) {
+      this._value = value;
+    }
+  );
+
+});

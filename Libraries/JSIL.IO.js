@@ -1036,6 +1036,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
       this.m_tempBuffer = new Array();
 
     var bytesRead = this.m_stream.Read(this.m_tempBuffer, 0, count);
+    if (bytesRead < count)
+      throw new System.IO.EndOfStreamException();
+    
     this.m_tempBuffer.length = bytesRead;
     return this.m_tempBuffer;
   });
