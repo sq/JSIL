@@ -222,6 +222,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Int32Reader", function 
   );
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Int64Reader", function ($) {
+  $.InheritDefaultConstructor();
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($.Int64, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Int64], [])), 
+    function Read (input, existingInstance) {
+      return input.ReadInt64();
+    }
+  );
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.UInt16Reader", function ($) {
   $.InheritDefaultConstructor();
 
@@ -240,6 +251,39 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.UInt32Reader", function
     (new JSIL.MethodSignature($.UInt32, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.UInt32], [])), 
     function Read (input, existingInstance) {
       return input.ReadUInt32();
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.UInt64Reader", function ($) {
+  $.InheritDefaultConstructor();
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($.UInt64, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.UInt64], [])), 
+    function Read (input, existingInstance) {
+      return input.ReadUInt64();
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SingleReader", function ($) {
+  $.InheritDefaultConstructor();
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($.Single, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Single], [])), 
+    function Read (input, existingInstance) {
+      return input.ReadSingle();
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DoubleReader", function ($) {
+  $.InheritDefaultConstructor();
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($.Double, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Double], [])), 
+    function Read (input, existingInstance) {
+      return input.ReadDouble();
     }
   );
 });
