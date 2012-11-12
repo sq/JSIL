@@ -288,6 +288,8 @@
     <None Include="TestCases\DictionaryValueCollectionCount.cs" />
     <None Include="IOTestCases\StreamRelativeSeek.cs" />
     <None Include="TestCases\GetGenericTypeWithMultipleArgumentsByName.cs" />
+    <None Include="ReflectionTestCases\GetMemberTypes.cs" />
+    <None Include="ReflectionTestCases\GetPropertyMethods.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

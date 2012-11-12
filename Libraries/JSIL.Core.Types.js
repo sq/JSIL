@@ -982,12 +982,144 @@ JSIL.ImplementExternals(
   }
 );
 
+JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
+  var getGetMethodImpl = function (nonPublic) {
+    var methodName = "get_" + this.get_Name();
+    var bindingFlags = (nonPublic 
+      ? $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+    );
+    return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
+  };
+
+  var getSetMethodImpl = function (nonPublic) {
+    var methodName = "set_" + this.get_Name();
+    var bindingFlags = (nonPublic 
+      ? $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+    );
+    return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
+  };
+
+  var getAccessorsImpl = function (nonPublic) {
+    var result = [];
+
+    var getMethod = this.GetGetMethod(nonPublic || false);
+    var setMethod = this.GetSetMethod(nonPublic || false);
+
+    if (getMethod)
+      result.push(getMethod);
+    if (setMethod)
+      result.push(setMethod);
+
+    return result;
+  };
+
+  $.Method({Static: false, Public: true }, "GetGetMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    getGetMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetGetMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.Boolean], [])),
+    getGetMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetSetMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    getSetMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetSetMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.Boolean], [])),
+    getSetMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetAccessors", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.MethodInfo")]), [$.Boolean], [])),
+    getAccessorsImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetAccessors", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.MethodInfo")]), [], [])),
+    getAccessorsImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetIndexParameters", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
+    function GetIndexParameters () {
+      var getMethod = this.GetGetMethod(true);
+      if (getMethod)
+        return getMethod.GetParameters();
+
+      var setMethod = this.GetSetMethod(true);
+      if (setMethod) {
+        var result = setMethod.GetParameters();
+        return result.slice(0, result.length - 1);
+      }
+
+      return [];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_PropertyType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
+    function get_PropertyType () {
+      var result = this._cachedPropertyType;
+
+      if (!result) {
+        var getMethod = this.GetGetMethod(true);
+        if (getMethod) {
+          result = getMethod.get_ReturnType();
+        } else {
+          var setMethod = this.GetSetMethod(true);
+          if (setMethod) {
+            var argumentTypes = setMethod._data.signature.argumentTypes;
+            var lastArgumentType = argumentTypes[argumentTypes.length - 1];
+            result = JSIL.ResolveTypeReference(lastArgumentType, this._typeObject.__Context__)[1];
+          }
+        }
+
+        this._cachedPropertyType = result;
+      }
+
+      return result;
+    }
+  );
+});
+
 JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+  $.Method({Static: false, Public: true }, "GetParameters", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
+    function GetParameters () {
+      var result = [];
+      var argumentTypes = this._data.signature.argumentTypes;
+      var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
+
+      if (argumentTypes) {
+        for (var i = 0; i < argumentTypes.length; i++) {
+          // FIXME
+          var pi = JSIL.CreateInstanceOfType(tParameterInfo, null);
+          argumentTypes.push(pi);
+        }
+      }
+
+      return result;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_ReturnType", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
     function get_ReturnType () {
-      var signature = this._data.signature;
-      return signature.returnType;
+      var result = this._cachedReturnType;
+
+      if (typeof (result) === "undefined") {
+        result = this._cachedReturnType = JSIL.ResolveTypeReference(
+          this._data.signature.returnType, this._typeObject.__Context__
+        )[1];
+      }
+
+      return result;
     }
   );
 
@@ -1028,6 +1160,13 @@ JSIL.ImplementExternals(
         }
 
         return result;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_IsInitOnly", 
+      (new JSIL.MethodSignature($.Boolean, [], [])), 
+      function get_IsInitOnly () {
+        return this._descriptor.IsReadOnly;
       }
     );
   }
