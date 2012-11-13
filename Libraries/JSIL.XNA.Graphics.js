@@ -2608,13 +2608,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     this.image.width = this.width;
     this.image.height = this.height;
 
-    var ctx = $jsilxna.get2DContext(this.image, false);
-    ctx.globalCompositeOperation = "copy";
-    ctx.drawImage(oldImage, 0, 0);
+    // Firefox's canvas implementation is incredibly fragile.
+    if (
+      oldImage && 
+      oldImage.src && 
+      (oldImage.src.trim().length > 0)
+    ) {
+      var ctx = $jsilxna.get2DContext(this.image, false);
+      ctx.globalCompositeOperation = "copy";
+      ctx.drawImage(oldImage, 0, 0);
+    }
 
     var textures = document.getElementById("textures");
     if (textures) {
-      textures.removeChild(oldImage);
+      if (oldImage)
+        textures.removeChild(oldImage);
+
       textures.appendChild(this.image);
     }
   });
