@@ -203,7 +203,7 @@ namespace JSIL {
             }
         }
 
-        public void AddProxyAssemblies (params AssemblyDefinition[] assemblies) {
+        public void AddProxyAssemblies (Action<AssemblyDefinition> onProxiesFound, params AssemblyDefinition[] assemblies) {
             HashSet<ProxyInfo> pl;
 
             lock (Assemblies)
@@ -218,7 +218,14 @@ namespace JSIL {
                 else
                     Assemblies.Add(asm);
 
+                bool foundAProxy = false;
+
                 foreach (var proxyType in ProxyTypesFromAssembly(asm)) {
+                    if (!foundAProxy) {
+                        foundAProxy = true;
+                        onProxiesFound(asm);
+                    }
+
                     var proxyInfo = new ProxyInfo(this, proxyType);
                     TypeProxies.Add(new TypeIdentifier(proxyType), proxyInfo);
 

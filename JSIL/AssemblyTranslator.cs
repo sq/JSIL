@@ -46,6 +46,7 @@ namespace JSIL {
         public readonly AssemblyManifest Manifest;
 
         public event Action<string> AssemblyLoaded;
+        public event Action<string> ProxyAssemblyLoaded;
 
         public event Action<ProgressReporter> Decompiling;
         public event Action<ProgressReporter> RunningTransforms;
@@ -82,8 +83,10 @@ namespace JSIL {
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
             AssemblyManifest manifest = null,
-            AssemblyCache assemblyCache = null
+            AssemblyCache assemblyCache = null,
+            Action<string> onProxyAssemblyLoaded = null
         ) {
+            ProxyAssemblyLoaded = onProxyAssemblyLoaded;
             Warning = (s) => {
                 Console.Error.WriteLine("// {0}", s);
             };
@@ -179,10 +182,14 @@ namespace JSIL {
             return readerParameters;
         }
 
+        private void OnProxiesFoundHandler (AssemblyDefinition asm) {
+            if (ProxyAssemblyLoaded != null)
+                ProxyAssemblyLoaded(asm.Name.Name);
+        }
+
         public void AddProxyAssembly (string path) {
             var assemblies = LoadAssembly(path, Configuration.UseSymbols.GetValueOrDefault(true), false);
-
-            _TypeInfoProvider.AddProxyAssemblies(assemblies);
+            _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
         }
 
         public void AddProxyAssembly (Assembly assembly) {
@@ -359,7 +366,7 @@ namespace JSIL {
             var parallelOptions = GetParallelOptions();
 
             if (scanForProxies)
-                _TypeInfoProvider.AddProxyAssemblies(assemblies);
+                _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
 
             var pr = new ProgressReporter();
             if (Decompiling != null)

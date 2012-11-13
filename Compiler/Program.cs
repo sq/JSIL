@@ -58,7 +58,7 @@ namespace JSIL.Compiler {
             if (ensureExists) {
                 if (!Directory.Exists(result) && !File.Exists(result)) {
                     if (reportErrors)
-                        Console.Error.WriteLine("// Could not find file '{0}'!", path);
+                        Console.Error.WriteLine("// Could not find file '{0}' -> '{1}'!", path, result);
 
                     return null;
                 }
@@ -423,7 +423,12 @@ namespace JSIL.Compiler {
                     typeInfoProvider = CachedTypeInfoProvider;
             }
 
-            var translator = new AssemblyTranslator(configuration, typeInfoProvider, manifest, assemblyCache);
+            var translator = new AssemblyTranslator(
+                configuration, typeInfoProvider, manifest, assemblyCache, 
+                onProxyAssemblyLoaded: (name) => {
+                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name));
+                }
+            );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
             translator.RunningTransforms += MakeProgressHandler ("Translating ");
