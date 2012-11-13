@@ -576,7 +576,10 @@ JSIL.MakeClass("System.Object", "JSIL.ObjectInitializer", true, [], function ($)
 
   $.RawMethod(false, "Apply",
     function (target) {
-      target.__Initialize__(this.initializer);
+      if (target)
+        target.__Initialize__(this.initializer);
+      else
+        JSIL.Host.warning("Object initializer applied to null/undefined!");
     }
   );
 });

@@ -2568,6 +2568,37 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
   );
 
+  $.Method({Static:false, Public:true }, "GetData", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"])], ["T"])), 
+    function GetData$b1 (T, data) {
+      this.$getDataInternal(T, null, data, 0, data.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetData", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
+          $.Int32
+        ], ["T"])), 
+    function GetData$b1 (T, data, startIndex, elementCount) {
+      this.$getDataInternal(T, null, data, startIndex, elementCount);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetData", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
+          $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
+          $.Int32
+        ], ["T"])), 
+    function GetData$b1 (T, level, rect, data, startIndex, elementCount) {
+      if (level !== 0)
+        throw new System.NotImplementedException("Mip level must be 0");
+
+      this.$getDataInternal(T, rect, data, startIndex, elementCount);
+    }
+  );
+
   $.RawMethod(false, "$makeMutable", function () {
     if (this.image && this.image.getContext)
       return;
@@ -2588,23 +2619,55 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
   });
 
+  var fastArrayCopy = function (destArray, destOffset, sourceArray, sourceOffset, count) {
+    for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s++)
+      destArray[d] = sourceArray[s];
+  };
+
+  $.RawMethod(false, "$getDataInternal", function (T, rect, data, startIndex, elementCount) {
+    this.$makeMutable();
+
+    var ctx = $jsilxna.get2DContext(this.image, false);
+    var imageData;
+
+    if (rect) {
+      imageData = ctx.getImageData(rect.X, rect.Y, rect.Width, rect.Height);
+    } else {
+      imageData = ctx.getImageData(0, 0, this.width, this.height);
+    }
+
+    // FIXME: Need to repremultiply the image bytes... yuck.
+
+    switch (T.toString()) {
+      case "System.Byte":
+        fastArrayCopy(data, startIndex, imageData.data, 0, elementCount);
+        break;
+      case "Microsoft.Xna.Framework.Color":
+      case "Microsoft.Xna.Framework.Graphics.Color":
+        $jsilxna.PackColorsFromColorBytes(data, startIndex, imageData.data, 0, elementCount, true);
+        break;
+      default:
+        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+    }    
+  });
+
   $.RawMethod(false, "$setDataInternal", function (T, rect, data, startIndex, elementCount) {
     var bytes = null;
     var swapRedAndBlue = false;
 
     switch (T.toString()) {
-    case "System.Byte":
-      bytes = data;
-      break;
-    case "Microsoft.Xna.Framework.Color":
-    case "Microsoft.Xna.Framework.Graphics.Color":
-      bytes = $jsilxna.UnpackColorsToColorBytes(data, startIndex, elementCount);
-      startIndex = 0;
-      elementCount = bytes.length;
-      swapRedAndBlue = true;
-      break;
-    default:
-      throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+      case "System.Byte":
+        bytes = data;
+        break;
+      case "Microsoft.Xna.Framework.Color":
+      case "Microsoft.Xna.Framework.Graphics.Color":
+        bytes = $jsilxna.UnpackColorsToColorBytes(data, startIndex, elementCount);
+        startIndex = 0;
+        elementCount = bytes.length;
+        swapRedAndBlue = true;
+        break;
+      default:
+        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
     }
 
     this.$makeMutable();
@@ -2672,8 +2735,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         }
       }
     } else {
-      for (var i = 0, j = startIndex; i < elementCount; i++, j++)
-        imageData.data[i] = bytes[j];
+      fastArrayCopy(imageData.data, 0, bytes, startIndex, elementCount);
     }
 
     return imageData;
@@ -3148,6 +3210,17 @@ $jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) 
   }
 
   return result;
+};
+
+$jsilxna.PackColorsFromColorBytes = function (destArray, destOffset, sourceArray, sourceOffset, count) {
+  for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s+=4) {
+    // Destination array already has plenty of color instances for us to use.
+    var color = destArray[d];
+    color.b = sourceArray[s];
+    color.g = sourceArray[(s + 1) | 0];
+    color.r = sourceArray[(s + 2) | 0];
+    color.a = sourceArray[(s + 3) | 0];
+  }
 };
 
 $jsilxna.ImageFormats = {

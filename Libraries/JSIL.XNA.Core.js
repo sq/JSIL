@@ -636,18 +636,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
-    Microsoft.Xna.Framework.Vector4._zero = new Microsoft.Xna.Framework.Vector4();
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Zero", new JSIL.MethodSignature(null, [], []), function () {
-    return Microsoft.Xna.Framework.Vector4._zero;
-  });
+  vectorUtil.makeConstants(
+    $, $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), {
+      "Zero": [0, 0, 0, 0],
+      "One": [1, 1, 1, 1]
+    }
+  );
 
   vectorUtil.makeOperators(
     $, ["X", "Y", "Z", "W"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4")
@@ -2325,6 +2319,18 @@ $jsilxna.Color = function ($) {
       return result;
     }
   );  
+
+  $.Method({Static:false, Public:true }, "ToVector4", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [], [])), 
+    function ToVector4 () {
+      return new Microsoft.Xna.Framework.Vector4(
+        this.r / 255,
+        this.g / 255,
+        this.b / 255,
+        this.a / 255
+      );
+    }
+  );
 };
 
 $jsilxna.ClampByte = function (v) {

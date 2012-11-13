@@ -1038,7 +1038,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     var bytesRead = this.m_stream.Read(this.m_tempBuffer, 0, count);
     if (bytesRead < count)
       throw new System.IO.EndOfStreamException();
-    
+
     this.m_tempBuffer.length = bytesRead;
     return this.m_tempBuffer;
   });
@@ -1181,7 +1181,18 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "PeekChar", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function PeekChar () {
-      return String.fromCharCode(this.m_stream.$PeekByte());
+      var peeked = this.m_stream.$PeekByte();
+      if (peeked === -1)
+        return peeked;
+      
+      var position = this.m_stream.Position;
+      var ch = this.ReadChar();
+      this.m_stream.Position = position;
+      
+      if (ch)
+        return ch.charCodeAt(0);
+      else
+        return -1;
     }
   );
 
