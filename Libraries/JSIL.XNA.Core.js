@@ -1549,6 +1549,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameComponent", function ($) {
     function Update (gameTime) {
     }
   );
+
+  $.Method({Static: false, Public: true }, "Dispose",
+    (new JSIL.MethodSignature(null, [], [])),
+    function Dispose () {
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.DrawableGameComponent", function ($) {

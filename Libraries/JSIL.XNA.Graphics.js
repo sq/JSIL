@@ -2440,59 +2440,59 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   );
 
   var fromStreamImpl = function (graphicsDevice, stream) {
-      var streamPosition = stream.get_Position().ToInt32();
-      var streamLength = stream.get_Length().ToInt32();
-      var url = stream.$GetURI();
+    var streamPosition = stream.get_Position().ToInt32();
+    var streamLength = stream.get_Length().ToInt32();
+    var url = stream.$GetURI();
 
-      // The stream is associated with a file at a given URI, so we can cheat
-      //  and construct an <img> from that URI.
-      if (url && (streamPosition === 0)) {
-        return JSIL.CreateInstanceOfType(
-          Microsoft.Xna.Framework.Graphics.Texture2D.__Type__, 
-          "$fromUri", [graphicsDevice, url]
-        );
-      }
-
-      // Gotta do this the hard way. HTML5 sucks. :(
-      // Read the rest of the stream into a buffer.
-      var bytesToRead = streamLength - streamPosition;
-      var bytes = JSIL.Array.New($jsilcore.System.Byte, bytesToRead);
-      var bytesRead = stream.Read(bytes, 0, bytesToRead);
-      if (bytesRead < bytesToRead)
-        throw new Error("Unable to read entire stream");
-
-      // Rewind the stream
-      stream.set_Position($jsilcore.System.Int64.FromInt32(streamPosition));
-
-      var headerMatches = function (header) {
-        for (var i = 0, l = Math.min(header.length, bytes.length); i < l; i++) {
-          if (bytes[i] !== header[i])
-            return false;
-        }
-
-        return true;
-      };
-
-      // Detect the image format
-      var mimeType;
-      var pngHeader = [137, 80, 78, 71, 13, 10, 26, 10];
-      var jpegHeader = [0xFF, 0xD8];
-
-      if (headerMatches(pngHeader))
-        mimeType = "image/png";
-      else if (headerMatches(jpegHeader))
-        mimeType = "image/jpeg";
-      else
-        throw new Error("Unable to detect image file type");
-
-      // FIXME: If this fails, provide data URL fallback?
-      url = JSIL.GetObjectURLForBytes(bytes, mimeType);
-
-      // FIXME: Memory leak if we never release the URL.
+    // The stream is associated with a file at a given URI, so we can cheat
+    //  and construct an <img> from that URI.
+    if (url && (streamPosition === 0)) {
       return JSIL.CreateInstanceOfType(
         Microsoft.Xna.Framework.Graphics.Texture2D.__Type__, 
         "$fromUri", [graphicsDevice, url]
       );
+    }
+
+    // Gotta do this the hard way. HTML5 sucks. :(
+    // Read the rest of the stream into a buffer.
+    var bytesToRead = streamLength - streamPosition;
+    var bytes = JSIL.Array.New($jsilcore.System.Byte, bytesToRead);
+    var bytesRead = stream.Read(bytes, 0, bytesToRead);
+    if (bytesRead < bytesToRead)
+      throw new Error("Unable to read entire stream");
+
+    // Rewind the stream
+    stream.set_Position($jsilcore.System.Int64.FromInt32(streamPosition));
+
+    var headerMatches = function (header) {
+      for (var i = 0, l = Math.min(header.length, bytes.length); i < l; i++) {
+        if (bytes[i] !== header[i])
+          return false;
+      }
+
+      return true;
+    };
+
+    // Detect the image format
+    var mimeType;
+    var pngHeader = [137, 80, 78, 71, 13, 10, 26, 10];
+    var jpegHeader = [0xFF, 0xD8];
+
+    if (headerMatches(pngHeader))
+      mimeType = "image/png";
+    else if (headerMatches(jpegHeader))
+      mimeType = "image/jpeg";
+    else
+      throw new Error("Unable to detect image file type");
+
+    // FIXME: If this fails, provide data URL fallback?
+    url = JSIL.GetObjectURLForBytes(bytes, mimeType);
+
+    // FIXME: Memory leak if we never release the URL.
+    return JSIL.CreateInstanceOfType(
+      Microsoft.Xna.Framework.Graphics.Texture2D.__Type__, 
+      "$fromUri", [graphicsDevice, url]
+    );
   };
 
   $.Method({Static:true , Public:true }, "FromStream", 
@@ -2540,7 +2540,55 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
   );
 
-  $.RawMethod(false, "$setDataInternal", function (T, data, startIndex, elementCount) {
+  $.Method({Static:false, Public:true }, "get_IsContentLost", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsContentLost () {
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetData", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"])], ["T"])), 
+    function SetData$b1 (T, data) {
+      this.$setDataInternal(T, null, data, 0, data.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetData", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
+          $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
+          $.Int32
+        ], ["T"])), 
+    function SetData$b1 (T, level, rect, data, startIndex, elementCount) {
+      if (level !== 0) 
+        return;
+
+      this.$setDataInternal(T, rect, data, startIndex, elementCount);
+    }
+  );
+
+  $.RawMethod(false, "$makeMutable", function () {
+    if (this.image && this.image.getContext)
+      return;
+
+    var oldImage = this.image;
+    this.image = document.createElement("canvas");
+    this.image.width = this.width;
+    this.image.height = this.height;
+
+    var ctx = $jsilxna.get2DContext(this.image, false);
+    ctx.globalCompositeOperation = "copy";
+    ctx.drawImage(oldImage, 0, 0);
+
+    var textures = document.getElementById("textures");
+    if (textures) {
+      textures.removeChild(oldImage);
+      textures.appendChild(this.image);
+    }
+  });
+
+  $.RawMethod(false, "$setDataInternal", function (T, rect, data, startIndex, elementCount) {
     var bytes = null;
     var swapRedAndBlue = false;
 
@@ -2559,95 +2607,76 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
     }
 
-    var shouldUnpremultiply = true;
-    var textures = document.getElementById("textures");
-    if (textures) 
-      textures.removeChild(this.image);
+    this.$makeMutable();
 
-    this.image = this.$getImageForBytes(bytes, startIndex, elementCount, shouldUnpremultiply, swapRedAndBlue);
-    if (textures) 
-      textures.appendChild(this.image);
+    var shouldUnpremultiply = true;
+    var width = this.width, height = this.height;
+    if (rect) {
+      width = rect.Width;
+      height = rect.Height;
+    }
+    var imageData = this.$makeImageDataForBytes(
+      width, height, 
+      bytes, startIndex, elementCount, 
+      shouldUnpremultiply, swapRedAndBlue
+    );
+
+    var ctx = $jsilxna.get2DContext(this.image, false);
+    ctx.globalCompositeOperation = "copy";
+
+    if (rect)
+      ctx.putImageData(imageData, rect.X, rect.Y);
+    else
+      ctx.putImageData(imageData, 0, 0);
   });
 
-  $.Method({Static:false, Public:true }, "get_IsContentLost", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function get_IsContentLost () {
-      return false;
+  $.RawMethod(false, "$makeImageDataForBytes", function (
+    width, height,
+    bytes, startIndex, elementCount, 
+    unpremultiply, swapRedAndBlue
+  ) {
+    var ctx = $jsilxna.get2DContext(this.image, false);
+
+    var decoder = $jsilxna.ImageFormats[this.format.name];
+    if (decoder !== null) {
+      bytes = decoder(width, height, bytes, startIndex, elementCount, swapRedAndBlue);
+      startIndex = 0;
+      elementCount = bytes.length;
     }
-  );
 
-  $.Method({Static:false, Public:true }, "SetData", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"])], ["T"])), 
-    function SetData$b1 (T, data) {
-      this.$setDataInternal(T, data, 0, data.length);
-    }
-  );
+    var imageData = ctx.createImageData(width, height);
 
-  $.Method({Static:false, Public:true }, "SetData", 
-    (new JSIL.MethodSignature(null, [
-          $.Int32, $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
-          $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
-          $.Int32
-        ], ["T"])), 
-    function SetData$b1 (T, level, rect, data, startIndex, elementCount) {
-      if (level !== 0) return;
+    // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
+    //  to reverse the premultiplication.
+    if (unpremultiply) {
+      var pixelCount = elementCount / 4;
+      for (var i = 0; i < pixelCount; i++) {
+        var p = (i * 4) | 0;
 
-      if (rect !== null) throw new System.NotImplementedException();
+        var a = bytes[(p + 3) | 0];
 
-      this.$setDataInternal(T, data, startIndex, elementCount);
-    }
-  );
+        if (a <= 0) {
+          continue;
+        } else if (a > 254) {
+          imageData.data[p] = bytes[p];
+          imageData.data[(p + 1) | 0] = bytes[(p + 1) | 0];
+          imageData.data[(p + 2) | 0] = bytes[(p + 2) | 0];
+          imageData.data[(p + 3) | 0] = a;
+        } else {
+          var m = 255 / a;
 
-  $.RawMethod(false, "$getImageForBytes", function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
-    var canvas = document.createElement("canvas");
-    canvas.width = this.width;
-    canvas.height = this.height;
-    var ctx = $jsilxna.get2DContext(canvas, false);
-
-    if (bytes !== null) {
-      var decoder = $jsilxna.ImageFormats[this.format.name];
-      if (decoder !== null) {
-        bytes = decoder(this.width, this.height, bytes, startIndex, elementCount, swapRedAndBlue);
-        startIndex = 0;
-        elementCount = bytes.length;
-      }
-
-      var imageData = ctx.createImageData(this.width, this.height);
-
-      // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
-      //  to reverse the premultiplication.
-      if (unpremultiply) {
-        var pixelCount = elementCount / 4;
-        for (var i = 0; i < pixelCount; i++) {
-          var p = i * 4;
-
-          var a = bytes[p + 3];
-
-          if (a <= 0) {
-            continue;
-          } else if (a > 254) {
-            imageData.data[p] = bytes[p];
-            imageData.data[p + 1] = bytes[p + 1];
-            imageData.data[p + 2] = bytes[p + 2];
-            imageData.data[p + 3] = a;
-          } else {
-            var m = 255 / a;
-
-            imageData.data[p] = bytes[p] * m;
-            imageData.data[p + 1] = bytes[p + 1] * m;
-            imageData.data[p + 2] = bytes[p + 2] * m;
-            imageData.data[p + 3] = a;
-          }
+          imageData.data[p] = bytes[p] * m;
+          imageData.data[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
+          imageData.data[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
+          imageData.data[(p + 3) | 0] = a;
         }
-      } else {
-        for (var i = 0; i < elementCount; i++)
-        imageData.data[i] = bytes[startIndex + i];
       }
-
-      ctx.putImageData(imageData, 0, 0);
+    } else {
+      for (var i = 0, j = startIndex; i < elementCount; i++, j++)
+        imageData.data[i] = bytes[j];
     }
 
-    return canvas;
+    return imageData;
   });
 
   $.RawMethod(false, "$saveToStream", function saveToStream (stream, width, height, mimeType) {
@@ -3248,12 +3277,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsResource", fun
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection", function ($) {
+  var temporaryPass = null;
+  var getTemporaryPass = function () {
+    if (!temporaryPass)
+      temporaryPass = new Microsoft.Xna.Framework.Graphics.EffectPass();
+
+    return temporaryPass;
+  };
 
   $.Method({Static:false, Public:true }, "get_Count", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Count () {
       // FIXME
-      return 0;
+      return 1;
     }
   );
 
@@ -3261,7 +3297,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
     (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass"), [$.Int32], [])), 
     function get_Item (index) {
       // FIXME
-      return new Microsoft.Xna.Framework.Graphics.EffectPass();
+      return getTemporaryPass();
     }
   );
 
@@ -3269,7 +3305,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
     (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass"), [$.String], [])), 
     function get_Item (name) {
       // FIXME
-      return new Microsoft.Xna.Framework.Graphics.EffectPass();
+      return getTemporaryPass();
     }
   );
 
@@ -3277,7 +3313,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1/Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
     function GetEnumerator () {
       // FIXME
-      return JSIL.GetEnumerator([]);
+      return JSIL.GetEnumerator([getTemporaryPass()]);
     }
   );
 
