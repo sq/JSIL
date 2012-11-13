@@ -119,22 +119,6 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $jsilcore.SystemObjectInitialized = true;
 });
 
-JSIL.ImplementExternals("System.Reflection.Assembly", function ($) {
-  $.Method({Static:true , Public:true }, "op_Equality", 
-    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
-    function op_Equality (left, right) {
-      return left === right;
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "op_Inequality", 
-    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
-    function op_Inequality (left, right) {
-      return left !== right;
-    }
-  );
-});
-
 JSIL.ImplementExternals(
   "System.Type", function ($) {
     var typeReference = $jsilcore.TypeRef("System.Type");
@@ -1227,6 +1211,28 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
     this.__FullName__ = fullName;
   });
 
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+    function op_Equality (left, right) {
+      return left === right;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+    function op_Inequality (left, right) {
+      return left !== right;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_CodeBase", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_CodeBase () {
+      // FIXME
+      return "CodeBase";
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_FullName", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_FullName () {
@@ -1238,7 +1244,17 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Location () {
       // FIXME
-      return "";
+      return "Location";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetName", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.AssemblyName"), [], [])), 
+    function GetName () {
+      if (!this._assemblyName)
+        this._assemblyName = new System.Reflection.AssemblyName();
+
+      return this._assemblyName;
     }
   );
 

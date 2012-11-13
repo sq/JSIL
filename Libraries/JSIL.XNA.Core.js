@@ -575,6 +575,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "Transform", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
+    function Transform (position, matrix) {
+      // FIXME
+      return position.MemberwiseClone();
+    }
+  );
+
   $.Method({
     Static: false,
     Public: true
@@ -633,6 +641,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     this.Y = xy.Y;
     this.Z = z;
   });
+
+  $.Method({Static:true , Public:true }, "Transform", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
+    function Transform (position, matrix) {
+      // FIXME
+      return position.MemberwiseClone();
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
@@ -680,6 +696,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector4_ctor (value) {
     this.X = this.Y = this.Z = this.W = value;
   });
+
+  $.Method({Static:true , Public:true }, "Transform", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
+    function Transform (position, matrix) {
+      // FIXME
+      return position.MemberwiseClone();
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
@@ -901,6 +925,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
       result.xScale = scales.X;
       result.yScale = scales.Y;
       result.zScale = scales.Z;
+      return result;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateScale", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [$.Single], [])), 
+    function CreateScale (scale) {
+      // FIXME
+      var result = Microsoft.Xna.Framework.Matrix._identity.MemberwiseClone();
+
+      result.xScale = scale;
+      result.yScale = scale;
+      result.zScale = scale;
       return result;
     }
   );
