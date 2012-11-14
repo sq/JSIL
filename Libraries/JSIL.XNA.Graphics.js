@@ -2125,6 +2125,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     }
   );
 
+  $.Method({Static:false, Public:true }, "set_Spacing", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Spacing (value) {
+      return this.spacing = value;
+    }
+  );
+
   $.Method({Static:false, Public:false}, "GetIndexForCharacter", 
     (new JSIL.MethodSignature($.Int32, [$.Char], [])), 
     function GetIndexForCharacter (character) {
