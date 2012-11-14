@@ -138,7 +138,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
 
             // Handle broken audio implementations
             if (wave !== null) {
-              var instance = wave.$createInstance(evt.LoopCount);
+              var instance = wave.$createInstance(evt.LoopCount > 0);
               instance.play();
 
               this.wavesPlaying.push(instance);
@@ -281,9 +281,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
     var newInstance = null;
 
     if (song) {
-      newInstance = song.$createInstance(
-        Microsoft.Xna.Framework.Media.MediaPlayer.repeat ? 9999 : 0
-      );
+      newInstance = song.$createInstance(Microsoft.Xna.Framework.Media.MediaPlayer.repeat);
     }
 
     if (oldInstance !== null) 
@@ -334,7 +332,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
 
   $.RawMethod(false, "$CreateInstanceIfNeeded", function () {
     if (this.instance === null)
-      this.instance = this.soundEffect.$createInstance(this.looped ? 9999 : 0);
+      this.instance = this.soundEffect.$createInstance(this.looped);
     else
       this.instance.loop = this.looped;
 

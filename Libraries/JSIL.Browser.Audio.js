@@ -27,10 +27,10 @@ JSIL.Audio.InstancePrototype = {
       this.$set_volume(value);
   },
   get_loop: function () {
-    return (this.loopCount > 0);
+    return this._loop;
   },
   set_loop: function (value) {
-    this.loopCount = value ? 99999 : 0;
+    this._loop = value;
 
     if (this.$set_loop)
       this.$set_loop(value);
@@ -64,10 +64,10 @@ Object.defineProperty(JSIL.Audio.InstancePrototype, "isPlaying", {
 });
 
 
-JSIL.Audio.HTML5Instance = function (audioInfo, node, loopCount) {
+JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
   this._isPlaying = false;
-  this.loopCount = loopCount;
   this.node = node;
+  this.node.loop = loop;
 
   this.node.addEventListener("ended", this.on_ended.bind(this), true);
 };
@@ -89,24 +89,22 @@ JSIL.Audio.HTML5Instance.prototype.$set_volume = function (value) {
   return this.node.volume = value;
 }
 
+JSIL.Audio.HTML5Instance.prototype.$set_loop = function (value) {
+  return this.node.loop = value;
+}
+
 JSIL.Audio.HTML5Instance.prototype.on_ended = function () {
   this.isPlaying = false;
-
-  if (this.loopCount > 0) {
-    this.loopCount--;
-    this.play();
-  } else {
-    this.dispose();
-  }
+  this.dispose();
 };
 
 
-JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loopCount) {
+JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this.bufferSource = audioInfo.audioContext.createBufferSource();
   this.gainNode = audioInfo.audioContext.createGainNode();
 
   this.bufferSource.buffer = buffer;
-  this.bufferSource.loop = (loopCount > 0);
+  this.bufferSource.loop = loop;
 
   this.bufferSource.connect(this.gainNode);
   this.gainNode.connect(audioInfo.audioContext.destination);
@@ -147,7 +145,7 @@ JSIL.Audio.WebKitInstance.prototype.$get_isPlaying = function () {
 }
 
 
-JSIL.Audio.NullInstance = function (audioInfo, loopCount) {  
+JSIL.Audio.NullInstance = function (audioInfo, loop) {  
 };
 JSIL.Audio.NullInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
@@ -160,8 +158,8 @@ function finishLoadingSound (filename, createInstance) {
 
 function loadNullSound (audioInfo, filename, data, onError, onDoneLoading) {
   var finisher = finishLoadingSound.bind(
-    null, filename, function createNullSoundInstance (loopCount) {
-      return new JSIL.Audio.NullInstance(audioInfo, loopCount);
+    null, filename, function createNullSoundInstance (loop) {
+      return new JSIL.Audio.NullInstance(audioInfo, loop);
     }
   );
 
@@ -182,8 +180,8 @@ function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
     if ((result !== null) && (!error)) {
       var decodeCompleteCallback = function (buffer) {        
         var finisher = finishLoadingSound.bind(
-          null, filename, function createWebKitSoundInstance (loopCount) {
-            return new JSIL.Audio.WebKitInstance(audioInfo, buffer, loopCount);
+          null, filename, function createWebKitSoundInstance (loop) {
+            return new JSIL.Audio.WebKitInstance(audioInfo, buffer, loop);
           }
         );
         
@@ -216,7 +214,7 @@ function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) 
   if (uri == null)
     return handleError("No supported formats for '" + filename + "'.");
 
-  var createInstance = function createStreamingSoundInstance (loopCount) {
+  var createInstance = function createStreamingSoundInstance (loop) {
     var e = audioInfo.makeAudioInstance();
     e.setAttribute("preload", "auto");
     e.setAttribute("autobuffer", "true");
@@ -225,7 +223,7 @@ function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) 
     if (e.load)
       e.load();
 
-    return new JSIL.Audio.HTML5Instance(audioInfo, e, loopCount);
+    return new JSIL.Audio.HTML5Instance(audioInfo, e, loop);
   };
 
   var finisher = finishLoadingSound.bind(
@@ -254,7 +252,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
         return handleError(exc);
       }
 
-      var createInstance = function createBufferedSoundInstance (loopCount) {
+      var createInstance = function createBufferedSoundInstance (loop) {
         var e = audioInfo.makeAudioInstance();
         e.setAttribute("preload", "auto");
         e.setAttribute("autobuffer", "true");
@@ -263,7 +261,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
         if (e.load)
           e.load();
 
-        return new JSIL.Audio.HTML5Instance(audioInfo, e, loopCount);
+        return new JSIL.Audio.HTML5Instance(audioInfo, e, loop);
       };
 
       var finisher = finishLoadingSound.bind(
@@ -287,7 +285,7 @@ function loadHTML5Sound (audioInfo, filename, data, onError, onDoneLoading) {
   if (uri == null)
     return handleError("No supported formats for '" + filename + "'.");
 
-  var createInstance = function createStreamingSoundInstance (loopCount) {
+  var createInstance = function createStreamingSoundInstance (loop) {
     var e = audioInfo.makeAudioInstance();
     e.setAttribute("preload", "auto");
     e.setAttribute("autobuffer", "true");
@@ -296,7 +294,7 @@ function loadHTML5Sound (audioInfo, filename, data, onError, onDoneLoading) {
     if (e.load)
       e.load();
 
-    return new JSIL.Audio.HTML5Instance(audioInfo, e, loopCount);
+    return new JSIL.Audio.HTML5Instance(audioInfo, e, loop);
   };
 
   var finisher = finishLoadingSound.bind(
