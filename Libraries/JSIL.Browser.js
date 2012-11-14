@@ -975,19 +975,23 @@ function onLoad () {
     var originalWidth = canvas.width;
     var originalHeight = canvas.height;
 
-    var reqFullscreen = canvas.requestFullScreenWithKeys || 
-      canvas.mozRequestFullScreenWithKeys ||
-      canvas.webkitRequestFullScreenWithKeys ||
-      canvas.requestFullscreen || 
-      canvas.requestFullScreen || 
-      canvas.mozRequestFullScreen || 
-      canvas.webkitRequestFullScreen;
+    var fullscreenElement = canvas;
+    if (jsilConfig.getFullscreenElement)
+      fullscreenElement = jsilConfig.getFullscreenElement();
+
+    var reqFullscreen = fullscreenElement.requestFullScreenWithKeys || 
+      fullscreenElement.mozRequestFullScreenWithKeys ||
+      fullscreenElement.webkitRequestFullScreenWithKeys ||
+      fullscreenElement.requestFullscreen || 
+      fullscreenElement.mozRequestFullScreen || 
+      fullscreenElement.webkitRequestFullScreen ||
+      null;
 
     if (reqFullscreen) {
       canGoFullscreen = true;
 
       var goFullscreen = function () {
-        reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
+        reqFullscreen.call(fullscreenElement, Element.ALLOW_KEYBOARD_INPUT);
       };
 
       var onFullscreenChange = function () {
@@ -995,6 +999,10 @@ function onLoad () {
           document.fullScreen ||
           document.mozFullScreen || 
           document.webkitIsFullScreen ||
+          fullscreenElement.fullscreen || 
+          fullscreenElement.fullScreen ||
+          fullscreenElement.mozFullScreen || 
+          fullscreenElement.webkitIsFullScreen ||
           false;
 
         $jsilbrowserstate.isFullscreen = isFullscreen;
@@ -1012,12 +1020,13 @@ function onLoad () {
 
           canvas.width = ow * scaleRatio;
           canvas.height = oh * scaleRatio;
-
         } else {
           canvas.width = originalWidth;
           canvas.height = originalHeight;
-
         }
+
+        if (jsilConfig.onFullscreenChange)
+          jsilConfig.onFullscreenChange(isFullscreen);
       };
 
       document.addEventListener("fullscreenchange", onFullscreenChange, false);
