@@ -2137,23 +2137,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     function GetIndexForCharacter (character) {
       var result = this.charToIndex[character.charCodeAt(0)];
 
-      if ((typeof (result) === "undefined") && (this.defaultCharacter !== null)) result = this.charToIndex[this.defaultCharacter.charCodeAt(0)];
+      if ((typeof (result) === "undefined") && (this.defaultCharacter !== null)) 
+        result = this.charToIndex[this.defaultCharacter.charCodeAt(0)];
 
-      if (typeof (result) === "undefined") result = -1;
+      if (typeof (result) === "undefined") 
+        result = -1;
 
       return result;
     }
   );
 
-  $.Method({Static:false, Public:false}, "InternalMeasure", 
-    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$jsilcore.TypeRef("JSIL.Reference", [$jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont/StringProxy")])], [])), 
-    function InternalMeasure (/* ref */ text) {
-      var tVector2 = Microsoft.Xna.Framework.Vector2;
-      var result = new tVector2(0, 0);
-      var lineWidth = 0, lineHeight = 0;
-      var lineCount = 1;
-
-      // FIXME: Is this handling overhang right for multiline text? Unclear.
+  $.RawMethod(false, "InternalWalkString", 
+    function InternalWalkString (text, characterCallback) {
+      var positionX = 0, positionY = 0;
+      var lineIndex = 0;
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
@@ -2169,45 +2166,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         }
 
         if (lineBreak) {
-          if (lineHeight === 0)
-            lineHeight = this.lineSpacing;
-
-          result.X = Math.max(lineWidth, result.X);
-          result.Y += lineHeight;
-          lineWidth = 0;
-          lineHeight = this.lineSpacing;
-
-          if (i < (l - 1)) 
-            lineCount += 1;
-
-          continue;
+          positionX = 0;
+          positionY += this.lineSpacing;
+          lineIndex += 1;
         }
 
-        lineWidth += this.spacing;
+        positionX += this.spacing;
 
         var charIndex = this.GetIndexForCharacter(ch);
-        if (charIndex < 0) {
+        if (charIndex < 0)
           continue;
-        }
 
         var kerning = this.kerning.get_Item(charIndex);
         var beforeGlyph = kerning.X;
         var glyphWidth = kerning.Y;
         var afterGlyph = kerning.Z;
 
-        lineWidth += beforeGlyph;
-        lineWidth += glyphWidth;
-        lineWidth += afterGlyph;
+        positionX += beforeGlyph;
 
-        var charRect = this.croppingData.get_Item(charIndex);
+        var glyphRect = this.glyphData.get_Item(charIndex);
+        var cropRect = this.croppingData.get_Item(charIndex);
 
-        lineHeight = Math.max(lineHeight, charRect.Height);
+        characterCallback(
+          glyphRect, positionX, positionY, cropRect.X, cropRect.Y, lineIndex
+        );
+
+        positionX += glyphWidth;
+        positionX += afterGlyph;
       }
-
-      result.X = Math.max(lineWidth, result.X);
-      result.Y += lineHeight;
-
-      return result;
     }
   );
 
@@ -2225,6 +2211,144 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     }
   );
 
+  $.RawMethod(false, "InternalDrawCachedText",
+    function InternalDrawCachedText (
+      text, spriteBatch, textblockPositionX, textblockPositionY, 
+      color, rotation, 
+      originX, originY, 
+      scaleX, scaleY, 
+      spriteEffects, layerDepth
+    ) {
+      var cacheKey = this.textureValue.id + ":" + text;
+
+      var cachedTexture = $jsilxna.textCache.getItem(cacheKey);
+
+      var xPad = 2;
+      var yPad = 8;
+
+      if (!cachedTexture) {
+        var measured = this.InternalMeasure(text);
+
+        var asmGraphics = $xnaasms.xnaGraphics || $xnaasms.xna;
+        var tSpriteBatch = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteBatch.__Type__;
+
+        var tColor;
+        if (JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true))
+          tColor = $xnaasms.xna.Microsoft.Xna.Framework.Color;
+        else 
+          tColor = $xnaasms.xna.Microsoft.Xna.Framework.Graphics.Color;
+
+        var tempCanvas = document.createElement("canvas");
+        var tempSpriteBatch = JSIL.CreateInstanceOfType(tSpriteBatch, "$cloneExisting", [spriteBatch]);
+        // Force the isWebGL flag to false since the temporary canvas isn't using webgl-2d
+        tempSpriteBatch.isWebGL = false;
+
+        tempCanvas.width = Math.ceil(measured.X + xPad + xPad);
+        tempCanvas.height = Math.ceil(measured.Y + yPad + yPad);
+
+        // FIXME: Terrible hack
+        tempSpriteBatch.device = {
+          context: tempCanvas.getContext("2d")
+        };
+
+        this.InternalDraw(
+          text, tempSpriteBatch, xPad, yPad,
+          tColor.White, 0,
+          0, 0, 1, 1,
+          null, 0, 
+          true
+        );
+
+        cachedTexture = {
+          image: tempCanvas,
+          id: "text:'" + text + "'",
+          width: tempCanvas.width,
+          height: tempCanvas.height
+        };
+
+        cachedTexture.sizeBytes = tempCanvas.sizeBytes = tempCanvas.width * tempCanvas.height * 4;
+
+        $jsilxna.textCache.setItem(cacheKey, cachedTexture);
+      }
+
+      var cachedTextureWidth = cachedTexture.width;
+      var cachedTextureHeight = cachedTexture.height;
+
+      spriteBatch.InternalDraw(
+        cachedTexture, textblockPositionX, textblockPositionY, cachedTextureWidth, cachedTextureHeight,
+        0, 0, cachedTextureWidth, cachedTextureHeight,
+        color, rotation, 
+        originX + xPad, originY + yPad, 
+        scaleX, scaleY, 
+        spriteEffects, layerDepth
+      );
+
+      return;
+    }
+  );
+
+  var measureResult = [0, 0, 0];
+  var measureCallback = function (characterRect, x, y, xOffset, yOffset, lineIndex) {
+    var x2 = x + characterRect.Width;
+    var y2 = y + characterRect.Height;
+    measureResult[0] = Math.max(measureResult[0], x2);
+
+    if (measureResult[2] !== lineIndex) {
+      measureResult[1] = characterRect.Height;
+    } else {
+      measureResult[1] = Math.max(measureResult[1], characterRect.Height);
+    }
+
+    measureResult[2] = lineIndex;
+  };
+
+  $.RawMethod(false, "InternalMeasure", 
+    function InternalMeasure (text) {
+      measureResult[0] = 0;
+      measureResult[1] = 0;
+      measureResult[2] = 0;
+
+      this.InternalWalkString(text, measureCallback);
+
+      var lineHeights = (measureResult[2] * this.lineSpacing) + measureResult[1];
+
+      return new Microsoft.Xna.Framework.Vector2(measureResult[0], lineHeights);
+    }
+  );
+
+  var drawState = {
+    thisReference: null,
+    spriteBatch: null,
+    offsetX: 0,
+    offsetY: 0,
+    color: null,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    spriteEffects: null,
+    layerDepth: 0
+  };
+
+  var drawCallback = function (characterRect, x, y, xOffset, yOffset, lineIndex) {
+    var texture = drawState.thisReference.textureValue;
+    var spriteBatch = drawState.spriteBatch;
+
+    var scaleX = drawState.scaleX, scaleY = drawState.scaleY;    
+    var drawX = drawState.offsetX + (x * scaleX) + (xOffset * scaleX);
+    var drawY = drawState.offsetY + (y * scaleY) + (yOffset * scaleY);
+
+    spriteBatch.InternalDraw(
+      texture, 
+      drawX, drawY, 
+      characterRect.Width, characterRect.Height,
+      characterRect.X, characterRect.Y,
+      characterRect.Width, characterRect.Height,
+      drawState.color, drawState.rotation, 
+      0, 0, scaleX, scaleY, 
+      drawState.spriteEffects, drawState.layerDepth
+    );
+  };
+
   $.RawMethod(false, "InternalDraw", 
     function SpriteFont_InternalDraw (
       text, spriteBatch, textblockPositionX, textblockPositionY, 
@@ -2238,66 +2362,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       // Draw calls are really expensive, so cache entire strings as single textures.
 
       if ($useTextCaching && $textCachingSupported && (forCache !== true)) {
-        var cacheKey = this.textureValue.id + ":" + text;
-
-        var cachedTexture = $jsilxna.textCache.getItem(cacheKey);
-
-        var xPad = 2;
-        var yPad = 8;
-
-        if (!cachedTexture) {
-          var measured = this.InternalMeasure(text);
-
-          var asmGraphics = $xnaasms.xnaGraphics || $xnaasms.xna;
-          var tSpriteBatch = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteBatch.__Type__;
-
-          var tColor;
-          if (JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true))
-            tColor = $xnaasms.xna.Microsoft.Xna.Framework.Color;
-          else 
-            tColor = $xnaasms.xna.Microsoft.Xna.Framework.Graphics.Color;
-
-          var tempCanvas = document.createElement("canvas");
-          var tempSpriteBatch = JSIL.CreateInstanceOfType(tSpriteBatch, "$cloneExisting", [spriteBatch]);
-          // Force the isWebGL flag to false since the temporary canvas isn't using webgl-2d
-          tempSpriteBatch.isWebGL = false;
-
-          tempCanvas.width = Math.ceil(measured.X + xPad + xPad);
-          tempCanvas.height = Math.ceil(measured.Y + yPad + yPad);
-
-          // FIXME: Terrible hack
-          tempSpriteBatch.device = {
-            context: tempCanvas.getContext("2d")
-          };
-
-          this.InternalDraw(
-            text, tempSpriteBatch, xPad, yPad,
-            tColor.White, 0,
-            0, 0, 1, 1,
-            null, 0, 
-            true
-          );
-
-          cachedTexture = {
-            image: tempCanvas,
-            id: "text:'" + text + "'",
-            width: tempCanvas.width,
-            height: tempCanvas.height
-          };
-
-          cachedTexture.sizeBytes = tempCanvas.sizeBytes = tempCanvas.width * tempCanvas.height * 4;
-
-          $jsilxna.textCache.setItem(cacheKey, cachedTexture);
-        }
-
-        var cachedTextureWidth = cachedTexture.width;
-        var cachedTextureHeight = cachedTexture.height;
-
-        spriteBatch.InternalDraw(
-          cachedTexture, textblockPositionX, textblockPositionY, cachedTextureWidth, cachedTextureHeight,
-          0, 0, cachedTextureWidth, cachedTextureHeight,
+        this.InternalDrawCachedText(
+          text, spriteBatch, textblockPositionX, textblockPositionY, 
           color, rotation, 
-          originX + xPad, originY + yPad, 
+          originX, originY, 
           scaleX, scaleY, 
           spriteEffects, layerDepth
         );
@@ -2308,60 +2376,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       textblockPositionX -= (originX * scaleX);
       textblockPositionY -= (originY * scaleY);
 
-      var tVector2 = Microsoft.Xna.Framework.Vector2;
-      var positionX = textblockPositionX;
-      var positionY = textblockPositionY;
-      var drawX, drawY;
+      drawState.thisReference = this;
+      drawState.spriteBatch = spriteBatch;
+      drawState.offsetX = textblockPositionX;
+      drawState.offsetY = textblockPositionY;
+      drawState.color = color;
+      drawState.scaleX = scaleX;
+      drawState.scaleY = scaleY;
 
-      for (var i = 0, l = text.length; i < l; i++) {
-        var ch = text[i];
+      // FIXME: Should apply to entire string
+      drawState.spriteEffects = spriteEffects;
 
-        var lineBreak = false;
-        if (ch === "\r") {
-          if (text[i + 1] === "\n")
-            i += 1;
+      // FIXME: Should apply to entire string
+      drawState.rotation = rotation;
 
-          lineBreak = true;
-        } else if (ch === "\n") {
-          lineBreak = true;
-        }
-        if (lineBreak) {
-          positionX = textblockPositionX;
-          positionY += (this.lineSpacing * scaleY);
-        }
+      drawState.layerDepth = layerDepth;
 
-        positionX += (this.spacing * scaleX);
-
-        var charIndex = this.GetIndexForCharacter(ch);
-        if (charIndex < 0) {
-          continue;
-        }
-
-        var kerning = this.kerning.get_Item(charIndex);
-        var beforeGlyph = kerning.X * scaleX;
-        var glyphWidth = kerning.Y * scaleX;
-        var afterGlyph = kerning.Z * scaleX;
-
-        positionX += beforeGlyph;
-
-        var glyphRect = this.glyphData.get_Item(charIndex);
-        var cropRect = this.croppingData.get_Item(charIndex);
-
-        drawX = positionX + (cropRect.X * scaleX);
-        drawY = positionY + (cropRect.Y * scaleY);
-
-        spriteBatch.InternalDraw(
-          this.textureValue, drawX, drawY, glyphRect.Width * scaleX, glyphRect.Height * scaleY,
-          glyphRect.X, glyphRect.Y, glyphRect.Width, glyphRect.Height,
-          color, rotation, 
-          0, 0, 
-          1, 1, 
-          spriteEffects, layerDepth
-        );
-
-        positionX += glyphWidth;
-        positionX += afterGlyph;
-    }
+      this.InternalWalkString(text, drawCallback);
   });
 });
 
