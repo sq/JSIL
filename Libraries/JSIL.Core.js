@@ -5691,7 +5691,6 @@ JSIL.TypeNameParseState.prototype.skipWhitespace = function () {
 JSIL.TypeNameParseResult = function () {
   this.type = null;
   this.assembly = null;
-  this.nested = [];
   this.genericArguments = [];
   this.arraySpec = [];
   this.pointerLevel = 0;
@@ -5709,7 +5708,7 @@ JSIL.TypeNameParseResult.prototype.addName = function (name) {
   if (!this.type)
     this.type = name;
   else
-    this.nested.push(name);
+    this.type += "+" + name;
 };
 
 JSIL.TypeNameParseResult.prototype.addArray = function (array) {
