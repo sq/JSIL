@@ -132,15 +132,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", f
       );
     }
   );
-
-  var gp = new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.Content.ContentTypeReader`1");
-
-  $.Method({Static:false, Public:false}, "Read", 
-    (new JSIL.MethodSignature(gp, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), gp], [])), 
-    function Read (input, existingInstance) {
-      throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
-    }
-  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.StringReader", function ($) {
