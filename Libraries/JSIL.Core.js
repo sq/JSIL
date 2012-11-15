@@ -5007,6 +5007,10 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   ) {
     var actualTarget = descriptor.Static ? classObject : fullyDerivedClassObject.prototype;
 
+    var maybeRunCctors = function MaybeRunStaticConstructors () {
+      JSIL.RunStaticConstructors(fullyDerivedClassObject, fullyDerivedTypeObject);
+    };
+
     // If the field has already been initialized, don't overwrite it.
     if (Object.getOwnPropertyDescriptor(actualTarget, descriptor.EscapedName))
       return;
@@ -5015,11 +5019,26 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       JSIL.DefineLazyDefaultProperty(
         actualTarget, descriptor.EscapedName,
         function InitFieldDefaultExpression () {
+          if (descriptor.Static)
+            maybeRunCctors();
+
           return data.defaultValue = defaultValueExpression(this);
         }
       );
     } else if (typeof (defaultValueExpression) !== "undefined") {
-      actualTarget[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
+      if (descriptor.Static) {
+        JSIL.DefineLazyDefaultProperty(
+          actualTarget, descriptor.EscapedName,
+          function InitFieldDefaultExpression () {
+            if (descriptor.Static)
+              maybeRunCctors();
+
+            return data.defaultValue = defaultValueExpression;
+          }
+        );
+      } else {
+        actualTarget[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
+      }
     } else {
       var members = typeObject.__Members__;
 
@@ -5049,10 +5068,6 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       if (
         descriptor.Static
       ) {
-        var maybeRunCctors = function MaybeRunStaticConstructors () {
-          JSIL.RunStaticConstructors(fullyDerivedClassObject, fullyDerivedTypeObject);
-        };
-
         JSIL.DefinePreInitField(
           actualTarget, descriptor.EscapedName,
           initFieldDefault, maybeRunCctors

@@ -295,6 +295,7 @@
     <None Include="ReflectionTestCases\PropertyOrder.cs" />
     <None Include="SimpleTestCases\ArrayFromInt64.cs" />
     <None Include="SimpleTestCases\FloatArrayInitializer.cs" />
+    <None Include="SimpleTestCases\StaticConstructorAndFieldAccess.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
