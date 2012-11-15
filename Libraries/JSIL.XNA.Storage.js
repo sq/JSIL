@@ -65,7 +65,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
   $.Method({Static:false, Public:true }, "DeleteFile", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function DeleteFile (file) {
-      throw new Error('Not implemented');
+      if (!this.volume)
+        throw new Error("No storage providers loaded");
+
+      var resolved = this.volume.resolvePath(file, false);
+
+      if (resolved && resolved.type === "file")
+        resolved.unlink();
     }
   );
 
@@ -74,7 +80,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     function DirectoryExists (directory) {
       if (this.volume) {
         var directory = this.volume.resolvePath(directory, false);
-        return (directory !== null);
+        return ((directory !== null) && (directory.type !== "file"));
       }
 
       return false;
@@ -113,7 +119,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     function FileExists (file) {
       if (this.volume) {
         var file = this.volume.resolvePath(file, false);
-        return (file !== null);
+        return ((file !== null) && (file.type === "file"));
       }
       
       // FIXME
