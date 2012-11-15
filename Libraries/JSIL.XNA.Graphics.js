@@ -2289,8 +2289,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
   var measureResult = [0, 0, 0];
   var measureCallback = function (characterRect, x, y, xOffset, yOffset, lineIndex) {
-    var x2 = x + characterRect.Width;
-    var y2 = y + characterRect.Height;
+    var x2 = x + characterRect.Width + xOffset;
+    var y2 = y + characterRect.Height + yOffset;
     measureResult[0] = Math.max(measureResult[0], x2);
 
     if (measureResult[2] !== lineIndex) {
