@@ -455,12 +455,17 @@ function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
     progressBar.style.width = w.toString() + "px";
 
   if (progressText) {
+    var progressString;
     if (suffix === null) {
-      progressText.innerHTML = prefix;
+      progressString = prefix;
     } else {
-      progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
+      progressString = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
     }
 
+    if (jsilConfig.formatProgressText)
+      progressString = jsilConfig.formatProgressText(prefix, suffix, bytesLoaded, bytesTotal, progressString);
+
+    progressText.textContent = progressString;
     progressText.style.left = ((loadingProgress.clientWidth - progressText.clientWidth) / 2).toString() + "px";
     progressText.style.top = ((loadingProgress.clientHeight - progressText.clientHeight) / 2).toString() + "px";
   }
@@ -863,7 +868,12 @@ function generateHTML () {
     if (progressDiv === null) {
       progressDiv = document.createElement("div");
       progressDiv.id = "loadingProgress";
-      body.appendChild(progressDiv);
+
+      var progressContainer = body;
+      if (jsilConfig.getProgressContainer)
+        progressContainer = jsilConfig.getProgressContainer();
+
+      progressContainer.appendChild(progressDiv);
     }
 
     progressDiv.innerHTML = (
