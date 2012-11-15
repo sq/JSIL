@@ -82,11 +82,9 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
 
   var initIfNeeded = function (self) {
     if (!isInitialized) {
+      isInitialized = true;
       defaultValue = getDefault.call(self);
-      if (!isInitialized) {
-        isInitialized = true;
-        JSIL.Host.runLater(cleanup);
-      }
+      JSIL.Host.runLater(cleanup);
     }
   };
 
@@ -104,11 +102,19 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
       value: value
     };
 
+    initIfNeeded(this);
+
+    // Overwrite the defaultValue so that any getter calls
+    //  still return the correct result.
+    defaultValue = value;
+
+    // We *NEED* to update the field after we run the initializer,
+    //  not before! If we update it before the initializer may overwrite
+    //  it, and worse still, the initializer may not be expecting to see
+    //  the write yet.
     Object.defineProperty(
       this, key, setterDesc
     );
-
-    initIfNeeded(this);
 
     return value;
   };
