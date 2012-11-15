@@ -20,6 +20,7 @@ namespace JSIL.Internal {
             }
         }
 
+        public readonly ITypeInfoSource TypeInfo;
         public readonly TypeReference ReturnType;
         public readonly TypeReference[] ParameterTypes;
         public readonly string[] GenericParameterNames;
@@ -31,8 +32,9 @@ namespace JSIL.Internal {
         protected int? _Hash;
 
         public MethodSignature (
-            TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames
+            ITypeInfoSource source, TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames
         ) {
+            TypeInfo = source;
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
             GenericParameterNames = genericParameterNames;
@@ -72,11 +74,11 @@ namespace JSIL.Internal {
                     return false;
             }
 
-            if (!TypeUtil.TypesAreEqual(ReturnType, rhs.ReturnType, true))
+            if (!MemberIdentifier.TypesAreEqual(TypeInfo, ReturnType, rhs.ReturnType))
                 return false;
 
             for (int i = 0, c = ParameterCount; i < c; i++) {
-                if (!TypeUtil.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i], true))
+                if (!MemberIdentifier.TypesAreEqual(TypeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
                     return false;
             }
 
@@ -96,15 +98,10 @@ namespace JSIL.Internal {
             if (_Hash.HasValue)
                 return _Hash.Value;
 
-            int hash = ParameterCount;
-
-            if ((ReturnType != null) && !TypeUtil.IsOpenType(ReturnType))
-                hash ^= (ReturnType.Name.GetHashCode() << 8);
-
-            if ((ParameterCount > 0) && !TypeUtil.IsOpenType(ParameterTypes[0]))
-                hash ^= (ParameterTypes[0].Name.GetHashCode() << 20);
-
-            hash ^= (GenericParameterCount) << 24;
+            int hash = ParameterCount << 1;
+            hash ^= (GenericParameterCount) << 16;
+            if (ReturnType != null)
+                hash |= 1;
 
             _Hash = hash;
             return hash;
@@ -220,9 +217,10 @@ namespace JSIL.Internal {
                 int result = 0;
 
                 lock (Counts)
-                    foreach (var key in Counts.Keys)
+                    foreach (var key in Counts.Keys) {
                         if (key.Name == this.Name)
                             result += 1;
+                    }
 
                 return result;
             }

@@ -157,14 +157,14 @@ namespace JSIL.Internal {
             }
         }
 
-        static bool IsAnyType (TypeReference t) {
+        public static bool IsAnyType (TypeReference t) {
             if (t == null)
                 return false;
 
             return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy");
         }
 
-        bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
+        public static bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)

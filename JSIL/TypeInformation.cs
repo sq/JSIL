@@ -1704,6 +1704,7 @@ namespace JSIL.Internal {
         protected void MakeSignature () {
             _Signature = new NamedMethodSignature(
                 Name, new MethodSignature(
+                    Source, 
                     ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
                     GenericParameterNames
                 )
