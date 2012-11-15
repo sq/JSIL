@@ -4578,12 +4578,14 @@ JSIL.IsArray = function (value) {
   return false;
 };
 
-JSIL.IsTypedArray = function (value) {
-  if (typeof (value) === "object") {
-    var valueProto = Object.getPrototypeOf(value);
+JSIL.AreTypedArraysSupported = function () {
+  return (typeof (ArrayBuffer) !== "undefined");
+}
 
-    if (typeof (ArrayBuffer) === "function") {
-      if (value.buffer && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype))
+JSIL.IsTypedArray = function (value) {
+  if ((typeof (value) === "object") && value.buffer) {
+    if (typeof (ArrayBuffer) !== "undefined") {
+      if (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype)
         return true;
     }
   }
