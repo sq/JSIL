@@ -65,16 +65,26 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
-        [JSResultIsNew]
         public void Offset (int x, int y) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
-        [JSResultIsNew]
         [JSChangeName("OffsetPoint")]
         public void Offset (PointProxy pt) {
             throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        [JSResultIsNew]
+        public static RectangleProxy Intersect (RectangleProxy value1, RectangleProxy value2) {
+            throw new NotImplementedException();
+        }
+
+        [JSIsPure]
+        [JSResultIsNew]
+        public static RectangleProxy Union (RectangleProxy value1, RectangleProxy value2) {
+            throw new NotImplementedException();
         }
     }
 
@@ -312,11 +322,13 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
+        [JSChangeName("MultiplyScalar")]
         public static VectorProxy Multiply (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSChangeName("MultiplyScalar")]
         public static void Multiply (ref VectorProxy a, float b, out VectorProxy result) {
             throw new InvalidOperationException();
         }
@@ -334,11 +346,13 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
+        [JSChangeName("DivideScalar")]
         public static VectorProxy Divide (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSChangeName("DivideScalar")]
         public static void Divide (ref VectorProxy a, float b, out VectorProxy result) {
             throw new InvalidOperationException();
         }
@@ -409,6 +423,7 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
+        [JSChangeName("op_DivideScalar")]
         public static VectorProxy operator / (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
@@ -421,12 +436,14 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
+        [JSChangeName("op_MultiplyScalar")]
         public static VectorProxy operator * (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
         [JSResultIsNew]
+        [JSChangeName("op_MultiplyScalarLeft")]
         public static VectorProxy operator * (float a, VectorProxy b) {
             throw new InvalidOperationException();
         }

@@ -503,8 +503,13 @@ var vectorUtil = {
       vectorUtil.makeArithmeticOperator($, name, staticMethodName, operator, dataMembers, tVector, tVector, tVector);
 
       if (withScalar) {
-        vectorUtil.makeArithmeticOperator($, name, staticMethodName, operator, dataMembers, tVector, $.Single, tVector);
-        vectorUtil.makeArithmeticOperator($, name, staticMethodName, operator, dataMembers, $.Single, tVector, tVector);
+        var nameSuffixed = name + "Scalar";
+        var staticMethodNameSuffixed = staticMethodName + "Scalar";
+        vectorUtil.makeArithmeticOperator($, nameSuffixed, staticMethodNameSuffixed, operator, dataMembers, tVector, $.Single, tVector);
+
+        var nameSuffixed2 = nameSuffixed + "Left";
+        var staticMethodNameSuffixed2 = staticMethodNameSuffixed + "Left";
+        vectorUtil.makeArithmeticOperator($, nameSuffixed2, staticMethodNameSuffixed2, operator, dataMembers, $.Single, tVector, tVector);
       }
     }
 
