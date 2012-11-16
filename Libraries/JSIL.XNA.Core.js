@@ -580,14 +580,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "Transform", 
-    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
-    function Transform (position, matrix) {
-      // FIXME
-      return position.MemberwiseClone();
-    }
-  );
-
   $.Method({
     Static: false,
     Public: true
@@ -650,8 +642,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
-      // FIXME
-      return position.MemberwiseClone();
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = (position.X * matrix.xScale) + matrix.xTranslation;
+      result.Y = (position.Y * matrix.yScale) + matrix.yTranslation;
+      result.Z = (position.Z * matrix.zScale) + matrix.zTranslation;
+      return result;
     }
   );
 });
@@ -705,8 +700,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
-      // FIXME
-      return position.MemberwiseClone();
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = (position.X * matrix.xScale) + matrix.xTranslation;
+      result.Y = (position.Y * matrix.yScale) + matrix.yTranslation;
+      result.Z = (position.Z * matrix.zScale) + matrix.zTranslation;
+      result.W = (position.W * matrix.wScale) + matrix.wTranslation;
+      return result;
     }
   );
 });

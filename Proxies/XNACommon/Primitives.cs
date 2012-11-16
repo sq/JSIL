@@ -423,7 +423,7 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSResultIsNew]
-        [JSChangeName("op_DivideScalar")]
+        [JSChangeName("op_DivisionScalar")]
         public static VectorProxy operator / (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
