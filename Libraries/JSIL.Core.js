@@ -1658,6 +1658,11 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
   return obj;
 };
 
+JSIL.FoundGenericParameter = function (name, value) {
+  this.name = name;
+  this.value = value;
+};
+
 JSIL.FindGenericParameters = function (obj, type, resultList) {
   // Walk through our base types and identify any unresolved generic parameters.
   // This produces a list of parameters that need new values assigned in the target prototype.
@@ -1677,10 +1682,8 @@ JSIL.FindGenericParameters = function (obj, type, resultList) {
       var value = qualifiedName.get(obj);
 
       if ((typeof (value) === "object") && (value !== null)) {
-        if (Object.getPrototypeOf(value) === JSIL.GenericParameter.prototype) {
-          resultList.push([qualifiedName, value]);
-        } else if (!value.__IsClosed__) {
-          resultList.push([qualifiedName, value]);
+        if ((Object.getPrototypeOf(value) === JSIL.GenericParameter.prototype) || (!value.__IsClosed__)) {
+          resultList.push(new JSIL.FoundGenericParameter(qualifiedName, value));
         }
       }
     }
@@ -1874,8 +1877,8 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.FindGenericParameters(result.prototype, resultTypeObject, genericParametersToResolve);
 
     for (var i = 0; i < genericParametersToResolve.length; i++) {
-      var qualifiedName = genericParametersToResolve[i][0];
-      var value = genericParametersToResolve[i][1];
+      var qualifiedName = genericParametersToResolve[i].name;
+      var value = genericParametersToResolve[i].value;
 
       var resolved = JSIL.ResolveGenericTypeReference(value, resolveContext);
       
