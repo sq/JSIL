@@ -12,6 +12,7 @@ if (typeof (jsilConfig) === "undefined") {
 }
 
 JSIL.SuppressInterfaceWarnings = true;
+JSIL.ReadOnlyPropertyWriteWarnings = false;
 
 JSIL.GlobalNamespace = this;
 
@@ -45,10 +46,21 @@ JSIL.GetOwnPropertyDescriptorRecursive = function (target, name) {
 JSIL.SetValueProperty = function (target, key, value, enumerable) {
   var descriptor = {
     configurable: true,
-    enumerable: !(enumerable === false),
-    value: value,
-    writable: false
+    enumerable: !(enumerable === false)
   };
+
+  if (JSIL.ReadOnlyPropertyWriteWarnings) { 
+    descriptor.get = function () {
+      return value;
+    };
+    descriptor.set = function () {
+      throw new Error("Attempt to write to read-only property '" + key + "'!");
+    };
+  } else {
+    descriptor.value = value;
+    descriptor.writable = false;
+    descriptor.writeable = false;
+  }
 
   Object.defineProperty(target, key, descriptor);
 };
@@ -4419,8 +4431,11 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__IsEnum__ = true;
     typeObject.__IsValueType__ = true;
     typeObject.__IsReferenceType__ = false;
-    typeObject.__TypeId__ = JSIL.AssignTypeId(context, fullName);
-    publicInterface.__TypeId__ = typeObject.__TypeId__;
+
+    var typeId = JSIL.AssignTypeId(context, fullName);
+    JSIL.SetValueProperty(typeObject, "__TypeId__", typeId); 
+    JSIL.SetValueProperty(publicInterface, "__TypeId__", typeId); 
+
     typeObject.__IsFlagsEnum__ = isFlagsEnum;
     typeObject.__Interfaces__ = null;
 
