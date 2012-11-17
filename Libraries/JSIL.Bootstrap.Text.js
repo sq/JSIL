@@ -128,12 +128,17 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
     if (pieces.length > 1) {
       // If we have too few places after the decimal for all the digits,
       //  we need to recreate the string using toFixed so that it gets rounded.
-      if (pieces[1].length > digitsAfterDecimal)
+      if (pieces[1].length > digitsAfterDecimal) {
         pieces = value.toFixed(digitsAfterDecimal).split(".");
+      }
 
-      postDecimal = Array.prototype.slice.call(pieces[1]);
-
-      actualDigitsAfterDecimal = postDecimal.length;
+      if (digitsAfterDecimal) {
+        postDecimal = Array.prototype.slice.call(pieces[1]);
+        actualDigitsAfterDecimal = postDecimal.length;
+      } else {
+        postDecimal = [];
+        actualDigitsAfterDecimal = 0;
+      }
 
     } else
       postDecimal = [];

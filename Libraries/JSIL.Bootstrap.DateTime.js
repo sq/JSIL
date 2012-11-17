@@ -129,7 +129,12 @@ JSIL.ImplementExternals(
       // FIXME: unnecessary garbage
       var tInt64 = $jsilcore.System.Int64;
       var amount64 = tInt64.FromNumber(amount);
-      var scaled = tInt64.op_Multiplication(multiplier, amount64);
+      var scaled;
+
+      if (multiplier)
+        scaled = tInt64.op_Multiplication(multiplier, amount64);
+      else
+        scaled = amount64;
 
       if (!this._ticks)
         this._ticks = scaled;
@@ -243,7 +248,10 @@ JSIL.ImplementExternals(
     $.RawMethod(false, "$modDiv", function $modulus (modulus, divisor) {
       var tInt64 = $jsilcore.System.Int64;
       var result = tInt64.op_Modulus(this._ticks, modulus, TempI64A);
-      result = tInt64.op_Division(result, divisor, TempI64B);
+
+      if (divisor)
+        result = tInt64.op_Division(result, divisor, TempI64B);
+
       return result.ToInt32();
     });
 
@@ -305,6 +313,70 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalDays () {
         return this.$toNumberDivided(TicksPerDay);
+      }
+    );
+
+    $.Method({Static: true, Public: true}, "Parse",
+      (new JSIL.MethodSignature($.Type, [$.String], [])),
+      function TimeSpan_Parse (text) {
+        var pieces = (text || "").split(":");
+        var days = 0, hours = 0, minutes = 0, seconds = 0, ticks = 0;
+
+        if (pieces[0].indexOf(".") >= 0) {
+          var temp = pieces[0].split(".");
+          days = parseInt(temp[0], 10);
+          hours = parseInt(temp[1], 10);
+        } else {
+          hours = parseInt(pieces[0], 10);
+        }
+
+        minutes = parseInt(pieces[1], 10);
+
+        if (pieces[2].indexOf(".") >= 0) {
+          var temp = pieces[2].split(".");
+          seconds = parseInt(temp[0], 10);
+          ticks = parseInt(temp[1], 10);
+        } else {
+          seconds = parseInt(pieces[2], 10);
+        }
+
+        var result = new System.TimeSpan();
+        result.$accumulate(TicksPerDay, days);
+        result.$accumulate(TicksPerHour, hours);
+        result.$accumulate(TicksPerMinute, minutes);
+        result.$accumulate(TicksPerSecond, seconds);
+        result.$accumulate(null, ticks);
+        return result;
+      }
+    );
+
+    $.Method({Static: false, Public: true}, "toString",
+      (new JSIL.MethodSignature($.String, [], [])),
+      function TimeSpan_toString () {
+        var ticks = this.$modDiv(TicksPerSecond);
+        var seconds = this.get_Seconds();
+        var minutes = this.get_Minutes();
+        var hours = this.get_Hours();
+        var days = this.get_Days();
+
+        var formatString;
+
+        if (days) {
+          formatString ="{0}.{1:00}:{2:00}:";
+        } else {
+          formatString ="{1:00}:{2:00}:";
+        }
+
+        if (ticks) {
+          formatString += "{3:00}.{4:0000000}";
+        } else {
+          formatString += "{3:00}";
+        }
+
+        return System.String.Format(
+          formatString,
+          days, hours, minutes, seconds, ticks
+        );
       }
     );
   }

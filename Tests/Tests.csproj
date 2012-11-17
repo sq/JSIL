@@ -132,6 +132,7 @@
     <None Include="EncodingTestCases\UTF16GetBytes.cs" />
     <None Include="EncodingTestCases\UTF16GetString.cs" />
     <None Include="DateTimeTestCases\TimeSpanComparison.cs" />
+    <None Include="DateTimeTestCases\TimeSpanToStringAndParse.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
