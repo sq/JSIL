@@ -1305,9 +1305,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var stepCallback = self._Step.bind(self);
 
     var forceSetTimeout = false || 
-      (document.location.search.indexOf("forceSetTimeout") >= 0) ||
-      (typeof (msRequestAnimationFrame) !== "undefined") // IE10 currently has broken requestAnimationFrame
-      ;
+      (document.location.search.indexOf("forceSetTimeout") >= 0);
 
     var requestAnimationFrame = window.requestAnimationFrame ||
       window.mozRequestAnimationFrame || 
