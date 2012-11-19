@@ -134,6 +134,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     }
   );
 
+  $.Method({Static:true, Public:true }, "get_TitleLocation", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_TitleLocation () {
+      var storageRoot = JSIL.Host.getStorageRoot();
+      if (!storageRoot)
+        throw new System.Exception("Storage implementation required");
+
+      return storageRoot.path;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_IsDisposed", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsDisposed () {

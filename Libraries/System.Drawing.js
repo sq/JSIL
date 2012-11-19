@@ -15,7 +15,7 @@ var $sdasms = new JSIL.AssemblyCollection({
   15: "System.Windows.Forms", 
 });
 
-if (JSIL.HostType.IsBrowser) {
+if (JSIL.Host.isBrowser) {
   JSIL.ImplementExternals("System.Drawing.Image", function ($) {
     var mscorlib = JSIL.GetAssembly("mscorlib", true);
 

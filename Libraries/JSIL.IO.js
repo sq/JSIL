@@ -227,8 +227,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
           return true;
       }
 
-      return JSIL.Host.doesFileExist(filename) || 
-        JSIL.Host.doesAssetExist(filename, true);
+      return JSIL.Host.doesAssetExist(filename, true);
     }
   );
 
@@ -329,8 +328,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
           return JSIL.StringFromByteArray(resolved.readAllBytes());
       }
 
-      var file = JSIL.Host.getFile(filename);
-      return JSIL.StringFromByteArray(file);
+      throw new System.NotImplementedException("No storage root available");
     }
   );
 });
@@ -627,20 +625,11 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
         this.$fromVirtualFile(resolved, mode, true);
         return;
       }
+
+      throw new System.IO.FileNotFoundException(path);
     }
 
-    this._fileName = path;
-    this._buffer = JSIL.Host.getFile(path);
-    if (
-      (typeof (this._buffer) === "undefined") ||
-      (typeof (this._buffer.length) !== "number")
-    )
-      throw new System.Exception("Unable to get an array for the file '" + path + "'");
-
-    this._pos = 0;
-    this._length = this._buffer.length;
-
-    this.$applyMode(mode);
+    throw new System.NotImplementedException("No storage root available");
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 

@@ -125,13 +125,20 @@ var $jsilloaderstate = {
     environment = $jsilloaderstate.environment = new (environmentType)(config);
   }
 
-  var libraryRoot = (config.libraryRoot = config.libraryRoot || "../Libraries/");
+  if (typeof (config.libraryRoot) === "undefined")
+    config.libraryRoot = "../Libraries/";
+  
+  var libraryRoot = config.libraryRoot;
   var manifestRoot = (config.manifestRoot = config.manifestRoot || "");
   config.scriptRoot = config.scriptRoot || "";
   config.fileRoot = config.fileRoot || "";
   config.assetRoot = config.assetRoot || "";
-  config.contentRoot = config.contentRoot || "Content/";
-  config.fileVirtualRoot = config.fileVirtualRoot || config.fileRoot || "";
+
+  if (typeof (config.contentRoot) === "undefined")
+    config.contentRoot = "Content/";
+
+  if (typeof (config.fileVirtualRoot) === "undefined")
+    config.fileVirtualRoot = config.fileRoot || "";
 
   if (config.printStackTrace)
     environment.loadScript(libraryRoot + "printStackTrace.js");
@@ -145,6 +152,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "ES5.js");
   environment.loadScript(libraryRoot + "JSIL.Core.js");
   environment.loadScript(libraryRoot + "JSIL.Core.Types.js");
+  environment.loadScript(libraryRoot + "JSIL.Host.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Int64.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");

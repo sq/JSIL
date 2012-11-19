@@ -101,35 +101,6 @@ JSIL.Host.translateFilename = function (filename) {
   
   return _filename;
 }
-JSIL.Host.doesFileExist = function (filename) {
-  if (filename === null)
-    return false;
-
-  return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
-}
-JSIL.Host.getFile = function (filename) {
-  if (filename === null)
-    throw new System.Exception("Filename was null");
-
-  var storageRoot = JSIL.Host.getStorageRoot();
-  var errorMessage;
-
-  if (storageRoot) {
-    var node = storageRoot.resolvePath(filename, false);
-
-    if (node && node.type === "file")
-      return node.readAllBytes();
-
-    errorMessage = "The file '" + filename + "' is not in the asset manifest, and could not be found in local storage.";
-  } else {
-    errorMessage = "The file '" + filename + "' is not in the asset manifest.";
-  }
-
-  if (!JSIL.Host.doesFileExist(filename))
-    throw new System.IO.FileNotFoundException(errorMessage, filename);
-  
-  return allFiles[JSIL.Host.translateFilename(filename)];
-};
 JSIL.Host.getImage = function (filename) {
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
@@ -503,20 +474,30 @@ function finishLoading () {
     }
 
     JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
+      var root;
       if (JSIL.GetStorageVolumes) {
         var volumes = JSIL.GetStorageVolumes();
 
         if (volumes.length) {
-          var root = volumes[0];
-
-          if ($jsilbrowserstate.readOnlyStorage)
-            root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
-
-          return root;
-
-        } else if ($jsilbrowserstate.readOnlyStorage) {
-          return $jsilbrowserstate.readOnlyStorage;
+          root = volumes[0];
         }
+      }
+
+      if (!root && typeof(VirtualVolume) === "function") {
+        root = new VirtualVolume("root", "/");
+      }
+
+      if (root) {
+        if ($jsilbrowserstate.readOnlyStorage) {
+          var trimmedRoot = jsilConfig.fileVirtualRoot.trim();
+
+          if (trimmedRoot !== "/" && trimmedRoot)
+            root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+          else
+            root = $jsilbrowserstate.readOnlyStorage;
+        }
+
+        return root;
       }
 
       return null;
