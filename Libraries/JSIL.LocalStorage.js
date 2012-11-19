@@ -17,6 +17,16 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
     );
   });
 
+  var handleLocalStorageFailure = function (exc, fn) {
+    JSIL.Host.logWriteLine("Failed to write '" + fn + "' to local storage. Local storage currently contains " + localStorage.length + " key(s):");
+    for (var i = 0, l = localStorage.length; i < l; i++) {
+      var key = localStorage.key(i);
+      JSIL.Host.logWriteLine(System.String.Format("{0:0000.0}kb '{1}'", (localStorage[key] || "").length / 1024, key));
+    }
+
+    throw exc;
+  };
+
   var getKey = function (name) {
     return "storage_" + name;
   };
@@ -34,7 +44,11 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
   $.RawMethod(false, "writeInodes", function (name) {
     var key = getKey(name) + "_inodes";
 
-    localStorage.setItem(key, JSON.stringify(this.inodes));
+    try {
+      localStorage.setItem(key, JSON.stringify(this.inodes));
+    } catch (exc) {
+      handleLocalStorageFailure(exc, "inodes");
+    }
   });
 
   $.RawMethod(false, "flush", function () {
@@ -83,7 +97,11 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
     }
     json += "]";
 
-    localStorage.setItem(key, json);
+    try {
+      localStorage.setItem(key, json);
+    } catch (exc) {
+      handleLocalStorageFailure(exc, name);
+    }
 
     JSIL.Host.logWriteLine("Saved '" + name + "' to local storage.");
   });
