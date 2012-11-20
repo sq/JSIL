@@ -5,8 +5,56 @@ if (typeof (JSIL) === "undefined")
 
 JSIL.Host.isBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
 
+JSIL.Host.services = Object.create(null);
+
+JSIL.Host.getService = function (key, noThrow) {
+  var svc = JSIL.Host.services[key];
+  if (!svc) {
+    if (noThrow)
+      return null;
+    else
+      throw new Error("Service '" + key + "' not available");
+  }
+
+  return svc;
+};
+
 JSIL.Host.getCanvas = function () {
-  throw new Error("No canvas implementation");
+  return JSIL.Host.getService("canvas");
+};
+
+JSIL.Host.getInputState = function () {
+  var keyboard = JSIL.Host.getService("keyboard", true);
+  var mouse = JSIL.Host.getService("mouse", true);
+  var gamepads = JSIL.Host.getService("gamepads", true);
+  var touch = JSIL.Host.getService("touch", true);
+
+  var result = {
+    keyboard: {
+      connected: false
+    },
+    mouse: {
+      connected: false
+    },
+    gamepads: [],
+    touch: {
+      connected: false
+    }
+  };
+
+  if (keyboard)
+    keyboard(result.keyboard);
+
+  if (mouse)
+    mouse(result.mouse);
+
+  if (gamepads)
+    gamepads(result.gamepads);
+
+  if (touch)
+    touch(result.touch);
+
+  return result;
 };
 
 if (typeof (console) !== "undefined") {
@@ -84,7 +132,6 @@ JSIL.Host.assertionFailed = function (message) {
   JSIL.Host.error(new Error(message || "Assertion Failed"));
 };
 
-JSIL.Host.warnedAboutRunLater = false;
 JSIL.Host.pendingRunLaterItems = [];
 JSIL.Host.runLaterPending = false;
 JSIL.Host.runLaterCallback = function () {
