@@ -19,8 +19,14 @@ JSIL.Host.getService = function (key, noThrow) {
   return svc;
 };
 
-JSIL.Host.getCanvas = function () {
-  return JSIL.Host.getService("canvas");
+JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
+  var svc = JSIL.Host.getService("canvas");
+  return svc.get(desiredWidth, desiredHeight);
+};
+
+JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
+  var svc = JSIL.Host.getService("canvas");
+  return svc.create(desiredWidth, desiredHeight);
 };
 
 JSIL.Host.getInputState = function () {

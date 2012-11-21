@@ -19,23 +19,26 @@ var $jsilbrowserstate = window.$jsilbrowserstate = {
   blockKeyboardInput: false,
   blockGamepadInput: false
 };
+
+JSIL.Host.services.canvas = {
+  get: function (desiredWidth, desiredHeight) {
+    var e = document.getElementById("canvas");
+    if (typeof (desiredWidth) === "number")
+      e.width = desiredWidth;
+    if (typeof (desiredHeight) === "number")
+      e.height = desiredHeight;
     
-JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
-  var e = document.getElementById("canvas");
-  if (typeof (desiredWidth) === "number")
+    return e;
+  },
+  create: function (desiredWidth, desiredHeight) {
+    var e = document.createElement("canvas");
     e.width = desiredWidth;
-  if (typeof (desiredHeight) === "number")
     e.height = desiredHeight;
-  
-  return e;
+    
+    return e;
+  }
 };
-JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
-  var e = document.createElement("canvas");
-  e.width = desiredWidth;
-  e.height = desiredHeight;
-  
-  return e;
-};
+
 JSIL.Host.logWrite = function (text) {
   var log = document.getElementById("log");
   if (log === null) {
