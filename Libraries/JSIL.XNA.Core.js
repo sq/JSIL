@@ -2376,7 +2376,7 @@ $jsilxna.ClampByte = function (v) {
   if (v < 0) return 0;
   else if (v > 255) return 255;
   else return Math.floor(v);
-}
+};
 
 (function () {
   // XNA3 doesn't have a BlendState class, so we substitute one.
