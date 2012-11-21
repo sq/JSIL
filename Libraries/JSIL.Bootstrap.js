@@ -1570,40 +1570,46 @@ JSIL.ImplementExternals("System.Random", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
+      this.mt = new MersenneTwister();
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (Seed) {
-      JSIL.Host.warning("Cannot seed the JS random number generator.");
+      this.mt = new MersenneTwister(Seed);
     }
   );
 
   $.Method({Static:false, Public:true }, "Next", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function Next () {
-      return Math.floor(Math.random() * Int32.MaxValue);
+      var unsigned32 = this.mt.genrand_int32();
+      return unsigned32 << 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "Next", 
     (new JSIL.MethodSignature($.Int32, [$.Int32, $.Int32], [])), 
     function Next (minValue, maxValue) {
-      return Math.floor(Math.random() * (maxValue - minValue)) + minValue;
+      var real = this.mt.genrand_real1();
+      return Math.floor(real * (maxValue - minValue)) + minValue;
     }
   );
 
   $.Method({Static:false, Public:true }, "Next", 
     (new JSIL.MethodSignature($.Int32, [$.Int32], [])), 
     function Next (maxValue) {
-      return Math.floor(Math.random() * maxValue);
+      var real = this.mt.genrand_real1();
+      return Math.floor(real * maxValue);
     }
   );
 
   $.Method({Static:false, Public:true }, "NextDouble", 
     (new JSIL.MethodSignature($.Double, [], [])), 
-    Math.random
+    function NextDouble () {
+      return this.mt.genrand_real1();
+    }
   );
 });
 
