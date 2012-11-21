@@ -19,6 +19,15 @@ JSIL.Host.getService = function (key, noThrow) {
   return svc;
 };
 
+JSIL.Host.registerServices = function (services) {
+  for (var key in services) {
+    if (!services.hasOwnProperty(key))
+      continue;
+
+    JSIL.Host.services[key] = services[key];
+  }
+};
+
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var svc = JSIL.Host.getService("canvas");
   return svc.get(desiredWidth, desiredHeight);
@@ -51,6 +60,14 @@ JSIL.Host.getHeldMouseButtons = function () {
     return [];
 
   return svc.getHeldButtons();
+};
+
+JSIL.Host.isPageVisible = function () {
+  var svc = JSIL.Host.getService("pageVisibility", true);
+  if (!svc)
+    return true;
+
+  return svc.get();
 };
 
 if (typeof (console) !== "undefined") {

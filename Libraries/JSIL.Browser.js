@@ -20,39 +20,77 @@ var $jsilbrowserstate = window.$jsilbrowserstate = {
   blockGamepadInput: false
 };
 
-JSIL.Host.services.canvas = {
-  get: function (desiredWidth, desiredHeight) {
-    var e = document.getElementById("canvas");
-    if (typeof (desiredWidth) === "number")
-      e.width = desiredWidth;
-    if (typeof (desiredHeight) === "number")
-      e.height = desiredHeight;
-    
-    return e;
-  },
-  create: function (desiredWidth, desiredHeight) {
-    var e = document.createElement("canvas");
+
+JSIL.DeclareNamespace("JSIL.Browser", false);
+
+
+JSIL.Browser.CanvasService = function () {
+};
+
+JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight) {
+  var e = document.getElementById("canvas");
+  if (typeof (desiredWidth) === "number")
     e.width = desiredWidth;
+  if (typeof (desiredHeight) === "number")
     e.height = desiredHeight;
-    
-    return e;
-  }
+  
+  return e;
 };
 
-JSIL.Host.services.keyboard = {
-  getHeldKeys: function () {
-    return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
-  }
+JSIL.Browser.CanvasService.prototype.create = function (desiredWidth, desiredHeight) {
+  var e = document.createElement("canvas");
+  e.width = desiredWidth;
+  e.height = desiredHeight;
+  
+  return e;
 };
 
-JSIL.Host.services.mouse = {
-  getHeldButtons: function () {
-    return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
-  },
-  getPosition: function () {
-    return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
-  }
+
+JSIL.Browser.KeyboardService = function () {
 };
+
+JSIL.Browser.KeyboardService.prototype.getHeldKeys = function () {
+  return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
+};
+
+
+JSIL.Browser.MouseService = function () {
+};
+
+JSIL.Browser.MouseService.prototype.getHeldButtons = function () {
+  return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
+};
+
+JSIL.Browser.MouseService.prototype.getPosition = function () {
+  return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
+};
+
+
+JSIL.Browser.PageVisibilityService = function () {
+};
+
+JSIL.Browser.PageVisibilityService.prototype.keys = [ "hidden", "mozHidden", "msHidden", "webkitHidden" ];
+
+JSIL.Browser.PageVisibilityService.prototype.get = function () {
+  for (var i = 0, l = this.keys.length; i < l; i++) {
+    var key = this.keys[i];
+    var value = document[key];
+
+    if (typeof (value) !== "undefined")
+      return !value;
+  }
+
+  return true;
+};
+
+
+JSIL.Host.registerServices({
+  canvas: new JSIL.Browser.CanvasService(),
+  mouse: new JSIL.Browser.MouseService(),
+  keyboard: new JSIL.Browser.KeyboardService(),
+  pageVisibility: new JSIL.Browser.PageVisibilityService()
+});
+
 
 JSIL.Host.logWrite = function (text) {
   var log = document.getElementById("log");
@@ -185,20 +223,6 @@ JSIL.Host.throwException = function (e) {
   JSIL.Host.logWriteLine("Unhandled exception: " + String(e));
   if (stack.length > 0)
     JSIL.Host.logWriteLine(stack);
-};
-
-var $visibleKeys = [ "hidden", "mozHidden", "msHidden", "webkitHidden" ];
-
-JSIL.Host.isPageVisible = function () {
-  for (var i = 0, l = $visibleKeys.length; i < l; i++) {
-    var key = $visibleKeys[i];
-    var value = document[key];
-
-    if (typeof (value) !== "undefined")
-      return !value;
-  }
-
-  return true;
 };
 
 var $logFps = false;
