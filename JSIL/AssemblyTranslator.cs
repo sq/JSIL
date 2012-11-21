@@ -74,7 +74,7 @@ namespace JSIL {
             "System.UInt32", "System.Int32",
             "System.UInt64", "System.Int64",
             "System.Single", "System.Double", 
-            "System.Boolean",
+            "System.Boolean", "System.Char",
             "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
             "System.Attribute"
         }; 
