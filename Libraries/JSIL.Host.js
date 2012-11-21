@@ -29,38 +29,28 @@ JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
   return svc.create(desiredWidth, desiredHeight);
 };
 
-JSIL.Host.getInputState = function () {
-  var keyboard = JSIL.Host.getService("keyboard", true);
-  var mouse = JSIL.Host.getService("mouse", true);
-  var gamepads = JSIL.Host.getService("gamepads", true);
-  var touch = JSIL.Host.getService("touch", true);
+JSIL.Host.getHeldKeys = function () {
+  var svc = JSIL.Host.getService("keyboard", true);
+  if (!svc)
+    return [];
 
-  var result = {
-    keyboard: {
-      connected: false
-    },
-    mouse: {
-      connected: false
-    },
-    gamepads: [],
-    touch: {
-      connected: false
-    }
-  };
+  return svc.getHeldKeys();
+};
 
-  if (keyboard)
-    keyboard(result.keyboard);
+JSIL.Host.getMousePosition = function () {
+  var svc = JSIL.Host.getService("mouse", true);
+  if (!svc)
+    return [0, 0];
 
-  if (mouse)
-    mouse(result.mouse);
+  return svc.getPosition();
+};
 
-  if (gamepads)
-    gamepads(result.gamepads);
+JSIL.Host.getHeldMouseButtons = function () {
+  var svc = JSIL.Host.getService("mouse", true);
+  if (!svc)
+    return [];
 
-  if (touch)
-    touch(result.touch);
-
-  return result;
+  return svc.getHeldButtons();
 };
 
 if (typeof (console) !== "undefined") {

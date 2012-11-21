@@ -39,6 +39,21 @@ JSIL.Host.services.canvas = {
   }
 };
 
+JSIL.Host.services.keyboard = {
+  getHeldKeys: function () {
+    return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
+  }
+};
+
+JSIL.Host.services.mouse = {
+  getHeldButtons: function () {
+    return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
+  },
+  getPosition: function () {
+    return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
+  }
+};
+
 JSIL.Host.logWrite = function (text) {
   var log = document.getElementById("log");
   if (log === null) {
@@ -148,15 +163,6 @@ JSIL.Host.getAsset = function (filename, stripRoot) {
     throw new System.IO.FileNotFoundException("The asset '" + key + "' is not in the asset manifest.", filename);
 
   return allAssets[key];
-};
-JSIL.Host.getHeldKeys = function () {
-  return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
-};
-JSIL.Host.getMousePosition = function () {
-  return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
-};
-JSIL.Host.getHeldButtons = function () {
-  return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
 };
 JSIL.Host.getRootDirectory = function () {
   var url = window.location.href;

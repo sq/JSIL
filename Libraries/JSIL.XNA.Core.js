@@ -2378,15 +2378,6 @@ $jsilxna.ClampByte = function (v) {
   else return Math.floor(v);
 }
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_TitleLocation", new JSIL.MethodSignature(null, [], []), function () {
-    return JSIL.Host.getRootDirectory();
-  });
-});
-
 (function () {
   // XNA3 doesn't have a BlendState class, so we substitute one.
 

@@ -80,7 +80,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Mouse", function ($) {
   var getStateImpl = function (playerIndex) {
-    var buttons = JSIL.Host.getHeldButtons();
+    var buttons = JSIL.Host.getHeldMouseButtons();
     var position = JSIL.Host.getMousePosition();
 
     var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
