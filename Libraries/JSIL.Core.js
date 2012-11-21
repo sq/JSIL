@@ -4825,6 +4825,10 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   Object.defineProperty(descriptor.Target, name, prop);
   
   this.constants.push([descriptor.Static, name, prop]);
+
+  // FIXME
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+  return memberBuilder;
 };
 
 JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource, interfacePrefix) {
