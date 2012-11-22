@@ -1018,7 +1018,9 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
 
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-      if (data.mangledName) {
+      if (typeof (data.constant) !== "undefined") {
+        obj[descriptor.EscapedName + "$constant"] = data.constant;
+      } else if (data.mangledName) {
         obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [member, target[name]];
       }
     }
@@ -1032,22 +1034,6 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
         obj[rawMethod.name + suffix] = [null, publicInterface[rawMethod.name]];
       } else {
         obj[prefix + rawMethod.name + suffix] = [null, publicInterface.prototype[rawMethod.name]];
-      }
-    }
-    
-    var constants = ib.constants;
-    for (var i = 0; i < constants.length; i++) {
-      var c = constants[i];
-      var decl = c[2];
-      var name = c[1];
-      var isStatic = c[0];
-
-      var suffix = "$constant";
-
-      if (isStatic) {
-        obj[name + suffix] = decl;
-      } else {
-        obj["instance$" + name + suffix] = decl;
       }
     }
   });
@@ -3451,7 +3437,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
     }
 
     if (key.indexOf(constantSuffix) > 0) {
-      Object.defineProperty(target, key.replace(constantSuffix, ""), externals[k]);
+      JSIL.SetValueProperty(target, key.replace(constantSuffix, ""), externals[k]);
       continue;
     }
 
@@ -4694,8 +4680,6 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
       return "<" + this.Name + " Descriptor>";
     }
   };
-  
-  this.constants = [];
 };
 
 JSIL.InterfaceBuilder.prototype.DefineTypeAliases = function (getAssembly, names) {
@@ -4815,19 +4799,14 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
 JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
-  var prop = {
-    configurable: true,
-    enumerable: true,
-    value: value,
-    writable: false
+  var data = {
+    constant: value
   };
 
-  Object.defineProperty(descriptor.Target, name, prop);
-  
-  this.constants.push([descriptor.Static, name, prop]);
-
-  // FIXME
   var memberBuilder = new JSIL.MemberBuilder(this.context);
+  this.PushMember("FieldInfo", descriptor, data, memberBuilder.attributes);
+
+  JSIL.SetValueProperty(this.publicInterface, descriptor.EscapedName, value);
   return memberBuilder;
 };
 
