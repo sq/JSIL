@@ -299,6 +299,7 @@
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess.cs" />
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess2.cs" />
     <None Include="ReflectionTestCases\GetConstantAttributes.cs" />
+    <None Include="TestCases\NestedStructEquals.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
