@@ -6379,9 +6379,10 @@ JSIL.ObjectEquals = function (lhs, rhs) {
 
     case "object":
       var key = $equalsSignature.GetKey("Object_Equals");
+      var fn = lhs[key];
 
-      if (lhs[key])
-        return $equalsSignature.CallVirtual("Object_Equals", null, lhs, rhs);
+      if (fn)
+        return fn.call(lhs, rhs);
 
       break;
   }
