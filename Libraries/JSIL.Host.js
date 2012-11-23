@@ -98,6 +98,11 @@ JSIL.Host.logWriteLine = function (text) {
   svc.write(text + "\n");
 };
 
+JSIL.Host.warning = function (text) {
+  var svc = JSIL.Host.getService("stderr");
+  svc.write(text + "\n");
+}
+
 
 // Default service implementations that are environment-agnostic
 

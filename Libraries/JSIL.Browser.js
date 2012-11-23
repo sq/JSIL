@@ -157,6 +157,20 @@ JSIL.Browser.LogService.prototype.write = function (text) {
 };
 
 
+JSIL.Browser.WarningService = function (stream) {
+  this.stream = stream;
+};
+
+JSIL.Browser.WarningService.prototype.write = function (text) {
+  if (window.console && window.console.warn) {
+    window.console.warn(text);
+  }
+
+  if (this.stream)
+    this.stream.write(text);
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -167,7 +181,7 @@ JSIL.Browser.LogService.prototype.write = function (text) {
     pageVisibility: new JSIL.Browser.PageVisibilityService(),
     runLater: new JSIL.Browser.RunLaterService(),
     stdout: logSvc,
-    stderr: logSvc
+    stderr: new JSIL.Browser.WarningService(logSvc)
   });
 })();
 
