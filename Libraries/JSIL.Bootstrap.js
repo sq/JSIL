@@ -1816,7 +1816,7 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
 
 JSIL.ImplementExternals("System.Environment", function ($) {
   // HACK
-  var tickCountOffset = Date.now();
+  var tickCountOffset = JSIL.Host.getTime();
 
   $.Method({Static:true , Public:true }, "GetFolderPath", 
     (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Environment/SpecialFolder")], [])), 
@@ -1837,7 +1837,7 @@ JSIL.ImplementExternals("System.Environment", function ($) {
   $.Method({Static:true , Public:true }, "get_TickCount", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_TickCount () {
-      return (Date.now() - tickCountOffset) | 0;
+      return (JSIL.Host.getTime() - tickCountOffset) | 0;
     }
   );
 
@@ -2783,7 +2783,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     function get_ElapsedMilliseconds () {
       var result = this.elapsed;
       if (this.isRunning)
-        result += Date.now() - this.startedWhen;
+        result += JSIL.Host.getTime() - this.startedWhen;
 
       return $jsilcore.System.Int64.FromNumber(result);
     }
@@ -2794,7 +2794,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     function get_ElapsedTicks () {
       var result = this.elapsed;
       if (this.isRunning)
-        result += Date.now() - this.startedWhen;
+        result += JSIL.Host.getTime() - this.startedWhen;
 
       result *= 10000;
 
@@ -2823,7 +2823,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     function Restart () {
       this.elapsed = 0;
       this.isRunning = true;
-      this.startedWhen = Date.now();
+      this.startedWhen = JSIL.Host.getTime();
     }
   );
 
@@ -2831,7 +2831,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     (new JSIL.MethodSignature(null, [], [])), 
     function Start () {
       if (!this.isRunning) {
-        this.startedWhen = Date.now();
+        this.startedWhen = JSIL.Host.getTime();
         this.isRunning = true;
       }
     }
@@ -2852,7 +2852,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
       if (this.isRunning) {
         this.isRunning = false;
 
-        var now = Date.now();
+        var now = JSIL.Host.getTime();
         var elapsed = now - this.startedWhen;
 
         this.elapsed += elapsed;

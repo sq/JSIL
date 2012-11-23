@@ -818,7 +818,7 @@ JSIL.ImplementExternals("System.DateTime", function ($) {
     function get_Now () {
       // FIXME
       return JSIL.CreateInstanceOfType(
-        $jsilcore.System.DateTime.__Type__, "$internalCtor", [Date.now()]
+        $jsilcore.System.DateTime.__Type__, "$internalCtor", [JSIL.Host.getTime()]
       );
     }
   );
@@ -856,7 +856,7 @@ JSIL.ImplementExternals("System.DateTime", function ($) {
     function get_UtcNow () {
       // FIXME
       return JSIL.CreateInstanceOfType(
-        $jsilcore.System.DateTime.__Type__, "$internalCtor", [Date.now()]
+        $jsilcore.System.DateTime.__Type__, "$internalCtor", [JSIL.Host.getTime()]
       );
     }
   );

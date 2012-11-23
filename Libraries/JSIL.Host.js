@@ -34,7 +34,7 @@ JSIL.Host.registerServices = function (services) {
 
 JSIL.Host.getTime = function () {
   var svc = JSIL.Host.getService("time");
-  return svc.get();
+  return svc.getUTC();
 };
 
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
@@ -100,6 +100,19 @@ JSIL.Host.logWriteLine = function (text) {
 
 
 // Default service implementations that are environment-agnostic
+
+JSIL.Host.ES5TimeService = function () {
+};
+
+JSIL.Host.ES5TimeService.prototype.getUTC = function () {
+  return Date.now();
+};
+
+
+JSIL.Host.registerServices({
+  time: new JSIL.Host.ES5TimeService()
+});
+
 
 JSIL.Host.error = function (exception, text) {
   if (typeof (console) !== "undefined") {

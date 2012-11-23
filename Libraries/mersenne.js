@@ -1,28 +1,6 @@
+// Random number generator implementation derived from one by Sean McCullough (banksean@gmail.com)
+// Original copyright notice for mersenne follows:
 /*
-I've wrapped Makoto Matsumoto and Takuji Nishimura's code in a namespace
-so it's better encapsulated. Now you can have multiple random number generators
-and they won't stomp all over eachother's state.
-If you want to use this as a substitute for Math.random(), use the random()
-method like so:
-var m = new MersenneTwister();
-var randomNumber = m.random();
-You can also call the other genrand_{foo}() methods on the instance.
-
-If you want to use a specific seed in order to get a repeatable random
-sequence, pass an integer into the constructor:
-
-var m = new MersenneTwister(123);
-
-and that will always produce the same random sequence.
-
-Sean McCullough (banksean@gmail.com)
-*/
-
-/*
-A C-program for MT19937, with initialization improved 2002/1/26.
-Coded by Takuji Nishimura and Makoto Matsumoto.
-Before using, initialize the state by using init_genrand(seed)
-or init_by_array(init_key, key_length).
 Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +32,7 @@ email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
 
 var MersenneTwister = function (seed) {
   if (typeof (seed) !== "number") {
-    seed = (Date.now() % 0xFFFFFFFF);
+    seed = (JSIL.Host.getTime() % 0xFFFFFFFF);
   }
 
   /* Period parameters */

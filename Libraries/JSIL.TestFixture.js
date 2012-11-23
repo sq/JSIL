@@ -13,7 +13,7 @@ JSIL.Host.logWriteLine = function (text) {
 };
 JSIL.Host.throwException = function (exc) {
   var exceptionMessage = "Unknown error";
-  var exceptionTimestamp = Date.now() - (window.$jsilbrowserstate.mainRunAtTime || 0);
+  var exceptionTimestamp = JSIL.Host.getTime() - (window.$jsilbrowserstate.mainRunAtTime || 0);
 
   try {
     exceptionMessage = String(exc);

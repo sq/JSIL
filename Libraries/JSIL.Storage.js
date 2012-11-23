@@ -308,7 +308,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
     );
 
     if (!this.inode.metadata.created)
-      this.inode.metadata.created = Date.now();
+      this.inode.metadata.created = JSIL.Host.getTime();
 
     if (parent)
       parent.directories[this.name.toLowerCase()] = this;
@@ -551,7 +551,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
     );
 
     if (!this.inode.metadata.created)
-      this.inode.metadata.created = Date.now();
+      this.inode.metadata.created = JSIL.Host.getTime();
 
     parent.files[this.name.toLowerCase()] = this;
   });
@@ -566,7 +566,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
   $.RawMethod(false, "readAllBytes", function () {
     var bytes = this.volume.getFileBytes(this.path);
 
-    this.inode.metadata.lastRead = Date.now();
+    this.inode.metadata.lastRead = JSIL.Host.getTime();
 
     if (!bytes)
       return JSIL.Array.New(System.Byte, this.inode.metadata.length || 0);
@@ -577,7 +577,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
   $.RawMethod(false, "writeAllBytes", function (bytes) {
     this.volume.setFileBytes(this.path, bytes);
 
-    this.inode.metadata.lastWritten = Date.now();
+    this.inode.metadata.lastWritten = JSIL.Host.getTime();
     this.inode.metadata.length = bytes.length;
   });
 
