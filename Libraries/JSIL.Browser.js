@@ -84,33 +84,41 @@ JSIL.Browser.PageVisibilityService.prototype.get = function () {
 };
 
 
-JSIL.Host.registerServices({
-  canvas: new JSIL.Browser.CanvasService(),
-  mouse: new JSIL.Browser.MouseService(),
-  keyboard: new JSIL.Browser.KeyboardService(),
-  pageVisibility: new JSIL.Browser.PageVisibilityService()
-});
+JSIL.Browser.RunLaterService = function () {
+  this.queue = [];
+  this.pending = false;
+  this.boundStep = this.step.bind(this);
+};
 
+JSIL.Browser.RunLaterService.prototype.enqueue = function (callback) {
+  this.queue.push(callback);
 
-JSIL.Host.logWrite = function (text) {
-  var log = document.getElementById("log");
-  if (log === null) {
-    if (window.console && window.console.log)
-      window.console.log(text);
-    
-    return;
-  }
-
-  if (currentLogLine === null) {
-    currentLogLine = document.createTextNode(text);
-    log.appendChild(currentLogLine);
-  } else {
-    currentLogLine.textContent += text;
+  if (!this.pending) {
+    this.pending = true;
+    window.setTimeout(this.boundStep, 0);
   }
 };
-JSIL.Host.logWriteLine = function (text) {
+
+JSIL.Browser.RunLaterService.prototype.step = function () {
+  var count = this.queue.length;
+  this.pending = false;
+
+  for (var i = 0; i < count; i++) {
+    var item = this.queue[i];
+    item();
+  }
+
+  this.queue.splice(0, count);
+};
+
+
+JSIL.Browser.LogService = function () {
+  this.currentLine = null;
+};
+
+JSIL.Browser.LogService.prototype.write = function (text) {
   var log = document.getElementById("log");
-  if (log === null) {
+  if (!log) {
     if (window.console && window.console.log)
       window.console.log(text);
     
@@ -118,18 +126,52 @@ JSIL.Host.logWriteLine = function (text) {
   }
 
   var lines = text.split("\n");
+  if (lines.length === 1) {
+    if (this.currentLine === null) {
+      this.currentLine = document.createTextNode(lines[0]);
+      log.appendChild(this.currentLine);
+    } else {
+      this.currentLine.textContent += line;
+    }
+
+    return;
+  }
+
   for (var i = 0, l = lines.length; i < l; i++) {
     var line = lines[i];
-    if (currentLogLine === null) {
+
+    if ((i === l - 1) && (line.length === 0)) {
+      break;
+    }
+
+    if (this.currentLine === null) {
       var logLine = document.createTextNode(line);
       log.appendChild(logLine);
     } else {
-      currentLogLine.textContent += line;
-      currentLogLine = null;
+      this.currentLine.textContent += line;
+      this.currentLine = null;
     }
+
     log.appendChild(document.createElement("br"));
   }
 };
+
+
+(function () {
+  var logSvc = new JSIL.Browser.LogService();
+
+  JSIL.Host.registerServices({
+    canvas: new JSIL.Browser.CanvasService(),
+    mouse: new JSIL.Browser.MouseService(),
+    keyboard: new JSIL.Browser.KeyboardService(),
+    pageVisibility: new JSIL.Browser.PageVisibilityService(),
+    runLater: new JSIL.Browser.RunLaterService(),
+    stdout: logSvc,
+    stderr: logSvc
+  });
+})();
+
+
 JSIL.Host.translateFilename = function (filename) {
   if (filename === null)
     return null;

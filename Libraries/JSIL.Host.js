@@ -5,6 +5,7 @@ if (typeof (JSIL) === "undefined")
 
 JSIL.Host.isBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
 
+
 JSIL.Host.services = Object.create(null);
 
 JSIL.Host.getService = function (key, noThrow) {
@@ -26,6 +27,14 @@ JSIL.Host.registerServices = function (services) {
 
     JSIL.Host.services[key] = services[key];
   }
+};
+
+
+// Access services using these methods instead of getService directly.
+
+JSIL.Host.getTime = function () {
+  var svc = JSIL.Host.getService("time");
+  return svc.get();
 };
 
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
@@ -70,47 +79,27 @@ JSIL.Host.isPageVisible = function () {
   return svc.get();
 };
 
-if (typeof (console) !== "undefined") {
-  try {
-    JSIL.Host.logWrite = console.log.bind(console);
-  } catch (e) {
-    // IE :(
-    JSIL.Host.logWrite = function LogWrite_IE () {
-      console.log(Array.prototype.slice.call(arguments));
-    }
-  }
-} else if (JSIL.Host.isBrowser)
-  JSIL.Host.logWrite = function LogWrite_NoConsole () {};
-else if (typeof (putstr) === "function")
-  JSIL.Host.logWrite = putstr.bind(null);
-else
-  JSIL.Host.logWrite = print.bind(null);
+JSIL.Host.runLater = function (action) {
+  var svc = JSIL.Host.getService("runLater", true);
+  if (!svc)
+    return false;
 
-if (typeof (console) !== "undefined") {
-  try {
-    JSIL.Host.logWriteLine = console.log.bind(console);
-  } catch (e) {
-    // IE :(
-    JSIL.Host.logWriteLine = function LogWriteLine_IE () {
-      console.log(Array.prototype.slice.call(arguments));
-    }
-  }
-} else if (JSIL.Host.isBrowser)
-  JSIL.Host.logWriteLine = function LogWriteLine_NoConsole () {};
-else
-  JSIL.Host.logWriteLine = print.bind(null);
+  svc.enqueue(action);
+  return true;
+};
 
-if (typeof (console) !== "undefined") {
-  try {
-    JSIL.Host.warning = console.warn.bind(console);
-  } catch (e) {
-    // IE :(
-    JSIL.Host.warning = function Warning_IE () {
-      console.warn(Array.prototype.slice.call(arguments));
-    }
-  }
-} else
-  JSIL.Host.warning = JSIL.Host.logWriteLine;
+JSIL.Host.logWrite = function (text) {
+  var svc = JSIL.Host.getService("stdout");
+  svc.write(text);
+};
+
+JSIL.Host.logWriteLine = function (text) {
+  var svc = JSIL.Host.getService("stdout");
+  svc.write(text + "\n");
+};
+
+
+// Default service implementations that are environment-agnostic
 
 JSIL.Host.error = function (exception, text) {
   if (typeof (console) !== "undefined") {
@@ -143,33 +132,4 @@ JSIL.Host.throwException = function (e) {
 
 JSIL.Host.assertionFailed = function (message) {
   JSIL.Host.error(new Error(message || "Assertion Failed"));
-};
-
-JSIL.Host.pendingRunLaterItems = [];
-JSIL.Host.runLaterPending = false;
-JSIL.Host.runLaterCallback = function () {
-  JSIL.Host.runLaterPending = false;
-
-  var items = JSIL.Host.pendingRunLaterItems;
-  var count = items.length;
-
-  for (var i = 0; i < count; i++) {
-    var item = items[i];
-    item();
-  }
-
-  items.splice(0, count);
-};
-
-// This can fail to run the specified action if the host hasn't implemented it, so you should
-//  only use this to run performance improvements, not things you depend on
-JSIL.Host.runLater = function (action) {
-  if (typeof (setTimeout) === "function") {
-    JSIL.Host.pendingRunLaterItems.push(action);
-
-    if (!JSIL.Host.runLaterPending) {
-      JSIL.Host.runLaterPending = true;
-      setTimeout(JSIL.Host.runLaterCallback, 0);
-    }
-  }
 };
