@@ -163,6 +163,8 @@ namespace JSIL.Tests {
                     @"TestCases\StructCompoundAssignment.cs",
                     @"TestCases\StructDefaults.cs",
                     @"TestCases\StructEquals.cs",
+                    @"TestCases\NestedStructEquals.cs",
+                    @"TestCases\ComplexStructEquals.cs",
                     @"TestCases\StructFields.cs",
                     @"TestCases\InheritStructFields.cs",
                     @"TestCases\StructInitializers.cs",

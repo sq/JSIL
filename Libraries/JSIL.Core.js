@@ -2415,8 +2415,6 @@ JSIL.$MakeComparerCore = function (typeObject, context, body) {
 
       if (fieldType.__IsNumeric__ || fieldType.__IsEnum__) {
         body.push("  if (" + JSIL.FormatMemberAccess("lhs", field.name) + " !== " + JSIL.FormatMemberAccess("rhs", field.name) + ")");
-      } else if (field.isStruct) {
-        body.push("  if (!" + JSIL.FormatMemberAccess("lhs", field.name) + ".Equals(" + JSIL.FormatMemberAccess("rhs", field.name) + "))");
       } else {
         body.push("  if (!JSIL.ObjectEquals(" + JSIL.FormatMemberAccess("lhs", field.name) + ", " + JSIL.FormatMemberAccess("rhs", field.name) + "))");
       }
@@ -5363,12 +5361,12 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
   }
 };
 
-JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /*, ...parameters */) {
-  var key = this.GetKey(name);
+JSIL.MethodSignature.prototype.CallVirtual = function (escapedName, ga, thisReference /*, ...parameters */) {
+  var key = this.GetKey(escapedName);
 
   var method = thisReference[key];
   if (typeof (method) !== "function") {
-    var signature = this.toString(name);
+    var signature = this.toString(escapedName);
 
     throw new Error(
       "No method with signature '" + signature +
@@ -6379,10 +6377,11 @@ JSIL.ObjectEquals = function (lhs, rhs) {
       break;
 
     case "object":
-      var key = $equalsSignature.GetKey("Object.Equals");
+      var key = $equalsSignature.GetKey("Object_Equals");
+      var fn = lhs[key];
 
-      if (lhs[key])
-        return $equalsSignature.CallVirtual("Object.Equals", null, lhs, rhs);
+      if (fn)
+        return fn.call(lhs, rhs);
 
       break;
   }
