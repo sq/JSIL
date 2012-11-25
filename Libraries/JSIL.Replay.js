@@ -73,8 +73,8 @@ JSIL.DeclareNamespace("JSIL.Replay.Recording", false);
 JSIL.Replay.Recorder = function () {
   this.createServiceProxies();
 
-  this.frameScheduler = new JSIL.Replay.Recording.FrameSchedulerProxy(this, JSIL.Host.getService("frameScheduler"));
-  JSIL.Host.registerService("frameScheduler", this.frameScheduler);
+  this.tickScheduler = new JSIL.Replay.Recording.TickSchedulerProxy(this, JSIL.Host.getService("tickScheduler"));
+  JSIL.Host.registerService("tickScheduler", this.tickScheduler);
 
   this.replay = Object.create(null);
   this.replay.frameData = Object.create(null);
@@ -163,14 +163,14 @@ JSIL.Replay.Recording.ServiceProxy.prototype.$makeInterceptor = function (name) 
 };
 
 
-JSIL.Replay.Recording.FrameSchedulerProxy = function (recorder, service) {
+JSIL.Replay.Recording.TickSchedulerProxy = function (recorder, service) {
   this.recorder = recorder;
   this.service = service;
   this.boundFrameCallback = this.frameCallback.bind(this);
   this.pendingFrameCallback = null;
 };
 
-JSIL.Replay.Recording.FrameSchedulerProxy.prototype.frameCallback = function () {
+JSIL.Replay.Recording.TickSchedulerProxy.prototype.frameCallback = function () {
   var callback = this.pendingFrameCallback;
   this.pendingFrameCallback = null;
 
@@ -178,7 +178,7 @@ JSIL.Replay.Recording.FrameSchedulerProxy.prototype.frameCallback = function () 
   callback();
 };
 
-JSIL.Replay.Recording.FrameSchedulerProxy.prototype.schedule = function (callback, when) {
+JSIL.Replay.Recording.TickSchedulerProxy.prototype.schedule = function (callback, when) {
   this.pendingFrameCallback = callback;
   this.service.schedule(this.boundFrameCallback, when);
 };
@@ -190,13 +190,14 @@ JSIL.DeclareNamespace("JSIL.Replay.Playback", false);
 
 JSIL.Replay.Player = function (replay) {
   this.replay = replay;
-  this.frameIndex = 0;
 
   this.createServiceProxies();
 
-  this.frameScheduler = new JSIL.Replay.Playback.FrameSchedulerProxy(this, JSIL.Host.getService("frameScheduler"));
-  JSIL.Host.registerService("frameScheduler", this.frameScheduler);
+  this.tickScheduler = new JSIL.Replay.Playback.TickSchedulerProxy(this, JSIL.Host.getService("tickScheduler"));
+  JSIL.Host.registerService("tickScheduler", this.tickScheduler);
 
+  // Set the frame index to -1 so nextFrame steps us to frame 0
+  this.frameIndex = -1;
   this.nextFrame();
 };
 
@@ -278,19 +279,20 @@ JSIL.Replay.Playback.ServiceProxy.prototype.$makeCallReplayer = function (name) 
       throw new Error("Call list for method '" + name + "' is empty");
 
     var result = callList.shift();
+
     return result;
   };
 };
 
 
-JSIL.Replay.Playback.FrameSchedulerProxy = function (player, service) {
+JSIL.Replay.Playback.TickSchedulerProxy = function (player, service) {
   this.player = player;
   this.service = service;
   this.boundAdvanceFrame = this.advanceFrame.bind(this);
   this.pendingFrameCallback = null;
 };
 
-JSIL.Replay.Playback.FrameSchedulerProxy.prototype.advanceFrame = function () {
+JSIL.Replay.Playback.TickSchedulerProxy.prototype.advanceFrame = function () {
   var callback = this.pendingFrameCallback;
   this.pendingFrameCallback = null;
 
@@ -306,7 +308,7 @@ JSIL.Replay.Playback.FrameSchedulerProxy.prototype.advanceFrame = function () {
   }
 };
 
-JSIL.Replay.Playback.FrameSchedulerProxy.prototype.schedule = function (callback, when) {
+JSIL.Replay.Playback.TickSchedulerProxy.prototype.schedule = function (callback, when) {
   this.pendingFrameCallback = callback;
 
   var fastPlayback = jsilConfig.fastReplay || false;

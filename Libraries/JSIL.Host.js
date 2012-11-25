@@ -151,9 +151,9 @@ JSIL.Host.assertionFailed = function (message) {
   svc.error(new Error(message || "Assertion Failed"));
 };
 
-JSIL.Host.scheduleFrame = function (frameCallback, when) {
-  var svc = JSIL.Host.getService("frameScheduler");
-  svc.schedule(frameCallback, when);
+JSIL.Host.scheduleTick = function (tickCallback) {
+  var svc = JSIL.Host.getService("tickScheduler");
+  svc.schedule(tickCallback);
 };
 
 

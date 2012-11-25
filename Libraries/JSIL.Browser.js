@@ -174,7 +174,7 @@ JSIL.Browser.WarningService.prototype.write = function (text) {
 };
 
 
-JSIL.Browser.FrameSchedulerService = function () {
+JSIL.Browser.TickSchedulerService = function () {
   var forceSetTimeout = false || 
     (document.location.search.indexOf("forceSetTimeout") >= 0);
 
@@ -185,27 +185,12 @@ JSIL.Browser.FrameSchedulerService = function () {
     window.oRequestAnimationFrame;
 
   if (requestAnimationFrame && !forceSetTimeout) {
-    this.schedule = function (stepCallback, when) {
+    this.schedule = function (stepCallback) {
       requestAnimationFrame.call(window, stepCallback);
     };
   } else {
-    this.schedule = function (stepCallback, when) {
-      var actualNow = JSIL.$GetHighResTime();
-      var now = JSIL.Host.getTickCount();
-      var waitDuration = when - now;
-      var actualWhen = actualNow + waitDuration;
-
-      var shouldStepCallback = function ShouldStep () {
-        var delay = actualWhen - JSIL.$GetHighResTime();
-
-        if (delay < 1)
-          stepCallback();
-        else 
-          window.setTimeout(shouldStepCallback, 0);
-      };
-
-      // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
-      window.setTimeout(shouldStepCallback, 0);
+    this.schedule = function (stepCallback) {
+      window.setTimeout(stepCallback, 0);
     };
   }
 };
@@ -222,7 +207,7 @@ JSIL.Browser.FrameSchedulerService = function () {
     runLater: new JSIL.Browser.RunLaterService(),
     stdout: logSvc,
     stderr: new JSIL.Browser.WarningService(logSvc),
-    frameScheduler: new JSIL.Browser.FrameSchedulerService()
+    tickScheduler: new JSIL.Browser.TickSchedulerService()
   });
 })();
 
@@ -1186,10 +1171,8 @@ function onLoad () {
       );
     }
   };
-
-  var autoPlay = window.location.search.indexOf("autoPlay") >= 0;
   
-  if (loadButton && !autoPlay) {
+  if (loadButton && !jsilConfig.autoPlay) {
     loadButton.addEventListener(
       "click", beginLoading, true
     );

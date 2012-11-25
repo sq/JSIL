@@ -1308,20 +1308,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var self = this;
     var stepCallback = self._Step.bind(self);
 
-    JSIL.Host.scheduleFrame(stepCallback, self._nextFrame);
+    JSIL.Host.scheduleTick(stepCallback);
   });
 
   $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
-    var updateStarted = JSIL.$GetHighResTime();
+    // FIXME: We have to sample time in two different ways here.
+    // One is used for the framerate indicator, the other is used
+    //  to avoid frameskip after a really long update. We want the
+    //  frameskip suppression to be consistent in replay recording situations
+    //  but we want to display actual update perf when running a replay.
+
+    var updateActuallyStarted = JSIL.$GetHighResTime();
+    var updateStarted = JSIL.Host.getTickCount();
+
     this.Update(this._gameTime);
-    var updateEnded = JSIL.$GetHighResTime();
+
+    var updateEnded = JSIL.Host.getTickCount();
+    var updateActuallyEnded = JSIL.$GetHighResTime();
 
     // Detect long updates and suppress frameskip.
     if ((updateEnded - updateStarted) > longFrame) {
       this.suppressFrameskip = true;
     }
     
-    this._updateTimings.push(updateEnded - updateStarted);
+    this._updateTimings.push(updateActuallyEnded - updateActuallyStarted);
   });
 
   $.RawMethod(false, "_MaybeReportFPS", function Game_MaybeReportFPS (now) {
