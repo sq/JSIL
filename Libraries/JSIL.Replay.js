@@ -52,14 +52,134 @@ JSIL.Replay.InitializePlayerFromJSON = function (json) {
 };
 
 
+// Recorder implementation
+
 JSIL.Replay.Recorder = function () {
+  this.serviceProxies = Object.create(null);
+
+  this.createServiceProxies();
+
+  this.frameScheduler = new JSIL.Replay.FrameSchedulerProxy(this, JSIL.Host.getService("frameScheduler"));
+  JSIL.Host.registerService("frameScheduler", this.frameScheduler);
+
   this.replay = Object.create(null);
+  this.replay.frameData = Object.create(null);
+
+  for (var k in this.serviceProxies)
+    this.replay.frameData[k] = [];
+
+  this.pushFrame();
 };
 
+JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
+  var servicesToProxy = ["time", "keyboard", "mouse", "pageVisibility"];
+
+  for (var i = 0, l = servicesToProxy.length; i < l; i++) {
+    var key = servicesToProxy[i];
+    var service = JSIL.Host.services[key];
+    var proxy = new JSIL.Replay.ServiceRecordingProxy(service);
+
+    this.serviceProxies[key] = proxy;
+    JSIL.Host.registerService(key, proxy);
+  }
+};
+
+JSIL.Replay.Recorder.prototype.pushFrame = function () {
+  for (var key in this.serviceProxies) {
+    var callList = [];
+    this.serviceProxies[key].calls = callList;
+    this.replay.frameData[key].push(callList);
+  }
+};
+
+
+JSIL.Replay.RecordedCall = function (methodName, args, result, threwError) {
+  this.name = methodName;
+  this.result = result;
+  
+  if (args && args.length)
+    this.args = args;
+
+  if (threwError)
+    this.threw = threwError;
+};
+
+JSIL.Replay.RecordedCall.prototype.toString = function () {
+  return this.name + "(" + this.args.join(", ") + ") == " + this.result;
+};
+
+
+JSIL.Replay.ServiceRecordingProxy = function (service, transformArguments, transformResult) {
+  this.service = service;
+  this.argumentTransformer = transformArguments || function (methodName, args) { return args; };
+  this.resultTransformer = transformResult || function (methodName, result) { return result; };
+  this.calls = [];
+
+  for (var k in service) {
+    if (this.hasOwnProperty(k))
+      continue;
+
+    var value = service[k];
+    if (typeof (value) === "function")
+      this[k] = this.$makeInterceptor(k);
+  }
+};
+
+JSIL.Replay.ServiceRecordingProxy.prototype.$makeInterceptor = function (name) {
+  return function () {
+    var args = Array.prototype.slice.call(arguments);
+
+    var originalMethod = this.service[name];
+    var failed = true;
+
+    try {
+      var result = originalMethod.apply(this.service, args);
+      failed = false;
+
+      this.calls.push(new JSIL.Replay.RecordedCall(
+        name, 
+        this.argumentTransformer(name, args), 
+        this.resultTransformer(name, result), 
+        false
+      ));
+
+      return result;
+    } finally {
+      if (failed)
+        this.calls.push(new JSIL.Replay.RecordedCall(
+          name, 
+          this.argumentTransformer(name, args), 
+          undefined, true
+        ));
+    }
+  };
+};
+
+
+JSIL.Replay.FrameSchedulerProxy = function (recorder, service) {
+  this.recorder = recorder;
+  this.service = service;
+  this.boundFrameCallback = this.frameCallback.bind(this);
+  this.pendingFrameCallback = null;
+};
+
+JSIL.Replay.FrameSchedulerProxy.prototype.frameCallback = function () {
+  var callback = this.pendingFrameCallback;
+  this.pendingFrameCallback = null;
+
+  this.recorder.pushFrame();
+  callback();
+};
+
+JSIL.Replay.FrameSchedulerProxy.prototype.schedule = function (callback, when) {
+  this.pendingFrameCallback = callback;
+  this.service.schedule(this.boundFrameCallback, when);
+};
+
+// Player implementation
 
 JSIL.Replay.Player = function (replay) {
   this.replay = replay;
 };
-
 
 JSIL.Host.initCallbacks.push(JSIL.Replay.Initialize);
