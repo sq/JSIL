@@ -1847,7 +1847,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
         return;
 
       warnedTypes[ptype] = true;
-      JSIL.Host.error(new Error("The primitive type " + ptype + " is not implemented."));
+      JSIL.Host.abort(new Error("The primitive type " + ptype + " is not implemented."));
       return;
     }
   });

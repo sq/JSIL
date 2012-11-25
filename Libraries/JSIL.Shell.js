@@ -33,10 +33,6 @@ JSIL.Shell.StdErrService.prototype.write = function (text) {
 })();
 
 
-JSIL.Host.throwException = function (e) {
-  throw e;
-};
-
 function reportException (e) {
   var stack = "";
   try {

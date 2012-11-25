@@ -269,17 +269,7 @@ JSIL.Host.getRootDirectory = function () {
 JSIL.Host.getStorageRoot = function () {
   return $jsilbrowserstate.storageRoot;
 };
-JSIL.Host.throwException = function (e) {
-  var stack = "";
-  try {
-    stack = e.stack || "";
-  } catch (ex) {
-    stack = "";
-  }
-  JSIL.Host.logWriteLine("Unhandled exception: " + String(e));
-  if (stack.length > 0)
-    JSIL.Host.logWriteLine(stack);
-};
+
 
 var $logFps = false;
 

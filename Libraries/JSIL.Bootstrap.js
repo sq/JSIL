@@ -356,13 +356,13 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       var impl = context[key];
 
       if (typeof (impl) !== "function") {
-        JSIL.Host.error(new Error("Failed to bind delegate: Method '" + key + "' not found in context"));
+        JSIL.Host.abort(new Error("Failed to bind delegate: Method '" + key + "' not found in context"));
       }
 
       var delegatePublicInterface = delegateType.__PublicInterface__;
 
       if (typeof (delegatePublicInterface.New) !== "function") {
-        JSIL.Host.error(new Error("Invalid delegate type"));
+        JSIL.Host.abort(new Error("Invalid delegate type"));
       }
 
       return delegatePublicInterface.New(firstArgument, impl);

@@ -103,6 +103,25 @@ JSIL.Host.warning = function (text) {
   svc.write(text + "\n");
 }
 
+JSIL.Host.abort = function (exception, extraInfo) {
+  var svc = JSIL.Host.getService("stderr");
+  if (extraInfo)
+    svc.write(extraInfo);
+
+  svc.write(exception);
+
+  if (typeof (exception.stack) !== "undefined")
+    svc.write(exception.stack);
+
+  var svc = JSIL.Host.getService("error");
+  svc.error(exception);
+};
+
+JSIL.Host.assertionFailed = function (message) {
+  var svc = JSIL.Host.getService("error");
+  svc.error(new Error(message || "Assertion Failed"));
+};
+
 
 // Default service implementations that are environment-agnostic
 
@@ -114,40 +133,15 @@ JSIL.Host.ES5TimeService.prototype.getUTC = function () {
 };
 
 
+JSIL.Host.ThrowErrorService = function () {
+};
+
+JSIL.Host.ThrowErrorService.prototype.error = function (exception) {
+  throw exception;
+};
+
+
 JSIL.Host.registerServices({
-  time: new JSIL.Host.ES5TimeService()
+  time: new JSIL.Host.ES5TimeService(),
+  error: new JSIL.Host.ThrowErrorService()
 });
-
-
-JSIL.Host.error = function (exception, text) {
-  if (typeof (console) !== "undefined") {
-    var rest = Array.prototype.slice.call(arguments, 1);
-    rest.push(exception);
-
-    var stack = null;
-    try {
-      stack = exception.stack;
-    } catch (e) {
-      stack = null;
-    }
-
-    if ((typeof (stack) !== "undefined") && (stack !== null)) {
-      if (stack.indexOf(String(exception)) >= 0)
-        rest.pop();
-
-      rest.push(stack);
-    }
-
-    Function.prototype.apply.call(console.error, console, rest);
-  }
-
-  JSIL.Host.throwException(exception);
-};
-
-JSIL.Host.throwException = function (e) {
-  throw e;
-};
-
-JSIL.Host.assertionFailed = function (message) {
-  JSIL.Host.error(new Error(message || "Assertion Failed"));
-};

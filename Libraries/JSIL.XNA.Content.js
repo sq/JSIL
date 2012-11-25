@@ -520,7 +520,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       var result = thisType.targetTypeToReader[targetType.__TypeId__];
 
       if (typeof (result) !== "object") {
-        JSIL.Host.error(new Error("No content type reader known for type '" + targetType + "'."));
+        JSIL.Host.abort(new Error("No content type reader known for type '" + targetType + "'."));
         return null;
       }
 
@@ -546,14 +546,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
         var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly, false);
 
         if (typeReaderType === null) {
-          JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'."));
+          JSIL.Host.abort(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'."));
           return null;
         }
 
         var typeReaderInstance = JSIL.CreateInstanceOfType(typeReaderType);
         var targetType = typeReaderInstance.TargetType;
         if (!targetType) {
-          JSIL.Host.error(new Error("The type reader '" + typeReaderName + "' is broken or not implemented."));
+          JSIL.Host.abort(new Error("The type reader '" + typeReaderName + "' is broken or not implemented."));
           return null;
         }
 
@@ -597,7 +597,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       if (typeof (reader) === "object")
         return reader;
 
-      JSIL.Host.error(new Error("No content type reader known for type '" + typeName + "'."));
+      JSIL.Host.abort(new Error("No content type reader known for type '" + typeName + "'."));
       return null;
     }
   );
@@ -736,7 +736,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
     typeReader = self.typeReaders[typeId - 1];
     if (typeof (typeReader) !== "object") {
-      JSIL.Host.error(new Error("No type reader for typeId '" + typeId + "'. Misaligned XNB read is likely."));
+      JSIL.Host.abort(new Error("No type reader for typeId '" + typeId + "'. Misaligned XNB read is likely."));
       return null;
     }
 
