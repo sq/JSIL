@@ -13,6 +13,7 @@ if (typeof (jsilConfig) === "undefined") {
 
 JSIL.SuppressInterfaceWarnings = true;
 JSIL.ReadOnlyPropertyWriteWarnings = false;
+JSIL.ThrowOnUnimplementedExternals = false;
 
 JSIL.GlobalNamespace = this;
 
@@ -901,7 +902,12 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
     };
   } else {
     result = function ExternalMemberStub () {
-      JSIL.Host.abort(new Error("The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented."));
+      var msg = "The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented.";
+      
+      if (JSIL.ThrowOnUnimplementedExternals)
+        JSIL.Host.abort(new Error(msg));
+      else
+        JSIL.Host.warning(msg);
     };
   }
 

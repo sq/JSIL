@@ -164,7 +164,10 @@ JSIL.Browser.WarningService = function (stream) {
 JSIL.Browser.WarningService.prototype.write = function (text) {
   // Quirky behavior, but we suppress warnings from the log if the console is available.
   if (window.console && window.console.warn) {
-    window.console.warn(text);
+    if (typeof (text) === "string")
+      window.console.warn(text.trim());
+    else
+      window.console.warn(text);
   } else if (this.stream) {
     this.stream.write(text);
   }
