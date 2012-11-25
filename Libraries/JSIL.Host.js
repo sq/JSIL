@@ -138,6 +138,11 @@ JSIL.Host.assertionFailed = function (message) {
   svc.error(new Error(message || "Assertion Failed"));
 };
 
+JSIL.Host.scheduleFrame = function (frameCallback, when) {
+  var svc = JSIL.Host.getService("frameScheduler");
+  svc.schedule(frameCallback, when);
+};
+
 
 // Default service implementations that are environment-agnostic
 

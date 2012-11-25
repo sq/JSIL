@@ -174,6 +174,43 @@ JSIL.Browser.WarningService.prototype.write = function (text) {
 };
 
 
+JSIL.Browser.FrameSchedulerService = function () {
+  var forceSetTimeout = false || 
+    (document.location.search.indexOf("forceSetTimeout") >= 0);
+
+  var requestAnimationFrame = window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame || 
+    window.webkitRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    window.oRequestAnimationFrame;
+
+  if (requestAnimationFrame && !forceSetTimeout) {
+    this.schedule = function (stepCallback, when) {
+      requestAnimationFrame.call(window, stepCallback);
+    };
+  } else {    
+    this.schedule = function (stepCallback, when) {
+      var actualNow = Date.now();
+      var now = JSIL.Host.getTime();
+      var waitDuration = when - now;
+      var actualWhen = actualNow + waitDuration;
+
+      var shouldStepCallback = function ShouldStep () {
+        var delay = actualWhen - Date.now();
+
+        if (delay < 1)
+          stepCallback();
+        else 
+          window.setTimeout(shouldStepCallback, 0);
+      };
+
+      // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
+      window.setTimeout(shouldStepCallback, 0);
+    };
+  }
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -184,7 +221,8 @@ JSIL.Browser.WarningService.prototype.write = function (text) {
     pageVisibility: new JSIL.Browser.PageVisibilityService(),
     runLater: new JSIL.Browser.RunLaterService(),
     stdout: logSvc,
-    stderr: new JSIL.Browser.WarningService(logSvc)
+    stderr: new JSIL.Browser.WarningService(logSvc),
+    frameScheduler: new JSIL.Browser.FrameSchedulerService()
   });
 })();
 

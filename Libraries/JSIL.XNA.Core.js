@@ -1080,14 +1080,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._isDead = false;
       this.initialized = false;
 
-      if (typeof (Date.now) === "function") {
-        Object.defineProperty(this, "_GetNow", {
-          configurable: true,
-          enumerable: true,
-          value: Date.now
-        });
-      }
-
       this._runHandle = null;
       this._gameTime = JSIL.CreateInstanceOfType(tGameTime, null);
       this._lastFrame = this._nextFrame = this._started = 0;
@@ -1289,14 +1281,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._QueueStep();
   });
 
-  $.RawMethod(false, "_GetNow", function Game_GetNow () {
-    return (new Date()).getTime();
-  });
-
-  $.RawMethod(false, "_DeferCall", function Game_DeferCall (callback, lng) {
-    setTimeout(callback, 0);
-  });
-
   $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
     if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
       return;
@@ -1304,37 +1288,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var self = this;
     var stepCallback = self._Step.bind(self);
 
-    var forceSetTimeout = false || 
-      (document.location.search.indexOf("forceSetTimeout") >= 0);
-
-    var requestAnimationFrame = window.requestAnimationFrame ||
-      window.mozRequestAnimationFrame || 
-      window.webkitRequestAnimationFrame ||
-      window.msRequestAnimationFrame ||
-      window.oRequestAnimationFrame;
-
-    if (requestAnimationFrame && !forceSetTimeout) {
-      requestAnimationFrame(stepCallback);
-    } else {
-      var shouldStepCallback = function ShouldStep () {
-        var now = self._GetNow();
-        var delay = self._nextFrame - now;
-
-        if (delay <= 0) 
-          stepCallback();
-        else 
-          self._DeferCall(shouldStepCallback, delay >= 3);
-      };
-
-      // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
-      this._DeferCall(shouldStepCallback, true);
-    }
+    JSIL.Host.scheduleFrame(stepCallback, self._nextFrame);
   });
 
   $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
-    var updateStarted = this._GetNow();
+    var updateStarted = JSIL.Host.getTime();
     this.Update(this._gameTime);
-    var updateEnded = this._GetNow();
+    var updateEnded = JSIL.Host.getTime();
 
     // Detect long updates and suppress frameskip.
     if ((updateEnded - updateStarted) > longFrame) {
@@ -1426,7 +1386,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_Step", function Game_Step () {
-    var now = this._GetNow();
+    var now = JSIL.Host.getTime();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
     if (frameDelay <= 0)
