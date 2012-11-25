@@ -1051,10 +1051,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameComponentCollection", funct
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
-  $.Method({Static: false, Public: true}, "ForceQuit", 
+  $.Method({Static: true, Public: true}, "ForceQuit", 
     new JSIL.MethodSignature(null, [], []), 
     function () {
       Microsoft.Xna.Framework.Game._QuitForced = true;
+    }
+  );
+
+  $.Method({Static: true, Public: true}, "ForcePause", 
+    new JSIL.MethodSignature(null, [], []), 
+    function () {
+      Microsoft.Xna.Framework.Game._PauseForced = true;
+    }
+  );
+
+  $.Method({Static: true, Public: true}, "ForceUnpause", 
+    new JSIL.MethodSignature(null, [], []), 
+    function () {
+      Microsoft.Xna.Framework.Game._PauseForced = false;
+
+      var ns = Microsoft.Xna.Framework.Game._NeedsStep;
+      Microsoft.Xna.Framework.Game._NeedsStep = null;
+
+      if (ns)
+        ns._QueueStep();
     }
   );
 
@@ -1292,9 +1312,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
-    var updateStarted = Date.now();
+    var updateStarted = JSIL.$GetHighResTime();
     this.Update(this._gameTime);
-    var updateEnded = Date.now();
+    var updateEnded = JSIL.$GetHighResTime();
 
     // Detect long updates and suppress frameskip.
     if ((updateEnded - updateStarted) > longFrame) {
@@ -1398,7 +1418,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_RenderAFrame", function Game_RenderAFrame () {
-    var started = Date.now();
+    var started = JSIL.$GetHighResTime();
 
     var device = this.get_GraphicsDevice();
 
@@ -1407,13 +1427,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     this.Draw(this._gameTime);
 
-    var ended = Date.now();
+    var ended = JSIL.$GetHighResTime();
     this._drawTimings.push(ended - started);
   });
 
   $.RawMethod(false, "_Step", function Game_Step () {
-    var now = JSIL.Host.getTime();
-    var actualNow = Date.now();
+    var now = JSIL.Host.getTickCount();
+    var actualNow = JSIL.$GetHighResTime();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
     if (frameDelay <= 0)
@@ -1468,10 +1488,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       failed = false;
     } finally {
-      if (failed || Microsoft.Xna.Framework.Game._QuitForced) 
+      if (failed || Microsoft.Xna.Framework.Game._QuitForced) {
         this.Exit();
-      else 
+      } else if (Microsoft.Xna.Framework.Game._PauseForced) {
+        Microsoft.Xna.Framework.Game._NeedsStep = this;
+      } else {
         this._QueueStep();
+      }
     }
   });
 

@@ -51,10 +51,15 @@ JSIL.Replay.InitializePlayerFromJSON = function (json) {
   JSIL.Host.registerService("replayPlayer", player);
 };
 
-JSIL.Replay.SaveToLocalStorage = function (name) {
+JSIL.Replay.SaveAsJSON = function () {
   var recorder = JSIL.Host.getService("replayRecorder");
   var json = JSON.stringify(recorder.replay);
 
+  return json;
+};
+
+JSIL.Replay.SaveToLocalStorage = function (name) {
+  var json = JSIL.Replay.SaveAsJSON();
   localStorage[name + ".replay"] = json;
 
   JSIL.Host.logWriteLine("Replay saved to local storage as '" + name + "'.");
@@ -100,9 +105,9 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
   this.replay.frameCount += 1;
 
   for (var key in this.serviceProxies) {
-    var callList = [];
-    this.serviceProxies[key].calls = callList;
-    this.replay.frameData[key].push(callList);
+    var callTable = Object.create(null);
+    this.serviceProxies[key].calls = callTable;
+    this.replay.frameData[key].push(callTable);
   }
 
   if (typeof (document) !== "undefined") {
@@ -113,27 +118,10 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
 };
 
 
-JSIL.Replay.Recording.Call = function (methodName, args, result, threwError) {
-  this.name = methodName;
-  this.result = result;
-
-  if (args && args.length)
-    this.args = args;
-
-  if (threwError)
-    this.threw = threwError;
-};
-
-JSIL.Replay.Recording.Call.prototype.toString = function () {
-  return this.name + "(" + this.args.join(", ") + ") == " + this.result;
-};
-
-
-JSIL.Replay.Recording.ServiceProxy = function (service, transformArguments, transformResult) {
+JSIL.Replay.Recording.ServiceProxy = function (service, transformResult) {
   this.service = service;
-  this.argumentTransformer = transformArguments || function (methodName, args) { return args; };
   this.resultTransformer = transformResult || function (methodName, result) { return result; };
-  this.calls = [];
+  this.calls = Object.create(null);
 
   for (var k in service) {
     if (this.hasOwnProperty(k))
@@ -143,6 +131,14 @@ JSIL.Replay.Recording.ServiceProxy = function (service, transformArguments, tran
     if (typeof (value) === "function")
       this[k] = this.$makeInterceptor(k);
   }
+};
+
+JSIL.Replay.Recording.ServiceProxy.prototype.$pushCall = function (name, args, result, threw) {
+  var list = this.calls[name];
+  if (!list)
+    list = this.calls[name] = [];
+
+  list.push(this.resultTransformer(name, result));
 };
 
 JSIL.Replay.Recording.ServiceProxy.prototype.$makeInterceptor = function (name) {
@@ -156,21 +152,12 @@ JSIL.Replay.Recording.ServiceProxy.prototype.$makeInterceptor = function (name) 
       var result = originalMethod.apply(this.service, args);
       failed = false;
 
-      this.calls.push(new JSIL.Replay.Recording.Call(
-        name, 
-        this.argumentTransformer(name, args), 
-        this.resultTransformer(name, result), 
-        false
-      ));
+      this.$pushCall(name, args, result, false);
 
       return result;
     } finally {
       if (failed)
-        this.calls.push(new JSIL.Replay.Recording.Call(
-          name, 
-          this.argumentTransformer(name, args), 
-          undefined, true
-        ));
+        this.$pushCall(name, args, undefined, true);
     }
   };
 };
@@ -282,24 +269,15 @@ JSIL.Replay.Playback.ServiceProxy = function (service, transformResult) {
 JSIL.Replay.Playback.ServiceProxy.prototype.$makeCallReplayer = function (name) {
   return function () {
     if (this.calls === null)
-      throw new Error("No call list loaded");
-    else if (this.calls.length < 1)
-      throw new Error("No more calls recorded");
+      throw new Error("No call table loaded");
 
-    var recordedCall = this.calls.shift();
+    var callList = this.calls[name];
+    if (!callList)
+      throw new Error("No call list for method '" + name + "'");
+    else if (callList.length < 1)
+      throw new Error("Call list for method '" + name + "' is empty");
 
-    // TODO: Maybe store call list keyed by function name so basic order mismatches are okay?
-    if (recordedCall.name !== name)
-      throw new Error("Method call order mismatch: Got '" + name + "', expected '" + recordedCall.name + "'.");
-
-    // TODO: Compare argument lists and check for mismatches?
-
-    // FIXME: We need to construct an exception that matches the original so that exception handling code
-    //   will run the same way it did during recording.
-    if (recordedCall.threw)
-      throw new Error("This method call threw during recording");
-
-    var result = this.resultTransformer(name, recordedCall.result);
+    var result = callList.shift();
     return result;
   };
 };
@@ -318,8 +296,14 @@ JSIL.Replay.Playback.FrameSchedulerProxy.prototype.advanceFrame = function () {
 
   if (this.player.nextFrame())
     callback();
-  else
+  else {
     JSIL.Host.logWriteLine("Replay ended after " + this.player.frameIndex + " frame(s).");
+
+    try {
+      Microsoft.Xna.Framework.Game.ForcePause();
+    } catch (exc) {
+    }
+  }
 };
 
 JSIL.Replay.Playback.FrameSchedulerProxy.prototype.schedule = function (callback, when) {

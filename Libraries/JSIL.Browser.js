@@ -188,15 +188,15 @@ JSIL.Browser.FrameSchedulerService = function () {
     this.schedule = function (stepCallback, when) {
       requestAnimationFrame.call(window, stepCallback);
     };
-  } else {    
+  } else {
     this.schedule = function (stepCallback, when) {
-      var actualNow = Date.now();
-      var now = JSIL.Host.getTime();
+      var actualNow = JSIL.$GetHighResTime();
+      var now = JSIL.Host.getTickCount();
       var waitDuration = when - now;
       var actualWhen = actualNow + waitDuration;
 
       var shouldStepCallback = function ShouldStep () {
-        var delay = actualWhen - Date.now();
+        var delay = actualWhen - JSIL.$GetHighResTime();
 
         if (delay < 1)
           stepCallback();
@@ -1006,11 +1006,6 @@ function setupStats () {
       statsHtml = '<span title="Frames Per Second"><span id="framesPerSecond">0</span> fps</span><br>' +
         '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>';
 
-      if (jsilConfig.record) {
-        statsHtml += 
-          '<span id="recordState"></span><br>';
-      }
-
       if (jsilConfig.replayURI || jsilConfig.replayName) {
         statsHtml +=
           '<span id="replayState"></span><br>';
@@ -1023,9 +1018,21 @@ function setupStats () {
         statsHtml +=
           '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
       }
+
+      if (jsilConfig.record) {
+        statsHtml += 
+          '<br><span id="recordState"></span><br>' +
+          '<button id="saveRecording">Save Recording</button>';
+      }
     }
 
     statsElement.innerHTML = statsHtml;
+
+    if (jsilConfig.record) {
+      document.getElementById("saveRecording").addEventListener(
+        "click", showSaveRecordingDialog, true
+      );
+    }
 
     JSIL.Host.reportPerformance = function (drawDuration, updateDuration, cacheSize, isWebGL) {
       var duration = drawDuration + updateDuration;
@@ -1206,4 +1213,88 @@ function registerErrorHandler () {
     else
       return false;
   };
+};
+
+function showSaveRecordingDialog () {
+  try {
+    Microsoft.Xna.Framework.Game.ForcePause();
+  } catch (exc) {
+  }
+
+  var theDialog = document.getElementById("saveRecordingDialog");
+  if (!theDialog) {
+    var dialog = document.createElement("div");
+    dialog.id = "saveRecordingDialog";
+
+    dialog.innerHTML = 
+      '<label for="recordingName">Recording Name:</label> <input type="text" id="recordingName" value="test"><br>' +
+      '<a id="saveRecordingToLocalStorage" href="#">Save to Local Storage</a> | <a id="saveRecordingAsFile" download="test.replay" target="_blank" href="#">Download</a> | <a id="cancelSaveRecording" href="#">Close</a>';
+
+    dialog.style.position = "absolute";
+    dialog.style.background = "Window";
+    dialog.style.padding = "24px";
+    dialog.style.borderRadius = "8px 8px 8px 8px";
+    dialog.style.boxShadow = "2px 2px 4px rgba(0, 0, 0, 0.75)";
+
+    var body = document.getElementsByTagName("body")[0];
+
+    body.appendChild(dialog);
+    theDialog = dialog;
+
+    document.getElementById("saveRecordingToLocalStorage").addEventListener("click", saveRecordingToLocalStorage, true);
+    document.getElementById("cancelSaveRecording").addEventListener("click", hideSaveRecordingDialog, true);
+
+    var inputField = document.getElementById("recordingName")
+    inputField.addEventListener("input", updateSaveLinkDownloadAttribute, true);
+    inputField.addEventListener("change", updateSaveLinkDownloadAttribute, true);
+    inputField.addEventListener("blur", updateSaveLinkDownloadAttribute, true);
+  }
+
+  var saveLink = document.getElementById("saveRecordingAsFile");
+
+  try {
+    // FIXME: Memory leak
+    var json = JSIL.Replay.SaveAsJSON();
+    var bytes = JSIL.StringToByteArray(json);
+
+    saveLink.href = JSIL.GetObjectURLForBytes(bytes, "application/json");
+  } catch (exc) {
+  }
+
+  var x = (document.documentElement.clientWidth - theDialog.clientWidth) / 2;
+  var y = (document.documentElement.clientHeight - theDialog.clientHeight) / 2;
+  theDialog.style.left = x + "px";
+  theDialog.style.top = y + "px";
+  theDialog.style.display = "block";
+};
+
+function updateSaveLinkDownloadAttribute (evt) {
+  var saveLink = document.getElementById("saveRecordingAsFile");
+  var recordingName = document.getElementById("recordingName").value.trim() || "untitled";
+
+  saveLink.download = recordingName + ".replay";
+};
+
+function saveRecordingToLocalStorage (evt) {
+  if (evt) {
+    evt.preventDefault();
+    evt.stopPropagation();
+  }
+
+  JSIL.Replay.SaveToLocalStorage(document.getElementById("recordingName").value.trim() || "untitled");
+};
+
+function hideSaveRecordingDialog (evt) {
+  if (evt) {
+    evt.preventDefault();
+    evt.stopPropagation();
+  }
+
+  var theDialog = document.getElementById("saveRecordingDialog");
+  theDialog.style.display = "none";
+
+  try {
+    Microsoft.Xna.Framework.Game.ForceUnpause();
+  } catch (exc) {
+  }  
 };

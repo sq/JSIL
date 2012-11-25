@@ -48,11 +48,19 @@ JSIL.Host.registerServices = function (services) {
 
 // Access services using these methods instead of getService directly.
 
+// Returns UTC time
 JSIL.Host.getTime = function () {
   var svc = JSIL.Host.getService("time");
   return svc.getUTC();
 };
 
+// Returns elapsed ticks since some starting point (usually page load), high precision.
+JSIL.Host.getTickCount = function () {
+  var svc = JSIL.Host.getService("time");
+  return svc.getTickCount();
+};
+
+// Entry point used by storage APIs to get UTC time.
 JSIL.Host.getFileTime = function () {
   // FIXME
   return Date.now();
@@ -151,7 +159,31 @@ JSIL.Host.scheduleFrame = function (frameCallback, when) {
 
 // Default service implementations that are environment-agnostic
 
+// Don't use for anything that needs to be reproducible in replays!
+JSIL.$GetHighResTime = function () {
+  if (
+    (typeof (window) !== "undefined") &&
+    (typeof (window.performance) !== "undefined") &&
+    (typeof (window.performance.now) === "function")
+  )
+    return window.performance.now();
+  else
+    return Date.now();
+};
+
 JSIL.Host.ES5TimeService = function () {
+  this.started = JSIL.$GetHighResTime();
+};
+
+JSIL.Host.ES5TimeService.prototype.getTickCount = function () {
+  var result = JSIL.$GetHighResTime() - this.started;
+
+  // Round it to a few digits past the decimal.
+  result *= 100;
+  result = Math.round(result);
+  result /= 100;
+
+  return result;
 };
 
 JSIL.Host.ES5TimeService.prototype.getUTC = function () {
