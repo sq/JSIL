@@ -907,11 +907,20 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
 
       state.warningCount += 1;
       var msg = "The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented.";
+      var err = new Error(msg);
 
-      if (JSIL.ThrowOnUnimplementedExternals)
-        JSIL.Host.abort(new Error(msg));
-      else
+      if (JSIL.ThrowOnUnimplementedExternals) {
+        JSIL.Host.abort(err);
+      } else {
+        if (typeof (err.stack) !== "undefined") {
+          if (err.stack.indexOf(err.toString()) === 0)
+            msg = err.stack;
+          else
+            msg += "\n" + err.stack;
+        }
+
         JSIL.Host.warning(msg);
+      }
     };
   }
 
