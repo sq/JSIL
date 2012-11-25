@@ -6,6 +6,18 @@ if (typeof (JSIL) === "undefined")
 JSIL.Host.isBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
 
 
+JSIL.Host.initCallbacks = [];
+
+JSIL.Host.runInitCallbacks = function () {
+  for (var i = 0; i < JSIL.Host.initCallbacks.length; i++) {
+    var cb = JSIL.Host.initCallbacks[i];
+    cb();
+  }
+
+  JSIL.Host.initCallbacks = null;
+};
+
+
 JSIL.Host.services = Object.create(null);
 
 JSIL.Host.getService = function (key, noThrow) {
@@ -20,12 +32,16 @@ JSIL.Host.getService = function (key, noThrow) {
   return svc;
 };
 
+JSIL.Host.registerService = function (name, service) {
+  JSIL.Host.services[name] = service;
+};
+
 JSIL.Host.registerServices = function (services) {
   for (var key in services) {
     if (!services.hasOwnProperty(key))
       continue;
 
-    JSIL.Host.services[key] = services[key];
+    JSIL.Host.registerService(key, services[key]);
   }
 };
 

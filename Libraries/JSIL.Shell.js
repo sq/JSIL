@@ -101,6 +101,7 @@ function shellStartup () {
 
   if (typeof (runMain) === "function") {
     JSIL.Initialize();
+    JSIL.Host.runInitCallbacks();
     runMain();
   }
 }

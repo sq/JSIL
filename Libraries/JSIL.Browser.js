@@ -856,51 +856,62 @@ function beginLoading () {
   }
   
   JSIL.Host.logWrite("Loading data ... ");
-  loadAssets(allAssetsToLoad, function (loadFailures) {
-    $jsilbrowserstate.isLoading = false;
-    $jsilbrowserstate.isLoaded = true;
+  loadAssets(allAssetsToLoad, browserFinishedLoadingCallback);
+};
 
-    if (loadFailures && (loadFailures.length > 0)) {
-      JSIL.Host.logWriteLine("failed.");
+function browserFinishedLoadingCallback (loadFailures) {
+  var progressBar = document.getElementById("progressBar");
+  var loadButton = document.getElementById("loadButton");
+  var fullscreenButton = document.getElementById("fullscreenButton");
+  var quitButton = document.getElementById("quitButton");
+  var loadingProgress = document.getElementById("loadingProgress");
+  var stats = document.getElementById("stats");
+  
+  $jsilbrowserstate.isLoading = false;
+  $jsilbrowserstate.isLoaded = true;
+
+  if (loadFailures && (loadFailures.length > 0)) {
+    JSIL.Host.logWriteLine("failed.");
+  } else {
+    JSIL.Host.logWriteLine("done.");
+  }
+  try {     
+    if (quitButton)
+      quitButton.style.display = "";
+
+    if (fullscreenButton && canGoFullscreen)
+      fullscreenButton.style.display = "";
+
+    if (stats)
+      stats.style.display = "";
+
+    if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0)) {
+      jsilConfig.onLoadFailed(loadFailures);
     } else {
-      JSIL.Host.logWriteLine("done.");
-    }
-    try {     
-      if (quitButton)
-        quitButton.style.display = "";
+      JSIL.Host.runInitCallbacks();
 
-      if (fullscreenButton && canGoFullscreen)
-        fullscreenButton.style.display = "";
-
-      if (stats)
-        stats.style.display = "";
-
-      if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0)) {
-        jsilConfig.onLoadFailed(loadFailures);
-      } else {
-        if (typeof (runMain) === "function") {
-          $jsilbrowserstate.mainRunAtTime = Date.now();
-          $jsilbrowserstate.isMainRunning = true;
-          runMain();
-          $jsilbrowserstate.isMainRunning = false;
-          $jsilbrowserstate.hasMainRun = true;
-        }
+      if (typeof (runMain) === "function") {
+        $jsilbrowserstate.mainRunAtTime = Date.now();
+        $jsilbrowserstate.isMainRunning = true;
+        runMain();
+        $jsilbrowserstate.isMainRunning = false;
+        $jsilbrowserstate.hasMainRun = true;
       }
-
-      // Main doesn't block since we're using the browser's event loop          
-    } finally {
-      $jsilbrowserstate.isMainRunning = false;
-
-      if (loadingProgress)
-        loadingProgress.style.display = "none";
     }
-  });
-}
+
+    // Main doesn't block since we're using the browser's event loop          
+  } finally {
+    $jsilbrowserstate.isMainRunning = false;
+
+    if (loadingProgress)
+      loadingProgress.style.display = "none";
+  }
+};
 
 function quitGame () {
   Microsoft.Xna.Framework.Game.ForceQuit();
   document.getElementById("quitButton").style.display = "none";
-}
+};
 
 var canGoFullscreen = false;
 var integralFullscreenScaling = false;
