@@ -131,7 +131,7 @@ JSIL.Browser.LogService.prototype.write = function (text) {
       this.currentLine = document.createTextNode(lines[0]);
       log.appendChild(this.currentLine);
     } else {
-      this.currentLine.textContent += line;
+      this.currentLine.textContent += lines[0];
     }
 
     return;
