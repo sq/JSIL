@@ -887,23 +887,27 @@ JSIL.UnknownMember = function (memberName) {
 
 JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedMember) {
   var state = {
-    alreadyWarned: false
+    warningCount: 0
   };
 
   var result;
   if (typeof (inheritedMember) === "function") {
     result = function ExternalMemberStub () {
-      if (!state.alreadyWarned) {
+      if (state.warningCount < 1) {
         JSIL.Host.warning("The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
-        state.alreadyWarned = true;
+        state.warningCount += 1;
       }
 
       return Function.prototype.apply.call(inheritedMember, this, arguments);
     };
   } else {
     result = function ExternalMemberStub () {
+      if (state.warningCount > 3)
+        return;
+
+      state.warningCount += 1;
       var msg = "The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented.";
-      
+
       if (JSIL.ThrowOnUnimplementedExternals)
         JSIL.Host.abort(new Error(msg));
       else
