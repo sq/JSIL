@@ -48,7 +48,23 @@ var $jsilloaderstate = {
   };
 
   Environment_Browser.prototype.getUserSetting = function (key) {
-    return document.location.search.indexOf(key) >= 0;
+    key = key.toLowerCase();
+
+    var query = window.location.search.substring(1);
+    var vars = query.split('&');
+
+    for (var i = 0; i < vars.length; i++) {
+      var pair = vars[i].split('=');
+
+      if (decodeURIComponent(pair[0]).toLowerCase() === key) {
+        if (pair.length > 1)
+          return decodeURIComponent(pair[1]);
+        else
+          return true;
+      }
+    }
+
+    return false;
   };
 
   Environment_Browser.prototype.loadScript = function (uri) {
@@ -164,6 +180,18 @@ var $jsilloaderstate = {
 
   if (config.testFixture || environment.getUserSetting("testFixture"))
     environment.loadScript(libraryRoot + "JSIL.TestFixture.js");
+
+  config.record |= Boolean(environment.getUserSetting("record"));
+  config.replayURI = environment.getUserSetting("replayURI") || config.replayURI;
+  config.replayName = environment.getUserSetting("replayName") || config.replayName;
+
+  if (
+    config.record || 
+    config.replayURI ||
+    config.replayName
+  ) {
+    environment.loadScript(libraryRoot + "JSIL.Replay.js");
+  }
 
   var manifests = config.manifests || [];
 

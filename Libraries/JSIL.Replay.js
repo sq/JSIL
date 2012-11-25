@@ -3,9 +3,30 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-var $jsilreplay = JSIL.DeclareAssembly("JSIL.Replay");
 
-JSIL.MakeClass($jsilcore.System.Object, "ReplayRecorder", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function () {
-  });
-});
+JSIL.DeclareNamespace("JSIL.Replay", false);
+
+
+JSIL.Replay.Recorder = function () {
+  this.replay = Object.create(null);
+};
+
+JSIL.Replay.Recorder.prototype.save = function () {
+};
+
+/*
+
+JSIL.Replay.Recorder.prototype. = function () {
+};
+
+JSIL.Replay.Recorder.prototype. = function () {
+};
+
+JSIL.Replay.Recorder.prototype. = function () {
+};
+
+*/
+
+
+JSIL.Replay.Player = function (replay) {
+};
