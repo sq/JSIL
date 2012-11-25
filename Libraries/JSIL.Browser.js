@@ -1013,8 +1013,12 @@ function setupStats () {
 
       if (jsilConfig.replayURI || jsilConfig.replayName) {
         statsHtml +=
-          '<span id="replayState"></span><br>' + 
-          '<input type="checkbox" id="fastReplay" name="fastReplay"> <label for="fastReplay">Fast Playback</label>';
+          '<span id="replayState"></span><br>';
+
+        if (!jsilConfig.fastReplay) {
+          statsHtml += 
+            '<input type="checkbox" id="fastReplay" name="fastReplay"> <label for="fastReplay">Fast Playback</label>';
+        }
       } else {
         statsHtml +=
           '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';

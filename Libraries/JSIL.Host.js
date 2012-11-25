@@ -53,6 +53,11 @@ JSIL.Host.getTime = function () {
   return svc.getUTC();
 };
 
+JSIL.Host.getFileTime = function () {
+  // FIXME
+  return Date.now();
+};
+
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var svc = JSIL.Host.getService("canvas");
   return svc.get(desiredWidth, desiredHeight);

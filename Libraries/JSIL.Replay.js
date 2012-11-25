@@ -72,9 +72,8 @@ JSIL.Replay.Recorder = function () {
   JSIL.Host.registerService("frameScheduler", this.frameScheduler);
 
   this.replay = Object.create(null);
-  this.replay.frameTimestamps = [];
   this.replay.frameData = Object.create(null);
-  this.frameCount = 0;
+  this.replay.frameCount = 0;
 
   for (var k in this.serviceProxies)
     this.replay.frameData[k] = [];
@@ -98,8 +97,7 @@ JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
 };
 
 JSIL.Replay.Recorder.prototype.pushFrame = function () {
-  this.replay.frameTimestamps.push(Date.now());
-  this.frameCount += 1;
+  this.replay.frameCount += 1;
 
   for (var key in this.serviceProxies) {
     var callList = [];
@@ -110,7 +108,7 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
   if (typeof (document) !== "undefined") {
     var statusSpan = document.getElementById("recordState");
     if (statusSpan)
-      statusSpan.textContent = "Recording (" + this.frameCount + " frame(s))";
+      statusSpan.textContent = "Recording (" + this.replay.frameCount + " frame(s))";
   }
 };
 
@@ -255,7 +253,7 @@ JSIL.Replay.Player.prototype.nextFrame = function () {
     var statusSpan = document.getElementById("replayState");
     if (statusSpan) {
       if (this.isPlaying)
-        statusSpan.textContent = "Playing (frame " + this.frameIndex + ")";
+        statusSpan.textContent = "Playing (" + this.frameIndex + "/" + this.replay.frameCount + ")";
       else
         statusSpan.textContent = "Replay Ended";
     }
@@ -285,7 +283,7 @@ JSIL.Replay.Playback.ServiceProxy.prototype.$makeCallReplayer = function (name) 
   return function () {
     if (this.calls === null)
       throw new Error("No call list loaded");
-    else if (!this.calls)
+    else if (this.calls.length < 1)
       throw new Error("No more calls recorded");
 
     var recordedCall = this.calls.shift();
@@ -327,8 +325,14 @@ JSIL.Replay.Playback.FrameSchedulerProxy.prototype.advanceFrame = function () {
 JSIL.Replay.Playback.FrameSchedulerProxy.prototype.schedule = function (callback, when) {
   this.pendingFrameCallback = callback;
 
-  var fast = true;
-  if (fast)
+  var fastPlayback = jsilConfig.fastReplay || false;
+  if (typeof (document) !== "undefined") {
+    var checkbox = document.getElementById("fastReplay")
+    if (checkbox)
+      fastPlayback = Boolean(checkbox.checked);
+  }
+
+  if (fastPlayback)
     window.setTimeout(this.boundAdvanceFrame, 0);
   else
     this.service.schedule(this.boundAdvanceFrame, when);

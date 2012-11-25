@@ -184,6 +184,7 @@ var $jsilloaderstate = {
   config.record |= Boolean(environment.getUserSetting("record"));
   config.replayURI = environment.getUserSetting("replayURI") || config.replayURI;
   config.replayName = environment.getUserSetting("replayName") || config.replayName;
+  config.fastReplay = config.fastReplay || environment.getUserSetting("fastReplay") || false;
 
   if (
     config.record || 
