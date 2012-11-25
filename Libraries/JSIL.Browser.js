@@ -999,24 +999,45 @@ function setupStats () {
   var statsElement = document.getElementById("stats");
 
   if (statsElement !== null) {
+    var statsHtml;
     if (jsilConfig.graphicalStats) {
-      statsElement.innerHTML = '<label for="fpsIndicator">Performance: </label><div id="fpsIndicator"></div>';
+      statsHtml = '<label for="fpsIndicator">Performance: </label><div id="fpsIndicator"></div>';
     } else {
-      statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
-        '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-        '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>' +
-        '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
+      statsHtml = '<span title="Frames Per Second"><span id="framesPerSecond">0</span> fps</span><br>' +
+        '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>';
+
+      if (jsilConfig.record) {
+        statsHtml += 
+          '<span id="recordState"></span><br>';
+      }
+
+      if (jsilConfig.replayURI || jsilConfig.replayName) {
+        statsHtml +=
+          '<span id="replayState"></span><br>' + 
+          '<input type="checkbox" id="fastReplay" name="fastReplay"> <label for="fastReplay">Fast Playback</label>';
+      } else {
+        statsHtml +=
+          '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
+      }
     }
 
-    JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
+    statsElement.innerHTML = statsHtml;
+
+    JSIL.Host.reportPerformance = function (drawDuration, updateDuration, cacheSize, isWebGL) {
+      var duration = drawDuration + updateDuration;
+      if (duration <= 0)
+        duration = 0.01;
+
+      var effectiveFramerate = 1000 / duration;
+
       if (jsilConfig.graphicalStats) {
         var e = document.getElementById("fpsIndicator");
         var color, legend;
 
-        if (drawsPerSecond >= 50) {
+        if (effectiveFramerate >= 50) {
           color = "green";
           legend = "Great";
-        } else if (drawsPerSecond >= 25) {
+        } else if (effectiveFramerate >= 25) {
           color = "yellow";
           legend = "Acceptable";
         } else {
@@ -1025,13 +1046,10 @@ function setupStats () {
         }
 
         e.style.backgroundColor = color;
-        e.title = "Performance: " + legend;
+        e.title = "Performance: " + legend + " (~" + effectiveFramerate.toFixed(1) + " frames/s)";
       } else {
-        var e = document.getElementById("drawsPerSecond");
-        e.innerHTML = drawsPerSecond.toString();
-        
-        e = document.getElementById("updatesPerSecond");
-        e.innerHTML = updatesPerSecond.toString();
+        var e = document.getElementById("framesPerSecond");
+        e.textContent = effectiveFramerate.toFixed(2);
 
         var cacheSizeMb = (cacheSize / (1024 * 1024)).toFixed(1);
         
@@ -1045,19 +1063,16 @@ function setupStats () {
         e.innerHTML = cacheSizeMb;
       }
 
-      if (jsilConfig.reportFps) {
-        jsilConfig.reportFps(drawsPerSecond, updatesPerSecond, cacheSize, isWebGL);
-      }
+      if (jsilConfig.reportPerformance)
+        jsilConfig.reportPerformance(drawDuration, updateDuration, cacheSize, isWebGL);
 
-      if ($logFps) {
-        console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
-      }
+      if ($logFps)
+        console.log("draw ms:", drawDuration, " update ms:", updateDuration);
     };
   } else {
-    JSIL.Host.reportFps = function () {
-      if ($logFps) {
-        console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
-      }  
+    JSIL.Host.reportPerformance = function (drawDuration, updateDuration) {
+      if ($logFps)
+        console.log("draw ms:", drawDuration, " update ms:", updateDuration);
     };
   }
 };

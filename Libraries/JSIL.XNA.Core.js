@@ -1292,32 +1292,55 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
-    var updateStarted = JSIL.Host.getTime();
+    var updateStarted = Date.now();
     this.Update(this._gameTime);
-    var updateEnded = JSIL.Host.getTime();
+    var updateEnded = Date.now();
 
     // Detect long updates and suppress frameskip.
     if ((updateEnded - updateStarted) > longFrame) {
       this.suppressFrameskip = true;
     }
     
-    this._updateCount += 1;
+    this._updateTimings.push(updateEnded - updateStarted);
+  });
+
+  $.RawMethod(false, "_MaybeReportFPS", function Game_MaybeReportFPS (now) {
+    var elapsed = now - this._lastFPSReport;
+    if (elapsed >= 250) {
+      this._ReportFPS(now);
+    }
   });
 
   $.RawMethod(false, "_ReportFPS", function Game_ReportFPS (now) {
-    this._lastSecond = now;
+    var maxTimingSamples = 60;
+
+    this._lastFPSReport = now;
+
+    // FIXME: Slower than necessary.
+
+    while (this._drawTimings.length > maxTimingSamples)
+      this._drawTimings.shift();
+
+    while (this._updateTimings.length > maxTimingSamples)
+      this._updateTimings.shift();
+
+    var updateTimeSum = 0, drawTimeSum = 0;
+
+    for (var i = 0, l = this._drawTimings.length; i < l; i++)
+      drawTimeSum += this._drawTimings[i];
+
+    for (var i = 0, l = this._updateTimings.length; i < l; i++)
+      updateTimeSum += this._updateTimings[i];
+
+    var updateTimeAverage = updateTimeSum / this._updateTimings.length;
+    var drawTimeAverage = drawTimeSum / this._drawTimings.length;
     
-    if (typeof (JSIL.Host.reportFps) === "function") {
+    if (typeof (JSIL.Host.reportPerformance) === "function") {
       var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
       var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
 
-      JSIL.Host.reportFps(
-        this._drawCount, this._updateCount, 
-        cacheBytes, isWebGL
-      );
+      JSIL.Host.reportPerformance(drawTimeAverage, updateTimeAverage, cacheBytes, isWebGL);
     }
-
-    this._updateCount = this._drawCount = 0;
   });
 
   $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (
@@ -1375,6 +1398,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_RenderAFrame", function Game_RenderAFrame () {
+    var started = Date.now();
+
     var device = this.get_GraphicsDevice();
 
     device.$UpdateViewport();      
@@ -1382,11 +1407,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     this.Draw(this._gameTime);
 
-    this._drawCount += 1;
+    var ended = Date.now();
+    this._drawTimings.push(ended - started);
   });
 
   $.RawMethod(false, "_Step", function Game_Step () {
     var now = JSIL.Host.getTime();
+    var actualNow = Date.now();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
     if (frameDelay <= 0)
@@ -1396,8 +1423,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var elapsed = frameDelay;
       var total = 0;
       this._started = now;
-      this._lastSecond = now;
-      this._updateCount = this._drawCount = 0;
+      this._lastFPSReport = actualNow;
+      this._updateTimings = [];
+      this._drawTimings = [];
       this._extraTime = 0;
       this.suppressFrameskip = true;
     } else {
@@ -1405,12 +1433,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) > 1000) {
-      this._ReportFPS(now);
+    this._MaybeReportFPS(actualNow);
 
-      $jsilxna.imageChannelCache.maybeEvictItems();
-      $jsilxna.textCache.maybeEvictItems();
-    }
+    $jsilxna.imageChannelCache.maybeEvictItems();
+    $jsilxna.textCache.maybeEvictItems();
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
