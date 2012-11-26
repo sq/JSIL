@@ -2187,10 +2187,11 @@ namespace JSIL {
             var methodRef = arguments[1];
 
             var methodDot = methodRef as JSDotExpressionBase;
+            JSMethod methodMember = null;
 
             // Detect compiler-generated lambda methods
             if (methodDot != null) {
-                var methodMember = methodDot.Member as JSMethod;
+                methodMember = methodDot.Member as JSMethod;
 
                 if (methodMember != null) {
                     var methodDef = methodMember.Method.Member;
@@ -2241,6 +2242,11 @@ namespace JSIL {
                         );
                     }
                 }
+            }
+
+            if (methodMember != null) {
+                if (methodMember.Method.IsStatic)
+                    thisArg = new JSType(methodMember.Reference.DeclaringType);
             }
 
             return JSIL.NewDelegate(

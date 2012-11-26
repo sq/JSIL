@@ -14,6 +14,7 @@ if (typeof (jsilConfig) === "undefined") {
 JSIL.SuppressInterfaceWarnings = true;
 JSIL.ReadOnlyPropertyWriteWarnings = false;
 JSIL.ThrowOnUnimplementedExternals = false;
+JSIL.ThrowOnStaticCctorError = false;
 
 JSIL.GlobalNamespace = this;
 
@@ -3356,7 +3357,12 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
       try {
         cctor.call(classObject);
       } catch (e) {
-        JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
+        if (JSIL.ThrowOnStaticCctorError) {
+          JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
+        } else {
+          JSIL.Host.warning("Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ":");
+          JSIL.Host.warning(e);
+        }
       }
     }
   }
@@ -4622,7 +4628,10 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
   };
 
   result.apply = function BoundGenericMethod_Apply (thisReference, invokeArguments) {
-    invokeArguments = genericArguments.concat(invokeArguments);
+    // This value might be an Arguments object instead of an array.
+    invokeArguments = genericArguments.concat(
+      Array.prototype.slice.call(invokeArguments)
+    );
     return body.apply(thisReference, invokeArguments);
   };
 
