@@ -1364,12 +1364,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var updateTimeAverage = updateTimeSum / this._updateTimings.length;
     var drawTimeAverage = drawTimeSum / this._drawTimings.length;
     
-    if (typeof (JSIL.Host.reportPerformance) === "function") {
-      var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
-      var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
+    var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
+    var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
 
-      JSIL.Host.reportPerformance(drawTimeAverage, updateTimeAverage, cacheBytes, isWebGL);
-    }
+    JSIL.Host.reportPerformance(drawTimeAverage, updateTimeAverage, cacheBytes, isWebGL);
   });
 
   $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (

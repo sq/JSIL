@@ -91,7 +91,10 @@ JSIL.Replay.Recorder = function () {
 };
 
 JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
-  var servicesToProxy = ["time", "keyboard", "mouse", "pageVisibility"];
+  var servicesToProxy = [
+    "time", "keyboard", "mouse", "pageVisibility", 
+    "window", "history"
+  ];
 
   this.serviceProxies = Object.create(null);
 
@@ -236,6 +239,13 @@ JSIL.Replay.Player = function (replay) {
   this.localStorage = new JSIL.Replay.Playback.MockLocalStorageService(this.replay.localStorage || null);
   JSIL.Host.registerService("localStorage", this.localStorage);
 
+  this.performanceReporter = new JSIL.Replay.Playback.PerformanceReporterService(JSIL.Host.getService("performanceReporter"));
+  JSIL.Host.registerService("performanceReporter", this.performanceReporter);
+
+  this.playbackStarted = JSIL.$GetHighResTime();
+  this.playbackLeftFirstFrame = -1;
+  this.playbackEnded = -1;
+
   // Set the frame index to -1 so nextFrame steps us to frame 0
   this.frameIndex = -1;
   this.nextFrame();
@@ -257,6 +267,9 @@ JSIL.Replay.Player.prototype.createServiceProxies = function () {
 };
 
 JSIL.Replay.Player.prototype.setCurrentFrame = function (frameIndex) {
+  if ((frameIndex > 0) && (this.playbackLeftFirstFrame <= 0))
+    this.playbackLeftFirstFrame = JSIL.$GetHighResTime();
+
   this.frameIndex = frameIndex;
 
   this.currentFrame = Object.create(null);
@@ -288,6 +301,87 @@ JSIL.Replay.Player.prototype.nextFrame = function () {
   }
 
   return this.isPlaying;
+};
+
+JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
+  this.playbackEnded = JSIL.$GetHighResTime();
+
+  try {
+    Microsoft.Xna.Framework.Game.ForcePause();
+  } catch (exc) {
+  }
+
+  JSIL.Host.logWriteLine("Replay ended after " + this.frameIndex + " frame(s).");
+  JSIL.Host.logWriteLine(System.String.Format(
+    "Game startup took {0:00000.0}ms. Playback took {1:000000.0}ms.",
+    this.playbackLeftFirstFrame - this.playbackStarted,
+    this.playbackEnded - this.playbackLeftFirstFrame
+  ));
+
+  var getAggregates = function (samples) {
+    samples.sort();
+
+    var interestingPercentiles = [0, 1, 5, 25, 50, 75, 95, 99, 100];
+    var percentiles = Object.create(null);
+    var min = 999999, max = -999999, sum = 0;
+
+    for (var i = 0, l = samples.length; i < l; i++) {
+      var sample = samples[i];
+
+      min = Math.min(min, sample);
+      max = Math.max(max, sample);
+      sum += sample;
+    }
+
+    for (var j = 0; j < interestingPercentiles.length; j++) {
+      var p = interestingPercentiles[j];
+
+      var i = (p / 100) * samples.length;
+      var i1 = Math.floor(i), i2 = Math.ceil(i);
+      var weight = i - i1;
+
+      if (i1 < 0)
+        i1 = 0;
+      if (i1 >= samples.length)
+        i1 = samples.length - 1;
+      if (i2 >= samples.length)
+        i2 = samples.length - 1;
+
+      var sample1 = samples[i1], sample2 = samples[i2];
+      percentiles[p] = (sample1 * (1 - weight)) + (sample2 * weight);
+    }
+
+    return {
+      sum: sum,
+      min: min,
+      max: max,
+      average: sum / samples.length,
+      median: percentiles[50],
+      percentiles: percentiles
+    };
+  };
+
+  var updateAggregates = getAggregates(this.performanceReporter.updateSamples);
+  var drawAggregates = getAggregates(this.performanceReporter.drawSamples);
+
+  JSIL.Host.logWriteLine(System.String.Format(
+    "Framerate: Average {0:00000.0}fps, Median {1:00000.0}fps, 1st percentile {2:00000.0}fps, 99th percentile {3:00000.0}fps",
+    1000 / (updateAggregates.average + drawAggregates.average),
+    1000 / (updateAggregates.median + drawAggregates.median),
+    1000 / (updateAggregates.percentiles[1] + drawAggregates.percentiles[1]),
+    1000 / (updateAggregates.percentiles[99] + drawAggregates.percentiles[99])
+  ));
+
+  JSIL.Host.logWriteLine("// begin JSON-formatted data //");
+  var jsonData = {
+    playbackStarted: this.playbackStarted,
+    playbackLeftFirstFrame: this.playbackLeftFirstFrame,
+    playbackEnded: this.playbackEnded,
+    draw: drawAggregates,
+    update: updateAggregates
+  };
+  JSIL.Host.logWriteLine(JSON.stringify(jsonData));
+  JSIL.Host.logWriteLine("// end JSON-formatted data //");
 };
 
 
@@ -338,14 +432,8 @@ JSIL.Replay.Playback.TickSchedulerProxy.prototype.advanceFrame = function () {
 
   if (this.player.nextFrame())
     callback();
-  else {
-    JSIL.Host.logWriteLine("Replay ended after " + this.player.frameIndex + " frame(s).");
-
-    try {
-      Microsoft.Xna.Framework.Game.ForcePause();
-    } catch (exc) {
-    }
-  }
+  else
+    this.player.onPlaybackEnded();
 };
 
 JSIL.Replay.Playback.TickSchedulerProxy.prototype.schedule = function (callback, when) {
@@ -386,6 +474,20 @@ JSIL.Replay.Playback.MockLocalStorageService.prototype.removeItem = function (ke
 
 JSIL.Replay.Playback.MockLocalStorageService.prototype.getKeys = function () {
   return Object.keys(this.data);
+};
+
+
+JSIL.Replay.Playback.PerformanceReporterService = function (service) {
+  this.service = service;
+  this.drawSamples = [];
+  this.updateSamples = [];
+};
+
+JSIL.Replay.Playback.PerformanceReporterService.prototype.report = function (drawDuration, updateDuration, cacheSize, isWebGL) {
+  this.drawSamples.push(drawDuration);
+  this.updateSamples.push(updateDuration);
+
+  this.service.report(drawDuration, updateDuration, cacheSize, isWebGL);
 };
 
 

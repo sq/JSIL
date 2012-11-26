@@ -234,6 +234,14 @@ JSIL.Browser.WindowService.prototype.prompt = function () {
   return this.window.prompt.apply(this.window, arguments);
 };
 
+JSIL.Browser.WindowService.prototype.getTitle = function () {
+  return this.window.title;
+};
+
+JSIL.Browser.WindowService.prototype.setTitle = function (value) {
+  return this.window.document.title = this.window.title = value;
+};
+
 JSIL.Browser.WindowService.prototype.getLocationHref = function () {
   return this.window.location.href;
 };
@@ -269,6 +277,20 @@ JSIL.Browser.WindowService.prototype.getPerformanceUsedJSHeapSize = function () 
 };
 
 
+JSIL.Browser.HistoryService = function (history) {
+  this.history = history;
+  this.canPushState = typeof (this.history.pushState) === "function";
+};
+
+JSIL.Browser.HistoryService.prototype.pushState = function (a, b, c) {
+  return this.history.pushState(a, b, c);
+};
+
+JSIL.Browser.HistoryService.prototype.replaceState = function (a, b, c) {
+  return this.history.replaceState(a, b, c);
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -281,7 +303,8 @@ JSIL.Browser.WindowService.prototype.getPerformanceUsedJSHeapSize = function () 
     stdout: logSvc,
     stderr: new JSIL.Browser.WarningService(logSvc),
     tickScheduler: new JSIL.Browser.TickSchedulerService(),
-    window: new JSIL.Browser.WindowService(window)
+    window: new JSIL.Browser.WindowService(window),
+    history: new JSIL.Browser.HistoryService(window.history)
   });
 
   if (typeof (localStorage) !== "undefined")
@@ -1059,6 +1082,7 @@ function generateHTML () {
 
 function setupStats () {
   var statsElement = document.getElementById("stats");
+  var performanceReporterFunction;
 
   if (statsElement !== null) {
     var statsHtml;
@@ -1098,7 +1122,7 @@ function setupStats () {
       );
     }
 
-    JSIL.Host.reportPerformance = function (drawDuration, updateDuration, cacheSize, isWebGL) {
+    performanceReporterFunction = function (drawDuration, updateDuration, cacheSize, isWebGL) {
       var duration = drawDuration + updateDuration;
       if (duration <= 0)
         duration = 0.01;
@@ -1145,11 +1169,15 @@ function setupStats () {
         console.log("draw ms:", drawDuration, " update ms:", updateDuration);
     };
   } else {
-    JSIL.Host.reportPerformance = function (drawDuration, updateDuration) {
+    performanceReporterFunction = function (drawDuration, updateDuration) {
       if ($logFps)
         console.log("draw ms:", drawDuration, " update ms:", updateDuration);
     };
   }
+
+  JSIL.Host.registerService("performanceReporter", {
+    report: performanceReporterFunction
+  });  
 };
 
 function onLoad () {

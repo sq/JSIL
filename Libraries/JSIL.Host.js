@@ -156,6 +156,13 @@ JSIL.Host.scheduleTick = function (tickCallback) {
   svc.schedule(tickCallback);
 };
 
+JSIL.Host.reportPerformance = function (drawDuration, updateDuration, cacheSize, isWebGL) {
+  var svc = JSIL.Host.getService("performanceReporter", true);
+  if (!svc)
+    return;
+
+  svc.report(drawDuration, updateDuration, cacheSize, isWebGL);
+};
 
 // Default service implementations that are environment-agnostic
 
