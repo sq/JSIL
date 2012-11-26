@@ -440,7 +440,7 @@ function initBrowserHooks () {
       return true;
 
     if ((document.activeElement !== null)) {
-      switch (document.activeElement.tagName.toLowerCase()) {
+      switch (String(document.activeElement.tagName).toLowerCase()) {
         case "form":
         case "select":
         case "input":
