@@ -255,9 +255,13 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
 });
 
 $jsilcore.getCurrentUICultureImpl = function () {
-  var language = "en-US";
-  if (window && window.navigator) {
-    language = window.navigator.language || window.navigator.userLanguage || window.navigator.systemLanguage || "en-US";
+  var language;
+  var svc = JSIL.Host.getService("window", false);
+
+  if (svc) {
+    language = svc.getNavigatorLanguage() || "en-US";
+  } else {
+    language = "en-US";
   }
   
   return $jsilcore.System.Globalization.CultureInfo.GetCultureInfo(language);

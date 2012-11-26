@@ -195,6 +195,8 @@ var $jsilloaderstate = {
     environment.loadScript(libraryRoot + "JSIL.Replay.js");
   }
 
+  config.disableSound = config.disableSound || environment.getUserSetting("disableSound") || false;
+
   var manifests = config.manifests || [];
 
   for (var i = 0, l = manifests.length; i < l; i++)

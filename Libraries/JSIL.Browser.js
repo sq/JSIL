@@ -196,6 +196,83 @@ JSIL.Browser.TickSchedulerService = function () {
 };
 
 
+JSIL.Browser.LocalStorageService = function (storage) {
+  this.storage = storage;
+};
+
+JSIL.Browser.LocalStorageService.prototype.getItem = function (key) {
+  return this.storage.getItem(key);
+};
+
+JSIL.Browser.LocalStorageService.prototype.setItem = function (key, text) {
+  return this.storage.setItem(key, text);
+};
+
+JSIL.Browser.LocalStorageService.prototype.removeItem = function (key) {
+  return this.storage.removeItem(key);
+};
+
+JSIL.Browser.LocalStorageService.prototype.getAll = function () {
+  var result = Object.create(null);
+  var keys = this.getKeys();
+
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    result[key] = this.getItem(key);
+  }
+
+  return result;
+};
+
+JSIL.Browser.LocalStorageService.prototype.getKeys = function () {
+  var result = new Array(this.storage.length);
+
+  for (var i = 0, l = result.length; i < l; i++)
+    result[i] = this.storage.key(i);
+
+  return result;
+};
+
+
+JSIL.Browser.WindowService = function (window) {
+  this.window = window;
+};
+
+JSIL.Browser.WindowService.prototype.getLocationHref = function () {
+  return this.window.location.href;
+};
+
+JSIL.Browser.WindowService.prototype.getLocationHash = function () {
+  return this.window.location.hash;
+};
+
+JSIL.Browser.WindowService.prototype.getLocationSearch = function () {
+  return this.window.location.search;
+};
+
+JSIL.Browser.WindowService.prototype.getNavigatorUserAgent = function () {
+  return this.window.navigator.userAgent;
+};
+
+JSIL.Browser.WindowService.prototype.getNavigatorLanguage = function () {
+  return this.window.navigator.language || 
+    this.window.navigator.userLanguage || 
+    this.window.navigator.systemLanguage || 
+    null;
+};
+
+JSIL.Browser.WindowService.prototype.getPerformanceUsedJSHeapSize = function () {
+  if (
+    (typeof (this.window.performance) !== "undefined") && 
+    (typeof (this.window.performance.memory) !== "undefined")
+  ) {
+    return this.window.performance.memory.usedJSHeapSize;
+  } else {
+    return 0;
+  }
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -207,8 +284,12 @@ JSIL.Browser.TickSchedulerService = function () {
     runLater: new JSIL.Browser.RunLaterService(),
     stdout: logSvc,
     stderr: new JSIL.Browser.WarningService(logSvc),
-    tickScheduler: new JSIL.Browser.TickSchedulerService()
+    tickScheduler: new JSIL.Browser.TickSchedulerService(),
+    window: new JSIL.Browser.WindowService(window)
   });
+
+  if (typeof (localStorage) !== "undefined")
+    JSIL.Host.registerService("localStorage", new JSIL.Browser.LocalStorageService(localStorage));
 })();
 
 
@@ -991,24 +1072,26 @@ function setupStats () {
       statsHtml = '<span title="Frames Per Second"><span id="framesPerSecond">0</span> fps</span><br>' +
         '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>';
 
-      if (jsilConfig.replayURI || jsilConfig.replayName) {
-        statsHtml +=
-          '<span id="replayState"></span><br>';
-
-        if (!jsilConfig.fastReplay) {
-          statsHtml += 
-            '<input type="checkbox" id="fastReplay" name="fastReplay"> <label for="fastReplay">Fast Playback</label>';
-        }
-      } else {
+      if (!jsilConfig.replayURI && !jsilConfig.replayName) {
         statsHtml +=
           '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
       }
+    }
 
-      if (jsilConfig.record) {
+    if (jsilConfig.replayURI || jsilConfig.replayName) {
+      statsHtml +=
+        '<span id="replayState"></span><br>';
+
+      if (!jsilConfig.fastReplay) {
         statsHtml += 
-          '<br><span id="recordState"></span><br>' +
-          '<button id="saveRecording">Save Recording</button>';
+          '<input type="checkbox" id="fastReplay" name="fastReplay"> <label for="fastReplay">Fast Playback</label>';
       }
+    }
+
+    if (jsilConfig.record) {
+      statsHtml += 
+        '<br><span id="recordState"></span><br>' +
+        '<button id="saveRecording">Save Recording</button>';
     }
 
     statsElement.innerHTML = statsHtml;

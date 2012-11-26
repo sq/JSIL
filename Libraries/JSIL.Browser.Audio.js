@@ -326,7 +326,7 @@ function initSoundLoader () {
   audioInfo.hasAudioContext = typeof (audioContextCtor) === "function";
   audioInfo.audioContext = null;
   audioInfo.testAudioInstance = null;
-  audioInfo.disableSound = window.location.search.indexOf("noSound") >= 0;
+  audioInfo.disableSound = jsilConfig.disableSound;
 
   try {
     audioInfo.testAudioInstance = document.createElement("audio");

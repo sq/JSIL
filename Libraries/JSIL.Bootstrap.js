@@ -2899,24 +2899,9 @@ JSIL.MakeEnum(
 );
 
 JSIL.ImplementExternals("System.GC", function ($) {
-  var warnedAboutMemory = false;
-
-  var warnIfNecessary = function () {
-    if (warnedAboutMemory)
-      return;
-
-    warnedAboutMemory = true;
-
-    JSIL.Host.warning("WARNING: JS heap memory statistics not available in your browser.");
-  };
-
   var getMemoryImpl = function () {
-    if (window && window.performance && window.performance.memory) {
-      return window.performance.memory.usedJSHeapSize;
-    } else {
-      warnIfNecessary();
-      return 0;
-    }
+    var svc = JSIL.Host.getService("window");
+    return svc.getPerformanceUsedJSHeapSize();
   };
 
   $.Method({Static:true , Public:false}, "GetTotalMemory", 

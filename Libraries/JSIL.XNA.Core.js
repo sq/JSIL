@@ -1100,7 +1100,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._isDead = false;
       this.initialized = false;
 
-      this._runHandle = null;
       this._gameTime = JSIL.CreateInstanceOfType(tGameTime, null);
       this._lastFrame = this._nextFrame = this._started = 0;
     }
@@ -1519,10 +1518,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Static: false,
     Public: true
   }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
-    if (this._runHandle !== null) 
-      window.clearInterval(this._runHandle);
-
-    this._runHandle = null;
     this.UnloadContent();
 
     this._isDead = true;
