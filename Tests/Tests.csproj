@@ -301,6 +301,8 @@
     <None Include="ReflectionTestCases\GetConstantAttributes.cs" />
     <None Include="TestCases\NestedStructEquals.cs" />
     <None Include="TestCases\ComplexStructEquals.cs" />
+    <None Include="SimpleTestCases\AssignArrayToIEnumerable.cs" />
+    <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SpecialTestCases\GetHostService.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />

@@ -492,15 +492,19 @@ namespace JSIL {
                     return true;
             }
 
-            // Complex hack necessary because System.Array and T[] do not implement IEnumerable<T>
-            var targetGit = target as GenericInstanceType;
+            // HACK: System.Array and T[] do not implement IEnumerable<T>
             if (
-                (targetGit != null) &&
-                (targetGit.Name == "IEnumerable`1") &&
                 source.IsArray &&
-                (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
-            )
-                return true;
+                (target.Namespace == "System.Collections.Generic")
+            ) {
+                var targetGit = target as GenericInstanceType;
+                if (
+                    (targetGit != null) &&
+                    (targetGit.Name == "IEnumerable`1") &&
+                    (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
+                )
+                    return true;
+            }
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
             return typeInfo.AssignabilityCache.GetOrCreate(

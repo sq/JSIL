@@ -275,17 +275,53 @@ JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
 $jsilcore.$GetInvocationList = function (delegate) {
-    if (delegate === null) {
-      return [ ];
-    } else if (typeof (delegate.GetInvocationList) === "function") {
-      return delegate.GetInvocationList();
-    } else if (typeof (delegate) === "function") {
-      return [ delegate ];
-    } else {
-      return null;
-    }
+  if (delegate === null) {
+    return [ ];
+  } else if (typeof (delegate.GetInvocationList) === "function") {
+    return delegate.GetInvocationList();
+  } else if (typeof (delegate) === "function") {
+    return [ delegate ];
+  } else {
+    return null;
+  }
 };
-$jsilcore.$Combine = function (lhs, rhs) {
+$jsilcore.$AreDelegatesEqual = function (lhs, rhs) {
+  if (lhs === rhs)
+    return true;
+
+  var lhsInvocationList = $jsilcore.$GetInvocationList(lhs);
+  var rhsInvocationList = $jsilcore.$GetInvocationList(rhs);
+
+  if (lhsInvocationList === rhsInvocationList)
+    return true;
+
+  if (!JSIL.IsArray(lhsInvocationList))
+    return false;
+  if (!JSIL.IsArray(rhsInvocationList))
+    return false;
+
+  if (lhsInvocationList.length != rhsInvocationList.length)
+    return false;
+
+  if (lhsInvocationList.length === 1) {
+    var lhsDelegate = lhsInvocationList[0];
+    var rhsDelegate = rhsInvocationList[0];
+
+    if (lhsDelegate.__object__ !== rhsDelegate.__object__)
+      return false;
+
+    if (lhsDelegate.__method__ !== rhsDelegate.__method__)
+      return false;
+  } else {
+    for (var i = 0, l = lhsInvocationList.length; i < l; i++) {
+      if (!$jsilcore.$AreDelegatesEqual(lhsInvocationList[i], rhsInvocationList[i]))
+        return false;
+    }
+  }
+
+  return true;
+};
+$jsilcore.$CombineDelegates = function (lhs, rhs) {
   if (rhs === null) {
     return lhs;
   } else if (lhs === null) {
@@ -297,27 +333,19 @@ $jsilcore.$Combine = function (lhs, rhs) {
   var result = JSIL.MulticastDelegate.New(newList);
   return result;
 };
-$jsilcore.$Remove = function (lhs, rhs) {
+$jsilcore.$RemoveDelegate = function (lhs, rhs) {
   if (rhs === null)
     return lhs;
   if (lhs === null)
     return null;
 
   var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
-  var rhsList = $jsilcore.$GetInvocationList(rhs);
 
-  for (var i = 0; i < rhsList.length; i++) {
-    var needle = rhsList[i];
-
-    __inner:
-    for (var j = 0; j < newList.length; j++) {
-      var haystack = newList[j];
-      if ((haystack.__method__ === needle.__method__) &&
-          (haystack.__object__ === needle.__object__)
-      ) {
-        newList.splice(j, 1);
-        break __inner;
-      }
+  for (var i = 0; i < newList.length; i++) {
+    var item = newList[i];
+    if ($jsilcore.$AreDelegatesEqual(item, rhs)) {
+      newList.splice(i, 1);
+      break;
     }
   }
 
@@ -369,52 +397,26 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
     }
   );  
 
-  var equalsImpl = function (lhs, rhs) {
-    if (lhs === rhs)
-      return true;
-
-    var lhsInvocationList = JSIL.Delegate.GetInvocationList(lhs);
-    var rhsInvocationList = JSIL.Delegate.GetInvocationList(rhs);
-
-    if (lhsInvocationList === rhsInvocationList)
-      return true;
-
-    if (!JSIL.IsArray(lhsInvocationList))
-      return false;
-    if (!JSIL.IsArray(rhsInvocationList))
-      return false;
-
-    if (lhsInvocationList.length != rhsInvocationList.length)
-      return false;
-
-    for (var i = 0, l = lhsInvocationList.length; i < l; i++) {
-      if (lhsInvocationList[i] !== rhsInvocationList[i])
-        return false;
-    }
-
-    return true;
-  };
-
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [tDelegate, tDelegate], [])), 
-    equalsImpl
+    $jsilcore.$AreDelegatesEqual
   );
 
   $.Method({Static:true , Public:true }, "op_Inequality", 
     (new JSIL.MethodSignature($.Boolean, [tDelegate, tDelegate], [])), 
     function op_Inequality (d1, d2) {
-      return !equalsImpl(d1, d2);
+      return !$jsilcore.$AreDelegatesEqual(d1, d2);
     }
   );
 
   $.Method({Static:true , Public:true }, "Combine", 
     (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
-    $jsilcore.$Combine
+    $jsilcore.$CombineDelegates
   );
 
   $.Method({Static:true , Public:true }, "Remove", 
     (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
-    $jsilcore.$Remove
+    $jsilcore.$RemoveDelegate
   );
 });
 

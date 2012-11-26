@@ -3843,6 +3843,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
     var createOverlay = function Overlay_IEnumerable (value) {
       if (JSIL.IsArray(value)) {
+        // FIXME: Detect correct type
         var tOverlay = JSIL.EnumerableArrayOverlay.Of(System.Object);
 
         return new tOverlay(value);
