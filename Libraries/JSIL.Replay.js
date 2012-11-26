@@ -239,8 +239,8 @@ JSIL.Replay.Player = function (replay) {
   this.localStorage = new JSIL.Replay.Playback.MockLocalStorageService(this.replay.localStorage || null);
   JSIL.Host.registerService("localStorage", this.localStorage);
 
-  this.performanceReporter = new JSIL.Replay.Playback.PerformanceReporterService(JSIL.Host.getService("performanceReporter"));
-  JSIL.Host.registerService("performanceReporter", this.performanceReporter);
+  this.gameTiming = new JSIL.Replay.Playback.GameTimingService();
+  JSIL.Host.registerService("gameTiming", this.gameTiming);
 
   this.playbackStarted = JSIL.$GetHighResTime();
   this.playbackLeftFirstFrame = -1;
@@ -318,10 +318,14 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
     this.playbackEnded - this.playbackLeftFirstFrame
   ));
 
+  var roundTo4 = function (value) {
+    return Math.round(value * 10000) / 10000;
+  };
+
   var getAggregates = function (samples) {
     samples.sort();
 
-    var interestingPercentiles = [0, 1, 5, 25, 50, 75, 95, 99, 100];
+    var interestingPercentiles = [0, 1, 2, 5, 25, 50, 75, 95, 98, 99, 100];
     var percentiles = Object.create(null);
     var min = 999999, max = -999999, sum = 0;
 
@@ -348,28 +352,29 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
         i2 = samples.length - 1;
 
       var sample1 = samples[i1], sample2 = samples[i2];
-      percentiles[p] = (sample1 * (1 - weight)) + (sample2 * weight);
+      percentiles[p] = roundTo4((sample1 * (1 - weight)) + (sample2 * weight));
     }
 
     return {
-      sum: sum,
-      min: min,
-      max: max,
-      average: sum / samples.length,
+      sum: roundTo4(sum),
+      count: samples.length,
+      min: roundTo4(min),
+      max: roundTo4(max),
+      average: roundTo4(sum / samples.length),
       median: percentiles[50],
       percentiles: percentiles
     };
   };
 
-  var updateAggregates = getAggregates(this.performanceReporter.updateSamples);
-  var drawAggregates = getAggregates(this.performanceReporter.drawSamples);
+  var updateAggregates = getAggregates(this.gameTiming.updateSamples);
+  var drawAggregates = getAggregates(this.gameTiming.drawSamples);
 
   JSIL.Host.logWriteLine(System.String.Format(
-    "Framerate: Average {0:00000.0}fps, Median {1:00000.0}fps, 1st percentile {2:00000.0}fps, 99th percentile {3:00000.0}fps",
+    "Framerate: Average {0:00000.0}fps, Median {1:00000.0}fps, 2nd percentile {2:00000.0}fps, 98th percentile {3:00000.0}fps",
     1000 / (updateAggregates.average + drawAggregates.average),
     1000 / (updateAggregates.median + drawAggregates.median),
-    1000 / (updateAggregates.percentiles[1] + drawAggregates.percentiles[1]),
-    1000 / (updateAggregates.percentiles[99] + drawAggregates.percentiles[99])
+    1000 / (updateAggregates.percentiles[2] + drawAggregates.percentiles[2]),
+    1000 / (updateAggregates.percentiles[98] + drawAggregates.percentiles[98])
   ));
 
   JSIL.Host.logWriteLine("// begin JSON-formatted data //");
@@ -477,17 +482,17 @@ JSIL.Replay.Playback.MockLocalStorageService.prototype.getKeys = function () {
 };
 
 
-JSIL.Replay.Playback.PerformanceReporterService = function (service) {
-  this.service = service;
+JSIL.Replay.Playback.GameTimingService = function () {
   this.drawSamples = [];
   this.updateSamples = [];
 };
 
-JSIL.Replay.Playback.PerformanceReporterService.prototype.report = function (drawDuration, updateDuration, cacheSize, isWebGL) {
-  this.drawSamples.push(drawDuration);
-  this.updateSamples.push(updateDuration);
+JSIL.Replay.Playback.GameTimingService.prototype.draw = function (elapsed) {
+  this.drawSamples.push(elapsed);
+};
 
-  this.service.report(drawDuration, updateDuration, cacheSize, isWebGL);
+JSIL.Replay.Playback.GameTimingService.prototype.update = function (elapsed) {
+  this.updateSamples.push(elapsed);
 };
 
 

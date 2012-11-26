@@ -1331,6 +1331,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
     
     this._updateTimings.push(updateActuallyEnded - updateActuallyStarted);
+
+    var svc = JSIL.Host.getService("gameTiming", true);
+    if (svc)
+      svc.update(updateActuallyEnded - updateActuallyStarted);
   });
 
   $.RawMethod(false, "_MaybeReportFPS", function Game_MaybeReportFPS (now) {
@@ -1435,7 +1439,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this.Draw(this._gameTime);
 
     var ended = JSIL.$GetHighResTime();
+
     this._drawTimings.push(ended - started);
+
+    var svc = JSIL.Host.getService("gameTiming", true);
+    if (svc)
+      svc.draw(ended - started);
   });
 
   $.RawMethod(false, "_Step", function Game_Step () {
