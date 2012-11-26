@@ -167,16 +167,17 @@ JSIL.Host.reportPerformance = function (drawDuration, updateDuration, cacheSize,
 // Default service implementations that are environment-agnostic
 
 // Don't use for anything that needs to be reproducible in replays!
-JSIL.$GetHighResTime = function () {
+
+(function () {
   if (
     (typeof (window) !== "undefined") &&
     (typeof (window.performance) !== "undefined") &&
     (typeof (window.performance.now) === "function")
   )
-    return window.performance.now();
+    JSIL.$GetHighResTime = window.performance.now.bind(window.performance);
   else
-    return Date.now();
-};
+    JSIL.$GetHighResTime = Date.now.bind(Date);
+})();
 
 JSIL.Host.ES5TimeService = function () {
   this.started = JSIL.$GetHighResTime();
