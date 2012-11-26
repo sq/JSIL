@@ -475,6 +475,7 @@ namespace JSIL.Tests {
 
             var invocationJs = String.Format(
                 "function runTestCase (timeout, elapsed) {{\r\n" +
+                "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" +
                 "  timeout({0});\r\n" +
                 "  var started = elapsed();\r\n" +
                 "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
