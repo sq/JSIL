@@ -212,18 +212,6 @@ JSIL.Browser.LocalStorageService.prototype.removeItem = function (key) {
   return this.storage.removeItem(key);
 };
 
-JSIL.Browser.LocalStorageService.prototype.getAll = function () {
-  var result = Object.create(null);
-  var keys = this.getKeys();
-
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    result[key] = this.getItem(key);
-  }
-
-  return result;
-};
-
 JSIL.Browser.LocalStorageService.prototype.getKeys = function () {
   var result = new Array(this.storage.length);
 
@@ -236,6 +224,14 @@ JSIL.Browser.LocalStorageService.prototype.getKeys = function () {
 
 JSIL.Browser.WindowService = function (window) {
   this.window = window;
+};
+
+JSIL.Browser.WindowService.prototype.alert = function () {
+  return this.window.alert.apply(this.window, arguments);
+};
+
+JSIL.Browser.WindowService.prototype.prompt = function () {
+  return this.window.prompt.apply(this.window, arguments);
 };
 
 JSIL.Browser.WindowService.prototype.getLocationHref = function () {
@@ -1293,11 +1289,15 @@ function showSaveRecordingDialog () {
     dialog.id = "saveRecordingDialog";
 
     dialog.innerHTML = 
-      '<label for="recordingName">Recording Name:</label> <input type="text" id="recordingName" value="test"><br>' +
-      '<a id="saveRecordingToLocalStorage" href="#">Save to Local Storage</a> | <a id="saveRecordingAsFile" download="test.replay" target="_blank" href="#">Download</a> | <a id="cancelSaveRecording" href="#">Close</a>';
+      '<label for="recordingName">Recording Name:</label> ' +
+      '<input type="text" id="recordingName" value="test" style="background: white; color: black"><br>' +
+      '<a id="saveRecordingToLocalStorage" href="#" style="color: black">Save to Local Storage</a> | ' +
+      '<a id="saveRecordingAsFile" download="test.replay" target="_blank" href="#" style="color: black">Download</a> | ' + 
+      '<a id="cancelSaveRecording" href="#" style="color: black">Close</a>';
 
     dialog.style.position = "absolute";
-    dialog.style.background = "Window";
+    dialog.style.background = "rgba(240, 240, 240, 0.9)";
+    dialog.style.color = "black";
     dialog.style.padding = "24px";
     dialog.style.borderRadius = "8px 8px 8px 8px";
     dialog.style.boxShadow = "2px 2px 4px rgba(0, 0, 0, 0.75)";

@@ -71,14 +71,18 @@ JSIL.Replay.SaveToLocalStorage = function (name) {
 JSIL.DeclareNamespace("JSIL.Replay.Recording", false);
 
 JSIL.Replay.Recorder = function () {
+  this.replay = Object.create(null);
+  this.replay.localStorage = Object.create(null);
+  this.replay.frameData = Object.create(null);
+  this.replay.frameCount = 0;
+
   this.createServiceProxies();
 
   this.tickScheduler = new JSIL.Replay.Recording.TickSchedulerProxy(this, JSIL.Host.getService("tickScheduler"));
   JSIL.Host.registerService("tickScheduler", this.tickScheduler);
 
-  this.replay = Object.create(null);
-  this.replay.frameData = Object.create(null);
-  this.replay.frameCount = 0;
+  this.localStorage = new JSIL.Replay.Recording.LocalStorageServiceProxy(this, JSIL.Host.getService("localStorage"));
+  JSIL.Host.registerService("localStorage", this.localStorage);
 
   for (var k in this.serviceProxies)
     this.replay.frameData[k] = [];
@@ -184,6 +188,39 @@ JSIL.Replay.Recording.TickSchedulerProxy.prototype.schedule = function (callback
 };
 
 
+JSIL.Replay.Recording.LocalStorageServiceProxy = function (recorder, service) {
+  this.recorder = recorder;
+  this.service = service;
+  this.modifiedKeys = Object.create(null);
+};
+
+JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.getItem = function (key) {
+  var result = this.service.getItem(key);
+
+  var ls = this.recorder.replay.localStorage;
+  if (!(key in ls) && !this.modifiedKeys[key])
+    ls[key] = result;
+
+  return result;
+};
+
+JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.setItem = function (key, value) {
+  this.modifiedKeys[key] = true;
+
+  return this.service.setItem(key, value);
+};
+
+JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.removeItem = function (key) {
+  this.modifiedKeys[key] = true;
+
+  return this.service.removeItem(key);
+};
+
+JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.getKeys = function () {
+  return this.service.getKeys();
+};
+
+
 // Player implementation
 
 JSIL.DeclareNamespace("JSIL.Replay.Playback", false);
@@ -195,6 +232,9 @@ JSIL.Replay.Player = function (replay) {
 
   this.tickScheduler = new JSIL.Replay.Playback.TickSchedulerProxy(this, JSIL.Host.getService("tickScheduler"));
   JSIL.Host.registerService("tickScheduler", this.tickScheduler);
+
+  this.localStorage = new JSIL.Replay.Playback.MockLocalStorageService(this.replay.localStorage || null);
+  JSIL.Host.registerService("localStorage", this.localStorage);
 
   // Set the frame index to -1 so nextFrame steps us to frame 0
   this.frameIndex = -1;
@@ -322,6 +362,30 @@ JSIL.Replay.Playback.TickSchedulerProxy.prototype.schedule = function (callback,
     window.setTimeout(this.boundAdvanceFrame, 0);
   else
     this.service.schedule(this.boundAdvanceFrame, when);
+};
+
+
+JSIL.Replay.Playback.MockLocalStorageService = function (initialData) {
+  this.data = Object.create(initialData);
+};
+
+JSIL.Replay.Playback.MockLocalStorageService.prototype.getItem = function (key) {
+  if (key in this.data)
+    return this.data[key];
+  else
+    return null;
+};
+
+JSIL.Replay.Playback.MockLocalStorageService.prototype.setItem = function (key, value) {
+  return this.data[key] = value;
+};
+
+JSIL.Replay.Playback.MockLocalStorageService.prototype.removeItem = function (key) {
+  delete this.data[key];
+};
+
+JSIL.Replay.Playback.MockLocalStorageService.prototype.getKeys = function () {
+  return Object.keys(this.data);
 };
 
 
