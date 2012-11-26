@@ -460,6 +460,7 @@ namespace JSIL {
                     return JSInvocationExpression.InvokeStatic(
                         JS.eval, arguments
                     );
+
                 case "System.Object JSIL.Verbatim::Expression(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)
@@ -469,6 +470,7 @@ namespace JSIL {
                         method.Reference, expression.Value, null, null
                     );
                 }
+
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression != null)
@@ -480,6 +482,7 @@ namespace JSIL {
                             JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
                         );
                 }
+
                 case "System.Object JSIL.JSLocal::get_Item(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)
@@ -493,6 +496,22 @@ namespace JSIL {
 
                 case "System.Boolean JSIL.Builtins::get_IsJavascript()":
                     return new JSBooleanLiteral(true);
+
+                case "System.Object JSIL.Services::Get(System.String,System.Boolean)": {
+                    if (arguments.Length != 2)
+                        throw new InvalidOperationException("JSIL.Services.Get must receive two arguments");
+
+                    var serviceName = arguments[0];
+                    var shouldThrow = arguments[1];
+
+                    return JSInvocationExpression.InvokeStatic(
+                        new JSRawOutputIdentifier((f) => f.WriteRaw("JSIL.Host.getService"), TypeSystem.Object),
+                        new[] { 
+                            serviceName, 
+                            new JSUnaryOperatorExpression(JSOperator.LogicalNot, shouldThrow, TypeSystem.Boolean) 
+                        }, true
+                    );
+                }
             }
 
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);

@@ -38,5 +38,13 @@ namespace JSIL.Tests {
                 "", "Program/CustomType"
             );
         }
+
+        [Test]
+        public void GetHostService () {
+            GenericTest(
+                @"SpecialTestCases\GetHostService.cs",
+                "threw\r\nnull", "threw\r\nnot null"
+            );
+        }
     }
 }

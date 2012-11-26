@@ -5,6 +5,20 @@ using System.Linq;
 using System.Text;
 
 namespace JSIL {
+    public static class Services {
+        /// <summary>
+        /// When running as C#, this method throws (or returns null if throwIfMissing==false).
+        /// When running as JavaScript this method returns a reference to the named runtime service.
+        /// </summary>
+        /// <param name="serviceName">The name of the runtime service.</param>
+        public static object Get (string serviceName, bool throwIfMissing = true) {
+            if (throwIfMissing)
+                throw new NotImplementedException("Services.get is only available at runtime and you passed true for throwIfMissing.");
+            else
+                return null;
+        }
+    }
+
     public static class Builtins {
         public static readonly JSGlobal Global = new JSGlobal();
         public static readonly JSLocal Local = new JSLocal();

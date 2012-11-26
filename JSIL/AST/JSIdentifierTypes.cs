@@ -23,8 +23,12 @@ namespace JSIL.Ast {
     public class JSRawOutputIdentifier : JSIdentifier {
         public readonly Action<JavascriptFormatter> Emitter;
 
-        public JSRawOutputIdentifier (Action<JavascriptFormatter> emitter, TypeReference type = null)
+        public JSRawOutputIdentifier (Action<JavascriptFormatter> emitter, TypeReference type)
             : base(type) {
+
+            if (type == null)
+                throw new ArgumentNullException("type");
+
             Emitter = emitter;
         }
 
