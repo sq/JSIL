@@ -1816,6 +1816,14 @@ namespace JSIL.Ast {
                 var currentResolved = currentDerefed.Resolve();
 
                 if (currentResolved != null) {
+                    // HACK: Because Arrays are IEnumerable, normally we would suppress the cast.
+                    // In this case we need to ensure it happens so that an array overlay is created.
+                    if (
+                        currentType.IsArray && 
+                        (newType.FullName == "System.Collections.IEnumerable")
+                    )
+                        return make();
+
                     foreach (var iface in currentResolved.Interfaces) {
                         if (TypeUtil.TypesAreEqual(newType, iface, false))
                             return JSChangeTypeExpression.New(inner, typeSystem, newType);

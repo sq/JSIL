@@ -763,6 +763,7 @@ namespace JSIL {
                 (expression.ExpectedType != null) &&
                 (expression.InferredType != null) &&
                 (TypeUtil.IsArray(expression.InferredType)) &&
+                expression.ExpectedType.FullName.StartsWith("System.Collections.") &&
                 expression.ExpectedType.FullName.Contains(".IEnumerable")
             ) {
                 // HACK: Workaround for the fact that JS array instances don't expose IEnumerable methods
