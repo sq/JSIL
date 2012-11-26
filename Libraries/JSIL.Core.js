@@ -6319,6 +6319,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
         if (method.__ThisType__ === typeObject)
           return method;
+        else
+          throw new Error("Single delegate argument passed to Delegate.New, but types don't match");
       }
 
       if (typeof (method) !== "function") {
@@ -6328,17 +6330,16 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       if (method.__IsMembrane__)
         method = method.__Unwrap__();
 
-      var resultDelegate = method.bind(object);
-      var self = this;
+      var resultDelegate = function Delegate_Invoke () {
+        return method.apply(object, arguments);
+      };
 
-      JSIL.SetValueProperty(resultDelegate, "__ThisType__", self.__Type__);
-
+      JSIL.SetValueProperty(resultDelegate, "__ThisType__", this.__Type__);
       JSIL.SetValueProperty(resultDelegate, "toString", toStringImpl);
+      JSIL.SetValueProperty(resultDelegate, "__object__", object);
+      JSIL.SetValueProperty(resultDelegate, "__method__", method);
+      JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
 
-      resultDelegate.__object__ = object;
-      resultDelegate.__method__ = method;
-
-      Object.seal(resultDelegate);
       return resultDelegate;
     });
 
