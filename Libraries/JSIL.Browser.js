@@ -291,6 +291,27 @@ JSIL.Browser.HistoryService.prototype.replaceState = function (a, b, c) {
 };
 
 
+JSIL.Browser.GamepadService = function (provider) {
+  this.provider = provider;
+};
+
+JSIL.Browser.GamepadService.prototype.getPreviousState = function (index) {
+  var result = this.provider.getPreviousState(index);
+  if (!result)
+    return null;
+
+  return result;
+};
+
+JSIL.Browser.GamepadService.prototype.getState = function (index) {
+  var result = this.provider.getState(index);
+  if (!result)
+    return null;
+
+  return result;
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -309,6 +330,10 @@ JSIL.Browser.HistoryService.prototype.replaceState = function (a, b, c) {
 
   if (typeof (localStorage) !== "undefined")
     JSIL.Host.registerService("localStorage", new JSIL.Browser.LocalStorageService(localStorage));
+
+  if ((typeof (Gamepad) !== "undefined") && Gamepad.supported)
+    JSIL.Host.registerService("gamepad", new JSIL.Browser.GamepadService(Gamepad));
+
 })();
 
 

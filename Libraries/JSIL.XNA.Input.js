@@ -221,20 +221,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     return result;
   };
 
-  var getRawStateForPlayerIndex = function (playerIndex) {
-    if (window && window.Gamepad && window.Gamepad.supported) {
-      var states = window.Gamepad.getStates();
-      if (states) {
-        var state = states[playerIndex.valueOf()];
-        if (state) {
-          return state;
-        }
-      }
-    }
-
-    return null;
-  }
-
   var getStateImpl = function (playerIndex) {
     var connected = false;
     var buttonStates = 0;
@@ -243,7 +229,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     var leftTrigger = 0, rightTrigger = 0;
     var dpadUp = released, dpadDown = released, dpadLeft = released, dpadRight = released;
 
-    var state = getRawStateForPlayerIndex(playerIndex);
+    var svc = JSIL.Host.getService("gamepad", true);
+    var state = null;
+    if (svc)
+      state = svc.getState(playerIndex.value);
 
     if (state) {
       connected = true;
@@ -321,7 +310,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
   $.Method({Static:true , Public:true }, "GetCapabilities", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadCapabilities"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex")], [])), 
     function GetCapabilities (playerIndex) {
-      var state = getRawStateForPlayerIndex(playerIndex);
+      var svc = JSIL.Host.getService("gamepad", true);
+      var state = null;
+      if (svc)
+        state = svc.getState(playerIndex.value);
 
       var result = JSIL.CreateInstanceOfType(
         Microsoft.Xna.Framework.Input.GamePadCapabilities.__Type__,

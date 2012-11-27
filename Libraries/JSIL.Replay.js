@@ -36,7 +36,7 @@ JSIL.Replay.InitializePlayerFromURI = function (uri) {
 };
 
 JSIL.Replay.InitializePlayerFromLocalStorage = function (name) {
-  var json = localStorage[name + ".replay"];
+  var json = localStorage.getItem(name + ".replay");
 
   if (json)
     JSIL.Replay.InitializePlayerFromJSON(json);
@@ -60,9 +60,14 @@ JSIL.Replay.SaveAsJSON = function () {
 
 JSIL.Replay.SaveToLocalStorage = function (name) {
   var json = JSIL.Replay.SaveAsJSON();
-  localStorage[name + ".replay"] = json;
-
-  JSIL.Host.logWriteLine("Replay saved to local storage as '" + name + "'.");
+  try {
+    localStorage.setItem(name + ".replay", json);
+    alert("Replay saved to local storage as '" + name + "'.");
+    return true;
+  } catch (exc) {
+    alert("Failed to save replay to local storage: " + String(exc));
+    return false;
+  }
 };
 
 
@@ -93,14 +98,18 @@ JSIL.Replay.Recorder = function () {
 JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
   var servicesToProxy = [
     "time", "keyboard", "mouse", "pageVisibility", 
-    "window", "history"
+    "window", "history", "gamepad"
   ];
 
   this.serviceProxies = Object.create(null);
 
   for (var i = 0, l = servicesToProxy.length; i < l; i++) {
     var key = servicesToProxy[i];
+
     var service = JSIL.Host.services[key];
+    if (!service)
+      continue;
+
     var proxy = new JSIL.Replay.Recording.ServiceProxy(service);
 
     this.serviceProxies[key] = proxy;
@@ -127,8 +136,8 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
 
 JSIL.Replay.Recording.ServiceProxy = function (service, transformResult) {
   this.service = service;
-  this.resultTransformer = transformResult || function (methodName, result) { return result; };
-  this.calls = Object.create(null);
+  this.resultTransformer = transformResult || this.defaultResultTransformer;
+  this.calls = null;
 
   for (var k in service) {
     if (this.hasOwnProperty(k))
@@ -137,6 +146,40 @@ JSIL.Replay.Recording.ServiceProxy = function (service, transformResult) {
     var value = service[k];
     if (typeof (value) === "function")
       this[k] = this.$makeInterceptor(k);
+  }
+};
+
+JSIL.Replay.Recording.ServiceProxy.prototype.defaultResultTransformer = function (name, result) {
+  var resultType = typeof(result);
+
+  if (resultType === "object") {
+    if (result === null)
+      return null;
+
+    if (JSIL.IsArray(result)) {
+      var copy = JSIL.Array.Clone(result);
+
+      for (var i = 0, l = copy.length; i < l; i++)
+        copy[i] = this.defaultResultTransformer(null, result[i]);
+
+      return copy;
+    } else {
+      var copy = Object.create(null);
+
+      for (var k in result) {
+        var value = result[k];
+        var transformedValue = this.defaultResultTransformer(null, value);
+
+        if (typeof (transformedValue) !== "undefined")
+          copy[k] = transformedValue;
+      }
+
+      return copy;
+    }
+  } else if (resultType === "function") {
+    return undefined;
+  } else {
+    return result;
   }
 };
 
