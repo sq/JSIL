@@ -431,13 +431,22 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
       percentiles[p] = roundTo4((sample1 * (1 - weight)) + (sample2 * weight));
     }
 
+    var mean = sum / samples.length, deviationSum = 0;
+    for (var i = 0, l = samples.length; i < l; i++) {
+      var elementDeviation = samples[i] - mean;
+      deviationSum += (elementDeviation * elementDeviation);
+    }
+
+    var standardDeviation = Math.sqrt(deviationSum / samples.length);
+
     return {
       sum: roundTo4(sum),
       count: samples.length,
       min: roundTo4(min),
       max: roundTo4(max),
-      average: roundTo4(sum / samples.length),
+      mean: roundTo4(mean),
       median: percentiles[50],
+      standardDeviation: standardDeviation,
       percentiles: percentiles
     };
   };
@@ -446,11 +455,12 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
   var drawAggregates = getAggregates(this.gameTiming.drawSamples);
 
   JSIL.Host.logWriteLine(System.String.Format(
-    "Framerate: Average {0:00000.0}fps, Median {1:00000.0}fps, 2nd percentile {2:00000.0}fps, 98th percentile {3:00000.0}fps",
-    1000 / (updateAggregates.average + drawAggregates.average),
+    "Framerate: Mean {0:00000.0}fps, Median {1:00000.0}fps, 2nd percentile {2:00000.0}fps, 98th percentile {3:00000.0}fps, Standard Deviation {4:00.00}ms",
+    1000 / (updateAggregates.mean + drawAggregates.mean),
     1000 / (updateAggregates.median + drawAggregates.median),
     1000 / (updateAggregates.percentiles[2] + drawAggregates.percentiles[2]),
-    1000 / (updateAggregates.percentiles[98] + drawAggregates.percentiles[98])
+    1000 / (updateAggregates.percentiles[98] + drawAggregates.percentiles[98]),
+    drawAggregates.standardDeviation
   ));
 
   JSIL.Host.logWriteLine("// begin JSON-formatted data //");
