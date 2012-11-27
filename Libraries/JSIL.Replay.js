@@ -87,13 +87,13 @@ JSIL.Replay.FormatVersion = 2;
 JSIL.DeclareNamespace("JSIL.Replay.Recording", false);
 
 JSIL.Replay.Recorder = function () {
-  this.replay = Object.create(null);
+  this.replay = {};
   this.replay.formatVersion = JSIL.Replay.FormatVersion;
 
   this.replay.frameCount = 0;
 
-  this.replay.localStorage = Object.create(null);
-  this.replay.keyframes = Object.create(null);
+  this.replay.localStorage = {};
+  this.replay.keyframes = {};
 
   this.createServiceProxies();
 
@@ -112,7 +112,7 @@ JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
     "window", "history", "gamepad"
   ];
 
-  this.serviceProxies = Object.create(null);
+  this.serviceProxies = {};
 
   for (var i = 0, l = servicesToProxy.length; i < l; i++) {
     var key = servicesToProxy[i];
@@ -185,7 +185,7 @@ JSIL.Replay.Recording.ServiceProxy.prototype.defaultResultTransformer = function
 
       return copy;
     } else {
-      var copy = Object.create(null);
+      var copy = {};
 
       for (var k in result) {
         var value = result[k];
@@ -274,7 +274,7 @@ JSIL.Replay.Recording.TickSchedulerProxy.prototype.schedule = function (callback
 JSIL.Replay.Recording.LocalStorageServiceProxy = function (recorder, service) {
   this.recorder = recorder;
   this.service = service;
-  this.modifiedKeys = Object.create(null);
+  this.modifiedKeys = {};
 };
 
 JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.getItem = function (key) {
@@ -337,7 +337,7 @@ JSIL.Replay.Player = function (replay) {
 JSIL.Replay.Player.prototype.createServiceProxies = function () {
   var servicesToProxy = Object.keys(this.replay.keyframes);
 
-  this.serviceProxies = Object.create(null);
+  this.serviceProxies = {};
 
   for (var i = 0, l = servicesToProxy.length; i < l; i++) {
     var key = servicesToProxy[i];
@@ -400,7 +400,7 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
     samples.sort();
 
     var interestingPercentiles = [0, 1, 2, 5, 25, 50, 75, 95, 98, 99, 100];
-    var percentiles = Object.create(null);
+    var percentiles = {};
     var min = 999999, max = -999999, sum = 0;
 
     for (var i = 0, l = samples.length; i < l; i++) {
