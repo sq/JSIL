@@ -492,7 +492,38 @@ JSIL.Replay.Playback.ServiceProxy.prototype.findKeyframe = function (name) {
 
   var result = null;
 
-  for (var i = 0, l = keyframeList.length; i < l; i++) {
+  var low = 0, high = keyframeList.length - 1, pivot, foundResult = -1;
+  while ( low <= high ) {
+    var pivot = (low + high) >> 1;
+    var keyframe = keyframeList[pivot];
+
+    if (
+      (keyframe[0] > this.frameIndex) || 
+      (
+        (keyframe[0] >= this.frameIndex) && 
+        (keyframe[1] > this.callIndex)
+      )
+    ) {
+      high = pivot - 1;
+    } else if (
+      (keyframe[0] < this.frameIndex) ||
+      (
+        (keyframe[0] <= this.frameIndex) &&
+        (keyframe[1] < this.callIndex)
+      )
+    ) {
+      low = pivot + 1;
+    } else {
+      foundResult = pivot;
+      break;
+    }
+  }
+
+  var i = foundResult;
+  if (i < 0)
+    i = Math.max(pivot - 1, 0);
+
+  for (var l = keyframeList.length; i < l; i++) {
     var keyframe = keyframeList[i];
     if (keyframe[0] > this.frameIndex)
       break;
