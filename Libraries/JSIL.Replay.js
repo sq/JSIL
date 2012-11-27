@@ -367,10 +367,12 @@ JSIL.Replay.Player.prototype.nextFrame = function () {
   if (typeof (document) !== "undefined") {
     var statusSpan = document.getElementById("replayState");
     if (statusSpan) {
-      if (this.isPlaying)
-        statusSpan.textContent = "Playing (" + this.frameIndex + "/" + this.replay.frameCount + ")";
-      else
+      if (this.isPlaying) {
+        if ((this.frameIndex % 5) === 0)
+          statusSpan.textContent = "Playing (" + this.frameIndex + "/" + this.replay.frameCount + ")";
+      } else {
         statusSpan.textContent = "Replay Ended";
+      }
     }
   }
 
