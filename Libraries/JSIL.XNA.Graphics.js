@@ -2288,9 +2288,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     measureResult[0] = Math.max(measureResult[0], x2);
 
     if (measureResult[2] !== lineIndex) {
-      measureResult[1] = characterRect.Height;
+      measureResult[1] = y2 - y;
     } else {
-      measureResult[1] = Math.max(measureResult[1], characterRect.Height);
+      measureResult[1] = Math.max(measureResult[1], y2 - y);
     }
 
     measureResult[2] = lineIndex;
