@@ -399,7 +399,7 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
   };
 
   var getAggregates = function (samples) {
-    samples.sort();
+    samples.sort(JSIL.CompareValues);
 
     var interestingPercentiles = [0, 1, 2, 5, 25, 50, 75, 95, 98, 99, 100];
     var percentiles = {};

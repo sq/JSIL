@@ -1136,7 +1136,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Sort", 
     new JSIL.MethodSignature(null, [], []),
     function () {
-      this._items.sort();
+      this._items.sort(JSIL.CompareValues);
     }
   );
 

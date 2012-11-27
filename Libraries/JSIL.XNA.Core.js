@@ -1237,15 +1237,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     return result;
   });
 
-  var cmp = function (lhs, rhs) {
-    if (lhs > rhs)
-      return 1;
-    else if (rhs > lhs)
-      return -1;
-    else
-      return 0;
-  };
-
   $.Method({Static:false, Public:false}, "Draw", 
     (new JSIL.MethodSignature(null, [$xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
     function Game_Draw (gameTime) {
@@ -1254,7 +1245,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable.__Type__);
       drawableComponents.sort(function (lhs, rhs) {
-        return cmp(lhs.get_DrawOrder(), rhs.get_DrawOrder());
+        return JSIL.CompareValues(lhs.get_DrawOrder(), rhs.get_DrawOrder());
       });
 
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
@@ -1274,7 +1265,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable.__Type__);
       updateableComponents.sort(function (lhs, rhs) {
-        return cmp(lhs.get_UpdateOrder(), rhs.get_UpdateOrder());
+        return JSIL.CompareValues(lhs.get_UpdateOrder(), rhs.get_UpdateOrder());
       });
 
       for (var i = 0, l = updateableComponents.length; i < l; i++) {

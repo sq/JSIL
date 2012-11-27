@@ -2580,14 +2580,7 @@ JSIL.$BuildFieldList = function (typeObject) {
   }
 
   // Sort fields by name so that we get a predictable initialization order.
-  fl.sort(function (lhs, rhs) {
-    if (lhs > rhs)
-      return 1;
-    else if (lhs < rhs)
-      return -1;
-    else
-      return 0;
-  })
+  fl.sort(JSIL.CompareValues)
 
   return fl;
 };

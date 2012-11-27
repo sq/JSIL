@@ -874,15 +874,6 @@ function pollAssetQueue () {
     window.clearInterval(state.interval);
     state.interval = null;
 
-    var cmp = function (lhs, rhs) {
-      if (lhs > rhs)
-        return 1;
-      else if (rhs > lhs)
-        return -1;
-      else
-        return 0;
-    };
-
     state.assetsLoadingNames = {};
 
     state.finishQueue.sort(function (lhs, rhs) {
@@ -908,9 +899,9 @@ function pollAssetQueue () {
           break;
       }
 
-      var result = cmp(lhsTypeIndex, rhsTypeIndex);
+      var result = JSIL.CompareValues(lhsTypeIndex, rhsTypeIndex);
       if (result === 0)
-        result = cmp(lhsIndex, rhsIndex);
+        result = JSIL.CompareValues(lhsIndex, rhsIndex);
 
       return result;
     });
