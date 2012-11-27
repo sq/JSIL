@@ -71,15 +71,21 @@ JSIL.Replay.SaveToLocalStorage = function (name) {
 };
 
 
+JSIL.Replay.FormatVersion = 2;
+
+
 // Recorder implementation
 
 JSIL.DeclareNamespace("JSIL.Replay.Recording", false);
 
 JSIL.Replay.Recorder = function () {
   this.replay = Object.create(null);
-  this.replay.localStorage = Object.create(null);
-  this.replay.frameData = Object.create(null);
+  this.replay.formatVersion = JSIL.Replay.FormatVersion;
+
   this.replay.frameCount = 0;
+
+  this.replay.localStorage = Object.create(null);
+  this.replay.keyframes = Object.create(null);
 
   this.createServiceProxies();
 
@@ -88,9 +94,6 @@ JSIL.Replay.Recorder = function () {
 
   this.localStorage = new JSIL.Replay.Recording.LocalStorageServiceProxy(this, JSIL.Host.getService("localStorage"));
   JSIL.Host.registerService("localStorage", this.localStorage);
-
-  for (var k in this.serviceProxies)
-    this.replay.frameData[k] = [];
 
   this.pushFrame();
 };
@@ -110,7 +113,8 @@ JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
     if (!service)
       continue;
 
-    var proxy = new JSIL.Replay.Recording.ServiceProxy(service);
+    var keyframes = this.replay.keyframes[key] = {};
+    var proxy = new JSIL.Replay.Recording.ServiceProxy(service, keyframes);
 
     this.serviceProxies[key] = proxy;
     JSIL.Host.registerService(key, proxy);
@@ -120,13 +124,13 @@ JSIL.Replay.Recorder.prototype.createServiceProxies = function () {
 JSIL.Replay.Recorder.prototype.pushFrame = function () {
   this.replay.frameCount += 1;
 
-  for (var key in this.serviceProxies) {
-    var callTable = Object.create(null);
-    this.serviceProxies[key].calls = callTable;
-    this.replay.frameData[key].push(callTable);
-  }
+  for (var key in this.serviceProxies)
+    this.serviceProxies[key].setCurrentFrame(this.replay.frameCount - 1);
 
-  if (typeof (document) !== "undefined") {
+  if (
+    ((this.replay.frameCount % 10) === 0) && 
+    (typeof (document) !== "undefined")
+  ) {
     var statusSpan = document.getElementById("recordState");
     if (statusSpan)
       statusSpan.textContent = "Recording (" + this.replay.frameCount + " frame(s))";
@@ -134,10 +138,14 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
 };
 
 
-JSIL.Replay.Recording.ServiceProxy = function (service, transformResult) {
+JSIL.Replay.Recording.ServiceProxy = function (service, keyframes) {
   this.service = service;
-  this.resultTransformer = transformResult || this.defaultResultTransformer;
-  this.calls = null;
+  this.keyframes = keyframes;
+  this.resultMemory = {};
+  this.resultTransformer = this.defaultResultTransformer;
+
+  this.frameIndex = -1;
+  this.callIndex = -1;
 
   for (var k in service) {
     if (this.hasOwnProperty(k))
@@ -145,8 +153,13 @@ JSIL.Replay.Recording.ServiceProxy = function (service, transformResult) {
 
     var value = service[k];
     if (typeof (value) === "function")
-      this[k] = this.$makeInterceptor(k);
+      this[k] = this.makeInterceptor(k);
   }
+};
+
+JSIL.Replay.Recording.ServiceProxy.prototype.setCurrentFrame = function (frameIndex) {
+  this.frameIndex = frameIndex;
+  this.callIndex = -1;
 };
 
 JSIL.Replay.Recording.ServiceProxy.prototype.defaultResultTransformer = function (name, result) {
@@ -183,15 +196,31 @@ JSIL.Replay.Recording.ServiceProxy.prototype.defaultResultTransformer = function
   }
 };
 
-JSIL.Replay.Recording.ServiceProxy.prototype.$pushCall = function (name, args, result, threw) {
-  var list = this.calls[name];
-  if (!list)
-    list = this.calls[name] = [];
+JSIL.Replay.Recording.ServiceProxy.prototype.pushCall = function (name, args, result, threw) {
+  if (this.frameIndex < 0)
+    throw new Error("Not initialized");
 
-  list.push(this.resultTransformer(name, result));
+  this.callIndex += 1;
+
+  var keyframeList = this.keyframes[name];
+  if (!keyframeList)
+    keyframeList = this.keyframes[name] = [];
+
+  var transformedResult = this.resultTransformer(name, result);
+
+  // HACK: Burns CPU and memory and creates GC pressure.
+  var transformedResultJSON = JSON.stringify(transformedResult);
+
+  if (this.resultMemory[name] === transformedResultJSON)
+    return;
+  else
+    this.resultMemory[name] = transformedResultJSON;
+
+  var keyframe = [this.frameIndex, this.callIndex, transformedResult];
+  keyframeList.push(keyframe);
 };
 
-JSIL.Replay.Recording.ServiceProxy.prototype.$makeInterceptor = function (name) {
+JSIL.Replay.Recording.ServiceProxy.prototype.makeInterceptor = function (name) {
   return function () {
     var args = Array.prototype.slice.call(arguments);
 
@@ -202,12 +231,12 @@ JSIL.Replay.Recording.ServiceProxy.prototype.$makeInterceptor = function (name) 
       var result = originalMethod.apply(this.service, args);
       failed = false;
 
-      this.$pushCall(name, args, result, false);
+      this.pushCall(name, args, result, false);
 
       return result;
     } finally {
       if (failed)
-        this.$pushCall(name, args, undefined, true);
+        this.pushCall(name, args, undefined, true);
     }
   };
 };
@@ -272,6 +301,9 @@ JSIL.Replay.Recording.LocalStorageServiceProxy.prototype.getKeys = function () {
 JSIL.DeclareNamespace("JSIL.Replay.Playback", false);
 
 JSIL.Replay.Player = function (replay) {
+  if (replay.formatVersion !== JSIL.Replay.FormatVersion)
+    throw new Error("Unsupported replay format version: " + replay.formatVersion);
+
   this.replay = replay;
 
   this.createServiceProxies();
@@ -295,14 +327,14 @@ JSIL.Replay.Player = function (replay) {
 };
 
 JSIL.Replay.Player.prototype.createServiceProxies = function () {
-  var servicesToProxy = Object.keys(this.replay.frameData);
+  var servicesToProxy = Object.keys(this.replay.keyframes);
 
   this.serviceProxies = Object.create(null);
 
   for (var i = 0, l = servicesToProxy.length; i < l; i++) {
     var key = servicesToProxy[i];
     var service = JSIL.Host.services[key];
-    var proxy = new JSIL.Replay.Playback.ServiceProxy(service);
+    var proxy = new JSIL.Replay.Playback.ServiceProxy(service, this.replay.keyframes[key]);
 
     this.serviceProxies[key] = proxy;
     JSIL.Host.registerService(key, proxy);
@@ -315,19 +347,10 @@ JSIL.Replay.Player.prototype.setCurrentFrame = function (frameIndex) {
 
   this.frameIndex = frameIndex;
 
-  this.currentFrame = Object.create(null);
+  for (var key in this.serviceProxies)
+    this.serviceProxies[key].setCurrentFrame(frameIndex);
 
-  var frameData = this.replay.frameData;
-
-  for (var key in frameData) {
-    var dataForKey = frameData[key][frameIndex];
-    if (typeof (dataForKey) === "undefined")
-      return false;
-
-    this.serviceProxies[key].calls = dataForKey;
-  }
-
-  return true;
+  return (frameIndex < this.replay.frameCount);
 };
 
 JSIL.Replay.Player.prototype.nextFrame = function () {
@@ -433,11 +456,13 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
 };
 
 
-JSIL.Replay.Playback.ServiceProxy = function (service, transformResult) {
+JSIL.Replay.Playback.ServiceProxy = function (service, keyframes) {
   this.service = service;
-  this.resultTransformer = transformResult || function (methodName, result) { return result; };
+  this.keyframes = keyframes;
+  this.resultTransformer = this.defaultResultTransformer;
 
-  this.calls = null;
+  this.frameIndex = -1;
+  this.callIndex = -1;
 
   for (var k in service) {
     if (this.hasOwnProperty(k))
@@ -445,24 +470,51 @@ JSIL.Replay.Playback.ServiceProxy = function (service, transformResult) {
 
     var value = service[k];
     if (typeof (value) === "function")
-      this[k] = this.$makeCallReplayer(k);
+      this[k] = this.makeCallReplayer(k);
   }
 };
 
-JSIL.Replay.Playback.ServiceProxy.prototype.$makeCallReplayer = function (name) {
+JSIL.Replay.Playback.ServiceProxy.prototype.defaultResultTransformer = function (name, result) {
+  return result;
+};
+
+JSIL.Replay.Playback.ServiceProxy.prototype.setCurrentFrame = function (frameIndex) {
+  this.frameIndex = frameIndex;
+  this.callIndex = -1;
+};
+
+JSIL.Replay.Playback.ServiceProxy.prototype.findKeyframe = function (name) {
+  var keyframeList = this.keyframes[name];
+  if (!keyframeList)
+    throw new Error("No keyframes for method '" + name + "'");
+
+  this.callIndex += 1;
+
+  var result = null;
+
+  for (var i = 0, l = keyframeList.length; i < l; i++) {
+    var keyframe = keyframeList[i];
+    if (keyframe[0] > this.frameIndex)
+      break;
+    else if ((keyframe[0] === this.frameIndex) && (keyframe[1] > this.callIndex))
+      break;
+
+    result = keyframe;
+  }
+
+  if (!result)
+    throw new Error("No keyframe found for method '" + name + "' at offset " + this.frameIndex + "," + this.callIndex);
+
+  return result;
+};
+
+JSIL.Replay.Playback.ServiceProxy.prototype.makeCallReplayer = function (name) {
   return function () {
-    if (this.calls === null)
-      throw new Error("No call table loaded");
+    if (this.frameIndex < 0)
+      throw new Error("Not initialized");
 
-    var callList = this.calls[name];
-    if (!callList)
-      throw new Error("No call list for method '" + name + "'");
-    else if (callList.length < 1)
-      throw new Error("Call list for method '" + name + "' is empty");
-
-    var result = callList.shift();
-
-    return result;
+    var keyframe = this.findKeyframe(name);
+    return keyframe[2];
   };
 };
 
