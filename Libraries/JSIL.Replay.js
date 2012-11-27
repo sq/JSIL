@@ -24,12 +24,20 @@ JSIL.Replay.InitializeRecorder = function () {
 
 JSIL.Replay.InitializePlayerFromURI = function (uri) {
   var req = new XMLHttpRequest();
-  var isDone = false;
+  var isDone = false, failed = false;
 
-  req.open("GET", uri, false);
-  req.send();
+  JSIL.Host.logWrite("Downloading replay... ");
 
-  if ((req.status >= 200) && (req.status <= 299))
+  try {
+    req.open("GET", uri, false);
+    req.send();
+  } catch (exc) {
+    failed = true;
+  }
+
+  JSIL.Host.logWriteLine("done.");
+
+  if ((req.status >= 200) && (req.status <= 299) && !failed)
     JSIL.Replay.InitializePlayerFromJSON(req.responseText);
   else
     JSIL.Host.abort(new Error("Failed to load replay from uri '" + uri + "': " + (req.statusText || req.status)));
@@ -128,7 +136,7 @@ JSIL.Replay.Recorder.prototype.pushFrame = function () {
     this.serviceProxies[key].setCurrentFrame(this.replay.frameCount - 1);
 
   if (
-    ((this.replay.frameCount % 10) === 0) && 
+    ((this.replay.frameCount % 5) === 0) && 
     (typeof (document) !== "undefined")
   ) {
     var statusSpan = document.getElementById("recordState");
@@ -464,13 +472,11 @@ JSIL.Replay.Playback.ServiceProxy = function (service, keyframes) {
   this.frameIndex = -1;
   this.callIndex = -1;
 
-  for (var k in service) {
+  for (var k in keyframes) {
     if (this.hasOwnProperty(k))
       continue;
 
-    var value = service[k];
-    if (typeof (value) === "function")
-      this[k] = this.makeCallReplayer(k);
+    this[k] = this.makeCallReplayer(k);
   }
 };
 
@@ -555,6 +561,29 @@ JSIL.Replay.Playback.TickSchedulerProxy = function (player, service) {
   this.service = service;
   this.boundAdvanceFrame = this.advanceFrame.bind(this);
   this.pendingFrameCallback = null;
+
+  if (typeof (window) !== "undefined") {
+    if (typeof (window.postMessage) === "function") {
+      var stepToken = "JSIL.Replay.Playback.TickSchedulerProxy.Step";
+
+      var messageHandler = (function (evt) {
+        if (evt && evt.data === stepToken)
+          this.advanceFrame();
+
+        return;
+      }).bind(this);
+
+      this.fastStep = function () {
+        window.postMessage(stepToken, "*");
+      };
+
+      window.addEventListener("message", messageHandler, true);
+    } else {
+      this.fastStep = function () {
+        window.setTimeout(this.boundAdvanceFrame, 0);
+      };
+    }
+  }
 };
 
 JSIL.Replay.Playback.TickSchedulerProxy.prototype.advanceFrame = function () {
@@ -577,8 +606,8 @@ JSIL.Replay.Playback.TickSchedulerProxy.prototype.schedule = function (callback,
       fastPlayback = Boolean(checkbox.checked);
   }
 
-  if (fastPlayback)
-    window.setTimeout(this.boundAdvanceFrame, 0);
+  if (fastPlayback && this.fastStep)
+    this.fastStep();
   else
     this.service.schedule(this.boundAdvanceFrame, when);
 };
