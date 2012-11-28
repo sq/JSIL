@@ -473,9 +473,6 @@ function initBrowserHooks () {
         case "option":
         case "textarea":
           return true;
-        
-        default:
-          return false;
       }
     }
 
