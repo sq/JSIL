@@ -1572,6 +1572,7 @@ JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
     new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])
   );
 });
+
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
 JSIL.ImplementExternals("System.Random", function ($) {
