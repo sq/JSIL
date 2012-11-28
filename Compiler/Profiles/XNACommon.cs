@@ -701,6 +701,29 @@ public static class Common {
         };
     }
 
+    public static string GetActualCase (string pathname) {
+        var directoryName = Path.GetDirectoryName(pathname);
+        var fileName = Path.GetFileName(pathname);
+
+        var result = Directory.GetFiles(directoryName, fileName).FirstOrDefault();
+
+        if (result == null) {
+            result = Directory.GetDirectories(directoryName, fileName).FirstOrDefault();
+        }
+
+        if (result == null) {
+            var directoryParent = Path.GetDirectoryName(directoryName);
+            var directorySubName = Path.GetFileName(directoryName);
+
+            result = Path.Combine(
+                Directory.GetDirectories(directoryParent, directorySubName).FirstOrDefault(),
+                fileName
+            );
+        }
+
+        return result;
+    }
+
     public static void ProcessContentProjects (
         VariableSet variables,
         Configuration configuration, 
@@ -816,7 +839,7 @@ public static class Common {
 
                 var localOutputDirectory =
                     myvars.ExpandPath(contentOutputDirectory, false);
-                var caseFixedLocalOutputDirectory = Path.GetFullPath(localOutputDirectory);
+                var caseFixedLocalOutputDirectory = GetActualCase(localOutputDirectory);
 
                 EnsureDirectoryExists(localOutputDirectory);
 
@@ -831,8 +854,7 @@ public static class Common {
                 (type, filename, properties) => {
                     var fileInfo = new FileInfo(filename);
 
-                    var caseFixedDirectory = Path.GetFullPath(Path.GetDirectoryName(filename));
-                    var caseFixedPath = Path.GetFullPath(Path.Combine(caseFixedDirectory, Path.GetFileName(filename)));
+                    var caseFixedPath = GetActualCase(filename);
 
                     var localPath = caseFixedPath.Replace(caseFixedLocalOutputDirectory, "");
                     if (localPath.StartsWith("\\"))
