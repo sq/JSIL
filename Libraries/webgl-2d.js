@@ -1305,16 +1305,24 @@
 
 
 
-    var imageCache = [], textureCache = [];
+    var imageCache = {}, textureCache = [];
 
     function Texture(image) {
       this.obj   = gl.createTexture();
-      this.index = textureCache.push(this);
+      this.index = textureCache.push(this) - 1;
       this.width = image.width;
       this.height = image.height;
       this.isPOT = isPOT(image.width) && isPOT(image.height);
 
-      imageCache.push(image);
+      if (image.webglTextureId) {
+        this.cacheKey = image.webglTextureId;
+      } else if (image.id) {
+        this.cacheKey = image.id;
+      } else {
+        image.webglTextureId = this.cacheKey = "webgl#" + this.index;
+      }
+
+      imageCache[this.cacheKey] = this.index;
 
       // we may wish to consider tiling large images like this instead of scaling and
       // adjust appropriately (flip to next texture source and tile offset) when drawing
@@ -1351,6 +1359,33 @@
 
       // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
+    };
+
+    function getTextureFromCache (image) {
+      var texture, textureCacheIndex;
+
+      if (image.webglTextureId)
+        textureCacheIndex = imageCache[image.webglTextureId];
+
+      if (image.id && typeof (textureCacheIndex) === "undefined")
+        textureCacheIndex = imageCache[image.id];
+
+      if (typeof (textureCacheIndex) !== "undefined") {
+        texture = textureCache[textureCacheIndex];
+
+        if (!texture)
+          throw new Error("Cache miss");
+
+        if (image.isDirty === true) {
+          texture.updateCachedImage(image);
+          image.isDirty = false;
+        }
+      } else {
+        image.isDirty = false;
+        texture = new Texture(image);
+      }
+
+      return texture;
     };
 
     gl.drawImage = function drawImage(image, a, b, c, d, e, f, g, h, colorR, colorG, colorB, colorA) {
@@ -1391,19 +1426,7 @@
 
       var shaderProgram = gl2d.initShaders(transform.c_stack, sMask);
 
-      var texture, cacheIndex = imageCache.indexOf(image);
-
-      if ((cacheIndex !== -1)) {
-        texture = textureCache[cacheIndex];
-      } else {
-        image.isDirty = false;
-        texture = new Texture(image);
-      }
-
-      if (image.isDirty === true) {
-        texture.updateCachedImage(image);
-        image.isDirty = false;
-      }
+      var texture = getTextureFromCache(image);
 
       if (doCrop) {
         gl.uniform4f(shaderProgram.uCropSource, a/image.width, b/image.height, c/image.width, d/image.height);

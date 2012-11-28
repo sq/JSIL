@@ -2413,6 +2413,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     this.image = document.createElement("img");
 
+    if (!this.image.id)
+      this.image.id = this.id;
+
     var textures = document.getElementById("textures");
     if (textures) 
       textures.appendChild(this.image);
@@ -2433,6 +2436,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }, true);
     this.image.src = uri;
 
+    if (!this.image.id)
+      this.image.id = this.id;
+
     self.width = self.image.naturalWidth;
     self.height = self.image.naturalHeight;
 
@@ -2449,6 +2455,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     this.id = String(++$jsilxna.nextImageId);
 
     this.image = image;
+
+    if (!this.image.id)
+      this.image.id = this.id;
 
     this.width = image.naturalWidth;
     this.height = image.naturalHeight;
@@ -2848,6 +2857,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     this.image = this.canvas = JSIL.Host.createCanvas(width, height);
     this.canvas.naturalWidth = width;
     this.canvas.naturalHeight = height;
+    
+    if (!this.image.id)
+      this.image.id = this.id;
 
     // Can't use WebGL here since it'll disable the ability to copy from the RT to the framebuffer.
     this.context = $jsilxna.get2DContext(this.canvas, false);
