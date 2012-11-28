@@ -1482,9 +1482,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     if (this._balanceFPSCheckbox)
       this._profilingMode = !this._balanceFPSCheckbox.checked;
 
-    var failed = true;
-    try {
+    // Isolate the try block into its own function since it will be running in the interpreter
+    this._TimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
+  });
 
+  $.RawMethod(false, "_TimeStep", function Game_TimeStep (elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame) {
+    var failed = true;
+
+    try {
       if (this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode) {
         this._FixedTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
       } else {

@@ -36,6 +36,14 @@ JSIL.ImplementExternals(
       TempI64B = new tInt64();
     });
 
+    $.RawMethod(false, "__CopyMembers__", 
+      function TimeSpan_CopyMembers (source, target) {
+        target._ticks = source._ticks.MemberwiseClone();
+        target._cachedTotalMs = source._cachedTotalMs || 0;
+        target._cachedTotalS = source._cachedTotalS || 0;
+      }
+    );
+
     $.Method({Static:true , Public:true }, "FromMilliseconds", 
       (new JSIL.MethodSignature($.Type, [$.Double], [])), 
       function FromMilliseconds (value) {
@@ -271,14 +279,19 @@ JSIL.ImplementExternals(
       return result;
     });
 
+    var invalidCachedTotal = 0;
+
     $.RawMethod(false, "$invalidate", function () {
-      this._cachedTotalMs = this._cachedTotalS = null;
+      this._cachedTotalMs = invalidCachedTotal;
+      this._cachedTotalS = invalidCachedTotal;
     });
 
     $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalMilliseconds () {
-        if (this._cachedTotalMs)
+        if (!this._ticks.a && !this._ticks.b && !this._ticks.c)
+          return 0;
+        else if (this._cachedTotalMs)
           return this._cachedTotalMs;
         else
           return this._cachedTotalMs = this.$toNumberDivided(TicksPerMillisecond);
@@ -288,7 +301,9 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_TotalSeconds", 
       (new JSIL.MethodSignature($.Double, [], [])), 
       function get_TotalSeconds () {
-        if (this._cachedTotalS)
+        if (!this._ticks.a && !this._ticks.b && !this._ticks.c)
+          return 0;
+        else if (this._cachedTotalS)
           return this._cachedTotalS;
         else
           return this._cachedTotalS = this.$toNumberDivided(TicksPerSecond);
