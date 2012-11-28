@@ -2182,7 +2182,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         var cropRect = this.croppingData.get_Item(charIndex);
 
         characterCallback(
-          glyphRect, positionX, positionY, cropRect.X, cropRect.Y, lineIndex
+          ch, glyphRect, 
+          positionX, positionY, 
+          cropRect.X, cropRect.Y, 
+          lineIndex
         );
 
         positionX += glyphWidth;
@@ -2282,15 +2285,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
   );
 
   var measureResult = [0, 0, 0];
-  var measureCallback = function (characterRect, x, y, xOffset, yOffset, lineIndex) {
+  var measureCallback = function (character, characterRect, x, y, xOffset, yOffset, lineIndex) {
     var x2 = x + characterRect.Width + xOffset;
     var y2 = y + characterRect.Height + yOffset;
     measureResult[0] = Math.max(measureResult[0], x2);
 
-    if (measureResult[2] !== lineIndex) {
-      measureResult[1] = y2 - y;
-    } else {
-      measureResult[1] = Math.max(measureResult[1], y2 - y);
+    if (character !== " ") {
+      if (measureResult[2] !== lineIndex) {
+        measureResult[1] = y2 - y;
+      } else {
+        measureResult[1] = Math.max(measureResult[1], y2 - y);
+      }
     }
 
     measureResult[2] = lineIndex;
@@ -2323,7 +2328,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     layerDepth: 0
   };
 
-  var drawCallback = function (characterRect, x, y, xOffset, yOffset, lineIndex) {
+  var drawCallback = function (character, characterRect, x, y, xOffset, yOffset, lineIndex) {
+    if (character === " ")
+      return;
+
     var texture = drawState.thisReference.textureValue;
     var spriteBatch = drawState.spriteBatch;
 
