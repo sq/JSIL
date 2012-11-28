@@ -816,6 +816,7 @@ public static class Common {
 
                 var localOutputDirectory =
                     myvars.ExpandPath(contentOutputDirectory, false);
+                var caseFixedLocalOutputDirectory = Path.GetFullPath(localOutputDirectory);
 
                 EnsureDirectoryExists(localOutputDirectory);
 
@@ -830,7 +831,10 @@ public static class Common {
                 (type, filename, properties) => {
                     var fileInfo = new FileInfo(filename);
 
-                    var localPath = filename.Replace(localOutputDirectory, "");
+                    var caseFixedDirectory = Path.GetFullPath(Path.GetDirectoryName(filename));
+                    var caseFixedPath = Path.GetFullPath(Path.Combine(caseFixedDirectory, Path.GetFileName(filename)));
+
+                    var localPath = caseFixedPath.Replace(caseFixedLocalOutputDirectory, "");
                     if (localPath.StartsWith("\\"))
                         localPath = localPath.Substring(1);
 
