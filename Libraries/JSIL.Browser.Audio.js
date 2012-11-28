@@ -168,7 +168,7 @@ function loadNullSound (audioInfo, filename, data, onError, onDoneLoading) {
 
 function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
   var handleError = function (text) {
-    JSIL.Host.abort(new Error(text));
+    JSIL.Host.abort(new Error("Error while loading '" + filename + "': " + text));
     return loadNullSound(audioInfo, filename, data, onError, onDoneLoading);
   };
 

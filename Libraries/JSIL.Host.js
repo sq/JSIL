@@ -137,10 +137,16 @@ JSIL.Host.abort = function (exception, extraInfo) {
   if (extraInfo)
     svc.write(extraInfo);
 
-  svc.write(exception);
+  try {
+    svc.write(exception);
+  } catch (exc) {
+  }
 
-  if (typeof (exception.stack) !== "undefined")
-    svc.write(exception.stack);
+  try {
+    if (exception.stack)
+      svc.write(exception.stack);
+  } catch (exc) {
+  }
 
   var svc = JSIL.Host.getService("error");
   svc.error(exception);
