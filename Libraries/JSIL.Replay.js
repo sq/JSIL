@@ -439,7 +439,7 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
 
     var standardDeviation = Math.sqrt(deviationSum / samples.length);
 
-    return {
+    var result = {      
       sum: roundTo4(sum),
       count: samples.length,
       min: roundTo4(min),
@@ -449,6 +449,8 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
       standardDeviation: standardDeviation,
       percentiles: percentiles
     };
+
+    return result;
   };
 
   var updateAggregates = getAggregates(this.gameTiming.updateSamples);
@@ -471,6 +473,19 @@ JSIL.Replay.Player.prototype.onPlaybackEnded = function () {
     draw: drawAggregates,
     update: updateAggregates
   };
+
+  if (
+    (typeof (window) !== "undefined") &&
+    (typeof (window.navigator) !== "undefined")
+  ) {
+    jsonData.browserInfo = {
+      userAgent: window.navigator.userAgent
+    };
+
+    if (window.navigator.buildID)
+      jsonData.browserInfo.buildID = window.navigator.buildID;
+  }
+
   JSIL.Host.logWriteLine(JSON.stringify(jsonData));
   JSIL.Host.logWriteLine("// end JSON-formatted data //");
 };
