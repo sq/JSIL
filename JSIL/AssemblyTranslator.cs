@@ -1973,13 +1973,13 @@ namespace JSIL {
         }
 
         private JSExpression TranslateAttributeConstructorArgument (TypeReference context, CustomAttributeArgument ca) {
-            // What the fuck, Cecil?
-            if (ca.Value is CustomAttributeArgument) {
+            if (ca.Value == null) {
+                return JSLiteral.Null(ca.Type);
+            } else if (ca.Value is CustomAttributeArgument) {
+                // What the fuck, Cecil?
                 return TranslateAttributeConstructorArgument(context, (CustomAttributeArgument)ca.Value);
             } else if (ca.Type.FullName == "System.Type") {
                 return new JSTypeReference((TypeReference)ca.Value, context);
-            } else if (ca.Value == null) {
-                return JSLiteral.Null(ca.Type);
             } else if (TypeUtil.IsEnum(ca.Type)) {
                 var longValue = Convert.ToInt64(ca.Value);
                 var result = JSEnumLiteral.TryCreate(
