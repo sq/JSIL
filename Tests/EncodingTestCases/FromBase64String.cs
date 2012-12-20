@@ -7,7 +7,8 @@ public static class Program {
             var bytes = System.Convert.FromBase64String(base64);
             Common.PrintByteArray(bytes);
         } catch (Exception exc) {
-            Console.WriteLine("{0} {1}", exc.GetType().Name, exc.Message);
+            // We have to truncate the exception message because Microsoft randomly changed it between VS2010 and VS2012.
+            Console.WriteLine("{0} {1}", exc.GetType().Name, exc.Message.Substring(0, 16));
         }
     }
 
