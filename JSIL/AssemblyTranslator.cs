@@ -76,7 +76,7 @@ namespace JSIL {
             "System.Single", "System.Double", 
             "System.Boolean", "System.Char",
             "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
-            "System.Attribute"
+            "System.Attribute", "System.Decimal"
         }; 
 
         public AssemblyTranslator (

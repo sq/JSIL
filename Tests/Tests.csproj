@@ -304,6 +304,7 @@
     <None Include="SimpleTestCases\AssignArrayToIEnumerable.cs" />
     <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SpecialTestCases\GetHostService.cs" />
+    <None Include="SimpleTestCases\DecimalCast.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
