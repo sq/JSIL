@@ -4,6 +4,6 @@ bin\JSILc "C:\Users\Kevin\Documents\Projects\lumberjack\LumberjackPC.sln" "C:\Us
 bin\JSILc "Examples\SimpleRaytracer.sln"
 bin\JSILc "Examples\SimplePathtracer.sln"
 bin\JSILc "C:\Users\Kevin\Documents\Projects\XnaMannux\Mannux\Mannux.sln" "jsil.org\demos\Mannux\Mannux.jsilconfig" --platform=x86 --configuration=Debug
-bin\JSILc "C:\Users\Kevin\Documents\Projects\Tetris\tetris.sln" "jsil.org\demos\Tetris\Tetris.jsilconfig" --platform=x86 --configuration=Debug
+bin\JSILc "Examples\ThirdParty\Tetris\tetris.sln" "jsil.org\demos\Tetris\Tetris.jsilconfig" --platform=x86 --configuration=Debug
 bin\JSILc "C:\Users\Kevin\Documents\Projects\PlatformerStarterKit\PlatformerStarterKit.sln" "jsil.org\demos\Platformer\Platformer.jsilconfig" --platform=x86 --configuration=Debug
 bin\JSILc "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGameWindows.sln" "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGame\bin\x86\Debug\RolePlayingGame.XmlSerializers.dll" "jsil.org\demos\RPG\RPG.jsilconfig" --platform="Mixed Platforms" --configuration=Debug

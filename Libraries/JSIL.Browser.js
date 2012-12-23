@@ -27,20 +27,41 @@ JSIL.DeclareNamespace("JSIL.Browser", false);
 JSIL.Browser.CanvasService = function () {
 };
 
+JSIL.Browser.CanvasService.prototype.applySize = function (element, desiredWidth, desiredHeight, isViewport) {
+  if (typeof (desiredWidth) !== "number")
+    desiredWidth = element.width;
+  if (typeof (desiredHeight) !== "number")
+    desiredHeight = element.height;
+
+  var scaleFactor = jsilConfig.viewportScale;
+  if (typeof (scaleFactor) !== "number")
+    scaleFactor = 1.0;
+
+  var width, height;
+  if (isViewport) {
+    width = Math.ceil(desiredWidth * scaleFactor);
+    height = Math.ceil(desiredHeight * scaleFactor);
+  } else {
+    width = desiredWidth;
+    height = desiredHeight;
+  }
+
+  element.actualWidth = desiredWidth;
+  element.actualHeight = desiredHeight;  
+  element.width = width;
+  element.height = height;
+}
+
 JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
-  if (typeof (desiredWidth) === "number")
-    e.width = desiredWidth;
-  if (typeof (desiredHeight) === "number")
-    e.height = desiredHeight;
+  this.applySize(e, desiredWidth, desiredHeight, true);
   
   return e;
 };
 
 JSIL.Browser.CanvasService.prototype.create = function (desiredWidth, desiredHeight) {
   var e = document.createElement("canvas");
-  e.width = desiredWidth;
-  e.height = desiredHeight;
+  this.applySize(e, desiredWidth, desiredHeight, false);
   
   return e;
 };

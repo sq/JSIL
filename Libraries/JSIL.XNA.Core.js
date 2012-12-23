@@ -1207,6 +1207,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
 
     this.LoadContent();
+
+    var gameControl = JSIL.Host.getService("gameControl", true);
+    if (gameControl)
+      gameControl.started(this);
   });
   $.Method({
     Static: false,

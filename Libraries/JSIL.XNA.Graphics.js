@@ -1658,14 +1658,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.originalCanvas = this.canvas = JSIL.Host.getCanvas();
     this.renderTarget = null;
 
-    this.originalWidth = this.canvas.width;
-    this.originalHeight = this.canvas.height;
+    this.originalWidth = this.canvas.actualWidth || this.canvas.width;
+    this.originalHeight = this.canvas.actualHeight || this.canvas.height;
 
     this.originalContext = this.context = $jsilxna.get2DContext(this.canvas, true);
 
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
-    this.viewport.Width = this.canvas.width;
-    this.viewport.Height = this.canvas.height;
+    this.viewport.Width = this.canvas.actualWidth || this.canvas.width;
+    this.viewport.Height = this.canvas.actualHeight || this.canvas.height;
     this.blendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
     this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
@@ -1785,14 +1785,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.RawMethod(false, "$UpdateViewport", function GraphicsDevice_$UpdateViewport () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
 
-    var scaleX = 1, scaleY = 1;
+    var scaleX = 1.0, scaleY = 1.0;
 
     if (this.canvas === this.originalCanvas) {
-      scaleX = this.viewport.Width / this.originalWidth;
-      scaleY = this.viewport.Height / this.originalHeight;
+      scaleX *= this.viewport.Width / this.originalWidth;
+      scaleY *= this.viewport.Height / this.originalHeight;
     } else {
-      scaleX = this.viewport.Width / this.canvas.width;
-      scaleY = this.viewport.Height / this.canvas.height;
+      scaleX *= this.viewport.Width / this.canvas.width;
+      scaleY *= this.viewport.Height / this.canvas.height;
     }
 
     this.context.translate(this.viewport.X, this.viewport.Y);

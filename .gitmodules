@@ -13,3 +13,6 @@
 [submodule "Upstream/ILSpy"]
 	path = Upstream/ILSpy
 	url = https://github.com/kevingadd/ILSpy
+[submodule "Examples/ThirdParty/Tetris"]
+	path = Examples/ThirdParty/Tetris
+	url = git://github.com/ttocs7/tetris.git

@@ -197,6 +197,8 @@ var $jsilloaderstate = {
 
   config.disableSound = config.disableSound || environment.getUserSetting("disableSound") || false;
 
+  config.viewportScale = parseFloat((config.viewportScale || environment.getUserSetting("viewportScale") || 1.0).toString());
+
   var manifests = config.manifests || [];
 
   for (var i = 0, l = manifests.length; i < l; i++)

@@ -19,14 +19,17 @@ namespace SmokeTests {
         public readonly RemoteWebDriver WebDriver;
         public readonly bool RunningAgainstLocalServer;
 
+        // Seconds
         public const int CommandTimeout = 30;
-        public const int MaximumTestDuration = 60 * 3;
-        public const int IdleTestTimeout = 10;
+        // Seconds
+        public const int MaximumTestDuration = 60 * 10;
+        // Seconds
+        public const int IdleTestTimeout = 30;
 
-        public static readonly string SeleniumVersion = "2.25.0";
+        public static readonly string SeleniumVersion = "2.28.0";
         public static readonly string LocalHost = "http://127.0.0.1:8080";
         public static readonly string RemoteHost = "http://hildr.luminance.org";
-        public static readonly string PageOptions = "testFixture&profile&forceCanvas&autoPlay";
+        public static readonly string DefaultPageOptions = "testFixture&profile&forceCanvas&autoPlay";
 
         private bool IsDisposed = false;
 
@@ -37,7 +40,7 @@ namespace SmokeTests {
                 TempPath = Path.GetTempPath();
                 LogPath = Path.Combine(TempPath, "sauce_connect.log");
 
-                DriverCapabilities = DesiredCapabilities.Firefox();
+                DriverCapabilities = DesiredCapabilities.Chrome();
                 DriverCapabilities.SetCapability(
                     CapabilityType.Platform, new Platform(PlatformType.XP)
                 );
@@ -66,7 +69,10 @@ namespace SmokeTests {
                     "record-video", true
                 );
                 DriverCapabilities.SetCapability(
-                    "record-screenshots", true
+                    "video-upload-on-pass", false
+                );
+                DriverCapabilities.SetCapability(
+                    "record-screenshots", false
                 );
 
                 /*
@@ -201,11 +207,11 @@ namespace SmokeTests {
             throw new Exception("Timed out without seeing expected log text");
         }
 
-        public void LoadPage (string path) {
+        public void LoadPage (string path, string pageOptions = null) {
             var generatedUrl = String.Format("{0}/{1}?{2}",
                 RunningAgainstLocalServer ? LocalHost : RemoteHost,
                 path,
-                PageOptions
+                pageOptions ?? DefaultPageOptions
             );
 
             PassOrFail(
@@ -214,7 +220,7 @@ namespace SmokeTests {
                         generatedUrl
                     )
                 ,
-                String.Format("Loading {0}... ", generatedUrl),
+                String.Format("Loading {0}", generatedUrl),
                 "loaded."
             );
         }

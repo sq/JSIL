@@ -4,6 +4,7 @@ var test = window.test = Object.create(null);
 
 test.logText = "";
 test.exceptions = [];
+test.game = null;
 
 
 JSIL.DeclareNamespace("JSIL.TestFixture", false);
@@ -33,10 +34,19 @@ JSIL.TestFixture.LogService.prototype.write = function (text) {
 };
 
 
+JSIL.TestFixture.GameControlService = function () {
+};
+
+JSIL.TestFixture.GameControlService.prototype.started = function (game) {
+  test.game = game;
+};
+
+
 JSIL.Host.registerServices({
   error: new JSIL.TestFixture.RecordErrorService(),
   stdout: new JSIL.TestFixture.LogService(),
   stderr: new JSIL.TestFixture.LogService(),
+  gameControl: new JSIL.TestFixture.GameControlService()
 });
 
 

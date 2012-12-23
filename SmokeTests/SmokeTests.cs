@@ -9,35 +9,33 @@ namespace SmokeTests {
     [TestFixture]
     public class SmokeTests {
         [Test]
-        [Ignore]
-        public void MannuxRuns () {
-            using (var s = new Session("Mannux", false)) {
-                s.LoadPage("Mannux/Mannux.html");
+        public void TetrisRunsReplayWithoutErrors () {
+            using (var s = new Session("Tetris", true)) {
+                s.LoadPage(
+                    "Tetris/Tetris.html", 
+                    "replayURI=test.replay&fastReplay&testFixture&profile&forceCanvas&autoPlay&viewportScale=0.25"
+                );
 
                 s.PassOrFail(
                     () => 
                         s.WaitFor(
                             "return window.$jsilbrowserstate.hasMainRun",
-                            timeoutMs: 45000
+                            timeoutMs: 5 * 60 * 1000
                         ),
                     "Waiting for game to start", "started."
                 );
 
                 s.PassOrFail(
-                    () => {
-                        // Turn right
-                        s.Evaluate("test.pressKeysFor([39], 2000);");
-
-                        // Fire the gun until the monster dies
+                    () =>
                         s.WaitFor(
-                            "test.pressKeysFor([162, 163], 250); " +
-                            "return test.logText.indexOf('HP: 0') >= 0",
-                            timeoutMs: 10000,
-                            tickRateMs: 200
-                        );
-                    },
-                    "Killing the monster"
+                            "return JSIL.Host.getService('replayPlayer').playbackEnded >= 0",
+                            timeoutMs: 3 * 60 * 1000
+                        ),
+                    "Waiting for replay to finish", "finished."
                 );
+
+                int score = Convert.ToInt32(s.Evaluate("test.game.score"));
+                int totalLines = Convert.ToInt32(s.Evaluate("test.game.totalLines"));
 
                 Console.WriteLine("// Game log follows:");
                 Console.WriteLine(s.GetLogText());
@@ -45,21 +43,15 @@ namespace SmokeTests {
                 var exceptions = s.GetExceptions();
                 var unexpectedExceptions = exceptions.ToList();
 
-                // Ignore errors about unimplemented WinForms methods.
-                unexpectedExceptions.RemoveAll((exc) => 
-                    exc.Text.Contains("The external method") && exc.Text.Contains("of type 'System.Windows.Forms")
-                );
-                // Ignore set_SynchronizeWithVerticalRetrace.
-                unexpectedExceptions.RemoveAll((exc) =>
-                    exc.Text.Contains("set_SynchronizeWithVerticalRetrace")
-                );
-
                 Console.WriteLine("// Game threw {0} exception(s), {1} of which were unexpected:", exceptions.Length, unexpectedExceptions.Count);
 
                 foreach (var exc in unexpectedExceptions)
                     Console.WriteLine(exc);
 
-                Assert.AreEqual(unexpectedExceptions.Count, 0);
+                Assert.AreEqual(unexpectedExceptions.Count, 0, "Unexpected exceptions were thrown");
+
+                Assert.AreEqual(score, 600, "Score did not match expectation");
+                Assert.AreEqual(totalLines, 8, "Total lines did not match expectation");
             }
         }
     }
