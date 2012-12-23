@@ -1972,12 +1972,24 @@ namespace JSIL {
             }
         }
 
-        private JSExpression TranslateAttributeConstructorArgument (TypeReference context, CustomAttributeArgument ca) {
+        private JSExpression TranslateAttributeConstructorArgument (
+            TypeSystem typeSystem, TypeReference context, CustomAttributeArgument ca
+        ) {
             if (ca.Value == null) {
                 return JSLiteral.Null(ca.Type);
             } else if (ca.Value is CustomAttributeArgument) {
-                // What the fuck, Cecil?
-                return TranslateAttributeConstructorArgument(context, (CustomAttributeArgument)ca.Value);
+                // :|
+                return TranslateAttributeConstructorArgument(
+                    typeSystem, context, (CustomAttributeArgument)ca.Value
+                );
+            } else if (ca.Value is CustomAttributeArgument[]) {
+                // Issue #141. WTF.
+                var valueArray = (CustomAttributeArgument[])ca.Value;
+                return new JSArrayExpression(typeSystem.Object, 
+                    (from value in valueArray select TranslateAttributeConstructorArgument(
+                        typeSystem, context, value
+                    )).ToArray()
+                );
             } else if (ca.Type.FullName == "System.Type") {
                 return new JSTypeReference((TypeReference)ca.Value, context);
             } else if (TypeUtil.IsEnum(ca.Type)) {
@@ -2028,7 +2040,9 @@ namespace JSIL {
                         output.OpenBracket(false);
                         astEmitter.CommaSeparatedList(
                             (from ca in constructorArgs
-                             select TranslateAttributeConstructorArgument(declaringType, ca))
+                             select TranslateAttributeConstructorArgument(
+                                astEmitter.TypeSystem, declaringType, ca
+                             ))
                         );
                         output.CloseBracket(false);
                         output.WriteRaw("; }");

@@ -305,6 +305,8 @@
     <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SpecialTestCases\GetHostService.cs" />
     <None Include="SimpleTestCases\DecimalCast.cs" />
+    <None Include="ReflectionTestCases\GetClassParamsArrayAttribute.cs" />
+    <None Include="ReflectionTestCases\GetClassArrayAttribute.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
