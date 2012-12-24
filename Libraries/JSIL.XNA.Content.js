@@ -45,7 +45,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
 
     if (asset.ReadAsset) {
       asset.contentManager = this;
-      var result = asset.ReadAsset(T);
+
+      var result = null;
+      try {
+        result = asset.ReadAsset(T);
+      } catch (exc) {
+        var signature = new JSIL.MethodSignature(null, ["System.String", "System.Exception"]);
+        throw signature.Construct(
+          Microsoft.Xna.Framework.Content.ContentLoadException.__Type__,
+          "Failed to load asset '" + assetName + "' because an asset loader threw an exception.", exc
+        );
+      }
 
       if (result === null)
         JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
@@ -385,8 +395,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
         existingInstance = new(System.Collections.Generic.List$b1.Of(this.T))();
       }
 
+      var readItemFunc = input.ReadObjectInternal$b1(this.T);
+
       while (count > 0) {
-        var item = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
+        var item = readItemFunc(this.elementReader, null);
         existingInstance.Add(item);
         count--;
       }
@@ -456,10 +468,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", func
       var kerning = input.ReadObject$b1(tList.Of(tVector3))();
 
       var defaultCharacter = null;
-      if (input.ReadBoolean()) defaultCharacter = input.ReadChar();
+      if (input.ReadBoolean()) {
+        defaultCharacter = input.ReadChar();
+      }
 
       var result = new tSpriteFont(
-      texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning, defaultCharacter);
+        texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning, defaultCharacter
+      );
 
       return result;
     }
@@ -520,7 +535,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       var result = thisType.targetTypeToReader[targetType.__TypeId__];
 
       if (typeof (result) !== "object") {
-        JSIL.Host.abort(new Error("No content type reader known for type '" + targetType + "'."));
+        throw new Error("No content type reader known for type '" + targetType + "'.");
         return null;
       }
 
@@ -546,14 +561,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
         var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly, false);
 
         if (typeReaderType === null) {
-          JSIL.Host.abort(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'."));
+          throw new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'.");
           return null;
         }
 
         var typeReaderInstance = JSIL.CreateInstanceOfType(typeReaderType);
         var targetType = typeReaderInstance.TargetType;
         if (!targetType) {
-          JSIL.Host.abort(new Error("The type reader '" + typeReaderName + "' is broken or not implemented."));
+          throw new Error("The type reader '" + typeReaderName + "' is broken or not implemented.");
           return null;
         }
 
@@ -597,7 +612,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       if (typeof (reader) === "object")
         return reader;
 
-      JSIL.Host.abort(new Error("No content type reader known for type '" + typeName + "'."));
+      throw new Error("No content type reader known for type '" + typeName + "'.");
       return null;
     }
   );
@@ -726,8 +741,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
   );
 
   var readObjectImpl = function (self, T, typeReader, existingInstance) {
-    if ((typeReader !== null) && (typeReader.TargetIsValueType))
-      return typeReader.Read(self, existingInstance);
+    if ((typeReader !== null) && (typeReader.TargetIsValueType)) {
+      var signature = new JSIL.MethodSignature(T, [self.__ThisType__, T]);
+
+      return signature.CallVirtual("Read", null, typeReader, self, existingInstance);
+    }
 
     var typeId = self.Read7BitEncodedInt();
 
@@ -736,7 +754,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
     typeReader = self.typeReaders[typeId - 1];
     if (typeof (typeReader) !== "object") {
-      JSIL.Host.abort(new Error("No type reader for typeId '" + typeId + "'. Misaligned XNB read is likely."));
+      throw new Error("No type reader for typeId '" + typeId + "'. Misaligned XNB read is likely.");
       return null;
     }
 
@@ -833,9 +851,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", fu
       if (existingInstance === null)
         existingInstance = new (this.TDictionary.__PublicInterface__)();
 
+      var readKeyFunc = input.ReadObjectInternal$b1(this.TKey);
+      var readValueFunc = input.ReadObjectInternal$b1(this.TValue);
+
       while (count > 0) {
-        var key = input.ReadObjectInternal$b1(this.TKey)(this.keyReader, null);
-        var value = input.ReadObjectInternal$b1(this.TValue)(this.valueReader, null);
+        var key = readKeyFunc(this.keyReader, null);
+        var value = readValueFunc(this.valueReader, null);
         existingInstance.Add(key, value);
         count--;
       }
