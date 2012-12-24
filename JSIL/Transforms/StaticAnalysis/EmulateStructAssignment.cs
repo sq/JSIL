@@ -107,7 +107,7 @@ namespace JSIL.Transforms {
                 relevantParameter = (valueType as GenericParameter);
             }
 
-            if (valueType.FullName.StartsWith("System.Nullable"))
+            if (IsTypeExcludedFromCopies(valueType)) 
                 return false;
 
             if (
@@ -184,6 +184,16 @@ namespace JSIL.Transforms {
             }
  
             return true;
+        }
+
+        public static bool IsTypeExcludedFromCopies (TypeReference valueType) {
+            if (valueType.FullName.StartsWith("System.Nullable"))
+                return true;
+
+            if (valueType.FullName == "System.Decimal")
+                return true;
+
+            return false;
         }
 
         public void VisitNode (JSFunctionExpression fn) {
