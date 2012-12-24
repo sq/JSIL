@@ -199,6 +199,8 @@ var $jsilloaderstate = {
 
   config.viewportScale = parseFloat((config.viewportScale || environment.getUserSetting("viewportScale") || 1.0).toString());
 
+  config.disableFiltering = config.disableFiltering || environment.getUserSetting("disableFiltering") || false;
+
   var manifests = config.manifests || [];
 
   for (var i = 0, l = manifests.length; i < l; i++)

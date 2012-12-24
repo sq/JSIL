@@ -13,7 +13,7 @@ namespace SmokeTests {
             using (var s = new Session("Tetris", true)) {
                 s.LoadPage(
                     "Tetris/Tetris.html", 
-                    "replayURI=test.replay&fastReplay&testFixture&profile&forceCanvas&autoPlay&viewportScale=0.25"
+                    "replayURI=test.replay&fastReplay&testFixture&profile&forceCanvas&autoPlay&viewportScale=0.25&disableFiltering"
                 );
 
                 s.PassOrFail(
@@ -34,8 +34,8 @@ namespace SmokeTests {
                     "Waiting for replay to finish", "finished."
                 );
 
-                int score = Convert.ToInt32(s.Evaluate("test.game.score"));
-                int totalLines = Convert.ToInt32(s.Evaluate("test.game.totalLines"));
+                int score = Convert.ToInt32(s.Evaluate("return window.test.game.score"));
+                int totalLines = Convert.ToInt32(s.Evaluate("return window.test.game.totalLines"));
 
                 Console.WriteLine("// Game log follows:");
                 Console.WriteLine(s.GetLogText());
@@ -48,10 +48,10 @@ namespace SmokeTests {
                 foreach (var exc in unexpectedExceptions)
                     Console.WriteLine(exc);
 
-                Assert.AreEqual(unexpectedExceptions.Count, 0, "Unexpected exceptions were thrown");
+                Assert.AreEqual(0, unexpectedExceptions.Count, "Unexpected exceptions were thrown");
 
-                Assert.AreEqual(score, 600, "Score did not match expectation");
-                Assert.AreEqual(totalLines, 8, "Total lines did not match expectation");
+                Assert.AreEqual(600, score, "Score did not match expectation");
+                Assert.AreEqual(8, totalLines, "Total lines did not match expectation");
             }
         }
     }

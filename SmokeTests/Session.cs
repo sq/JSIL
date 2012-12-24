@@ -33,7 +33,10 @@ namespace SmokeTests {
 
         private bool IsDisposed = false;
 
-        public Session (string testName, bool runAgainstLocalServer = false) {
+        public Session (
+            string testName, 
+            bool runAgainstLocalServer = false
+        ) {
             try {
                 RunningAgainstLocalServer = runAgainstLocalServer;
 
@@ -42,7 +45,7 @@ namespace SmokeTests {
 
                 DriverCapabilities = DesiredCapabilities.Chrome();
                 DriverCapabilities.SetCapability(
-                    CapabilityType.Platform, new Platform(PlatformType.XP)
+                    CapabilityType.Platform, "Windows 2008"
                 );
                 DriverCapabilities.SetCapability(
                     "name", testName

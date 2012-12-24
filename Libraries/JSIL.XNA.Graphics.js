@@ -1807,6 +1807,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
 
     this.context.scale(scaleX, scaleY);
+
+    if (jsilConfig.disableFiltering)
+      this.context.mozImageSmoothingEnabled = this.context.webkitImageSmoothingEnabled = false;
   });
 
   $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
@@ -2049,6 +2052,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
       if (value) {
         enableSmoothing = value.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
       }
+
+      if (jsilConfig.disableFiltering)
+        enableSmoothing = false;
 
       this.parent.context.mozImageSmoothingEnabled = this.parent.context.webkitImageSmoothingEnabled = enableSmoothing;
     }
