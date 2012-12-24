@@ -1496,7 +1496,17 @@ JSIL.TypeObjectPrototype.get_IsArray = function() {
 }
 
 
+// FIXME: The $...Internal version returns null if no resolution was necessary,
+//  which isn't quite as convenient. This is still pretty ugly.
 JSIL.ResolveGenericTypeReference = function (obj, context) {
+  var result = JSIL.$ResolveGenericTypeReferenceInternal(obj, context);
+  if (result === null)
+    return obj;
+
+  return result;
+};
+
+JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
   if ((typeof (obj) !== "object") || (obj === null))
     return null;
 
@@ -1506,61 +1516,75 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
     if (
       (typeof (result) === "undefined") ||
       (result === null)
-    )
-      return obj;
+    ) {
+      JSIL.Host.warning("Failed to resolve generic parameter " + obj.toString() + " in context " + context);
 
+      return null;
+    }
+
+    // Important that we don't use the $...Internal version here.
     return JSIL.ResolveGenericTypeReference(result, context);
   } else if (Object.getPrototypeOf(obj) === JSIL.TypeRef.prototype) {
     var resolvedGa = [];
+    var anyChanges = false;
+
     for (var i = 0, l = obj.genericArguments.length; i < l; i++) {
       var unresolved = obj.genericArguments[i];
-      var resolved = JSIL.ResolveGenericTypeReference(unresolved, context);
+      var resolved = JSIL.$ResolveGenericTypeReferenceInternal(unresolved, context);
 
-      if (resolved !== null)
+      if (resolved !== null) {
         resolvedGa[i] = resolved;
-      else
+        anyChanges = true;
+      } else
         resolvedGa[i] = unresolved;
     }
 
-    return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
+    if (anyChanges)
+      return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
+    else
+      return null;
   } else if (!obj.__IsClosed__) {
     if (obj.__IsArray__) {
-      var elementType = JSIL.ResolveGenericTypeReference(obj.__ElementType__, context);
-      if (elementType !== obj.__ElementType__)
-        obj = System.Array.Of(elementType);
-      return obj;
+      var elementType = JSIL.$ResolveGenericTypeReferenceInternal(obj.__ElementType__, context);
+      if (elementType !== null)
+        return System.Array.Of(elementType);
+
+      return null;
     }
   
     var ga = obj.__GenericArguments__ || [];
     if (ga.length < 1)
-      return obj;
+      return null;
 
     var openType = obj.__OpenType__;
     if (typeof (openType) !== "object")
-      return obj;
+      return null;
 
     var openPublicInterface = openType.__PublicInterface__;
     var existingParameters = obj.__GenericArgumentValues__ || [];
     var closedParameters = new Array(existingParameters.length);
 
-    for (var i = 0; i < closedParameters.length; i++) {
-      closedParameters[i] = JSIL.ResolveGenericTypeReference(
+    for (var i = 0; i < closedParameters.length; i++) {     
+      closedParameters[i] = JSIL.$ResolveGenericTypeReferenceInternal(
         existingParameters[i], context
       );
 
-      // Failed to resolve the parameter.
-      if (
-        (typeof (closedParameters[i]) === "undefined") ||
-        (closedParameters[i] === null)
-      )
-        return obj;
+      if (!closedParameters[i]) {
+        if ((Object.getPrototypeOf(existingParameters[i]) === JSIL.GenericParameter.prototype) || (!existingParameters[i].__IsClosed__)) {
+          JSIL.Host.warning("Failed to resolve generic parameter #" + i + " of type reference '" + obj.toString() + "'.");
+
+          return null;
+        }
+
+        closedParameters[i] = existingParameters[i];
+      }
     }
 
     var result = openPublicInterface.Of.apply(openPublicInterface, closedParameters);
     return result.__Type__;
   }
 
-  return obj;
+  return null;
 };
 
 JSIL.FoundGenericParameter = function (name, value) {
@@ -1785,9 +1809,9 @@ $jsilcore.$Of$NoInitialize = function () {
       var qualifiedName = genericParametersToResolve[i].name;
       var value = genericParametersToResolve[i].value;
 
-      var resolved = JSIL.ResolveGenericTypeReference(value, resolveContext);
+      var resolved = JSIL.$ResolveGenericTypeReferenceInternal(value, resolveContext);
       
-      if ((resolved !== null) && (resolved !== value)) {
+      if (resolved !== null) {
         // console.log(qualifiedName.humanReadable, " ", value, " -> ", resolved);
         qualifiedName.defineProperty(
           result.prototype, {
@@ -1876,7 +1900,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   for (var i = 0, l = sourceInterfaces.length; i < l; i++) {
     var unresolvedInterface = sourceInterfaces[i];
-    var resolvedInterface = JSIL.ResolveGenericTypeReference(unresolvedInterface, resolveContext);
+    var resolvedInterface = JSIL.$ResolveGenericTypeReferenceInternal(unresolvedInterface, resolveContext);
 
     if (resolvedInterface === null)
       resolvedInterface = unresolvedInterface;
@@ -2090,8 +2114,8 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
     var data = member.data;
 
     var fieldType = data.fieldType;
-    resolvedFieldTypeRef = JSIL.ResolveGenericTypeReference(fieldType, resolveContext);
-    if (resolvedFieldTypeRef)
+    resolvedFieldTypeRef = JSIL.$ResolveGenericTypeReferenceInternal(fieldType, resolveContext);
+    if (resolvedFieldTypeRef !== null)
       resolvedFieldType = JSIL.ResolveTypeReference(resolvedFieldTypeRef, typeObject.__Context__)[1];
     else
       resolvedFieldType = fieldType;
@@ -2172,7 +2196,13 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         continue __interfaces__;
       }
     } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-      iface = iface.get();
+      var resolveContext = typeObject.__PublicInterface__.prototype;
+      var resolvedGenericInterface = JSIL.$ResolveGenericTypeReferenceInternal(iface, resolveContext);
+
+      if (resolvedGenericInterface)
+        iface = resolvedGenericInterface.get();
+      else
+        iface = iface.get();
     }
 
     if (typeof (iface.__Type__) === "object")
@@ -2551,7 +2581,7 @@ JSIL.$BuildFieldList = function (typeObject) {
 
     var fieldTypeRef = field._data.fieldType, fieldType = null;
     if (Object.getPrototypeOf(fieldTypeRef) === JSIL.GenericParameter.prototype) {
-      fieldType = JSIL.ResolveGenericTypeReference(fieldTypeRef, typeObject.__PublicInterface__.prototype);
+      fieldType = JSIL.$ResolveGenericTypeReferenceInternal(fieldTypeRef, typeObject.__PublicInterface__.prototype);
 
       if (!fieldType) {
         JSIL.Host.warning(
@@ -2589,9 +2619,9 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   var result = false;
 
   for (var i = 0; i < types.length; i++) {
-    var resolved = JSIL.ResolveGenericTypeReference(types[i], context);
+    var resolved = JSIL.$ResolveGenericTypeReferenceInternal(types[i], context);
     
-    if ((resolved !== types[i]) && (resolved !== null)) {
+    if (resolved !== null) {
       // console.log("ga[" + i + "] " + types[i] + " -> " + resolved);
       types[i] = resolved;
       result = true;
@@ -2670,6 +2700,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
   var makeDispatcher, makeGenericArgumentGroup;
 
+  var makeMethodMissingError = function (signature) {
+    return "Method not found: " + signature.toString(methodFullName);
+  };
+
   var makeNoMatchFoundError = function (group) {
     var text = group.count + " candidate(s) for method invocation:";
     for (var i = 0; i < group.count; i++) {
@@ -2691,9 +2725,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var method = target[key];
 
     if (typeof (method) !== "function") {
-      JSIL.Host.warning("Method not defined: " + typeName + "." + key);
+      JSIL.Host.warning(makeMethodMissingError(singleMethod));
       var stub = function MissingMethodInvoked () {
-        throw new Error("Method not defined: " + typeName + "." + key);
+        throw new Error(makeMethodMissingError(singleMethod));
       };
 
       return JSIL.$MakeAnonymousMethod(target, stub);
@@ -2741,7 +2775,14 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
         // FIXME: Do we still need generic logic here?
 
-        result[i] = groupEntry.Resolve(methodEscapedName);
+        var typeObject = JSIL.GetType(target);
+        var resolveContext = target;
+
+        var resolvedGeneric = JSIL.$ResolveGenericMethodSignature(typeObject, groupEntry, resolveContext);
+        if (resolvedGeneric != null)
+          result[i] = resolvedGeneric.Resolve(methodEscapedName);
+        else
+          result[i] = groupEntry.Resolve(methodEscapedName);
       }
 
       isResolved = true;
@@ -2789,7 +2830,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         var foundOverload = target[resolvedMethod.key];
 
         if (typeof (foundOverload) !== "function") {
-          throw new Error("Method not defined: " + typeName + "." + resolvedMethod.key);
+          throw new Error(makeMethodMissingError(resolvedMethod));
         } else {
           return foundOverload.apply(this, arguments);
         }
@@ -5186,11 +5227,12 @@ JSIL.MethodSignature.prototype.Resolve = function (name) {
     argTypes[i] = JSIL.ResolveTypeReference(this.argumentTypes[i], this)[1];
   }
 
-  return {
-    key: this.GetKey(name),
-    returnType: resolvedReturnType, 
-    argumentTypes: argTypes
-  };
+  return new JSIL.ResolvedMethodSignature(
+    this,
+    this.GetKey(name),
+    resolvedReturnType, 
+    argTypes
+  );
 };
 
 JSIL.MethodSignature.prototype.GetKey = function (name) {
@@ -5452,6 +5494,19 @@ JSIL.MethodSignature.prototype._genericSuffix = null;
 JSIL.MethodSignature.prototype._hash = null;
 JSIL.MethodSignature.prototype._lastKeyName = "<null>";
 JSIL.MethodSignature.prototype._lastKey = "<null>";
+
+
+JSIL.ResolvedMethodSignature = function (methodSignature, key, returnType, argumentTypes) {
+  this.methodSignature = methodSignature;
+  this.key = key;
+  this.returnType = returnType;
+  this.argumentTypes = argumentTypes;
+};
+
+JSIL.ResolvedMethodSignature.prototype.toString = function () {
+  return this.methodSignature.toString.apply(this.methodSignature, arguments);
+};
+
 
 JSIL.LazyMethodSignature = function (cache, id) {
   this._cache = cache;
