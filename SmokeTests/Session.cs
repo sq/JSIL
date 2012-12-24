@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -37,6 +38,11 @@ namespace SmokeTests {
             string testName, 
             bool runAgainstLocalServer = false
         ) {
+            PassOrFail(
+                CheckForRunningWebServer,
+                "Checking for local web server"
+            );
+
             try {
                 RunningAgainstLocalServer = runAgainstLocalServer;
 
@@ -70,9 +76,6 @@ namespace SmokeTests {
                 );
                 DriverCapabilities.SetCapability(
                     "record-video", true
-                );
-                DriverCapabilities.SetCapability(
-                    "video-upload-on-pass", false
                 );
                 DriverCapabilities.SetCapability(
                     "record-screenshots", false
@@ -112,6 +115,42 @@ namespace SmokeTests {
             } catch (Exception exc2) {
                 Dispose();
                 throw;
+            }
+        }
+
+        private static void CheckForRunningWebServer () {
+            var completedSignal = new ManualResetEventSlim(false);
+
+            using (var wc = new WebClient()) {
+                Exception fetchError = null;
+                string fetchResult = null;
+
+                wc.DownloadStringCompleted += (s, e) => {
+                    try {
+                        fetchResult = e.Result;
+                    } catch (Exception exc) {
+                        fetchError = exc;
+                    }
+
+                    completedSignal.Set();
+                };
+
+                wc.DownloadStringAsync(new Uri(LocalHost));
+
+                completedSignal.Wait(2500);
+
+                if (!completedSignal.IsSet) {
+                    Exception inner = null;
+
+                    try {
+                        wc.CancelAsync();
+                    } catch (Exception exc) {
+                        fetchError = fetchError ?? exc;
+                    }
+                }
+
+                if (fetchResult == null)
+                    throw new Exception("Failed to connect to local web server at " + LocalHost, fetchError);
             }
         }
 
