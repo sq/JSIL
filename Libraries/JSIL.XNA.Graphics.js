@@ -796,6 +796,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
       this.flipHorizontally = this.spriteEffects.FlipHorizontally.value;
       this.flipVertically = this.spriteEffects.FlipVertically.value;
+
+      this.saveCount = 0;
+      this.restoreCount = 0;
     }
   );
 
@@ -808,6 +811,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     this.spriteEffects = spriteBatch.spriteEffects;
     this.flipHorizontally = spriteBatch.flipHorizontally;
     this.flipVertically = spriteBatch.flipVertically;
+      
+    this.saveCount = 0;
+    this.restoreCount = 0;
   });
 
   $.RawMethod(false, "$applyBlendState", function () {
@@ -933,7 +939,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device.$UpdateViewport();
 
       if (this.saveCount !== this.restoreCount)
-        JSIL.Host.warning("Unbalanced canvas save/restore");
+        throw new Error("Unbalanced canvas save/restore");
     }
   );
 
