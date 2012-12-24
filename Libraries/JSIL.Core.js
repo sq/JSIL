@@ -15,6 +15,7 @@ JSIL.SuppressInterfaceWarnings = true;
 JSIL.ReadOnlyPropertyWriteWarnings = false;
 JSIL.ThrowOnUnimplementedExternals = false;
 JSIL.ThrowOnStaticCctorError = false;
+JSIL.WarnAboutGenericResolveFailures = false;
 
 JSIL.GlobalNamespace = this;
 
@@ -1174,10 +1175,26 @@ JSIL.TypeRef = function (context, name, genericArguments) {
   }
 };
 JSIL.TypeRef.prototype.toString = function () {
+  var result = null;
+
   if (this.typeName === null)
-    return "ref " + JSIL.GetTypeName(this.cachedReference);
+    result = "ref " + JSIL.GetTypeName(this.cachedReference);
   else
-    return "ref " + this.typeName;
+    result = "ref " + this.typeName;
+
+  if (this.genericArguments && this.genericArguments.length) {
+    result += "[";
+
+    for (var i = 0, l = this.genericArguments.length; i < l; i++) {
+      result += this.genericArguments[i].toString();
+      if (i < (l - 1))
+        result += ", ";
+    }
+
+    result += "]";
+  }
+
+  return result;
 };
 JSIL.TypeRef.prototype.getTypeId = function () {
   if (this.cachedReference !== null)
@@ -1242,7 +1259,11 @@ JSIL.TypeRef.prototype.get = function () {
 
   this.cachedReference = result.get();
 
-  this.cachedReference = this.bindGenericArguments(this.cachedReference);
+  try {
+    this.cachedReference = this.bindGenericArguments(this.cachedReference);
+  } catch (exc) {
+    throw new Error("Failed to bind generic arguments for typeRef '" + this.toString() + "'.", exc);
+  }
 
   return this.cachedReference;
 };
@@ -1517,7 +1538,10 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
       (typeof (result) === "undefined") ||
       (result === null)
     ) {
-      JSIL.Host.warning("Failed to resolve generic parameter " + obj.toString() + " in context " + context);
+      var errorText = "Failed to resolve generic parameter " + obj.toString() + " in context " + context;
+      
+      if (JSIL.WarnAboutGenericResolveFailures)
+        JSIL.Host.warning(errorText);
 
       return null;
     }
@@ -1571,7 +1595,8 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
 
       if (!closedParameters[i]) {
         if ((Object.getPrototypeOf(existingParameters[i]) === JSIL.GenericParameter.prototype) || (!existingParameters[i].__IsClosed__)) {
-          JSIL.Host.warning("Failed to resolve generic parameter #" + i + " of type reference '" + obj.toString() + "'.");
+          if (JSIL.WarnAboutGenericResolveFailures)
+            JSIL.Host.warning("Failed to resolve generic parameter #" + i + " of type reference '" + obj.toString() + "'.");
 
           return null;
         }

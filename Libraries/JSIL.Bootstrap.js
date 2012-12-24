@@ -532,7 +532,14 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($.String, []),
       function () {
         var message = this.Message;
-        return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+        var result = System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+
+        if (this._innerException) {
+          result += "\n-- Inner exception follows --\n";
+          result += this._innerException.toString();
+        }
+
+        return result;
       }
     );
   }
