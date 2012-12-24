@@ -316,6 +316,10 @@ JSIL.StringFromCharArray = function (chars, startIndex, length) {
 
 JSIL.ImplementExternals(
   "System.String", function ($) {
+    $.RawMethod(true, ".cctor2", function () {
+      this.Empty = "";
+    });
+
     $.Method({Static: false, Public: true }, ".ctor",
       new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")]), "System.Int32", "System.Int32"], [], $jsilcore),
       JSIL.StringFromCharArray
@@ -586,7 +590,7 @@ JSIL.ImplementExternals(
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.__IsNativeType__ = true;
 
-  $.Constant({Static: true , Public: true }, "Empty", "");
+  $.Field({Static: true , Public: true }, "Empty", $.String, "");
 });
 
 JSIL.MakeEnum(
