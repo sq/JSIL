@@ -308,6 +308,7 @@
     <None Include="ReflectionTestCases\GetClassParamsArrayAttribute.cs" />
     <None Include="ReflectionTestCases\GetClassArrayAttribute.cs" />
     <None Include="SimpleTestCases\DecimalCopy.cs" />
+    <None Include="SimpleTestCases\EnumGetValuesLoop.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

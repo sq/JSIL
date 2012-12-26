@@ -2727,10 +2727,11 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array"), [$jsilcore.TypeRef("System.Type")], []),
       function (enm) {
         var names = enm.__Names__;
+        var publicInterface = enm.__PublicInterface__;
         var result = new Array(names.length);
 
         for (var i = 0; i < result.length; i++)
-          result[i] = enm[names[i]];
+          result[i] = publicInterface[names[i]];
 
         return result;
       }
