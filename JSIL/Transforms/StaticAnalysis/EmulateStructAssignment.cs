@@ -228,6 +228,9 @@ namespace JSIL.Transforms {
             if (!IsCopyNeeded(expression, out relevantParameter))
                 return false;
 
+            if (sa == null)
+                return true;
+
             if (!OptimizeCopies)
                 return true;
 

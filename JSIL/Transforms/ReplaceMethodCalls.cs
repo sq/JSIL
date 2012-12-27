@@ -154,6 +154,11 @@ namespace JSIL.Transforms {
                             VisitReplacement(ternary);
 
                             break;
+                        case "Equals":
+                            JSBinaryOperatorExpression equality = new JSBinaryOperatorExpression(JSOperator.Equal, ie.ThisReference, ie.Parameters.First().Value, type.Type);
+                            ParentNode.ReplaceChild(ie, equality);
+                            VisitReplacement(equality);
+                            break;
                         default:
                             throw new NotImplementedException(method.Method.Member.FullName);
                     }
