@@ -62,6 +62,10 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode(JSValueOfNullableExpression node) {
+            Visit(node.Expression);
+        }
+
         public override void VisitNode (JSNode node) {
             if ((node != null) && !node.IsNull) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
