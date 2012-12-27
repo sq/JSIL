@@ -120,7 +120,7 @@ function onLoad () {
   carouselE.carousel({
     loop: true,
     direction: "horizontal",
-    dispItems: 2,
+    dispItems: 3,
     pagination: false,
     autoSlide: true,
     autoSlideInterval: 6000,

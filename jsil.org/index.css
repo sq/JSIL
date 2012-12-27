@@ -152,8 +152,8 @@ input.carousel-control {
 }
 
 div.carousel-wrap {
-	width: 600px;
-	height: 300px;
+	width: 825px;
+	height: 275px;
 	display: block;
 	position: absolute;
 	left: 49px;
@@ -170,8 +170,8 @@ div#demo_carousel {
 	position: relative;
 	margin-left: auto;
 	margin-right: auto;
-	width: 698px;
-	height: 300px;
+	width: 923px;
+	height: 275px;
 }
 
 div#demo_carousel, div#demo_carousel a {
@@ -182,7 +182,7 @@ div#demo_carousel, div#demo_carousel a {
 
 div#carousel_items {
 	text-align: left;
-	height: 300px;
+	height: 275px;
 }
 
 div#demo_carousel a {
@@ -190,8 +190,8 @@ div#demo_carousel a {
 	float: left;
 	margin: 0px;
 	padding: 16px;
-	width: 300px;
-	height: 300px;
+	width: 275px;
+	height: 275px;
 	border: 0px;
 	text-align: center;
 	color: white;
@@ -202,6 +202,7 @@ div#demo_carousel a {
    -moz-border-radius: 16px;
    -webkit-border-radius: 16px;
 	border-radius: 16px;
+	background-size: contain;
 }
 
 div#demo_carousel a:hover {
