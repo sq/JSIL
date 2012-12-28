@@ -811,6 +811,8 @@ function pollAssetQueue () {
 
   var makeStepCallback = function (state, type, sizeBytes, i, name) {
     return function (finish) {
+      var realName = name;
+
       var lastDot = name.lastIndexOf(".");
       if (lastDot >= 0)
         name = name.substr(0, lastDot);
@@ -822,7 +824,7 @@ function pollAssetQueue () {
       if (typeof (finish) === "function")
         state.finishQueue.push([type, i, finish, name]);
 
-      delete state.assetsLoadingNames[name];
+      delete state.assetsLoadingNames[realName];
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
 
@@ -838,12 +840,7 @@ function pollAssetQueue () {
 
       allAssets[getAssetName(assetPath)] = null;
 
-      var errorText;
-
-      if (e && e.statusText)
-        errorText = e.statusText;
-      else
-        errorText = String(e);
+      var errorText = stringifyLoadError(e);
 
       state.assetLoadFailures.push(
         [assetPath, errorText]
@@ -856,7 +853,7 @@ function pollAssetQueue () {
         }
       }
 
-      JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + errorText);
+      JSIL.Host.logWriteLine("The asset '" + assetPath + "' could not be loaded: " + errorText);
     };    
   };
 
@@ -1337,6 +1334,19 @@ function registerErrorHandler () {
     else
       return false;
   };
+};
+
+function stringifyLoadError (error) {
+  if (error && error.statusText)
+    return error.statusText;
+  else if (
+    error && 
+    (typeof (error) === "object") &&
+    (error.toString().indexOf("[object") === 0)
+  )
+    return "Unknown error";
+  else
+    return String(error);
 };
 
 function showSaveRecordingDialog () {

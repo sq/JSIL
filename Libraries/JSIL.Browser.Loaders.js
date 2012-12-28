@@ -3,16 +3,34 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   anchor.href = uri;
   var absoluteUri = anchor.href;
 
+  var done = false;
+
   var body = document.getElementsByTagName("body")[0];
 
   var scriptTag = document.createElement("script");
-  scriptTag.addEventListener("load", onComplete, true);
+  scriptTag.addEventListener("load", function (e) {
+    if (done)
+      return;
+
+    done = true;
+    onComplete(scriptTag, null);
+  }, true);
   scriptTag.addEventListener("error", function (e) {
+    if (done)
+      return;
+
+    done = true;
     onComplete(null, e);
   }, true);
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
-  body.appendChild(scriptTag);
+
+  try {
+    body.appendChild(scriptTag);
+  } catch (exc) {
+    done = true;
+    onComplete(null, exc);
+  }
 };
 
 var warnedAboutOpera = false;
@@ -24,7 +42,7 @@ function getAbsoluteUrl (localUrl) {
   var temp = document.createElement("a");
   temp.href = localUrl;
   return temp.href;
-}
+};
 
 function doXHR (uri, asBinary, onComplete) {
   var req = null, isXDR = false;
@@ -119,18 +137,23 @@ function doXHR (uri, asBinary, onComplete) {
         var bytes;
         if (
           (typeof (ArrayBuffer) === "function") &&
-          (typeof (req.response) === "object")
+          (typeof (req.response) === "object") &&
+          (req.response !== null)
         ) {
           var buffer = req.response;
           bytes = new Uint8Array(buffer);
         } else if (
           (typeof (req.responseBody) !== "undefined") && 
-          (typeof (VBArray) !== "undefined")
+          (typeof (VBArray) !== "undefined") &&
+          (req.responseBody)
         ) {
           bytes = new VBArray(req.responseBody).toArray();
-        } else {
+        } else if (req.responseText) {
           var text = req.responseText;
           bytes = JSIL.StringToByteArray(text);
+        } else {
+          failed("Unknown error");
+          return;
         }
 
         succeeded(bytes, req.status, req.statusText);
@@ -227,14 +250,14 @@ function loadBinaryFileAsync (uri, onComplete) {
   });
 }
 
-var finishLoadingScript = function (state, path) {
+var finishLoadingScript = function (state, path, onError) {
   state.pendingScriptLoads += 1;
 
   JSIL.loadGlobalScript(path, function (result, error) {
     state.pendingScriptLoads -= 1;
 
     if (error) {
-      var errorText = "Failed to load script '" + path + "'!";
+      var errorText = "Network request failed: " + stringifyLoadError(error);
       
       state.assetLoadFailures.push(
         [path, errorText]
@@ -246,6 +269,8 @@ var finishLoadingScript = function (state, path) {
         } catch (exc2) {
         }
       }
+
+      onError(errorText);
     }          
   });
 };
@@ -254,7 +279,7 @@ var loadScriptInternal = function (uri, onError, onDoneLoading, state) {
   var absoluteUrl = getAbsoluteUrl(uri);
 
   var finisher = function () {
-    finishLoadingScript(state, uri);
+    finishLoadingScript(state, uri, onError);
   };
 
   if (absoluteUrl.indexOf("file://") === 0) {
