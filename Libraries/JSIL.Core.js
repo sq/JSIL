@@ -3351,7 +3351,13 @@ JSIL.InitializeType = function (type) {
       JSIL.BuildTypeList(typeObject, classObject);
     }
 
-    if (typeof (classObject.prototype) === "object") {
+    if (
+      (typeof (classObject.prototype) === "object") && 
+      // HACK: We need to use a special implementation for System.Object.MemberwiseClone,
+      //  since when called explicitly it acts 'virtually' (conforms to the instance type)
+      //  (issue #146)
+      (typeObject.__FullName__ !== "System.Object")
+    ) {
       JSIL.SetLazyValueProperty(
         classObject.prototype, "MemberwiseClone", function () {
           return JSIL.$MakeMemberwiseCloner(typeObject, classObject);

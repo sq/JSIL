@@ -66,10 +66,27 @@ JSIL.ImplementExternals("System.Object", function ($) {
     }
   );
 
+  // HACK: Prevent infinite recursion
+  var currentMemberwiseCloneInvocation = null;
+
   $.Method({Static: false, Public: false}, "MemberwiseClone",
     new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
     function Object_MemberwiseClone () {
-      return new System.Object();
+      var result = null;
+
+      // HACK: Handle Object.MemberwiseClone direct invocation
+      if (currentMemberwiseCloneInvocation === this.MemberwiseClone) {
+        result = new System.Object();
+      } else {
+        currentMemberwiseCloneInvocation = this.MemberwiseClone;
+        try {
+          result = this.MemberwiseClone();
+        } finally {
+          currentMemberwiseCloneInvocation = null;
+        }
+      }
+
+      return result;
     }
   );
 
