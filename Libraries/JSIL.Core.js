@@ -896,7 +896,7 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
   if (typeof (inheritedMember) === "function") {
     result = function ExternalMemberStub () {
       if (state.warningCount < 1) {
-        JSIL.Host.warning("The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+        JSIL.Host.warning("The external method '" + getMemberName.call(this) + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
         state.warningCount += 1;
       }
 
@@ -908,7 +908,7 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
         return;
 
       state.warningCount += 1;
-      var msg = "The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented.";
+      var msg = "The external method '" + getMemberName.call(this) + "' of type '" + namespaceName + "' has not been implemented.";
       var err = new Error(msg);
 
       if (JSIL.ThrowOnUnimplementedExternals) {
@@ -1546,8 +1546,14 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
       return null;
     }
 
-    // Important that we don't use the $...Internal version here.
-    return JSIL.ResolveGenericTypeReference(result, context);
+    if (result === obj)
+      throw new System.InvalidOperationException("Cannot pass a generic parameter as its own value");
+
+    var result2 = JSIL.$ResolveGenericTypeReferenceInternal(result, context);
+    if (!result2)
+      return result;
+    else
+      return result2;
   } else if (Object.getPrototypeOf(obj) === JSIL.TypeRef.prototype) {
     var resolvedGa = [];
     var anyChanges = false;
@@ -1983,6 +1989,9 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
     JSIL.FixupFieldTypes(result, resultTypeObject);
+
+    if (!resultTypeObject.IsInterface)
+      JSIL.ResolveGenericExternalMethods(result, resultTypeObject);
   } else {
     resultTypeObject.__OfCache__ = {};
   }
@@ -3654,6 +3663,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = [];
     typeObject.__Members__ = [];
+    typeObject.__ExternalMethods__ = [];
     typeObject.__RenamedMethods__ = {};
     typeObject.__RawMethods__ = [];
     typeObject.__TypeInitialized__ = false;
@@ -4130,6 +4140,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
+    typeObject.__ExternalMethods__ = [];
     typeObject.__Attributes__ = memberBuilder.attributes;
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
@@ -5099,7 +5110,16 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
     isPlaceholder = false;
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
-    var getName = (function () { return this[0].toString(this[1]); }).bind([signature, methodName]);
+    var externalMethods = this.typeObject.__ExternalMethods__;
+    var externalMethodIndex = externalMethods.length;
+
+    externalMethods.push(signature);
+
+    var getName = function () {
+      var thisType = (this.__Type__ || this.__ThisType__);
+      var lateBoundSignature = thisType.__ExternalMethods__[externalMethodIndex];
+      return lateBoundSignature.toString(methodName);
+    };
     newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
 
     isPlaceholder = true;
@@ -6659,3 +6679,56 @@ JSIL.GetObjectURLForBytes = function (bytes, mimeType) {
 
   return window.URL.createObjectURL(blob);
 }
+
+JSIL.BinarySearch = function (T, array, start, count, value, comparer) {
+  if (!Array.isArray(array))
+    throw new System.Exception("An array must be provided");
+
+  if (start < 0)
+    throw new System.ArgumentOutOfRangeException("start");
+  else if (start >= array.length)
+    throw new System.ArgumentOutOfRangeException("start");
+  else if (count < 0)
+    throw new System.ArgumentOutOfRangeException("count");
+  else if ((start + count) > array.length)
+    throw new System.ArgumentOutOfRangeException("count");
+
+  if (comparer === null)
+    comparer = System.Collections.Generic.Comparer$b1.Of(T).get_Default();
+
+  var low = start, high = start + count - 1, pivot;
+
+  while ( low <= high ) {
+    var pivot = (low + high) >> 1;
+    var keyframe = keyframeList[pivot];
+
+    if (
+      (keyframe[0] > this.frameIndex) || 
+      (
+        (keyframe[0] >= this.frameIndex) && 
+        (keyframe[1] > this.callIndex)
+      )
+    ) {
+      high = pivot - 1;
+    } else if (
+      (keyframe[0] < this.frameIndex) ||
+      (
+        (keyframe[0] <= this.frameIndex) &&
+        (keyframe[1] < this.callIndex)
+      )
+    ) {
+      low = pivot + 1;
+    } else {
+      foundResult = pivot;
+      break;
+    }
+  }
+};
+
+JSIL.ResolveGenericExternalMethods = function (publicInterface, typeObject) {
+  var externalMethods = typeObject.__ExternalMethods__;
+  var result = typeObject.__ExternalMethods__ = new Array(externalMethods.length);
+
+  for (var i = 0, l = result.length; i < l; i++)
+    result[i] = JSIL.$ResolveGenericMethodSignature(typeObject, externalMethods[i], publicInterface) || externalMethods[i];
+};
