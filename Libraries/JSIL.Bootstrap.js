@@ -628,6 +628,9 @@ JSIL.MakeClass("System.SystemException", "System.InvalidOperationException", tru
 JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
 JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
 
+JSIL.MakeClass("System.SystemException", "System.ArgumentException", true);
+JSIL.MakeClass("System.SystemException", "System.ArgumentOutOfRangeException", true);
+
 JSIL.MakeClass("System.SystemException", "System.IOException", true);
 JSIL.MakeClass("System.IOException", "System.IO.FileNotFoundException", true);
 JSIL.MakeClass("System.IOException", "System.IO.EndOfStreamException", true);
@@ -1133,9 +1136,28 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "RemoveAt", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
     function (index) {
+      if (!rangeCheckImpl(index, this._size))
+        throw new System.ArgumentOutOfRangeException("index");
+
       this._items.splice(index, 1);
       this._size -= 1;
-      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveRange", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
+    function (index, count) {
+      if (index < 0)
+        throw new System.ArgumentOutOfRangeException("index");
+      else if (count < 0)
+        throw new System.ArgumentOutOfRangeException("count");
+      else if (!rangeCheckImpl(index, this._size))
+        throw new System.ArgumentException();
+      else if (!rangeCheckImpl(index + count - 1, this._size))
+        throw new System.ArgumentException();
+
+      this._items.splice(index, count);
+      this._size -= count;
     }
   );
 
