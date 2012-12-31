@@ -2463,6 +2463,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.MathHelper", function ($) {
     (new JSIL.MethodSignature($.Single, [$.Single, $.Single], [])), 
     Math.min
   );
+
+  $.Method({Static:true , Public:true }, "ToDegrees", 
+    (new JSIL.MethodSignature($.Single, [$.Single], [])), 
+    function ToDegrees (radians) {
+      return radians / (Math.PI / 180);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToRadians", 
+    (new JSIL.MethodSignature($.Single, [$.Single], [])), 
+    function ToRadians (degrees) {
+      return degrees * (Math.PI / 180);
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.TitleContainer", function ($) {
