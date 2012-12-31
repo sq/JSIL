@@ -1989,9 +1989,7 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
     JSIL.FixupFieldTypes(result, resultTypeObject);
-
-    if (!resultTypeObject.IsInterface)
-      JSIL.ResolveGenericExternalMethods(result, resultTypeObject);
+    JSIL.ResolveGenericExternalMethods(result, resultTypeObject);
   } else {
     resultTypeObject.__OfCache__ = {};
   }
@@ -6716,6 +6714,9 @@ JSIL.BinarySearch = function (T, array, start, count, value, comparer) {
 
 JSIL.ResolveGenericExternalMethods = function (publicInterface, typeObject) {
   var externalMethods = typeObject.__ExternalMethods__;
+  if (!externalMethods)
+    return;
+
   var result = typeObject.__ExternalMethods__ = new Array(externalMethods.length);
 
   for (var i = 0, l = result.length; i < l; i++)
