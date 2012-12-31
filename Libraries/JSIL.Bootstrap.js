@@ -1193,6 +1193,43 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "BinarySearch", 
+    (new JSIL.MethodSignature($.Int32, [
+          $.Int32, $.Int32, 
+          T, 
+          $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])
+    ], [])), 
+    function BinarySearch (index, count, item, comparer) {
+      return JSIL.BinarySearch(
+        this.T, this._items, index, count,
+        item, comparer
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "BinarySearch", 
+    (new JSIL.MethodSignature($.Int32, [T], [])), 
+    function BinarySearch (item) {
+      return JSIL.BinarySearch(
+        this.T, this._items, 0, this._size,
+        item, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "BinarySearch", 
+    (new JSIL.MethodSignature($.Int32, [
+      T, 
+      $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])
+    ], [])), 
+    function BinarySearch (item, comparer) {
+      return JSIL.BinarySearch(
+        this.T, this._items, 0, this._size,
+        item, comparer
+      );
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ToArray", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [T]), [], []),
     function () {
@@ -2215,10 +2252,7 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true,
   $.Property({Public: true , Static: false}, "Values");
 
   $.ImplementInterfaces(
-//      $jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), $asm07.TypeRef("System.Collections.Generic.ICollection`1", [$asm07.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]), 
       $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]), 
-//      $jsilcore.TypeRef("System.Collections.IDictionary"), 
-//      $jsilcore.TypeRef("System.Collections.ICollection"), $asm07.TypeRef("System.Collections.IEnumerable"), 
       $jsilcore.TypeRef("System.Collections.IEnumerable")
   );
 });
@@ -4166,3 +4200,81 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedListNode`1", function 
   );
 
 });
+
+JSIL.MakeInterface(
+  "System.Collections.IComparer", true, [], 
+  function ($) {
+    $.Method({}, "Compare", 
+      new JSIL.MethodSignature($.Int32, [$.Object, $.Object], [])
+    );
+  }, []
+);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IComparer`1", true, ["T"], 
+  function ($) {
+    var T = new JSIL.GenericParameter("T", "System.Collections.Generic.IComparer`1");
+
+    $.Method({}, "Compare", 
+      new JSIL.MethodSignature($.Int32, [T, T], [])
+    );
+  }, []
+);
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Collections.Generic.Comparer`1", true, ["T"], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({Static:true , Public:true }, "get_Default", 
+    new JSIL.MethodSignature($.Type, [], [])
+  );
+
+  $.GenericProperty({Static:true , Public:true }, "Default", $.Type);
+
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.IComparer"), 
+    $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [
+      new JSIL.GenericParameter("T", "System.Collections.Generic.Comparer`1")
+    ])
+  );
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Comparer`1", function ($) {
+  $.Method({Static:true , Public:true }, "get_Default", 
+    new JSIL.MethodSignature($.Type, [], []),
+    function get_Default () {
+      // HACK
+      return new (JSIL.DefaultComparer$b1.Of(this.T));
+    }
+  );
+});
+
+JSIL.MakeClass(
+  $jsilcore.TypeRef("System.Collections.Generic.Comparer`1", [new JSIL.GenericParameter("T", "JSIL.DefaultComparer`1")]), 
+  "JSIL.DefaultComparer`1", true, ["T"], 
+  function ($) {
+    var T = new JSIL.GenericParameter("T", "JSIL.DefaultComparer`1");
+
+    $.Method({}, "Compare", 
+      new JSIL.MethodSignature($.Int32, [T, T], []),
+      function Compare (lhs, rhs) {
+        if (lhs === null) {
+          if (rhs === null)
+            return 0;
+          else
+            return -1;
+        } else if (rhs === null)
+          return 1;
+
+        if (typeof (lhs.CompareTo) === "function")
+          return lhs.CompareTo(rhs);
+
+        if (lhs < rhs)
+          return -1;
+        else if (lhs > rhs)
+          return 1;
+        else
+          return 0;
+      }
+    );    
+  }
+);

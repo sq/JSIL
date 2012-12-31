@@ -6698,31 +6698,20 @@ JSIL.BinarySearch = function (T, array, start, count, value, comparer) {
 
   var low = start, high = start + count - 1, pivot;
 
-  while ( low <= high ) {
-    var pivot = (low + high) >> 1;
-    var keyframe = keyframeList[pivot];
+  while (low <= high) {
+    pivot = (low + (high - low) / 2) | 0;
 
-    if (
-      (keyframe[0] > this.frameIndex) || 
-      (
-        (keyframe[0] >= this.frameIndex) && 
-        (keyframe[1] > this.callIndex)
-      )
-    ) {
-      high = pivot - 1;
-    } else if (
-      (keyframe[0] < this.frameIndex) ||
-      (
-        (keyframe[0] <= this.frameIndex) &&
-        (keyframe[1] < this.callIndex)
-      )
-    ) {
+    var order = comparer.Compare(array[pivot], value);
+
+    if (order === 0)
+      return pivot;
+    else if (order < 0)
       low = pivot + 1;
-    } else {
-      foundResult = pivot;
-      break;
-    }
+    else
+      high = pivot - 1;
   }
+
+  return ~low;
 };
 
 JSIL.ResolveGenericExternalMethods = function (publicInterface, typeObject) {
