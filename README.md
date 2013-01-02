@@ -13,6 +13,9 @@ License
 Copyright 2011 Kevin Gadd  
 License: MIT/X11
 
+Replay/Record support copyright 2012 Mozilla Corporation
+License: MIT/X11
+
 Acknowledgements
 ========
 
