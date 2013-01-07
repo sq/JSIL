@@ -96,7 +96,7 @@ namespace JSIL.Transforms {
             ) {
                 newExpression = new JSBinaryOperatorExpression(
                     JSBinaryOperator.NotEqual,
-                    ce.Expression, new JSDefaultValueLiteral(currentType),
+                    ce.Expression, new JSNullLiteral(currentType),
                     TypeSystem.Boolean
                 );
             } else if (
