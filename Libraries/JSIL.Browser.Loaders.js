@@ -135,30 +135,43 @@ function doXHR (uri, asBinary, onComplete) {
 
       if (asBinary) {
         var bytes;
-        if (
-          (typeof (ArrayBuffer) === "function") &&
-          (typeof (req.response) === "object") &&
-          (req.response !== null)
-        ) {
-          var buffer = req.response;
-          bytes = new Uint8Array(buffer);
-        } else if (
-          (typeof (req.responseBody) !== "undefined") && 
-          (typeof (VBArray) !== "undefined") &&
-          (req.responseBody)
-        ) {
-          bytes = new VBArray(req.responseBody).toArray();
-        } else if (req.responseText) {
-          var text = req.responseText;
-          bytes = JSIL.StringToByteArray(text);
-        } else {
-          failed("Unknown error");
+
+        try {
+          if (
+            (typeof (ArrayBuffer) === "function") &&
+            (typeof (req.response) === "object") &&
+            (req.response !== null)
+          ) {
+            var buffer = req.response;
+            bytes = new Uint8Array(buffer);
+          } else if (
+            (typeof (req.responseBody) !== "undefined") && 
+            (typeof (VBArray) !== "undefined") &&
+            (req.responseBody)
+          ) {
+            bytes = new VBArray(req.responseBody).toArray();
+          } else if (req.responseText) {
+            var text = req.responseText;
+            bytes = JSIL.StringToByteArray(text);
+          } else {
+            failed("Unknown error");
+            return;
+          }
+        } catch (exc) {
+          failed(exc);
           return;
         }
 
         succeeded(bytes, req.status, req.statusText);
       } else {
-        succeeded(req.responseText, req.status, req.statusText);
+        try {
+          var responseText = req.responseText;
+        } catch (exc) {
+          failed(exc);
+          return;
+        }
+
+        succeeded(responseText, req.status, req.statusText);
       }
     };
   }
