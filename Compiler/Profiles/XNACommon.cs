@@ -705,10 +705,13 @@ public static class Common {
         var directoryName = Path.GetDirectoryName(pathname);
         var fileName = Path.GetFileName(pathname);
 
-        var result = Directory.GetFiles(directoryName, fileName).FirstOrDefault();
+        string result = null;
 
-        if (result == null) {
-            result = Directory.GetDirectories(directoryName, fileName).FirstOrDefault();
+        if (Directory.Exists(directoryName)) {
+            result = Directory.GetFiles(directoryName, fileName).FirstOrDefault();
+
+            if (result == null)
+                result = Directory.GetDirectories(directoryName, fileName).FirstOrDefault();
         }
 
         if (result == null) {
@@ -716,7 +719,7 @@ public static class Common {
             var directorySubName = Path.GetFileName(directoryName);
 
             result = Path.Combine(
-                Directory.GetDirectories(directoryParent, directorySubName).FirstOrDefault(),
+                Directory.GetDirectories(directoryParent, directorySubName).FirstOrDefault() ?? directoryName,
                 fileName
             );
         }
