@@ -313,6 +313,7 @@
     <None Include="SimpleTestCases\AsWithGenericParameter.cs" />
     <None Include="SimpleTestCases\ListRemoveRange.cs" />
     <None Include="SimpleTestCases\ListBinarySearch.cs" />
+    <None Include="ReflectionTestCases\AttributeTypeof.cs" />
     <None Include="SimpleTestCases\CoercedArrayLength.cs" />
     <None Include="SimpleTestCases\NullableCompoundAssignment.cs" />
     <None Include="Int64TestCases\Int64CastToEnum.cs" />

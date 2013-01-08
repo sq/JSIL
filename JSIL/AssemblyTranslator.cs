@@ -1996,7 +1996,7 @@ namespace JSIL {
                     )).ToArray()
                 );
             } else if (ca.Type.FullName == "System.Type") {
-                return new JSTypeReference((TypeReference)ca.Value, context);
+                return new JSTypeOfExpression((TypeReference)ca.Value);
             } else if (TypeUtil.IsEnum(ca.Type)) {
                 var longValue = Convert.ToInt64(ca.Value);
                 var result = JSEnumLiteral.TryCreate(
