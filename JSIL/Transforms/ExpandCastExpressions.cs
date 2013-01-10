@@ -94,9 +94,18 @@ namespace JSIL.Transforms {
                 //  In this case we want to leave it as-is.
                 (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
+                JSLiteral nullLiteral;
+
+                // HACK: Necessary because we represent Char instances as JS strings. Issue #150
+                // Is this right?
+                if (currentType.FullName == "System.Char")
+                    nullLiteral = new JSDefaultValueLiteral(currentType);
+                else
+                    nullLiteral = new JSNullLiteral(currentType);
+
                 newExpression = new JSBinaryOperatorExpression(
                     JSBinaryOperator.NotEqual,
-                    ce.Expression, new JSNullLiteral(currentType),
+                    ce.Expression, nullLiteral,
                     TypeSystem.Boolean
                 );
             } else if (
