@@ -104,6 +104,19 @@ namespace JSIL.Transforms {
                 }
             } else if (
                 (targetType.MetadataType == MetadataType.Boolean) &&
+                (ce.Expression is JSAsExpression) && 
+                ((JSAsExpression)ce.Expression).GetActualType(TypeSystem) is GenericParameter
+            ) {
+                // C# expressions such as (t is T) (where T is a generic parameter). See issue #150. 
+                // Tested with AsWithGenericParameter.cs
+                newExpression = new JSBinaryOperatorExpression(
+                    JSBinaryOperator.NotEqual,
+                    ce.Expression, new JSNullLiteral(currentType),
+                    TypeSystem.Boolean
+                );  
+            }
+            else if (
+                (targetType.MetadataType == MetadataType.Boolean) &&
                 // A cast from Object to Boolean can occur in two forms:
                 // An implied conversion, where an object expression is treated as a boolean (logicnot operation, etc).
                 //  In this case, we want to do 'obj != null' to make it a boolean.
@@ -111,18 +124,9 @@ namespace JSIL.Transforms {
                 //  In this case we want to leave it as-is.
                 (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
-                JSLiteral nullLiteral;
-
-                // HACK: Necessary because we represent Char instances as JS strings. Issue #150
-                // Is this right?
-                if (currentType.FullName == "System.Char")
-                    nullLiteral = new JSDefaultValueLiteral(currentType);
-                else
-                    nullLiteral = new JSNullLiteral(currentType);
-
                 newExpression = new JSBinaryOperatorExpression(
                     JSBinaryOperator.NotEqual,
-                    ce.Expression, nullLiteral,
+                    ce.Expression, new JSDefaultValueLiteral(currentType),
                     TypeSystem.Boolean
                 );
             } else if (
