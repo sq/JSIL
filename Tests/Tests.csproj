@@ -314,6 +314,7 @@
     <None Include="SimpleTestCases\ListRemoveRange.cs" />
     <None Include="SimpleTestCases\ListBinarySearch.cs" />
     <None Include="SimpleTestCases\NullableCompoundAssignment.cs" />
+    <None Include="Int64TestCases\Int64CastToEnum.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

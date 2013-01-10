@@ -85,6 +85,12 @@ namespace JSIL.Transforms {
                         newExpression = JSIL.ValueOfNullable(
                             ce.Expression
                         );
+                    } else if (
+                        ce.Expression is JSCastExpression &&
+                        (((JSCastExpression)ce.Expression).Expression.GetActualType(TypeSystem).MetadataType == MetadataType.Int64 ||
+                        ((JSCastExpression)ce.Expression).Expression.GetActualType(TypeSystem).MetadataType == MetadataType.UInt64)
+                    ) {
+                        newExpression = ce.Expression;
                     } else {
                         newExpression = JSInvocationExpression.InvokeMethod(
                             JS.valueOf(targetType), ce.Expression, null, true
