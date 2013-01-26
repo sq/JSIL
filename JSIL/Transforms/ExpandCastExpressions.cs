@@ -53,7 +53,8 @@ namespace JSIL.Transforms {
                 var isNullable = TypeUtil.IsNullable(currentType);
 
                 if (isNullable) {
-                    var git = (GenericInstanceType)currentType;
+                    int temp;
+                    var git = (GenericInstanceType)TypeUtil.FullyDereferenceType(currentType, out temp);
                     enumInfo = TypeInfo.Get(git.GenericArguments[0]);
                 } else {
                     enumInfo = TypeInfo.Get(currentType);
