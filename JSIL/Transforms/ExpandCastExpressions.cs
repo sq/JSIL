@@ -49,8 +49,18 @@ namespace JSIL.Transforms {
             } else if (
                 IntroduceEnumCasts.IsEnumOrNullableEnum(currentType)
             ) {
-                var enumInfo = TypeInfo.Get(currentType);
+                TypeInfo enumInfo;
                 var isNullable = TypeUtil.IsNullable(currentType);
+
+                if (isNullable) {
+                    var git = (GenericInstanceType)currentType;
+                    enumInfo = TypeInfo.Get(git.GenericArguments[0]);
+                } else {
+                    enumInfo = TypeInfo.Get(currentType);
+                }
+
+                if (enumInfo == null)
+                    throw new InvalidOperationException("Unable to extract enum type from typereference " + currentType);
 
                 if (targetType.MetadataType == MetadataType.Boolean) {
                     EnumMemberInfo enumMember;

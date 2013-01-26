@@ -11,6 +11,7 @@ using System.Xml.Serialization;
 using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Translator;
+using JSIL.Utilities;
 using Mono.Cecil;
 
 namespace JSIL.Compiler {
@@ -523,6 +524,7 @@ namespace JSIL.Compiler {
                             throw new Exception("No output directory was specified!");
 
                         var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
+                        CopiedOutputGatherer.EnsureDirectoryExists(outputDir);
 
                         Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 

@@ -51,12 +51,32 @@ namespace JSIL.Transforms {
             };
         }
 
-        public static bool IsEnumOrNullableEnum (TypeReference tr) {
-            tr = TypeUtil.DereferenceType(tr, false);
+        protected JSExpression CastToEnumType (JSExpression value, TypeReference type) {
+            return CastToEnumType(value, type, TypeSystem);
+        }
 
-            if (TypeUtil.IsEnum(tr))
-                return true;
+        public static JSExpression CastToEnumType (JSExpression value, TypeReference type, TypeSystem typeSystem) {
+            if (IsNullableEnum(type)) {
+                // Handle casts like <int> -> <Enum?> by doing a two stage cast:
+                // <int> -> <Enum> -> <Enum?>
+                // Issue #154
 
+                var git = (GenericInstanceType)type;
+                var casted = JSCastExpression.New(
+                    value, git.GenericArguments[0], typeSystem, true
+                );
+                var coerced = JSChangeTypeExpression.New(
+                    casted, typeSystem, type
+                );
+                return coerced;
+            } else {
+                return JSCastExpression.New(
+                    value, type, typeSystem, true
+                );
+            }
+        }
+
+        public static bool IsNullableEnum (TypeReference tr) {
             var git = tr as GenericInstanceType;
             if ((git != null) && (git.Name == "Nullable`1")) {
                 if (TypeUtil.IsEnum(git.GenericArguments[0]))
@@ -64,6 +84,15 @@ namespace JSIL.Transforms {
             }
 
             return false;
+        }
+
+        public static bool IsEnumOrNullableEnum (TypeReference tr) {
+            tr = TypeUtil.DereferenceType(tr, false);
+
+            if (TypeUtil.IsEnum(tr))
+                return true;
+
+            return IsNullableEnum(tr);
         }
 
         public void VisitNode (JSIndexerExpression ie) {
@@ -93,9 +122,7 @@ namespace JSIL.Transforms {
             );
             var assignment = new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                expressionToMutate, JSCastExpression.New(
-                    newValue, type, TypeSystem, true
-                ), type
+                expressionToMutate, CastToEnumType(newValue, type), type
             );
 
             return assignment;
@@ -203,10 +230,13 @@ namespace JSIL.Transforms {
                 }
             } else if (BitwiseOperators.Contains(boe.Operator)) {
                 var parentCast = ParentNode as JSCastExpression;
-                if (resultIsEnum && ((parentCast == null) || (parentCast.NewType != resultType))) {
-                    var cast = JSCastExpression.New(
-                        boe, resultType, TypeSystem, true
-                    );
+                var parentReinterpret = Stack.Skip(2).FirstOrDefault() as JSChangeTypeExpression;
+
+                if (resultIsEnum && 
+                    ((parentCast == null) || (parentCast.NewType != resultType)) && 
+                    ((parentReinterpret == null) || (parentReinterpret.NewType != resultType))
+                ) {
+                    var cast = CastToEnumType(boe, resultType);
 
                     ParentNode.ReplaceChild(boe, cast);
                     VisitReplacement(cast);
@@ -238,10 +268,10 @@ namespace JSIL.Transforms {
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, boe.Left,
-                JSCastExpression.New(
+                CastToEnumType(
                     new JSBinaryOperatorExpression(
                         replacementOperator, boe.Left, boe.Right, intermediateType
-                    ), leftType, typeSystem, false
+                    ), leftType, typeSystem
                 ),
                 leftType
             );
