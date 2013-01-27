@@ -317,6 +317,7 @@
     <None Include="SimpleTestCases\NullableCompoundAssignment.cs" />
     <None Include="Int64TestCases\Int64CastToEnum.cs" />
     <None Include="SimpleTestCases\EventHandlerSample.cs" />
+    <None Include="SimpleTestCases\InterfaceEqualityComparison.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

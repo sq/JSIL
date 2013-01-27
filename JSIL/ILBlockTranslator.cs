@@ -34,6 +34,7 @@ namespace JSIL {
         protected int UnlabelledBlockCount = 0;
         protected int NextSwitchId = 0;
 
+        protected readonly Stack<bool> AutoCastingState = new Stack<bool>();
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
         static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]> NodeTranslatorCache = new ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>();
@@ -107,6 +108,8 @@ namespace JSIL {
                     Variables.Add(v.Identifier, v);
                 }
             }
+
+            AutoCastingState.Push(true);
         }
 
         protected TypeReference FixupReference (TypeReference reference) {
@@ -331,6 +334,10 @@ namespace JSIL {
             );
         }
 
+        public static bool ShouldSuppressAutoCastingForOperator (JSOperator op) {
+            return (op is JSComparisonOperator);
+        }
+
         protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
             // Detect attempts to perform pointer arithmetic
             if (TypeUtil.IsIgnoredType(node.Arguments[0].ExpectedType) ||
@@ -347,8 +354,14 @@ namespace JSIL {
                 !(op is JSAssignmentOperator))
                 return new JSUntranslatableExpression(node);
 
-            var lhs = TranslateNode(node.Arguments[0]);
-            var rhs = TranslateNode(node.Arguments[1]);
+            JSExpression lhs, rhs;
+            AutoCastingState.Push(!ShouldSuppressAutoCastingForOperator(op));
+            try {
+                lhs = TranslateNode(node.Arguments[0]);
+                rhs = TranslateNode(node.Arguments[1]);
+            } finally {
+                AutoCastingState.Pop();
+            }
 
             var boeLeft = lhs as JSBinaryOperatorExpression;
             if (
@@ -772,9 +785,23 @@ namespace JSIL {
                 (expression.InferredType != null) &&
                 !TypeUtil.TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
-                // ILSpy bug
+                // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
+                //  the casts they would normally generate sometimes.
+                bool shouldAutoCast = 
+                    AutoCastingState.Peek() ||
+                    (
+                        // Comparisons between value types still need a cast.
+                        !TypeUtil.IsReferenceType(expression.ExpectedType) || 
+                        !TypeUtil.IsReferenceType(expression.InferredType)
+                    );
 
-                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                if (shouldAutoCast) {
+                    return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                } else {
+                    // FIXME: Should this be JSChangeTypeExpression to preserve type information?
+                    // I think not, because a lot of these ExpectedTypes are wrong.
+                    return result;
+                }
             } else if (
                 // HACK: Can't apply this to InitArray instructions because it breaks dynamic call sites.
                 (expression.Code != ILCode.InitArray) &&
@@ -789,8 +816,6 @@ namespace JSIL {
                 // This can go away if we introduce a CLRArray type and use that instead of JS arrays.
 
                 return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: false);
-            } else {
-                return result;
             }
 
             return result;

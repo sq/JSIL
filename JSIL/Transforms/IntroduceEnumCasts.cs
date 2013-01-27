@@ -66,7 +66,7 @@ namespace JSIL.Transforms {
                     value, git.GenericArguments[0], typeSystem, true
                 );
                 var coerced = JSChangeTypeExpression.New(
-                    casted, typeSystem, type
+                    casted, type, typeSystem
                 );
                 return coerced;
             } else {

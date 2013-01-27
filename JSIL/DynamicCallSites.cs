@@ -214,7 +214,7 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 return new JSDelegateInvocationExpression(
-                    JSChangeTypeExpression.New(thisArgument, translator.TypeSystem, returnType), 
+                    JSChangeTypeExpression.New(thisArgument, returnType, translator.TypeSystem), 
                     returnType, arguments.Skip(2).ToArray()
                 );
             }

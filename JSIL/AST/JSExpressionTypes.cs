@@ -222,7 +222,7 @@ namespace JSIL.Ast {
                 if (isCast)
                     return JSCastExpression.New(expression, TypeUtil.DereferenceType(cast.NewType), jsil.TypeSystem);
                 else if (isCte)
-                    return JSChangeTypeExpression.New(expression, jsil.TypeSystem, TypeUtil.DereferenceType(cte.NewType));
+                    return JSChangeTypeExpression.New(expression, TypeUtil.DereferenceType(cte.NewType), jsil.TypeSystem);
                 else
                     return expression;
             };
@@ -1826,7 +1826,7 @@ namespace JSIL.Ast {
 
                     foreach (var iface in currentResolved.Interfaces) {
                         if (TypeUtil.TypesAreEqual(newType, iface, false))
-                            return JSChangeTypeExpression.New(inner, typeSystem, newType);
+                            return JSChangeTypeExpression.New(inner, newType, typeSystem);
                     }
                 }
             }
@@ -1956,7 +1956,7 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSExpression New (JSExpression inner, TypeSystem typeSystem, TypeReference newType) {
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
             var cte = inner as JSChangeTypeExpression;
             JSChangeTypeExpression result;
 

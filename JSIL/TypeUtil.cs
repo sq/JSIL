@@ -37,6 +37,31 @@ namespace JSIL {
             return false;
         }
 
+        public static bool IsReferenceType (TypeReference type) {
+            if (IsStruct(type))
+                return false;
+            else if (IsIntegralOrEnum(type))
+                return false;
+
+            var gp = type as GenericParameter;
+            if (gp != null) {
+                foreach (var constraint in gp.Constraints)
+                    if (IsReferenceType(constraint))
+                        return true;
+            }
+
+            switch (type.MetadataType) {
+                case MetadataType.Object:
+                case MetadataType.Class:
+                case MetadataType.String:
+                case MetadataType.Array:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
         public static bool IsStruct (TypeReference type) {
             if (type == null)
                 return false;
