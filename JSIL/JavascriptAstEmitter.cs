@@ -436,13 +436,28 @@ namespace JSIL {
             Output.RPar();
         }
 
+        private void WriteTruncationForType (TypeReference type) {
+            switch (type.FullName) {
+                case "System.UInt32":
+                    Output.WriteRaw(" >>> 0");
+                    break;
+
+                case "System.Int32":
+                default:
+                    Output.WriteRaw(" | 0");
+                    break;
+            }
+        }
+
         public void VisitNode (JSTruncateExpression te) {
             Output.LPar();
             Output.LPar();
             Visit(te.Expression);
             Output.RPar();
 
-            Output.WriteRaw(" | 0");
+            var expressionType = te.Expression.GetActualType(TypeSystem);
+            WriteTruncationForType(expressionType);
+
             Output.RPar();
         }
 
@@ -1150,6 +1165,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uop) {
+            var resultType = uop.GetActualType(TypeSystem);
+            bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType);
+
+            if (needsTruncation)
+                Output.LPar();
+
             if (!uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
 
@@ -1157,6 +1178,11 @@ namespace JSIL {
 
             if (uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
+
+            if (needsTruncation) {
+                WriteTruncationForType(resultType);
+                Output.RPar();
+            }
         }
 
         private bool NeedParensForBinaryOperator (JSBinaryOperatorExpression bop) {
@@ -1191,6 +1217,18 @@ namespace JSIL {
                 return false;
 
             return true;
+        }
+
+        private bool NeedTruncationForUnaryOperator (JSUnaryOperatorExpression uop, TypeReference resultType) {
+            if (
+                Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true)
+            ) {
+                return
+                    TypeUtil.Is32BitIntegral(uop.Expression.GetActualType(TypeSystem)) &&
+                    TypeUtil.Is32BitIntegral(resultType);
+            }
+
+            return false;
         }
 
         private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
@@ -1261,7 +1299,7 @@ namespace JSIL {
                 Output.RPar();
 
             if (needsTruncation) {
-                Output.WriteRaw(" | 0");
+                WriteTruncationForType(resultType);
                 Output.RPar();
             }
         }

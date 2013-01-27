@@ -124,7 +124,13 @@ namespace JSIL.Tests {
         public void PostIncrement () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\PostIncrement.cs",
-                "2\r\n3\r\n1\r\n0\r\n0\r\n0\r\n1"
+                "2\r\n3\r\n1\r\n0\r\n0\r\n0\r\n1",
+                () => {
+                    // Integer arithmetic hinting disables post-increment on ints.
+                    var config = MakeConfiguration();
+                    config.Optimizer.HintIntegerArithmetic = false;
+                    return config;
+                }
             );
             try {
                 Assert.IsFalse(generatedJs.Contains("i + 1"));

@@ -1570,6 +1570,11 @@ namespace JSIL {
                     ).Visit(function);
                 }
 
+                // If integer arithmetic hinting is enabled, we need to decompose mutation operators
+                //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
+                if (Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true))
+                    new DecomposeMutationOperators(si.TypeSystem, _TypeInfoProvider).Visit(function);
+
             } catch (Exception exc) {
                 string functionName;
 

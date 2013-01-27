@@ -142,9 +142,10 @@ namespace JSIL {
             switch (type.MetadataType) {
                 case MetadataType.Byte:
                 case MetadataType.SByte:
-                case MetadataType.Int16:
-                case MetadataType.Int32:
                 case MetadataType.UInt16:
+                case MetadataType.Int16:
+                case MetadataType.UInt32:
+                case MetadataType.Int32:
                     return true;
                 default:
                     return false;

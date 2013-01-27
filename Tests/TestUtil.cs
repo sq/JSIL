@@ -873,13 +873,13 @@ namespace JSIL.Tests {
             }
         }
 
-        protected string GetJavascript (string fileName, string expectedText = null) {
+        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null) {
             long elapsed, temp;
             string generatedJs = null, output;
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
+                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration);
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;

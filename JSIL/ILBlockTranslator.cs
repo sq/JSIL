@@ -1892,6 +1892,24 @@ namespace JSIL {
             return JSLiteral.New(value);
         }
 
+        protected JSExpression Translate_IntegerConstantCore (ILCode ilCode, long value, bool isUnsigned) {
+            switch (ilCode) {
+                case ILCode.Ldc_I4:
+                    if (isUnsigned)
+                        return new JSIntegerLiteral((uint)((int)value), typeof(uint));
+                    else
+                        return new JSIntegerLiteral(value, typeof(int));
+
+                case ILCode.Ldc_I8:
+                    if (isUnsigned)
+                        return new JSIntegerLiteral(value, typeof(ulong));
+                    else
+                        return new JSIntegerLiteral(value, typeof(long));
+            }
+
+            return null;
+        }
+
         protected JSExpression Translate_LoadIntegerConstant (ILExpression node, long value) {
             string typeName = null;
             var expressionType = node.InferredType ?? node.ExpectedType;
@@ -1900,6 +1918,10 @@ namespace JSIL {
                 typeName = expressionType.FullName;
                 typeInfo = TypeInfo.Get(expressionType);
             }
+
+            bool isUnsigned = false;
+            if ((typeName != null) && typeName.StartsWith("System.UInt"))
+                isUnsigned = true;
 
             if (
                 (typeInfo != null) && 
@@ -1910,34 +1932,30 @@ namespace JSIL {
                 if (enumLiteral != null)
                     return enumLiteral;
                 else {
-                    switch (node.Code) {
-                        case ILCode.Ldc_I4:
-                            return new JSIntegerLiteral(value, typeof(int));
-                        case ILCode.Ldc_I8:
-                            return new JSIntegerLiteral(value, typeof(long));
-                    }
+                    var result = Translate_IntegerConstantCore(node.Code, value, isUnsigned);
 
-                    throw new NotImplementedException(String.Format(
-                        "This form of enum constant loading is not implemented: {0}",
-                        node
-                    ));
+                    if (result == null)
+                        throw new NotImplementedException(String.Format(
+                            "This form of enum constant loading is not implemented: {0}",
+                            node
+                        ));
+
+                    return result;
                 }
             } else if (typeName == "System.Boolean") {
                 return JSLiteral.New(value != 0);
             } else if (typeName == "System.Char") {
                 return JSLiteral.New((char)value);
             } else {
-                switch (node.Code) {
-                    case ILCode.Ldc_I4:
-                        return new JSIntegerLiteral(value, typeof(int));
-                    case ILCode.Ldc_I8:
-                        return new JSIntegerLiteral(value, typeName == "System.UInt64" ? typeof(ulong) : typeof(long));
-                }
+                var result = Translate_IntegerConstantCore(node.Code, value, isUnsigned);
 
-                throw new InvalidDataException(String.Format(
-                    "This form of constant loading is not implemented: {0}",
-                    node
-                ));
+                if (result == null)
+                    throw new NotImplementedException(String.Format(
+                        "This form of constant loading is not implemented: {0}",
+                        node
+                    ));
+
+                return result;
             }
         }
 
