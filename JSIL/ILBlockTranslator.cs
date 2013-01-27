@@ -1595,10 +1595,6 @@ namespace JSIL {
         protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
             JSExpression result = MapVariable(variable);
 
-            var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
-            if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, variable.Type))
-                result = Translate_Conv(result, expectedType);
-
             return result;
         }
 
@@ -1616,10 +1612,6 @@ namespace JSIL {
             var value = TranslateNode(node.Arguments[0]);
             if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
                 return new JSNullExpression();
-
-            var expectedType = node.InferredType ?? node.ExpectedType ?? variable.Type;
-            if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
-                value = Translate_Conv(value, expectedType);
 
             JSVariable jsv = MapVariable(variable);
 
@@ -2133,7 +2125,10 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_U2 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16);
+            if (node.ExpectedType.MetadataType == MetadataType.Char)
+                return Translate_Conv(node, Context.CurrentModule.TypeSystem.Char);
+            else
+                return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16);
         }
 
         protected JSExpression Translate_Conv_U4 (ILExpression node) {
@@ -2582,12 +2577,6 @@ namespace JSIL {
                 !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
-            if (method.ReturnType.MetadataType != MetadataType.Void) {
-                var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
-                    result = Translate_Conv(result, expectedType);
-            }
-
             if (CopyOnReturn(result.GetActualType(TypeSystem)))
                 result = JSReferenceExpression.New(result);
 
@@ -2657,12 +2646,6 @@ namespace JSIL {
                thisExpression, translatedArguments, true, 
                false, explicitThis
             );
-
-            if (method.ReturnType.MetadataType != MetadataType.Void) {
-                var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
-                    result = Translate_Conv(result, expectedType);
-            }
 
             if (CopyOnReturn(result.GetActualType(TypeSystem)))
                 result = JSReferenceExpression.New(result);
