@@ -1383,6 +1383,14 @@ namespace JSIL {
                     JSOperator.Assignment, invocation.Arguments[0],
                     invocation, invocation.GetActualType(TypeSystem)
                 );
+            } else if ((invocation != null) && invocation.JSMethod.Identifier.StartsWith("op_")) {
+                // Binary operator using a custom operator method
+                var lhs = invocation.Arguments[0];
+
+                return new JSBinaryOperatorExpression(
+                    JSOperator.Assignment,
+                    lhs, invocation, invocation.GetActualType(TypeSystem)
+                );
             } else {
                 throw new NotImplementedException(String.Format("Compound assignments of this type not supported: '{0}'", node));
             }

@@ -322,6 +322,7 @@
     <None Include="SimpleTestCases\Int32OverflowAndUnderflow.cs" />
     <None Include="FailingTestCases\SmallIntOverflowAndUnderflow.cs" />
     <None Include="FailingTestCases\Int32Multiply.cs" />
+    <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
