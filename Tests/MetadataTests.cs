@@ -492,5 +492,14 @@ namespace JSIL.Tests {
                 }
             }
         }
+
+        [Test]
+        public void InheritedExternalStubError () {
+            GenericTest(
+                @"SpecialTestCases\InheritedExternalStubError.cs",
+                "DerivedClass()\r\nTwiceDerivedClass",
+                "DerivedClass()\r\nTwiceDerivedClass"
+            );
+        }
     }
 }

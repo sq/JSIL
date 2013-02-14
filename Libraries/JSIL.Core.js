@@ -4138,7 +4138,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
-    typeObject.__ExternalMethods__ = [];
+    // FIXME: I'm not sure this is right. See InheritedExternalStubError.cs
+    typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || []);
     typeObject.__Attributes__ = memberBuilder.attributes;
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
