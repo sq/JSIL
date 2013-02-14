@@ -280,10 +280,6 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 
-// Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
-// WTF? Maybe they won't suck sometime in the distant future.
-$jsilcore.SealInitializedTypes = false;
-
 // Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
 //  type inference engine.
 
@@ -3390,13 +3386,6 @@ JSIL.InitializeType = function (type) {
   ) {
     JSIL.InitializeType(type.__BaseType__);
   }
-
-  if ($jsilcore.SealInitializedTypes) {
-    Object.seal(type);
-
-    if (typeof(type.__PublicInterface__) === "object")
-      Object.seal(type.__PublicInterface__);
-  }
 };
 
 JSIL.RunStaticConstructors = function (classObject, typeObject) {
@@ -4141,6 +4130,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     // FIXME: I'm not sure this is right. See InheritedExternalStubError.cs
     typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || []);
     typeObject.__Attributes__ = memberBuilder.attributes;
+    typeObject.__RanCctors__ = false;
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
       typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
@@ -6722,4 +6712,10 @@ JSIL.ResolveGenericExternalMethods = function (publicInterface, typeObject) {
 
   for (var i = 0, l = result.length; i < l; i++)
     result[i] = JSIL.$ResolveGenericMethodSignature(typeObject, externalMethods[i], publicInterface) || externalMethods[i];
+};
+
+JSIL.FreezeImmutableObject = function (object) {
+  // Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
+  if (jsilConfig.enableFreezeAndSeal === true)
+    Object.freeze(object);
 };

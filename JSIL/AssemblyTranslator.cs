@@ -1395,6 +1395,16 @@ namespace JSIL {
                     parameters = (from gp in method.GenericParameters select new JSVariable(gp.Name, type, method)).Concat(parameters);
                 }
 
+                if (
+                    Configuration.Optimizer.FreezeImmutableObjects.GetValueOrDefault(false) &&
+                    (method.Name == ".ctor") &&
+                    methodInfo.DeclaringType.IsImmutable &&
+                    TypeUtil.IsStruct(method.DeclaringType)
+                ) {
+                    var freezeInvocation = translator.SpecialIdentifiers.JSIL.FreezeImmutableObject(new JSIndirectVariable(translator.Variables, "this", method));
+                    body.Statements.Add(new JSExpressionStatement(freezeInvocation));
+                }
+
                 function = FunctionCache.Create(
                     methodInfo, methodDef, method, identifier,
                     translator, parameters, body

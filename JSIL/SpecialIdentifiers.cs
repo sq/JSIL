@@ -194,6 +194,13 @@ namespace JSIL {
                 new[] { new JSTypeOfExpression(type) }
             );
         }
+
+        public JSInvocationExpression FreezeImmutableObject (JSExpression @object) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot(new JSFakeMethod("FreezeImmutableObject", TypeSystem.Void, new[] { TypeSystem.Object }, MethodTypes)),
+                new[] { @object }
+            );
+        }
     }
 
     public class SpecialIdentifiers {

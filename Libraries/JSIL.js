@@ -201,6 +201,8 @@ var $jsilloaderstate = {
 
   config.disableFiltering = config.disableFiltering || environment.getUserSetting("disableFiltering") || false;
 
+  config.enableFreezeAndSeal = config.enableFreezeAndSeal || environment.getUserSetting("enableFreezeAndSeal") || false;
+
   var manifests = config.manifests || [];
 
   for (var i = 0, l = manifests.length; i < l; i++)
