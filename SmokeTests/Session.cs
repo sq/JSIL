@@ -49,7 +49,7 @@ namespace SmokeTests {
                 TempPath = Path.GetTempPath();
                 LogPath = Path.Combine(TempPath, "sauce_connect.log");
 
-                DriverCapabilities = DesiredCapabilities.Chrome();
+                DriverCapabilities = DesiredCapabilities.Firefox();
                 DriverCapabilities.SetCapability(
                     CapabilityType.Platform, "Windows 2008"
                 );
