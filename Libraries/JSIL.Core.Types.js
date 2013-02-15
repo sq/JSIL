@@ -629,6 +629,35 @@ JSIL.MakeInterface(
   }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.MakeInterface(
+  "System.Collections.ICollection", true, [], function ($) {
+    $.Method({}, "CopyTo", (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array"), $.Int32], [])));
+    $.Method({}, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])));
+    $.Method({}, "get_SyncRoot", (new JSIL.MethodSignature($.Object, [], [])));
+    $.Method({}, "get_IsSynchronized", (new JSIL.MethodSignature($.Boolean, [], [])));
+    $.Property({}, "Count");
+    $.Property({}, "SyncRoot");
+    $.Property({}, "IsSynchronized");
+  }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
+
+JSIL.MakeInterface(
+  "System.Collections.IList", true, [], function ($) {
+    $.Method({}, "get_Item", (new JSIL.MethodSignature($.Object, [$.Int32], [])));
+    $.Method({}, "set_Item", (new JSIL.MethodSignature(null, [$.Int32, $.Object], [])));
+    $.Method({}, "Add", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
+    $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [$.Object], [])));
+    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
+    $.Method({}, "get_IsFixedSize", (new JSIL.MethodSignature($.Boolean, [], [])));
+    $.Method({}, "IndexOf", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
+    $.Method({}, "Insert", (new JSIL.MethodSignature(null, [$.Int32, $.Object], [])));
+    $.Method({}, "Remove", (new JSIL.MethodSignature(null, [$.Object], [])));
+    $.Method({}, "RemoveAt", (new JSIL.MethodSignature(null, [$.Int32], [])));
+    $.Property({}, "Item");
+    $.Property({}, "IsReadOnly");
+    $.Property({}, "IsFixedSize");
+  }, [$jsilcore.TypeRef("System.Collections.ICollection"), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+
+JSIL.MakeInterface(
   "System.Collections.Generic.ICollection`1", true, ["T"], function ($) {
     $.Method({}, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])));
     $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
@@ -639,11 +668,7 @@ JSIL.MakeInterface(
     $.Method({}, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
     $.Property({}, "Count");
     $.Property({}, "IsReadOnly");
-  }, [
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), 
-    $jsilcore.TypeRef("System.Collections.IEnumerable")
-  ]
-);
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.MakeInterface(
   "System.Collections.Generic.IList`1", true, ["T"], function ($) {
@@ -653,12 +678,7 @@ JSIL.MakeInterface(
     $.Method({}, "Insert", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])));
     $.Method({}, "RemoveAt", (new JSIL.MethodSignature(null, [$.Int32], [])));
     $.Property({}, "Item");
-  }, [
-    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
-    $jsilcore.TypeRef("System.Collections.IEnumerable")
-  ]
-);
+  }, [$jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsSystemArray);

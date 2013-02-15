@@ -3724,14 +3724,16 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   };
 
   var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
+  var isIList = typeName.indexOf(".IList") >= 0;
 
   // HACK: Handle casting arrays to IEnumerable by creating an overlay.
-  if (isIEnumerable) {
-    checkMethod = function Check_IEnumerable (value) {
+  if (isIEnumerable || isIList) {
+    checkMethod = function Check_ArrayInterface (value) {
       // FIXME: IEnumerable<int>.Is(float[]) will return true.
       if (JSIL.IsArray(value))
         return true;
 
+      // Fallback to default check logic
       return false;
     };
   }
@@ -3905,14 +3907,14 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     };
   }
 
-  if (isIEnumerable) {
+  if (isIEnumerable || isIList) {
     var innerAsFunction = asFunction;
     var innerCastFunction = castFunction;
 
-    var createOverlay = function Overlay_IEnumerable (value) {
+    var createOverlay = function Overlay_ArrayInterface (value) {
       if (JSIL.IsArray(value)) {
         // FIXME: Detect correct type
-        var tOverlay = JSIL.EnumerableArrayOverlay.Of(System.Object);
+        var tOverlay = JSIL.ArrayInterfaceOverlay.Of(System.Object);
 
         return new tOverlay(value);
       }
@@ -3920,11 +3922,11 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       return value;
     };
 
-    asFunction = function As_IEnumerable (value) {
+    asFunction = function As_ArrayInterface (value) {
       return createOverlay(innerAsFunction(value));
     };
 
-    castFunction = function Cast_IEnumerable (value) {
+    castFunction = function Cast_ArrayInterface (value) {
       return createOverlay(innerCastFunction(value));
     };
   }

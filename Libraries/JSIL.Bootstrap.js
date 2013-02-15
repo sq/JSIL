@@ -733,7 +733,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
   );
 });
 
-JSIL.MakeClass("System.Object", "JSIL.EnumerableArrayOverlay", true, ["T"], function ($) {
+JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], function ($) {
   $.RawMethod(false, ".ctor", 
     function (array) {
       this._array = array;
@@ -753,10 +753,14 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArrayOverlay", true, ["T"], func
       return JSIL.GetEnumerator(this._array);
     }
   );
+  
+  // FIXME: Implement actual members of IList.
 
   $.ImplementInterfaces(
     System.Collections.IEnumerable,
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.EnumerableArrayOverlay")])
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")]),
+    System.Collections.IList,
+    $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")])
   );
 });
 

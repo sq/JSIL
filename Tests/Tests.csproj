@@ -324,6 +324,7 @@
     <None Include="FailingTestCases\Int32Multiply.cs" />
     <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
     <None Include="SpecialTestCases\InheritedExternalStubError.cs" />
+    <None Include="SimpleTestCases\CastArrayToIList.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
