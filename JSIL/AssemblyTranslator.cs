@@ -1179,7 +1179,7 @@ namespace JSIL {
 
             var typeCacher = new TypeExpressionCacher(typedef);
             if (
-                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)
+                Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true)
             ) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -1396,7 +1396,7 @@ namespace JSIL {
                 }
 
                 if (
-                    Configuration.Optimizer.FreezeImmutableObjects.GetValueOrDefault(false) &&
+                    Configuration.CodeGenerator.FreezeImmutableObjects.GetValueOrDefault(false) &&
                     (method.Name == ".ctor") &&
                     methodInfo.DeclaringType.IsImmutable &&
                     TypeUtil.IsStruct(method.DeclaringType)
@@ -1447,7 +1447,7 @@ namespace JSIL {
         ) {
             try {
                 Action temporaryEliminationPass = () => {
-                    if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
+                    if (Configuration.CodeGenerator.EliminateTemporaries.GetValueOrDefault(true)) {
                         bool eliminated;
                         do {
                             var visitor = new EliminateSingleUseTemporaries(
@@ -1474,7 +1474,7 @@ namespace JSIL {
                     FunctionCache,
                     _TypeInfoProvider, 
                     si.CLR,
-                    Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
+                    Configuration.CodeGenerator.EliminateStructCopies.GetValueOrDefault(true)
                 ).Visit(function);
 
                 new IntroduceVariableDeclarations(
@@ -1488,13 +1488,13 @@ namespace JSIL {
                     parameterNames
                 ).Visit(function);
 
-                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.SimplifyLoops.GetValueOrDefault(true))
                     new SimplifyLoops(
                         si.TypeSystem, false
                     ).Visit(function);
 
                 // Temporary elimination makes it possible to simplify more operators, so do it later
-                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
                     new SimplifyOperators(
                         si.JSIL, si.JS, si.TypeSystem
                     ).Visit(function);
@@ -1525,13 +1525,13 @@ namespace JSIL {
                 ).Visit(function);
             
                 // We need another operator simplification pass to simplify expressions created by cast expressions
-                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
                     new SimplifyOperators(
                         si.JSIL, si.JS, si.TypeSystem
                     ).Visit(function);
 
                 // We need another operator simplification pass to simplify expressions created by cast expressions
-                if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
                     new SimplifyOperators(
                         si.JSIL, si.JS, si.TypeSystem
                     ).Visit(function);
@@ -1543,7 +1543,7 @@ namespace JSIL {
 
                 new CollapseNulls().Visit(function);
 
-                if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.SimplifyLoops.GetValueOrDefault(true))
                     new SimplifyLoops(
                         si.TypeSystem, true
                     ).Visit(function);
@@ -1553,7 +1553,7 @@ namespace JSIL {
 
                 temporaryEliminationPass();
 
-                if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true))
                     new ControlFlowSimplifier().Visit(function);
 
                 var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
@@ -1570,7 +1570,7 @@ namespace JSIL {
                     si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
-                if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
+                if (Configuration.CodeGenerator.PreferAccessorMethods.GetValueOrDefault(true)) {
                     new OptimizePropertyMutationAssignments(
                         si.TypeSystem, _TypeInfoProvider
                     ).Visit(function);
@@ -1582,7 +1582,7 @@ namespace JSIL {
 
                 // If integer arithmetic hinting is enabled, we need to decompose mutation operators
                 //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
-                if (Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true))
+                if (Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true))
                     new DecomposeMutationOperators(si.TypeSystem, _TypeInfoProvider).Visit(function);
 
             } catch (Exception exc) {

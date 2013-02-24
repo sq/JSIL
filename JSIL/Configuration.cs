@@ -21,7 +21,7 @@ namespace JSIL.Translator {
         }
 
         [Serializable]
-        public sealed class OptimizerConfiguration {
+        public sealed class CodeGeneratorConfiguration {
             public bool? EliminateStructCopies;
             public bool? SimplifyOperators;
             public bool? SimplifyLoops;
@@ -33,8 +33,9 @@ namespace JSIL.Translator {
             public bool? PreferAccessorMethods;
             public bool? HintIntegerArithmetic;
             public bool? FreezeImmutableObjects;
+            public bool? EnableUnsafeCode;
 
-            public void MergeInto (OptimizerConfiguration result) {
+            public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
                     result.EliminateStructCopies = EliminateStructCopies;
                 if (EliminateTemporaries.HasValue)
@@ -57,6 +58,8 @@ namespace JSIL.Translator {
                     result.HintIntegerArithmetic = HintIntegerArithmetic;
                 if (FreezeImmutableObjects.HasValue)
                     result.FreezeImmutableObjects = FreezeImmutableObjects;
+                if (EnableUnsafeCode.HasValue)
+                    result.EnableUnsafeCode = EnableUnsafeCode;
             }
         }
 
@@ -73,7 +76,7 @@ namespace JSIL.Translator {
         public double? FrameworkVersion;
 
         public readonly AssemblyConfiguration Assemblies = new AssemblyConfiguration();
-        public readonly OptimizerConfiguration Optimizer = new OptimizerConfiguration();
+        public readonly CodeGeneratorConfiguration CodeGenerator = new CodeGeneratorConfiguration();
 
         protected void MergeInto (Configuration result) {
             if (ApplyDefaults.HasValue)
@@ -100,7 +103,7 @@ namespace JSIL.Translator {
                 result.FilenameEscapeRegex = FilenameEscapeRegex;
 
             Assemblies.MergeInto(result.Assemblies);
-            Optimizer.MergeInto(result.Optimizer);
+            CodeGenerator.MergeInto(result.CodeGenerator);
         }
     }
 }

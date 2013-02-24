@@ -11,7 +11,7 @@ namespace JSIL.Tests {
         // Type expression caching makes it hard to write these tests.
         protected override Translator.Configuration MakeConfiguration () {
             var configuration = base.MakeConfiguration();
-            configuration.Optimizer.CacheTypeExpressions = false;
+            configuration.CodeGenerator.CacheTypeExpressions = false;
             return configuration;
         }
 
@@ -128,7 +128,7 @@ namespace JSIL.Tests {
                 () => {
                     // Integer arithmetic hinting disables post-increment on ints.
                     var config = MakeConfiguration();
-                    config.Optimizer.HintIntegerArithmetic = false;
+                    config.CodeGenerator.HintIntegerArithmetic = false;
                     return config;
                 }
             );

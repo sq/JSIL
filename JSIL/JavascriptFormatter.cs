@@ -1072,7 +1072,7 @@ namespace JSIL.Internal {
 
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
             // The signature cache can cause problems inside methods for generic signatures.
-            var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
+            var cached = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
 
             // We also don't want to use the cache for method definitions in skeletons.
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))

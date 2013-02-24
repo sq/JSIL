@@ -1245,7 +1245,7 @@ namespace JSIL {
 
         private bool NeedTruncationForUnaryOperator (JSUnaryOperatorExpression uop, TypeReference resultType) {
             if (
-                Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true)
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true)
             ) {
                 return
                     TypeUtil.Is32BitIntegral(uop.Expression.GetActualType(TypeSystem)) &&
@@ -1269,7 +1269,7 @@ namespace JSIL {
 
             if (
                 !(bop.Operator is JSAssignmentOperator) &&
-                Configuration.Optimizer.HintIntegerArithmetic.GetValueOrDefault(true)
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true)
             ) {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.

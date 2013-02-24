@@ -155,19 +155,19 @@ namespace JSIL.Compiler {
                         "Overrides the default profile to use for projects by specifying the name of the new default profile.",
                         (profileName) => newDefaultProfile[0] = profileName},
 
-                    "Optimizer options",
+                    "CodeGenerator options",
                     {"os", 
                         "Suppresses struct copy elimination.",
-                        (b) => commandLineConfig.Optimizer.EliminateStructCopies = b == null},
+                        (b) => commandLineConfig.CodeGenerator.EliminateStructCopies = b == null},
                     {"ot", 
                         "Suppresses temporary local variable elimination.",
-                        (b) => commandLineConfig.Optimizer.EliminateTemporaries = b == null},
+                        (b) => commandLineConfig.CodeGenerator.EliminateTemporaries = b == null},
                     {"oo", 
                         "Suppresses simplification of operator expressions and special method calls.",
-                        (b) => commandLineConfig.Optimizer.SimplifyOperators = b == null},
+                        (b) => commandLineConfig.CodeGenerator.SimplifyOperators = b == null},
                     {"ol", 
                         "Suppresses simplification of loop blocks.",
-                        (b) => commandLineConfig.Optimizer.SimplifyLoops = b == null},
+                        (b) => commandLineConfig.CodeGenerator.SimplifyLoops = b == null},
                 };
 
                 filenames = os.Parse(arguments);
