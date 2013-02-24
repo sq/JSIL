@@ -1591,7 +1591,6 @@ namespace JSIL.Ast {
     public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
         /// <summary>
         /// Construct a binary operator expression with an explicit expected type.
-        /// If the explicit expected type is null, expected type will be inferred to be the type of both sides if they share a type.
         /// </summary>
         public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType)
             : base(
@@ -2152,9 +2151,9 @@ namespace JSIL.Ast {
     public class JSWriteThroughPointerExpression : JSBinaryOperatorExpression {
         public readonly JSExpression OffsetInBytes;
 
-        public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, JSExpression offsetInBytes = null)
+        public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, TypeReference actualType, JSExpression offsetInBytes = null)
             : base(
-                JSOperator.Assignment, pointer, rhs, null
+                JSOperator.Assignment, pointer, rhs, actualType
             ) {
             OffsetInBytes = offsetInBytes;
         }

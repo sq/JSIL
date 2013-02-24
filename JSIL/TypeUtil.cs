@@ -10,9 +10,6 @@ using Mono.Cecil;
 
 namespace JSIL {
     public static class TypeUtil {
-        // FIXME: Horrible hack.
-        public static bool EnableUnsafeCode = false;
-
         public static string GetLocalName (TypeDefinition type) {
             var result = new List<string>();
             result.Add(type.Name);
@@ -187,13 +184,13 @@ namespace JSIL {
             return type.MetadataType == MetadataType.Boolean;
         }
 
-        public static bool IsIgnoredType (TypeReference type) {
+        public static bool IsIgnoredType (TypeReference type, bool enableUnsafeCode = true) {
             type = DereferenceType(type);
 
             if (type == null)
                 return false;
 
-            if (EnableUnsafeCode) {
+            if (!enableUnsafeCode) {
                 if (type.IsPointer)
                     return true;
                 else if (type.IsPinned)

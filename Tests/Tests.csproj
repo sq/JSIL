@@ -326,6 +326,7 @@
     <None Include="SpecialTestCases\InheritedExternalStubError.cs" />
     <None Include="SimpleTestCases\CastArrayToIList.cs" />
     <None Include="UnsafeTestCases\PinIntArrayAndRead.cs" />
+    <None Include="UnsafeTestCases\ReadAndWritePinnedIntArray.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

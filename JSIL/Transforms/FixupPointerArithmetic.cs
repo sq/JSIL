@@ -32,7 +32,7 @@ namespace JSIL.Transforms {
             JSExpression newPointer, offset;
 
             if (ExtractOffsetFromPointerExpression(wtpe.Left, TypeSystem, out newPointer, out offset)) {
-                var replacement = new JSWriteThroughPointerExpression(newPointer, wtpe.Right, offset);
+                var replacement = new JSWriteThroughPointerExpression(newPointer, wtpe.Right, wtpe.ActualType, offset);
                 ParentNode.ReplaceChild(wtpe, replacement);
                 VisitReplacement(replacement);
             } else {

@@ -907,7 +907,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWriteThroughPointerExpression wtpe) {
-            throw new NotImplementedException("Cannot write through pointers");
+            Visit(wtpe.Left);
+            Output.Dot();
+            Output.Identifier("set");
+            Output.LPar();
+            if (wtpe.OffsetInBytes != null) {
+                Visit(wtpe.OffsetInBytes);
+                Output.Comma();
+            }
+            Visit(wtpe.Right);
+            Output.RPar();
         }
 
         public void VisitNode (JSLambda lambda) {

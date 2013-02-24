@@ -645,8 +645,6 @@ namespace JSIL {
         }
 
         protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
-            TypeUtil.EnableUnsafeCode = Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false);
-
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
@@ -1355,7 +1353,7 @@ namespace JSIL {
                 IEnumerable<ILVariable> allVariables;
                 {
                     var ignoredVariables = new List<string>();
-                    allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb, ignoredVariables);
+                    allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb, ignoredVariables, Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false));
                     if (allVariables == null) {
                         WarningFormat(
                             "Ignoring method '{0}' because of {1} untranslatable variables:\r\n{2}", 
@@ -1422,14 +1420,14 @@ namespace JSIL {
 
         internal static ILVariable[] GetAllVariablesForMethod(
             DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody,
-            List<string> ignoredVariables
+            List<string> ignoredVariables, bool enableUnsafeCode
         ) {
             var allVariables = methodBody.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                 .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
             bool ignored = false;
 
             foreach (var v in allVariables) {
-                if (TypeUtil.IsIgnoredType(v.Type)) {
+                if (TypeUtil.IsIgnoredType(v.Type, enableUnsafeCode)) {
                     ignoredVariables.Add(v.Name);
                     ignored = true;
                 }
@@ -1808,7 +1806,7 @@ namespace JSIL {
                 //  properly map default values.
                 var ignoreReasons = new List<string>();
                 var variables = GetAllVariablesForMethod(
-                    context, astBuilder.Parameters, block, ignoreReasons
+                    context, astBuilder.Parameters, block, ignoreReasons, Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false)
                 );
                 if (variables != null) {
                     // We need a translator to map the IL expressions for the default

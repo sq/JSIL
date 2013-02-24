@@ -34,6 +34,25 @@ namespace JSIL.Transforms {
             return assignment;
         }
 
+        // Decomposing a compound assignment can leave us with a read expression on the left-hand side
+        //  if the compound assignment was targeting a pointer or a reference.
+        // We fix this by converting the mundane binary operator expression representing the assignment
+        //  into a specialized one that represents a pointer write or reference write.
+        private static JSBinaryOperatorExpression ConvertReadExpressionToWriteExpression (
+            JSBinaryOperatorExpression boe, TypeSystem typeSystem
+        ) {
+            var rtpe = boe.Left as JSReadThroughPointerExpression;
+
+            if (rtpe != null)
+                return new JSWriteThroughPointerExpression(rtpe.Pointer, boe.Right, boe.ActualType, rtpe.OffsetInBytes);
+
+            var rtre = boe.Left as JSReadThroughReferenceExpression;
+            if (rtre != null)
+                return new JSWriteThroughReferenceExpression(rtre.Variable, boe.Right);
+
+            return boe;
+        }
+
         public static JSBinaryOperatorExpression DeconstructMutationAssignment (
             JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
         ) {
@@ -47,13 +66,15 @@ namespace JSIL.Transforms {
 
             var leftType = boe.Left.GetActualType(typeSystem);
 
-            return new JSBinaryOperatorExpression(
+            var newBoe = new JSBinaryOperatorExpression(
                 JSOperator.Assignment, boe.Left,
                 new JSBinaryOperatorExpression(
                     replacementOperator, boe.Left, boe.Right, intermediateType
                 ),
                 leftType
             );
+
+            return ConvertReadExpressionToWriteExpression(newBoe, typeSystem);
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
