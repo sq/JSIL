@@ -1021,7 +1021,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       if (rangeCheckImpl(index, this._size))
         return this._items[index];
       else
-        throw new System.ArgumentOutOfRangeException("index");
+        throw new System.ArgumentOutOfRangeException("OffsetInBytes");
     }
   );
 
@@ -1031,7 +1031,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       if (rangeCheckImpl(index, this._size))
         this._items[index]=value;
       else
-        throw new System.ArgumentOutOfRangeException("index");
+        throw new System.ArgumentOutOfRangeException("OffsetInBytes");
     }
   );
 
@@ -1143,7 +1143,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
     function (index) {
       if (!rangeCheckImpl(index, this._size))
-        throw new System.ArgumentOutOfRangeException("index");
+        throw new System.ArgumentOutOfRangeException("OffsetInBytes");
 
       this._items.splice(index, 1);
       this._size -= 1;
@@ -1154,7 +1154,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
     function (index, count) {
       if (index < 0)
-        throw new System.ArgumentOutOfRangeException("index");
+        throw new System.ArgumentOutOfRangeException("OffsetInBytes");
       else if (count < 0)
         throw new System.ArgumentOutOfRangeException("count");
       else if (!rangeCheckImpl(index, this._size))
@@ -1267,7 +1267,7 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [T]), $.Int32], []),
     function (array, arrayindex) {
       if (arrayindex != 0) {
-          throw new Error("List<T>.CopyTo not supported for non-zero indexes");
+          throw new Error("List<T>.CopyTo not supported for non-zero OffsetInByteses");
       }
 
       JSIL.Array.ShallowCopy(array, this._items);
@@ -1557,7 +1557,7 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 JSIL.MakeClass($jsilcore.TypeRef("JSIL.ArrayEnumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1/Enumerator")]), "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
   $.Field({Public: false, Static: false}, "_array", Array, function ($) { return null; });
   $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
-  $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
+  $.Field({Public: false, Static: false}, "_OffsetInBytes", Number, function ($) { return -1; });
 
   $.Method({Public: true, Static: false}, ".ctor", 
     new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),

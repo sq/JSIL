@@ -1801,17 +1801,20 @@ namespace JSIL {
                     node.Arguments[0]
                 ));
 
-            if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
-                Translator.WarningFormat("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]);
+            var referenceType = reference.GetActualType(TypeSystem);
+            if (referenceType.IsPointer) {
+                return new JSReadThroughPointerExpression(reference);
+            } else {
+                if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
+                    Translator.WarningFormat("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]);
 
-            if ((referent != null) && TypeUtil.IsStruct(referent.GetActualType(TypeSystem)))
-                return reference;
-            else {
-                if (referent != null)
+                if ((referent != null) && TypeUtil.IsStruct(referent.GetActualType(TypeSystem)))
+                    return reference;
+                else if (referent != null)
                     return referent;
-                else
-                    return new JSUntranslatableExpression(node);
             }
+
+            return new JSUntranslatableExpression(node);
         }
 
         protected JSExpression Translate_Ldind (ILExpression node) {

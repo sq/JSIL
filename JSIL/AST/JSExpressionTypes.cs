@@ -851,7 +851,7 @@ namespace JSIL.Ast {
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Target", Values[0]);
-                yield return new AnnotatedNode("Index", Values[1]);
+                yield return new AnnotatedNode("OffsetInBytes", Values[1]);
             }
         }
 
@@ -2129,7 +2129,7 @@ namespace JSIL.Ast {
 
             // FIXME: Verify that the pointer type is valid for the array.
             PointerType = pointerType;
-            // FIXME: Fill in the index field if it's an array element being pinned.
+            // FIXME: Fill in the OffsetInBytes field if it's an array element being pinned.
             Index = 0;
         }
 
@@ -2146,6 +2146,49 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("({1}){0}", Array, PointerType);
+        }
+    }
+
+    public class JSWriteThroughPointerExpression : JSBinaryOperatorExpression {
+        public readonly JSExpression OffsetInBytes;
+
+        public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, JSExpression offsetInBytes = null)
+            : base(
+                JSOperator.Assignment, pointer, rhs, null
+            ) {
+            OffsetInBytes = offsetInBytes;
+        }
+
+        public override string ToString () {
+            return String.Format("*({0} + {2}) = {1}", Left, Right, ((object)OffsetInBytes ?? "0"));
+        }
+    }
+
+    public class JSReadThroughPointerExpression : JSExpression {
+        public readonly JSExpression OffsetInBytes;
+
+        public JSReadThroughPointerExpression (JSExpression pointer, JSExpression offsetInBytes = null)
+            : base(pointer) {
+
+            OffsetInBytes = offsetInBytes;
+        }
+
+        public JSExpression Pointer {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            var pointerType = Pointer.GetActualType(typeSystem) as PointerType;
+            if (pointerType != null)
+                return pointerType.ElementType;
+            else
+                throw new InvalidOperationException("Cannot read through a non-pointer type as a pointer");
+        }
+
+        public override string ToString () {
+            return String.Format("*({0} + {1})", Pointer, ((object)OffsetInBytes ?? "0"));
         }
     }
 }

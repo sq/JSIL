@@ -189,8 +189,10 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     function Pointer_Get (offset) {
       if (arguments.length === 0)
         return this.view[this.elementIndex];
-      else
-        return this.view[(this.elementIndex + offset) | 0];
+      else {
+        var elementOffset = (offset / this.view.BYTES_PER_ELEMENT) | 0;
+        return this.view[(this.elementIndex + elementOffset) | 0];
+      }
     }
   );
 
@@ -198,8 +200,10 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     function Pointer_Set (offset, value) {
       if (arguments.length === 1)
         return this.view[this.elementIndex] = offset;
-      else
-        return this.view[(this.elementIndex + offset) | 0] = value;
+      else {
+        var elementOffset = (offset / this.view.BYTES_PER_ELEMENT) | 0;
+        return this.view[(this.elementIndex + elementOffset) | 0] = value;
+      }
     }
   );
 

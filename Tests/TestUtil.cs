@@ -588,7 +588,7 @@ namespace JSIL.Tests {
             }
         }
 
-        public void Run (params string[] args) {
+        public void Run (string[] args = null, Func<Configuration> makeConfiguration = null) {
             var signals = new[] {
                 new ManualResetEventSlim(false), new ManualResetEventSlim(false)
             };
@@ -596,6 +596,8 @@ namespace JSIL.Tests {
             var errors = new Exception[2];
             var outputs = new string[2];
             var elapsed = new long[3];
+
+            args = args ?? new string[0];
 
             ThreadPool.QueueUserWorkItem((_) => {
                 var oldCulture = Thread.CurrentThread.CurrentCulture;
@@ -612,7 +614,7 @@ namespace JSIL.Tests {
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
-                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1], out elapsed[2]).Replace("\r", "").Trim();
+                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1], out elapsed[2], makeConfiguration: makeConfiguration).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[1] = ex;
                 }
@@ -837,7 +839,7 @@ namespace JSIL.Tests {
                     )
                 {
                     if (shouldRunJs) {
-                        test.Run();
+                        test.Run(makeConfiguration: makeConfiguration);
                     } else {
                         string js;
                         long elapsed;

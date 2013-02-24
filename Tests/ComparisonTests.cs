@@ -17,7 +17,7 @@ namespace JSIL.Tests {
         public void HelloWorld () {
             using (var test = MakeTest(@"TestCases\HelloWorld.cs")) {
                 test.Run();
-                test.Run("hello", "world");
+                test.Run(new[] { "hello", "world" });
             }
         }
 
@@ -25,7 +25,7 @@ namespace JSIL.Tests {
         public void BinaryTrees () {
             using (var test = MakeTest(@"TestCases\BinaryTrees.cs")) {
                 test.Run();
-                test.Run("8");
+                test.Run(new[] { "8" });
             }
         }
 
@@ -33,7 +33,7 @@ namespace JSIL.Tests {
         public void NBody () {
             using (var test = MakeTest(@"TestCases\NBody.cs")) {
                 test.Run();
-                test.Run("100000");
+                test.Run(new[] { "100000" });
             }
         }
 
@@ -41,7 +41,7 @@ namespace JSIL.Tests {
         public void FannkuchRedux () {
             using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
                 test.Run();
-                test.Run("8");
+                test.Run(new[] { "8" });
             }
         }
 
@@ -369,12 +369,12 @@ namespace JSIL.Tests {
 
             using (var test = MakeTest(@"SpecialTestCases\BigStringSwitch.cs")) {
                 test.Run();
-                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
+                test.Run(new[] { "howdy", "hello", "world", "what", "why", "who", "where", "when" });
             }
 
             using (var test = MakeTest(@"SpecialTestCases\AlternateSwitchForm.cs")) {
                 test.Run();
-                test.Run("HP", "MP", "STK", "MAG");
+                test.Run(new[] { "HP", "MP", "STK", "MAG" });
             }
 
             RunComparisonTests(

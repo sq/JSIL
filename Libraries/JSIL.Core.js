@@ -3008,7 +3008,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
     var member = memberList[i];
     var memberSignature = member._data.signature;
 
-    // Assign a temporary __index__ to each member so that the comparer can find the resolved signature.
+    // Assign a temporary __OffsetInBytes__ to each member so that the comparer can find the resolved signature.
     member.__index__ = i;
 
     resolvedSignatures[i] = JSIL.$ResolveGenericMethodSignature(typeObject, memberSignature, resolveContext) || memberSignature;
@@ -3064,7 +3064,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
     var member = memberList[i];
     var memberSignature = resolvedSignatures[member.__index__];
 
-    // Remove the temporary __index__ member because it is no longer needed.
+    // Remove the temporary __OffsetInBytes__ member because it is no longer needed.
     delete member.__index__;
 
     var memberSignatureHash = memberSignature.get_Hash();

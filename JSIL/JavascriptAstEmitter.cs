@@ -896,6 +896,20 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSReadThroughPointerExpression rtpe) {
+            Visit(rtpe.Pointer);
+            Output.Dot();
+            Output.Identifier("get");
+            Output.LPar();
+            if (rtpe.OffsetInBytes != null)
+                Visit(rtpe.OffsetInBytes);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSWriteThroughPointerExpression wtpe) {
+            throw new NotImplementedException("Cannot write through pointers");
+        }
+
         public void VisitNode (JSLambda lambda) {
             if (!lambda.UseBind)
                 ThisReplacementStack.Push(lambda.This);
