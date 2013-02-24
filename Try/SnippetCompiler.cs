@@ -61,11 +61,11 @@ namespace JSIL.Try {
                 var parameters = new CompilerParameters(
                     AssemblyReferences
                 ) {
-                    CompilerOptions = "",
+                    CompilerOptions = "/unsafe",
                     GenerateExecutable = true,
                     GenerateInMemory = false,
                     IncludeDebugInformation = true,                    
-                    TempFiles = new TempFileCollection(tempPath, false)
+                    TempFiles = new TempFileCollection(tempPath, false),
                 };
                 var results = provider.CompileAssemblyFromSource(parameters, csharp);
 
@@ -226,14 +226,17 @@ namespace JSIL.Try {
                             "System.EnterpriseServices,",
                             "JSIL.Meta,"
                         }
-                    },                    
+                    },
+                    CodeGenerator = {
+                        EnableUnsafeCode = true
+                    },
                     FrameworkVersion = 4.0,
                     GenerateSkeletonsForStubbedAssemblies = false,
                     GenerateContentManifest = false,
                     IncludeDependencies = false,
                     UseSymbols = true,
                     UseThreads = false,
-                    RunBugChecks = false
+                    RunBugChecks = false,
                 };
 
                 var translatorOutput = new StringBuilder();
