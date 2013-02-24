@@ -2178,6 +2178,10 @@ namespace JSIL {
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 
+            // HACK: We end up getting Conv_I instructions for pointer casts... WTF?
+            if (node.ExpectedType.IsPointer)
+                return value;
+
             if (!TypeUtil.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
                 return Translate_Conv(value, targetType);
             else

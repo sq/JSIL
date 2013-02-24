@@ -439,6 +439,15 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSPointerCastExpression pce) {
+            Visit(pce.Pointer);
+            Output.Dot();
+            Output.Identifier("cast");
+            Output.LPar();
+            Visit(pce.NewType);
+            Output.RPar();
+        }
+
         public void VisitNode (JSPinExpression pin) {
             Output.WriteRaw("JSIL.PinAndGetPointer");
             Output.LPar();

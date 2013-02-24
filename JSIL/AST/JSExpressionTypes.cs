@@ -1836,8 +1836,7 @@ namespace JSIL.Ast {
 
             if (newType.IsPointer) {
                 if (currentType.IsPointer) {
-                    // return new JSPointerCast(...)
-                    throw new NotImplementedException("Pointer casts not implemented");
+                    return new JSPointerCastExpression(inner, newType);
                 } else {
                     return new JSPinExpression(inner, newType);
                 }
@@ -2188,6 +2187,32 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("*({0} + {1})", Pointer, ((object)OffsetInBytes ?? "0"));
+        }
+    }
+
+    public class JSPointerCastExpression : JSExpression {
+        public JSPointerCastExpression (JSExpression pointer, TypeReference newType)
+            : base (pointer, new JSType(newType)) {
+        }
+
+        public JSExpression Pointer {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSType NewType {
+            get {
+                return (JSType)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return NewType.Type;
+        }
+
+        public override string ToString () {
+            return String.Format("({0}){1}", NewType, Pointer);
         }
     }
 }

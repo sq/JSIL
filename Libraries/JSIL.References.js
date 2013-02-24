@@ -207,6 +207,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "cast",
+    function Pointer_Cast (elementType) {
+      return this;
+    }
+  );
+
   $.RawMethod(false, "toString",
     function Pointer_ToString () {
       return "<ptr " + this.view + "@" + this.elementIndex + ">";

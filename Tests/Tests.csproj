@@ -327,6 +327,7 @@
     <None Include="SimpleTestCases\CastArrayToIList.cs" />
     <None Include="UnsafeTestCases\PinIntArrayAndRead.cs" />
     <None Include="UnsafeTestCases\ReadAndWritePinnedIntArray.cs" />
+    <None Include="UnsafeTestCases\ReadIntsAsBytes.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
