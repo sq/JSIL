@@ -818,6 +818,7 @@ namespace JSIL {
                     return;
                 } else {
                     Output.WriteRaw("this");
+                    return;
                 }
             } else
                 Output.Identifier(variable.Identifier);

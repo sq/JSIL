@@ -218,6 +218,13 @@ namespace JSIL.Transforms {
                 vrat.Visit(fn);
             }
 
+            /*
+            if (!fn.Method.Method.IsStatic) {
+                var vrat = new VariableReferenceAccessTransformer(JSIL, Variables["this"]);
+                vrat.Visit(fn);
+            }
+             */
+
             foreach (var r in ReferencesToTransform) {
                 var cr = GetConstructedReference(r);
 
@@ -274,6 +281,11 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
+            if (ParentNode is JSFunctionExpression) {
+                VisitChildren(variable);
+                return;
+            }
+
             if (
                 (variable.Identifier != Variable.Identifier) ||
                 // Don't transform if we're inside a read-through already
@@ -318,10 +330,14 @@ namespace JSIL.Transforms {
 
             var leftVar = left as JSVariable;
 
-            if ((leftVar != null) && leftVar.IsReference) {
+            if (
+                !(ParentNode is JSVariableDeclarationStatement) &&
+                (leftVar != null) && 
+                (leftVar.Identifier == Variable.Identifier)
+            ) {
                 if (boe.Operator is JSAssignmentOperator) {
                     var replacement = new JSWriteThroughReferenceExpression(
-                        leftVar, boe.Right
+                        Variable, boe.Right
                     );
                     ParentNode.ReplaceChild(boe, replacement);
                     VisitReplacement(replacement);
