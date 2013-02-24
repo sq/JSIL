@@ -186,22 +186,24 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   );
 
   $.RawMethod(false, "get",
-    function Pointer_Get (offset) {
+    function Pointer_Get (offsetInBytes) {
       if (arguments.length === 0)
         return this.view[this.elementIndex];
       else {
-        var elementOffset = (offset / this.view.BYTES_PER_ELEMENT) | 0;
+        // FIXME: Non-integral element offsets will truncate!
+        var elementOffset = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
         return this.view[(this.elementIndex + elementOffset) | 0];
       }
     }
   );
 
   $.RawMethod(false, "set",
-    function Pointer_Set (offset, value) {
+    function Pointer_Set (offsetInBytes, value) {
       if (arguments.length === 1)
-        return this.view[this.elementIndex] = offset;
+        return this.view[this.elementIndex] = offsetInBytes;
       else {
-        var elementOffset = (offset / this.view.BYTES_PER_ELEMENT) | 0;
+        // FIXME: Non-integral element offsets will truncate!
+        var elementOffset = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
         return this.view[(this.elementIndex + elementOffset) | 0] = value;
       }
     }
@@ -210,6 +212,14 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
       return this;
+    }
+  );
+
+  $.RawMethod(false, "add",
+    function Pointer_Add (offsetInBytes) {
+      // FIXME: Non-integral element offsets will truncate!
+      var offsetInElements = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
+      return new JSIL.Pointer(this.memoryRange, this.view, (this.elementIndex + offsetInElements) | 0);
     }
   );
 

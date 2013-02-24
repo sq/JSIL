@@ -11,9 +11,11 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class FixupPointerArithmetic : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
+        public readonly MethodTypeFactory MethodTypes;
 
-        public FixupPointerArithmetic (TypeSystem typeSystem) {
+        public FixupPointerArithmetic (TypeSystem typeSystem, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
+            MethodTypes = methodTypes;
         }
 
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
@@ -37,6 +39,30 @@ namespace JSIL.Transforms {
                 VisitReplacement(replacement);
             } else {
                 VisitChildren(wtpe);
+            }
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            var leftType = boe.Left.GetActualType(TypeSystem);
+            var rightType = boe.Right.GetActualType(TypeSystem);
+            var resultType = boe.GetActualType(TypeSystem);
+
+            if (!resultType.IsPointer || !leftType.IsPointer) {
+                VisitChildren(boe);
+                return;
+            }
+
+            if (boe.Operator == JSOperator.Add) {
+                var replacement = JSInvocationExpression.InvokeMethod(
+                    new JSFakeMethod("add", leftType, new[] { rightType }, MethodTypes),
+                    boe.Left, new[] { boe.Right }, true
+                );
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+
+            } else {
+                VisitChildren(boe);
+                return;
             }
         }
 

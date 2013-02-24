@@ -1581,7 +1581,7 @@ namespace JSIL {
                 }
 
                 if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
-                    new FixupPointerArithmetic(si.TypeSystem).Visit(function);
+                    new FixupPointerArithmetic(si.TypeSystem, FunctionCache.MethodTypes).Visit(function);
 
                 // If integer arithmetic hinting is enabled, we need to decompose mutation operators
                 //  into normal binary operator expressions and/or comma expressions so that truncation can happen.

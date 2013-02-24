@@ -1827,6 +1827,10 @@ namespace JSIL {
             var value = TranslateNode(node.Arguments[1]);
             var valueType = value.GetActualType(TypeSystem);
 
+            var targetType = target.GetActualType(TypeSystem);
+            if (targetType.IsPointer)
+                return new JSWriteThroughPointerExpression(target, value, valueType);
+
             if (targetVariable != null) {
                 if (!targetVariable.IsReference)
                     Translator.WarningFormat("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]);
