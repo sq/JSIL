@@ -1838,7 +1838,14 @@ namespace JSIL.Ast {
                 if (currentType.IsPointer) {
                     return new JSPointerCastExpression(inner, newType);
                 } else {
-                    return new JSPinExpression(inner, newType);
+                    while (inner is JSReferenceExpression)
+                        inner = ((JSReferenceExpression)inner).Referent;
+
+                    var indexer = inner as JSIndexerExpression;
+                    if (indexer != null)
+                        return new JSPinExpression(indexer.Target, indexer.Index, newType);
+                    else
+                        return new JSPinExpression(inner, null, newType);
                 }
             }
 
@@ -2120,15 +2127,11 @@ namespace JSIL.Ast {
 
     public class JSPinExpression : JSExpression {
         public readonly TypeReference PointerType;
-        public readonly int Index;
 
-        public JSPinExpression (JSExpression array, TypeReference pointerType)
-            : base (array) {
-
+        public JSPinExpression (JSExpression array, JSExpression arrayIndex, TypeReference pointerType)
+            : base (array, arrayIndex) {
             // FIXME: Verify that the pointer type is valid for the array.
             PointerType = pointerType;
-            // FIXME: Fill in the OffsetInBytes field if it's an array element being pinned.
-            Index = 0;
         }
 
         public JSExpression Array {
@@ -2137,13 +2140,18 @@ namespace JSIL.Ast {
             }
         }
 
+        public JSExpression ArrayIndex {
+            get {
+                return Values[1];
+            }
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            // return Array.GetActualType(typeSystem);
             return PointerType;
         }
 
         public override string ToString () {
-            return String.Format("({1}){0}", Array, PointerType);
+            return String.Format("({1}){0}[{2}]", Array, PointerType, ArrayIndex);
         }
     }
 

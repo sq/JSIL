@@ -329,6 +329,7 @@
     <None Include="UnsafeTestCases\ReadAndWritePinnedIntArray.cs" />
     <None Include="UnsafeTestCases\ReadIntsAsBytes.cs" />
     <None Include="UnsafeTestCases\WriteIntsAsBytes.cs" />
+    <None Include="UnsafeTestCases\PinElementOfIntArray.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
@@ -647,7 +648,9 @@
   <ItemGroup>
     <None Include="BinaryTestCases\ConsoleApplication8.exe" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="BinaryTestCases\MonoPinArray.exe" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

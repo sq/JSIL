@@ -452,8 +452,10 @@ namespace JSIL {
             Output.WriteRaw("JSIL.PinAndGetPointer");
             Output.LPar();
             Visit(pin.Array);
-            Output.Comma();
-            Output.Value(pin.Index);
+            if (pin.ArrayIndex != null) {
+                Output.Comma();
+                Visit(pin.ArrayIndex);
+            }
             Output.RPar();
         }
 

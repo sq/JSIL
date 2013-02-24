@@ -536,6 +536,10 @@ namespace JSIL {
                     return true;
             }
 
+            // HACK: The .NET type system treats pointers and ints as assignable to each other
+            if (TypeUtil.IsIntegral(target) && source.IsPointer)
+                return true;
+
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
             return typeInfo.AssignabilityCache.GetOrCreate(
                 cacheKey, (key) => {

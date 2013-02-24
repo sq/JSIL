@@ -56,6 +56,19 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void MonoFixedArray () {
+            var js = GetJavascript(
+                @"BinaryTestCases\MonoPinArray.exe",
+                makeConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.EnableUnsafeCode = true;
+                    return cfg;
+                }
+            );
+            Console.WriteLine(js);
+        }
+
+        [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
