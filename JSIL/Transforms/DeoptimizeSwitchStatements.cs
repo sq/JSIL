@@ -207,6 +207,12 @@ namespace JSIL.Transforms {
 
             // Detect switch statements using a lookup dictionary
             var switchVar = ss.Condition as JSVariable;
+
+            // HACK: Fixup reference read-throughs
+            var switchRefRead = ss.Condition as JSReadThroughReferenceExpression;
+            if (switchRefRead != null)
+                switchVar = switchRefRead.Variable;
+
             if (
                 (switchVar != null) && 
                 IndexLookups.TryGetValue(switchVar, out indexLookup) &&
