@@ -1835,6 +1835,15 @@ namespace JSIL.Ast {
             if (nullLiteral != null)
                 return new JSNullLiteral(newType);
 
+            if (newType.IsPointer) {
+                if (currentType.IsPointer) {
+                    // return new JSPointerCast(...)
+                    throw new NotImplementedException("Pointer casts not implemented");
+                } else {
+                    return new JSPinExpression(inner, newType);
+                }
+            }
+
             return make();
         }
 
@@ -2108,6 +2117,35 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("{0}.get()", Variable);
+        }
+    }
+
+    public class JSPinExpression : JSExpression {
+        public readonly TypeReference PointerType;
+        public readonly int Index;
+
+        public JSPinExpression (JSExpression array, TypeReference pointerType)
+            : base (array) {
+
+            // FIXME: Verify that the pointer type is valid for the array.
+            PointerType = pointerType;
+            // FIXME: Fill in the index field if it's an array element being pinned.
+            Index = 0;
+        }
+
+        public JSExpression Array {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            // return Array.GetActualType(typeSystem);
+            return PointerType;
+        }
+
+        public override string ToString () {
+            return String.Format("({1}){0}", Array, PointerType);
         }
     }
 }

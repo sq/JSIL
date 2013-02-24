@@ -957,12 +957,13 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected void RunSingleComparisonTestCase (object[] parameters) {
+        protected void RunSingleComparisonTestCase (object[] parameters, Func<Configuration> makeConfiguration = null) {
             if (parameters.Length != 4)
                 throw new ArgumentException("Wrong number of test case data parameters.");
 
             RunComparisonTest(
-                (string)parameters[0], null, (TypeInfoProvider)parameters[1], null, null, (string)parameters[3], true, (AssemblyCache)parameters[2]
+                (string)parameters[0], null, (TypeInfoProvider)parameters[1], null, null, (string)parameters[3], true, (AssemblyCache)parameters[2],
+                makeConfiguration: makeConfiguration
             );
         }
 

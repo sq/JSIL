@@ -10,6 +10,9 @@ using Mono.Cecil;
 
 namespace JSIL {
     public static class TypeUtil {
+        // FIXME: Horrible hack.
+        public static bool EnableUnsafeCode = false;
+
         public static string GetLocalName (TypeDefinition type) {
             var result = new List<string>();
             result.Add(type.Name);
@@ -189,11 +192,15 @@ namespace JSIL {
 
             if (type == null)
                 return false;
-            else if (type.IsPointer)
-                return true;
-            else if (type.IsPinned)
-                return true;
-            else if (type.IsFunctionPointer)
+
+            if (EnableUnsafeCode) {
+                if (type.IsPointer)
+                    return true;
+                else if (type.IsPinned)
+                    return true;
+            }
+
+            if (type.IsFunctionPointer)
                 return true;
             else
                 return false;

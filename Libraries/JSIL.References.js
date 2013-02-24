@@ -163,22 +163,73 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       this.buffer = buffer;
       this.byteOffset = byteOffset;
       this.byteLength = byteLength;
+      this.viewCache = Object.create(null);
     }
   );
 });
 
 JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function Pointer_ctor (memoryRange, byteOffset) {
+    function Pointer_ctor (memoryRange, view, elementIndex) {
       this.memoryRange = memoryRange;
-      this.byteOffset = byteOffset;
+      this.view = view;
+      this.elementIndex = elementIndex;
     }
   );
 
   $.RawMethod(false, "__CopyMembers__",
     function Pointer_CopyMembers (source, target) {
       target.memoryRange = source.memoryRange;
-      target.byteOffset = source.byteOffset;
+      target.view = source.view;
+      target.elementIndex = source.elementIndex;
+    }
+  );
+
+  $.RawMethod(false, "get",
+    function Pointer_Get (offset) {
+      if (arguments.length === 0)
+        return this.view[this.elementIndex];
+      else
+        return this.view[(this.elementIndex + offset) | 0];
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function Pointer_Set (offset, value) {
+      if (arguments.length === 1)
+        return this.view[this.elementIndex] = offset;
+      else
+        return this.view[(this.elementIndex + offset) | 0] = value;
+    }
+  );
+
+  $.RawMethod(false, "toString",
+    function Pointer_ToString () {
+      return "<ptr " + this.view + "@" + this.elementIndex + ">";
     }
   );
 });
+
+JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
+  if (!JSIL.IsArray(objectToPin))
+    throw new Error("Object being pinned must be an array");
+
+  var buffer = objectToPin.buffer;
+  if (!buffer)
+    throw new Error("Object being pinned must have an underlying memory buffer");
+
+  offsetInElements = offsetInElements || 0;
+  if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length))
+    throw new Error("offsetInElements outside the array");
+
+  var memoryRange = new JSIL.MemoryRange(
+    buffer, 0, objectToPin.length * objectToPin.BYTES_PER_ELEMENT
+  );
+  var pointer = new JSIL.Pointer(
+    memoryRange, objectToPin, offsetInElements
+  );
+
+  return pointer;
+};
+
+// FIXME: Implement unpin operation? Probably not needed yet.

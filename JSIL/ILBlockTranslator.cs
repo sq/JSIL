@@ -691,8 +691,21 @@ namespace JSIL {
             return TranslateBlock(block.Body);
         }
 
-        public JSExpression TranslateNode (ILFixedStatement fxd) {
-            throw new AbortTranslation("Fixed statements not implemented");
+        public JSBlockStatement TranslateNode (ILFixedStatement fxd) {
+            var block = TranslateNode(fxd.BodyBlock);
+
+            for (var i = 0; i < fxd.Initializers.Count; i++) {
+                var initializer = fxd.Initializers[i];
+                var translated = TranslateNode(initializer) as JSBinaryOperatorExpression;
+                if (translated == null)
+                    throw new NotImplementedException("Unhandled fixed initializer: " + initializer);
+
+                var pinStatement = new JSVariableDeclarationStatement(translated);
+                
+                block.Statements.Insert(i, pinStatement);
+            }
+
+            return block;
         }
 
         static System.Reflection.MethodInfo[] GetNodeTranslators (ILCode code) {
@@ -2169,11 +2182,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_I (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
         protected JSExpression Translate_Conv_U (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
         }
 
         protected JSExpression Translate_Conv_U1 (ILExpression node) {

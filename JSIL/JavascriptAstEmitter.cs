@@ -439,6 +439,15 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSPinExpression pin) {
+            Output.WriteRaw("JSIL.PinAndGetPointer");
+            Output.LPar();
+            Visit(pin.Array);
+            Output.Comma();
+            Output.Value(pin.Index);
+            Output.RPar();
+        }
+
         private void WriteTruncationForType (TypeReference type) {
             switch (type.FullName) {
                 case "System.UInt32":

@@ -530,6 +530,23 @@ namespace JSIL.Tests {
             return FolderTestSource("ReflectionTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
+        [Test]
+        [TestCaseSource("UnsafeTestCasesSource")]
+        public void UnsafeTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(
+                parameters,
+                makeConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.EnableUnsafeCode = true;
+                    return cfg;
+                }
+            );
+        }
+
+        protected IEnumerable<TestCaseData> UnsafeTestCasesSource () {
+            return FolderTestSource("UnsafeTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
         #endregion
     }
 }

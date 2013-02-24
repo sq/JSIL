@@ -645,6 +645,8 @@ namespace JSIL {
         }
 
         protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
+            TypeUtil.EnableUnsafeCode = Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false);
+
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
