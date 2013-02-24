@@ -118,7 +118,7 @@ namespace JSIL {
             );
 
             return new JSNewExpression(
-                Dot("MemberReference", resultType),
+                Dot("ArrayElementReference", resultType),
                 null, null, target, index
             );
         }
@@ -136,7 +136,7 @@ namespace JSIL {
             var resultType = new ByReferenceType(initialValue.GetActualType(TypeSystem));
 
             return new JSNewExpression(
-                Dot("Variable", resultType),
+                Dot("BoxedVariable", resultType),
                 null, null, initialValue
             );
         }

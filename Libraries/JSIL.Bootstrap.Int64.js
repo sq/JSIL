@@ -78,7 +78,7 @@ JSIL.Make64BitInt = function ($, _me) {
         }
         var c = parseInt(text[i], radix);
         if (isNaN(c)) {
-          result.value = zero();
+          result.set(zero());
           return false;
         }
         r = me().op_Addition(ctor(c, 0, 0), me().op_Multiplication(rdx, r));
@@ -87,7 +87,7 @@ JSIL.Make64BitInt = function ($, _me) {
       if (neg)
         r = me().op_UnaryNegation(r);
 
-      result.value = r;
+      result.set(r);
 
       return true;
     };
@@ -117,11 +117,11 @@ JSIL.Make64BitInt = function ($, _me) {
   $.Method({ Static: true, Public: true }, "Parse",
     (new JSIL.MethodSignature($.Type, ["System.String"], [])),
     function xInt64_Parse (text) {
-      var result = { value: null };
+      var result = new JSIL.BoxedVariable(null);
       if (!tryParse(text, 0, result))
         throw new System.Exception("NumberParseException");
 
-      return result.value;
+      return result.get();
     });
 
   $.Method({ Static: true, Public: true }, "op_Addition",

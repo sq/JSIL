@@ -6310,8 +6310,9 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     size = Number(sizeOrInitializer);
   }
 
-  if (elementTypeObject.__TypedArray__) {
-    result = new (elementTypeObject.__TypedArray__)(size);
+  var typedArrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject);
+  if (typedArrayCtor) {
+    result = new (typedArrayCtor)(size);
   } else {
     result = new Array(size);
   }
@@ -6320,7 +6321,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     // If non-numeric, assume array initializer
     for (var i = 0; i < sizeOrInitializer.length; i++)
       result[i] = sizeOrInitializer[i];
-  } else if (!elementTypeObject.__TypedArray__) {
+  } else if (!typedArrayCtor) {
     JSIL.Array.Erase(result, elementType);
   }
 
@@ -6720,4 +6721,11 @@ JSIL.FreezeImmutableObject = function (object) {
   // Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
   if (jsilConfig.enableFreezeAndSeal === true)
     Object.freeze(object);
+};
+
+JSIL.GetTypedArrayConstructorForElementType = function (typeObject) {
+  if (!typeObject)
+    throw new Error("typeObject was null");
+
+  return typeObject.__TypedArray__ || null;
 };

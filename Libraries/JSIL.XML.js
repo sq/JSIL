@@ -375,14 +375,14 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$.Int32]), $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
     function CheckReaderCount (/* ref */ whileIterations, /* ref */ readerCount) {
       if (true) {
-        whileIterations.value += 1;
+        whileIterations.set(whileIterations.get() + 1);
 
-        if ((whileIterations.value & 128) == 128) {
-          if (readerCount.value == this.ReaderCount) {
+        if ((whileIterations.get() & 128) == 128) {
+          if (readerCount.get() == this.ReaderCount) {
             throw new InvalidOperationException("XmlReader is stuck");
           }
 
-          readerCount.value = this.ReaderCount;
+          readerCount.set(this.ReaderCount);
         }
       }
 

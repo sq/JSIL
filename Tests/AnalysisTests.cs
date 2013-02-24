@@ -66,7 +66,7 @@ namespace JSIL.Tests {
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"f = new JSIL.Variable\(\$thisType.A.MemberwiseClone\(\)\)"
+                @"f = new JSIL.BoxedVariable\(\$thisType.A.MemberwiseClone\(\)\)"
             ));
         }
 

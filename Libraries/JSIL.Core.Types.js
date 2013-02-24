@@ -450,110 +450,6 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
-  var types = {};
-
-  var checkType = function Reference_CheckType (value) {
-    var type = this;
-
-    var isReference = JSIL.Reference.$Is(value, true);
-    if (!isReference)
-      return false;
-
-    var typeProto = Object.getPrototypeOf(type);
-    if (
-      (typeProto === JSIL.GenericParameter.prototype) ||
-      (typeProto === JSIL.PositionalGenericParameter.prototype)
-    ) {
-      return true;
-    }
-
-    if ((type.__IsReferenceType__) && (value.value === null))
-      return true;
-
-    return type.$Is(value.value, false);
-  };
-
-  var of = function Reference_Of (type) {
-    if (typeof (type) === "undefined")
-      throw new Error("Undefined reference type");
-
-    var typeObject = JSIL.ResolveTypeReference(type)[1];
-    
-    var elementName = JSIL.GetTypeName(type);
-    var compositePublicInterface = types[elementName];
-
-    if (typeof (compositePublicInterface) === "undefined") {
-      var typeName = "ref " + elementName;
-
-      var compositeTypeObject = JSIL.CloneObject($.Type);
-      compositePublicInterface = JSIL.CloneObject(JSIL.Reference);
-
-      compositePublicInterface.__Type__ = compositeTypeObject;
-      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
-
-      var toStringImpl = function (context) {
-        return "ref " + typeObject.toString(context);
-      };
-
-      compositePublicInterface.prototype = JSIL.MakeProto(JSIL.Reference, compositeTypeObject, typeName, true, typeObject.__Context__);
-
-      JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType.bind(type));
-
-      JSIL.SetValueProperty(compositePublicInterface, "toString", function ReferencePublicInterface_ToString () {
-        return "<JSIL.Reference.Of(" + typeObject.toString() + ") Public Interface>";
-      });
-      JSIL.SetValueProperty(compositePublicInterface.prototype, "toString", toStringImpl);
-      JSIL.SetValueProperty(compositeTypeObject, "toString", toStringImpl);
-
-      compositePublicInterface.__FullName__ = compositeTypeObject.__FullName__ = typeName;
-      JSIL.SetTypeId(
-        compositePublicInterface, compositeTypeObject, (
-          $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]"
-        )
-      );
-
-      types[elementName] = compositePublicInterface;
-    }
-
-    return compositePublicInterface;
-  };
-
-  $.RawMethod(true, "Of$NoInitialize", of);
-  $.RawMethod(true, "Of", of);
-});
-
-JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
-  $.RawMethod(false, ".ctor",
-    function Variable_ctor (value) {
-      this.value = value;
-    }
-  );
-});
-
-JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
-  $.RawMethod(false, ".ctor",
-    function MemberReference_ctor (object, memberName) {
-      this.object = object;
-      this.memberName = memberName;
-    }
-  );
-
-  $.RawMethod(false, "get_value",
-    function MemberReference_GetValue () {
-      return this.object[this.memberName];
-    }
-  );
-
-  $.RawMethod(false, "set_value",
-    function MemberReference_SetValue (value) {
-      this.object[this.memberName] = value;
-    }
-  );
-
-  $.Property({Static: false, Public: true, Virtual: true }, "value");
-});
-
 JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function () {
@@ -896,7 +792,7 @@ JSIL.ImplementExternals(
     $.Method({ Static: true, Public: true }, "Resize",
       new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Array", ["!!0"])]), $.Int32], ["T"]),
       function (type, arr, newSize) {
-        var oldArray = arr.value, newArray = null;
+        var oldArray = arr.get(), newArray = null;
         var oldLength = oldArray.length;
 
         if (Array.isArray(oldArray)) {
@@ -911,7 +807,7 @@ JSIL.ImplementExternals(
           JSIL.Array.CopyTo(oldArray, newArray, 0);
         }
 
-        arr.value = newArray;
+        arr.set(newArray);
       }
     );
   }

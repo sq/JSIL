@@ -312,15 +312,15 @@ var vectorUtil = {
 
     if (leftScalar) {
       wrapper = function VectorOperator_Scalar_Ref (lhs, rhs, result) {
-        result.value = fn(lhs, rhs.value);
+        result.set(fn(lhs, rhs.get()));
       }
     } else if (rightScalar) {
       wrapper = function VectorOperator_Ref_Scalar (lhs, rhs, result) {
-        result.value = fn(lhs.value, rhs);
+        result.set(fn(lhs.get(), rhs));
       }
     } else {
       wrapper = function VectorOperator_Ref_Ref (lhs, rhs, result) {
-        result.value = fn(lhs.value, rhs.value);
+        result.set(fn(lhs.get(), rhs.get()));
       }
     }
 
@@ -764,7 +764,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreateLookAt (/* ref */ cameraPosition, /* ref */ cameraTarget, /* ref */ cameraUpVector, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -787,7 +787,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreateOrthographic (width, height, zNearPlane, zFarPlane, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -812,7 +812,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreateOrthographicOffCenter (left, right, bottom, top, zNearPlane, zFarPlane, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -835,7 +835,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -858,7 +858,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -883,7 +883,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance, /* ref */ result) {
       // FIXME
-      result.value = Microsoft.Xna.Framework.Matrix._identity;
+      result.set(Microsoft.Xna.Framework.Matrix._identity);
     }
   );
 
@@ -1786,7 +1786,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
           $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])
         ], [])), 
     function Intersect (/* ref */ value1, /* ref */ value2, /* ref */ result) {
-      result.value = intersectImpl(value1.value, value2.value);
+      result.set(intersectImpl(value1.get(), value2.get()));
     }
   );
 
@@ -1820,7 +1820,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
           $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])
         ], [])), 
     function Union (/* ref */ value1, /* ref */ value2, /* ref */ result) {
-      result.value = unionImpl(value1.value, value2.value);
+      result.set(unionImpl(value1.get(), value2.get()));
     }
   );
 
