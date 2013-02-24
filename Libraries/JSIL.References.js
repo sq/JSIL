@@ -163,17 +163,17 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       this.buffer = buffer;
       this.byteOffset = byteOffset;
       this.byteLength = byteLength;
-      this.viewCache = Object.create(null);
     }
   );
 });
 
 JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function Pointer_ctor (memoryRange, view, elementIndex) {
+    function Pointer_ctor (memoryRange, view, offsetInBytes) {
       this.memoryRange = memoryRange;
       this.view = view;
-      this.elementIndex = elementIndex;
+      this.offsetInBytes = offsetInBytes;
+      this.divisor = this.view.BYTES_PER_ELEMENT | 0;
     }
   );
 
@@ -181,51 +181,62 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     function Pointer_CopyMembers (source, target) {
       target.memoryRange = source.memoryRange;
       target.view = source.view;
-      target.elementIndex = source.elementIndex;
+      target.offsetInBytes = source.offsetInBytes;
+      target.divisor = source.divisor;
     }
   );
 
   $.RawMethod(false, "get",
     function Pointer_Get (offsetInBytes) {
-      if (arguments.length === 0)
-        return this.view[this.elementIndex];
-      else {
-        // FIXME: Non-integral element offsets will truncate!
-        var elementOffset = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
-        return this.view[(this.elementIndex + elementOffset) | 0];
-      }
+      var index = this.offsetInBytes;
+      if (arguments.length === 1)
+        index = (index + offsetInBytes) | 0;
+      
+      // FIXME: Index truncation
+      index = (index / this.divisor) | 0;
+
+      return this.view[index];
     }
   );
 
   $.RawMethod(false, "set",
     function Pointer_Set (offsetInBytes, value) {
+      var index = this.offsetInBytes;
+      if (arguments.length === 2)
+        index = (index + offsetInBytes) | 0;
+
+      // FIXME: Index truncation
+      index = (index / this.divisor) | 0;
+
       if (arguments.length === 1)
-        return this.view[this.elementIndex] = offsetInBytes;
-      else {
-        // FIXME: Non-integral element offsets will truncate!
-        var elementOffset = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
-        return this.view[(this.elementIndex + elementOffset) | 0] = value;
-      }
+        return this.view[index] = offsetInBytes;
+      else
+        return this.view[index] = value;
     }
   );
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      return this;
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType);
+      var thisCtor = Object.getPrototypeOf(this.view);
+
+      if (thisCtor === arrayCtor)
+        return this;
+
+      var view = new arrayCtor(this.memoryRange.buffer, this.memoryRange.byteOffset, this.memoryRange.byteLength);
+      return new JSIL.Pointer(this.memoryRange, view, this.offsetInBytes);
     }
   );
 
   $.RawMethod(false, "add",
     function Pointer_Add (offsetInBytes) {
-      // FIXME: Non-integral element offsets will truncate!
-      var offsetInElements = (offsetInBytes / this.view.BYTES_PER_ELEMENT) | 0;
-      return new JSIL.Pointer(this.memoryRange, this.view, (this.elementIndex + offsetInElements) | 0);
+      return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
     }
   );
 
   $.RawMethod(false, "toString",
     function Pointer_ToString () {
-      return "<ptr " + this.view + "@" + this.elementIndex + ">";
+      return "<ptr " + this.view + " + " + this.offsetInBytes + ">";
     }
   );
 });
@@ -242,11 +253,13 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length))
     throw new Error("offsetInElements outside the array");
 
+  var offsetInBytes = offsetInElements * objectToPin.BYTES_PER_ELEMENT;
+
   var memoryRange = new JSIL.MemoryRange(
     buffer, 0, objectToPin.length * objectToPin.BYTES_PER_ELEMENT
   );
   var pointer = new JSIL.Pointer(
-    memoryRange, objectToPin, offsetInElements
+    memoryRange, objectToPin, offsetInBytes
   );
 
   return pointer;
