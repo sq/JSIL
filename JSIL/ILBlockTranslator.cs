@@ -1809,6 +1809,7 @@ namespace JSIL {
             var target = TranslateNode(node.Arguments[0]);
             var targetVariable = target as JSVariable;
             var value = TranslateNode(node.Arguments[1]);
+            var valueType = value.GetActualType(TypeSystem);
 
             if (targetVariable != null) {
                 if (!targetVariable.IsReference)
@@ -1817,8 +1818,12 @@ namespace JSIL {
                 JSExpression referent;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))
                     Translator.WarningFormat("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]);
-                else
-                    target = new JSDotExpression(referent, new JSStringIdentifier("value", value.GetActualType(TypeSystem)));
+                else {
+                    return JSInvocationExpression.InvokeMethod(
+                        new JSFakeMethod("set", valueType, new TypeReference[] { valueType }, MethodTypes),
+                        referent, new JSExpression[] { value }, false
+                    );
+                }
             }
 
             return new JSBinaryOperatorExpression(

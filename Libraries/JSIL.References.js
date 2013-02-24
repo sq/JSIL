@@ -79,6 +79,20 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 
   $.RawMethod(true, "Of$NoInitialize", of);
   $.RawMethod(true, "Of", of);
+
+  $.RawMethod(false, "get_value",
+    function Reference_GetValue () {
+      throw new Error("Use of old-style reference.value");
+    }
+  );
+
+  $.RawMethod(false, "set_value",
+    function Reference_SetValue (value) {
+      throw new Error("Use of old-style reference.value = x");
+    }
+  );
+
+  $.Property({Static: false, Public: true }, "value");
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.BoxedVariable", true, [], function ($) {
