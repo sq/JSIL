@@ -2198,10 +2198,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function TryGetValue (key, /* ref */ value) {
       var bucketEntry = this.$searchBucket(key);
       if (bucketEntry !== null) {
-        value.value = bucketEntry.value;
+        value.set(bucketEntry.value);
         return true;
       } else {
-        value.value = JSIL.DefaultValue(this.TValue);
+        value.set(JSIL.DefaultValue(this.TValue));
       }
 
       return false;

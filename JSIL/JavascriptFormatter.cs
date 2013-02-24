@@ -721,9 +721,7 @@ namespace JSIL.Internal {
 
         public void Identifier (ILVariable variable, TypeReferenceContext context, bool includeParens = false) {
             if (variable.Type.IsByReference) {
-                Identifier(variable.Name);
-                Dot();
-                Identifier("value");
+                throw new NotImplementedException("Old-style use of JavascriptFormatter.Identifier on a ref variable");
             } else {
                 Identifier(variable.Name);
             }
