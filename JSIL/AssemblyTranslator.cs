@@ -2207,7 +2207,11 @@ namespace JSIL {
                         astEmitter.ReferenceContext.Push();
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 
-                        astEmitter.Visit(function);
+                        try {
+                            astEmitter.Visit(function);
+                        } catch (Exception exc) {
+                            throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
+                        }
 
                         astEmitter.ReferenceContext.Pop();
                     } else {
