@@ -464,7 +464,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("<ref {0}>", Referent);
+            return String.Format("ref({0})", Referent);
         }
     }
 
@@ -2076,6 +2076,38 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Values.Last().GetActualType(typeSystem);
+        }
+    }
+
+    public class JSWriteThroughReferenceExpression : JSBinaryOperatorExpression {
+        public JSWriteThroughReferenceExpression (JSVariable referenceVariable, JSExpression rhs)
+            : base(
+                JSOperator.Assignment, referenceVariable, rhs, referenceVariable.IdentifierType
+            ) {
+        }
+
+        public override string ToString () {
+            return String.Format("{0}.set({1})", Left, Right);
+        }
+    }
+
+    public class JSReadThroughReferenceExpression : JSExpression {
+        public JSReadThroughReferenceExpression (JSVariable variable)
+            : base (variable) {
+        }
+
+        public JSVariable Variable {
+            get {
+                return (JSVariable)Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return DeReferenceType(Variable.GetActualType(typeSystem), true);
+        }
+
+        public override string ToString () {
+            return String.Format("{0}.get()", Variable);
         }
     }
 }

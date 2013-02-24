@@ -210,6 +210,14 @@ namespace JSIL.Transforms {
 
             VisitChildren(fn);
 
+            foreach (var p in fn.Parameters) {
+                if (!p.IsReference)
+                    continue;
+
+                var vrat = new VariableReferenceAccessTransformer(JSIL, p);
+                vrat.Visit(fn);
+            }
+
             foreach (var r in ReferencesToTransform) {
                 var cr = GetConstructedReference(r);
 
@@ -249,7 +257,84 @@ namespace JSIL.Transforms {
                         declaration.block
                     );
                 }
+
+                var vrat = new VariableReferenceAccessTransformer(JSIL, cr);
+                vrat.Visit(fn);
             }
+        }
+    }
+
+    public class VariableReferenceAccessTransformer : JSAstVisitor {
+        public readonly JSVariable Variable;
+        public readonly JSILIdentifier JSIL;
+
+        public VariableReferenceAccessTransformer (JSILIdentifier jsil, JSVariable variable) {
+            JSIL = jsil;
+            Variable = variable;
+        }
+
+        public void VisitNode (JSVariable variable) {
+            if (
+                (variable.Identifier != Variable.Identifier) ||
+                // Don't transform if we're inside a read-through already
+                (ParentNode is JSReadThroughReferenceExpression) ||
+                (
+                    // If we're inside a write-through and on the LHS, don't transform
+                    (ParentNode is JSWriteThroughReferenceExpression) &&
+                    (this.CurrentName == "Left")
+                )
+            ) {
+                VisitChildren(variable);
+                return;
+            }
+
+            // Don't transform instances of a variable on the LHS of a variable declaration.
+            if (
+                Stack.OfType<JSVariableDeclarationStatement>().Any() &&
+                NameStack.Contains("Left")
+            ) {
+                VisitChildren(variable);
+                return;
+            }
+
+            // If we're inside a pass-by-reference (ref x) then don't transform
+            if (
+                Stack.OfType<JSPassByReferenceExpression>().Any()
+            ) {
+                VisitChildren(variable);
+                return;
+            }
+
+            var replacement = new JSReadThroughReferenceExpression(variable);
+            ParentNode.ReplaceChild(variable, replacement);
+            VisitReplacement(replacement);
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            JSExpression left;
+
+            if (!JSReferenceExpression.TryDereference(JSIL, boe.Left, out left))
+                left = boe.Left;
+
+            var leftVar = left as JSVariable;
+
+            if ((leftVar != null) && leftVar.IsReference) {
+                if (boe.Operator is JSAssignmentOperator) {
+                    var replacement = new JSWriteThroughReferenceExpression(
+                        leftVar, boe.Right
+                    );
+                    ParentNode.ReplaceChild(boe, replacement);
+                    VisitReplacement(replacement);
+                } else {
+                    VisitChildren(boe);
+                }
+            } else {
+                VisitChildren(boe);
+            }
+        }
+
+        public void VisitNode (JSWriteThroughReferenceExpression wtre) {
+            VisitChildren(wtre);
         }
     }
 }

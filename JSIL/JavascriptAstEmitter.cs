@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -33,6 +34,7 @@ namespace JSIL {
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
+        protected readonly Stack<bool> PassByRefStack = new Stack<bool>();
 
         public JavascriptAstEmitter (
             JavascriptFormatter output, JSILIdentifier jsil, 
@@ -45,6 +47,7 @@ namespace JSIL {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
             IncludeTypeParens.Push(false);
+            PassByRefStack.Push(false);
         }
 
         public void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {
@@ -829,20 +832,12 @@ namespace JSIL {
                 return;
             }
 
-            if (variable.IsReference) {
-                if (variable.IsThis) {
-                    if (JSExpression.DeReferenceType(variable.IdentifierType).IsValueType)
-                        return;
-                    else
-                        throw new InvalidOperationException(String.Format(
-                            "The this-reference '{0}' was a reference to a non-value type: {1}",
-                            variable, variable.IdentifierType
-                        ));
-                }
-
-                Output.Dot();
-                Output.Identifier("value");
-            }
+            if (
+                variable.IsReference && 
+                !PassByRefStack.Peek() && 
+                !Stack.OfType<JSVariableDeclarationStatement>().Any()
+            )
+                throw new InvalidDataException("Found a JSVariable instance pointing at a reference variable (" + variable.Identifier + ") in an incorrect context.");
         }
 
         public void VisitNode (JSPassByReferenceExpression byref) {
@@ -850,7 +845,12 @@ namespace JSIL {
 
             if (JSReferenceExpression.TryMaterialize(JSIL, byref.Referent, out referent)) {
                 Output.Comment("ref");
-                Visit(referent);
+                PassByRefStack.Push(true);
+                try {
+                    Visit(referent);
+                } finally {
+                    PassByRefStack.Pop();
+                }
             } else {
                 Output.Identifier("JSIL.UnmaterializedReference", null);
                 Output.LPar();
@@ -861,6 +861,29 @@ namespace JSIL {
 
         public void VisitNode (JSReferenceExpression reference) {
             Visit(reference.Referent);
+        }
+
+        public void VisitNode (JSReadThroughReferenceExpression rtre) {
+            Output.Identifier(rtre.Variable.Identifier);
+            Output.Dot();
+            Output.Identifier("get");
+            Output.LPar();
+            Output.RPar();
+        }
+
+        public void VisitNode (JSWriteThroughReferenceExpression wtre) {
+            // HACK: Probably shouldn't abuse this stack for this
+            PassByRefStack.Push(true);
+            try {
+                Visit(wtre.Left);
+            } finally {
+                PassByRefStack.Pop();
+            }
+            Output.Dot();
+            Output.Identifier("set");
+            Output.LPar();
+            Visit(wtre.Right);
+            Output.RPar();
         }
 
         public void VisitNode (JSLambda lambda) {

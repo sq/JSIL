@@ -436,10 +436,10 @@ namespace JSIL.Ast {
             var defaultValueText = "";
 
             if (!DefaultValue.IsNull && !(DefaultValue is JSDefaultValueLiteral))
-                defaultValueText = String.Format(" = {0}", DefaultValue.ToString());
+                defaultValueText = String.Format(" := {0}", DefaultValue.ToString());
 
             if (IsReference)
-                return String.Format("<ref {0} {1}{2}>", IdentifierType, Identifier, defaultValueText);
+                return String.Format("<{0} {1}{2}>", IdentifierType, Identifier, defaultValueText);
             else if (IsThis)
                 return String.Format("<this {0}>", IdentifierType);
             else if (IsParameter)
