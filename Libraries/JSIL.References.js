@@ -268,6 +268,25 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "equals",
+    function Pointer_Equals (rhs) {
+      if (rhs === null)
+        return false;
+      else if (rhs === this)
+        return true;
+      else
+        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+          (this.offsetInBytes === rhs.offsetInBytes);
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "Object.Equals",
+    new JSIL.MethodSignature($.Boolean, [$.Object]),
+    function Pointer_Equals (rhs) {
+      return this.equals(rhs);
+    }
+  );
+
   $.RawMethod(false, "toString",
     function Pointer_ToString () {
       return "<ptr " + this.view + " + " + this.offsetInBytes + ">";
@@ -313,7 +332,7 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
 
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   memoryRange.storeExistingView(objectToPin);
-  
+
   var pointer = new JSIL.Pointer(
     memoryRange, objectToPin, offsetInBytes
   );

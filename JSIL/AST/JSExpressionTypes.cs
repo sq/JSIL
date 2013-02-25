@@ -2268,4 +2268,10 @@ namespace JSIL.Ast {
             : base(JSOperator.Subtract, lhs, rhs, actualType) {
         }
     }
+
+    public class JSPointerComparisonExpression : JSBinaryOperatorExpression {
+        public JSPointerComparisonExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType)
+            : base(op, lhs, rhs, actualType) {
+        }
+    }
 }

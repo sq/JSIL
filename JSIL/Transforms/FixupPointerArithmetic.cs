@@ -42,15 +42,21 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode (JSPointerAddExpression pae) {
+            VisitChildren(pae);
+        }
+
+        public void VisitNode (JSPointerDeltaExpression pde) {
+            VisitChildren(pde);
+        }
+
+        public void VisitNode (JSPointerComparisonExpression pce) {
+            VisitChildren(pce);
+        }
+
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var leftType = boe.Left.GetActualType(TypeSystem);
             var rightType = boe.Right.GetActualType(TypeSystem);
-            var resultType = boe.GetActualType(TypeSystem);
-
-            if (!resultType.IsPointer || !leftType.IsPointer) {
-                VisitChildren(boe);
-                return;
-            }
 
             JSExpression replacement = null;
             if (leftType.IsPointer && TypeUtil.IsIntegral(rightType)) {
@@ -79,6 +85,8 @@ namespace JSIL.Transforms {
                     replacement = new JSPointerDeltaExpression(
                         boe.Left, boe.Right, TypeSystem.Int32
                     );
+                } else if (boe.Operator is JSComparisonOperator) {
+                    replacement = new JSPointerComparisonExpression(boe.Operator, boe.Left, boe.Right, boe.ActualType);
                 }
             }
 

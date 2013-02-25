@@ -473,6 +473,26 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSPointerComparisonExpression pce) {
+            if (pce.Operator == JSOperator.NotEqual)
+                Output.WriteRaw("!");
+
+            Visit(pce.Left);
+            Output.Dot();
+
+            if (
+                (pce.Operator == JSOperator.Equal) ||
+                (pce.Operator == JSOperator.NotEqual)
+            )
+                Output.Identifier("equals");
+            else
+                throw new NotImplementedException("Operator '" + pce.Operator + "' not supported on pointers");
+
+            Output.LPar();
+            Visit(pce.Right);
+            Output.RPar();
+        }
+
         public void VisitNode (JSPinExpression pin) {
             Output.WriteRaw("JSIL.PinAndGetPointer");
             Output.LPar();
