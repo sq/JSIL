@@ -161,6 +161,33 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function MemoryRange_ctor (buffer) {
       this.buffer = buffer;
+      this.viewCache = Object.create(null);
+    }
+  );
+
+  $.RawMethod(false, "storeExistingView",
+    function (view) {
+      var arrayCtor = Object.getPrototypeOf(view);
+
+      if (
+        this.viewCache[arrayCtor] && 
+        (this.viewCache[arrayCtor] !== view)
+      )
+        throw new Error("A different view is already stored for this element type");
+
+      this.viewCache[arrayCtor] = view;
+    }
+  );
+
+  $.RawMethod(false, "getView",
+    function (elementType) {
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType);
+
+      var result = this.viewCache[arrayCtor];
+      if (!result)
+        result = this.viewCache[arrayCtor] = new arrayCtor(this.buffer);
+
+      return result;
     }
   );
 });
@@ -214,13 +241,10 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType);
-      var thisCtor = Object.getPrototypeOf(this.view);
-
-      if (thisCtor === arrayCtor)
+      var view = this.memoryRange.getView(elementType);
+      if (view === this.view)
         return this;
 
-      var view = new arrayCtor(this.memoryRange.buffer);
       return new JSIL.Pointer(this.memoryRange, view, this.offsetInBytes);
     }
   );
@@ -288,6 +312,8 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   var offsetInBytes = offsetInElements * objectToPin.BYTES_PER_ELEMENT;
 
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
+  memoryRange.storeExistingView(objectToPin);
+  
   var pointer = new JSIL.Pointer(
     memoryRange, objectToPin, offsetInBytes
   );
