@@ -1367,9 +1367,9 @@ namespace JSIL {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
                 return
-                    TypeUtil.Is32BitIntegral(leftType) &&
-                    TypeUtil.Is32BitIntegral(rightType) &&
-                    TypeUtil.Is32BitIntegral(resultType);
+                    TypeUtil.Is32BitIntegralOrIntPtr(leftType) &&
+                    TypeUtil.Is32BitIntegralOrIntPtr(rightType) &&
+                    TypeUtil.Is32BitIntegralOrIntPtr(resultType);
             }
 
             return false;
