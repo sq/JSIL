@@ -52,17 +52,32 @@ namespace JSIL.Transforms {
                 return;
             }
 
-            if (boe.Operator == JSOperator.Add) {
-                var replacement = JSInvocationExpression.InvokeMethod(
-                    new JSFakeMethod("add", leftType, new[] { rightType }, MethodTypes),
-                    boe.Left, new[] { boe.Right }, true
+            JSExpression replacement = null;
+            if (
+                (boe.Operator == JSOperator.Add) ||
+                (boe.Operator == JSOperator.AddAssignment)
+            ) {
+                replacement = new JSPointerAddExpression(
+                    boe.Left, boe.Right, 
+                    boe.Operator == JSOperator.AddAssignment
                 );
+            } else if (
+                (boe.Operator == JSOperator.Subtract) ||
+                (boe.Operator == JSOperator.SubtractAssignment)
+            ) {
+                // FIXME: Int32 is probably wrong
+                replacement = new JSPointerAddExpression(
+                    boe.Left, 
+                    new JSUnaryOperatorExpression(JSOperator.Negation, boe.Right, TypeSystem.Int32),
+                    boe.Operator == JSOperator.SubtractAssignment
+                );
+            }
+
+            if (replacement != null) {
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
-
             } else {
                 VisitChildren(boe);
-                return;
             }
         }
 

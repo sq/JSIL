@@ -2223,4 +2223,34 @@ namespace JSIL.Ast {
             return String.Format("({0}){1}", NewType, Pointer);
         }
     }
+
+    public class JSPointerAddExpression : JSExpression {
+        public readonly bool MutateInPlace;
+
+        public JSPointerAddExpression (JSExpression pointer, JSExpression delta, bool mutateInPlace)
+            : base(pointer, delta) {
+
+            MutateInPlace = mutateInPlace;
+        }
+
+        public JSExpression Pointer {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Delta {
+            get {
+                return Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Pointer.GetActualType(typeSystem);
+        }
+
+        public override string ToString () {
+            return String.Format("({0} + {1})", Pointer, Delta);
+        }
+    }
 }

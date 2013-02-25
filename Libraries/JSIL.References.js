@@ -172,7 +172,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     function Pointer_ctor (memoryRange, view, offsetInBytes) {
       this.memoryRange = memoryRange;
       this.view = view;
-      this.offsetInBytes = offsetInBytes;
+      this.offsetInBytes = offsetInBytes | 0;
       this.divisor = this.view.BYTES_PER_ELEMENT | 0;
     }
   );
@@ -228,8 +228,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   );
 
   $.RawMethod(false, "add",
-    function Pointer_Add (offsetInBytes) {
-      return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+    function Pointer_Add (offsetInBytes, modifyInPlace) {
+      if (modifyInPlace === true) {
+        this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
+      } else {
+        return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+      }
     }
   );
 

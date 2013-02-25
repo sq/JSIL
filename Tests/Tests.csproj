@@ -330,6 +330,8 @@
     <None Include="UnsafeTestCases\ReadIntsAsBytes.cs" />
     <None Include="UnsafeTestCases\WriteIntsAsBytes.cs" />
     <None Include="UnsafeTestCases\PinElementOfIntArray.cs" />
+    <None Include="UnsafeTestCases\IncrementPointer.cs" />
+    <None Include="UnsafeTestCases\DecrementPointer.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

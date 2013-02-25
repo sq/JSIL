@@ -439,6 +439,19 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSPointerAddExpression pae) {
+            Visit(pae.Pointer);
+            Output.Dot();
+            Output.Identifier("add");
+            Output.LPar();
+            Visit(pae.Delta);
+            if (pae.MutateInPlace) {
+                Output.Comma();
+                Output.Value(pae.MutateInPlace);
+            }
+            Output.RPar();
+        }
+
         public void VisitNode (JSPointerCastExpression pce) {
             Visit(pce.Pointer);
             Output.Dot();
@@ -1286,7 +1299,12 @@ namespace JSIL {
             return true;
         }
 
-        private bool NeedTruncationForUnaryOperator (JSUnaryOperatorExpression uop, TypeReference resultType) {
+        private bool NeedTruncationForUnaryOperator (
+            JSUnaryOperatorExpression uop, TypeReference resultType
+        ) {
+            if ((uop.Operator == JSOperator.Negation) && uop.Expression.IsConstant)
+                return false;
+
             if (
                 Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true)
             ) {
