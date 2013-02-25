@@ -159,10 +159,8 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.ArrayElementReference", true, [], functio
 
 JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function MemoryRange_ctor (buffer, byteOffset, byteLength) {
+    function MemoryRange_ctor (buffer) {
       this.buffer = buffer;
-      this.byteOffset = byteOffset;
-      this.byteLength = byteLength;
     }
   );
 });
@@ -222,7 +220,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       if (thisCtor === arrayCtor)
         return this;
 
-      var view = new arrayCtor(this.memoryRange.buffer, this.memoryRange.byteOffset, this.memoryRange.byteLength);
+      var view = new arrayCtor(this.memoryRange.buffer);
       return new JSIL.Pointer(this.memoryRange, view, this.offsetInBytes);
     }
   );
@@ -239,7 +237,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "deltaBytes",
     function Pointer_DeltaBytes (otherPointer) {
-      if (otherPointer.memoryRange !== this.memoryRange)
+      if (otherPointer.memoryRange.buffer !== this.memoryRange.buffer)
         throw new Error("Cannot subtract two pointers from different pinned buffers");
 
       return (this.offsetInBytes - otherPointer.offsetInBytes) | 0;
@@ -252,6 +250,28 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 });
+
+if (typeof (WeakMap) !== "undefined") {
+  $jsilcore.MemoryRangeCache = new WeakMap();
+} else {
+  $jsilcore.MemoryRangeCache = null;
+}
+
+JSIL.GetMemoryRangeForBuffer = function (buffer) {
+  var result;
+
+  if ($jsilcore.MemoryRangeCache)
+    result = $jsilcore.MemoryRangeCache.get(buffer);
+
+  if (!result) {
+    result = new JSIL.MemoryRange(buffer);
+
+    if ($jsilcore.MemoryRangeCache)
+      $jsilcore.MemoryRangeCache.set(buffer, result);
+  }
+
+  return result;
+};
 
 JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   if (!JSIL.IsArray(objectToPin))
@@ -267,9 +287,7 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
 
   var offsetInBytes = offsetInElements * objectToPin.BYTES_PER_ELEMENT;
 
-  var memoryRange = new JSIL.MemoryRange(
-    buffer, 0, objectToPin.length * objectToPin.BYTES_PER_ELEMENT
-  );
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   var pointer = new JSIL.Pointer(
     memoryRange, objectToPin, offsetInBytes
   );
