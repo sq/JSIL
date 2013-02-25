@@ -1539,6 +1539,11 @@ namespace JSIL {
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
+        protected JSExpression Translate_Mul_Ovf_Un (ILExpression node) {
+            // FIXME: Force unsigned and do overflow check
+            return Translate_BinaryOp(node, JSOperator.Multiply);
+        }
+
         protected JSExpression Translate_Div (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Divide);
         }
@@ -1900,7 +1905,9 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Localloc (ILExpression node) {
-            return new JSUntranslatableExpression("Localloc");
+            var sizeInBytes = TranslateNode(node.Arguments[0]);
+
+            return JSIL.StackAlloc(sizeInBytes, node.ExpectedType);
         }
 
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {

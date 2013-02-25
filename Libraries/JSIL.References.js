@@ -340,4 +340,11 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   return pointer;
 };
 
+JSIL.StackAlloc = function (sizeInBytes, elementType) {
+  var buffer = new ArrayBuffer(sizeInBytes);
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
+  var view = memoryRange.getView(elementType);
+  return new JSIL.Pointer(memoryRange, view, 0);
+};
+
 // FIXME: Implement unpin operation? Probably not needed yet.

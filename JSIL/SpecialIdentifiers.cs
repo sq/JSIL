@@ -201,6 +201,16 @@ namespace JSIL {
                 new[] { @object }
             );
         }
+
+        public JSInvocationExpression StackAlloc (JSExpression sizeInBytes, TypeReference pointerType) {
+            if (!pointerType.IsPointer)
+                throw new InvalidOperationException("Type being stack-allocated must be a pointer");
+
+            return JSInvocationExpression.InvokeStatic(
+                Dot(new JSFakeMethod("StackAlloc", pointerType, new[] { TypeSystem.Int32, TypeSystem.Object }, MethodTypes)),
+                new[] { sizeInBytes, new JSType(pointerType.GetElementType()) }
+            );
+        }
     }
 
     public class SpecialIdentifiers {

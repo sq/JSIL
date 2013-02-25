@@ -153,7 +153,7 @@ namespace JSIL {
         }
 
         public static bool Is32BitIntegralOrIntPtr (TypeReference type) {
-            return Is32BitIntegral(type) || (type.FullName == "System.IntPtr");
+            return Is32BitIntegral(type) || (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
         }
 
         public static bool IsIntegralOrPointer (TypeReference type) {
