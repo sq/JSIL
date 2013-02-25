@@ -53,24 +53,33 @@ namespace JSIL.Transforms {
             }
 
             JSExpression replacement = null;
-            if (
-                (boe.Operator == JSOperator.Add) ||
-                (boe.Operator == JSOperator.AddAssignment)
-            ) {
-                replacement = new JSPointerAddExpression(
-                    boe.Left, boe.Right, 
-                    boe.Operator == JSOperator.AddAssignment
-                );
-            } else if (
-                (boe.Operator == JSOperator.Subtract) ||
-                (boe.Operator == JSOperator.SubtractAssignment)
-            ) {
-                // FIXME: Int32 is probably wrong
-                replacement = new JSPointerAddExpression(
-                    boe.Left, 
-                    new JSUnaryOperatorExpression(JSOperator.Negation, boe.Right, TypeSystem.Int32),
-                    boe.Operator == JSOperator.SubtractAssignment
-                );
+            if (leftType.IsPointer && TypeUtil.IsIntegral(rightType)) {
+                if (
+                    (boe.Operator == JSOperator.Add) ||
+                    (boe.Operator == JSOperator.AddAssignment)
+                ) {
+                    replacement = new JSPointerAddExpression(
+                        boe.Left, boe.Right,
+                        boe.Operator == JSOperator.AddAssignment
+                    );
+                } else if (
+                    (boe.Operator == JSOperator.Subtract) ||
+                    (boe.Operator == JSOperator.SubtractAssignment)
+                ) {
+                    // FIXME: Int32 is probably wrong
+                    replacement = new JSPointerAddExpression(
+                        boe.Left,
+                        new JSUnaryOperatorExpression(JSOperator.Negation, boe.Right, TypeSystem.Int32),
+                        boe.Operator == JSOperator.SubtractAssignment
+                    );
+                }
+            } else if (leftType.IsPointer && rightType.IsPointer) {
+                if (boe.Operator == JSOperator.Subtract) {
+                    // FIXME: Int32 is probably wrong
+                    replacement = new JSPointerDeltaExpression(
+                        boe.Left, boe.Right, TypeSystem.Int32
+                    );
+                }
             }
 
             if (replacement != null) {

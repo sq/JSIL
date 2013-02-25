@@ -352,4 +352,18 @@ namespace JSIL.Ast {
             );
         }
     }
+
+    public class JSPointerLiteral : JSLiteralBase<long> {
+        public readonly TypeReference PointerType;
+
+        public JSPointerLiteral (long value, TypeReference pointerType)
+            : base (value) {
+
+            PointerType = pointerType;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return PointerType;
+        }
+    }
 }

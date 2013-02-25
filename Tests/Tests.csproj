@@ -332,6 +332,7 @@
     <None Include="UnsafeTestCases\PinElementOfIntArray.cs" />
     <None Include="UnsafeTestCases\IncrementPointer.cs" />
     <None Include="UnsafeTestCases\DecrementPointer.cs" />
+    <None Include="UnsafeTestCases\SubtractPointers.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -76,7 +76,6 @@ namespace JSIL {
                 Output.LPar();
                 Output.Value(node.GetType().Name);
                 Output.RPar();
-                Output.Semicolon();
             }
 
             base.VisitNode(node);
@@ -458,6 +457,19 @@ namespace JSIL {
             Output.Identifier("cast");
             Output.LPar();
             Visit(pce.NewType);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSPointerLiteral pl) {
+            Output.Value(pl.Value);
+        }
+
+        public void VisitNode (JSPointerDeltaExpression pde) {
+            Visit(pde.Left);
+            Output.Dot();
+            Output.Identifier("deltaBytes");
+            Output.LPar();
+            Visit(pde.Right);
             Output.RPar();
         }
 
@@ -1323,9 +1335,9 @@ namespace JSIL {
             if (bop.Operator == JSOperator.Divide) {
                 // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
-                    (TypeUtil.IsIntegral(leftType) ||
-                    TypeUtil.IsIntegral(rightType)) &&
-                    TypeUtil.IsIntegral(resultType);
+                    (TypeUtil.IsIntegralOrPointer(leftType) ||
+                    TypeUtil.IsIntegralOrPointer(rightType)) &&
+                    TypeUtil.IsIntegralOrPointer(resultType);
             }
 
             if (

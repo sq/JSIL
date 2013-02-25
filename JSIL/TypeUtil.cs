@@ -152,6 +152,10 @@ namespace JSIL {
             }
         }
 
+        public static bool IsIntegralOrPointer (TypeReference type) {
+            return IsIntegral(type) || type.IsPointer;
+        }
+
         public static bool IsNullable (TypeReference type) {
             int temp;
             type = FullyDereferenceType(type, out temp);

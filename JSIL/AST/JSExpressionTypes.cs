@@ -1841,11 +1841,19 @@ namespace JSIL.Ast {
                     while (inner is JSReferenceExpression)
                         inner = ((JSReferenceExpression)inner).Referent;
 
+                    var innerType = inner.GetActualType(typeSystem);
                     var indexer = inner as JSIndexerExpression;
-                    if (indexer != null)
+                    if (indexer != null) {
                         return new JSPinExpression(indexer.Target, indexer.Index, newType);
-                    else
+                    } else if (TypeUtil.IsArray(innerType)) {
                         return new JSPinExpression(inner, null, newType);
+                    } else if (TypeUtil.IsIntegral(innerType)) {
+                        var literal = inner as JSIntegerLiteral;
+                        if (literal != null)
+                            return new JSPointerLiteral(literal.Value, newType);
+                        else
+                            throw new InvalidOperationException("No idea how to pin an expression of type " + innerType);
+                    }
                 }
             }
 
@@ -2251,6 +2259,13 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("({0} + {1})", Pointer, Delta);
+        }
+    }
+
+    // Subtracts one pointer from another and produces the number of element(s) separating them.
+    public class JSPointerDeltaExpression : JSBinaryOperatorExpression {
+        public JSPointerDeltaExpression (JSExpression lhs, JSExpression rhs, TypeReference actualType)
+            : base(JSOperator.Subtract, lhs, rhs, actualType) {
         }
     }
 }

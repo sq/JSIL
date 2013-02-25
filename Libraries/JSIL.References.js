@@ -237,6 +237,15 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "deltaBytes",
+    function Pointer_DeltaBytes (otherPointer) {
+      if (otherPointer.memoryRange !== this.memoryRange)
+        throw new Error("Cannot subtract two pointers from different pinned buffers");
+
+      return (this.offsetInBytes - otherPointer.offsetInBytes) | 0;
+    }
+  );
+
   $.RawMethod(false, "toString",
     function Pointer_ToString () {
       return "<ptr " + this.view + " + " + this.offsetInBytes + ">";
