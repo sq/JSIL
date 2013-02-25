@@ -187,31 +187,30 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   );
 
   $.RawMethod(false, "get",
-    function Pointer_Get (offsetInBytes) {
-      var index = this.offsetInBytes;
-      if (arguments.length === 1)
-        index = (index + offsetInBytes) | 0;
-      
-      // FIXME: Index truncation
-      index = (index / this.divisor) | 0;
-
+    function Pointer_Get () {
+      var index = (this.offsetInBytes / this.divisor) | 0;
       return this.view[index];
     }
   );
 
   $.RawMethod(false, "set",
-    function Pointer_Set (offsetInBytes, value) {
-      var index = this.offsetInBytes;
-      if (arguments.length === 2)
-        index = (index + offsetInBytes) | 0;
+    function Pointer_Set (value) {
+      var index = (this.offsetInBytes / this.divisor) | 0;
+      return this.view[index] = value;
+    }
+  );
 
-      // FIXME: Index truncation
-      index = (index / this.divisor) | 0;
+  $.RawMethod(false, "getOffset",
+    function Pointer_GetOffset (offsetInBytes) {
+      var index = (((this.offsetInBytes + offsetInBytes) | 0) / this.divisor) | 0;
+      return this.view[index];
+    }
+  );
 
-      if (arguments.length === 1)
-        return this.view[index] = offsetInBytes;
-      else
-        return this.view[index] = value;
+  $.RawMethod(false, "setOffset",
+    function Pointer_SetOffset (offsetInBytes, value) {
+      var index = (((this.offsetInBytes + offsetInBytes) | 0) / this.divisor) | 0;
+      return this.view[index] = value;
     }
   );
 

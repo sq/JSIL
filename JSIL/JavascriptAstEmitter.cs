@@ -910,7 +910,7 @@ namespace JSIL {
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
             Visit(rtpe.Pointer);
             Output.Dot();
-            Output.Identifier("get");
+            Output.Identifier(rtpe.OffsetInBytes != null ? "getOffset" : "get");
             Output.LPar();
             if (rtpe.OffsetInBytes != null)
                 Visit(rtpe.OffsetInBytes);
@@ -920,7 +920,7 @@ namespace JSIL {
         public void VisitNode (JSWriteThroughPointerExpression wtpe) {
             Visit(wtpe.Left);
             Output.Dot();
-            Output.Identifier("set");
+            Output.Identifier(wtpe.OffsetInBytes != null ? "setOffset" : "set");
             Output.LPar();
             if (wtpe.OffsetInBytes != null) {
                 Visit(wtpe.OffsetInBytes);
