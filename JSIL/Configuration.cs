@@ -32,6 +32,7 @@ namespace JSIL.Translator {
             public bool? CacheTypeExpressions;
             public bool? PreferAccessorMethods;
             public bool? HintIntegerArithmetic;
+            public bool? EnableThreadedTransforms;
             public bool? FreezeImmutableObjects;
             public bool? EnableUnsafeCode;
 
@@ -60,6 +61,8 @@ namespace JSIL.Translator {
                     result.FreezeImmutableObjects = FreezeImmutableObjects;
                 if (EnableUnsafeCode.HasValue)
                     result.EnableUnsafeCode = EnableUnsafeCode;
+                if (EnableThreadedTransforms.HasValue)
+                    result.EnableThreadedTransforms = EnableThreadedTransforms;
             }
         }
 

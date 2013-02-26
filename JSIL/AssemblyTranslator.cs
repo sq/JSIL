@@ -390,7 +390,12 @@ namespace JSIL {
 
             pr.OnFinished();
 
-            RunTransformsOnAllFunctions();
+            pr = new ProgressReporter();
+            if (RunningTransforms != null)
+                RunningTransforms(pr);
+
+            RunTransformsOnAllFunctions(parallelOptions, pr);
+            pr.OnFinished();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -533,25 +538,37 @@ namespace JSIL {
             }
         }
 
-        protected void RunTransformsOnAllFunctions () {
-            var pr = new ProgressReporter();
-            if (RunningTransforms != null)
-                RunningTransforms(pr);
-
+        protected void RunTransformsOnAllFunctions (ParallelOptions parallelOptions, ProgressReporter pr) {
             int i = 0;
-            QualifiedMemberIdentifier id;
-            while (FunctionCache.PendingTransformsQueue.TryDequeue(out id)) {
+
+            Action<QualifiedMemberIdentifier> itemHandler = (id) => {
                 var e = FunctionCache.GetCacheEntry(id);
-                if (e.Expression == null) {
-                    i++;
-                    continue;
-                }
+                var _i = Interlocked.Increment(ref i);
 
-                pr.OnProgressChanged(i++, i + FunctionCache.PendingTransformsQueue.Count);
+                if (e.Expression == null)
+                    return;
+
+                pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
+
                 RunTransformsOnFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
-            }
+            };
 
-            pr.OnFinished();
+            while (FunctionCache.PendingTransformsQueue.Count > 0) {
+                // FIXME: Disabled right now because there is a race condition where the optimizer can be
+                //  altering the static analysis information for a function while another function
+                //  that depends on it is being optimized.
+                if (Configuration.CodeGenerator.EnableThreadedTransforms.GetValueOrDefault(false)) {
+                    Parallel.ForEach(
+                        FunctionCache.PendingTransformsQueue.TryDequeueAll,
+                        itemHandler
+                    );
+                } else {
+                    QualifiedMemberIdentifier _id;
+
+                    while (FunctionCache.PendingTransformsQueue.TryDequeue(out _id))
+                        itemHandler(_id);
+                }
+            }
         }
 
         // Invoking this function populates the type information graph, and builds a list

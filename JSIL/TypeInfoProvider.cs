@@ -515,12 +515,11 @@ namespace JSIL {
         }
 
         public bool Remove (TKey key) {
-            if (Dictionary.Remove(key)) {
-                LinkedList.Remove(key);
-                return true;
-            }
+            // Is this right? Maybe enqueueing multiple times shouldn't work.
+            while (LinkedList.Remove(key))
+                ;
 
-            return false;
+            return Dictionary.Remove(key);
         }
 
         public LinkedListNode<TKey> EnqueueBefore (LinkedListNode<TKey> before, TKey key, TValue value) {

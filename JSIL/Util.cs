@@ -378,7 +378,16 @@ namespace JSIL.Internal {
 
         public int Count {
             get {
-                return Math.Min(Dictionary.Count, Queue.Count);
+                return Math.Max(Dictionary.Count, Queue.Count);
+            }
+        }
+
+        public IEnumerable<TValue> TryDequeueAll {
+            get {
+                TValue value;
+
+                while (TryDequeue(out value))
+                    yield return value;
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
@@ -208,6 +209,8 @@ namespace JSIL.Transforms {
             countRefs.Visit(fn.Body);
 
             SecondPass = FunctionSource.GetSecondPass(fn.Method);
+            if (SecondPass == null)
+                throw new InvalidDataException("No second-pass static analysis data for function '" + fn.Method.QualifiedIdentifier + "'");
 
             VisitChildren(fn);
         }
