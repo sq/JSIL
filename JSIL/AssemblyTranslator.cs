@@ -1549,19 +1549,9 @@ namespace JSIL {
                     si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
 
-                new IntroduceEnumCasts(
-                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
-                ).Visit(function);
-
                 new ExpandCastExpressions(
                     si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
                 ).Visit(function);
-            
-                // We need another operator simplification pass to simplify expressions created by cast expressions
-                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
-                    new SimplifyOperators(
-                        si.JSIL, si.JS, si.TypeSystem
-                    ).Visit(function);
 
                 // We need another operator simplification pass to simplify expressions created by cast expressions
                 if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
