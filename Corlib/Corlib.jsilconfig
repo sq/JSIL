@@ -1,0 +1,9 @@
+{
+  "ApplyDefaults": false,
+  "OutputDirectory": "%configdirectory%",
+  "Assemblies": {
+    "Proxies": [
+      "%jsildirectory%/JSIL.Proxies.4.0.dll"
+    ] 
+  }
+}
