@@ -5,5 +5,8 @@
     "Proxies": [
       "%jsildirectory%/JSIL.Proxies.4.0.dll"
     ] 
+  },
+  "CodeGenerator": {
+    "EnableUnsafeCode": true
   }
 }

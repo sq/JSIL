@@ -7,8 +7,6 @@ title Building Raytracer
 bin\JSILc "Examples\SimpleRaytracer.sln"
 title Building Pathtracer
 bin\JSILc "Examples\SimplePathtracer.sln"
-title Building Mannux
-bin\JSILc "C:\Users\Kevin\Documents\Projects\XnaMannux\Mannux\Mannux.sln" "jsil.org\demos\Mannux\Mannux.jsilconfig" --platform=x86 --configuration=Debug
 title Building Tetris
 bin\JSILc "Examples\ThirdParty\Tetris\tetris.sln" "jsil.org\demos\Tetris\Tetris.jsilconfig" --platform=x86 --configuration=Debug
 title Building Platformer Starter Kit
