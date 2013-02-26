@@ -185,16 +185,6 @@ namespace JSIL.Compiler {
                 }
             }
 
-            if (commandLineConfig.ApplyDefaults.GetValueOrDefault(true)) {
-                baseConfig = MergeConfigurations(
-                    LoadConfiguration(Path.Combine(
-                        GetJSILDirectory(), 
-                        "defaults.jsilconfig"
-                    )), 
-                    baseConfig
-                );
-            }
-
             {
                 if (autoloadProfiles[0])
                     profileAssemblies.AddRange(Directory.GetFiles(
@@ -236,6 +226,16 @@ namespace JSIL.Compiler {
                  where Path.GetExtension(fn) == ".jsilconfig"
                  select LoadConfiguration(fn)).ToArray()
             );
+
+            if (commandLineConfig.ApplyDefaults.GetValueOrDefault(true)) {
+                baseConfig = MergeConfigurations(
+                    LoadConfiguration(Path.Combine(
+                        GetJSILDirectory(),
+                        "defaults.jsilconfig"
+                    )),
+                    baseConfig
+                );
+            }
 
             foreach (var solution in
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
@@ -519,6 +519,10 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
+                        var ignoredMethods = new List<KeyValuePair<string, string[]>>();
+                        translator.IgnoredMethod += (methodName, variableNames) =>
+                            ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
+
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)
                             throw new Exception("No output directory was specified!");
@@ -531,7 +535,10 @@ namespace JSIL.Compiler {
                         // Ensures that the log file contains the name of the profile that was actually used.
                         localConfig.Profile = localProfile.GetType().Name;
 
-                        EmitLog(outputDir, localConfig, filename, outputs);
+                        if (ignoredMethods.Count > 0)
+                            Console.Error.WriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
+
+                        EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
                         buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
                     }
@@ -546,7 +553,8 @@ namespace JSIL.Compiler {
 
         static void EmitLog (
             string logPath, Configuration configuration, 
-            string inputFile, TranslationResult outputs
+            string inputFile, TranslationResult outputs,
+            IEnumerable<KeyValuePair<string, string[]>> ignoredMethods
         ) {
             var logText = new StringBuilder();
             var asmName = Assembly.GetExecutingAssembly().GetName();
@@ -562,6 +570,11 @@ namespace JSIL.Compiler {
 
             foreach (var fe in outputs.OrderedFiles)
                 logText.AppendLine(fe.Filename);
+
+            logText.AppendLine("// The following method(s) were ignored due to untranslatable variables:");
+
+            foreach (var im in ignoredMethods)
+                logText.AppendFormat("{0} because of {1}{2}", im.Key, String.Join(", ", im.Value), Environment.NewLine);
 
             File.WriteAllText(
                 Path.Combine(logPath, String.Format("{0}.jsillog", Path.GetFileName(inputFile))),

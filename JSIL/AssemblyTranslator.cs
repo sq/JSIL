@@ -57,6 +57,7 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
         public event Action<string> Warning;
+        public event Action<string, string[]> IgnoredMethod;
 
         internal readonly TypeInfoProvider _TypeInfoProvider;
 
@@ -1355,9 +1356,8 @@ namespace JSIL {
                     var ignoredVariables = new List<string>();
                     allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb, ignoredVariables, Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false));
                     if (allVariables == null) {
-                        WarningFormat(
-                            "Ignoring method '{0}' because of {1} untranslatable variables:\r\n{2}", 
-                            method.FullName, ignoredVariables.Count, String.Join(", ", ignoredVariables)
+                        _IgnoredMethod(
+                            method.FullName, ignoredVariables
                         );
 
                         FunctionCache.CreateNull(methodInfo, method, identifier);
@@ -1416,6 +1416,18 @@ namespace JSIL {
             } finally {
                 context.CurrentMethod = oldMethod;
             }
+        }
+
+        private void _IgnoredMethod (string methodName, IEnumerable<string> ignoredVariableNames) {
+            var variableNames = ignoredVariableNames.ToArray();
+
+            if (IgnoredMethod == null)
+                WarningFormat(
+                    "Ignoring method '{0}' because of {1} untranslatable variables:\r\n{2}",
+                    methodName, variableNames.Length, String.Join(", ", variableNames)
+                );
+            else
+                IgnoredMethod(methodName, variableNames);
         }
 
         internal static ILVariable[] GetAllVariablesForMethod(

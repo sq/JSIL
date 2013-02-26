@@ -143,11 +143,22 @@ namespace JSIL.Ast {
                 if (kvp.Value == oldChild) {
                     if (stmt.Label == kvp.Key)
                         Labels.Replace(kvp.Key, stmt);
-                    else {
+                    else if (stmt.Label == null) {
+                        stmt.Label = kvp.Key;
+
+                        if (stmt.IsNull)
+                            Labels.Remove(kvp.Key);
+                        else
+                            Labels.Replace(kvp.Key, stmt);
+                    } else {
                         Labels.Remove(kvp.Key);
 
-                        if (!stmt.IsNull)
+                        if (!stmt.IsNull) {
+                            if (Labels.ContainsKey(stmt.Label))
+                                throw new InvalidOperationException("Replacing LabelGroupStatement child '" + oldChild + "' with '" + newChild + "' but group already contains the label '" + stmt.Label + "'");
+
                             Add(stmt);
+                        }
                     }
                 }
             }

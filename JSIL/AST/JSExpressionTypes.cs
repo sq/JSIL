@@ -1852,7 +1852,9 @@ namespace JSIL.Ast {
                         if (literal != null)
                             return new JSPointerLiteral(literal.Value, newType);
                         else
-                            throw new InvalidOperationException("No idea how to pin an expression of type " + innerType);
+                            return new JSUntranslatableExpression("Conversion of non-constant integral expression '" + inner + "' to pointer");
+                    } else {
+                        return new JSUntranslatableExpression("Conversion of expression '" + inner + "' to pointer");
                     }
                 }
             }
@@ -2194,11 +2196,8 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            var pointerType = Pointer.GetActualType(typeSystem) as PointerType;
-            if (pointerType != null)
-                return pointerType.ElementType;
-            else
-                throw new InvalidOperationException("Cannot read through a non-pointer type as a pointer");
+            var pointerType = Pointer.GetActualType(typeSystem);
+            return pointerType.GetElementType();
         }
 
         public override string ToString () {

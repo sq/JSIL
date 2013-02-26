@@ -57,6 +57,7 @@ Tests/*Cases/*.js
 /Upstream/XapParse/obj
 /Upstream/XapParse/bin
 Skeletons/*.js
+Corlib/*.js
 /Try/obj
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs

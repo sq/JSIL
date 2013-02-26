@@ -1349,9 +1349,13 @@ namespace JSIL {
 
             switch (node.Arguments[0].Code) {
                 case ILCode.Add:
+                case ILCode.Add_Ovf:
+                case ILCode.Add_Ovf_Un:
                     op = JSOperator.AddAssignment;
                     break;
                 case ILCode.Sub:
+                case ILCode.Sub_Ovf:
+                case ILCode.Sub_Ovf_Un:
                     op = JSOperator.SubtractAssignment;
                     break;
                 case ILCode.Mul:
@@ -2238,7 +2242,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_U2 (ILExpression node) {
-            if (node.ExpectedType.MetadataType == MetadataType.Char)
+            if ((node.ExpectedType != null) && (node.ExpectedType.MetadataType == MetadataType.Char))
                 return Translate_Conv(node, Context.CurrentModule.TypeSystem.Char);
             else
                 return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16);
