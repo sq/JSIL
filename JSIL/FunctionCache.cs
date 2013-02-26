@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -12,8 +13,8 @@ using Mono.Cecil;
 namespace JSIL {
     public interface IFunctionSource {
         JSFunctionExpression GetExpression (QualifiedMemberIdentifier method);
-        FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method);
-        FunctionAnalysis2ndPass GetSecondPass (JSMethod method);
+        FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method, QualifiedMemberIdentifier forMethod, bool suspendIfNotReady);
+        FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forMethod, bool suspendIfNotReady);
         void InvalidateFirstPass (QualifiedMemberIdentifier method);
         void InvalidateSecondPass (QualifiedMemberIdentifier method);
     }
@@ -32,6 +33,8 @@ namespace JSIL {
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
 
+            public int IsLockedForTransformPipeline = 0;
+            public bool TransformPipelineHasCompleted = false;
             public Thread InProgressThread = null;
 
             public MethodDefinition Definition {
@@ -49,8 +52,11 @@ namespace JSIL {
                 );
             }
 
-            public bool RunLocked (int passLevel, Action callback) {
+            public bool RunLocked<T> (int passLevel, out T result, Func<Entry, T> callback)
+                where T : class {
                 var thisThread = Thread.CurrentThread;
+
+                result = default(T);
 
                 while (true) {
                     var previousThread = Interlocked.CompareExchange(ref InProgressThread, thisThread, null);
@@ -60,21 +66,18 @@ namespace JSIL {
                         // LogPassState(passLevel, "exiting due to deadlock");
                         return false;
                     } else if (previousThread != null) {
-                        lock (this)
-                            ;
+                        Monitor.Enter(this);
+                        Monitor.Exit(this);
                     } else {
                         try {
-                            callback();
+                            result = callback(this);
+                            return true;
                         } finally {
                             if (Interlocked.CompareExchange(ref InProgressThread, null, thisThread) != thisThread)
                                 throw new ThreadStateException("InProgressThread changed while inside RunLocked");
                         }
-
-                        break;
                     }
                 }
-
-                return true;
             }
         }
 
@@ -91,20 +94,32 @@ namespace JSIL {
             public MethodReference Method;
         }
 
+        public readonly ITypeInfoSource TypeInfo;
         public readonly MethodTypeFactory MethodTypes;
         public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> PendingTransformsQueue;
+        public readonly ConcurrentDictionary<QualifiedMemberIdentifier, FunctionTransformPipeline> ActiveTransformPipelines;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<JSMethod> MakeCacheEntry;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<PopulatedCacheEntryArgs> MakePopulatedCacheEntry;
-        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<NullCacheEntryArgs> MakeNullCacheEntry; 
+        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<NullCacheEntryArgs> MakeNullCacheEntry;
+        protected readonly QualifiedMemberIdentifier.Comparer Comparer;
+
+        protected readonly static ThreadLocal<Stack<QualifiedMemberIdentifier>> InFlightStack = new ThreadLocal<Stack<QualifiedMemberIdentifier>>(
+            () => new Stack<QualifiedMemberIdentifier>()
+        );
 
         public FunctionCache (ITypeInfoSource typeInfo) {
-            var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
+            TypeInfo = typeInfo;
+            Comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
+
             Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(
-                Environment.ProcessorCount, 4096, comparer
+                Environment.ProcessorCount, 4096, Comparer
             );
             PendingTransformsQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(
-                Math.Max(1, Environment.ProcessorCount / 4), 4096, comparer
+                Math.Max(1, Environment.ProcessorCount / 4), 4096, Comparer
+            );
+            ActiveTransformPipelines = new ConcurrentDictionary<QualifiedMemberIdentifier, FunctionTransformPipeline>(
+                Math.Max(1, Environment.ProcessorCount / 4), 128, Comparer
             );
             MethodTypes = new MethodTypeFactory();
 
@@ -180,28 +195,80 @@ namespace JSIL {
             return entry.Expression;
         }
 
-        public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
+        private void ThrowIfStaticAnalysisDataIsNotReadyYet (QualifiedMemberIdentifier method, ref QualifiedMemberIdentifier forMethod) {
+            if (method.Equals(forMethod, TypeInfo))
+                return;
+
+            var entry = GetCacheEntry(method, false);
+
+            if (entry != null) {
+                if (entry.IsLockedForTransformPipeline != 0)
+                    throw new StaticAnalysisDataTemporarilyUnavailableException(method);
+            }
+        }
+
+        private FunctionAnalysis1stPass _GetOrCreateFirstPass (Entry entry) {
+            if (entry.FirstPass == null) {
+                // entry.LogPassState(1, "entering static analysis");
+                var analyzer = new StaticAnalyzer(entry.Definition.Module.TypeSystem, this);
+                entry.FirstPass = analyzer.FirstPass(entry.Identifier, entry.Expression);
+                // entry.LogPassState(1, "exiting static analysis");
+            }
+
+            return entry.FirstPass;
+        }
+
+        public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method, QualifiedMemberIdentifier forMethod, bool suspendIfNotReady) {
             var entry = GetCacheEntry(method, false);
 
             if ((entry == null) || (entry.Expression == null))
                 return null;
 
-            if (!entry.RunLocked(1, () => {
-                if (entry.FirstPass == null) {
-                    // entry.LogPassState(1, "entering static analysis");
-                    var analyzer = new StaticAnalyzer(entry.Definition.Module.TypeSystem, this);
-                    entry.FirstPass = analyzer.FirstPass(entry.Expression);
-                    // entry.LogPassState(1, "exiting static analysis");
-                }
-            }))
-                return null;
+            if (suspendIfNotReady)
+                ThrowIfStaticAnalysisDataIsNotReadyYet(method, ref forMethod);
 
-            return entry.FirstPass;
+            FunctionAnalysis1stPass result;
+            var runLockedResult = entry.RunLocked(
+                1, out result, 
+                _GetOrCreateFirstPass
+            );
+
+            if (runLockedResult)
+                return result;
+            else
+                return null;
         }
 
-        public FunctionAnalysis2ndPass GetSecondPass (JSMethod method) {
-            var id = method.QualifiedIdentifier;
+        private FunctionAnalysis2ndPass _GetOrCreateSecondPass (Entry entry) {
+            if (entry.FirstPass == null)
+                return entry.SecondPass;
 
+            if ((entry.SecondPass == null) && (entry.Expression != null)) {
+                // entry.LogPassState(2, "entering static analysis");
+
+                // Detect same-thread static analysis recursion, and abort.
+                var ifs = InFlightStack.Value;
+                if (ifs.Contains(entry.Identifier, Comparer)) {
+                    /*
+                    Console.WriteLine("Same-thread recursion for '{0}':", entry.Identifier.Member);
+                    foreach (var item in ifs)
+                        Console.WriteLine("  {0}", item.Member);
+                     */
+
+                    return null;
+                }
+
+                ifs.Push(entry.Identifier);
+                entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+                ifs.Pop();
+                // entry.LogPassState(2, "exiting static analysis");
+            }
+
+            return entry.SecondPass;
+        }
+
+        public FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forMethod, bool suspendIfNotReady) {
+            var id = method.QualifiedIdentifier;
             Entry entry = Cache.GetOrCreate(
                 id, method, MakeCacheEntry
             );
@@ -209,21 +276,30 @@ namespace JSIL {
             if (entry == null)
                 return null;
 
-            var firstPass = GetFirstPass(id);
-            if (firstPass == null) {
-                return entry.SecondPass;
-            }
+            if (suspendIfNotReady)
+                ThrowIfStaticAnalysisDataIsNotReadyYet(id, ref forMethod);
 
-            if (!entry.RunLocked(2, () => {
-                if ((entry.SecondPass == null) && (entry.Expression != null)) {
-                    // entry.LogPassState(2, "entering static analysis");
-                    entry.SecondPass = new FunctionAnalysis2ndPass(this, firstPass);
-                    // entry.LogPassState(2, "exiting static analysis");
-                }
-            }))
+            GetFirstPass(id, forMethod, suspendIfNotReady);
+
+            FunctionAnalysis2ndPass result;
+            var runLockedResult = entry.RunLocked(
+                2, out result, 
+                _GetOrCreateSecondPass
+            );
+
+            if (runLockedResult)
+                return result;
+            else
                 return null;
+        }
 
-            return entry.SecondPass;
+        private object _InvalidateFirstPass (Entry entry) {
+            if (entry.Expression == null)
+                throw new InvalidOperationException("Attempted to invalidate a function that had no expression");
+
+            // entry.LogPassState(1, "invalidated");
+            entry.FirstPass = null;
+            return entry.SecondPass = null;
         }
 
         public void InvalidateFirstPass (QualifiedMemberIdentifier method) {
@@ -231,12 +307,16 @@ namespace JSIL {
             if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            if (!entry.RunLocked(1, () => {
-                // entry.LogPassState(1, "invalidated");
-                entry.FirstPass = null;
-                entry.SecondPass = null;
-            }))
-                throw new ThreadStateException("Deadlock detected when invalidating first pass");
+            object temp;
+            entry.RunLocked(1, out temp, _InvalidateFirstPass);
+        }
+
+        private object _InvalidateSecondPass (Entry entry) {
+            if (entry.Expression == null)
+                throw new InvalidOperationException("Attempted to invalidate a function that had no expression");
+
+            // entry.LogPassState(2, "invalidated");
+            return entry.SecondPass = null;
         }
 
         public void InvalidateSecondPass (QualifiedMemberIdentifier method) {
@@ -244,11 +324,8 @@ namespace JSIL {
             if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            if (!entry.RunLocked(2, () => {
-                // entry.LogPassState(2, "invalidated");
-                entry.SecondPass = null;
-            }))
-                throw new ThreadStateException("Deadlock detected when invalidating second pass");
+            object temp;
+            entry.RunLocked(2, out temp, _InvalidateSecondPass);
         }
 
         internal JSFunctionExpression Create (
@@ -283,6 +360,52 @@ namespace JSIL {
             Cache.Dispose();
             PendingTransformsQueue.Clear();
             MethodTypes.Dispose();
+        }
+
+        public bool LockCacheEntryForTransformPipeline (QualifiedMemberIdentifier method) {
+            var entry = GetCacheEntry(method);
+
+            return Interlocked.CompareExchange(ref entry.IsLockedForTransformPipeline, 1, 0) == 0;
+        }
+
+        public bool UnlockCacheEntryForTransformPipeline (QualifiedMemberIdentifier method, bool completed) {
+            var entry = GetCacheEntry(method);
+
+            entry.TransformPipelineHasCompleted = completed;
+
+            return Interlocked.CompareExchange(ref entry.IsLockedForTransformPipeline, 0, 1) == 1;
+        }
+    }
+
+    public abstract class TemporarilySuspendTransformPipelineException : Exception {
+        public readonly QualifiedMemberIdentifier Identifier;
+
+        public TemporarilySuspendTransformPipelineException (QualifiedMemberIdentifier identifier) {
+            Identifier = identifier;
+        }
+    }
+
+    public class StaticAnalysisDataTemporarilyUnavailableException : TemporarilySuspendTransformPipelineException {
+        public StaticAnalysisDataTemporarilyUnavailableException (QualifiedMemberIdentifier identifier)
+            : base (identifier) {
+        }
+
+        public override string Message {
+            get {
+                return String.Format("Static analysis data for the function '{0}' is temporarily unavailable because the function is being transformed. Please re-run this transform later.", Identifier);
+            }
+        }
+    }
+
+    public class StaticAnalysisPendingException : TemporarilySuspendTransformPipelineException {
+        public StaticAnalysisPendingException (QualifiedMemberIdentifier identifier)
+            : base (identifier) {
+        }
+
+        public override string Message {
+            get {
+                return String.Format("Static analysis data for the function '{0}' is not available yet. The function has been added to the analysis queue.", Identifier);
+            }
         }
     }
 }

@@ -40,7 +40,8 @@ namespace JSIL.Ast {
 
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                for (int i = 0, c = Statements.Count; i < c; i++)
+                // FIXME: We seem to have cases where the number of statements goes down! That sucks!
+                for (int i = 0; i < Statements.Count; i++)
                     yield return new AnnotatedNode("Statement", Statements[i]);
             }
         }

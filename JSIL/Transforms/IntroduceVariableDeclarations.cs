@@ -9,6 +9,7 @@ using JSIL.Internal;
 namespace JSIL.Transforms {
     public class IntroduceVariableDeclarations : JSAstVisitor {
         public readonly HashSet<JSVariable> ToDeclare = new HashSet<JSVariable>();
+        public readonly List<KeyValuePair<JSNode, JSNode>> ToReplace = new List<KeyValuePair<JSNode, JSNode>>();
         public readonly HashSet<JSVariable> SeenAlready = new HashSet<JSVariable>();
         public readonly HashSet<JSVariable> CouldntDeclare = new HashSet<JSVariable>();
 
@@ -50,6 +51,9 @@ namespace JSIL.Transforms {
 
             VisitChildren(fn);
 
+            foreach (var kvp in ToReplace)
+                fn.ReplaceChildRecursive(kvp.Key, kvp.Value);
+
             if (ToDeclare.Count > 0)
                 fn.Body.Statements.Insert(
                     0, new JSVariableDeclarationStatement(
@@ -80,7 +84,7 @@ namespace JSIL.Transforms {
                     var superParent = Stack.Skip(2).FirstOrDefault();
                     if ((superParent != null) && (ParentNode is JSStatement)) {
                         ToDeclare.Remove(leftVar);
-                        superParent.ReplaceChild(ParentNode, new JSVariableDeclarationStatement(boe));
+                        ToReplace.Add(new KeyValuePair<JSNode, JSNode>(ParentNode, new JSVariableDeclarationStatement(boe)));
 
                         VisitChildren(boe);
                         return;

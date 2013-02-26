@@ -543,6 +543,11 @@ namespace JSIL {
 
             Action<QualifiedMemberIdentifier> itemHandler = (id) => {
                 var e = FunctionCache.GetCacheEntry(id);
+
+                // We can end up with multiple copies of a function in the pipeline, so we should just early out if we hit a duplicate
+                if (e.TransformPipelineHasCompleted)
+                    return;
+
                 var _i = Interlocked.Increment(ref i);
 
                 if (e.Expression == null)
@@ -550,14 +555,14 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
+                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.ParameterNames, e.Variables);
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
                 // FIXME: Disabled right now because there is a race condition where the optimizer can be
                 //  altering the static analysis information for a function while another function
                 //  that depends on it is being optimized.
-                if (Configuration.CodeGenerator.EnableThreadedTransforms.GetValueOrDefault(false)) {
+                if (Configuration.CodeGenerator.EnableThreadedTransforms.GetValueOrDefault(true)) {
                     Parallel.ForEach(
                         FunctionCache.PendingTransformsQueue.TryDequeueAll,
                         itemHandler
@@ -1475,154 +1480,29 @@ namespace JSIL {
         }
 
         private void RunTransformsOnFunction (
+            QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
             SpecialIdentifiers si, HashSet<string> parameterNames,
-            Dictionary<string, JSVariable> variables, JSFunctionExpression function
+            Dictionary<string, JSVariable> variables
         ) {
-            try {
-                Action temporaryEliminationPass = () => {
-                    if (Configuration.CodeGenerator.EliminateTemporaries.GetValueOrDefault(true)) {
-                        bool eliminated;
-                        do {
-                            var visitor = new EliminateSingleUseTemporaries(
-                                si.TypeSystem, variables, FunctionCache
-                            );
-                            visitor.Visit(function);
-                            eliminated = visitor.EliminatedVariables.Count > 0;
-                        } while (eliminated);
-                    }
-                };
+            FunctionTransformPipeline pipeline;
 
-                var la = new LabelAnalyzer();
-                la.BuildLabelGroups(function);
-
-                temporaryEliminationPass();
-
-                new EmulateInt64(
-                    FunctionCache.MethodTypes,
-                    si.TypeSystem
-                ).Visit(function);
-
-                new EmulateStructAssignment(
-                    si.TypeSystem,
-                    FunctionCache,
-                    _TypeInfoProvider, 
-                    si.CLR,
-                    Configuration.CodeGenerator.EliminateStructCopies.GetValueOrDefault(true)
-                ).Visit(function);
-
-                new IntroduceVariableDeclarations(
-                    variables,
-                    _TypeInfoProvider
-                ).Visit(function);
-
-                new IntroduceVariableReferences(
-                    si.JSIL,
-                    variables,
-                    parameterNames
-                ).Visit(function);
-
-                if (Configuration.CodeGenerator.SimplifyLoops.GetValueOrDefault(true))
-                    new SimplifyLoops(
-                        si.TypeSystem, false
-                    ).Visit(function);
-
-                // Temporary elimination makes it possible to simplify more operators, so do it later
-                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
-                    new SimplifyOperators(
-                        si.JSIL, si.JS, si.TypeSystem
-                    ).Visit(function);
-
-                new ReplaceMethodCalls(
-                    function.Method.Reference,
-                    si.JSIL, si.JS, si.TypeSystem
-                ).Visit(function);
-
-                new HandleBooleanAsInteger(
-                    si.TypeSystem, si.JS
-                ).Visit(function);
-
-                new IntroduceCharCasts(
-                    si.TypeSystem, si.JS
-                ).Visit(function);
-
-                new IntroduceEnumCasts(
-                    si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
-                ).Visit(function);
-
-                new ExpandCastExpressions(
-                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
-                ).Visit(function);
-
-                // We need another operator simplification pass to simplify expressions created by cast expressions
-                if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
-                    new SimplifyOperators(
-                        si.JSIL, si.JS, si.TypeSystem
-                    ).Visit(function);
-
-                var dss = new DeoptimizeSwitchStatements(
-                    si.TypeSystem
+            if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline))
+                pipeline = new FunctionTransformPipeline(
+                    this, memberIdentifier, function, si, parameterNames, variables
                 );
-                dss.Visit(function);
 
-                new CollapseNulls().Visit(function);
+            bool completed = false;
 
-                if (Configuration.CodeGenerator.SimplifyLoops.GetValueOrDefault(true))
-                    new SimplifyLoops(
-                        si.TypeSystem, true
-                    ).Visit(function);
+            completed = pipeline.RunUntilCompletion();
 
-                var fsci = new FixupStructConstructorInvocations(si.TypeSystem);
-                fsci.Visit(function);
-
-                temporaryEliminationPass();
-
-                if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true))
-                    new ControlFlowSimplifier().Visit(function);
-
-                var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
-                epf.Visit(function);
-
-                var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
-                oae.Visit(function);
-
-                var lnd = new LoopNameDetector();
-                lnd.Visit(function);
-                lnd.EliminateUnusedLoopNames();
-
-                new ExpandCastExpressions(
-                    si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
-                ).Visit(function);
-
-                if (Configuration.CodeGenerator.PreferAccessorMethods.GetValueOrDefault(true)) {
-                    new OptimizePropertyMutationAssignments(
-                        si.TypeSystem, _TypeInfoProvider
-                    ).Visit(function);
-
-                    new ConvertPropertyAccessesToInvocations(
-                        si.TypeSystem, _TypeInfoProvider
-                    ).Visit(function);
-                }
-
-                if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
-                    new FixupPointerArithmetic(si.TypeSystem, FunctionCache.MethodTypes).Visit(function);
-
-                // If integer arithmetic hinting is enabled, we need to decompose mutation operators
-                //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
-                if (Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true))
-                    new DecomposeMutationOperators(si.TypeSystem, _TypeInfoProvider).Visit(function);
-
-            } catch (Exception exc) {
-                string functionName;
-
-                if ((function.Method != null) && (function.Method.Reference != null))
-                    functionName = function.Method.Reference.FullName;
-                else
-                    functionName = function.DisplayName ?? "<unknown>";
-
-                throw new Exception(
-                    String.Format("An error occurred while translating the function '{0}':", functionName),
-                    exc
-                );
+            if (completed) {
+                if (pipeline.SuspendCount > 0)
+                    Console.WriteLine(
+                        "Transform pipeline for {0}::{1} was suspended {2} time(s) before completion", 
+                        pipeline.Identifier.Type.Name, 
+                        pipeline.Identifier.Member.Name,
+                        pipeline.SuspendCount
+                    );
             }
         }
 

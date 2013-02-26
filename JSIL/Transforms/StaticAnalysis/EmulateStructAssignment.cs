@@ -6,10 +6,11 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class EmulateStructAssignment : JSAstVisitor {
+    public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
         public const bool Tracing = false;
 
         public readonly TypeInfoProvider TypeInfo;
@@ -22,9 +23,9 @@ namespace JSIL.Transforms {
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
-        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, TypeInfoProvider typeInfo, CLRSpecialIdentifiers clr, bool optimizeCopies) {
+        public EmulateStructAssignment (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, TypeInfoProvider typeInfo, CLRSpecialIdentifiers clr, bool optimizeCopies)
+            : base (member, functionSource) {
             TypeSystem = typeSystem;
-            FunctionSource = functionSource;
             TypeInfo = typeInfo;
             CLR = clr;
             OptimizeCopies = optimizeCopies;
@@ -78,6 +79,10 @@ namespace JSIL.Transforms {
 
             while (value is JSReferenceExpression)
                 value = ((JSReferenceExpression)value).Referent;
+
+            var sce = value as JSStructCopyExpression;
+            if (sce != null)
+                return false;
 
             var valueType = value.GetActualType(TypeSystem);
             var cte = value as JSChangeTypeExpression;
@@ -155,7 +160,7 @@ namespace JSIL.Transforms {
             if (invokeMethod == null)
                 return true;
 
-            var secondPass = FunctionSource.GetSecondPass(invokeMethod);
+            var secondPass = GetSecondPass(invokeMethod);
             if (secondPass == null)
                 return true;
 
@@ -200,7 +205,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, TypeInfo, CLR, OptimizeCopies);
+                var nested = new EmulateStructAssignment(Member, FunctionSource, TypeSystem, TypeInfo, CLR, OptimizeCopies);
                 nested.Visit(fn);
                 return;
             }
@@ -208,7 +213,7 @@ namespace JSIL.Transforms {
             var countRefs = new CountVariableReferences(ReferenceCounts);
             countRefs.Visit(fn.Body);
 
-            SecondPass = FunctionSource.GetSecondPass(fn.Method);
+            SecondPass = GetSecondPass(fn.Method);
             if (SecondPass == null)
                 throw new InvalidDataException("No second-pass static analysis data for function '" + fn.Method.QualifiedIdentifier + "'");
 
@@ -252,7 +257,7 @@ namespace JSIL.Transforms {
             FunctionAnalysis2ndPass sa = null;
 
             if (invocation.JSMethod != null)
-                sa = FunctionSource.GetSecondPass(invocation.JSMethod);
+                sa = GetSecondPass(invocation.JSMethod);
 
             var parms = invocation.Parameters.ToArray();
 

@@ -335,21 +335,21 @@ namespace JSIL.Internal {
     }
 
     public class ConcurrentHashQueue<TValue> {
-        protected readonly ConcurrentDictionary<TValue, bool> Dictionary;
+        protected readonly ConcurrentDictionary<TValue, int> Counts;
         protected readonly ConcurrentQueue<TValue> Queue;
 
         public ConcurrentHashQueue (IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>(comparer);
+            Counts = new ConcurrentDictionary<TValue, int>(comparer);
         }
 
         public ConcurrentHashQueue (int concurrencyLevel, int capacity, IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity, comparer);
+            Counts = new ConcurrentDictionary<TValue, int>(concurrencyLevel, capacity, comparer);
         }
 
         public void Clear () {
-            Dictionary.Clear();
+            Counts.Clear();
 
             TValue temp;
             while (Queue.Count > 0)
@@ -357,20 +357,48 @@ namespace JSIL.Internal {
         }
 
         public bool TryEnqueue (TValue value) {
-            if (Dictionary.TryAdd(value, false)) {
+            if (Counts.TryAdd(value, 1)) {
                 Queue.Enqueue(value);
                 return true;
+            } else {
+                int existingCount;
+                int tryCount = 10;
+
+                while (Counts.TryGetValue(value, out existingCount)) {
+                    var newCount = existingCount + 1;
+
+                    if (Counts.TryUpdate(value, newCount, existingCount))
+                        return true;
+
+                    // Abort after a few tries.
+                    if ((tryCount--) <= 0)
+                        return false;
+                }
             }
 
             return false;
         }
 
         public bool TryDequeue (out TValue value) {
-            bool temp;
-
             if (Queue.TryDequeue(out value)) {
-                Dictionary.TryRemove(value, out temp);
-                return true;
+                int existingCount;
+                int tryCount = 10;
+
+                while (Counts.TryGetValue(value, out existingCount)) {
+                    int newCount = existingCount - 1;
+
+                    if (newCount <= 0) {
+                        if (Counts.TryRemove(value, out existingCount))
+                            return true;
+                    } else {
+                        if (Counts.TryUpdate(value, existingCount, newCount))
+                            return true;
+                    }
+
+                    // Abort after a few tries.
+                    if ((tryCount--) <= 0)
+                        return false;
+                }
             }
 
             return false;
@@ -378,7 +406,7 @@ namespace JSIL.Internal {
 
         public int Count {
             get {
-                return Math.Max(Dictionary.Count, Queue.Count);
+                return Queue.Count;
             }
         }
 

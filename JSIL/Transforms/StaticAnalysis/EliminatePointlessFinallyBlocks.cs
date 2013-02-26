@@ -7,21 +7,21 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class EliminatePointlessFinallyBlocks : JSAstVisitor {
+    public class EliminatePointlessFinallyBlocks : StaticAnalysisJSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly ITypeInfoSource TypeInfo;
         public readonly IFunctionSource FunctionSource;
 
-        public EliminatePointlessFinallyBlocks (TypeSystem typeSystem, ITypeInfoSource typeInfo, IFunctionSource functionSource) {
+        public EliminatePointlessFinallyBlocks (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, ITypeInfoSource typeInfo)
+            : base (member, functionSource) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
-            FunctionSource = functionSource;
         }
 
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EliminatePointlessFinallyBlocks(TypeSystem, TypeInfo, FunctionSource);
+                var nested = new EliminatePointlessFinallyBlocks(Member, FunctionSource, TypeSystem, TypeInfo);
                 nested.Visit(fn);
 
                 return;
@@ -37,7 +37,7 @@ namespace JSIL.Transforms {
             var invocation = expression as JSInvocationExpression;
             FunctionAnalysis2ndPass secondPass = null;
             if ((invocation != null) && (invocation.JSMethod != null)) {
-                secondPass = FunctionSource.GetSecondPass(invocation.JSMethod);
+                secondPass = GetSecondPass(invocation.JSMethod);
 
                 if ((secondPass != null) && secondPass.IsPure)
                     return true;

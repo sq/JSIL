@@ -22,8 +22,8 @@ namespace JSIL.Transforms {
             FunctionSource = functionSource;
         }
 
-        public FunctionAnalysis1stPass FirstPass (JSFunctionExpression function) {
-            State = new FunctionAnalysis1stPass(function);
+        public FunctionAnalysis1stPass FirstPass (QualifiedMemberIdentifier identifier, JSFunctionExpression function) {
+            State = new FunctionAnalysis1stPass(identifier, function);
 
             Visit(function);
 
@@ -561,6 +561,7 @@ namespace JSIL.Transforms {
             }
         }
 
+        public readonly QualifiedMemberIdentifier Identifier;
         public readonly JSFunctionExpression Function;
         public readonly List<Access> Accesses = new List<Access>();
         public readonly List<Assignment> Assignments = new List<Assignment>();
@@ -580,7 +581,8 @@ namespace JSIL.Transforms {
         // If true, somewhere within the body of the method, the this-reference is reassigned (only valid for structs).
         public bool ReassignsThisReference = false;
 
-        public FunctionAnalysis1stPass (JSFunctionExpression function) {
+        public FunctionAnalysis1stPass (QualifiedMemberIdentifier identifier, JSFunctionExpression function) {
+            Identifier = identifier;
             Function = function;
         }
 
@@ -607,11 +609,11 @@ namespace JSIL.Transforms {
         public readonly bool ResultIsNew;
         public readonly bool ViolatesThisReferenceImmutability;
 
-        public readonly IFunctionSource FunctionSource;
+        public readonly FunctionCache FunctionCache;
         public readonly FunctionAnalysis1stPass Data;
 
-        public FunctionAnalysis2ndPass (IFunctionSource functionSource, FunctionAnalysis1stPass data) {
-            FunctionSource = functionSource;
+        public FunctionAnalysis2ndPass (FunctionCache functionCache, FunctionAnalysis1stPass data) {
+            FunctionCache = functionCache;
             Data = data;
 
             if (data.Function.Method.Method.Metadata.HasAttribute("JSIsPure"))
@@ -671,7 +673,7 @@ namespace JSIL.Transforms {
                 FunctionAnalysis2ndPass invocationSecondPass;
                 foreach (var invocation in Data.Invocations) {
                     if (invocation.Method != null)
-                        invocationSecondPass = functionSource.GetSecondPass(invocation.Method);
+                        invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier, false);
                     else
                         invocationSecondPass = null;
 
@@ -702,7 +704,7 @@ namespace JSIL.Transforms {
 
                 seenMethods.Add(currentMethod);
 
-                var rmfp = functionSource.GetFirstPass(rm.QualifiedIdentifier);
+                var rmfp = functionCache.GetFirstPass(rm.QualifiedIdentifier, data.Identifier, false);
                 if (rmfp == null) {
                     ResultIsNew = rm.Method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
                     break;
@@ -723,8 +725,8 @@ namespace JSIL.Transforms {
             Trace(data.Function.Method.Reference.FullName);
         }
 
-        public FunctionAnalysis2ndPass (IFunctionSource functionSource, MethodInfo method) {
-            FunctionSource = functionSource;
+        public FunctionAnalysis2ndPass (FunctionCache functionCache, MethodInfo method) {
+            FunctionCache = functionCache;
             Data = null;
             _IsPure = method.Metadata.HasAttribute("JSIL.Meta.JSIsPure");
 
@@ -769,7 +771,7 @@ namespace JSIL.Transforms {
                 if (i.Method == null)
                     return false;
 
-                var secondPass = FunctionSource.GetSecondPass(i.Method);
+                var secondPass = FunctionCache.GetSecondPass(i.Method, Data.Identifier, false);
                 if (secondPass == null)
                     return false;
 

@@ -73,11 +73,13 @@
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
     <Compile Include="AST\JSStatementTypes.cs" />
+    <Compile Include="AST\StaticAnalysisAstVisitor.cs" />
     <Compile Include="BugChecks.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
+    <Compile Include="FunctionTransformPipeline.cs" />
     <Compile Include="HTMLColor.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />

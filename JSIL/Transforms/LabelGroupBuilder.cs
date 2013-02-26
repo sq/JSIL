@@ -75,6 +75,7 @@ namespace JSIL.Transforms {
                             }
                         }
 
+                        // FIXME: Is this valid? It might confuse the AstVisitor if bs is on the stack.
                         bs.Statements.Clear();
                         bs.Statements.Add(LabelGroup);
                     } else {

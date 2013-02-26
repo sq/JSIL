@@ -7,19 +7,18 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class EliminateSingleUseTemporaries : JSAstVisitor {
+    public class EliminateSingleUseTemporaries : StaticAnalysisJSAstVisitor {
         public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
-        public readonly IFunctionSource FunctionSource;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
         protected FunctionAnalysis1stPass FirstPass = null;
 
-        public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables, IFunctionSource functionSource) {
+        public EliminateSingleUseTemporaries (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, Dictionary<string, JSVariable> variables)
+            : base (member, functionSource) {
             TypeSystem = typeSystem;
-            FunctionSource = functionSource;
             Variables = variables;
         }
 
@@ -109,7 +108,7 @@ namespace JSIL.Transforms {
                     return true;
 
                 if ((ie != null) && (ie.JSMethod != null)) {
-                    var sa = FunctionSource.GetSecondPass(ie.JSMethod);
+                    var sa = GetSecondPass(ie.JSMethod);
                     if (sa != null) {
                         if (sa.IsPure) {
                             if (ie.Arguments.All((a) => IsEffectivelyConstant(target, a)))
@@ -184,7 +183,7 @@ namespace JSIL.Transforms {
                 bool eliminated = false;
 
                 do {
-                    var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables, FunctionSource);
+                    var nested = new EliminateSingleUseTemporaries(Member, FunctionSource, TypeSystem, fn.AllVariables);
                     nested.Visit(fn);
                     eliminated = nested.EliminatedVariables.Count > 0;
                 } while (eliminated);
@@ -193,7 +192,7 @@ namespace JSIL.Transforms {
             }
 
             var nullList = new List<int>();
-            FirstPass = FunctionSource.GetFirstPass(fn.Method.QualifiedIdentifier);
+            FirstPass = GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
                 throw new InvalidOperationException(String.Format(
                     "No first pass static analysis data for method '{0}'",

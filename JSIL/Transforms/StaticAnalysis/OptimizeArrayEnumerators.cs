@@ -7,9 +7,8 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class OptimizeArrayEnumerators : JSAstVisitor {
+    public class OptimizeArrayEnumerators : StaticAnalysisJSAstVisitor {
         public readonly TypeSystem TypeSystem;
-        public readonly IFunctionSource FunctionSource;
 
         public bool EnableEnumeratorRemoval = true;
 
@@ -20,29 +19,29 @@ namespace JSIL.Transforms {
         private JSFunctionExpression Function;
         private int _NextLoopId = 0;
 
-        public OptimizeArrayEnumerators (TypeSystem typeSystem, IFunctionSource functionSource) {
+        public OptimizeArrayEnumerators (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem) 
+            : base (member, functionSource) {
             TypeSystem = typeSystem;
-            FunctionSource = functionSource;
         }
 
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new OptimizeArrayEnumerators(TypeSystem, FunctionSource);
+                var nested = new OptimizeArrayEnumerators(Member, FunctionSource, TypeSystem);
                 nested.Visit(fn);
 
                 return;
             }
 
             Function = fn;
-            FirstPass = FunctionSource.GetFirstPass(Function.Method.QualifiedIdentifier);
+            FirstPass = GetFirstPass(Function.Method.QualifiedIdentifier);
 
             VisitChildren(fn);
 
             if (EnumeratorsToKill.Count > 0) {
                 // Rerun the static analyzer since we made major changes
                 FunctionSource.InvalidateFirstPass(Function.Method.QualifiedIdentifier);
-                FirstPass = FunctionSource.GetFirstPass(Function.Method.QualifiedIdentifier);
+                FirstPass = GetFirstPass(Function.Method.QualifiedIdentifier);
 
                 // Scan to see if any of the enumerators we eliminated uses of are now
                 //  unreferenced. If they are, eliminate them entirely.
