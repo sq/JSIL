@@ -474,7 +474,11 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPointerComparisonExpression pce) {
-            if (pce.Operator == JSOperator.NotEqual)
+            if (
+                (pce.Operator == JSOperator.NotEqual) ||
+                (pce.Operator == JSOperator.GreaterThanOrEqual) ||
+                (pce.Operator == JSOperator.LessThanOrEqual)
+            )
                 Output.WriteRaw("!");
 
             Visit(pce.Left);
@@ -483,10 +487,21 @@ namespace JSIL {
             if (
                 (pce.Operator == JSOperator.Equal) ||
                 (pce.Operator == JSOperator.NotEqual)
-            )
+            ) {
                 Output.Identifier("equals");
-            else
+            } else if (
+                (pce.Operator == JSOperator.LessThan) ||
+                (pce.Operator == JSOperator.GreaterThanOrEqual)
+            ) {
+                Output.Identifier("lessThan");
+            } else if (
+                (pce.Operator == JSOperator.GreaterThan) ||
+                (pce.Operator == JSOperator.LessThanOrEqual)
+            ) {
+                Output.Identifier("greaterThan");
+            } else {
                 throw new NotImplementedException("Operator '" + pce.Operator + "' not supported on pointers");
+            }
 
             Output.LPar();
             Visit(pce.Right);

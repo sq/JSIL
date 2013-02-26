@@ -280,6 +280,26 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "lessThan",
+    function Pointer_LessThan (rhs) {
+      if (rhs === null)
+        return false;
+      else
+        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+          (this.offsetInBytes < rhs.offsetInBytes);
+    }
+  );
+
+  $.RawMethod(false, "greaterThan",
+    function Pointer_GreaterThan (rhs) {
+      if (rhs === null)
+        return false;
+      else
+        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+          (this.offsetInBytes > rhs.offsetInBytes);
+    }
+  );
+
   $.Method({ Static: false, Public: true }, "Object.Equals",
     new JSIL.MethodSignature($.Boolean, [$.Object]),
     function Pointer_Equals (rhs) {

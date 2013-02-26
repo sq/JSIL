@@ -335,6 +335,7 @@
     <None Include="UnsafeTestCases\SubtractPointers.cs" />
     <None Include="UnsafeTestCases\PointerEquality.cs" />
     <None Include="UnsafeTestCases\StackAlloc.cs" />
+    <None Include="UnsafeTestCases\PointerOrdering.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
