@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -771,6 +772,29 @@ namespace JSIL.Tests {
 
                 throw;
             }
+        }
+
+        // Ignored because it's pretty slow and for some reason it never fails :/
+        [Ignore]
+        [Test]
+        public void NoDoubleStructClonesWithThreadingEnabled () {
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "AnalysisTestCases"));
+            var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s).ToArray();
+
+            RunComparisonTests(testNames, null, null,
+                (test) => false,
+                (csharp, js) => {
+                    Assert.IsFalse(
+                        js.Contains("MemberwiseClone().MemberwiseClone()"),
+                        "JS output should never contain a duplicate struct MemberwiseClone"
+                    );
+                },
+                getConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.EnableThreadedTransforms = true;
+                    return cfg;
+                }
+            );
         }
     }
 }

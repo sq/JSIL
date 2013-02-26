@@ -241,7 +241,9 @@ namespace JSIL {
 
         protected ParallelOptions GetParallelOptions () {
             return new ParallelOptions {
-                MaxDegreeOfParallelism = Configuration.UseThreads.GetValueOrDefault(true) ? -1 : 1
+                MaxDegreeOfParallelism = Configuration.UseThreads.GetValueOrDefault(true) 
+                    ? (Environment.ProcessorCount + 2) 
+                    : 1
             };
         }
 
@@ -394,7 +396,7 @@ namespace JSIL {
             if (RunningTransforms != null)
                 RunningTransforms(pr);
 
-            RunTransformsOnAllFunctions(parallelOptions, pr);
+            RunTransformsOnAllFunctions(parallelOptions, pr, result.Log);
             pr.OnFinished();
 
             pr = new ProgressReporter();
@@ -538,7 +540,7 @@ namespace JSIL {
             }
         }
 
-        protected void RunTransformsOnAllFunctions (ParallelOptions parallelOptions, ProgressReporter pr) {
+        protected void RunTransformsOnAllFunctions (ParallelOptions parallelOptions, ProgressReporter pr, StringBuilder log) {
             int i = 0;
 
             Action<QualifiedMemberIdentifier> itemHandler = (id) => {
@@ -555,7 +557,7 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.ParameterNames, e.Variables);
+                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.ParameterNames, e.Variables, log);
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -1482,7 +1484,7 @@ namespace JSIL {
         private void RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
             SpecialIdentifiers si, HashSet<string> parameterNames,
-            Dictionary<string, JSVariable> variables
+            Dictionary<string, JSVariable> variables, StringBuilder log
         ) {
             FunctionTransformPipeline pipeline;
 
@@ -1496,13 +1498,16 @@ namespace JSIL {
             completed = pipeline.RunUntilCompletion();
 
             if (completed) {
-                if (pipeline.SuspendCount > 0)
-                    Console.WriteLine(
-                        "Transform pipeline for {0}::{1} was suspended {2} time(s) before completion", 
-                        pipeline.Identifier.Type.Name, 
-                        pipeline.Identifier.Member.Name,
-                        pipeline.SuspendCount
-                    );
+                if (pipeline.SuspendCount >= FunctionTransformPipeline.SuspendCountLogThreshold) {
+                    lock (log)
+                        log.AppendFormat(
+                            "Transform pipeline for {0}::{1} was suspended {2} time(s) before completion{3}",
+                            pipeline.Identifier.Type.Name,
+                            pipeline.Identifier.Member.Name,
+                            pipeline.SuspendCount,
+                            Environment.NewLine
+                        );
+                }
             }
         }
 

@@ -14,6 +14,7 @@ namespace JSIL.Internal {
     public delegate bool FunctionTransformPipelineStage ();
 
     public class FunctionTransformPipeline {
+        public const int SuspendCountLogThreshold = 2;
         public const bool Trace = false;
 
         public readonly AssemblyTranslator Translator;

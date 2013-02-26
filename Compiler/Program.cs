@@ -576,6 +576,9 @@ namespace JSIL.Compiler {
             foreach (var im in ignoredMethods)
                 logText.AppendFormat("{0} because of {1}{2}", im.Key, String.Join(", ", im.Value), Environment.NewLine);
 
+            logText.AppendLine("// Miscellaneous log output follows:");
+            logText.AppendLine(outputs.Log.ToString());
+
             File.WriteAllText(
                 Path.Combine(logPath, String.Format("{0}.jsillog", Path.GetFileName(inputFile))),
                 logText.ToString()

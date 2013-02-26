@@ -717,7 +717,8 @@ namespace JSIL.Tests {
             string[] filenames, string[] stubbedAssemblies = null, 
             TypeInfoProvider typeInfo = null, 
             Func<string, bool> testPredicate = null,
-            Action<string, string> errorCheckPredicate = null
+            Action<string, string> errorCheckPredicate = null,
+            Func<Configuration> getConfiguration = null
         ) {
             var started = DateTime.UtcNow.Ticks;
 
@@ -794,7 +795,7 @@ namespace JSIL.Tests {
                     filename, stubbedAssemblies, typeInfo, 
                     errorCheckPredicate, failureList, 
                     commonFile, shouldRunJs, asmCache, 
-                    MakeConfiguration
+                    getConfiguration ?? MakeConfiguration
                 );
             }
 
