@@ -33,9 +33,11 @@ namespace JSIL {
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
 
+            public object[] PassLocks = new [] { new object(), new object() };
+
             public int IsLockedForTransformPipeline = 0;
             public bool TransformPipelineHasCompleted = false;
-            public Thread InProgressThread = null;
+            public Thread[] InProgressThreads = new Thread[2];
 
             public MethodDefinition Definition {
                 get {
@@ -58,22 +60,30 @@ namespace JSIL {
 
                 result = default(T);
 
+                var theLock = PassLocks[passLevel];
+
                 while (true) {
-                    var previousThread = Interlocked.CompareExchange(ref InProgressThread, thisThread, null);
+                    var previousThread = Interlocked.CompareExchange(ref InProgressThreads[passLevel], thisThread, null);
 
                     if (previousThread == thisThread) {
                         // Avert deadlock.
                         // LogPassState(passLevel, "exiting due to deadlock");
                         return false;
                     } else if (previousThread != null) {
-                        Monitor.Enter(this);
-                        Monitor.Exit(this);
+                        if (!Monitor.TryEnter(theLock, 2000)) {
+                            // Possible deadlock?
+                            Console.WriteLine("Wait for '{0}' timed out after 2 seconds", Identifier);
+                        } else {
+                            Monitor.Exit(theLock);
+                        }
                     } else {
                         try {
-                            result = callback(this);
+                            lock (theLock)
+                                result = callback(this);
+
                             return true;
                         } finally {
-                            if (Interlocked.CompareExchange(ref InProgressThread, null, thisThread) != thisThread)
+                            if (Interlocked.CompareExchange(ref InProgressThreads[passLevel], null, thisThread) != thisThread)
                                 throw new ThreadStateException("InProgressThread changed while inside RunLocked");
                         }
                     }
@@ -105,7 +115,7 @@ namespace JSIL {
         protected readonly QualifiedMemberIdentifier.Comparer Comparer;
 
         protected readonly static ThreadLocal<Stack<QualifiedMemberIdentifier>> InFlightStack = new ThreadLocal<Stack<QualifiedMemberIdentifier>>(
-            () => new Stack<QualifiedMemberIdentifier>()
+            () => new Stack<QualifiedMemberIdentifier>(128)
         );
 
         public FunctionCache (ITypeInfoSource typeInfo) {
@@ -204,6 +214,12 @@ namespace JSIL {
             if (entry != null) {
                 if (entry.IsLockedForTransformPipeline != 0)
                     throw new StaticAnalysisDataTemporarilyUnavailableException(method);
+
+                if (!Monitor.TryEnter(entry)) {
+                    var currentThreadId = Thread.CurrentThread.ManagedThreadId;
+                } else {
+                    Monitor.Exit(entry);
+                }
             }
         }
 
@@ -229,7 +245,7 @@ namespace JSIL {
 
             FunctionAnalysis1stPass result;
             var runLockedResult = entry.RunLocked(
-                1, out result, 
+                0, out result, 
                 _GetOrCreateFirstPass
             );
 
@@ -283,7 +299,7 @@ namespace JSIL {
 
             FunctionAnalysis2ndPass result;
             var runLockedResult = entry.RunLocked(
-                2, out result, 
+                1, out result, 
                 _GetOrCreateSecondPass
             );
 
@@ -308,7 +324,7 @@ namespace JSIL {
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
             object temp;
-            entry.RunLocked(1, out temp, _InvalidateFirstPass);
+            entry.RunLocked(0, out temp, _InvalidateFirstPass);
         }
 
         private object _InvalidateSecondPass (Entry entry) {
@@ -325,7 +341,7 @@ namespace JSIL {
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
             object temp;
-            entry.RunLocked(2, out temp, _InvalidateSecondPass);
+            entry.RunLocked(1, out temp, _InvalidateSecondPass);
         }
 
         internal JSFunctionExpression Create (
@@ -371,7 +387,7 @@ namespace JSIL {
         public bool UnlockCacheEntryForTransformPipeline (QualifiedMemberIdentifier method, bool completed) {
             var entry = GetCacheEntry(method);
 
-            entry.TransformPipelineHasCompleted = completed;
+            entry.TransformPipelineHasCompleted |= completed;
 
             return Interlocked.CompareExchange(ref entry.IsLockedForTransformPipeline, 0, 1) == 1;
         }
@@ -393,18 +409,6 @@ namespace JSIL {
         public override string Message {
             get {
                 return String.Format("Static analysis data for the function '{0}' is temporarily unavailable because the function is being transformed. Please re-run this transform later.", Identifier);
-            }
-        }
-    }
-
-    public class StaticAnalysisPendingException : TemporarilySuspendTransformPipelineException {
-        public StaticAnalysisPendingException (QualifiedMemberIdentifier identifier)
-            : base (identifier) {
-        }
-
-        public override string Message {
-            get {
-                return String.Format("Static analysis data for the function '{0}' is not available yet. The function has been added to the analysis queue.", Identifier);
             }
         }
     }
