@@ -152,12 +152,20 @@ namespace JSIL {
             }
         }
 
+        public static bool IsIntPtr (TypeReference type) {
+            return (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
+        }
+
+        public static bool IsPointer (TypeReference type) {
+            return type.IsPointer || IsIntPtr(type);
+        }
+
         public static bool Is32BitIntegralOrIntPtr (TypeReference type) {
-            return Is32BitIntegral(type) || (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
+            return Is32BitIntegral(type) || IsIntPtr(type);
         }
 
         public static bool IsIntegralOrPointer (TypeReference type) {
-            return IsIntegral(type) || type.IsPointer;
+            return IsIntegral(type) || IsPointer(type);
         }
 
         public static bool IsNullable (TypeReference type) {
@@ -545,7 +553,7 @@ namespace JSIL {
             }
 
             // HACK: The .NET type system treats pointers and ints as assignable to each other
-            if (TypeUtil.IsIntegral(target) && source.IsPointer)
+            if (IsIntegral(target) && IsPointer(source))
                 return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);

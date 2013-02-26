@@ -329,6 +329,10 @@ namespace JSIL.Transforms {
                 left = boe.Left;
 
             var leftVar = left as JSVariable;
+            var leftChangeType = left as JSChangeTypeExpression;
+
+            if (leftChangeType != null)
+                leftVar = leftChangeType.Expression as JSVariable;
 
             if (
                 !(ParentNode is JSVariableDeclarationStatement) &&

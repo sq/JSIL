@@ -58,6 +58,17 @@ namespace JSIL.Transforms {
             var leftType = boe.Left.GetActualType(TypeSystem);
             var rightType = boe.Right.GetActualType(TypeSystem);
 
+            // We can end up with a pointer literal in an arithmetic expression.
+            // In this case we want to switch it back to a normal integer literal so that the math operations work.
+            var leftPointer = boe.Left as JSPointerLiteral;
+            var rightPointer = boe.Right as JSPointerLiteral;
+            if (!(boe.Operator is JSAssignmentOperator)) {
+                if (leftPointer != null)
+                    boe.ReplaceChild(boe.Left, JSIntegerLiteral.New(leftPointer.Value));
+                if (rightPointer != null)
+                    boe.ReplaceChild(boe.Right, JSIntegerLiteral.New(rightPointer.Value));
+            }
+
             JSExpression replacement = null;
             if (leftType.IsPointer && TypeUtil.IsIntegral(rightType)) {
                 if (

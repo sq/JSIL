@@ -461,7 +461,18 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPointerLiteral pl) {
-            Output.Value(pl.Value);
+            if (
+                Stack.OfType<JSPointerAddExpression>().Any() ||
+                Stack.OfType<JSReadThroughPointerExpression>().Any() ||
+                Stack.OfType<JSWriteThroughPointerExpression>().Any()
+            ) {
+                Output.Value(pl.Value);
+            } else {
+                Output.WriteRaw("JSIL.PointerLiteral");
+                Output.LPar();
+                Output.Value(pl.Value);
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSPointerDeltaExpression pde) {

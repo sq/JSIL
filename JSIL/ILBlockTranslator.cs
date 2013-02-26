@@ -1862,9 +1862,14 @@ namespace JSIL {
 
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
             var target = TranslateNode(node.Arguments[0]);
+            var targetChangeType = target as JSChangeTypeExpression;
             var targetVariable = target as JSVariable;
             var value = TranslateNode(node.Arguments[1]);
             var valueType = value.GetActualType(TypeSystem);
+
+            // Handle an assignment where the left hand side is a pointer or reference cast
+            if (targetChangeType != null)
+                targetVariable = targetChangeType.Expression as JSVariable;
 
             var targetType = target.GetActualType(TypeSystem);
             if (targetType.IsPointer)

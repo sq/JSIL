@@ -198,7 +198,11 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       this.memoryRange = memoryRange;
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
-      this.divisor = this.view.BYTES_PER_ELEMENT | 0;
+
+      if (this.view)
+        this.divisor = this.view.BYTES_PER_ELEMENT | 0;
+      else
+        this.divisor = 0;
     }
   );
 
@@ -365,6 +369,20 @@ JSIL.StackAlloc = function (sizeInBytes, elementType) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   var view = memoryRange.getView(elementType);
   return new JSIL.Pointer(memoryRange, view, 0);
+};
+
+$jsilcore.PointerLiteralMemoryRange = null;
+
+JSIL.PointerLiteral = function (value) {
+  // We carve out a small universal block of memory to act as the 'range' within which pointer literals live.
+  // This is enough to let you pass them around and compare them (though obviously, you can't safely read/write).
+  if (!$jsilcore.PointerLiteralMemoryRange) {
+    var buffer = new ArrayBuffer(16);
+    $jsilcore.PointerLiteralMemoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
+  }
+
+  var view = $jsilcore.PointerLiteralMemoryRange.getView($jsilcore.System.Byte);
+  return new JSIL.Pointer($jsilcore.PointerLiteralMemoryRange, view, value);
 };
 
 // FIXME: Implement unpin operation? Probably not needed yet.

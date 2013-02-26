@@ -1796,6 +1796,10 @@ namespace JSIL.Ast {
             if (TypeUtil.IsEnum(currentType) && TypeUtil.IsIntegral(newType))
                 return true;
 
+            // Allow casting T*& to U*&
+            if (TypeUtil.IsPointer(currentType) && TypeUtil.IsPointer(newType))
+                return true;
+
             return false;
         }
 
@@ -1809,11 +1813,18 @@ namespace JSIL.Ast {
             if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false) && !force)
                 return inner;
 
-            if ((rankCurrent == rankNew) && (rankCurrent > 0)) {
+            if (
+                (rankCurrent == rankNew) && 
+                (rankCurrent > 0)
+            ) {
                 if (!AllowBizarreReferenceCast(currentDerefed, newDerefed))
                     return new JSUntranslatableExpression("Cannot cast reference of type '" + currentDerefed.FullName + "' to type '" + newDerefed.FullName + "'");
-                else
-                    return make();
+                else {
+                    if (TypeUtil.IsPointer(currentDerefed) && TypeUtil.IsPointer(newDerefed))
+                        return JSChangeTypeExpression.New(inner, newType, typeSystem);
+                    else
+                        return make();
+                }
             }
 
             var newResolved = newDerefed.Resolve();
@@ -1840,8 +1851,8 @@ namespace JSIL.Ast {
             if (nullLiteral != null)
                 return new JSNullLiteral(newType);
 
-            if (newType.IsPointer) {
-                if (currentType.IsPointer) {
+            if (TypeUtil.IsPointer(newType)) {
+                if (TypeUtil.IsPointer(currentType)) {
                     return new JSPointerCastExpression(inner, newType);
                 } else {
                     while (inner is JSReferenceExpression)
@@ -1855,10 +1866,14 @@ namespace JSIL.Ast {
                         return new JSPinExpression(inner, null, newType);
                     } else if (TypeUtil.IsIntegral(innerType)) {
                         var literal = inner as JSIntegerLiteral;
-                        if (literal != null)
+                        if (literal != null) {
                             return new JSPointerLiteral(literal.Value, newType);
-                        else
+                        } else if (TypeUtil.IsIntPtr(newType)) {
+                            // IntPtr has stupid coercion rules.
+                            return JSChangeTypeExpression.New(inner, newType, typeSystem);
+                        } else {
                             return new JSUntranslatableExpression("Conversion of non-constant integral expression '" + inner + "' to pointer");
+                        }
                     } else {
                         return new JSUntranslatableExpression("Conversion of expression '" + inner + "' to pointer");
                     }
