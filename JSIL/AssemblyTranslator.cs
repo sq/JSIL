@@ -159,6 +159,10 @@ namespace JSIL {
             }        
         }
 
+        internal void WarningFormatFunction (string functionName, string format, params object[] args) {
+            Warning(String.Format("{0}: {1}", functionName, String.Format(format, args)));
+        }
+
         internal void WarningFormat (string format, params object[] args) {
             Warning(String.Format(format, args));
         }

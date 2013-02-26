@@ -681,7 +681,7 @@ namespace JSIL {
                 if (expression != null)
                     statement = new JSExpressionStatement(expression);
                 else
-                    Translator.WarningFormat("Warning: Null statement: {0}", node);
+                    Translator.WarningFormat("Null statement: {0}", node);
             }
 
             return statement;
@@ -803,13 +803,13 @@ namespace JSIL {
                 result = invokeResult as JSExpression;
 
                 if (result == null)
-                    Translator.WarningFormat("Instruction {0} did not produce a JS AST expression", expression);
+                    WarningFormatFunction("Instruction {0} did not produce a JS AST expression", expression);
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
                     operandType = expression.Operand.GetType().FullName;
 
-                Translator.WarningFormat("Instruction NYI: {0} {1}", expression.Code, operandType);
+                WarningFormatFunction("Instruction NYI: {0} {1}", expression.Code, operandType);
                 return new JSUntranslatableExpression(expression);
             } catch (TargetInvocationException tie) {
                 if (tie.InnerException is AbortTranslation)
@@ -1037,7 +1037,7 @@ namespace JSIL {
                         }
 
                         if (foundUniversalCatch) {
-                            Translator.WarningFormat("Found multiple catch-all catch clauses. Any after the first will be ignored.");
+                            WarningFormatFunction("Found multiple catch-all catch clauses. Any after the first will be ignored.");
                             continue;
                         }
 
@@ -1703,7 +1703,7 @@ namespace JSIL {
             if (jsv.IsReference) {
                 JSExpression materializedValue;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, value, out materializedValue))
-                    Translator.WarningFormat("Cannot store a non-reference into variable {0}: {1}", jsv, value);
+                    WarningFormatFunction("Cannot store a non-reference into variable {0}: {1}", jsv, value);
                 else
                     value = materializedValue;
             }
@@ -1775,7 +1775,7 @@ namespace JSIL {
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
                     if (!translated.IsNull)
-                        Translator.WarningFormat("Warning: Accessing {0} without a reference as this.", field.FullName);
+                        WarningFormatFunction("Accessing {0} without a reference as this.", field.FullName);
 
                     thisExpression = translated;
                 }
@@ -1816,7 +1816,7 @@ namespace JSIL {
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
                     if (!translated.IsNull)
-                        Translator.WarningFormat("Warning: Accessing {0} without a reference as this.", field.FullName);
+                        Translator.WarningFormat("Accessing {0} without a reference as this.", field.FullName);
 
                     thisExpression = translated;
                 }
@@ -1845,7 +1845,7 @@ namespace JSIL {
                 return new JSReadThroughPointerExpression(reference);
             } else {
                 if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
-                    Translator.WarningFormat("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]);
+                    WarningFormatFunction("unsupported reference type for ldobj: {0}", node.Arguments[0]);
 
                 if ((referent != null) && TypeUtil.IsStruct(referent.GetActualType(TypeSystem)))
                     return reference;
@@ -1872,11 +1872,11 @@ namespace JSIL {
 
             if (targetVariable != null) {
                 if (!targetVariable.IsReference)
-                    Translator.WarningFormat("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]);
+                    WarningFormatFunction("unsupported target variable for stobj: {0}", node.Arguments[0]);
             } else {
                 JSExpression referent;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))
-                    Translator.WarningFormat("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]);
+                    WarningFormatFunction("unsupported target expression for stobj: {0}", node.Arguments[0]);
                 else {
                     return JSInvocationExpression.InvokeMethod(
                         new JSFakeMethod("set", valueType, new TypeReference[] { valueType }, MethodTypes),
@@ -2252,6 +2252,10 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
         }
 
+        protected JSExpression Translate_Conv_Ovf_U4_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
+        }
+
         protected JSExpression Translate_Conv_U8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
         }
@@ -2511,7 +2515,7 @@ namespace JSIL {
 
                         initializers.Add(new JSPairExpression(key, value));
                     } else {
-                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", left);
+                        WarningFormatFunction("Unrecognized object initializer target: {0}", left);
                     }
                 } else if (ie != null) {
                     var method = ie.JSMethod;
@@ -2523,18 +2527,18 @@ namespace JSIL {
                             new JSProperty(method.Reference, method.Method.DeclaringProperty), ie.Arguments[0]
                         ));
                     } else {
-                        Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
+                        WarningFormatFunction("Object initializer element not implemented: {0}", translated);
                     }
                 } else if (iae != null) {
                     var targetDot = iae.Target as JSDotExpressionBase;
                     if (targetDot == null) {
-                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        WarningFormatFunction("Unrecognized object initializer target: {0}", iae.Target);
                         continue;
                     }
 
                     var targetDotInitObject = targetDot.Target as JSInitializedObject;
                     if (targetDotInitObject == null) {
-                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        WarningFormatFunction("Unrecognized object initializer target: {0}", iae.Target);
                         continue;
                     }
 
@@ -2542,7 +2546,7 @@ namespace JSIL {
                         targetDot.Member, new JSNestedObjectInitializerExpression(iae.Initializer)
                     ));
                 } else {
-                    Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
+                    WarningFormatFunction("Object initializer element not implemented: {0}", translated);
                 }
             }
 
@@ -2859,6 +2863,10 @@ namespace JSIL {
                 return new JSUnaryOperatorExpression(
                     JSOperator.PostDecrement, target, target.GetActualType(TypeSystem)
                 );
+        }
+
+        protected void WarningFormatFunction (string format, params object[] args) {
+            Translator.WarningFormatFunction(ThisMethodReference.Name, format, args);
         }
     }
 
