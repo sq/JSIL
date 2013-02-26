@@ -332,6 +332,7 @@ namespace JSIL.Ast {
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (Variables != null)
             foreach (var key in Variables.Keys.ToArray()) {
                 if (Variables[key] == oldChild)
                     Variables[key] = (JSExpression)newChild;
