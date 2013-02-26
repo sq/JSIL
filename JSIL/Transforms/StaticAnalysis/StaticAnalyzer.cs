@@ -415,7 +415,6 @@ namespace JSIL.Transforms {
             ).ToArray();
 
             if ((enclosingAssignmentStatements.Length == 0) && (
-                !(enclosingStatement is JSTryCatchBlock) &&
                 !(enclosingStatement is JSVariableDeclarationStatement)
             )) {
                 bool isControlFlow = (enclosingStatement is JSIfStatement) || 

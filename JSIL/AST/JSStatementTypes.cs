@@ -644,6 +644,16 @@ namespace JSIL.Ast {
 
             Body.ReplaceChild(oldChild, newChild);
         }
+
+        public override string ToString () {
+            return String.Format(
+                "try {{ {0} }} catch ( {1} ) {{ {2} }} finally {{ {3} }}",
+                Body,
+                CatchVariable,
+                Catch,
+                Finally
+            );
+        }
     }
 
     public class JSUntranslatableStatement : JSNullStatement {

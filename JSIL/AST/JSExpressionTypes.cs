@@ -1598,6 +1598,12 @@ namespace JSIL.Ast {
                 ) {
         }
 
+        protected JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, params JSExpression[] extraValues)
+            : base(
+                op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
+                ) {
+        }
+
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Left", Left);
@@ -2166,13 +2172,26 @@ namespace JSIL.Ast {
     }
 
     public class JSWriteThroughPointerExpression : JSBinaryOperatorExpression {
-        public readonly JSExpression OffsetInBytes;
-
         public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, TypeReference actualType, JSExpression offsetInBytes = null)
             : base(
-                JSOperator.Assignment, pointer, rhs, actualType
+                JSOperator.Assignment, pointer, rhs, actualType, offsetInBytes
             ) {
-            OffsetInBytes = offsetInBytes;
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Left", Left);
+                yield return new AnnotatedNode("Right", Right);
+
+                if (OffsetInBytes != null)
+                    yield return new AnnotatedNode("OffsetInBytes", OffsetInBytes);
+            }
+        }
+
+        public JSExpression OffsetInBytes {
+            get {
+                return Values[2];
+            }
         }
 
         public override string ToString () {
@@ -2181,17 +2200,19 @@ namespace JSIL.Ast {
     }
 
     public class JSReadThroughPointerExpression : JSExpression {
-        public readonly JSExpression OffsetInBytes;
-
         public JSReadThroughPointerExpression (JSExpression pointer, JSExpression offsetInBytes = null)
-            : base(pointer) {
-
-            OffsetInBytes = offsetInBytes;
+            : base(pointer, offsetInBytes) {
         }
 
         public JSExpression Pointer {
             get {
                 return Values[0];
+            }
+        }
+
+        public JSExpression OffsetInBytes {
+            get {
+                return Values[1];
             }
         }
 

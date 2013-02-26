@@ -210,6 +210,7 @@ namespace JSIL.Transforms {
                     continue;
 
                 var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
+                var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
                 var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
 
@@ -221,7 +222,7 @@ namespace JSIL.Transforms {
                 }
 
                 if (assignments.FirstOrDefault() == null) {
-                    if (accesses.Length == 0) {
+                    if ((accesses.Length == 0) && (invocations.Length == 0) && (reassignments.Length == 0)) {
                         if (TraceLevel >= 1)
                             Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
 
