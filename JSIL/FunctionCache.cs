@@ -72,7 +72,8 @@ namespace JSIL {
                     } else if (previousThread != null) {
                         if (!Monitor.TryEnter(theLock, 2000)) {
                             // Possible deadlock?
-                            Console.WriteLine("Wait for '{0}' timed out after 2 seconds", Identifier);
+                            Console.WriteLine("Wait for '{0}::{1}' timed out after 2 seconds. Attempting to break deadlock.", Identifier.Type.Name, Identifier.Member.Name);
+                            throw new StaticAnalysisDataTemporarilyUnavailableException(Identifier);
                         } else {
                             Monitor.Exit(theLock);
                         }
@@ -256,9 +257,6 @@ namespace JSIL {
         }
 
         private FunctionAnalysis2ndPass _GetOrCreateSecondPass (Entry entry) {
-            if (entry.FirstPass == null)
-                return entry.SecondPass;
-
             if ((entry.SecondPass == null) && (entry.Expression != null)) {
                 // entry.LogPassState(2, "entering static analysis");
 
@@ -275,8 +273,11 @@ namespace JSIL {
                 }
 
                 ifs.Push(entry.Identifier);
-                entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
-                ifs.Pop();
+                try {
+                    entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+                } finally {
+                    ifs.Pop();
+                }
                 // entry.LogPassState(2, "exiting static analysis");
             }
 
