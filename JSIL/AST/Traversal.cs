@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using JSIL.Internal;
+using System.Linq.Expressions;
 
 namespace JSIL.Ast.Traversal {
     public class JSNodeTraversalData {
@@ -25,8 +26,6 @@ namespace JSIL.Ast.Traversal {
         }
 
         private JSNodeTraversalData (Type nodeType) {
-            var tJSNode = typeof(JSNode);
-            var tList = typeof(IList);
             var tCompilerGenerated = typeof(CompilerGeneratedAttribute);
             var tIgnore = typeof(JSAstIgnoreAttribute);
             var tTraverse = typeof(JSAstTraverseAttribute);
@@ -52,30 +51,18 @@ namespace JSIL.Ast.Traversal {
                             continue;
                     }
 
-                    JSNodeTraversalRecord newRecord = null;
-                    if (tJSNode.IsAssignableFrom(field.FieldType)) {
-                        newRecord = new JSNodeTraversalFieldRecord(field);
-                    } else if (field.FieldType.IsArray) {
-                        var arrayElementType = field.FieldType.GetElementType();
+                    var record = MakeFieldRecord(field);
+                    if (record == null)
+                        continue;
 
-                        if (tJSNode.IsAssignableFrom(arrayElementType))
-                            newRecord = new JSNodeTraversalArrayFieldRecord(field);
-                    } else if (tList.IsAssignableFrom(field.FieldType)) {
-                        var listElementType = field.FieldType.GetGenericArguments()[0];
-                        if (tJSNode.IsAssignableFrom(listElementType))
-                            newRecord = new JSNodeTraversalListFieldRecord(field);
+                    if (traverseAttribute != null) {
+                        record.SortKey = traverseAttribute.TraversalIndex;
+                        record.Name = traverseAttribute.Name ?? field.Name;
                     }
 
-                    if (newRecord != null) {
-                        if (traverseAttribute != null) {
-                            newRecord.SortKey = traverseAttribute.TraversalIndex;
-                            newRecord.Name = traverseAttribute.Name ?? newRecord.Name;
-                        }
+                    record.OriginalIndex = records.Count;
 
-                        newRecord.OriginalIndex = records.Count;
-
-                        records.Add(newRecord);
-                    }
+                    records.Add(record);
                 }
 
                 foreach (var method in typeToScan.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)) {
@@ -88,6 +75,7 @@ namespace JSIL.Ast.Traversal {
                         continue;
 
                     var newRecord = new JSNodeTraversalMethodRecord(method);
+                    
                     newRecord.SortKey = traverseAttribute.TraversalIndex;
                     newRecord.Name = traverseAttribute.Name ?? newRecord.Name;
                     newRecord.OriginalIndex = records.Count;
@@ -110,6 +98,64 @@ namespace JSIL.Ast.Traversal {
                 return result;
             });
             Records = records.ToArray();
+        }
+
+        private JSNodeTraversalRecord MakeFieldRecord (System.Reflection.FieldInfo field) {
+            var tJSNode = typeof(JSNode);
+            var tList = typeof(List<>);
+            var tEnumerable = typeof(IEnumerable<>);
+            var tGetFieldFunc = typeof(Func<,>).MakeGenericType(tJSNode, field.FieldType);
+
+            Func<Delegate> makeGetter = () => {
+                var parentParameter = Expression.Parameter(tJSNode, "parent");
+                var parentCast = Expression.Convert(parentParameter, field.DeclaringType);
+                var member = Expression.MakeMemberAccess(parentCast, field);
+                var expr = Expression.Lambda(tGetFieldFunc, member, false, parentParameter);
+                return expr.Compile();
+            };
+
+            Type fieldGenericDefinition = null;
+            if (field.FieldType.IsGenericType)
+                fieldGenericDefinition = field.FieldType.GetGenericTypeDefinition();
+
+            if (tJSNode.IsAssignableFrom(field.FieldType)) {
+                return (JSNodeTraversalRecord)Activator.CreateInstance(
+                    typeof(JSNodeTraversalFieldRecord<>).MakeGenericType(field.FieldType),
+                    makeGetter()
+                );
+            } else if (field.FieldType.IsArray) {
+                var arrayElementType = field.FieldType.GetElementType();
+
+                if (!tJSNode.IsAssignableFrom(arrayElementType))
+                    return null;
+
+                return (JSNodeTraversalRecord)Activator.CreateInstance(
+                    typeof(JSNodeTraversalArrayFieldRecord<>).MakeGenericType(arrayElementType),
+                    makeGetter()
+                );
+            } else if (tList == fieldGenericDefinition) {
+                var listElementType = field.FieldType.GetGenericArguments()[0];
+
+                if (!tJSNode.IsAssignableFrom(listElementType))
+                    return null;
+
+                return (JSNodeTraversalRecord)Activator.CreateInstance(
+                    typeof(JSNodeTraversalListFieldRecord<>).MakeGenericType(listElementType),
+                    makeGetter()
+                );
+            } else if (tEnumerable == fieldGenericDefinition) {
+                var enumerableElementType = field.FieldType.GetGenericArguments()[0];
+
+                if (!tJSNode.IsAssignableFrom(enumerableElementType))
+                    return null;
+
+                return (JSNodeTraversalRecord)Activator.CreateInstance(
+                    typeof(JSNodeTraversalEnumerableFieldRecord<>).MakeGenericType(enumerableElementType),
+                    makeGetter()
+                );
+            }
+
+            return null;
         }
     }
 
@@ -148,30 +194,32 @@ namespace JSIL.Ast.Traversal {
         public abstract bool GetElement (JSNode parent, int index, out JSNode node, out string name);
     }
 
-    public class JSNodeTraversalFieldRecord : JSNodeTraversalElementRecord {
-        public readonly System.Reflection.FieldInfo Field;
+    public class JSNodeTraversalFieldRecord<T> : JSNodeTraversalElementRecord 
+        where T : JSNode
+    {
+        public readonly Func<JSNode, T> GetField;
 
-        public JSNodeTraversalFieldRecord (System.Reflection.FieldInfo field) {
-            Field = field;
-            Name = field.Name;
+        public JSNodeTraversalFieldRecord (Func<JSNode, T> getField) {
+            GetField = getField;
         }
 
         public override void Get (JSNode parent, out JSNode node, out string name) {
-            node = (JSNode)Field.GetValue(parent);
+            node = GetField(parent);
             name = Name;
         }
     }
 
-    public class JSNodeTraversalArrayFieldRecord : JSNodeTraversalArrayRecord {
-        public readonly System.Reflection.FieldInfo Field;
+    public class JSNodeTraversalArrayFieldRecord<T> : JSNodeTraversalArrayRecord
+        where T : JSNode
+    {
+        public readonly Func<JSNode, T[]> GetField;
 
-        public JSNodeTraversalArrayFieldRecord (System.Reflection.FieldInfo field) {
-            Field = field;
-            Name = field.Name;
+        public JSNodeTraversalArrayFieldRecord (Func<JSNode, T[]> getField) {
+            GetField = getField;
         }
 
         public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            var array = (JSNode[])Field.GetValue(parent);
+            var array = GetField(parent);
             if ((array == null) || (index >= array.Length)) {
                 node = null;
                 name = null;
@@ -184,25 +232,60 @@ namespace JSIL.Ast.Traversal {
         }
     }
 
-    public class JSNodeTraversalListFieldRecord : JSNodeTraversalArrayRecord {
-        public readonly System.Reflection.FieldInfo Field;
+    public class JSNodeTraversalListFieldRecord<T> : JSNodeTraversalArrayRecord
+        where T : JSNode
+    {
+        public readonly Func<JSNode, List<T>> GetField;
 
-        public JSNodeTraversalListFieldRecord (System.Reflection.FieldInfo field) {
-            Field = field;
-            Name = field.Name;
+        public JSNodeTraversalListFieldRecord (Func<JSNode, List<T>> getField) {
+            GetField = getField;
         }
 
         public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            var list = (IList)Field.GetValue(parent);
+            var list = GetField(parent);
             if ((list == null) || (index >= list.Count)) {
                 node = null;
                 name = null;
                 return false;
             } else {
-                node = (JSNode)list[index];
+                node = list[index];
                 name = Name;
                 return true;
             }
+        }
+    }
+
+    public class JSNodeTraversalEnumerableFieldRecord<T> : JSNodeTraversalArrayRecord
+        where T : JSNode {
+        public readonly Func<JSNode, IEnumerable<T>> GetField;
+
+        public JSNodeTraversalEnumerableFieldRecord (Func<JSNode, IEnumerable<T>> getField) {
+            GetField = getField;
+        }
+
+        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
+            node = null;
+            name = null;
+
+            var enumerable = GetField(parent);
+            if (enumerable != null) {
+                using (var e = enumerable.GetEnumerator()) {
+                    while (index > 0) {
+                        if (!e.MoveNext())
+                            return false;
+
+                        index -= 1;
+                    }
+                    
+                    if (e.MoveNext()) {
+                        node = e.Current;
+                        name = Name;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 

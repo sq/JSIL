@@ -133,15 +133,18 @@ namespace JSIL.Ast.Enumerators {
                 var elementRecord = record as JSNodeTraversalElementRecord;
                 if (elementRecord != null) {
                     elementRecord.Get(Node, out _Current, out _CurrentName);
-                    return true;
+
+                    if (_Current != null)
+                        return true;
                 } else {
                     var arrayRecord = record as JSNodeTraversalArrayRecord;
                     if (arrayRecord != null) {
                         _ArrayIndex += 1;
 
-                        if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName))
-                            return true;
-                        else
+                        if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName)) {
+                            if (_Current != null)
+                                return true;
+                        } else
                             _ArrayIndex = -1;
                     } else {
                         throw new InvalidDataException("Unrecognized record type");
