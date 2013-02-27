@@ -11,18 +11,21 @@ using System.Linq.Expressions;
 namespace JSIL.Ast.Traversal {
     public class JSNodeTraversalData {
         private static readonly ConcurrentCache<Type, JSNodeTraversalData> Cache = new ConcurrentCache<Type, JSNodeTraversalData>();
+        private static readonly ConcurrentCache<Type, JSNodeTraversalData>.CreatorFunction MakeCacheEntry;
 
         public readonly Type Type;
         public readonly JSNodeTraversalRecord[] Records;
+
+        static JSNodeTraversalData () {
+            MakeCacheEntry = (nodeType) => new JSNodeTraversalData(nodeType);
+        }
 
         public static JSNodeTraversalData Get (JSNode node) {
             return Get(node.GetType());
         }
 
         public static JSNodeTraversalData Get (Type nodeType) {
-            return Cache.GetOrCreate(
-                nodeType, (_) => new JSNodeTraversalData(nodeType)
-            );
+            return Cache.GetOrCreate(nodeType, MakeCacheEntry);
         }
 
         private JSNodeTraversalData (Type nodeType) {
