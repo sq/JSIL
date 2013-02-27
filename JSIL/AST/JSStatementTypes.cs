@@ -31,22 +31,13 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSBlockStatement : JSAnnotatedStatement {
+    public class JSBlockStatement : JSStatement {
+        [JSAstTraverse(999, "Statements")]
         public readonly List<JSStatement> Statements;
 
         public JSBlockStatement (params JSStatement[] statements) {
             Statements = new List<JSStatement>(statements);
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                // FIXME: We seem to have cases where the number of statements goes down! That sucks!
-                for (int i = 0; i < Statements.Count; i++)
-                    yield return new AnnotatedNode("Statement", Statements[i]);
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -128,13 +119,20 @@ namespace JSIL.Ast {
             s.IsControlFlow = true;
         }
 
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                return (from l in Labels select l.Value).ToArray();
+        [JSAstTraverse(0)]
+        protected static bool GetChild (JSNode parent, int index, out JSNode node, out string name) {
+            var self = (JSLabelGroupStatement)parent;
+
+            if (index > self.Labels.Count) {
+                node = null;
+                name = null;
+                return false;
             }
+
+            node = self.Labels.Skip(index).First().Value;
+            name = "Labels";
+            return true;
         }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -188,20 +186,14 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSVariableDeclarationStatement : JSStatement {
+        [JSAstTraverse(0)]
         public readonly List<JSBinaryOperatorExpression> Declarations = new List<JSBinaryOperatorExpression>();
 
         public JSVariableDeclarationStatement (params JSBinaryOperatorExpression[] declarations) {
             Declarations.AddRange(declarations);
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                return Declarations;
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -226,20 +218,14 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSExpressionStatement : JSStatement {
+        [JSAstTraverse(0)]
         protected JSExpression _Expression;
 
         public JSExpressionStatement (JSExpression expression) {
             _Expression = expression;
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield return _Expression;
-            }
-        }
-         */
 
         public JSExpression Expression {
             get {
@@ -260,10 +246,12 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSSwitchCase : JSAnnotatedStatement {
+    public class JSSwitchCase : JSStatement {
+        [JSAstTraverse(0, "Case Value")]
         public readonly JSExpression[] Values;
+        [JSAstTraverse(1)]
         public readonly JSBlockStatement Body;
-
+        
         public JSSwitchCase (JSExpression[] values, JSBlockStatement body) {
             if ((values != null) && (values.Length == 0))
                 values = null;
@@ -271,19 +259,6 @@ namespace JSIL.Ast {
             Values = values;
             Body = body;
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                if (Values != null) {
-                    foreach (var value in Values)
-                        yield return new AnnotatedNode("Case Value", value);
-                }
-
-                yield return new AnnotatedNode("Body", Body);
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (Values == null)
@@ -315,8 +290,10 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSSwitchStatement : JSAnnotatedStatement {
+    public class JSSwitchStatement : JSStatement {
+        [JSAstTraverse(0, "Condition")]
         protected JSExpression _Condition;
+        [JSAstTraverse(1, "Case")]
         public readonly List<JSSwitchCase> Cases = new List<JSSwitchCase>();
 
         public JSSwitchStatement (JSExpression condition, params JSSwitchCase[] cases) {
@@ -324,17 +301,6 @@ namespace JSIL.Ast {
             _Condition = condition;
             Cases.AddRange(cases);
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Condition", _Condition);
-
-                foreach (var c in Cases)
-                    yield return new AnnotatedNode("Case", c);
-            }
-        }
-         */
 
         public JSExpression Condition {
             get {
@@ -369,9 +335,13 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIfStatement : JSAnnotatedStatement {
+    public class JSIfStatement : JSStatement {
+        [JSAstTraverse(0, "Condition")]
         protected JSExpression _Condition;
-        protected JSStatement _TrueClause, _FalseClause;
+        [JSAstTraverse(1, "TrueClause")]
+        protected JSStatement _TrueClause;
+        [JSAstTraverse(2, "FalseClause")]
+        protected JSStatement _FalseClause;
 
         public JSIfStatement (JSExpression condition, JSStatement trueClause, JSStatement falseClause = null) {
             _Condition = condition;
@@ -406,19 +376,6 @@ namespace JSIL.Ast {
 
             return result;
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Condition", _Condition);
-
-                yield return new AnnotatedNode("True Clause", _TrueClause);
-
-                if (_FalseClause != null)
-                    yield return new AnnotatedNode("False Clause", _FalseClause);
-            }
-        }
-         */
 
         public JSExpression Condition {
             get {
@@ -461,23 +418,13 @@ namespace JSIL.Ast {
     }
 
     public class JSWhileLoop : JSLoopStatement {
+        [JSAstTraverse(0, "Condition")]
         protected JSExpression _Condition;
 
         public JSWhileLoop (JSExpression condition, params JSStatement[] body) {
             _Condition = condition;
             Statements.AddRange(body);
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Condition", _Condition);
-
-                foreach (var s in base.AnnotatedChildren)
-                    yield return s;
-            }
-        }
-         */
 
         public JSExpression Condition {
             get {
@@ -505,23 +452,13 @@ namespace JSIL.Ast {
     }
 
     public class JSDoLoop : JSLoopStatement {
+        [JSAstTraverse(0, "Condition")]
         protected JSExpression _Condition;
 
         public JSDoLoop (JSExpression condition, params JSStatement[] body) {
             _Condition = condition;
             Statements.AddRange(body);
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                foreach (var s in base.AnnotatedChildren)
-                    yield return s;
-
-                yield return new AnnotatedNode("Condition", _Condition);
-            }
-        }
-         */
 
         public JSExpression Condition {
             get {
@@ -549,8 +486,12 @@ namespace JSIL.Ast {
     }
 
     public class JSForLoop : JSLoopStatement {
-        protected JSStatement _Initializer, _Increment;
+        [JSAstTraverse(0, "Initializer")]
+        protected JSStatement _Initializer;
+        [JSAstTraverse(1, "Condition")]
         protected JSExpression _Condition;
+        [JSAstTraverse(2, "Increment")]
+        protected JSStatement _Increment;
 
         public JSForLoop (JSStatement initializer, JSExpression condition, JSStatement increment, params JSStatement[] body) {
             _Initializer = initializer;
@@ -558,24 +499,6 @@ namespace JSIL.Ast {
             _Increment = increment;
             Statements.AddRange(body);
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                if (_Initializer != null)
-                    yield return new AnnotatedNode("Initializer", _Initializer);
-
-                if (_Condition != null)
-                    yield return new AnnotatedNode("Condition", _Condition);
-
-                if (_Increment != null)
-                    yield return new AnnotatedNode("Increment", _Increment);
-
-                foreach (var s in base.AnnotatedChildren)
-                    yield return s;
-            }
-        }
-         */
 
         public JSStatement Initializer {
             get {
@@ -621,10 +544,14 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTryCatchBlock : JSAnnotatedStatement {
+    public class JSTryCatchBlock : JSStatement {
+        [JSAstTraverse(0)]
         public readonly JSStatement Body;
+        [JSAstTraverse(1, "Catch Variable")]
         public JSVariable CatchVariable;
+        [JSAstTraverse(2, "Catch Block")]
         public JSStatement Catch;
+        [JSAstTraverse(2, "Finally Block")]
         public JSStatement Finally;
 
         public JSTryCatchBlock (JSStatement body, JSVariable catchVariable = null, JSStatement @catch = null, JSStatement @finally = null) {
@@ -633,23 +560,6 @@ namespace JSIL.Ast {
             Catch = @catch;
             Finally = @finally;
         }
-        
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Body", Body);
-
-                if (CatchVariable != null)
-                    yield return new AnnotatedNode("Catch Variable", CatchVariable);
-
-                if (Catch != null)
-                    yield return new AnnotatedNode("Catch Block", Catch);
-
-                if (Finally != null)
-                    yield return new AnnotatedNode("Finally Block", Finally);
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)

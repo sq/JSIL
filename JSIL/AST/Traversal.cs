@@ -44,8 +44,8 @@ namespace JSIL.Ast.Traversal {
                         continue;
                     seenMembers.Add(field);
 
-                    var traverseAttributes = field.GetCustomAttributes(tTraverse, true);
-                    if (traverseAttributes.Length == 0) {
+                    var traverseAttribute = field.GetCustomAttributes(tTraverse, true).OfType<JSAstTraverseAttribute>().FirstOrDefault();
+                    if (traverseAttribute == null) {
                         if (field.GetCustomAttributes(tCompilerGenerated, true).Length > 0)
                             continue;
                         if (field.GetCustomAttributes(tIgnore, true).Length > 0)
@@ -67,8 +67,10 @@ namespace JSIL.Ast.Traversal {
                     }
 
                     if (newRecord != null) {
-                        if (traverseAttributes.Length > 0)
-                            newRecord.SortKey = ((JSAstTraverseAttribute)traverseAttributes[0]).TraversalIndex;
+                        if (traverseAttribute != null) {
+                            newRecord.SortKey = traverseAttribute.TraversalIndex;
+                            newRecord.Name = traverseAttribute.Name ?? newRecord.Name;
+                        }
 
                         newRecord.OriginalIndex = records.Count;
 
@@ -76,7 +78,23 @@ namespace JSIL.Ast.Traversal {
                     }
                 }
 
-                if (typeToScan.GetCustomAttributes(tIgnoreInherited, true).Length > 0)
+                foreach (var method in nodeType.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)) {
+                    if (seenMembers.Contains(method))
+                        continue;
+                    seenMembers.Add(method);
+
+                    var traverseAttribute = method.GetCustomAttributes(tTraverse, true).OfType<JSAstTraverseAttribute>().FirstOrDefault();
+                    if (traverseAttribute == null)
+                        continue;
+
+                    var newRecord = new JSNodeTraversalMethodRecord(method);
+                    newRecord.SortKey = traverseAttribute.TraversalIndex;
+                    newRecord.Name = traverseAttribute.Name ?? newRecord.Name;
+                    newRecord.OriginalIndex = records.Count;
+                    records.Add(newRecord);
+                }
+
+                if (typeToScan.GetCustomAttributes(tIgnoreInherited, false).Length > 0)
                     typeToScan = null;
                 else if (typeToScan != typeToScan.BaseType)
                     typeToScan = typeToScan.BaseType;
@@ -187,23 +205,47 @@ namespace JSIL.Ast.Traversal {
             }
         }
     }
+
+    delegate bool MethodRecordDelegate (JSNode parent, int index, out JSNode node, out string name);
+
+    public class JSNodeTraversalMethodRecord : JSNodeTraversalArrayRecord {
+        public readonly System.Reflection.MethodInfo Method;
+        private readonly MethodRecordDelegate Delegate;
+
+        public JSNodeTraversalMethodRecord (System.Reflection.MethodInfo method) {
+            Method = method;
+            Name = method.Name;
+            Delegate = (MethodRecordDelegate)System.Delegate.CreateDelegate(typeof(MethodRecordDelegate), method, true);
+        }
+
+        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
+            return Delegate(parent, index, out node, out name);
+        }
+    }
 }
 
 namespace JSIL.Ast {
     [AttributeUsage(
-        AttributeTargets.Field | AttributeTargets.Property
+        AttributeTargets.Field
     )]
     public class JSAstIgnoreAttribute : Attribute {
     }
 
     [AttributeUsage(
-        AttributeTargets.Field | AttributeTargets.Property
+        AttributeTargets.Field | AttributeTargets.Method
     )]
     public class JSAstTraverseAttribute : Attribute {
         public readonly int TraversalIndex;
+        public readonly string Name;
 
         public JSAstTraverseAttribute (int traversalIndex) {
             TraversalIndex = traversalIndex;
+            Name = null;
+        }
+
+        public JSAstTraverseAttribute (int traversalIndex, string name) {
+            TraversalIndex = traversalIndex;
+            Name = name;
         }
     }
 

@@ -11,7 +11,8 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
-    public class JSFunctionExpression : JSAnnotatedExpression {
+    [JSAstIgnoreInheritedMembers]
+    public class JSFunctionExpression : JSExpression {
         public readonly MethodTypeFactory MethodTypes;
 
         public readonly JSMethod Method;
@@ -19,7 +20,9 @@ namespace JSIL.Ast {
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
         // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
+        [JSAstTraverse(0, "FunctionSignature")]
         public readonly IEnumerable<JSVariable> Parameters;
+        [JSAstTraverse(1)]
         public readonly JSBlockStatement Body;
 
         public int TemporaryVariableCount = 0;
@@ -37,17 +40,6 @@ namespace JSIL.Ast {
             Body = body;
             MethodTypes = methodTypes;
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                foreach (var parameter in Parameters)
-                    yield return new AnnotatedNode("FunctionSignature", parameter);
-
-                yield return new AnnotatedNode("Body", Body);
-            }
-        }
-         */
 
         public override bool Equals (object obj) {
             var rhs = obj as JSFunctionExpression;
@@ -658,7 +650,15 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSDotExpressionBase : JSAnnotatedExpression {
+    public abstract class JSDotExpressionBase : JSExpression {
+        static JSDotExpressionBase () {
+            SetValueNames(
+                typeof(JSDotExpressionBase),
+                "Target",
+                "Member"
+            );
+        }
+
         protected JSDotExpressionBase (JSExpression target, JSIdentifier member)
             : base(target, member) {
 
@@ -697,15 +697,6 @@ namespace JSIL.Ast {
                 return Target.IsConstant && Member.IsConstant;
             }
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Target", Values[0]);
-                yield return new AnnotatedNode("Member", Values[1]);
-            }
-        }
-         */
 
         public override string ToString () {
             return String.Format("{0}.{1}", Target, Member);
@@ -807,8 +798,16 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIndexerExpression : JSAnnotatedExpression {
+    public class JSIndexerExpression : JSExpression {
         public TypeReference ElementType;
+
+        static JSIndexerExpression () {
+            SetValueNames(
+                typeof(JSIndexerExpression),
+                "Target",
+                "OffsetInBytes"
+            );
+        }
 
         public JSIndexerExpression (JSExpression target, JSExpression index, TypeReference elementType = null)
             : base(target, index) {
@@ -846,15 +845,6 @@ namespace JSIL.Ast {
                 return Target.IsConstant && Index.IsConstant;
             }
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Target", Values[0]);
-                yield return new AnnotatedNode("OffsetInBytes", Values[1]);
-            }
-        }
-         */
 
         public override string ToString () {
             return String.Format("{0}[{1}]", Target, Index);
@@ -909,10 +899,7 @@ namespace JSIL.Ast {
         [JSAstTraverse(0)]
         public readonly JSExpression[] Dimensions;
         [JSAstTraverse(1)]
-        public JSExpression SizeOrArrayInitializer {
-            get;
-            private set;
-        }
+        public JSExpression SizeOrArrayInitializer;
 
         public int? CachedElementTypeIndex;
 
@@ -930,20 +917,6 @@ namespace JSIL.Ast {
             Dimensions = dimensions;
             SizeOrArrayInitializer = initializer;
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                if (Dimensions != null) {
-                    foreach (var dim in Dimensions)
-                        yield return dim;
-                }
-
-                if (SizeOrArrayInitializer != null)
-                    yield return SizeOrArrayInitializer;
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (Dimensions != null) {
@@ -963,7 +936,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSInvocationExpressionBase : JSAnnotatedExpression {
+    public class JSInvocationExpressionBase : JSExpression {
         protected JSInvocationExpressionBase (params JSExpression[] values)
             : base(values) {
 
@@ -973,6 +946,16 @@ namespace JSIL.Ast {
     public class JSInvocationExpression : JSInvocationExpressionBase {
         public readonly bool ConstantIfArgumentsAre;
         public readonly bool ExplicitThis;
+
+        static JSInvocationExpression () {
+            SetValueNames(
+                typeof(JSInvocationExpression),
+                "Type",
+                "Method",
+                "ThisReference",
+                "Argument"
+            );
+        }
 
         protected JSInvocationExpression (
             JSExpression type, JSExpression method,
@@ -1164,19 +1147,6 @@ namespace JSIL.Ast {
             return targetType;
         }
 
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Type", Values[0]);
-                yield return new AnnotatedNode("Method", Values[1]);
-                yield return new AnnotatedNode("ThisReference", Values[2]);
-
-                foreach (var argument in Values.Skip(3))
-                    yield return new AnnotatedNode("Argument", argument);
-            }
-        }
-         */
-
         public string BuildArgumentListString () {
             var result = new StringBuilder();
 
@@ -1230,6 +1200,14 @@ namespace JSIL.Ast {
     public class JSDelegateInvocationExpression : JSInvocationExpressionBase {
         public readonly TypeReference ReturnType;
 
+        static JSDelegateInvocationExpression () {
+            SetValueNames(
+                typeof(JSDelegateInvocationExpression),
+                "Delegate",
+                "Argument"
+            );
+        }
+
         public JSDelegateInvocationExpression (
             JSExpression @delegate, TypeReference returnType, JSExpression[] arguments
         )
@@ -1260,17 +1238,6 @@ namespace JSIL.Ast {
                 return Values.Skip(1);
             }
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Delegate", Values[0]);
-
-                foreach (var argument in Values.Skip(1))
-                    yield return new AnnotatedNode("Argument", argument);
-            }
-        }
-         */
 
         public override string ToString () {
             return String.Format(
@@ -1411,7 +1378,15 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSPairExpression : JSAnnotatedExpression {
+    public class JSPairExpression : JSExpression {
+        static JSPairExpression () {
+            SetValueNames(
+                typeof(JSInvocationExpression),
+                "Key",
+                "Value"
+            );
+        }
+
         public JSPairExpression (JSExpression key, JSExpression value)
             : base(key, value) {
         }
@@ -1433,15 +1408,6 @@ namespace JSIL.Ast {
                 Values[1] = value;
             }
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Key", Values[0]);
-                yield return new AnnotatedNode("Value", Values[1]);
-            }
-        }
-         */
 
         public override bool IsConstant {
             get {
@@ -1500,7 +1466,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSOperatorExpressionBase : JSAnnotatedExpression {
+    public abstract class JSOperatorExpressionBase : JSExpression {
         protected JSOperatorExpressionBase (params JSExpression[] values)
             : base (values) {
         }
@@ -1548,24 +1514,23 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTernaryOperatorExpression : JSAnnotatedExpression {
+    public class JSTernaryOperatorExpression : JSExpression {
         public readonly TypeReference ActualType;
+
+        static JSTernaryOperatorExpression () {
+            SetValueNames(
+                typeof(JSTernaryOperatorExpression),
+                "Condition",
+                "True Clause",
+                "False Clause"
+            );
+        }
 
         public JSTernaryOperatorExpression (JSExpression condition, JSExpression trueValue, JSExpression falseValue, TypeReference actualType)
             : base(condition, trueValue, falseValue) {
 
             ActualType = actualType;
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Condition", Condition);
-                yield return new AnnotatedNode("True Clause", True);
-                yield return new AnnotatedNode("False Clause", False);
-            }
-        }
-         */
 
         public JSExpression Condition {
             get {
@@ -1602,7 +1567,15 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
+    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {        
+        static JSBinaryOperatorExpression () {
+            SetValueNames(
+                typeof(JSBinaryOperatorExpression),
+                "Left",
+                "Right"
+            );
+        }
+
         /// <summary>
         /// Construct a binary operator expression with an explicit expected type.
         /// </summary>
@@ -1617,15 +1590,6 @@ namespace JSIL.Ast {
                 op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
                 ) {
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Left", Left);
-                yield return new AnnotatedNode("Right", Right);
-            }
-        }
-         */
 
         public JSExpression Left {
             get {
@@ -1684,6 +1648,13 @@ namespace JSIL.Ast {
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
+        static JSUnaryOperatorExpression () {
+            SetValueNames(
+                typeof(JSUnaryOperatorExpression),
+                "Expression"
+            );
+        }
+
         public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference actualType)
             : base(op, actualType, expression) {
         }
@@ -1708,14 +1679,6 @@ namespace JSIL.Ast {
                 return Expression.IsConstant;
             }
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Expression", Expression);
-            }
-        }
-         */
 
         public JSExpression Expression {
             get {
@@ -2205,23 +2168,20 @@ namespace JSIL.Ast {
     }
 
     public class JSWriteThroughPointerExpression : JSBinaryOperatorExpression {
+        static JSWriteThroughPointerExpression () {
+            SetValueNames(
+                typeof(JSWriteThroughPointerExpression),
+                "Left",
+                "Right",
+                "OffsetInBytes"
+            );
+        }
+
         public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, TypeReference actualType, JSExpression offsetInBytes = null)
             : base(
                 JSOperator.Assignment, pointer, rhs, actualType, offsetInBytes
             ) {
         }
-
-        /*
-        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("Left", Left);
-                yield return new AnnotatedNode("Right", Right);
-
-                if (OffsetInBytes != null)
-                    yield return new AnnotatedNode("OffsetInBytes", OffsetInBytes);
-            }
-        }
-         */
 
         public JSExpression OffsetInBytes {
             get {

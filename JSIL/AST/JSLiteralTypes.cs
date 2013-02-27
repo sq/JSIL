@@ -7,7 +7,9 @@ using Mono.Cecil;
 
 namespace JSIL.Ast {
     // Represents a copy of another JSFunctionExpression with the this-reference replaced
+    [JSAstIgnoreInheritedMembers]
     public class JSLambda : JSLiteralBase<JSFunctionExpression> {
+        [JSAstTraverse(0)]
         public readonly JSExpression This;
         public readonly bool UseBind;
 
@@ -41,18 +43,6 @@ namespace JSIL.Ast {
                 return Value.HasGlobalStateDependency;
             }
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                if (This != null)
-                    yield return This;
-
-                // We never want to recurse into the function pointed to by a lambda when doing tree traversal.
-                // yield return Value;
-            }
-        }
-         */
     }
 
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {

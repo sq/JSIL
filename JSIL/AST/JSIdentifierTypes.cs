@@ -284,12 +284,14 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSFakeMethod : JSIdentifier {
         public readonly MethodTypeFactory MethodTypes;
 
         public readonly string Name;
         public readonly TypeReference ReturnType;
         public readonly TypeReference[] ParameterTypes;
+        [JSAstTraverse(0)]
         public readonly JSExpression[] GenericArguments;
 
         public JSFakeMethod (
@@ -307,18 +309,6 @@ namespace JSIL.Ast {
         public override string Identifier {
             get { return Name; }
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                if (GenericArguments == null)
-                    yield break;
-
-                for (var i = 0; i < GenericArguments.Length; i++)
-                    yield return GenericArguments[i];
-            }
-        }
-         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (GenericArguments == null)
@@ -345,12 +335,14 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSVariable : JSIdentifier, IAnnotatedChildren {
+    [JSAstIgnoreInheritedMembers]
+    public class JSVariable : JSIdentifier {
         public readonly MethodReference Function;
 
         public readonly string Name;
         protected readonly bool _IsReference;
 
+        [JSAstTraverse(0)]
         public JSExpression DefaultValue;
 
         public JSVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null)
@@ -477,22 +469,9 @@ namespace JSIL.Ast {
             if (DefaultValue == oldChild)
                 DefaultValue = (JSExpression)newChild;
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield return DefaultValue;
-            }
-        }
-         */
-
-        public IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                yield return new AnnotatedNode("DefaultValue", DefaultValue);
-            }
-        }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSParameter : JSVariable {
         internal JSParameter (string name, TypeReference type, MethodReference function, bool escapeName = true)
             : base(MaybeEscapeName(name, escapeName), type, function) {
@@ -513,14 +492,6 @@ namespace JSIL.Ast {
                 return true;
             }
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield break;
-            }
-        }
-         */
 
         public override JSParameter GetParameter () {
             return this;
@@ -549,6 +520,7 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSThisParameter : JSParameter {
         public JSThisParameter (TypeReference type, MethodReference function) :
             base("this", type, function, false) 
@@ -566,14 +538,6 @@ namespace JSIL.Ast {
                 return true;
             }
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield break;
-            }
-        }
-         */
 
         public static JSVariable New (TypeReference type, MethodReference function) {
             if (type.IsValueType)
@@ -629,6 +593,7 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSIndirectVariable : JSVariable {
         public readonly IDictionary<string, JSVariable> Variables;
 
@@ -683,14 +648,6 @@ namespace JSIL.Ast {
         public override JSVariable Reference () {
             return Variables[Identifier].Reference();
         }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield break;
-            }
-        }
-         */
 
         public override bool Equals (object obj) {
             JSVariable variable;

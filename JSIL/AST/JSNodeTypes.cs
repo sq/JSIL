@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast.Enumerators;
 using JSIL.Internal;
@@ -47,30 +48,53 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public abstract class JSExpression : JSNode {
+        private static readonly ConcurrentDictionary<Type, string[]> ValueNames = new ConcurrentDictionary<Type, string[]>();
+
         public static readonly JSNullExpression Null = new JSNullExpression();
 
+        [JSAstIgnore]
         protected readonly JSExpression[] Values;
 
         protected JSExpression (params JSExpression[] values) {
             Values = values;
         }
 
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                // We don't want to use foreach here, since a value could be changed during iteration
-                for (int i = 0, c = Values.Count; i < c; i++)
-                    yield return Values[i];
-            }
-        }
-         */
-
         public override string ToString () {
             return String.Format(
                 "{0}[{1}]", GetType().Name,
                 String.Join(", ", (from v in Values select String.Concat(v)).ToArray())
             );
+        }
+
+        protected static void SetValueNames (Type nodeType, params string[] valueNames) {
+            if (!ValueNames.TryAdd(nodeType, valueNames))
+                throw new InvalidOperationException("Value names already set for this type.");
+        }
+
+        [JSAstTraverse(0)]
+        static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
+            JSExpression expr = (JSExpression)parent;
+            if (index > expr.Values.Length) {
+                node = null;
+                name = null;
+                return false;
+            } else {
+                node = expr.Values[index];
+
+                string[] valueNames;
+                if (ValueNames.TryGetValue(expr.GetType(), out valueNames)) {
+                    if (index >= valueNames.Length)
+                        name = valueNames[valueNames.Length - 1];
+                    else
+                        name = valueNames[index];
+                } else {
+                    name = "Values";
+                }
+
+                return true;
+            }
         }
 
         public virtual TypeReference GetActualType (TypeSystem typeSystem) {
@@ -403,63 +427,5 @@ namespace JSIL.Ast {
         public NoExpectedTypeException (JSExpression node)
             : base(String.Format("Node of type {0} has no expected type: {1}", node.GetType().Name, node)) {
         }
-    }
-
-    public struct AnnotatedNode {
-        public readonly string Name;
-        public readonly JSNode Node;
-
-        public AnnotatedNode (string name, JSNode node) {
-            Name = name;
-            Node = node;
-        }
-    }
-
-    public interface IAnnotatedChildren {
-        /*
-        IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get;
-        }
-         */
-    }
-
-    public abstract class JSAnnotatedStatement : JSStatement, IAnnotatedChildren {
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                foreach (var child in AnnotatedChildren)
-                    yield return child.Node;
-            }
-        }
-
-        public virtual IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                foreach (var child in base.Children)
-                    yield return new AnnotatedNode(null, child);
-            }
-        }
-         */
-    }
-
-    public abstract class JSAnnotatedExpression : JSExpression, IAnnotatedChildren {
-        protected JSAnnotatedExpression (params JSExpression[] values)
-            : base (values) {
-        }
-
-        /*
-        public override IEnumerable<JSNode> Children {
-            get {
-                foreach (var child in AnnotatedChildren)
-                    yield return child.Node;
-            }
-        }
-
-        public virtual IEnumerable<AnnotatedNode> AnnotatedChildren {
-            get {
-                foreach (var child in base.Children)
-                    yield return new AnnotatedNode(null, child);
-            }
-        }
-         */
     }
 }
