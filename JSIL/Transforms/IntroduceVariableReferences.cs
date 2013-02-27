@@ -202,12 +202,6 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                new IntroduceVariableReferences(JSIL, fn.AllVariables, new HashSet<string>(from p in fn.Parameters select p.Name)).Visit(fn);
-                return;
-            }
-
             VisitChildren(fn);
 
             foreach (var p in fn.Parameters) {

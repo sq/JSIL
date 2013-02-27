@@ -17,18 +17,6 @@ namespace JSIL.Transforms {
             TypeInfo = typeInfo;
         }
 
-        public void VisitNode (JSFunctionExpression fn) {
-            // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EliminatePointlessFinallyBlocks(Member, FunctionSource, TypeSystem, TypeInfo);
-                nested.Visit(fn);
-
-                return;
-            }
-
-            VisitChildren(fn);
-        }
-
         protected bool IsEffectivelyConstant (JSExpression expression) {
             if (expression.IsConstant)
                 return true;

@@ -25,14 +25,6 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new OptimizeArrayEnumerators(Member, FunctionSource, TypeSystem);
-                nested.Visit(fn);
-
-                return;
-            }
-
             Function = fn;
             FirstPass = GetFirstPass(Function.Method.QualifiedIdentifier);
 

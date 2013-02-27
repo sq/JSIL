@@ -22,12 +22,6 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new IntroduceVariableDeclarations(fn.AllVariables, TypeInfo);
-                nested.Visit(fn);
-                return;
-            }
-
             var existingDeclarations = new HashSet<string>(
                 fn.AllChildrenRecursive.OfType<JSVariableDeclarationStatement>()
                 .SelectMany(

@@ -178,19 +178,6 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                bool eliminated = false;
-
-                do {
-                    var nested = new EliminateSingleUseTemporaries(Member, FunctionSource, TypeSystem, fn.AllVariables);
-                    nested.Visit(fn);
-                    eliminated = nested.EliminatedVariables.Count > 0;
-                } while (eliminated);
-
-                return;
-            }
-
             var nullList = new List<int>();
             FirstPass = GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)

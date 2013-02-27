@@ -48,6 +48,8 @@ namespace JSIL {
             TypeInfo = typeInfo;
             IncludeTypeParens.Push(false);
             PassByRefStack.Push(false);
+
+            VisitNestedFunctions = true;
         }
 
         public void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {

@@ -202,13 +202,6 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EmulateStructAssignment(Member, FunctionSource, TypeSystem, TypeInfo, CLR, OptimizeCopies);
-                nested.Visit(fn);
-                return;
-            }
-
             var countRefs = new CountVariableReferences(ReferenceCounts);
             countRefs.Visit(fn.Body);
 
