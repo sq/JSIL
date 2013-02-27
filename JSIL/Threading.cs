@@ -70,7 +70,7 @@ namespace JSIL.Threading {
             }
         }
 
-        protected readonly ConcurrentDictionary<string, TrackedLock> Locks = new ConcurrentDictionary<string, TrackedLock>();
+        protected readonly ConcurrentDictionary<TrackedLock, bool> Locks = new ConcurrentDictionary<TrackedLock, bool>();
         protected readonly ConcurrentDictionary<Thread, Wait> WaitsByThread = new ConcurrentDictionary<Thread, Wait>(
             new Internal.ReferenceComparer<Thread>()
         );
@@ -84,18 +84,16 @@ namespace JSIL.Threading {
             MakeWaitList = (lck) => new OrderedDictionary<Wait, bool>();
         }
 
-        public void Track (string name, TrackedLock lck) {
-            if (!Locks.TryAdd(name, lck))
-                throw new InvalidOperationException("A lock with this name already exists");
+        internal void Track (TrackedLock lck) {
+            if (!Locks.TryAdd(lck, false))
+                throw new ThreadStateException();
         }
 
-        public void Untrack (string name, TrackedLock lck) {
-            TrackedLock temp;
+        internal void Untrack (TrackedLock lck) {
+            bool temp;
 
-            if (!Locks.TryRemove(name, out temp))
-                throw new InvalidOperationException("A lock with this name does not exist");
-            if (temp != lck)
-                throw new ThreadStateException("The lock with this name does not match the lock passed in");
+            if (!Locks.TryRemove(lck, out temp))
+                throw new ThreadStateException();
 
             OrderedDictionary<Wait, bool> waits;
             if (Waits.TryGet(lck, out waits)) {
@@ -168,7 +166,7 @@ namespace JSIL.Threading {
 
         public void Dispose () {
             while (Locks.Count > 0) {
-                foreach (var lck in Locks.Values.ToArray())
+                foreach (var lck in Locks.Keys.ToArray())
                     lck.Dispose();
             }
         }
@@ -185,25 +183,26 @@ namespace JSIL.Threading {
 
     public class TrackedLock : IDisposable {
         public readonly TrackedLockCollection Collection;
-        public readonly string Name;
+        public readonly Func<string> GetName;
 
         private volatile Thread _HeldBy = null;
 
-        public TrackedLock (TrackedLockCollection collection, string name) {
-            if (name == null)
-                throw new ArgumentNullException("name");
+        public TrackedLock (TrackedLockCollection collection, string name)
+            : this(collection, () => name) {
+        }
 
+        public TrackedLock (TrackedLockCollection collection, Func<string> getName = null) {
             Collection = collection;
-            Name = name;
+            GetName = getName;
 
-            collection.Track(name, this);
+            collection.Track(this);
         }
 
         public void Dispose () {
             if (IsDisposed)
                 return;
 
-            Collection.Untrack(Name, this);
+            Collection.Untrack(this);
 
             // FIXME
             _HeldBy = null;
@@ -320,7 +319,9 @@ namespace JSIL.Threading {
             var hby = _HeldBy;
             return String.Format(
                 "<TrackedLock '{0}' held by {1}>",
-                Name,
+                (GetName != null)
+                    ? GetName()
+                    : String.Format("Unnamed {0}", GetHashCode()),
                 hby != null
                     ? String.Format("thread #{0} '{1}'", hby.ManagedThreadId, hby.Name)
                     : "nobody"
