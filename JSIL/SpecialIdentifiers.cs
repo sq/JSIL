@@ -52,11 +52,13 @@ namespace JSIL {
         }
     };
 
+    [JSAstIgnoreInheritedMembers]
     public class JSILIdentifier : JSIdentifier {
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
         public readonly JSSpecialIdentifiers JS;
 
+        [JSAstIgnore]
         public readonly JSDotExpressionBase GlobalNamespace, CopyMembers;
 
         public JSILIdentifier (MethodTypeFactory methodTypes, TypeSystem typeSystem, JSSpecialIdentifiers js) {
