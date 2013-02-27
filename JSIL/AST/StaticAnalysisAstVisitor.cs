@@ -21,11 +21,11 @@ namespace JSIL.Ast {
         }
 
         protected FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
-            return FunctionSource.GetFirstPass(method, Member, true);
+            return FunctionSource.GetFirstPass(method, Member);
         }
 
         protected FunctionAnalysis2ndPass GetSecondPass (JSMethod method) {
-            return FunctionSource.GetSecondPass(method, Member, true);
+            return FunctionSource.GetSecondPass(method, Member);
         }
     }
 }

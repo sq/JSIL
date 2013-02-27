@@ -673,7 +673,7 @@ namespace JSIL.Transforms {
                 FunctionAnalysis2ndPass invocationSecondPass;
                 foreach (var invocation in Data.Invocations) {
                     if (invocation.Method != null)
-                        invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier, false);
+                        invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
                     else
                         invocationSecondPass = null;
 
@@ -704,7 +704,7 @@ namespace JSIL.Transforms {
 
                 seenMethods.Add(currentMethod);
 
-                var rmfp = functionCache.GetFirstPass(rm.QualifiedIdentifier, data.Identifier, false);
+                var rmfp = functionCache.GetFirstPass(rm.QualifiedIdentifier, data.Identifier);
                 if (rmfp == null) {
                     ResultIsNew = rm.Method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
                     break;
@@ -771,7 +771,7 @@ namespace JSIL.Transforms {
                 if (i.Method == null)
                     return false;
 
-                var secondPass = FunctionCache.GetSecondPass(i.Method, Data.Identifier, false);
+                var secondPass = FunctionCache.GetSecondPass(i.Method, Data.Identifier);
                 if (secondPass == null)
                     return false;
 

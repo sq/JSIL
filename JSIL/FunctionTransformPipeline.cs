@@ -106,10 +106,11 @@ namespace JSIL.Internal {
         public bool RunUntilCompletion () {
             bool completed = false;
 
-            try {
-                if (!Translator.FunctionCache.LockCacheEntryForTransformPipeline(Identifier))
-                    throw new ThreadStateException("Failed to lock cache entry for '" + Identifier + "'");
+            var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
+            if (!entry.TransformPipelineLock.TryEnter())
+                throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline", Identifier));
 
+            try {
                 while (Pipeline.Count > 0) {
                     var currentStage = Pipeline.Peek();
 
@@ -135,8 +136,8 @@ namespace JSIL.Internal {
 
                 return (completed = true);
             } finally {
-                if (!Translator.FunctionCache.UnlockCacheEntryForTransformPipeline(Identifier, completed))
-                    throw new ThreadStateException("Failed to unlock cache entry for '" + Identifier + "'");
+                entry.TransformPipelineHasCompleted |= completed;
+                entry.TransformPipelineLock.Exit();
 
                 if (completed) {
                     FunctionTransformPipeline temp;
