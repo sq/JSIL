@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
@@ -14,7 +15,10 @@ namespace JSIL.Transforms {
         public readonly HashSet<int> UsedLoops = new HashSet<int>();
 
         public void VisitNode (JSLoopStatement ls) {
-            Loops.Add(ls.Index.Value, ls);
+            if (!Loops.ContainsKey(ls.Index.Value))
+                Loops.Add(ls.Index.Value, ls);
+            else
+                throw new InvalidDataException(String.Format("Found two loops numbered {0}", ls.Index.Value));
 
             VisitChildren(ls);
         }

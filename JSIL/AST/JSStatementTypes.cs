@@ -220,7 +220,7 @@ namespace JSIL.Ast {
 
     [JSAstIgnoreInheritedMembers]
     public class JSExpressionStatement : JSStatement {
-        [JSAstTraverse(0)]
+        [JSAstTraverse(0, "Expression")]
         protected JSExpression _Expression;
 
         public JSExpressionStatement (JSExpression expression) {
