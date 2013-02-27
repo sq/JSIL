@@ -123,7 +123,7 @@ namespace JSIL.Ast {
         protected static bool GetChild (JSNode parent, int index, out JSNode node, out string name) {
             var self = (JSLabelGroupStatement)parent;
 
-            if (index > self.Labels.Count) {
+            if (index >= self.Labels.Count) {
                 node = null;
                 name = null;
                 return false;

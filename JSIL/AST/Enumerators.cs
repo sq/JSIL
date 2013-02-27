@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using ICSharpCode.NRefactory.PatternMatching;
 using JSIL.Ast.Traversal;
 using JSIL.Internal;
 
@@ -41,16 +42,35 @@ namespace JSIL.Ast.Enumerators {
             IncludeSelf = includeSelf;
         }
 
-        public JSNodeChildRecursiveEnumerator GetEnumerator () {
-            return new JSNodeChildRecursiveEnumerator(Node, IncludeSelf);
+        public IEnumerator<JSNode> GetEnumerator () {
+            if (IncludeSelf)
+                yield return Node;
+
+            var list = new LinkedList<JSNode>();
+
+            using (var inner = new JSNodeChildEnumerator(Node, false))
+            while (inner.MoveNext()) {
+                var node = inner.Current;
+                if (node != null)
+                    list.AddLast(node);
+            }
+
+            while (list.Count > 0) {
+                var current = list.First;
+
+                foreach (var leaf in current.Value.Children) {
+                    if (leaf != null)
+                        list.AddBefore(current, leaf);
+                }
+
+                list.Remove(current);
+
+                yield return current.Value;
+            }
         }
 
-        System.Collections.Generic.IEnumerator<JSNode> System.Collections.Generic.IEnumerable<JSNode>.GetEnumerator () {
-            return new JSNodeChildRecursiveEnumerator(Node, IncludeSelf);
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
-            return new JSNodeChildRecursiveEnumerator(Node, IncludeSelf);
+        IEnumerator IEnumerable.GetEnumerator () {
+            return this.GetEnumerator();
         }
     }
 
@@ -121,10 +141,8 @@ namespace JSIL.Ast.Enumerators {
 
                         if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName))
                             return true;
-                        else {
+                        else
                             _ArrayIndex = -1;
-                            _Index += 1;
-                        }
                     } else {
                         throw new InvalidDataException("Unrecognized record type");
                     }
@@ -137,79 +155,6 @@ namespace JSIL.Ast.Enumerators {
             _ArrayIndex = -1;
             _Current = null;
             _CurrentName = null;
-        }
-    }
-
-    public struct JSNodeChildRecursiveEnumerator : IEnumerator<JSNode> {
-        private struct State {
-            public bool RecurseOnNextStep, DontRecurseNext;
-            public JSNodeChildEnumerator Enumerator;
-        }
-
-        private Stack<State> _Stack;
-        private State _State;
-
-        public JSNodeChildRecursiveEnumerator (JSNode node, bool includeSelf) {
-            _Stack = new Stack<State>();
-            _State = new State {
-                Enumerator = new JSNodeChildEnumerator(node, includeSelf),
-                RecurseOnNextStep = false,
-                DontRecurseNext = includeSelf
-            };
-        }
-
-        public int Depth {
-            get { return _Stack.Count; }
-        }
-
-        public string CurrentName {
-            get { return _State.Enumerator._CurrentName; }
-        }
-
-        public JSNode Current {
-            get { return _State.Enumerator._Current; }
-        }
-
-        public void Dispose () {
-            _State.Enumerator.Dispose();
-
-            foreach (var e in _Stack)
-                e.Enumerator.Dispose();
-
-            _Stack.Clear();
-        }
-
-        object System.Collections.IEnumerator.Current {
-            get { return _State.Enumerator._Current; }
-        }
-
-        public bool MoveNext () {
-            if (_State.DontRecurseNext) {
-                _State.DontRecurseNext = false;
-            } else if (_State.RecurseOnNextStep) {
-                _State.RecurseOnNextStep = false;
-                _Stack.Push(_State);
-                _State = new State {
-                    Enumerator = new JSNodeChildEnumerator(_State.Enumerator.Current, false)
-                };
-            } else {
-                _State.RecurseOnNextStep = true;
-            }
-
-            while (!_State.Enumerator.MoveNext()) {
-                if (_Stack.Count > 0) {
-                    _State.Enumerator.Dispose();
-                    _State = _Stack.Pop();
-                } else {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public void Reset () {
-            throw new NotSupportedException();
         }
     }
 }

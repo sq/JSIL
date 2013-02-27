@@ -370,6 +370,7 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public abstract class JSLiteralBase<T> : JSLiteral {
         public readonly T Value;
 

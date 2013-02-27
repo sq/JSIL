@@ -134,8 +134,18 @@ namespace JSIL.Tests {
 
         private void DumpNodeSequence (JSNodeChildrenRecursive enumerable) {
             using (var e = enumerable.GetEnumerator())
+            while (e.MoveNext())
+                Console.WriteLine("{0} << {1} >>", e.Current.GetType(), e.Current);
+
+            var nonDistinct = enumerable.ToArray();
+            var distinct = nonDistinct.Distinct(new ReferenceComparer<JSNode>()).ToArray();
+            Assert.AreEqual(distinct.Length, nonDistinct.Length, "Enumeration contains duplicates");
+        }
+
+        private void DumpNodeSequence (JSNodeChildren enumerable) {
+            using (var e = enumerable.GetEnumerator())
             while (e.MoveNext()) {
-                Console.WriteLine("{0}{1}: {2}", new String(' ', e.Depth * 2), e.CurrentName, e.Current.GetType());
+                Console.WriteLine("{0}: {1}", e.CurrentName, e.Current.GetType());
             }
 
             var nonDistinct = enumerable.ToArray();
@@ -189,6 +199,25 @@ namespace JSIL.Tests {
             );
 
             DumpNodeSequence(tree.SelfAndChildrenRecursive);
+        }
+
+        [Test]
+        public void NewArrayTraversal () {
+            var na = new JSNewArrayExpression(
+                T1,
+                new JSExpression[] { JSLiteral.New(2) },
+                new JSArrayExpression(
+                    T1, 
+                    JSLiteral.New(3),
+                    JSLiteral.New(4)
+                )
+            );
+
+            // DumpNodeSequence(na.SelfAndChildrenRecursive);
+            DumpNodeSequence(na.AllChildrenRecursive);
+
+            Assert.AreEqual(2, na.Children.ToArray().Length, "Child count");
+            Assert.AreEqual(4, na.AllChildrenRecursive.ToArray().Length, "Recursive child count");
         }
     }
 }
