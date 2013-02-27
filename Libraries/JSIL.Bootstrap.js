@@ -637,6 +637,9 @@ JSIL.MakeClass("System.SystemException", "System.IOException", true);
 JSIL.MakeClass("System.IOException", "System.IO.FileNotFoundException", true);
 JSIL.MakeClass("System.IOException", "System.IO.EndOfStreamException", true);
 
+JSIL.MakeClass("System.SystemException", "System.ArithmeticException", true);
+JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
+
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
     var text = "";

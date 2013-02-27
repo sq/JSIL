@@ -35,6 +35,7 @@ namespace JSIL {
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
         protected readonly Stack<bool> PassByRefStack = new Stack<bool>();
+        protected readonly Stack<bool> OverflowCheckStack = new Stack<bool>();
 
         public JavascriptAstEmitter (
             JavascriptFormatter output, JSILIdentifier jsil, 
@@ -46,8 +47,10 @@ namespace JSIL {
             JSIL = jsil;
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
+
             IncludeTypeParens.Push(false);
             PassByRefStack.Push(false);
+            OverflowCheckStack.Push(false);
 
             VisitNestedFunctions = true;
         }
@@ -1366,7 +1369,9 @@ namespace JSIL {
                 return false;
 
             if (
-                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true)
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
+                // Truncation needs to happen after overflow checks, not before, because... yeah.
+                !OverflowCheckStack.Peek()
             ) {
                 return
                     TypeUtil.Is32BitIntegral(uop.Expression.GetActualType(TypeSystem)) &&
@@ -1390,7 +1395,9 @@ namespace JSIL {
 
             if (
                 !(bop.Operator is JSAssignmentOperator) &&
-                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true)
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
+                // Truncation needs to happen after overflow checks, not before, because... yeah.
+                !OverflowCheckStack.Peek()
             ) {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
@@ -1846,6 +1853,17 @@ namespace JSIL {
 
             CommaSeparatedList(comma.SubExpressions, true);
 
+            Output.RPar();
+        }
+
+        public void VisitNode (JSOverflowCheckExpression overflowCheck) {
+            Visit(overflowCheck.Type);
+            Output.Dot();
+            Output.Identifier("$OverflowCheck");
+            Output.LPar();
+            OverflowCheckStack.Push(true);
+            Visit(overflowCheck.Expression);
+            OverflowCheckStack.Pop();
             Output.RPar();
         }
     }

@@ -337,6 +337,7 @@
     <None Include="UnsafeTestCases\StackAlloc.cs" />
     <None Include="UnsafeTestCases\PointerOrdering.cs" />
     <None Include="UnsafeTestCases\PointerRefCast.cs" />
+    <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
     <Compile Include="ThreadingTests.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />

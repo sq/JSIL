@@ -2290,4 +2290,39 @@ namespace JSIL.Ast {
             : base(op, lhs, rhs, actualType) {
         }
     }
+
+    public class JSOverflowCheckExpression : JSExpression {
+        public static JSExpression New (JSExpression inner, TypeSystem typeSystem) {
+            var ioce = inner as JSOverflowCheckExpression;
+            if (ioce != null)
+                return ioce;
+
+            var innerType = inner.GetActualType(typeSystem);
+
+            if (TypeUtil.IsPointer(innerType))
+                return inner;
+
+            return new JSOverflowCheckExpression(inner, new JSType(innerType));
+        }
+
+        protected JSOverflowCheckExpression (JSExpression expression, JSType type)
+            : base (expression, type) {
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Expression.GetActualType(typeSystem);
+        }
+    }
 }

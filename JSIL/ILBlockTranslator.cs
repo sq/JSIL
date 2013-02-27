@@ -1543,9 +1543,12 @@ namespace JSIL {
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
+        protected JSExpression Translate_Mul_Ovf (ILExpression node) {
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Multiply), TypeSystem);
+        }
+
         protected JSExpression Translate_Mul_Ovf_Un (ILExpression node) {
-            // FIXME: Force unsigned and do overflow check
-            return Translate_BinaryOp(node, JSOperator.Multiply);
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Multiply), TypeSystem);
         }
 
         protected JSExpression Translate_Div (ILExpression node) {
@@ -1560,8 +1563,24 @@ namespace JSIL {
             return Translate_BinaryOp(node, JSOperator.Add);
         }
 
+        protected JSExpression Translate_Add_Ovf (ILExpression node) {
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Add), TypeSystem);
+        }
+
+        protected JSExpression Translate_Add_Ovf_Un (ILExpression node) {
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Add), TypeSystem);
+        }
+
         protected JSExpression Translate_Sub (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Subtract);
+        }
+
+        protected JSExpression Translate_Sub_Ovf (ILExpression node) {
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Subtract), TypeSystem);
+        }
+
+        protected JSExpression Translate_Sub_Ovf_Un (ILExpression node) {
+            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Subtract), TypeSystem);
         }
 
         protected JSExpression Translate_Shl (ILExpression node) {
@@ -2229,9 +2248,12 @@ namespace JSIL {
             var value = TranslateNode(node.Arguments[0]);
 
             if (!TypeUtil.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
-                return Translate_Conv(value, targetType);
-            else
-                return value;
+                value = Translate_Conv(value, targetType);
+
+            if (throwOnOverflow)
+                value = JSOverflowCheckExpression.New(value, TypeSystem);
+
+            return value;
         }
 
         protected JSExpression Translate_Conv_I (ILExpression node) {

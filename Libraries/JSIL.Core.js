@@ -1434,6 +1434,19 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
     JSIL.MakeCastMethods(
       $.publicInterface, $.typeObject, isIntegral ? "integer" : "number"
     );
+
+    $.RawMethod(
+      true, "$OverflowCheck",
+      function OverflowCheck (value) {
+        var minValue = $.publicInterface.MinValue;
+        var maxValue = $.publicInterface.MaxValue;
+
+        if ((value < minValue) || (value > maxValue))
+          throw new System.OverflowException("Arithmetic operation resulted in an overflow.");
+
+        return (value | 0);
+      }
+    );
   });
 };
 
