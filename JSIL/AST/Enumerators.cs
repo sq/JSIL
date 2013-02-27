@@ -68,7 +68,7 @@ namespace JSIL.Ast.Enumerators {
             TraversalData = JSNodeTraversalData.Get(node);
             Node = node;
             IncludeSelf = includeSelf;
-            _Index = -1;
+            _Index = IncludeSelf ? -2 : -1;
             _ArrayIndex = -1;
             _Current = null;
             _CurrentName = null;
@@ -97,6 +97,15 @@ namespace JSIL.Ast.Enumerators {
                 if (_Index >= TraversalData.Records.Length)
                     return false;
 
+                if (_Index < 0) {
+                    if (IncludeSelf) {
+                        _Current = Node;
+                        _CurrentName = null;
+                        return true;
+                    } else
+                        throw new InvalidOperationException("Enumerator error");
+                }
+
                 var record = TraversalData.Records[_Index];
                 var elementRecord = record as JSNodeTraversalElementRecord;
                 if (elementRecord != null) {
@@ -119,7 +128,10 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public void Reset () {
-            throw new NotImplementedException();
+            _Index = IncludeSelf ? -2 : -1;
+            _ArrayIndex = -1;
+            _Current = null;
+            _CurrentName = null;
         }
     }
 
