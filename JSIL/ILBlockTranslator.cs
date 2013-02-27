@@ -2225,7 +2225,7 @@ namespace JSIL {
                 return value;
         }
 
-        protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
+        protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType, bool throwOnOverflow = false, bool fromUnsignedInputs = false) {
             var value = TranslateNode(node.Arguments[0]);
 
             if (!TypeUtil.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
@@ -2236,6 +2236,114 @@ namespace JSIL {
 
         protected JSExpression Translate_Conv_I (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+        
+        protected JSExpression Translate_Conv_I1 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte);
+        }
+
+        protected JSExpression Translate_Conv_I2 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int16);
+        }
+
+        protected JSExpression Translate_Conv_I4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
+        protected JSExpression Translate_Conv_I8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I1 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I1_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I2 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int16, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I2_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int16, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I4_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I8_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U1 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Byte, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U1_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Byte, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U2 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U2_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U4_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64, true);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_U8_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64, true, true);
+        }
+
+        protected JSExpression Translate_Conv_R_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double, false, true);
+        }
+
+        protected JSExpression Translate_Conv_R4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Single);
+        }
+
+        protected JSExpression Translate_Conv_R8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
         }
 
         protected JSExpression Translate_Conv_U (ILExpression node) {
@@ -2257,60 +2365,8 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
         }
 
-        protected JSExpression Translate_Conv_Ovf_U4_Un (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
-        }
-
         protected JSExpression Translate_Conv_U8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
-        }
-
-        protected JSExpression Translate_Conv_Ovf_U8 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
-        }
-
-        protected JSExpression Translate_Conv_I1 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte);
-        }
-
-        protected JSExpression Translate_Conv_I2 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int16);
-        }
-
-        protected JSExpression Translate_Conv_I4 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
-        }
-
-        protected JSExpression Translate_Conv_Ovf_I4 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
-        }
-
-        protected JSExpression Translate_Conv_Ovf_I (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
-        }
-
-        protected JSExpression Translate_Conv_Ovf_I_Un (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
-        }
-
-        protected JSExpression Translate_Conv_I8 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
-        }
-
-        protected JSExpression Translate_Conv_Ovf_I8 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
-        }
-
-        protected JSExpression Translate_Conv_R4 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Single);
-        }
-
-        protected JSExpression Translate_Conv_R8 (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
-        }
-
-        protected JSExpression Translate_Conv_R_Un (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
         }
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
