@@ -7,55 +7,23 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
+using JSIL.Ast.Enumerators;
 using JSIL.Internal;
 using JSIL.Transforms;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
     public abstract class JSNode {
-        /// <summary>
-        /// Enumerates the children of this node.
-        /// </summary>
-        public virtual IEnumerable<JSNode> Children {
-            get {
-                yield break;
-            }
-        }
+        public readonly JSNodeChildren Children;
+        public readonly JSNodeChildren SelfAndChildren;
+        public readonly JSNodeChildrenRecursive AllChildrenRecursive;
+        public readonly JSNodeChildrenRecursive SelfAndChildrenRecursive;
 
-        public IEnumerable<JSNode> SelfAndChildren {
-            get {
-                yield return this;
-
-                foreach (var ch in Children)
-                    yield return ch;
-            }
-        }
-
-        public IEnumerable<JSNode> SelfAndChildrenRecursive {
-            get {
-                yield return this;
-
-                foreach (var ch in AllChildrenRecursive)
-                    yield return ch;
-            }
-        }
-
-        public IEnumerable<JSNode> AllChildrenRecursive {
-            get {
-                foreach (var child in Children) {
-                    if (child == null)
-                        continue;
-
-                    yield return child;
-
-                    foreach (var subchild in child.AllChildrenRecursive) {
-                        if (subchild == null)
-                            continue;
-
-                        yield return subchild;
-                    }
-                }
-            }
+        public JSNode () {
+            Children = new JSNodeChildren(this, false);
+            SelfAndChildren = new JSNodeChildren(this, true);
+            AllChildrenRecursive = new JSNodeChildrenRecursive(this, false);
+            SelfAndChildrenRecursive = new JSNodeChildrenRecursive(this, true);
         }
 
         /// <summary>
