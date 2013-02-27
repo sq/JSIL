@@ -74,9 +74,14 @@ namespace JSIL.Ast {
         }
 
         protected static string GetValueName (Type nodeType, int index) {
+            var originalNodeType = nodeType;
+
             while (nodeType != null) {
                 string[] valueNames;
                 if (ValueNames.TryGetValue(nodeType, out valueNames)) {
+                    if (nodeType != originalNodeType)
+                        ValueNames.TryAdd(originalNodeType, valueNames);
+
                     if (index >= valueNames.Length)
                         return valueNames[valueNames.Length - 1];
                     else
