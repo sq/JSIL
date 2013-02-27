@@ -1381,7 +1381,7 @@ namespace JSIL.Ast {
     public class JSPairExpression : JSExpression {
         static JSPairExpression () {
             SetValueNames(
-                typeof(JSInvocationExpression),
+                typeof(JSPairExpression),
                 "Key",
                 "Value"
             );

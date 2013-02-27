@@ -603,49 +603,72 @@ namespace JSIL.Ast {
             Variables = variables;
         }
 
+        private void CheckForMissingVariable () {
+            if (!Variables.ContainsKey(Identifier))
+                throw new KeyNotFoundException(String.Format("No variable named '{0}' currently exists.", Identifier));
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
+            CheckForMissingVariable();
+
             return Variables[Identifier].GetActualType(typeSystem);
         }
 
         public override TypeReference IdentifierType {
             get {
+                CheckForMissingVariable();
+
                 return Variables[Identifier].IdentifierType;
             }
         }
 
         public override bool IsReference {
             get {
+                CheckForMissingVariable();
+
                 return Variables[Identifier].IsReference;
             }
         }
 
         public override bool IsParameter {
             get {
+                CheckForMissingVariable();
+
                 return Variables[Identifier].IsParameter;
             }
         }
 
         public override JSParameter GetParameter () {
+            CheckForMissingVariable();
+
             return Variables[Identifier].GetParameter();
         }
 
         public override bool IsConstant {
             get {
+                CheckForMissingVariable();
+
                 return Variables[Identifier].IsConstant;
             }
         }
 
         public override bool IsThis {
             get {
+                CheckForMissingVariable();
+
                 return Variables[Identifier].IsThis;
             }
         }
 
         public override JSVariable Dereference () {
+            CheckForMissingVariable();
+
             return Variables[Identifier].Dereference();
         }
 
         public override JSVariable Reference () {
+            CheckForMissingVariable();
+
             return Variables[Identifier].Reference();
         }
 
@@ -667,7 +690,7 @@ namespace JSIL.Ast {
             if (Variables.TryGetValue(Identifier, out variable))
                 return String.Format("@{0}", variable);
             else
-                return "@undef";
+                return String.Format("@missing({0})", Identifier);
         }
     }
 

@@ -8,7 +8,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : StaticAnalysisJSAstVisitor {
-        public static int TraceLevel = 0;
+        public static int TraceLevel = 5;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
