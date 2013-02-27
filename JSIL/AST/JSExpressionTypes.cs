@@ -20,6 +20,7 @@ namespace JSIL.Ast {
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
         // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
+        // If we were to convert it to an array, later changes to the data the enumerable pulls from wouldn't update it
         [JSAstTraverse(0, "FunctionSignature")]
         public readonly IEnumerable<JSVariable> Parameters;
         [JSAstTraverse(1)]

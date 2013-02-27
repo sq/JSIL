@@ -5,27 +5,28 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using JSIL.Internal;
 using System.Linq.Expressions;
 
 namespace JSIL.Ast.Traversal {
     public class JSNodeTraversalData {
-        private static readonly ConcurrentCache<Type, JSNodeTraversalData> Cache = new ConcurrentCache<Type, JSNodeTraversalData>();
-        private static readonly ConcurrentCache<Type, JSNodeTraversalData>.CreatorFunction MakeCacheEntry;
+        private static readonly ThreadLocal<Dictionary<Type, JSNodeTraversalData>> Cache = new ThreadLocal<Dictionary<Type, JSNodeTraversalData>>(
+            () => new Dictionary<Type, JSNodeTraversalData>(512, new ReferenceComparer<Type>())
+        );
 
         public readonly Type Type;
         public readonly JSNodeTraversalRecord[] Records;
 
-        static JSNodeTraversalData () {
-            MakeCacheEntry = (nodeType) => new JSNodeTraversalData(nodeType);
-        }
-
         public static JSNodeTraversalData Get (JSNode node) {
-            return Get(node.GetType());
-        }
+            JSNodeTraversalData result;
+            var nodeType = node.GetType();
 
-        public static JSNodeTraversalData Get (Type nodeType) {
-            return Cache.GetOrCreate(nodeType, MakeCacheEntry);
+            var cache = Cache.Value;
+            if (!cache.TryGetValue(nodeType, out result))
+                cache.Add(nodeType, result = new JSNodeTraversalData(nodeType));
+
+            return result;
         }
 
         private JSNodeTraversalData (Type nodeType) {
