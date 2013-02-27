@@ -21,9 +21,9 @@ namespace JSIL.Threading {
 
     public class TrackedLockCollection : IDisposable {
         public class DeadlockInfo {
-            public readonly Wait A, B;
+            public readonly TrackedLock A, B;
 
-            public DeadlockInfo (Wait a, Wait b) {
+            public DeadlockInfo (TrackedLock a, TrackedLock b) {
                 A = a;
                 B = b;
             }
@@ -125,30 +125,33 @@ namespace JSIL.Threading {
                     break;
 
                 if (seenLocks.Contains(nextWaitToExamine.Lock))
-                    return new DeadlockInfo(waitToExamine, nextWaitToExamine);
+                    return new DeadlockInfo(waitToExamine.Lock, nextWaitToExamine.Lock);
                 waitToExamine = nextWaitToExamine;
             }
 
             return null;
         }
 
-        internal Wait CreateWait (TrackedLock lck) {
+        internal bool TryCreateWait (TrackedLock lck, out DeadlockInfo deadlock, out Wait wait) {
             var currentThread = Thread.CurrentThread;
             var waits = Waits.GetOrCreate(lck, MakeWaitList);
-            var result = new Wait(this, lck, currentThread);
+            wait = new Wait(this, lck, currentThread);
 
             lock (waits)
-                waits.Enqueue(result, false);
+                waits.Enqueue(wait, false);
 
-            var deadlock = DetectDeadlock(result);
+            deadlock = DetectDeadlock(wait);
             if (deadlock != null) {
                 lock (waits)
-                    waits.Remove(result);
+                    waits.Remove(wait);
 
-                throw new DeadlockAvertedException(deadlock.A.Lock, deadlock.B.Lock);
+                wait.Dispose();
+                wait = null;
+
+                return false;
             }
 
-            return result;
+            return true;
         }
 
         internal bool TryDequeueOneWait (TrackedLock lck, out Wait wait) {
@@ -264,28 +267,46 @@ namespace JSIL.Threading {
             return TryEnter(out temp);
         }
 
-        public void Enter () {
+        public TrackedLockResult TryBlockingEnter () {
+            TrackedLockCollection.DeadlockInfo temp;
+            return TryBlockingEnter(out temp);
+        }
+
+        public TrackedLockResult TryBlockingEnter (out TrackedLockCollection.DeadlockInfo deadlock) {
+            TrackedLockCollection.Wait wait;
+            deadlock = null;
+
             while (true) {
                 var result = TryEnter();
-                if (result.Success)
-                    return;
+                if (result.FailureReason != TrackedLockFailureReason.HeldByOtherThread)
+                    return result;
 
-                if (result.FailureReason == TrackedLockFailureReason.HeldByCurrentThread)
-                    throw new LockAlreadyHeldException();
+                if (Collection.TryCreateWait(this, out deadlock, out wait)) {
+                    using (wait) {
+                        result = TryEnter();
 
-                using (var w = Collection.CreateWait(this)) {
-                    result = TryEnter();
-
-                    if (result.Success)
-                        return;
-
-                    switch (result.FailureReason) {
-                        case TrackedLockFailureReason.HeldByCurrentThread:
-                            throw new LockAlreadyHeldException();
-                        case TrackedLockFailureReason.HeldByOtherThread:
-                            w.Block();
-                            break;
+                        if (result.FailureReason == TrackedLockFailureReason.HeldByOtherThread) {
+                            wait.Block();
+                        } else {
+                            return result;
+                        }
                     }
+                } else {
+                    return new TrackedLockResult(TrackedLockFailureReason.Deadlock);
+                }
+            }
+        }
+
+        public void BlockingEnter () {
+            TrackedLockCollection.DeadlockInfo deadlock;
+            var result = TryBlockingEnter(out deadlock);
+
+            if (!result.Success) {
+                switch (result.FailureReason) {
+                    case TrackedLockFailureReason.HeldByCurrentThread:
+                        throw new LockAlreadyHeldException();
+                    case TrackedLockFailureReason.Deadlock:
+                        throw new DeadlockAvertedException(deadlock.A, deadlock.B);
                 }
             }
         }
@@ -331,7 +352,8 @@ namespace JSIL.Threading {
 
     public enum TrackedLockFailureReason {
         HeldByCurrentThread,
-        HeldByOtherThread
+        HeldByOtherThread,
+        Deadlock
     }
 
     public struct TrackedLockResult {

@@ -125,7 +125,7 @@ namespace JSIL.Tests {
                     threadStartedSignal.Set();
                     lock (log)
                         log.Add("Waiter+Enter");
-                    l.Enter();
+                    l.BlockingEnter();
                     lock (log)
                         log.Add("Waiter-Enter");
                     l.Exit();
@@ -156,9 +156,9 @@ namespace JSIL.Tests {
         public void WaitThrowsIfAlreadyHeld () {
             var l = new TrackedLock(Locks, "A");
 
-            l.Enter();
+            l.BlockingEnter();
 
-            Assert.Throws<LockAlreadyHeldException>(l.Enter);
+            Assert.Throws<LockAlreadyHeldException>(l.BlockingEnter);
 
             l.Exit();
         }
@@ -168,14 +168,14 @@ namespace JSIL.Tests {
             var lA = new TrackedLock(Locks, "A");
             var lB = new TrackedLock(Locks, "B");
 
-            lA.Enter();
+            lA.BlockingEnter();
 
             var threadStartedSignal = new AutoResetEvent(false);
             var bOwnerThread = new Thread(
                 () => {
-                    lB.Enter();
+                    lB.BlockingEnter();
                     threadStartedSignal.Set();
-                    lA.Enter();
+                    lA.BlockingEnter();
                 }
             );
             bOwnerThread.Priority = ThreadPriority.Highest;
@@ -186,7 +186,7 @@ namespace JSIL.Tests {
             while (lA.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 
-            Assert.Throws<DeadlockAvertedException>(lB.Enter);
+            Assert.Throws<DeadlockAvertedException>(lB.BlockingEnter);
 
             lA.Exit();
 
@@ -199,12 +199,12 @@ namespace JSIL.Tests {
             var lB = new TrackedLock(Locks, "B");
             var lC = new TrackedLock(Locks, "C");
 
-            lA.Enter();
+            lA.BlockingEnter();
 
             var cOwnerThread = new Thread(
                 () => {
-                    lC.Enter();
-                    lA.Enter();
+                    lC.BlockingEnter();
+                    lA.BlockingEnter();
                     lC.Exit();
                     lA.Exit();
                 }
@@ -216,9 +216,9 @@ namespace JSIL.Tests {
             var bThreadStartedSignal = new AutoResetEvent(false);
             var bOwnerThread = new Thread(
                 () => {
-                    lB.Enter();
+                    lB.BlockingEnter();
                     bThreadStartedSignal.Set();
-                    lC.Enter();
+                    lC.BlockingEnter();
                     lB.Exit();
                     lC.Exit();
                 }
@@ -231,12 +231,66 @@ namespace JSIL.Tests {
             while (lA.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 
-            Assert.Throws<DeadlockAvertedException>(lC.Enter);
+            Assert.Throws<DeadlockAvertedException>(lC.BlockingEnter);
 
             lA.Exit();
 
             bOwnerThread.Join();
             cOwnerThread.Join();
+        }
+
+        [Test]
+        public void WaitDoesNotThrowTheSecondTimeForAGivenThread () {
+            var l = new TrackedLock(Locks, "A");
+
+            l.BlockingEnter();
+
+            var exc = new Exception[1];
+
+            var secondTimeSignal = new AutoResetEvent(false);
+            var waiterThread = new Thread(
+                () => {
+                    try {
+                        l.BlockingEnter();
+                        l.Exit();
+
+                        secondTimeSignal.WaitOne();
+
+                        l.BlockingEnter();
+                        l.Exit();
+                    } catch (Exception e) {
+                        exc[0] = e;
+                    }
+                }
+            );
+            waiterThread.Priority = ThreadPriority.Highest;
+            waiterThread.Start();
+
+            while (
+                (l.WaitingThreadCount == 0) && 
+                (waiterThread.ThreadState != ThreadState.Stopped) &&
+                (waiterThread.ThreadState != ThreadState.Aborted)
+            )
+                Thread.Sleep(1);
+
+            l.Exit();
+            l.BlockingEnter();
+
+            secondTimeSignal.Set();
+
+            while (
+                (l.WaitingThreadCount == 0) &&
+                (waiterThread.ThreadState != ThreadState.Stopped) &&
+                (waiterThread.ThreadState != ThreadState.Aborted)
+            )
+                Thread.Sleep(1);
+
+            l.Exit();
+
+            waiterThread.Join();
+
+            if (exc[0] != null)
+                throw new Exception("Worker thread failed", exc[0]);
         }
     }
 }
