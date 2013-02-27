@@ -155,8 +155,11 @@ namespace JSIL.Ast {
                 // AST visitors shouldn't recurse into nested functions because those function(s)
                 //  should get visited on their own by any visitor that's getting run on all
                 //  methods being translated.
-                if (!VisitNestedFunctions && Stack.OfType<JSFunctionExpression>().Any())
-                    return;
+                if (!VisitNestedFunctions) {
+                    foreach (var n in Stack)
+                        if (n is JSFunctionExpression)
+                            return;
+                }
             }
 
             var oldNodeIndex = NodeIndex;
