@@ -211,32 +211,17 @@ namespace JSIL.Ast {
             try {
                 PreviousSibling = NextSibling = null;
 
-                var annotated = node as IAnnotatedChildren;
-                if (annotated != null) {
-                    using (var e = annotated.AnnotatedChildren.GetEnumerator())
-                    while (e.MoveNext()) {
-                        var toVisit = NextSibling;
-                        var toVisitName = nextSiblingName;
-                        NextSibling = e.Current.Node;
-                        nextSiblingName = e.Current.Name;
+                using (var e = node.Children.GetEnumerator())
+                while (e.MoveNext()) {
+                    var toVisit = NextSibling;
+                    var toVisitName = nextSiblingName;
+                    NextSibling = e.Current;
+                    nextSiblingName = e.CurrentName;
 
-                        if (toVisit != null)
-                            Visit(toVisit, toVisitName);
+                    if (toVisit != null)
+                        Visit(toVisit, toVisitName);
 
-                        PreviousSibling = toVisit;
-                    }
-                } else {
-                    using (var e = node.Children.GetEnumerator())
-                    while (e.MoveNext()) {
-                        var toVisit = NextSibling;
-                        NextSibling = e.Current;
-
-                        if (toVisit != null)
-                            Visit(toVisit);
-
-                        PreviousSibling = toVisit;
-                    }
-
+                    PreviousSibling = toVisit;
                 }
 
                 if (NextSibling != null) {

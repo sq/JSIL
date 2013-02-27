@@ -10,7 +10,6 @@ namespace JSIL.Transforms {
     public class EliminatePointlessFinallyBlocks : StaticAnalysisJSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly ITypeInfoSource TypeInfo;
-        public readonly IFunctionSource FunctionSource;
 
         public EliminatePointlessFinallyBlocks (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, ITypeInfoSource typeInfo)
             : base (member, functionSource) {

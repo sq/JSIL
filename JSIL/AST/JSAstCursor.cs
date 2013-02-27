@@ -112,33 +112,20 @@ namespace JSIL.Ast {
 
             int nextDepth = depth + 1;
 
-            var annotated = node as IAnnotatedChildren;
-            if (annotated != null) {
-                using (var e = annotated.AnnotatedChildren.GetEnumerator())
-                while (e.MoveNext()) {
-                    var toVisit = nextSibling;
-                    var toVisitName = nextSiblingName;
-                    nextSibling = e.Current.Node;
-                    nextSiblingName = e.Current.Name;
+            using (var e = node.Children.GetEnumerator())
+            while (e.MoveNext()) {
+                var toVisit = nextSibling;
+                var toVisitName = nextSiblingName;
+                nextSibling = e.Current;
+                nextSiblingName = e.CurrentName;
 
-                    if (toVisit != null) {
-                        if (toVisitName == null || !NamesToSkip.Contains(toVisitName)) {
-                            yield return VisitNode(toVisit, toVisitName, indices, nextDepth);
-                        } else {
-                            SkipNode(toVisit, toVisitName, indices, nextDepth);
-                        }
+                if (toVisit != null) {
+                    if (toVisitName == null || !NamesToSkip.Contains(toVisitName)) {
+                        yield return VisitNode(toVisit, toVisitName, indices, nextDepth);
+                    } else {
+                        SkipNode(toVisit, toVisitName, indices, nextDepth);
                     }
                 }
-            } else {
-                using (var e = node.Children.GetEnumerator())
-                while (e.MoveNext()) {
-                    var toVisit = nextSibling;
-                    nextSibling = e.Current;
-
-                    if (toVisit != null)
-                        yield return VisitNode(toVisit, null, indices, nextDepth);
-                }
-
             }
 
             if (nextSibling != null) {

@@ -14,6 +14,9 @@ namespace JSIL.Ast {
         protected StaticAnalysisJSAstVisitor (QualifiedMemberIdentifier member, IFunctionSource functionSource)
             : base() {
 
+            if (functionSource == null)
+                throw new ArgumentNullException("functionSource");
+
             Member = member;
             FunctionSource = functionSource;
 

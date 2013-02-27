@@ -1,7 +1,13 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using JSIL.Ast.Traversal;
+using JSIL.Internal;
 
 namespace JSIL.Ast.Enumerators {
     public struct JSNodeChildren : IEnumerable<JSNode> {
@@ -35,7 +41,7 @@ namespace JSIL.Ast.Enumerators {
             IncludeSelf = includeSelf;
         }
 
-        public JSNodeChildEnumerator GetEnumerator () {
+        public JSNodeChildRecursiveEnumerator GetEnumerator () {
             return new JSNodeChildRecursiveEnumerator(Node, IncludeSelf);
         }
 
@@ -49,15 +55,27 @@ namespace JSIL.Ast.Enumerators {
     }
 
     public struct JSNodeChildEnumerator : IEnumerator<JSNode> {
+        public readonly JSNodeTraversalData TraversalData;
         public readonly JSNode Node;
         public readonly bool IncludeSelf;
 
-        private JSNode _Current;
+        internal int _Index, _ArrayIndex;
+
+        internal JSNode _Current;
+        internal string _CurrentName;
 
         public JSNodeChildEnumerator (JSNode node, bool includeSelf) {
+            TraversalData = JSNodeTraversalData.Get(node);
             Node = node;
             IncludeSelf = includeSelf;
+            _Index = -1;
+            _ArrayIndex = -1;
             _Current = null;
+            _CurrentName = null;
+        }
+
+        public string CurrentName {
+            get { return _CurrentName; }
         }
 
         public JSNode Current {
@@ -65,7 +83,6 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public void Dispose () {
-            throw new NotImplementedException();
         }
 
         object System.Collections.IEnumerator.Current {
@@ -73,7 +90,32 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public bool MoveNext () {
-            throw new NotImplementedException();
+            while (true) {
+                if ((_ArrayIndex < 0) || (_Index < 0))
+                    _Index += 1;
+
+                if (_Index >= TraversalData.Records.Length)
+                    return false;
+
+                var record = TraversalData.Records[_Index];
+                var elementRecord = record as JSNodeTraversalElementRecord;
+                if (elementRecord != null) {
+                    elementRecord.Get(Node, out _Current, out _CurrentName);
+                    return true;
+                } else {
+                    var arrayRecord = record as JSNodeTraversalArrayRecord;
+                    if (arrayRecord != null) {
+                        _ArrayIndex += 1;
+
+                        if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName))
+                            return true;
+                        else
+                            _ArrayIndex = -1;
+                    } else {
+                        throw new InvalidDataException("Unrecognized record type");
+                    }
+                }
+            }
         }
 
         public void Reset () {
@@ -82,35 +124,69 @@ namespace JSIL.Ast.Enumerators {
     }
 
     public struct JSNodeChildRecursiveEnumerator : IEnumerator<JSNode> {
-        public readonly JSNode Node;
-        public readonly bool IncludeSelf;
-
-        private JSNode _Current;
+        private Stack<JSNodeChildEnumerator> _Stack;
+        private JSNodeChildEnumerator _Enumerator;
+        private bool _RecurseOnNextStep;
 
         public JSNodeChildRecursiveEnumerator (JSNode node, bool includeSelf) {
-            Node = node;
-            IncludeSelf = includeSelf;
-            _Current = null;
+            _Stack = new Stack<JSNodeChildEnumerator>();
+            _Enumerator = new JSNodeChildEnumerator(node, includeSelf);
+            _RecurseOnNextStep = false;
+        }
+
+        public string CurrentName {
+            get { return _Enumerator._CurrentName; }
         }
 
         public JSNode Current {
-            get { return _Current; }
+            get { return _Enumerator._Current; }
         }
 
         public void Dispose () {
-            throw new NotImplementedException();
+            _Enumerator.Dispose();
+
+            foreach (var e in _Stack)
+                e.Dispose();
+
+            _Stack.Clear();
         }
 
         object System.Collections.IEnumerator.Current {
-            get { return _Current; }
+            get { return _Enumerator._Current; }
         }
 
         public bool MoveNext () {
-            throw new NotImplementedException();
+            if (_RecurseOnNextStep) {
+                _RecurseOnNextStep = false;
+                _Stack.Push(_Enumerator);
+                _Enumerator = new JSNodeChildEnumerator(_Enumerator.Current, false);
+            } else {
+                _RecurseOnNextStep = true;
+            }
+
+            while (!_Enumerator.MoveNext()) {
+                if (_Stack.Count > 0) {
+                    _Enumerator.Dispose();
+                    _Enumerator = _Stack.Pop();
+                } else {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public void Reset () {
-            throw new NotImplementedException();
+            while (_Stack.Count > 1) {
+                var e = _Stack.Pop();
+                e.Dispose();
+            }
+
+            if (_Stack.Count > 0)
+                _Enumerator = _Stack.Pop();
+
+            _Enumerator.Reset();
+            _RecurseOnNextStep = false;
         }
     }
 }

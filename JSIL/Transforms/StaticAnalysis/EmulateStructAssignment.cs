@@ -15,7 +15,6 @@ namespace JSIL.Transforms {
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
-        public readonly IFunctionSource FunctionSource;
         public readonly TypeSystem TypeSystem;
         public readonly bool OptimizeCopies;
 

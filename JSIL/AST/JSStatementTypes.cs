@@ -38,6 +38,7 @@ namespace JSIL.Ast {
             Statements = new List<JSStatement>(statements);
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 // FIXME: We seem to have cases where the number of statements goes down! That sucks!
@@ -45,6 +46,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("Statement", Statements[i]);
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -126,11 +128,13 @@ namespace JSIL.Ast {
             s.IsControlFlow = true;
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 return (from l in Labels select l.Value).ToArray();
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -191,11 +195,13 @@ namespace JSIL.Ast {
             Declarations.AddRange(declarations);
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 return Declarations;
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
@@ -227,11 +233,13 @@ namespace JSIL.Ast {
             _Expression = expression;
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 yield return _Expression;
             }
         }
+         */
 
         public JSExpression Expression {
             get {
@@ -264,6 +272,7 @@ namespace JSIL.Ast {
             Body = body;
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 if (Values != null) {
@@ -274,6 +283,7 @@ namespace JSIL.Ast {
                 yield return new AnnotatedNode("Body", Body);
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (Values == null)
@@ -315,6 +325,7 @@ namespace JSIL.Ast {
             Cases.AddRange(cases);
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Condition", _Condition);
@@ -323,6 +334,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("Case", c);
             }
         }
+         */
 
         public JSExpression Condition {
             get {
@@ -395,6 +407,7 @@ namespace JSIL.Ast {
             return result;
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Condition", _Condition);
@@ -405,6 +418,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("False Clause", _FalseClause);
             }
         }
+         */
 
         public JSExpression Condition {
             get {
@@ -454,6 +468,7 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Condition", _Condition);
@@ -462,6 +477,7 @@ namespace JSIL.Ast {
                     yield return s;
             }
         }
+         */
 
         public JSExpression Condition {
             get {
@@ -496,6 +512,7 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 foreach (var s in base.AnnotatedChildren)
@@ -504,6 +521,7 @@ namespace JSIL.Ast {
                 yield return new AnnotatedNode("Condition", _Condition);
             }
         }
+         */
 
         public JSExpression Condition {
             get {
@@ -541,6 +559,7 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 if (_Initializer != null)
@@ -556,6 +575,7 @@ namespace JSIL.Ast {
                     yield return s;
             }
         }
+         */
 
         public JSStatement Initializer {
             get {
@@ -613,7 +633,8 @@ namespace JSIL.Ast {
             Catch = @catch;
             Finally = @finally;
         }
-
+        
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Body", Body);
@@ -628,6 +649,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("Finally Block", Finally);
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)

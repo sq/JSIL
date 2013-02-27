@@ -42,6 +42,7 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 if (This != null)
@@ -51,6 +52,7 @@ namespace JSIL.Ast {
                 // yield return Value;
             }
         }
+         */
     }
 
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {

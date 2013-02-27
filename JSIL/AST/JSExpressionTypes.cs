@@ -38,6 +38,7 @@ namespace JSIL.Ast {
             MethodTypes = methodTypes;
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 foreach (var parameter in Parameters)
@@ -46,6 +47,7 @@ namespace JSIL.Ast {
                 yield return new AnnotatedNode("Body", Body);
             }
         }
+         */
 
         public override bool Equals (object obj) {
             var rhs = obj as JSFunctionExpression;
@@ -531,6 +533,7 @@ namespace JSIL.Ast {
     public class JSIgnoredMemberReference : JSExpression {
         public readonly bool ThrowError;
         public readonly IMemberInfo Member;
+        [JSAstIgnore]
         public readonly JSExpression[] Arguments;
 
         public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
@@ -544,12 +547,6 @@ namespace JSIL.Ast {
                 return String.Format("Reference to ignored member {0}", Member.Name);
             else
                 return "Reference to ignored member (no info)";
-        }
-
-        public override IEnumerable<JSNode> Children {
-            get {
-                yield break;
-            }
         }
 
         public override bool Equals (object obj) {
@@ -701,12 +698,14 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Target", Values[0]);
                 yield return new AnnotatedNode("Member", Values[1]);
             }
         }
+         */
 
         public override string ToString () {
             return String.Format("{0}.{1}", Target, Member);
@@ -848,12 +847,14 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Target", Values[0]);
                 yield return new AnnotatedNode("OffsetInBytes", Values[1]);
             }
         }
+         */
 
         public override string ToString () {
             return String.Format("{0}[{1}]", Target, Index);
@@ -899,16 +900,19 @@ namespace JSIL.Ast {
         }
     }
 
+    [JSAstIgnoreInheritedMembers]
     public class JSNewArrayExpression : JSExpression {
         public readonly bool IsMultidimensional;
         public readonly TypeReference ElementType;
         public readonly ArrayType ArrayType;
 
+        [JSAstTraverse(0)]
+        public readonly JSExpression[] Dimensions;
+        [JSAstTraverse(1)]
         public JSExpression SizeOrArrayInitializer {
             get;
             private set;
         }
-        public readonly JSExpression[] Dimensions;
 
         public int? CachedElementTypeIndex;
 
@@ -927,6 +931,7 @@ namespace JSIL.Ast {
             SizeOrArrayInitializer = initializer;
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 if (Dimensions != null) {
@@ -938,6 +943,7 @@ namespace JSIL.Ast {
                     yield return SizeOrArrayInitializer;
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (Dimensions != null) {
@@ -1158,6 +1164,7 @@ namespace JSIL.Ast {
             return targetType;
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Type", Values[0]);
@@ -1168,6 +1175,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("Argument", argument);
             }
         }
+         */
 
         public string BuildArgumentListString () {
             var result = new StringBuilder();
@@ -1253,6 +1261,7 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Delegate", Values[0]);
@@ -1261,6 +1270,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("Argument", argument);
             }
         }
+         */
 
         public override string ToString () {
             return String.Format(
@@ -1424,12 +1434,14 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Key", Values[0]);
                 yield return new AnnotatedNode("Value", Values[1]);
             }
         }
+         */
 
         public override bool IsConstant {
             get {
@@ -1545,6 +1557,7 @@ namespace JSIL.Ast {
             ActualType = actualType;
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Condition", Condition);
@@ -1552,6 +1565,7 @@ namespace JSIL.Ast {
                 yield return new AnnotatedNode("False Clause", False);
             }
         }
+         */
 
         public JSExpression Condition {
             get {
@@ -1604,12 +1618,14 @@ namespace JSIL.Ast {
                 ) {
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Left", Left);
                 yield return new AnnotatedNode("Right", Right);
             }
         }
+         */
 
         public JSExpression Left {
             get {
@@ -1693,11 +1709,13 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Expression", Expression);
             }
         }
+         */
 
         public JSExpression Expression {
             get {
@@ -2116,7 +2134,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return "(" + String.Join(",", Values) + ")";
+            return "(" + String.Join(",", (object[])Values) + ")";
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
@@ -2193,6 +2211,7 @@ namespace JSIL.Ast {
             ) {
         }
 
+        /*
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 yield return new AnnotatedNode("Left", Left);
@@ -2202,6 +2221,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode("OffsetInBytes", OffsetInBytes);
             }
         }
+         */
 
         public JSExpression OffsetInBytes {
             get {

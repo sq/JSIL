@@ -308,6 +308,7 @@ namespace JSIL.Ast {
             get { return Name; }
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 if (GenericArguments == null)
@@ -317,6 +318,7 @@ namespace JSIL.Ast {
                     yield return GenericArguments[i];
             }
         }
+         */
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (GenericArguments == null)
@@ -476,11 +478,13 @@ namespace JSIL.Ast {
                 DefaultValue = (JSExpression)newChild;
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 yield return DefaultValue;
             }
         }
+         */
 
         public IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
@@ -510,11 +514,13 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 yield break;
             }
         }
+         */
 
         public override JSParameter GetParameter () {
             return this;
@@ -561,11 +567,13 @@ namespace JSIL.Ast {
             }
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 yield break;
             }
         }
+         */
 
         public static JSVariable New (TypeReference type, MethodReference function) {
             if (type.IsValueType)
@@ -676,11 +684,13 @@ namespace JSIL.Ast {
             return Variables[Identifier].Reference();
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 yield break;
             }
         }
+         */
 
         public override bool Equals (object obj) {
             JSVariable variable;

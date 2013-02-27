@@ -75,6 +75,7 @@
     <Compile Include="AST\JSNodeTypes.cs" />
     <Compile Include="AST\JSStatementTypes.cs" />
     <Compile Include="AST\StaticAnalysisAstVisitor.cs" />
+    <Compile Include="AST\Traversal.cs" />
     <Compile Include="BugChecks.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />

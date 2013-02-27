@@ -50,12 +50,13 @@ namespace JSIL.Ast {
     public abstract class JSExpression : JSNode {
         public static readonly JSNullExpression Null = new JSNullExpression();
 
-        protected readonly IList<JSExpression> Values;
+        protected readonly JSExpression[] Values;
 
         protected JSExpression (params JSExpression[] values) {
             Values = values;
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 // We don't want to use foreach here, since a value could be changed during iteration
@@ -63,6 +64,7 @@ namespace JSIL.Ast {
                     yield return Values[i];
             }
         }
+         */
 
         public override string ToString () {
             return String.Format(
@@ -136,7 +138,7 @@ namespace JSIL.Ast {
 
             var expr = (JSExpression)newChild;
 
-            for (int i = 0, c = Values.Count; i < c; i++) {
+            for (int i = 0, c = Values.Length; i < c; i++) {
                 if (Values[i] == oldChild)
                     Values[i] = expr;
             }
@@ -151,13 +153,13 @@ namespace JSIL.Ast {
                 return false;
 
             var rhs = (JSExpression)obj;
-            if (Values.Count != rhs.Values.Count)
+            if (Values.Length != rhs.Values.Length)
                 return false;
 
-            if ((Values.Count == 0) && (!fieldsChecked))
+            if ((Values.Length == 0) && (!fieldsChecked))
                 throw new NotImplementedException(String.Format("Expressions of type {0} cannot be compared", GetType().Name));
 
-            for (int i = 0, c = Values.Count; i < c; i++) {
+            for (int i = 0, c = Values.Length; i < c; i++) {
                 var lhsV = Values[i];
                 var rhsV = rhs.Values[i];
 
@@ -414,12 +416,15 @@ namespace JSIL.Ast {
     }
 
     public interface IAnnotatedChildren {
+        /*
         IEnumerable<AnnotatedNode> AnnotatedChildren {
             get;
         }
+         */
     }
 
     public abstract class JSAnnotatedStatement : JSStatement, IAnnotatedChildren {
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 foreach (var child in AnnotatedChildren)
@@ -433,6 +438,7 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode(null, child);
             }
         }
+         */
     }
 
     public abstract class JSAnnotatedExpression : JSExpression, IAnnotatedChildren {
@@ -440,6 +446,7 @@ namespace JSIL.Ast {
             : base (values) {
         }
 
+        /*
         public override IEnumerable<JSNode> Children {
             get {
                 foreach (var child in AnnotatedChildren)
@@ -453,5 +460,6 @@ namespace JSIL.Ast {
                     yield return new AnnotatedNode(null, child);
             }
         }
+         */
     }
 }
