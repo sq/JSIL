@@ -90,6 +90,9 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public bool MoveNext () {
+            _Current = null;
+            _CurrentName = null;
+
             while (true) {
                 if ((_ArrayIndex < 0) || (_Index < 0))
                     _Index += 1;
@@ -100,7 +103,7 @@ namespace JSIL.Ast.Enumerators {
                 if (_Index < 0) {
                     if (IncludeSelf) {
                         _Current = Node;
-                        _CurrentName = null;
+                        _CurrentName = "Self";
                         return true;
                     } else
                         throw new InvalidOperationException("Enumerator error");
@@ -118,8 +121,10 @@ namespace JSIL.Ast.Enumerators {
 
                         if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName))
                             return true;
-                        else
+                        else {
                             _ArrayIndex = -1;
+                            _Index += 1;
+                        }
                     } else {
                         throw new InvalidDataException("Unrecognized record type");
                     }
@@ -136,53 +141,65 @@ namespace JSIL.Ast.Enumerators {
     }
 
     public struct JSNodeChildRecursiveEnumerator : IEnumerator<JSNode> {
-        private Stack<JSNodeChildEnumerator> _Stack;
-        private JSNodeChildEnumerator _Enumerator;
-        private bool _RecurseOnNextStep, _DontRecurseNext;
+        private struct State {
+            public bool RecurseOnNextStep, DontRecurseNext;
+            public JSNodeChildEnumerator Enumerator;
+        }
+
+        private Stack<State> _Stack;
+        private State _State;
 
         public JSNodeChildRecursiveEnumerator (JSNode node, bool includeSelf) {
-            _Stack = new Stack<JSNodeChildEnumerator>();
-            _Enumerator = new JSNodeChildEnumerator(node, includeSelf);
-            _RecurseOnNextStep = false;
-            _DontRecurseNext = includeSelf;
+            _Stack = new Stack<State>();
+            _State = new State {
+                Enumerator = new JSNodeChildEnumerator(node, includeSelf),
+                RecurseOnNextStep = false,
+                DontRecurseNext = includeSelf
+            };
+        }
+
+        public int Depth {
+            get { return _Stack.Count; }
         }
 
         public string CurrentName {
-            get { return _Enumerator._CurrentName; }
+            get { return _State.Enumerator._CurrentName; }
         }
 
         public JSNode Current {
-            get { return _Enumerator._Current; }
+            get { return _State.Enumerator._Current; }
         }
 
         public void Dispose () {
-            _Enumerator.Dispose();
+            _State.Enumerator.Dispose();
 
             foreach (var e in _Stack)
-                e.Dispose();
+                e.Enumerator.Dispose();
 
             _Stack.Clear();
         }
 
         object System.Collections.IEnumerator.Current {
-            get { return _Enumerator._Current; }
+            get { return _State.Enumerator._Current; }
         }
 
         public bool MoveNext () {
-            if (_DontRecurseNext) {
-                _DontRecurseNext = false;
-            } else if (_RecurseOnNextStep) {
-                _RecurseOnNextStep = false;
-                _Stack.Push(_Enumerator);
-                _Enumerator = new JSNodeChildEnumerator(_Enumerator.Current, false);
+            if (_State.DontRecurseNext) {
+                _State.DontRecurseNext = false;
+            } else if (_State.RecurseOnNextStep) {
+                _State.RecurseOnNextStep = false;
+                _Stack.Push(_State);
+                _State = new State {
+                    Enumerator = new JSNodeChildEnumerator(_State.Enumerator.Current, false)
+                };
             } else {
-                _RecurseOnNextStep = true;
+                _State.RecurseOnNextStep = true;
             }
 
-            while (!_Enumerator.MoveNext()) {
+            while (!_State.Enumerator.MoveNext()) {
                 if (_Stack.Count > 0) {
-                    _Enumerator.Dispose();
-                    _Enumerator = _Stack.Pop();
+                    _State.Enumerator.Dispose();
+                    _State = _Stack.Pop();
                 } else {
                     return false;
                 }
@@ -192,16 +209,7 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public void Reset () {
-            while (_Stack.Count > 1) {
-                var e = _Stack.Pop();
-                e.Dispose();
-            }
-
-            if (_Stack.Count > 0)
-                _Enumerator = _Stack.Pop();
-
-            _Enumerator.Reset();
-            _RecurseOnNextStep = false;
+            throw new NotSupportedException();
         }
     }
 }

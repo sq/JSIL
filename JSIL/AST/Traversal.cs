@@ -36,13 +36,13 @@ namespace JSIL.Ast.Traversal {
             var flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 
             var typeToScan = nodeType;
-            var seenMembers = new HashSet<MemberInfo>();
+            var seenMembers = new HashSet<string>();
 
             while (typeToScan != null) {
                 foreach (var field in typeToScan.GetFields(flags)) {
-                    if (seenMembers.Contains(field))
+                    if (seenMembers.Contains(field.Name))
                         continue;
-                    seenMembers.Add(field);
+                    seenMembers.Add(field.Name);
 
                     var traverseAttribute = field.GetCustomAttributes(tTraverse, true).OfType<JSAstTraverseAttribute>().FirstOrDefault();
                     if (traverseAttribute == null) {
@@ -79,9 +79,9 @@ namespace JSIL.Ast.Traversal {
                 }
 
                 foreach (var method in typeToScan.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)) {
-                    if (seenMembers.Contains(method))
+                    if (seenMembers.Contains(method.Name))
                         continue;
-                    seenMembers.Add(method);
+                    seenMembers.Add(method.Name);
 
                     var traverseAttribute = method.GetCustomAttributes(tTraverse, true).OfType<JSAstTraverseAttribute>().FirstOrDefault();
                     if (traverseAttribute == null)

@@ -8,6 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using JSIL.Ast;
+using JSIL.Ast.Enumerators;
+using JSIL.Internal;
 using Mono.Cecil;
 using NUnit.Framework;
 
@@ -130,6 +132,17 @@ namespace JSIL.Tests {
             Assert.IsFalse(TypeUtil.TypesAreEqual(gp3, gp4));
         }
 
+        private void DumpNodeSequence (JSNodeChildrenRecursive enumerable) {
+            using (var e = enumerable.GetEnumerator())
+            while (e.MoveNext()) {
+                Console.WriteLine("{0}{1}: {2}", new String(' ', e.Depth * 2), e.CurrentName, e.Current.GetType());
+            }
+
+            var nonDistinct = enumerable.ToArray();
+            var distinct = nonDistinct.Distinct(new ReferenceComparer<JSNode>()).ToArray();
+            Assert.AreEqual(distinct.Length, nonDistinct.Length, "Enumeration contains duplicates");
+        }
+
         [Test]
         public void NodeChildren () {
             var de = new JSDotExpression(JSLiteral.New(1), new JSStringIdentifier("2"));
@@ -148,6 +161,34 @@ namespace JSIL.Tests {
             Assert.AreEqual(3, boe.SelfAndChildren.Count());
             Assert.AreEqual(de, de.SelfAndChildren.First());
             Assert.AreEqual(boe, boe.SelfAndChildren.First());
+        }
+
+        [Test]
+        public void NodeSelfAndChildrenRecursive () {
+            var fl3 = new JSForLoop(
+                new JSNullStatement(), new JSNullExpression(), new JSNullStatement(),
+                new JSExpressionStatement(new JSStringIdentifier("loop3 iteration"))
+            );
+            fl3.Index = 2;
+
+            var fl2 = new JSForLoop(
+                new JSNullStatement(), new JSNullExpression(), new JSNullStatement(),
+                new JSExpressionStatement(new JSStringIdentifier("loop2 iteration"))
+            );
+            fl2.Index = 1;
+
+            var fl1 = new JSForLoop(
+                new JSNullStatement(), new JSNullExpression(), new JSNullStatement(),
+                fl2
+            );
+            fl1.Index = 0;
+
+            var tree = new JSBlockStatement(
+                fl1,
+                fl3
+            );
+
+            DumpNodeSequence(tree.SelfAndChildrenRecursive);
         }
     }
 }
