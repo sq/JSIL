@@ -95,7 +95,7 @@ namespace JSIL.Ast {
         [JSAstTraverse(0)]
         static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
             JSExpression expr = (JSExpression)parent;
-            if (index > expr.Values.Length) {
+            if (index >= expr.Values.Length) {
                 node = null;
                 name = null;
                 return false;
