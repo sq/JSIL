@@ -487,6 +487,11 @@ namespace JSIL.Internal {
             States = new ConcurrentDictionary<TKey, ConstructionState>();
         }
 
+        public ConcurrentCache (IEqualityComparer<TKey> comparer) {
+            Storage = new ConcurrentDictionary<TKey, TValue>(comparer);
+            States = new ConcurrentDictionary<TKey, ConstructionState>(comparer);
+        }
+
         public ConcurrentCache (int concurrencyLevel, int capacity) {
             Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity);
             States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel);

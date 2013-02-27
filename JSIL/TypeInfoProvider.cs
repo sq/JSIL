@@ -522,6 +522,23 @@ namespace JSIL {
             return Dictionary.Remove(key);
         }
 
+        public bool TryDequeueFirst (out TKey key, out TValue value) {
+            if (LinkedList.Count == 0) {
+                key = default(TKey);
+                value = default(TValue);
+                return false;
+            }
+
+            var node = LinkedList.First;
+            key = node.Value;
+            LinkedList.Remove(node);
+
+            value = Dictionary[node.Value];
+            Dictionary.Remove(node.Value);
+
+            return true;
+        }
+
         public LinkedListNode<TKey> EnqueueBefore (LinkedListNode<TKey> before, TKey key, TValue value) {
             Dictionary.Add(key, value);
             return LinkedList.AddBefore(before, key);
