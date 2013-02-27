@@ -73,6 +73,25 @@ namespace JSIL.Ast {
                 throw new InvalidOperationException("Value names already set for this type.");
         }
 
+        protected static string GetValueName (Type nodeType, int index) {
+            while (nodeType != null) {
+                string[] valueNames;
+                if (ValueNames.TryGetValue(nodeType, out valueNames)) {
+                    if (index >= valueNames.Length)
+                        return valueNames[valueNames.Length - 1];
+                    else
+                        return valueNames[index];
+                }
+
+                if (nodeType == nodeType.BaseType)
+                    break;
+
+                nodeType = nodeType.BaseType;
+            }
+
+            return null;
+        }
+
         [JSAstTraverse(0)]
         static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
             JSExpression expr = (JSExpression)parent;
@@ -83,15 +102,7 @@ namespace JSIL.Ast {
             } else {
                 node = expr.Values[index];
 
-                string[] valueNames;
-                if (ValueNames.TryGetValue(expr.GetType(), out valueNames)) {
-                    if (index >= valueNames.Length)
-                        name = valueNames[valueNames.Length - 1];
-                    else
-                        name = valueNames[index];
-                } else {
-                    name = "Values";
-                }
+                name = GetValueName(expr.GetType(), index) ?? "Values";
 
                 return true;
             }

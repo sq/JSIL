@@ -39,7 +39,7 @@ namespace JSIL.Ast.Traversal {
             var seenMembers = new HashSet<MemberInfo>();
 
             while (typeToScan != null) {
-                foreach (var field in nodeType.GetFields(flags)) {
+                foreach (var field in typeToScan.GetFields(flags)) {
                     if (seenMembers.Contains(field))
                         continue;
                     seenMembers.Add(field);
@@ -78,7 +78,7 @@ namespace JSIL.Ast.Traversal {
                     }
                 }
 
-                foreach (var method in nodeType.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)) {
+                foreach (var method in typeToScan.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)) {
                     if (seenMembers.Contains(method))
                         continue;
                     seenMembers.Add(method);
