@@ -231,7 +231,7 @@ namespace JSIL.Tests {
             while (lA.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 
-            Assert.Throws<DeadlockAvertedException>(lC.BlockingEnter);
+            Assert.Throws<DeadlockAvertedException>(lB.BlockingEnter);
 
             lA.Exit();
 
