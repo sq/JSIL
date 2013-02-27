@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
+using JSIL.Ast;
 using Mono.Cecil;
 using NUnit.Framework;
 
@@ -127,6 +128,26 @@ namespace JSIL.Tests {
             Assert.IsFalse(TypeUtil.TypesAreEqual(gp2, gp4));
 
             Assert.IsFalse(TypeUtil.TypesAreEqual(gp3, gp4));
+        }
+
+        [Test]
+        public void NodeChildren () {
+            var de = new JSDotExpression(JSLiteral.New(1), new JSStringIdentifier("2"));
+            var boe = new JSBinaryOperatorExpression(JSOperator.Add, JSLiteral.New(1), JSLiteral.New(2), T1);
+
+            Assert.AreEqual(2, de.Children.Count());
+            Assert.AreEqual(2, boe.Children.Count());
+        }
+
+        [Test]
+        public void NodeSelfAndChildren () {
+            var de = new JSDotExpression(JSLiteral.New(1), new JSStringIdentifier("2"));
+            var boe = new JSBinaryOperatorExpression(JSOperator.Add, JSLiteral.New(1), JSLiteral.New(2), T1);
+
+            Assert.AreEqual(3, de.SelfAndChildren.Count());
+            Assert.AreEqual(3, boe.SelfAndChildren.Count());
+            Assert.AreEqual(de, de.SelfAndChildren.First());
+            Assert.AreEqual(boe, boe.SelfAndChildren.First());
         }
     }
 }

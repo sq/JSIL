@@ -138,12 +138,13 @@ namespace JSIL.Ast.Enumerators {
     public struct JSNodeChildRecursiveEnumerator : IEnumerator<JSNode> {
         private Stack<JSNodeChildEnumerator> _Stack;
         private JSNodeChildEnumerator _Enumerator;
-        private bool _RecurseOnNextStep;
+        private bool _RecurseOnNextStep, _DontRecurseNext;
 
         public JSNodeChildRecursiveEnumerator (JSNode node, bool includeSelf) {
             _Stack = new Stack<JSNodeChildEnumerator>();
             _Enumerator = new JSNodeChildEnumerator(node, includeSelf);
             _RecurseOnNextStep = false;
+            _DontRecurseNext = includeSelf;
         }
 
         public string CurrentName {
@@ -168,7 +169,9 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public bool MoveNext () {
-            if (_RecurseOnNextStep) {
+            if (_DontRecurseNext) {
+                _DontRecurseNext = false;
+            } else if (_RecurseOnNextStep) {
                 _RecurseOnNextStep = false;
                 _Stack.Push(_Enumerator);
                 _Enumerator = new JSNodeChildEnumerator(_Enumerator.Current, false);
