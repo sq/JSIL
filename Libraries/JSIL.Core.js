@@ -1412,6 +1412,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
   JSIL.MakeType(baseType, typeName, false, true, [], function ($) {
     $.SetValue("__IsNumeric__", true);
     $.SetValue("__IsIntegral__", isIntegral);
+    $.SetValue("__IsNativeType__", true);
 
     if (typedArrayName) {
       var typedArrayCtorExists = false;
@@ -2617,6 +2618,7 @@ JSIL.$BuildFieldList = function (typeObject) {
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
   var fl = typeObject.__FieldList__ = [];
+  var fieldOffset = 0;
 
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
@@ -2642,17 +2644,26 @@ JSIL.$BuildFieldList = function (typeObject) {
     // Native types may derive from System.ValueType but we can't treat them as structs.
     var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
+    var fieldSize = JSIL.GetNativeSizeOf(fieldType);
+
     if (!field.IsStatic)
       fl.push({
         name: field.Name,
         type: fieldType,
         isStruct: isStruct,
-        defaultValueExpression: field._data.defaultValueExpression
+        defaultValueExpression: field._data.defaultValueExpression,
+        offsetBytes: fieldOffset,
+        sizeBytes: fieldSize
       });
+
+    if (fieldSize >= 0)
+      fieldOffset += fieldSize;
   }
 
   // Sort fields by name so that we get a predictable initialization order.
-  fl.sort(JSIL.CompareValues)
+  fl.sort(function (lhs, rhs) {
+    return JSIL.CompareValues(lhs.name, rhs.name);
+  })
 
   return fl;
 };
@@ -4160,6 +4171,24 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
     typeObject.__IsValueType__ = !isReferenceType;
+
+    // Lazily initialize struct's native size property
+    JSIL.SetLazyValueProperty(
+      typeObject, "__NativeSize__",
+      function () {
+        var fields = JSIL.GetFieldList(typeObject);
+        var resultSize = 0;
+
+        for (var i = 0, l = fields.length; i < l; i++) {
+          var field = fields[i];
+
+          if (field.sizeBytes >= 0)
+            resultSize += field.sizeBytes;
+        }
+
+        return resultSize;
+      }
+    );
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;

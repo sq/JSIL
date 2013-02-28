@@ -3,24 +3,21 @@ using System.Runtime.InteropServices;
 
 public static class Program {
     public static unsafe void Main (string[] args) {
-        var bytes = new byte[8];
+        var bytes = new byte[] { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x40 };
 
         fixed (byte* pBytes = bytes) {
             var pStruct = (MyStruct*)pBytes;
-            *pStruct = new MyStruct {
-                Int = 2,
-                Float = 3.5f
-            };
+
+            Console.WriteLine(*pStruct);
         }
-
-        for (var i = 0; i < bytes.Length; i++)
-            Console.Write("{0:X2} ", bytes[i]);
-
-        Console.WriteLine();
     }
 }
 
 public struct MyStruct {
     public int Int;
     public float Float;
+
+    public override string ToString () {
+        return String.Format("Int={0:0000}, Float={1:000.000}", Int, Float);
+    }
 }

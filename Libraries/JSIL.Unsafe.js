@@ -309,6 +309,34 @@ JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
   return unmarshaller(struct, bytes, offset);
 };
 
+JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
+  if (typeObject.__IsNativeType__) {
+    var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject);
+    if (arrayCtor)
+      return arrayCtor.BYTES_PER_ELEMENT;
+    else
+      return -1;
+  } else {
+    var result = typeObject.__NativeSize__;
+    if (typeof (result) !== "number")
+      return -1;
+
+    return result;
+  }
+};
+
+$jsilcore.MarshallingMemoryRange = null;
+
+JSIL.GetMarshallingScratchBuffer = function () {
+  var memoryRange = $jsilcore.MarshallingMemoryRange;
+  if (!memoryRange) {
+    // FIXME: Probably big enough, but who knows?
+    var scratchBuffer = new ArrayBuffer(1024);
+    memoryRange = $jsilcore.MarshallingMemoryRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
+  }
+
+  return memoryRange;
+};
 
 JSIL.$MakeStructMarshaller = function (typeObject) {
   return JSIL.$MakeStructMarshalFunctionCore(typeObject, true);
@@ -319,119 +347,52 @@ JSIL.$MakeStructUnmarshaller = function (typeObject) {
 };
 
 JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
-  var preamble = [];
+  var closure = {};
   var body = [];
 
-  /*
-  JSIL.$ForEachStructTypeField(typeObject,
-    function (fieldName, fieldType, memberIndex) {
-      var align = fieldType.__Alignment__;
-      var delta = offsetOffset % align;
-      if (delta != 0)
-        offsetOffset += align - delta;
+  var fields = JSIL.GetFieldList(typeObject);
+  var nativeSize = JSIL.GetNativeSizeOf(typeObject);
+  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
+  var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte);
+  var clampedByteView = null;
 
-      var fieldAccess = JSIL.FormatMemberAccess("target", fieldName);
-      if (fieldType.__IsNumeric__ || fieldType.__IsEnum__) {
-        var storageTypeName;
-        if (fieldType.__IsNumeric__)
-          storageTypeName = fieldType.__FullName__;
-        else if (fieldType.__IsEnum__)
-          storageTypeName = fieldType.__StorageType__.__FullName__;
+  for (var i = 0, l = fields.length; i < l; i++) {
+    var field = fields[i];
+    var offset = field.offsetBytes;
+    var size = field.sizeBytes;
 
-        switch (fieldType.__SizeOf__) {
-        case 1:
-          if (storageTypeName == "System.Byte") {
-            body.push("data_u8[(offset + " + offsetOffset + ")] = " + fieldAccess + ";");
-            need_u8 = true;
-          } else if (storageTypeName == "System.SByte") {
-            body.push("data_s8[(offset + " + offsetOffset + ")] = " + fieldAccess + ";");
-            need_s8 = true;
-          } else if (storageTypeName == "System.Char") {
-            body.push("data_u8[(offset + " + offsetOffset + ")] = " + fieldAccess + ".charCodeAt(0);");
-            need_u8 = true;
-          } else if (storageTypeName == "System.Boolean") {
-            body.push("data_u8[(offset + " + offsetOffset + ")] = " + fieldAccess + " ? 1 : 0;");
-            need_u8 = true;
-          } else {
-            throw new Error(fieldType + " can't be marshalled.");
-          }
-          break;
-        case 2:
-          if (storageTypeName == "System.UInt16") {
-            body.push("data_u16[(offset + " + offsetOffset + ") >> 1] = " + fieldAccess + ";");
-            need_u16 = true;
-          } else if (storageTypeName == "System.Int16") {
-            body.push("data_s16[(offset + " + offsetOffset + ") >> 1] = " + fieldAccess + ";");
-            need_s16 = true;
-          } else {
-            throw new Error(fieldType + " can't be marshalled.");
-          }
-          break;
-        case 4:
-          if (storageTypeName == "System.UInt32") {
-            body.push("data_u32[(offset + " + offsetOffset + ") >> 2] = " + fieldAccess + ";");
-            need_u32 = true;
-          } else if (storageTypeName == "System.Int32") {
-            body.push("data_s32[(offset + " + offsetOffset + ") >> 2] = " + fieldAccess + ";");
-            need_s32 = true;
-          } else if (storageTypeName == "System.Single") {
-            body.push("data_f32[(offset + " + offsetOffset + ") >> 2] = " + fieldAccess + ";");
-            need_f32 = true;
-          } else {
-            throw new Error(fieldType + " can't be marshalled.");
-          }
-          break;
-        case 8:
-          if (storageTypeName == "System.Double") {
-            body.push("data_f64[(offset + " + offsetOffset + ") >> 3] = " + fieldAccess + ";");
-            need_f64 = true;
-          } else {
-            throw new Error(fieldType + " can't be marshalled.");
-          }
-          break;
-        default:
-          throw new Error(fieldType + " can't be marshalled.");
-        }
-        offsetOffset += fieldType.__SizeOf__;
-      } else if (fieldType.__IsStruct__) {
-        body.push("JSIL.MarshalStruct(" + fieldAccess + ", data, offset + " + offsetOffset + ");");
-        offsetOffset += JSIL.SizeOfStruct(fieldType);
-      } else {
-        // ???
-        print("marshal error: " + fieldName + " type: " + fieldType);
-      }
-    });
+    if (size <= 0)
+      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
 
-  var preamble = [];
-  if (need_u8)
-    preamble.push("var data_u8 = new Uint8Array(data, 0, data.byteLength);");
-  if (need_s8)
-    preamble.push("var data_s8 = new Int8Array(data, 0, data.byteLength);");
-  if (need_u16)
-    preamble.push("var data_u16 = new Uint16Array(data, 0, Math.floor(data.byteLength/2));");
-  if (need_s16)
-    preamble.push("var data_s16 = new Int16Array(data, 0, Math.floor(data.byteLength/2));");
-  if (need_u32)
-    preamble.push("var data_u32 = new Uint32Array(data, 0, Math.floor(data.byteLength/4));");
-  if (need_s32)
-    preamble.push("var data_s32 = new Int32Array(data, 0, Math.floor(data.byteLength/4));");
-  if (need_f32)
-    preamble.push("var data_f32 = new Float32Array(data, 0, Math.floor(data.byteLength/4));");
-  if (need_f64)
-    preamble.push("var data_f64 = new Float64Array(data, 0, Math.floor(data.byteLength/8));");
+    var nativeViewKey = "nativebuf" + i;
+    var byteViewKey = "bytebuf" + i;
+    var nativeView = marshallingScratchBuffer.getView(field.type);
 
-  if (false) {
-    print("========== generated for: " + typeObject.__FullName__);
-    print(preamble.join('\n') + '\n' + body.join('\n'));
-    print("=================");
+    if (!nativeView)
+      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+
+    // The typed array spec is awful
+    var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
+
+    closure[nativeViewKey] = nativeView;
+    closure[byteViewKey] = clampedByteView;
+
+    if (marshal) {
+      body.push(nativeViewKey + "[0] = struct." + field.name + ";");
+      body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
+    } else {
+      // Really, really awful
+      body.push("for (var i = 0; i < " + size + "; ++i)");
+      body.push("  " + byteViewKey + "[i] = bytes[(offset + i + " + offset + ") | 0];");
+      body.push("struct." + field.name + " = " + nativeViewKey + "[0];");
+    }
   }
-
-  */
 
   return JSIL.CreateNamedFunction(
     typeObject.__FullName__ + (marshal ? ".Marshal" : ".Unmarshal"),
     ["struct", "bytes", "offset"],
-    preamble.join('\n') + '\n' + body.join('\n')
+    body.join('\n'),
+    closure
   );
 };
 
