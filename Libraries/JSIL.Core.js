@@ -6768,14 +6768,14 @@ JSIL.FreezeImmutableObject = function (object) {
     Object.freeze(object);
 };
 
-JSIL.GetTypedArrayConstructorForElementType = function (typePublicInterface) {
-  if (!typePublicInterface)
-    throw new Error("typePublicInterface was null");
+JSIL.GetTypedArrayConstructorForElementType = function (typeObject) {
+  if (!typeObject)
+    throw new Error("typeObject was null");
 
-  var result = typePublicInterface.__TypedArray__ || null;
+  var result = typeObject.__TypedArray__ || null;
 
   if (!result) {
-    if (typePublicInterface.__Type__.__IsStruct__)
+    if (typeObject.__IsStruct__)
       result = $jsilcore.System.Byte.__TypedArray__ || null;
   }
 

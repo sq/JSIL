@@ -36,8 +36,8 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   );
 
   $.RawMethod(false, "getView",
-    function (elementType) {
-      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType);
+    function (elementTypeObject) {
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject);
 
       var result = this.viewCache[arrayCtor];
       if (!result)
@@ -101,9 +101,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      var view = this.memoryRange.getView(elementType);
+      var view = this.memoryRange.getView(elementType.__Type__);
       if (elementType.__Type__.__IsStruct__)
-        return new JSIL.StructPointer(elementType, this.memoryRange, view, this.offsetInBytes);
+        return new JSIL.StructPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
       else if (view === this.view)
         return this;
 
@@ -197,7 +197,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "get",
     function StructPointer_Get () {
-      var result = new this.structType();
+      var result = new (this.structType.__PublicInterface__)();
       JSIL.UnmarshalStruct(result, this.view, this.offsetInBytes);
       return result;
     }
@@ -212,7 +212,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "getOffset",
     function StructPointer_GetOffset (offsetInBytes) {
-      var result = new this.structType();
+      var result = new (this.structType.__PublicInterface__)();
       JSIL.UnmarshalStruct(result, this.view, this.offsetInBytes + offsetInBytes);
       return result;
     }
