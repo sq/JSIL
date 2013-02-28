@@ -6355,7 +6355,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     size = Number(sizeOrInitializer);
   }
 
-  var typedArrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject);
+  var typedArrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject, false);
   if (typedArrayCtor) {
     result = new (typedArrayCtor)(size);
   } else {
@@ -6768,13 +6768,13 @@ JSIL.FreezeImmutableObject = function (object) {
     Object.freeze(object);
 };
 
-JSIL.GetTypedArrayConstructorForElementType = function (typeObject) {
+JSIL.GetTypedArrayConstructorForElementType = function (typeObject, byteFallback) {
   if (!typeObject)
     throw new Error("typeObject was null");
 
   var result = typeObject.__TypedArray__ || null;
 
-  if (!result) {
+  if (!result && byteFallback) {
     if (typeObject.__IsStruct__)
       result = $jsilcore.System.Byte.__TypedArray__ || null;
   }

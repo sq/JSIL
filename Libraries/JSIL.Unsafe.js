@@ -37,7 +37,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 
   $.RawMethod(false, "getView",
     function (elementTypeObject) {
-      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject);
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject, true);
 
       var result = this.viewCache[arrayCtor];
       if (!result)
@@ -311,7 +311,7 @@ JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
 
 JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
   if (typeObject.__IsNativeType__) {
-    var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject);
+    var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject, false);
     if (arrayCtor)
       return arrayCtor.BYTES_PER_ELEMENT;
     else
