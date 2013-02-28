@@ -104,12 +104,8 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
       var view = this.memoryRange.getView(elementType.__Type__, true);
-      if (elementType.__Type__.__IsStruct__)
-        return new JSIL.StructPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
-      else if (view === this.view)
-        return this;
 
-      return new JSIL.Pointer(this.memoryRange, view, this.offsetInBytes);
+      return JSIL.NewPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
     }
   );
 
@@ -178,6 +174,51 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   );
 });
 
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.BytePointer", true, [], function ($) {
+  $.RawMethod(false, ".ctor",
+    function BytePointer_ctor (memoryRange, view, offsetInBytes) {
+      this.memoryRange = memoryRange;
+      this.view = view;
+      this.offsetInBytes = offsetInBytes | 0;
+
+      if (view.BYTES_PER_ELEMENT !== 1)
+        throw new Error("View is not a byte array");
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__",
+    function BytePointer_CopyMembers (source, target) {
+      target.memoryRange = source.memoryRange;
+      target.view = source.view;
+      target.offsetInBytes = source.offsetInBytes;
+    }
+  );
+
+  $.RawMethod(false, "get",
+    function BytePointer_Get () {
+      return this.view[this.offsetInBytes];
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function BytePointer_Set (value) {
+      return this.view[this.offsetInBytes] = value;
+    }
+  );
+
+  $.RawMethod(false, "getOffset",
+    function BytePointer_GetOffset (offsetInBytes) {
+      return this.view[(this.offsetInBytes + offsetInBytes) | 0];
+    }
+  );
+
+  $.RawMethod(false, "setOffset",
+    function BytePointer_SetOffset (offsetInBytes, value) {
+      return this.view[(this.offsetInBytes + offsetInBytes) | 0] = value;
+    }
+  );
+});
+
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function StructPointer_ctor (structType, memoryRange, view, offsetInBytes) {
@@ -234,6 +275,15 @@ if (typeof (WeakMap) !== "undefined") {
   $jsilcore.MemoryRangeCache = null;
 }
 
+JSIL.NewPointer = function (elementTypeObject, memoryRange, view, offsetInBytes) {
+  if ((elementTypeObject != null) && elementTypeObject.__IsStruct__)
+    return new JSIL.StructPointer(elementTypeObject, memoryRange, view, offsetInBytes);
+  else if (view.BYTES_PER_ELEMENT === 1)
+    return new JSIL.BytePointer(memoryRange, view, offsetInBytes);
+  else
+    return new JSIL.Pointer(memoryRange, view, offsetInBytes);
+};
+
 JSIL.GetMemoryRangeForBuffer = function (buffer) {
   var result;
 
@@ -267,8 +317,8 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   memoryRange.storeExistingView(objectToPin);
 
-  var pointer = new JSIL.Pointer(
-    memoryRange, objectToPin, offsetInBytes
+  var pointer = JSIL.NewPointer(
+    null, memoryRange, objectToPin, offsetInBytes
   );
 
   return pointer;
@@ -295,7 +345,7 @@ JSIL.PointerLiteral = function (value) {
   }
 
   var view = $jsilcore.PointerLiteralMemoryRange.getView($jsilcore.System.Byte, false);
-  return new JSIL.Pointer($jsilcore.PointerLiteralMemoryRange, view, value);
+  return JSIL.NewPointer(null, $jsilcore.PointerLiteralMemoryRange, view, value);
 };
 
 JSIL.$GetStructMarshaller = function (typeObject) {
