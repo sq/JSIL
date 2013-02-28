@@ -6,8 +6,8 @@ public static class Program {
         var bytes = new byte[8];
 
         fixed (byte* pBytes = bytes) {
-            var pStruct = (MyStruct*)pBytes;
-            *pStruct = new MyStruct {
+            var pStruct = (IntFloatPair*)pBytes;
+            *pStruct = new IntFloatPair {
                 Int = 2,
                 Float = 3.5f
             };
@@ -18,9 +18,4 @@ public static class Program {
 
         Console.WriteLine();
     }
-}
-
-public struct MyStruct {
-    public int Int;
-    public float Float;
 }

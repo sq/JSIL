@@ -36,8 +36,10 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   );
 
   $.RawMethod(false, "getView",
-    function (elementTypeObject) {
-      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject, true);
+    function (elementTypeObject, byteFallback) {
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject, byteFallback);
+      if (!arrayCtor)
+        return null;
 
       var result = this.viewCache[arrayCtor];
       if (!result)
@@ -101,7 +103,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      var view = this.memoryRange.getView(elementType.__Type__);
+      var view = this.memoryRange.getView(elementType.__Type__, true);
       if (elementType.__Type__.__IsStruct__)
         return new JSIL.StructPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
       else if (view === this.view)
@@ -275,7 +277,10 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
 JSIL.StackAlloc = function (sizeInBytes, elementType) {
   var buffer = new ArrayBuffer(sizeInBytes);
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
-  var view = memoryRange.getView(elementType);
+  var view = memoryRange.getView(elementType, false);
+  if (!view)
+    throw new Error("Unable to stack-allocate arrays of type '" + elementType.__FullName__ + "'");
+
   return new JSIL.Pointer(memoryRange, view, 0);
 };
 
@@ -289,23 +294,35 @@ JSIL.PointerLiteral = function (value) {
     $jsilcore.PointerLiteralMemoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   }
 
-  var view = $jsilcore.PointerLiteralMemoryRange.getView($jsilcore.System.Byte);
+  var view = $jsilcore.PointerLiteralMemoryRange.getView($jsilcore.System.Byte, false);
   return new JSIL.Pointer($jsilcore.PointerLiteralMemoryRange, view, value);
 };
 
+JSIL.$GetStructMarshaller = function (typeObject) {
+  var marshaller = typeObject.__StructMarshaller__;
+  if (marshaller === $jsilcore.FunctionNotInitialized)
+    marshaller = typeObject.__StructMarshaller__ = JSIL.$MakeStructMarshaller(typeObject);
+
+  return marshaller;
+}
+
 JSIL.MarshalStruct = function Struct_Marshal (struct, bytes, offset) {
   var thisType = struct.__ThisType__;
-  var marshaller = thisType.__StructMarshaller__;
-  if (marshaller === $jsilcore.FunctionNotInitialized)
-    marshaller = thisType.__StructMarshaller__ = JSIL.$MakeStructMarshaller(thisType);
+  var marshaller = JSIL.$GetStructMarshaller(thisType);
   return marshaller(struct, bytes, offset);
 };
 
+JSIL.$GetStructUnmarshaller = function (typeObject) {
+  var unmarshaller = typeObject.__StructUnmarshaller__;
+  if (unmarshaller === $jsilcore.FunctionNotInitialized)
+    unmarshaller = typeObject.__StructUnmarshaller__ = JSIL.$MakeStructUnmarshaller(typeObject);
+
+  return unmarshaller;
+}
+
 JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
   var thisType = struct.__ThisType__;
-  var unmarshaller = thisType.__StructUnmarshaller__;
-  if (unmarshaller === $jsilcore.FunctionNotInitialized)
-    unmarshaller = thisType.__StructUnmarshaller__ = JSIL.$MakeStructUnmarshaller(thisType);
+  var unmarshaller = JSIL.$GetStructUnmarshaller(thisType);
   return unmarshaller(struct, bytes, offset);
 };
 
@@ -353,7 +370,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
-  var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte);
+  var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
   var clampedByteView = null;
 
   for (var i = 0, l = fields.length; i < l; i++) {
@@ -366,25 +383,43 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
 
     var nativeViewKey = "nativebuf" + i;
     var byteViewKey = "bytebuf" + i;
-    var nativeView = marshallingScratchBuffer.getView(field.type);
+    var nativeView = marshallingScratchBuffer.getView(field.type, false);
 
-    if (!nativeView)
-      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+    if (!nativeView) {
+      if (field.type.__IsStruct__) {
+        // Try to marshal the struct
 
-    // The typed array spec is awful
-    var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
+        var funcKey = "struct" + i;
 
-    closure[nativeViewKey] = nativeView;
-    closure[byteViewKey] = clampedByteView;
+        if (marshal)
+          closure[funcKey] = JSIL.$GetStructMarshaller(field.type);
+        else
+          closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
 
-    if (marshal) {
-      body.push(nativeViewKey + "[0] = struct." + field.name + ";");
-      body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
+        body.push(
+          funcKey + "(struct." + field.name + ", bytes, (offset + " + offset + ") | 0);"
+        );
+      } else {
+        throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+      }
     } else {
-      // Really, really awful
-      body.push("for (var i = 0; i < " + size + "; ++i)");
-      body.push("  " + byteViewKey + "[i] = bytes[(offset + i + " + offset + ") | 0];");
-      body.push("struct." + field.name + " = " + nativeViewKey + "[0];");
+      // Marshal native types
+
+      // The typed array spec is awful
+      var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
+
+      closure[nativeViewKey] = nativeView;
+      closure[byteViewKey] = clampedByteView;
+
+      if (marshal) {
+        body.push(nativeViewKey + "[0] = struct." + field.name + ";");
+        body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
+      } else {
+        // Really, really awful
+        body.push("for (var i = 0; i < " + size + "; ++i)");
+        body.push("  " + byteViewKey + "[i] = bytes[(offset + i + " + offset + ") | 0];");
+        body.push("struct." + field.name + " = " + nativeViewKey + "[0];");
+      }
     }
   }
 

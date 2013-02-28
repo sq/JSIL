@@ -338,9 +338,13 @@
     <None Include="UnsafeTestCases\PointerOrdering.cs" />
     <None Include="UnsafeTestCases\PointerRefCast.cs" />
     <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
+    <None Include="UnsafeTestCases\WriteNestedStruct.cs" />
+    <None Include="UnsafeTestCases\Common.cs" />
+    <None Include="UnsafeTestCases\ReadNestedStruct.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
