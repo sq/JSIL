@@ -14,17 +14,36 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
 
   var digit = function (state) {
     var digits = state.digits;
-    return digits.shift();
+    var result = digits.shift();
+
+    if (state.leadingMinus) {
+      state.leadingMinus = false;
+
+      if (result !== null)
+        result = "-" + result;
+      else
+        result = "-";
+    }
+
+    return result;
   };
 
   var zeroOrDigit = function (state) {
     var digits = state.digits;
     var digit = digits.shift();
 
+    var result;
     if (digit === null)
-      return "0";
+      result = "0";
     else
-      return digit;
+      result = digit;
+
+    if (state.leadingMinus) {
+      state.leadingMinus = false;
+      result = "-" + result;
+    }
+
+    return result;
   };
 
   var decimal = function (state) {
@@ -125,6 +144,10 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
     var preDecimal = Array.prototype.slice.call(pieces[0]), postDecimal;
     var actualDigitsAfterDecimal = 0;
 
+    var leadingMinus = preDecimal[0] === "-";
+    if (leadingMinus)
+      preDecimal.shift();
+
     if (pieces.length > 1) {
       // If we have too few places after the decimal for all the digits,
       //  we need to recreate the string using toFixed so that it gets rounded.
@@ -168,12 +191,18 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
       var toRemove = preDecimal.length - digitsBeforeDecimal;
       var removed = preDecimal.splice(digitsBeforeDecimal, toRemove).join("");
 
-      preDecimal[preDecimal.length - 1] += removed;
+      var preDecimalDigit = preDecimal[preDecimal.length - 1];
+
+      if (preDecimalDigit !== null)
+        preDecimal[preDecimal.length - 1] = preDecimalDigit + removed;
+      else
+        preDecimal[preDecimal.length - 1] = removed;
     }
 
     var state = {
       afterDecimal: false,
-      omitDecimal: (actualDigitsAfterDecimal <= 0) && (zeroesAfterDecimal <= 0)
+      omitDecimal: (actualDigitsAfterDecimal <= 0) && (zeroesAfterDecimal <= 0),
+      leadingMinus: leadingMinus
     };
 
     Object.defineProperty(
