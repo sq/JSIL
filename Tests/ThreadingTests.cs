@@ -137,6 +137,8 @@ namespace JSIL.Tests {
 
             threadStartedSignal.WaitOne();
 
+            // FIXME: There's a race here since WaitingThreadCount actually increases
+            //  slightly before the thread begins waiting. Bleh.
             while (l.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 

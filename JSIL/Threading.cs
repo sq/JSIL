@@ -45,6 +45,12 @@ namespace JSIL.Threading {
                     throw new ThreadStateException();
             }
 
+            internal bool IsSignaled {
+                get {
+                    return Signal.IsSet;
+                }
+            }
+
             public void Block () {
                 Signal.Wait();
             }
@@ -145,8 +151,19 @@ namespace JSIL.Threading {
                 lock (waits)
                     waits.Remove(wait);
 
+                var wasSignaled = wait.IsSignaled;
+
                 wait.Dispose();
                 wait = null;
+
+                // It's possible, albeit incredibly unlikely, for someone to call Wake on our wait
+                //  before we do the deadlock check.
+                // If this happens, try to dequeue another wait from the queue and wake it up in our stead.
+                // This can probably still break, though...
+                if (wasSignaled) {
+                    if (TryDequeueOneWait(lck, out wait))
+                        wait.Wake();
+                }
 
                 return false;
             }
