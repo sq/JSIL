@@ -339,6 +339,7 @@
     <None Include="UnsafeTestCases\PointerRefCast.cs" />
     <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
     <Compile Include="ThreadingTests.cs" />
+    <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

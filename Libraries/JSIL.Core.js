@@ -1869,7 +1869,8 @@ $jsilcore.$Of$NoInitialize = function () {
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
     "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
-    "__FieldList__", "__InterfaceMembers__"
+    "__FieldList__", "__InterfaceMembers__",
+    "__StructComparer__", "__StructMarshaller__", "__StructUnmarshaller__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -4129,6 +4130,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
     typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__StructMarshaller__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__StructUnmarshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -6736,9 +6739,16 @@ JSIL.FreezeImmutableObject = function (object) {
     Object.freeze(object);
 };
 
-JSIL.GetTypedArrayConstructorForElementType = function (typeObject) {
-  if (!typeObject)
-    throw new Error("typeObject was null");
+JSIL.GetTypedArrayConstructorForElementType = function (typePublicInterface) {
+  if (!typePublicInterface)
+    throw new Error("typePublicInterface was null");
 
-  return typeObject.__TypedArray__ || null;
+  var result = typePublicInterface.__TypedArray__ || null;
+
+  if (!result) {
+    if (typePublicInterface.__Type__.__IsStruct__)
+      result = $jsilcore.System.Byte.__TypedArray__ || null;
+  }
+
+  return result;
 };

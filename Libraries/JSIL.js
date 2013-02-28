@@ -174,6 +174,7 @@ var $jsilloaderstate = {
   
   environment.loadScript(libraryRoot + "JSIL.Core.Types.js");
   environment.loadScript(libraryRoot + "JSIL.References.js");
+  environment.loadScript(libraryRoot + "JSIL.Unsafe.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Int64.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
