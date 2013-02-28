@@ -39,19 +39,8 @@ namespace JSIL.Transforms {
                                        select a).ToArray();
 
                 foreach (var a in assignments) {
-                    if (variable.Equals(a.NewValue)) {
-                        FirstPass.Assignments.Remove(a);
-
-                        FirstPass.Assignments.Add(
-                            new FunctionAnalysis1stPass.Assignment(
-                                a.ParentNodeIndices, a.StatementIndex, a.NodeIndex,
-                                a.Target, replaceWith, a.Operator,
-                                a.TargetType, a.SourceType
-                            )
-                        );
-                    } else {
+                    if (!variable.Equals(a.NewValue))
                         replacer.Visit(a.NewValue);
-                    }
                 }
             }
 
@@ -215,6 +204,9 @@ namespace JSIL.Transforms {
 
                         EliminatedVariables.Add(v);
                         EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Method.QualifiedIdentifier);
+
+                        // We've invalidated the static analysis data so the best choice is to abort.
+                        break;
                     } else {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
@@ -270,40 +262,11 @@ namespace JSIL.Transforms {
                 if (TraceLevel >= 1)
                     Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
 
-                var transferDataTo = replacement as JSVariable;
-                if (transferDataTo != null) {
-                    foreach (var access in accesses) {
-                        FirstPass.Accesses.Remove(access);
-                        FirstPass.Accesses.Add(new FunctionAnalysis1stPass.Access(
-                            access.ParentNodeIndices, access.StatementIndex, access.NodeIndex,
-                            transferDataTo, access.IsControlFlow
-                        ));
-                    }
-
-                    foreach (var assignment in assignments) {
-                        FirstPass.Assignments.Remove(assignment);
-                        FirstPass.Assignments.Add(new FunctionAnalysis1stPass.Assignment(
-                            assignment.ParentNodeIndices, assignment.StatementIndex, assignment.NodeIndex,
-                            transferDataTo, assignment.NewValue, assignment.Operator,
-                            assignment.TargetType, assignment.SourceType                            
-                       ));
-                    }
-
-                    foreach (var invocation in invocations) {
-                        FirstPass.Invocations.Remove(invocation);
-                        FirstPass.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                            invocation.ParentNodeIndices, invocation.StatementIndex, invocation.NodeIndex,
-                            transferDataTo, invocation.Method, invocation.Variables
-                        ));
-                    }
-                }
-
-                FirstPass.Assignments.RemoveAll((a) => v.Equals(a.Target));
-                FirstPass.Accesses.RemoveAll((a) => v.Equals(a.Source));
-
                 EliminatedVariables.Add(v);
-
                 EliminateVariable(fn, v, replacement, fn.Method.QualifiedIdentifier);
+
+                // We've invalidated the static analysis data so the best choice is to abort.
+                break;
             }
         }
     }
