@@ -66,10 +66,11 @@ namespace JSIL.Internal {
             if (GenericParameterCount != rhs.GenericParameterCount)
                 return false;
 
-            if (ParameterCount != rhs.ParameterCount)
+            var pc = ParameterCount;
+            if (pc != rhs.ParameterCount)
                 return false;
 
-            for (int i = 0, c = GenericParameterNames.Length; i < c; i++) {
+            for (int i = 0, c = GenericParameterCount; i < c; i++) {
                 if (GenericParameterNames[i] != rhs.GenericParameterNames[i])
                     return false;
             }
@@ -77,7 +78,7 @@ namespace JSIL.Internal {
             if (!MemberIdentifier.TypesAreEqual(TypeInfo, ReturnType, rhs.ReturnType))
                 return false;
 
-            for (int i = 0, c = ParameterCount; i < c; i++) {
+            for (int i = 0, c = pc; i < c; i++) {
                 if (!MemberIdentifier.TypesAreEqual(TypeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
                     return false;
             }
