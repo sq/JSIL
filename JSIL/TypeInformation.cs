@@ -1972,18 +1972,19 @@ namespace JSIL.Internal {
     }
 
     public class MethodTypeFactory : IDisposable {
-        protected struct MethodSignature {
+        protected struct Key {
             public readonly TypeReference ReturnType;
-            public readonly IEnumerable<TypeReference> ParameterTypes;
-            public readonly int ParameterCount;
-            private readonly int HashCode;
+            public readonly TypeReference[] ParameterTypes;
+            public readonly int HashCode;
 
-            public MethodSignature (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+            public Key (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+                if (parameterTypes == null)
+                    throw new NullReferenceException("parameterTypes");
+
                 ReturnType = returnType;
-                ParameterTypes = parameterTypes;
-                ParameterCount = parameterTypes.Count();
+                ParameterTypes = parameterTypes.ToArray();
 
-                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterCount;
+                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterTypes.Length;
 
                 int i = 0;
                 foreach (var p in ParameterTypes) {
@@ -1992,34 +1993,61 @@ namespace JSIL.Internal {
                 }
             }
 
+            public int ParameterCount {
+                get {
+                    if (ParameterTypes == null)
+                        return 0;
+
+                    return ParameterTypes.Length;
+                }
+            }
+
             public override int GetHashCode () {
                 return HashCode;
             }
 
-            public bool Equals (MethodSignature rhs) {
+            public bool Equals (Key rhs) {
                 if (!TypeUtil.TypesAreEqual(
                     ReturnType, rhs.ReturnType
                 ))
                     return false;
 
-                if (ParameterCount != rhs.ParameterCount)
+                if ((ParameterTypes == null) || (rhs.ParameterTypes == null))
+                    throw new InvalidDataException(String.Format("Passed a Key instance with null ParameterTypes in Equals: {0}, {1}", this, rhs));
+
+                if (ParameterTypes.Length != rhs.ParameterTypes.Length)
                     return false;
 
-                using (var e1 = ParameterTypes.GetEnumerator())
-                using (var e2 = rhs.ParameterTypes.GetEnumerator())
-                    while (e1.MoveNext() && e2.MoveNext()) {
-                        if (!TypeUtil.TypesAreEqual(e1.Current, e2.Current))
-                            return false;
-                    }
+                for (int i = 0, l = ParameterTypes.Length; i < l; i++) {
+                    if (!TypeUtil.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i]))
+                        return false;
+                }
 
                 return true;
             }
 
             public override bool Equals (object obj) {
-                if (obj is MethodSignature)
-                    return Equals((MethodSignature)obj);
+                if (obj is Key)
+                    return Equals((Key)obj);
                 else
                     return base.Equals(obj);
+            }
+
+            public override string ToString () {
+                if (ParameterTypes != null)
+                    return String.Format("{0} ({1})", ReturnType, String.Join(", ", (object[])ParameterTypes));
+                else
+                    return ReturnType.ToString();
+            }
+        }
+
+        protected class KeyComparer : IEqualityComparer<Key> {
+            bool IEqualityComparer<Key>.Equals (Key x, Key y) {
+                return x.Equals(y);
+            }
+
+            int IEqualityComparer<Key>.GetHashCode (Key obj) {
+                return obj.HashCode;
             }
         }
 
@@ -2029,8 +2057,8 @@ namespace JSIL.Internal {
             public TypeSystem TypeSystem;
         }
 
-        protected readonly ConcurrentCache<MethodSignature, TypeReference> Cache = new ConcurrentCache<MethodSignature, TypeReference>();
-        protected static readonly ConcurrentCache<MethodSignature, TypeReference>.CreatorFunction<MakeReferenceArgs> MakeReference;
+        protected readonly ConcurrentCache<Key, TypeReference> Cache = new ConcurrentCache<Key, TypeReference>(new KeyComparer());
+        protected static readonly ConcurrentCache<Key, TypeReference>.CreatorFunction<MakeReferenceArgs> MakeReference;
 
         static MethodTypeFactory () {
             MakeReference = (signature, args) => {
@@ -2098,7 +2126,7 @@ namespace JSIL.Internal {
                 ParameterTypes = parameterTypes.ToArray(),
                 TypeSystem = typeSystem
             };
-            var signature = new MethodSignature(returnType, args.ParameterTypes);
+            var signature = new Key(returnType, args.ParameterTypes);
 
             return Cache.GetOrCreate(
                 signature, args, MakeReference
