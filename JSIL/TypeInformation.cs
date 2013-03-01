@@ -2037,7 +2037,7 @@ namespace JSIL.Internal {
                 if (ParameterTypes != null)
                     return String.Format("{0} ({1})", ReturnType, String.Join(", ", (object[])ParameterTypes));
                 else
-                    return ReturnType.ToString();
+                    return String.Format("{0}", ReturnType);
             }
         }
 
