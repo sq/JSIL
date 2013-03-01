@@ -9,10 +9,6 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
   JSIL.DeclareNamespace("System");
   JSIL.DeclareNamespace("System.IO");
 
-  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Environment", false, [], function ($) {
-    $.Property({Static:true , Public:true }, "CurrentManagedThreadId", $.Int32);
-  });
-
   JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.MarshalByRefObject", true, [], function ($) {
     $.Field({Static:false, Public:false}, "__identity", $.Object);
 

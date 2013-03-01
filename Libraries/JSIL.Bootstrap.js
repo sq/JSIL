@@ -11,7 +11,7 @@ JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.Linq.Expressions");
 JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
-
+JSIL.DeclareNamespace("System.Diagnostics");
 
 // Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
@@ -1925,6 +1925,12 @@ JSIL.ImplementExternals("System.Environment", function ($) {
 
 });
 
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Environment", false, [], function ($) {
+  $.Property({Static:true , Public:true }, "CurrentManagedThreadId", $.Int32);
+  
+  $.Property({Static:true , Public:true }, "TickCount");
+});
+
 $jsilcore.hashContainerBase = function ($) {
   var mscorlib = JSIL.GetCorlib();
 
@@ -2942,6 +2948,9 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     }
   );
 
+});
+
+JSIL.MakeClass("System.Object", "System.Diagnostics.Stopwatch", true, [], function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "System.EventArgs", true, [], function ($) {
