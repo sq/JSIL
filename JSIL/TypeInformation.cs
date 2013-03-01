@@ -1973,6 +1973,9 @@ namespace JSIL.Internal {
 
     public class MethodTypeFactory : IDisposable {
         protected struct Key {
+            private static int WroteMonoWarning = 0;
+
+            public readonly bool IsValid;
             public readonly TypeReference ReturnType;
             public readonly TypeReference[] ParameterTypes;
             public readonly int HashCode;
@@ -1991,6 +1994,8 @@ namespace JSIL.Internal {
                     HashCode ^= (p.FullName.GetHashCode() << i);
                     i += 1;
                 }
+
+                IsValid = true;
             }
 
             public int ParameterCount {
@@ -2007,13 +2012,17 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (Key rhs) {
+                if (!IsValid || !rhs.IsValid) {
+                    if (Interlocked.CompareExchange(ref WroteMonoWarning, 1, 0) == 0)
+                        Console.Error.WriteLine("WARNING: Invalid Key passed to Key.Equals. You are probably running a version of Mono with a broken ConcurrentDictionary.");
+
+                    return false;
+                }
+
                 if (!TypeUtil.TypesAreEqual(
                     ReturnType, rhs.ReturnType
                 ))
                     return false;
-
-                if ((ParameterTypes == null) || (rhs.ParameterTypes == null))
-                    throw new InvalidDataException(String.Format("Passed a Key instance with null ParameterTypes in Equals: {0}, {1}", this, rhs));
 
                 if (ParameterTypes.Length != rhs.ParameterTypes.Length)
                     return false;

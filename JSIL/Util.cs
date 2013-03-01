@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -569,9 +571,10 @@ namespace JSIL.Internal {
         }
 
         private void TryCreateTeardown (TKey key, ConstructionState state) {
-            States.TryRemove(key, out state);
-            state.Set();
-            state.Dispose();
+            if (States.TryRemove(key, out state)) {
+                state.Set();
+                state.Dispose();
+            }
         }
 
         public bool TryCreate (TKey key, CreatorFunction creator) {
@@ -635,6 +638,8 @@ namespace JSIL.Internal {
         }
 
         public TValue GetOrCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator) {
+            bool createSuccess = false;
+
             while (true) {
                 bool waitFailed = TryWaitForConstruction(key);
 
@@ -643,8 +648,10 @@ namespace JSIL.Internal {
                     return result;
                 else if (waitFailed)
                     throw new ObjectDisposedException("Cache", "The cache was cleared or disposed.");
+                else if (createSuccess)
+                    throw new ThreadStateException("Failed to retrieve cache element after creating it");
 
-                TryCreate(key, userData, creator);
+                createSuccess |= TryCreate(key, userData, creator);
             }
         }
 
