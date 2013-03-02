@@ -2,7 +2,7 @@
 
 public static class Program {
     const int BufferSize = 1024 * 1024;
-    const int IterationCount = 8;
+    const int IterationCount = 32;
 
     public static int[] Buffer = new int[BufferSize];
 

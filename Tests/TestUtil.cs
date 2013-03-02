@@ -672,7 +672,7 @@ namespace JSIL.Tests {
         [TestFixtureSetUp]
         public void FixtureSetUp () {
             EvaluatorPool = new EvaluatorPool(
-                ComparisonTest.JSShellPath, "",
+                ComparisonTest.JSShellPath, "-m -n",
                 (e) =>
                     e.WriteInput(ComparisonTest.EvaluatorSetupCode)
             );
