@@ -211,6 +211,8 @@ namespace JSIL.Tests {
         public static readonly string LoaderJSPath;
         public static readonly string EvaluatorSetupCode;
 
+        public string StartupPrologue;
+
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
         public readonly string[] StubbedAssemblies;
@@ -516,8 +518,7 @@ namespace JSIL.Tests {
                 var sentinelEnd = "// Test output ends here //";
                 var elapsedPrefix = "// elapsed: ";
 
-                evaluator.WriteInput(
-                    "contentManifest['Test'] = [['Script', {0}]]; " +
+                StartupPrologue = String.Format("contentManifest['Test'] = [['Script', {0}]]; " +
                     "function runMain () {{ " +
                     "print({1}); try {{ var elapsedTime = runTestCase(timeout, elapsed); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
                     "}}; shellStartup();",
@@ -526,6 +527,8 @@ namespace JSIL.Tests {
                     Util.EscapeString(sentinelEnd),
                     Util.EscapeString(elapsedPrefix)
                 );
+
+                evaluator.WriteInput(StartupPrologue);
 
                 evaluator.Join();
 

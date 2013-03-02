@@ -73,6 +73,9 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"SpecialTestCases\UnsafeIntPerformanceComparison.cs"
             )) {
+                Console.WriteLine("// setup code //");
+                Console.WriteLine(ComparisonTest.EvaluatorSetupCode);
+
                 string js;
                 long elapsedJs, elapsedTranslation;
 
@@ -85,7 +88,11 @@ namespace JSIL.Tests {
                     }
                 );
 
+                Console.WriteLine("// startup prologue //");
+                Console.WriteLine(test.StartupPrologue);
+                Console.WriteLine("// output //");
                 Console.WriteLine(output);
+                Console.WriteLine("// generated js //");
                 Console.WriteLine(js);
             }
         }
