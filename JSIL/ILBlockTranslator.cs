@@ -1871,7 +1871,7 @@ namespace JSIL {
 
             var referenceType = reference.GetActualType(TypeSystem);
             if (referenceType.IsPointer) {
-                return new JSReadThroughPointerExpression(reference);
+                return new JSReadThroughPointerExpression(reference, referenceType.GetElementType());
             } else {
                 if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                     WarningFormatFunction("unsupported reference type for ldobj: {0}", node.Arguments[0]);

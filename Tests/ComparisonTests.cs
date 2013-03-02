@@ -69,6 +69,28 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void UnsafeIntPerformanceComparison () {
+            using (var test = MakeTest(
+                @"SpecialTestCases\UnsafeIntPerformanceComparison.cs"
+            )) {
+                string js;
+                long elapsedJs, elapsedTranslation;
+
+                var output = test.RunJavascript(
+                    new string[0], out js, out elapsedTranslation, out elapsedJs, 
+                    makeConfiguration: () => {
+                        var cfg = MakeConfiguration();
+                        cfg.CodeGenerator.EnableUnsafeCode = true;
+                        return cfg;
+                    }
+                );
+
+                Console.WriteLine(output);
+                Console.WriteLine(js);
+            }
+        }
+
+        [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
             RunSingleComparisonTestCase(parameters);

@@ -57,10 +57,11 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
 
-      if (this.view)
-        this.divisor = this.view.BYTES_PER_ELEMENT | 0;
-      else
-        this.divisor = 0;
+      if (this.view) {
+        this.shift = (Math.log(this.view.BYTES_PER_ELEMENT) / Math.LN2) | 0;
+      } else {
+        this.shift = 0;
+      }
     }
   );
 
@@ -69,34 +70,48 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       target.memoryRange = source.memoryRange;
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
-      target.divisor = source.divisor;
+      target.shift = source.shift;
     }
   );
 
   $.RawMethod(false, "get",
     function Pointer_Get () {
-      var index = (this.offsetInBytes / this.divisor) | 0;
+      var index = this.offsetInBytes >>> this.shift;
       return this.view[index];
     }
   );
 
   $.RawMethod(false, "set",
     function Pointer_Set (value) {
-      var index = (this.offsetInBytes / this.divisor) | 0;
+      var index = this.offsetInBytes >>> this.shift;
+      return this.view[index] = value;
+    }
+  );
+
+  $.RawMethod(false, "getElement",
+    function Pointer_GetElement (offsetInElements) {
+      var index = ((this.offsetInBytes >>> this.shift) + offsetInElements) | 0;
+      return this.view[index];
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function Pointer_SetElement (offsetInElements, value) {
+      var index = ((this.offsetInBytes >>> this.shift) + offsetInElements) | 0;
       return this.view[index] = value;
     }
   );
 
   $.RawMethod(false, "getOffset",
     function Pointer_GetOffset (offsetInBytes) {
-      var index = (((this.offsetInBytes + offsetInBytes) | 0) / this.divisor) | 0;
+      var index = ((this.offsetInBytes + offsetInBytes) | 0) >>> this.shift;
       return this.view[index];
     }
   );
 
   $.RawMethod(false, "setOffset",
     function Pointer_SetOffset (offsetInBytes, value) {
-      var index = (((this.offsetInBytes + offsetInBytes) | 0) / this.divisor) | 0;
+      var index = ((this.offsetInBytes + offsetInBytes) | 0) >>> this.shift;
       return this.view[index] = value;
     }
   );
@@ -174,26 +189,121 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   );
 });
 
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.WordPointer", true, [], function ($) {
+  $.RawMethod(false, "get",
+    function WordPointer_Get () {
+      return this.view[this.offsetInBytes >>> 1];
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function WordPointer_Set (value) {
+      return this.view[this.offsetInBytes >>> 1] = value;
+    }
+  );
+
+  $.RawMethod(false, "getElement",
+    function WordPointer_GetElement (offsetInElements) {
+      return this.view[((this.offsetInBytes >>> 1) + offsetInElements) | 0];
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function WordPointer_SetElement (offsetInElements, value) {
+      return this.view[((this.offsetInBytes >>> 1) + offsetInElements) | 0] = value;
+    }
+  );  
+
+  $.RawMethod(false, "getOffset",
+    function WordPointer_GetOffset (offsetInBytes) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 1];
+    }
+  );
+
+  $.RawMethod(false, "setOffset",
+    function WordPointer_SetOffset (offsetInBytes, value) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 1] = value;
+    }
+  );  
+});
+
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.DoubleWordPointer", true, [], function ($) {
+  $.RawMethod(false, "get",
+    function DoubleWordPointer_Get () {
+      return this.view[this.offsetInBytes >>> 2];
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function DoubleWordPointer_Set (value) {
+      return this.view[this.offsetInBytes >>> 2] = value;
+    }
+  );
+
+  $.RawMethod(false, "getElement",
+    function DoubleWordPointer_GetElement (offsetInElements) {
+      return this.view[((this.offsetInBytes >>> 2) + offsetInElements) | 0];
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function DoubleWordPointer_SetElement (offsetInElements, value) {
+      return this.view[((this.offsetInBytes >>> 2) + offsetInElements) | 0] = value;
+    }
+  );  
+
+  $.RawMethod(false, "getOffset",
+    function DoubleWordPointer_GetOffset (offsetInBytes) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 2];
+    }
+  );
+
+  $.RawMethod(false, "setOffset",
+    function DoubleWordPointer_SetOffset (offsetInBytes, value) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 2] = value;
+    }
+  );  
+});
+
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.QuadWordPointer", true, [], function ($) {
+  $.RawMethod(false, "get",
+    function QuadWordPointer_Get () {
+      return this.view[this.offsetInBytes >>> 3];
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function QuadWordPointer_Set (value) {
+      return this.view[this.offsetInBytes >>> 3] = value;
+    }
+  );
+
+  $.RawMethod(false, "getElement",
+    function QuadWordPointer_GetElement (offsetInElements) {
+      return this.view[((this.offsetInBytes >>> 3) + offsetInElements) | 0];
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function QuadWordPointer_SetElement (offsetInElements, value) {
+      return this.view[((this.offsetInBytes >>> 3) + offsetInElements) | 0] = value;
+    }
+  );  
+
+  $.RawMethod(false, "getOffset",
+    function QuadWordPointer_GetOffset (offsetInBytes) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 3];
+    }
+  );
+
+  $.RawMethod(false, "setOffset",
+    function QuadWordPointer_SetOffset (offsetInBytes, value) {
+      return this.view[((this.offsetInBytes + offsetInBytes) | 0) >>> 3] = value;
+    }
+  );  
+});
+
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.BytePointer", true, [], function ($) {
-  $.RawMethod(false, ".ctor",
-    function BytePointer_ctor (memoryRange, view, offsetInBytes) {
-      this.memoryRange = memoryRange;
-      this.view = view;
-      this.offsetInBytes = offsetInBytes | 0;
-
-      if (view.BYTES_PER_ELEMENT !== 1)
-        throw new Error("View is not a byte array");
-    }
-  );
-
-  $.RawMethod(false, "__CopyMembers__",
-    function BytePointer_CopyMembers (source, target) {
-      target.memoryRange = source.memoryRange;
-      target.view = source.view;
-      target.offsetInBytes = source.offsetInBytes;
-    }
-  );
-
   $.RawMethod(false, "get",
     function BytePointer_Get () {
       return this.view[this.offsetInBytes];
@@ -205,6 +315,18 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.BytePointer", true, [], function ($) {
       return this.view[this.offsetInBytes] = value;
     }
   );
+
+  $.RawMethod(false, "getElement",
+    function BytePointer_GetElement (offsetInElements) {
+      return this.view[(this.offsetInBytes + offsetInElements) | 0];
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function BytePointer_SetElement (offsetInElements, value) {
+      return this.view[(this.offsetInBytes + offsetInElements) | 0] = value;
+    }
+  );  
 
   $.RawMethod(false, "getOffset",
     function BytePointer_GetOffset (offsetInBytes) {
@@ -253,6 +375,18 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "getElement",
+    function StructPointer_GetElement (offsetInElements) {
+      throw new Error("Not implemented");
+    }
+  );
+
+  $.RawMethod(false, "setElement",
+    function StructPointer_SetElement (offsetInElements, value) {
+      throw new Error("Not implemented");
+    }
+  );
+
   $.RawMethod(false, "getOffset",
     function StructPointer_GetOffset (offsetInBytes) {
       var result = new (this.structType.__PublicInterface__)();
@@ -278,10 +412,20 @@ if (typeof (WeakMap) !== "undefined") {
 JSIL.NewPointer = function (elementTypeObject, memoryRange, view, offsetInBytes) {
   if ((elementTypeObject != null) && elementTypeObject.__IsStruct__)
     return new JSIL.StructPointer(elementTypeObject, memoryRange, view, offsetInBytes);
-  else if (view.BYTES_PER_ELEMENT === 1)
-    return new JSIL.BytePointer(memoryRange, view, offsetInBytes);
-  else
-    return new JSIL.Pointer(memoryRange, view, offsetInBytes);
+
+  switch (view.BYTES_PER_ELEMENT) {
+    case 1:
+      return new JSIL.BytePointer(memoryRange, view, offsetInBytes);
+    case 2:
+      return new JSIL.WordPointer(memoryRange, view, offsetInBytes);
+    case 4:
+      return new JSIL.DoubleWordPointer(memoryRange, view, offsetInBytes);
+    case 8:
+      return new JSIL.QuadWordPointer(memoryRange, view, offsetInBytes);
+
+    default:
+      return new JSIL.Pointer(memoryRange, view, offsetInBytes);
+  }
 };
 
 JSIL.GetMemoryRangeForBuffer = function (buffer) {

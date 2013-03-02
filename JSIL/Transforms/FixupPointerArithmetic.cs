@@ -22,7 +22,7 @@ namespace JSIL.Transforms {
             JSExpression newPointer, offset;
 
             if (ExtractOffsetFromPointerExpression(rtpe.Pointer, TypeSystem, out newPointer, out offset)) {
-                var replacement = new JSReadThroughPointerExpression(newPointer, offset);
+                var replacement = new JSReadThroughPointerExpression(newPointer, rtpe.ElementType, offset);
                 ParentNode.ReplaceChild(rtpe, replacement);
                 VisitReplacement(replacement);
             } else {

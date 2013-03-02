@@ -345,6 +345,7 @@
     <None Include="UnsafeTestCases\WriteNestedStruct.cs" />
     <None Include="UnsafeTestCases\Common.cs" />
     <None Include="UnsafeTestCases\ReadNestedStruct.cs" />
+    <None Include="SpecialTestCases\UnsafeIntPerformanceComparison.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

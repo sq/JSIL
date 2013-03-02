@@ -2168,19 +2168,85 @@ namespace JSIL.Ast {
         }
     }
 
+    public static class JSPointerExpressionUtil {
+        public static int? GetNativeSizeOfElement (TypeReference elementType) {
+            switch (elementType.FullName) {
+                case "System.Byte":
+                case "System.SByte":
+                    return 1;
+
+                case "System.Int16":
+                case "System.UInt16":
+                    return 2;
+
+                case "System.Int32":
+                case "System.UInt32":
+                case "System.Single":
+                    return 4;
+
+                case "System.Int64":
+                case "System.UInt64":
+                case "System.Double":
+                    return 8;
+            }
+
+            return null;
+        }
+
+        public static JSExpression OffsetFromBytesToElements (JSExpression offsetInBytes, TypeReference elementType) {
+            var elementSize = GetNativeSizeOfElement(elementType);
+            if (!elementSize.HasValue)
+                return null;
+
+            while (true) {
+                var cte = offsetInBytes as JSChangeTypeExpression;
+                var cast = offsetInBytes as JSCastExpression;
+                var truncation = offsetInBytes as JSTruncateExpression;
+
+                if (cte != null)
+                    offsetInBytes = cte.Expression;
+                else if (cast != null)
+                    offsetInBytes = cast.Expression;
+                else if (truncation != null)
+                    offsetInBytes = truncation.Expression;
+                else
+                    break;
+            }
+
+            var boe = offsetInBytes as JSBinaryOperatorExpression;
+            if (boe == null)
+                return null;
+
+            var rightLiteral = boe.Right as JSIntegerLiteral;
+
+            if (
+                (boe.Operator == JSOperator.Multiply) &&
+                (rightLiteral != null) &&
+                (rightLiteral.Value == elementSize.Value)
+            ) {
+                return boe.Left;
+            }
+
+            return null;
+        }
+    }
+
     public class JSWriteThroughPointerExpression : JSBinaryOperatorExpression {
         static JSWriteThroughPointerExpression () {
             SetValueNames(
                 typeof(JSWriteThroughPointerExpression),
                 "Left",
                 "Right",
-                "OffsetInBytes"
+                "OffsetInBytes",
+                "OffsetInElements"
             );
         }
 
         public JSWriteThroughPointerExpression (JSExpression pointer, JSExpression rhs, TypeReference actualType, JSExpression offsetInBytes = null)
             : base(
-                JSOperator.Assignment, pointer, rhs, actualType, offsetInBytes
+                JSOperator.Assignment, pointer, rhs, 
+                actualType, offsetInBytes, 
+                JSPointerExpressionUtil.OffsetFromBytesToElements(offsetInBytes, actualType)
             ) {
         }
 
@@ -2190,14 +2256,33 @@ namespace JSIL.Ast {
             }
         }
 
+        public JSExpression OffsetInElements {
+            get {
+                return Values[3];
+            }
+        }
+
+        public TypeReference ElementType {
+            get {
+                return ActualType;
+            }
+        }
+
         public override string ToString () {
             return String.Format("*({0} + {2}) = {1}", Left, Right, ((object)OffsetInBytes ?? "0"));
         }
     }
 
     public class JSReadThroughPointerExpression : JSExpression {
-        public JSReadThroughPointerExpression (JSExpression pointer, JSExpression offsetInBytes = null)
-            : base(pointer, offsetInBytes) {
+        public readonly TypeReference ElementType;
+
+        public JSReadThroughPointerExpression (JSExpression pointer, TypeReference elementType, JSExpression offsetInBytes = null)
+            : base(
+                pointer, offsetInBytes, 
+                JSPointerExpressionUtil.OffsetFromBytesToElements(offsetInBytes, elementType)
+            ) {
+
+            ElementType = elementType;
         }
 
         public JSExpression Pointer {
@@ -2209,6 +2294,12 @@ namespace JSIL.Ast {
         public JSExpression OffsetInBytes {
             get {
                 return Values[1];
+            }
+        }
+
+        public JSExpression OffsetInElements {
+            get {
+                return Values[2];
             }
         }
 

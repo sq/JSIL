@@ -986,9 +986,17 @@ namespace JSIL {
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
             Visit(rtpe.Pointer);
             Output.Dot();
-            Output.Identifier(rtpe.OffsetInBytes != null ? "getOffset" : "get");
+            Output.Identifier(
+                rtpe.OffsetInElements != null
+                    ? "getElement"
+                    : rtpe.OffsetInBytes != null 
+                        ? "getOffset" 
+                        : "get"
+            );
             Output.LPar();
-            if (rtpe.OffsetInBytes != null)
+            if (rtpe.OffsetInElements != null)
+                Visit(rtpe.OffsetInElements);
+            else if (rtpe.OffsetInBytes != null)
                 Visit(rtpe.OffsetInBytes);
             Output.RPar();
         }
@@ -996,9 +1004,18 @@ namespace JSIL {
         public void VisitNode (JSWriteThroughPointerExpression wtpe) {
             Visit(wtpe.Left);
             Output.Dot();
-            Output.Identifier(wtpe.OffsetInBytes != null ? "setOffset" : "set");
+            Output.Identifier(
+                wtpe.OffsetInElements != null
+                    ? "setElement"
+                    : wtpe.OffsetInBytes != null
+                        ? "setOffset"
+                        : "set"
+            );
             Output.LPar();
-            if (wtpe.OffsetInBytes != null) {
+            if (wtpe.OffsetInElements != null) {
+                Visit(wtpe.OffsetInElements);
+                Output.Comma();
+            } else if (wtpe.OffsetInBytes != null) {
                 Visit(wtpe.OffsetInBytes);
                 Output.Comma();
             }
