@@ -483,25 +483,40 @@ namespace JSIL.Internal {
 
         protected readonly ConcurrentDictionary<TKey, TValue> Storage;
         protected readonly ConcurrentDictionary<TKey, ConstructionState> States;
+        protected readonly IEqualityComparer<TKey> Comparer;
 
         public ConcurrentCache () {
+            Comparer = EqualityComparer<TKey>.Default;
             Storage = new ConcurrentDictionary<TKey, TValue>();
             States = new ConcurrentDictionary<TKey, ConstructionState>();
         }
 
         public ConcurrentCache (IEqualityComparer<TKey> comparer) {
+            Comparer = comparer;
             Storage = new ConcurrentDictionary<TKey, TValue>(comparer);
             States = new ConcurrentDictionary<TKey, ConstructionState>(comparer);
         }
 
         public ConcurrentCache (int concurrencyLevel, int capacity) {
+            Comparer = EqualityComparer<TKey>.Default;
             Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity);
             States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel);
         }
 
         public ConcurrentCache (int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer) {
+            Comparer = comparer;
             Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
             States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel, comparer);
+        }
+
+        protected ConcurrentCache (ConcurrentCache<TKey, TValue> cloneSource) {
+            // FIXME: Probably not thread-safe?
+            Storage = new ConcurrentDictionary<TKey, TValue>(cloneSource.Storage, cloneSource.Comparer);
+            States = new ConcurrentDictionary<TKey, ConstructionState>(cloneSource.Comparer);
+        }
+
+        public ConcurrentCache<TKey, TValue> Clone () {
+            return new ConcurrentCache<TKey, TValue>(this);
         }
 
         public int Count {

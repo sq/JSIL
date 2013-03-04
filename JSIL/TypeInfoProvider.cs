@@ -18,89 +18,127 @@ namespace JSIL {
             public TypeDefinition Definition;
         }
 
-        protected readonly HashSet<AssemblyDefinition> Assemblies = new HashSet<AssemblyDefinition>();
-        protected readonly HashSet<string> ProxyAssemblyNames = new HashSet<string>();
+        protected readonly HashSet<AssemblyDefinition> Assemblies;
+        protected readonly HashSet<string> ProxyAssemblyNames;
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo> TypeInformation;
         protected readonly ConcurrentCache<string, ModuleInfo> ModuleInformation;
-        protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
-        protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
-        protected readonly ConcurrentCache<string, string[]> ProxiesByName = new ConcurrentCache<string, string[]>();
-        protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
+        protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies;
+        protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName;
+        protected readonly ConcurrentCache<string, string[]> ProxiesByName;
+        protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache;
 
         protected static readonly ConcurrentCache<string, ModuleInfo>.CreatorFunction<ModuleDefinition> MakeModuleInfo;
+        protected static readonly ConcurrentCache<string, string[]>.CreatorFunction<MemberReference> MakeProxiesByName;
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo>.CreatorFunction<MakeTypeInfoArgs> MakeTypeInfo;
-        protected readonly ConcurrentCache<string, string[]>.CreatorFunction<MemberReference> MakeProxiesByName;
 
         static TypeInfoProvider () {
             MakeModuleInfo = (key, module) => new ModuleInfo(module);
+            MakeProxiesByName = _MakeProxiesByName;
         }
 
         public TypeInfoProvider () {
+            Assemblies = new HashSet<AssemblyDefinition>();
+            ProxyAssemblyNames = new HashSet<string>();
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
+            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
+            ProxiesByName = new ConcurrentCache<string, string[]>();
+            TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
+
             TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 4096);
             ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 256);
 
-            MakeTypeInfo = (identifier, args) => {
-                var constructed = ConstructTypeInformation(identifier, args.Definition, args.MoreTypes);
-                args.SecondPass.Add(identifier, constructed);
+            MakeTypeInfo = _MakeTypeInfo;
+        }
 
-                foreach (var typedef in args.MoreTypes.Values)
-                    EnqueueType(args.TypesToInitialize, typedef);
+        protected TypeInfoProvider (TypeInfoProvider cloneSource) {
+            Assemblies = new HashSet<AssemblyDefinition>(cloneSource.Assemblies);
+            ProxyAssemblyNames = new HashSet<string>(cloneSource.ProxyAssemblyNames);
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(cloneSource.TypeProxies);
 
-                args.MoreTypes.Clear();
+            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
+            foreach (var kvp in cloneSource.DirectProxiesByTypeName)
+                DirectProxiesByTypeName.Add(kvp.Key, new HashSet<ProxyInfo>(kvp.Value));
 
-                return constructed;
-            };
+            ProxiesByName = cloneSource.ProxiesByName.Clone();
+            TypeAssignabilityCache = cloneSource.TypeAssignabilityCache.Clone();
+            TypeInformation = cloneSource.TypeInformation.Clone();
+            ModuleInformation = cloneSource.ModuleInformation.Clone();
 
-            MakeProxiesByName = (fullName, mr) => {
-                var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
-                if (icap == null)
-                    return null;
+            MakeTypeInfo = _MakeTypeInfo;
+        }
 
-                CustomAttribute proxyAttribute = null;
-                for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
-                    var ca = icap.CustomAttributes[i];
-                    if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
-                        proxyAttribute = ca;
-                        break;
-                    }
+        public TypeInfoProvider Clone () {
+            return new TypeInfoProvider(this);
+        }
+
+        private static string[] _MakeProxiesByName (string key, MemberReference mr) {
+            var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
+            if (icap == null)
+                return null;
+
+            CustomAttribute proxyAttribute = null;
+            for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++)
+            {
+                var ca = icap.CustomAttributes[i];
+                if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy"))
+                {
+                    proxyAttribute = ca;
+                    break;
                 }
+            }
 
-                if (proxyAttribute == null)
-                    return null;
+            if (proxyAttribute == null)
+                return null;
 
-                string[] proxyTargets = null;
-                var args = proxyAttribute.ConstructorArguments;
+            string[] proxyTargets = null;
+            var args = proxyAttribute.ConstructorArguments;
 
-                foreach (var arg in args) {
-                    switch (arg.Type.FullName) {
-                        case "System.Type":
-                            proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
+            foreach (var arg in args)
+            {
+                switch (arg.Type.FullName)
+                {
+                    case "System.Type":
+                        proxyTargets = new string[] {((TypeReference) arg.Value).FullName};
+
+                        break;
+                    case "System.Type[]":
+                        {
+                            var values = (CustomAttributeArgument[]) arg.Value;
+                            proxyTargets = new string[values.Length];
+                            for (var i = 0; i < proxyTargets.Length; i++)
+                                proxyTargets[i] = ((TypeReference) values[i].Value).FullName;
 
                             break;
-                        case "System.Type[]": {
-                                var values = (CustomAttributeArgument[])arg.Value;
-                                proxyTargets = new string[values.Length];
-                                for (var i = 0; i < proxyTargets.Length; i++)
-                                    proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
+                        }
+                    case "System.String":
+                        {
+                            proxyTargets = new string[] {(string) arg.Value};
 
-                                break;
-                            }
-                        case "System.String": {
-                                proxyTargets = new string[] { (string)arg.Value };
+                            break;
+                        }
+                    case "System.String[]":
+                        {
+                            var values = (CustomAttributeArgument[]) arg.Value;
+                            proxyTargets = (from v in values select (string) v.Value).ToArray();
 
-                                break;
-                            }
-                        case "System.String[]": {
-                                var values = (CustomAttributeArgument[])arg.Value;
-                                proxyTargets = (from v in values select (string)v.Value).ToArray();
-
-                                break;
-                            }
-                    }
+                            break;
+                        }
                 }
+            }
 
-                return proxyTargets;
-            };
+            return proxyTargets;
+        }
+
+        private TypeInfo _MakeTypeInfo(TypeIdentifier identifier, MakeTypeInfoArgs args) {
+            var constructed = ConstructTypeInformation(identifier, args.Definition, args.MoreTypes);
+            args.SecondPass.Add(identifier, constructed);
+
+            foreach (var typedef in args.MoreTypes.Values)
+                EnqueueType(args.TypesToInitialize, typedef);
+
+            args.MoreTypes.Clear();
+
+            return constructed;
         }
 
         ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {

@@ -666,7 +666,9 @@ namespace JSIL.Tests {
         }
     }
 
-    public class GenericTestFixture {
+    public class GenericTestFixture : IDisposable {
+        protected TypeInfoProvider DefaultTypeInfoProvider;
+
         public EvaluatorPool EvaluatorPool {
             get;
             private set;
@@ -683,7 +685,19 @@ namespace JSIL.Tests {
 
         [TestFixtureTearDown]
         public void FixtureTearDown () {
-            EvaluatorPool.Dispose();
+            Dispose();
+        }
+
+        public void Dispose () {
+            if (EvaluatorPool != null) {
+                EvaluatorPool.Dispose();
+                EvaluatorPool = null;
+            }
+
+            if (DefaultTypeInfoProvider != null) {
+                DefaultTypeInfoProvider.Dispose();
+                DefaultTypeInfoProvider = null;
+            }
         }
 
         protected ComparisonTest MakeTest (
@@ -703,8 +717,11 @@ namespace JSIL.Tests {
         }
 
         protected TypeInfoProvider MakeDefaultProvider () {
-            // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator(MakeConfiguration())).GetTypeInfoProvider();
+            if (DefaultTypeInfoProvider == null)
+                // Construct a type info provider with default proxies loaded (kind of a hack)
+                DefaultTypeInfoProvider = (new AssemblyTranslator(MakeConfiguration())).GetTypeInfoProvider();
+
+            return DefaultTypeInfoProvider.Clone();
         }
 
         /// <summary>
