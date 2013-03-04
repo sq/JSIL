@@ -37,15 +37,17 @@ namespace JSIL {
         }
 
         public TypeInfoProvider () {
+            var levelOfParallelism = Math.Max(1, Environment.ProcessorCount / 2);
+
             Assemblies = new HashSet<AssemblyDefinition>();
             ProxyAssemblyNames = new HashSet<string>();
             TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
             DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
-            ProxiesByName = new ConcurrentCache<string, string[]>();
-            TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
+            ProxiesByName = new ConcurrentCache<string, string[]>(levelOfParallelism, 256);
+            TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>(levelOfParallelism, 4096);
 
-            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 4096);
-            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 256);
+            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096);
+            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256);
 
             MakeTypeInfo = _MakeTypeInfo;
         }

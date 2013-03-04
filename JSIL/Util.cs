@@ -512,7 +512,7 @@ namespace JSIL.Internal {
         protected ConcurrentCache (ConcurrentCache<TKey, TValue> cloneSource) {
             // FIXME: Probably not thread-safe?
             Storage = new ConcurrentDictionary<TKey, TValue>(cloneSource.Storage, cloneSource.Comparer);
-            States = new ConcurrentDictionary<TKey, ConstructionState>(cloneSource.Comparer);
+            States = new ConcurrentDictionary<TKey, ConstructionState>(Environment.ProcessorCount, Environment.ProcessorCount, cloneSource.Comparer);
         }
 
         public ConcurrentCache<TKey, TValue> Clone () {
