@@ -79,6 +79,7 @@
     <None Include="AnalysisTestCases\ImmutableStructReinitializationInControlFlow.cs" />
     <None Include="AnalysisTestCases\ImmutableStructReinitializationInLoop.cs" />
     <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
+    <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -339,6 +340,7 @@
     <None Include="UnsafeTestCases\PointerRefCast.cs" />
     <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
+    <Compile Include="GenericTestFixture.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
