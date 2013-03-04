@@ -79,7 +79,9 @@ namespace JSIL.Ast.Enumerators {
         public readonly JSNode Node;
         public readonly bool IncludeSelf;
 
-        internal int _Index, _ArrayIndex;
+        internal int _Index;
+        internal JSNodeTraversalArrayRecord _ArrayRecord;
+        internal JSNodeTraversalArrayRecordState _ArrayRecordState;
 
         internal JSNode _Current;
         internal string _CurrentName;
@@ -89,7 +91,8 @@ namespace JSIL.Ast.Enumerators {
             Node = node;
             IncludeSelf = includeSelf;
             _Index = IncludeSelf ? -2 : -1;
-            _ArrayIndex = -1;
+            _ArrayRecord = null;
+            _ArrayRecordState = default(JSNodeTraversalArrayRecordState);
             _Current = null;
             _CurrentName = null;
         }
@@ -114,7 +117,7 @@ namespace JSIL.Ast.Enumerators {
             _CurrentName = null;
 
             while (true) {
-                if ((_ArrayIndex < 0) || (_Index < 0))
+                if ((_ArrayRecord == null) || (_Index < 0))
                     _Index += 1;
 
                 if (_Index >= TraversalData.Records.Length)
@@ -129,25 +132,30 @@ namespace JSIL.Ast.Enumerators {
                         throw new InvalidOperationException("Enumerator error");
                 }
 
-                var record = TraversalData.Records[_Index];
-                var elementRecord = record as JSNodeTraversalElementRecord;
-                if (elementRecord != null) {
-                    elementRecord.Get(Node, out _Current, out _CurrentName);
-
-                    if (_Current != null)
+                if (_ArrayRecord != null) {
+                    if (_ArrayRecord.MoveNext(ref _ArrayRecordState)) {
+                        _Current = _ArrayRecordState.CurrentNode;
+                        _CurrentName = _ArrayRecordState.CurrentName;
                         return true;
-                } else {
-                    var arrayRecord = record as JSNodeTraversalArrayRecord;
-                    if (arrayRecord != null) {
-                        _ArrayIndex += 1;
-
-                        if (arrayRecord.GetElement(Node, _ArrayIndex, out _Current, out _CurrentName)) {
-                            if (_Current != null)
-                                return true;
-                        } else
-                            _ArrayIndex = -1;
                     } else {
-                        throw new InvalidDataException("Unrecognized record type");
+                        _ArrayRecord = null;
+                    }
+                } else {
+                    var record = TraversalData.Records[_Index];
+                    var elementRecord = record as JSNodeTraversalElementRecord;
+                    if (elementRecord != null) {
+                        elementRecord.Get(Node, out _Current, out _CurrentName);
+
+                        if (_Current != null)
+                            return true;
+                    } else {
+                        var arrayRecord = record as JSNodeTraversalArrayRecord;
+                        if (arrayRecord != null) {
+                            _ArrayRecord = arrayRecord;
+                            _ArrayRecordState = arrayRecord.StartEnumeration(Node);
+                        } else {
+                            throw new InvalidDataException("Unrecognized record type");
+                        }
                     }
                 }
             }
@@ -155,7 +163,7 @@ namespace JSIL.Ast.Enumerators {
 
         public void Reset () {
             _Index = IncludeSelf ? -2 : -1;
-            _ArrayIndex = -1;
+            _ArrayRecord = null;
             _Current = null;
             _CurrentName = null;
         }

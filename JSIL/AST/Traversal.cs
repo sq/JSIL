@@ -190,12 +190,21 @@ namespace JSIL.Ast.Traversal {
         public abstract void Get (JSNode parent, out JSNode node, out string name);
     }
 
+    public struct JSNodeTraversalArrayRecordState {
+        public int Index;
+        public object UserData;
+
+        public JSNode CurrentNode;
+        public string CurrentName;
+    }
+
     public abstract class JSNodeTraversalArrayRecord : JSNodeTraversalRecord {
         protected JSNodeTraversalArrayRecord ()
             : base(JSNodeTraversalRecordType.Array) {
         }
 
-        public abstract bool GetElement (JSNode parent, int index, out JSNode node, out string name);
+        public abstract JSNodeTraversalArrayRecordState StartEnumeration (JSNode parent);
+        public abstract bool MoveNext (ref JSNodeTraversalArrayRecordState state);
     }
 
     public class JSNodeTraversalFieldRecord<T> : JSNodeTraversalElementRecord 
@@ -222,17 +231,24 @@ namespace JSIL.Ast.Traversal {
             GetField = getField;
         }
 
-        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            var array = GetField(parent);
-            if ((array == null) || (index >= array.Length)) {
-                node = null;
-                name = null;
+        public override JSNodeTraversalArrayRecordState StartEnumeration (JSNode parent) {
+            return new JSNodeTraversalArrayRecordState {
+                UserData = GetField(parent),
+                Index = 0
+            };
+        }
+
+        public override bool MoveNext (ref JSNodeTraversalArrayRecordState state) {
+            var array = (T[])state.UserData;
+            if (array == null)
                 return false;
-            } else {
-                node = array[index];
-                name = Name;
-                return true;
-            }
+            if (state.Index >= array.Length)
+                return false;
+
+            state.CurrentNode = array[state.Index];
+            state.CurrentName = Name;
+            state.Index += 1;
+            return true;
         }
     }
 
@@ -245,17 +261,24 @@ namespace JSIL.Ast.Traversal {
             GetField = getField;
         }
 
-        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            var list = GetField(parent);
-            if ((list == null) || (index >= list.Count)) {
-                node = null;
-                name = null;
+        public override JSNodeTraversalArrayRecordState StartEnumeration (JSNode parent) {
+            return new JSNodeTraversalArrayRecordState {
+                UserData = GetField(parent),
+                Index = 0
+            };
+        }
+
+        public override bool MoveNext (ref JSNodeTraversalArrayRecordState state) {
+            var list = (List<T>)state.UserData;
+            if (list == null)
                 return false;
-            } else {
-                node = list[index];
-                name = Name;
-                return true;
-            }
+            if (state.Index >= list.Count)
+                return false;
+
+            state.CurrentNode = list[state.Index];
+            state.CurrentName = Name;
+            state.Index += 1;
+            return true;
         }
     }
 
@@ -267,29 +290,30 @@ namespace JSIL.Ast.Traversal {
             GetField = getField;
         }
 
-        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            node = null;
-            name = null;
-
+        public override JSNodeTraversalArrayRecordState StartEnumeration (JSNode parent) {
             var enumerable = GetField(parent);
-            if (enumerable != null) {
-                using (var e = enumerable.GetEnumerator()) {
-                    while (index > 0) {
-                        if (!e.MoveNext())
-                            return false;
+            if (enumerable == null)
+                return new JSNodeTraversalArrayRecordState();
 
-                        index -= 1;
-                    }
-                    
-                    if (e.MoveNext()) {
-                        node = e.Current;
-                        name = Name;
-                        return true;
-                    }
-                }
+            return new JSNodeTraversalArrayRecordState {
+                UserData = enumerable.GetEnumerator()
+            };
+        }
+
+        public override bool MoveNext (ref JSNodeTraversalArrayRecordState state) {
+            var enumerator = (IEnumerator<T>)state.UserData;
+            if (enumerator == null)
+                return false;
+
+            if (enumerator.MoveNext()) {
+                state.CurrentNode = enumerator.Current;
+                state.CurrentName = Name;
+                return true;
+            } else {
+                enumerator.Dispose();
+                state.UserData = null;
+                return false;
             }
-
-            return false;
         }
     }
 
@@ -305,8 +329,20 @@ namespace JSIL.Ast.Traversal {
             Delegate = (MethodRecordDelegate)System.Delegate.CreateDelegate(typeof(MethodRecordDelegate), method, true);
         }
 
-        public override bool GetElement (JSNode parent, int index, out JSNode node, out string name) {
-            return Delegate(parent, index, out node, out name);
+        public override JSNodeTraversalArrayRecordState StartEnumeration (JSNode parent) {
+            return new JSNodeTraversalArrayRecordState {
+                UserData = parent,
+                Index = 0
+            };
+        }
+
+        public override bool MoveNext (ref JSNodeTraversalArrayRecordState state) {
+            if (Delegate((JSNode)state.UserData, state.Index, out state.CurrentNode, out state.CurrentName)) {
+                state.Index += 1;
+                return true;
+            }
+
+            return false;
         }
     }
 }

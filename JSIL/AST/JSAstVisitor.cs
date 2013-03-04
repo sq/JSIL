@@ -5,15 +5,18 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using JSIL.Internal;
 using Microsoft.CSharp.RuntimeBinder;
 using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
-        public readonly Stack<JSNode> Stack = new Stack<JSNode>();
-        public readonly Stack<string> NameStack = new Stack<string>();
-        public readonly Stack<int> NodeIndexStack = new Stack<int>(); 
+        public const int DefaultStackSize = 32;
+
+        public readonly Stack<JSNode> Stack = new Stack<JSNode>(DefaultStackSize);
+        public readonly Stack<string> NameStack = new Stack<string>(DefaultStackSize);
+        public readonly Stack<int> NodeIndexStack = new Stack<int>(DefaultStackSize); 
 
         protected int NodeIndex, NextNodeIndex;
         protected int StatementIndex, NextStatementIndex;
@@ -48,17 +51,14 @@ namespace JSIL.Ast {
                 }
             }
 
-            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>();
-            protected static ConcurrentCache<Type, VisitorCache>.CreatorFunction CreateCacheEntry;
+            protected static ThreadLocal<Dictionary<Type, VisitorCache>> VisitorCaches = new ThreadLocal<Dictionary<Type, VisitorCache>>(
+                () => new Dictionary<Type, VisitorCache>(new ReferenceComparer<Type>())
+            );
 
-            protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>();
-            protected readonly ConcurrentCache<Type, NodeVisitor> Cache = new ConcurrentCache<Type, NodeVisitor>();
-            protected ConcurrentCache<Type, NodeVisitor>.CreatorFunction FindNodeVisitor;
+            protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>(new ReferenceComparer<Type>());
+            protected readonly Dictionary<Type, NodeVisitor> Cache = new Dictionary<Type, NodeVisitor>(new ReferenceComparer<Type>());
+
             public readonly Type VisitorType;
-
-            static VisitorCache () {
-                CreateCacheEntry = (key) => new VisitorCache(key);
-            }
 
             protected VisitorCache (Type visitorType) {
                 VisitorType = visitorType;
@@ -75,26 +75,32 @@ namespace JSIL.Ast {
 
                     Methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
                 }
+            }
 
-                FindNodeVisitor = (key) => {
-                    Type currentType = key;
+            private NodeVisitor FindNodeVisitor(Type key) {
+                Type currentType = key;
 
-                    while (currentType != null) {
-                        NodeVisitor result;
-                        if (Methods.TryGetValue(currentType, out result))
-                            return result;
+                while (currentType != null) {
+                    NodeVisitor result;
+                    if (Methods.TryGetValue(currentType, out result))
+                        return result;
 
-                        currentType = currentType.BaseType;
-                    }
+                    currentType = currentType.BaseType;
+                }
 
-                    return null;
-                };
+                return null;
             }
 
             public static VisitorCache Get (JSAstVisitor visitor) {
                 var visitorType = visitor.GetType();
+                VisitorCache result;
+                var vc = VisitorCaches.Value;
 
-                return VisitorCaches.GetOrCreate(visitorType, CreateCacheEntry);
+                if (!vc.TryGetValue(visitorType, out result)) {
+                    vc.Add(visitorType, result = new VisitorCache(visitorType));
+                }
+
+                return result;
             }
 
             protected static NodeVisitor MakeVisitorAdapter (MethodInfo method, Type visitorType, Type nodeType) {
@@ -121,10 +127,12 @@ namespace JSIL.Ast {
                     return null;
 
                 var nodeType = node.GetType();
+                NodeVisitor result;
+                if (!Cache.TryGetValue(nodeType, out result)) {
+                    Cache.Add(nodeType, result = FindNodeVisitor(nodeType));
+                }
 
-                return Cache.GetOrCreate(
-                    nodeType, FindNodeVisitor
-                );
+                return result;
             }
         }
 

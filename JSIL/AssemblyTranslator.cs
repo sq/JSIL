@@ -1460,12 +1460,41 @@ namespace JSIL {
                 IgnoredMethod(methodName, variableNames);
         }
 
+        private static IEnumerable<ILNode> ExpressionSelfAndChildrenRecursive (ILNode root) {
+            yield return root;
+
+            foreach (var child in root.GetChildren()) {
+                foreach (var item in ExpressionSelfAndChildrenRecursive(child))
+                    yield return item;
+            }
+        }
+
+        private static ILVariable[] GatherLocalVariablesForMethod (ILBlock methodBody) {
+            var result = new HashSet<ILVariable>();
+
+            foreach (var node in ExpressionSelfAndChildrenRecursive(methodBody)) {
+                var ile = node as ILExpression;
+                if (ile == null)
+                    continue;
+
+                var operand = ile.Operand as ILVariable;
+                if (operand == null)
+                    continue;
+
+                if (operand.IsParameter)
+                    continue;
+
+                result.Add(operand);
+            }
+
+            return result.ToArray();
+        }
+
         internal static ILVariable[] GetAllVariablesForMethod(
             DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody,
             List<string> ignoredVariables, bool enableUnsafeCode
         ) {
-            var allVariables = methodBody.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
-                .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
+            var allVariables = GatherLocalVariablesForMethod(methodBody);
             bool ignored = false;
 
             foreach (var v in allVariables) {

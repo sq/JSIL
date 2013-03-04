@@ -57,8 +57,30 @@ namespace JSIL.Ast {
         [JSAstIgnore]
         protected readonly JSExpression[] Values;
 
+        private readonly string[] _ActualValueNames;
+
         protected JSExpression (params JSExpression[] values) {
             Values = values;
+
+            {
+                var originalNodeType = this.GetType();
+                var nodeType = originalNodeType;
+
+                while (nodeType != null) {
+                    string[] valueNames;
+                    if (ValueNames.TryGetValue(nodeType, out valueNames)) {
+                        if (nodeType != originalNodeType)
+                            ValueNames.TryAdd(originalNodeType, valueNames);
+
+                        _ActualValueNames = valueNames;
+                    }
+
+                    if (nodeType == nodeType.BaseType)
+                        break;
+
+                    nodeType = nodeType.BaseType;
+                }
+            }
         }
 
         public override string ToString () {
@@ -73,28 +95,14 @@ namespace JSIL.Ast {
                 throw new InvalidOperationException("Value names already set for this type.");
         }
 
-        protected static string GetValueName (Type nodeType, int index) {
-            var originalNodeType = nodeType;
+        protected string GetValueName (int index) {
+            if (_ActualValueNames == null)
+                return null;
 
-            while (nodeType != null) {
-                string[] valueNames;
-                if (ValueNames.TryGetValue(nodeType, out valueNames)) {
-                    if (nodeType != originalNodeType)
-                        ValueNames.TryAdd(originalNodeType, valueNames);
-
-                    if (index >= valueNames.Length)
-                        return valueNames[valueNames.Length - 1];
-                    else
-                        return valueNames[index];
-                }
-
-                if (nodeType == nodeType.BaseType)
-                    break;
-
-                nodeType = nodeType.BaseType;
-            }
-
-            return null;
+            if (index >= _ActualValueNames.Length)
+                return _ActualValueNames[_ActualValueNames.Length - 1];
+            else
+                return _ActualValueNames[index];
         }
 
         [JSAstTraverse(0)]
@@ -107,7 +115,7 @@ namespace JSIL.Ast {
             } else {
                 node = expr.Values[index];
 
-                name = GetValueName(expr.GetType(), index) ?? "Values";
+                name = expr.GetValueName(index) ?? "Values";
 
                 return true;
             }
