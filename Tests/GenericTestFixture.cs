@@ -321,18 +321,30 @@ namespace JSIL.Tests {
         }
 
         protected void RunSingleComparisonTestCase (object[] parameters, Func<Configuration> makeConfiguration = null) {
-            if (parameters.Length != 4)
+            if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
 
-            RunComparisonTest(
-                (string)parameters[0], null, (TypeInfoProvider)parameters[1], null, null, (string)parameters[3], true, (AssemblyCache)parameters[2],
-                makeConfiguration: makeConfiguration
-            );
+            var provider = (TypeInfoProvider)parameters[1];
+            var cache = (AssemblyCache)parameters[2];
+            try {
+                RunComparisonTest(
+                    (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
+                    makeConfiguration: makeConfiguration
+                );
+            } finally {
+                if ((bool)parameters[4]) {
+                    Console.WriteLine("Disposing cache and provider.");
+                    if (provider != null)
+                        provider.Dispose();
+                    if (cache != null)
+                        cache.Dispose();
+                }
+            }
         }
 
         protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
-            var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s);
+            var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s).ToArray();
 
             string commonFile = null;
 
@@ -343,11 +355,12 @@ namespace JSIL.Tests {
                 }
             }
 
-            foreach (var testName in testNames) {
+            for (int i = 0, l = testNames.Length; i < l; i++) {
+                var testName = testNames[i];
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
 
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile } }))
+                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
                     .SetName(Path.GetFileName(testName))
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
                     .SetCategory(folderName);
@@ -355,14 +368,18 @@ namespace JSIL.Tests {
         }
 
         protected IEnumerable<TestCaseData> FilenameTestSource (string[] filenames, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
-            foreach (var testName in filenames.OrderBy((s) => s)) {
+            var testNames = filenames.OrderBy((s) => s).ToArray();
+
+            for (int i = 0, l = testNames.Length; i < l; i++) {
+                var testName = testNames[i];
+
                 bool isIgnored = testName.StartsWith("ignored:", StringComparison.OrdinalIgnoreCase);
                 var actualTestName = testName;
 
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
-                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null } }))
+                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
                     .SetName(Path.GetFileName(actualTestName));
 
                 if (isIgnored)
