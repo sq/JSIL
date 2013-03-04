@@ -991,6 +991,9 @@ namespace JSIL.Internal {
                             case "__DisplayClass":
                                 return false;
 
+                            case "__DynamicSite":
+                                return true;
+
                             case "__CachedAnonymousMethodDelegate":
                                 if (isField)
                                     return true;
