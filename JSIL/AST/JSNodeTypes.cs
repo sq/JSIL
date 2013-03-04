@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast.Enumerators;
+using JSIL.Ast.Traversal;
 using JSIL.Internal;
 using JSIL.Transforms;
 using Mono.Cecil;
@@ -21,10 +22,11 @@ namespace JSIL.Ast {
         public readonly JSNodeChildrenRecursive SelfAndChildrenRecursive;
 
         public JSNode () {
-            Children = new JSNodeChildren(this, false);
-            SelfAndChildren = new JSNodeChildren(this, true);
-            AllChildrenRecursive = new JSNodeChildrenRecursive(this, false);
-            SelfAndChildrenRecursive = new JSNodeChildrenRecursive(this, true);
+            var td = JSNodeTraversalData.Get(this);
+            Children = new JSNodeChildren(this, td, false);
+            SelfAndChildren = new JSNodeChildren(this, td, true);
+            AllChildrenRecursive = new JSNodeChildrenRecursive(this, td, false);
+            SelfAndChildrenRecursive = new JSNodeChildrenRecursive(this, td, true);
         }
 
         /// <summary>

@@ -13,32 +13,36 @@ using JSIL.Internal;
 namespace JSIL.Ast.Enumerators {
     public struct JSNodeChildren : IEnumerable<JSNode> {
         public readonly JSNode Node;
+        public readonly JSNodeTraversalData TraversalData;
         public readonly bool IncludeSelf;
 
-        public JSNodeChildren (JSNode node, bool includeSelf) {
+        public JSNodeChildren (JSNode node, JSNodeTraversalData traversalData, bool includeSelf) {
             Node = node;
+            TraversalData = traversalData;
             IncludeSelf = includeSelf;
         }
 
         public JSNodeChildEnumerator GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, IncludeSelf);
+            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
         }
 
         System.Collections.Generic.IEnumerator<JSNode> System.Collections.Generic.IEnumerable<JSNode>.GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, IncludeSelf);
+            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, IncludeSelf);
+            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
         }
     }
 
     public struct JSNodeChildrenRecursive : IEnumerable<JSNode> {
         public readonly JSNode Node;
+        public readonly JSNodeTraversalData TraversalData;
         public readonly bool IncludeSelf;
 
-        public JSNodeChildrenRecursive (JSNode node, bool includeSelf) {
+        public JSNodeChildrenRecursive (JSNode node, JSNodeTraversalData traversalData, bool includeSelf) {
             Node = node;
+            TraversalData = traversalData;
             IncludeSelf = includeSelf;
         }
 
@@ -48,7 +52,7 @@ namespace JSIL.Ast.Enumerators {
 
             var list = new LinkedList<JSNode>();
 
-            using (var inner = new JSNodeChildEnumerator(Node, false))
+            using (var inner = new JSNodeChildEnumerator(Node, TraversalData, false))
             while (inner.MoveNext()) {
                 var node = inner.Current;
                 if (node != null)
@@ -86,8 +90,8 @@ namespace JSIL.Ast.Enumerators {
         internal JSNode _Current;
         internal string _CurrentName;
 
-        public JSNodeChildEnumerator (JSNode node, bool includeSelf) {
-            TraversalData = JSNodeTraversalData.Get(node);
+        public JSNodeChildEnumerator (JSNode node, JSNodeTraversalData traversalData, bool includeSelf) {
+            TraversalData = traversalData;
             Node = node;
             IncludeSelf = includeSelf;
             _Index = IncludeSelf ? -2 : -1;
