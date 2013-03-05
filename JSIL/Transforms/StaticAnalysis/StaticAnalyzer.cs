@@ -12,13 +12,13 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class StaticAnalyzer : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
-        public readonly IFunctionSource FunctionSource;
+        public readonly FunctionCache FunctionSource;
 
         protected int ReturnsSeen = 0;
 
         protected FunctionAnalysis1stPass State;
 
-        public StaticAnalyzer (TypeSystem typeSystem, IFunctionSource functionSource) {
+        public StaticAnalyzer (TypeSystem typeSystem, FunctionCache functionSource) {
             TypeSystem = typeSystem;
             FunctionSource = functionSource;
         }
@@ -332,11 +332,11 @@ namespace JSIL.Transforms {
             VisitChildren(verbatim);
         }
 
-        public void VisitNode (JSInvocationExpression ie) {
+        private Dictionary<string, string[]> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
             var variables = new Dictionary<string, string[]>();
 
             int i = 0;
-            foreach (var kvp in ie.Parameters) {
+            foreach (var kvp in parameters) {
                 var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToArray();
 
                 if (kvp.Key == null) {
@@ -350,14 +350,20 @@ namespace JSIL.Transforms {
                         else
                             throw new InvalidDataException(String.Format(
                                 "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
-                                kvp.Key.Name, ie.Method,
-                                String.Join(", ", ie.Parameters)
+                                kvp.Key.Name, method,
+                                String.Join(", ", parameters)
                             ));
                     } else {
                         variables.Add(kvp.Key.Name, value);
                     }
                 }
             }
+
+            return variables;
+        }
+
+        public void VisitNode (JSInvocationExpression ie) {
+            var variables = ExtractAffectedVariables(ie.Method, ie.Parameters);
 
             var type = ie.JSType;
             var thisVar = ExtractAffectedVariable(ie.ThisReference);
@@ -376,6 +382,19 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(ie);
+        }
+
+        public void VisitNode (JSNewExpression newexp) {
+            if ((newexp.ConstructorReference != null) && (newexp.Constructor != null)) {
+                var jsm = new JSMethod(newexp.ConstructorReference, newexp.Constructor, FunctionSource.MethodTypes);
+                var variables = ExtractAffectedVariables(jsm, newexp.Parameters);
+
+                State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, (JSVariable)null, jsm, variables
+                ));
+            }
+
+            VisitChildren(newexp);
         }
 
         public void VisitNode (JSTryCatchBlock tcb) {
@@ -554,7 +573,11 @@ namespace JSIL.Transforms {
                 JSVariable thisVariable, JSMethod method, 
                 IDictionary<string, string[]> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
-                ThisVariable = thisVariable.Identifier;
+                if (thisVariable != null)
+                    ThisVariable = thisVariable.Identifier;
+                else
+                    ThisVariable = null;
+
                 ThisType = null;
                 Method = method;
                 Variables = variables;
@@ -596,6 +619,8 @@ namespace JSIL.Transforms {
     }
 
     public class FunctionAnalysis2ndPass {
+        public const bool TraceModifications = true;
+        public const bool TraceEscapes = true;
         public const bool Tracing = false;
 
         protected readonly bool _IsPure;
@@ -653,8 +678,15 @@ namespace JSIL.Transforms {
                     }).Select((kvp) => kvp.Key)
                 );
 
-                foreach (var v in Data.VariablesPassedByRef)
+                if (TraceModifications && (ModifiedVariables.Count > 0))
+                    Console.WriteLine("Tagged variables as modified due to modification count: {0}", String.Join(", ", ModifiedVariables));
+
+                foreach (var v in Data.VariablesPassedByRef) {
+                    if (TraceModifications)
+                        Console.WriteLine("Tagging variable '{0}' as modified because it is passed byref", v);
+
                     ModifiedVariables.Add(v);
+                }
             }
 
             parms = data.Function.Method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");
@@ -678,16 +710,38 @@ namespace JSIL.Transforms {
                         invocationSecondPass = null;
 
                     foreach (var invocationKvp in invocation.Variables) {
+                        if (invocationKvp.Value.Length == 0)
+                            continue;
+
                         bool escapes;
 
                         if (invocationSecondPass != null)
                             escapes = invocationSecondPass.EscapingVariables.Contains(invocationKvp.Key);
                         else
                             escapes = true;
-                        
-                        if (escapes)
-                            foreach (var variableName in invocationKvp.Value)
-                                Data.EscapingVariables.Add(variableName);
+
+                        if (escapes) {
+                            if (invocationKvp.Value.Length > 1) {
+                                // FIXME: Is this right?
+                                // Multiple variables -> a binary operator expression or an invocation.
+                                // In either case, it should be impossible for any of them to escape without being flagged otherwise.
+
+                                if (TraceEscapes)
+                                    Console.WriteLine(
+                                        "Parameter '{0}::{1}' escapes but it is a composite so we are not flagging variables {2}",
+                                        GetMethodName(invocation.Method), invocationKvp.Key, String.Join(", ", invocationKvp.Value)
+                                    );
+
+                                continue;
+                            } else {
+                                var escapingVariable = invocationKvp.Value[0];
+
+                                if (TraceEscapes)
+                                    Console.WriteLine("Parameter '{0}::{1}' escapes; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, escapingVariable);
+
+                                Data.EscapingVariables.Add(escapingVariable);
+                            }
+                        }
                     }
                 }
             }
@@ -766,6 +820,13 @@ namespace JSIL.Transforms {
             Trace(method.Member.FullName);
         }
 
+        private static string GetMethodName (JSMethod method) {
+            if (method == null)
+                return "?";
+            else
+                return method.Reference.Name;
+        }
+
         protected bool DetermineIfPure () {
             foreach (var i in Data.Invocations) {
                 if (i.Method == null)
@@ -814,6 +875,52 @@ namespace JSIL.Transforms {
                 if (EscapingVariables.Count > 0)
                     Console.WriteLine("  Escaping variables: {0}", String.Join(", ", EscapingVariables.ToArray()));
             }
+        }
+
+        public bool Equals (FunctionAnalysis2ndPass rhs, out string[] _differences) {
+            var differences = new List<string>();
+
+            if (rhs == this) {
+                _differences = null;
+                return true;
+            }
+
+            if (!EscapingVariables.SequenceEqual(rhs.EscapingVariables))
+                differences.Add("EscapingVariables");
+
+            if (!ModifiedVariables.SequenceEqual(rhs.ModifiedVariables))
+                differences.Add("ModifiedVariables");
+
+            if (ResultIsNew != rhs.ResultIsNew)
+                differences.Add("ResultIsNew");
+
+            if (ResultVariable != rhs.ResultVariable)
+                differences.Add("ResultVariable");
+
+            if (!VariableAliases.SequenceEqual(rhs.VariableAliases))
+                differences.Add("VariableAliases");
+
+            if (ViolatesThisReferenceImmutability != rhs.ViolatesThisReferenceImmutability)
+                differences.Add("ViolatesThisReferenceImmutability");
+
+            if (IsPure != rhs.IsPure)
+                differences.Add("IsPure");
+
+            if (differences.Count > 0) {
+                _differences = differences.ToArray();
+                return false;
+            } else {
+                _differences = null;
+                return true;
+            }
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as FunctionAnalysis2ndPass;
+            if (rhs != null)
+                return Equals(rhs);
+
+            return base.Equals(obj);
         }
     }
 }
