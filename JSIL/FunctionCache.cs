@@ -22,7 +22,7 @@ namespace JSIL {
 
     public class FunctionCache : IFunctionSource, IDisposable {
         public class Entry {
-            public readonly TrackedLock StaticAnalysisDataLock, TransformPipelineLock;
+            public readonly TrackedLock StaticAnalysisDataLock;
 
             public readonly QualifiedMemberIdentifier Identifier;
             public MethodInfo Info;
@@ -36,7 +36,7 @@ namespace JSIL {
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
 
-            public bool TransformPipelineHasCompleted = false;
+            public volatile bool TransformPipelineHasCompleted = false;
 
             public MethodDefinition Definition {
                 get {
@@ -47,8 +47,7 @@ namespace JSIL {
             public Entry (QualifiedMemberIdentifier identifier, TrackedLockCollection lockCollection) {
                 Identifier = identifier;
 
-                StaticAnalysisDataLock = new TrackedLock(lockCollection, () => String.Format("Static Analysis Data {0}", this.Identifier.ToString()));
-                TransformPipelineLock = new TrackedLock(lockCollection, () => String.Format("Transform Pipeline {0}", this.Identifier.ToString()));
+                StaticAnalysisDataLock = new TrackedLock(lockCollection, () => String.Format("{0}", this.Identifier.ToString()));
             }
         }
 
@@ -170,13 +169,19 @@ namespace JSIL {
         }
 
         private static bool TryAcquireStaticAnalysisDataLock (Entry entry, QualifiedMemberIdentifier method) {
-            var result = entry.StaticAnalysisDataLock.TryBlockingEnter();
+            var result = entry.StaticAnalysisDataLock.TryBlockingEnter(recursive: true);
             // FIXME: Detect deadlock and throw restart exception
             if (!result.Success) {
                 if (result.FailureReason == TrackedLockFailureReason.Deadlock)
                     throw new StaticAnalysisDataTemporarilyUnavailableException(method);
                 else
                     return false;
+            } else {
+                // Detect too-deep recursion and abort.
+                if (entry.StaticAnalysisDataLock.RecursionDepth > 1) {
+                    entry.StaticAnalysisDataLock.Exit();
+                    return false;
+                }
             }
 
             return true;
@@ -200,7 +205,8 @@ namespace JSIL {
 
         private FunctionAnalysis2ndPass _GetOrCreateSecondPass (Entry entry) {
             if ((entry.SecondPass == null) && (entry.Expression != null)) {
-                entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+                if (entry.SecondPass == null)
+                    entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
             }
 
             return entry.SecondPass;
@@ -232,7 +238,7 @@ namespace JSIL {
             if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            entry.StaticAnalysisDataLock.BlockingEnter();
+            entry.StaticAnalysisDataLock.BlockingEnter(recursive: true);
             entry.FirstPass = null;
             entry.SecondPass = null;
             entry.StaticAnalysisDataLock.Exit();
@@ -243,7 +249,7 @@ namespace JSIL {
             if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            entry.StaticAnalysisDataLock.BlockingEnter();
+            entry.StaticAnalysisDataLock.BlockingEnter(recursive: true);
             entry.SecondPass = null;
             entry.StaticAnalysisDataLock.Exit();
         }

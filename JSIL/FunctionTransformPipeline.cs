@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -15,6 +16,7 @@ namespace JSIL.Internal {
 
     public class FunctionTransformPipeline {
         public const int SuspendCountLogThreshold = 2;
+        public const bool CheckForStaticAnalysisChanges = false;
         public const bool Trace = false;
 
         public readonly AssemblyTranslator Translator;
@@ -27,6 +29,9 @@ namespace JSIL.Internal {
         public readonly Queue<FunctionTransformPipelineStage> Pipeline = new Queue<FunctionTransformPipelineStage>();
 
         public int SuspendCount = 0;
+
+        private FunctionAnalysis2ndPass OriginalSecondPass;
+        private string OriginalFunctionBody;
 
         public FunctionTransformPipeline (
             AssemblyTranslator translator,
@@ -45,6 +50,11 @@ namespace JSIL.Internal {
 
             if (!Translator.FunctionCache.ActiveTransformPipelines.TryAdd(Identifier, this))
                 throw new ThreadStateException();
+
+            if (CheckForStaticAnalysisChanges) {
+                OriginalFunctionBody = Function.Body.ToString();
+                OriginalSecondPass = Translator.FunctionCache.GetSecondPass(function.Method, function.Method.QualifiedIdentifier);
+            }
         }
 
         public TypeSystem TypeSystem {
@@ -107,7 +117,7 @@ namespace JSIL.Internal {
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
-            if (!entry.TransformPipelineLock.TryEnter())
+            if (!entry.StaticAnalysisDataLock.TryEnter())
                 throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline", Identifier));
 
             try {
@@ -117,6 +127,24 @@ namespace JSIL.Internal {
                     try {
                         if (currentStage()) {
                             Pipeline.Dequeue();
+
+                            if (CheckForStaticAnalysisChanges) {
+                                var currentSecondPass = Translator.FunctionCache.GetSecondPass(this.Function.Method, this.Function.Method.QualifiedIdentifier);
+
+                                string[] differences;
+                                if (!currentSecondPass.Equals(OriginalSecondPass, out differences)) {
+                                    var currentFunctionBody = Function.Body.ToString();
+
+                                    Console.WriteLine("// Second pass data changed by pipeline stage '" + currentStage.Method.Name + "' - " + String.Join(", ", differences));
+                                    Console.WriteLine("// Original function body //");
+                                    Console.WriteLine(OriginalFunctionBody);
+                                    Console.WriteLine("// New function body //");
+                                    Console.WriteLine(currentFunctionBody);
+
+                                    OriginalSecondPass = currentSecondPass;
+                                    OriginalFunctionBody = currentFunctionBody;
+                                }
+                            }
                         } else {
                             SuspendCount += 1;
 
@@ -137,7 +165,7 @@ namespace JSIL.Internal {
                 return (completed = true);
             } finally {
                 entry.TransformPipelineHasCompleted |= completed;
-                entry.TransformPipelineLock.Exit();
+                entry.StaticAnalysisDataLock.Exit();
 
                 if (completed) {
                     FunctionTransformPipeline temp;
