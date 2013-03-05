@@ -1682,6 +1682,9 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+
+            if (property != null)
+                Metadata.Update(property.Metadata, false);
         }
 
         public MethodInfo (
@@ -1702,6 +1705,9 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+
+            if (evt != null)
+                Metadata.Update(evt.Metadata, false);
         }
 
         protected void MakeSignature () {
