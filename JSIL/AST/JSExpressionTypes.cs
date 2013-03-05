@@ -889,6 +889,12 @@ namespace JSIL.Ast {
                 return Values.Skip(1);
             }
         }
+
+        public IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> Parameters {
+            get {
+                return JSInvocationExpression.GetParameterSequenceForMethod(Constructor, Arguments);
+            }
+        }
     }
 
     [JSAstIgnoreInheritedMembers]
@@ -1086,27 +1092,35 @@ namespace JSIL.Ast {
         public IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> Parameters {
             get {
                 var m = JSMethod;
-                if (m == null) {
-                    foreach (var a in Arguments)
-                        yield return new KeyValuePair<ParameterDefinition, JSExpression>(null, a);
-                } else {
-                    var eParameters = m.Method.Parameters.GetEnumerator();
-                    using (var eArguments = Arguments.GetEnumerator()) {
-                        ParameterDefinition currentParameter, lastParameter = null;
 
-                        while (eArguments.MoveNext()) {
-                            if (eParameters.MoveNext()) {
-                                currentParameter = eParameters.Current as ParameterDefinition;
-                            } else {
-                                currentParameter = lastParameter;
-                            }
+                if (m == null)
+                    return GetParameterSequenceForMethod(null, Arguments);
+                else
+                    return GetParameterSequenceForMethod(m.Method, Arguments);
+            }
+        }
 
-                            yield return new KeyValuePair<ParameterDefinition, JSExpression>(
-                                currentParameter, eArguments.Current
-                            );
+        public static IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> GetParameterSequenceForMethod (MethodInfo methodInfo, IList<JSExpression> arguments) {
+            if (methodInfo == null) {
+                foreach (var a in arguments)
+                    yield return new KeyValuePair<ParameterDefinition, JSExpression>(null, a);
+            } else {
+                var eParameters = methodInfo.Parameters.GetEnumerator();
+                using (var eArguments = arguments.GetEnumerator()) {
+                    ParameterDefinition currentParameter, lastParameter = null;
 
-                            lastParameter = currentParameter;
+                    while (eArguments.MoveNext()) {
+                        if (eParameters.MoveNext()) {
+                            currentParameter = eParameters.Current as ParameterDefinition;
+                        } else {
+                            currentParameter = lastParameter;
                         }
+
+                        yield return new KeyValuePair<ParameterDefinition, JSExpression>(
+                            currentParameter, eArguments.Current
+                        );
+
+                        lastParameter = currentParameter;
                     }
                 }
             }
