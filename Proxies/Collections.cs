@@ -34,6 +34,18 @@ namespace JSIL.Proxies {
         public AnyType GetEnumerator () {
             throw new InvalidOperationException();
         }
+
+        [JSMutatedArguments()]
+        public AnyType this[AnyType index] {
+            [JSEscapingArguments()]
+            get {
+                throw new InvalidOperationException();
+            }
+            [JSEscapingArguments("value")]
+            set {
+                throw new InvalidOperationException();
+            }
+        }
     }
 
     [JSProxy(
@@ -55,6 +67,18 @@ namespace JSIL.Proxies {
         [JSUnderlyingArray("_items", "_size")]
         public AnyType GetEnumerator () {
             throw new InvalidOperationException();
+        }
+
+        [JSMutatedArguments()]
+        public AnyType this[AnyType index] {
+            [JSEscapingArguments()]
+            get {
+                throw new InvalidOperationException();
+            }
+            [JSEscapingArguments("value")]
+            set {
+                throw new InvalidOperationException();
+            }
         }
     }
 
