@@ -129,7 +129,7 @@ namespace JSIL.Ast {
                 return false;
             }
 
-            node = self.Labels.Skip(index).First().Value;
+            node = self.Labels.AtIndex(index).Value;
             name = "Labels";
             return true;
         }
