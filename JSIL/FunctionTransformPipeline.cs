@@ -117,7 +117,7 @@ namespace JSIL.Internal {
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
-            if (!entry.StaticAnalysisDataLock.TryEnter())
+            if (!entry.StaticAnalysisDataLock.TryBlockingEnter())
                 throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline", Identifier));
 
             try {
