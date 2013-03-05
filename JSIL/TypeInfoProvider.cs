@@ -620,6 +620,21 @@ namespace JSIL {
             }
         }
 
+        public KeyValuePair<TKey, TValue> AtIndex (int index) {
+            var node = LinkedList.First;
+
+            while (node != null) {
+                if (index > 0) {
+                    index -= 1;
+                    node = node.Next;
+                } else {
+                    return new KeyValuePair<TKey, TValue>(node.Value, Dictionary[node.Value]);
+                }
+            }
+
+            throw new ArgumentOutOfRangeException("index");
+        }
+
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator () {
             foreach (var key in LinkedList)
                 yield return new KeyValuePair<TKey, TValue>(key, Dictionary[key]);
