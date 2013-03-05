@@ -160,7 +160,7 @@ namespace JSIL.Tests {
 
             l.BlockingEnter();
 
-            Assert.Throws<LockAlreadyHeldException>(l.BlockingEnter);
+            Assert.Throws<LockAlreadyHeldException>(() => l.BlockingEnter());
 
             l.Exit();
         }
@@ -188,7 +188,7 @@ namespace JSIL.Tests {
             while (lA.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 
-            Assert.Throws<DeadlockAvertedException>(lB.BlockingEnter);
+            Assert.Throws<DeadlockAvertedException>(() => lB.BlockingEnter());
 
             lA.Exit();
 
@@ -233,7 +233,7 @@ namespace JSIL.Tests {
             while (lA.WaitingThreadCount == 0)
                 Thread.Sleep(1);
 
-            Assert.Throws<DeadlockAvertedException>(lB.BlockingEnter);
+            Assert.Throws<DeadlockAvertedException>(() => lB.BlockingEnter());
 
             lA.Exit();
 
@@ -293,6 +293,26 @@ namespace JSIL.Tests {
 
             if (exc[0] != null)
                 throw new Exception("Worker thread failed", exc[0]);
+        }
+
+        [Test]
+        public void RecursiveAcquireOnSameThreadWorks () {
+            var l = new TrackedLock(Locks, "A");
+
+            Assert.IsTrue(l.TryEnter());
+            Assert.AreEqual(0, l.RecursionDepth);
+
+            Assert.IsTrue(l.TryEnter(recursive: true));
+            Assert.AreEqual(1, l.RecursionDepth);
+
+            l.Exit();
+
+            Assert.IsTrue(l.IsHeld);
+            Assert.AreEqual(0, l.RecursionDepth);
+
+            l.Exit();
+
+            Assert.IsFalse(l.IsHeld);
         }
     }
 }

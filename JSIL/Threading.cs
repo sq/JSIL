@@ -205,6 +205,7 @@ namespace JSIL.Threading {
         public readonly TrackedLockCollection Collection;
         public readonly Func<string> GetName;
 
+        private volatile int _RecursionCount = 0;
         private volatile Thread _HeldBy = null;
 
         public TrackedLock (TrackedLockCollection collection, string name)
@@ -246,13 +247,19 @@ namespace JSIL.Threading {
             }
         }
 
+        public int RecursionDepth {
+            get {
+                return _RecursionCount;
+            }
+        }
+
         public int WaitingThreadCount {
             get {
                 return Collection.GetWaitingThreadCount(this);
             }
         }
 
-        public TrackedLockResult TryEnter (out Thread previousOwner) {
+        public TrackedLockResult TryEnter (out Thread previousOwner, bool recursive = false) {
             var currentThread = Thread.CurrentThread;
             previousOwner = Interlocked.CompareExchange(ref _HeldBy, currentThread, null);
             var acquired = previousOwner == null;
@@ -263,6 +270,11 @@ namespace JSIL.Threading {
                 failureReason = (previousOwner == currentThread)
                     ? TrackedLockFailureReason.HeldByCurrentThread
                     : TrackedLockFailureReason.HeldByOtherThread;
+            }
+
+            if (recursive && (failureReason == TrackedLockFailureReason.HeldByCurrentThread)) {
+                _RecursionCount += 1;
+                return new TrackedLockResult();
             }
 
             var result = new TrackedLockResult(failureReason);
@@ -279,28 +291,28 @@ namespace JSIL.Threading {
             return result;
         }
 
-        public TrackedLockResult TryEnter () {
+        public TrackedLockResult TryEnter (bool recursive = false) {
             Thread temp;
-            return TryEnter(out temp);
+            return TryEnter(out temp, recursive);
         }
 
-        public TrackedLockResult TryBlockingEnter () {
+        public TrackedLockResult TryBlockingEnter (bool recursive = false) {
             TrackedLockCollection.DeadlockInfo temp;
-            return TryBlockingEnter(out temp);
+            return TryBlockingEnter(out temp, recursive);
         }
 
-        public TrackedLockResult TryBlockingEnter (out TrackedLockCollection.DeadlockInfo deadlock) {
+        public TrackedLockResult TryBlockingEnter (out TrackedLockCollection.DeadlockInfo deadlock, bool recursive = false) {
             TrackedLockCollection.Wait wait;
             deadlock = null;
 
             while (true) {
-                var result = TryEnter();
+                var result = TryEnter(recursive);
                 if (result.FailureReason != TrackedLockFailureReason.HeldByOtherThread)
                     return result;
 
                 if (Collection.TryCreateWait(this, out deadlock, out wait)) {
                     using (wait) {
-                        result = TryEnter();
+                        result = TryEnter(recursive);
 
                         if (result.FailureReason == TrackedLockFailureReason.HeldByOtherThread) {
                             wait.Block();
@@ -314,9 +326,9 @@ namespace JSIL.Threading {
             }
         }
 
-        public void BlockingEnter () {
+        public void BlockingEnter (bool recursive = false) {
             TrackedLockCollection.DeadlockInfo deadlock;
-            var result = TryBlockingEnter(out deadlock);
+            var result = TryBlockingEnter(out deadlock, recursive);
 
             if (!result.Success) {
                 switch (result.FailureReason) {
@@ -329,28 +341,39 @@ namespace JSIL.Threading {
         }
 
         public void Exit () {
-            TrackedLockCollection.Wait wait;
-            if (!Collection.TryDequeueOneWait(this, out wait))
-                wait = null;
-
             var currentThread = Thread.CurrentThread;
-            var previousOwner = Interlocked.CompareExchange(ref _HeldBy, null, currentThread);
-            var released = previousOwner == currentThread;
+            bool released = false;
+
+            if (_HeldBy == currentThread) {
+                if (_RecursionCount == 0) {
+                    TrackedLockCollection.Wait wait;
+                    if (!Collection.TryDequeueOneWait(this, out wait))
+                        wait = null;
+
+                    var previousOwner = Interlocked.CompareExchange(ref _HeldBy, null, currentThread);
+                    released = previousOwner == currentThread;
 
 #if LOCK_TRACING
-            Console.WriteLine(
-                "Exit {0} => {1}; released = {2}",
-                previousOwner != null ? previousOwner.Name : "<null>",
-                _HeldBy != null ? _HeldBy.Name : "<null>",
-                released
-            );
+                    Console.WriteLine(
+                        "Exit {0} => {1}; released = {2}",
+                        previousOwner != null ? previousOwner.Name : "<null>",
+                        _HeldBy != null ? _HeldBy.Name : "<null>",
+                        released
+                    );
 #endif
 
-            if (!released)
-                throw new InvalidOperationException("Lock not held");
+                    if (!released)
+                        throw new InvalidOperationException("Lock not held");
 
-            if (wait != null)
-                wait.Wake();
+                    if (wait != null)
+                        wait.Wake();
+                } else {
+                    _RecursionCount -= 1;
+                    released = false;
+                }
+            } else {
+                throw new InvalidOperationException("Lock held by other thread or not held");
+            }
         }
 
         public override string ToString () {
