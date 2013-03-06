@@ -233,7 +233,7 @@ namespace JSIL.Ast {
             try {
                 PreviousSibling = NextSibling = null;
 
-                using (var e = node.Children.GetEnumerator())
+                using (var e = node.Children.EnumeratorTemplate)
                 while (e.MoveNext()) {
                     var toVisit = NextSibling;
                     var toVisitName = nextSiblingName;

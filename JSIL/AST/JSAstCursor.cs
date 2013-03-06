@@ -112,7 +112,7 @@ namespace JSIL.Ast {
 
             int nextDepth = depth + 1;
 
-            using (var e = node.Children.GetEnumerator())
+            using (var e = node.Children.EnumeratorTemplate)
             while (e.MoveNext()) {
                 var toVisit = nextSibling;
                 var toVisitName = nextSiblingName;

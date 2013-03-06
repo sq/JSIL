@@ -43,7 +43,10 @@ namespace JSIL.Ast {
         public virtual void ReplaceChildRecursive (JSNode oldChild, JSNode newChild) {
             ReplaceChild(oldChild, newChild);
 
-            foreach (var child in Children) {
+            using (var e = Children.EnumeratorTemplate)
+            while (e.MoveNext()) {
+                var child = e.Current;
+
                 if ((child != null) && (child != newChild))
                     child.ReplaceChildRecursive(oldChild, newChild);
             }

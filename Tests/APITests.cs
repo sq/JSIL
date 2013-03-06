@@ -143,7 +143,7 @@ namespace JSIL.Tests {
         }
 
         private void DumpNodeSequence (JSNodeChildren enumerable) {
-            using (var e = enumerable.GetEnumerator())
+            using (var e = enumerable.EnumeratorTemplate)
             while (e.MoveNext()) {
                 Console.WriteLine("{0}: {1}", e.CurrentName, e.Current.GetType());
             }

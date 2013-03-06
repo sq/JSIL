@@ -12,26 +12,18 @@ using JSIL.Internal;
 
 namespace JSIL.Ast.Enumerators {
     public struct JSNodeChildren : IEnumerable<JSNode> {
-        public readonly JSNode Node;
-        public readonly JSNodeTraversalData TraversalData;
-        public readonly bool IncludeSelf;
+        public readonly JSNodeChildEnumerator EnumeratorTemplate;
 
         public JSNodeChildren (JSNode node, JSNodeTraversalData traversalData, bool includeSelf) {
-            Node = node;
-            TraversalData = traversalData;
-            IncludeSelf = includeSelf;
-        }
-
-        public JSNodeChildEnumerator GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
+            EnumeratorTemplate = new JSNodeChildEnumerator(node, traversalData, includeSelf);
         }
 
         System.Collections.Generic.IEnumerator<JSNode> System.Collections.Generic.IEnumerable<JSNode>.GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
+            return EnumeratorTemplate;
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
-            return new JSNodeChildEnumerator(Node, TraversalData, IncludeSelf);
+            return EnumeratorTemplate;
         }
     }
 
@@ -62,7 +54,9 @@ namespace JSIL.Ast.Enumerators {
             while (list.Count > 0) {
                 var current = list.First;
 
-                foreach (var leaf in current.Value.Children) {
+                using (var e = current.Value.Children.EnumeratorTemplate)
+                while (e.MoveNext()) {
+                    var leaf = e.Current;
                     if (leaf != null)
                         list.AddBefore(current, leaf);
                 }
