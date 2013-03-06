@@ -155,16 +155,19 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSGotoExpression ge) {
             if (LabelGroupStack.Count > 0) {
-                var data = LabelGroupStack.Peek();
                 var enclosingLabelledStatement = Stack.OfType<JSStatement>().LastOrDefault((n) => n.Label != null);
 
                 if (enclosingLabelledStatement != null) {
-                    var labelData = data[enclosingLabelledStatement.Label];
+                    foreach (var lg in LabelGroupStack) {
+                        LabelGroupLabelData labelData;
 
-                    if (ge is JSExitLabelGroupExpression) {
-                        labelData.UntargettedExitCount += 1;
-                    } else {
-                        labelData.ExitTargetLabels.Add(ge.TargetLabel);
+                        if (lg.TryGetValue(enclosingLabelledStatement.Label, out labelData)) {
+                            if (ge is JSExitLabelGroupExpression) {
+                                labelData.UntargettedExitCount += 1;
+                            } else {
+                                labelData.ExitTargetLabels.Add(ge.TargetLabel);
+                            }
+                        }
                     }
                 }
             }
@@ -194,6 +197,10 @@ namespace JSIL.Transforms {
                 } else {
                     recursiveExit = targetLabelData.DirectExitLabel;
                 }
+
+                // Cycle detected
+                if (recursiveExit == label)
+                    return null;
             }
 
             return null;
@@ -290,7 +297,8 @@ namespace JSIL.Transforms {
 
                 if (exitLabel != null) {
                     if (exitLabel.Label != onlyRecursiveExitTarget) {
-                        Debugger.Break();
+                        if (TraceLevel >= 1)
+                            Console.WriteLine("// Cannot mark label '{0}' as exit label because this labelgroup already has one", onlyRecursiveExitTarget);
                     }
                 } else {
                     if (TraceLevel >= 1)
