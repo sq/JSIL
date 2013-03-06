@@ -83,9 +83,7 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(generatedJs.Contains(".TryGetValue"));
 
-                // FIXME: Hm, why did this break? 
-                //  Looks like maybe we need a pass to identify when a label is always the exit condition for a label group, and hoist it out.
-                // Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < args.length;"), "Was not a for loop");
+                Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < args.length; i = "), "Was not a for loop with an increment");
 
                 Assert.IsTrue(generatedJs.Contains("switch (text)"), "Didn't find switch (text)");
                 Assert.IsTrue(generatedJs.Contains("case \"howdy\""), "Didn't find string cases");

@@ -80,8 +80,34 @@ namespace JSIL.Transforms {
                     (g) => g.TargetLabel == nonNull[0].Label
                 )
             ) {
-                ParentNode.ReplaceChild(lgs, nonNull[0]);
-                VisitReplacement(nonNull[0]);
+                var onlyLabel = nonNull[0];
+                var labelGroupExit = onlyLabel.AllChildrenRecursive.OfType<JSExitLabelGroupExpression>().FirstOrDefault();
+
+                if (labelGroupExit != null) {
+                    var enclosingFunction = Stack.OfType<JSFunctionExpression>().First();
+                    var loops = enclosingFunction.AllChildrenRecursive.OfType<JSLoopStatement>();
+
+                    int nextLoopIndex = 0;
+                    if (loops.Any((l) => true))
+                        nextLoopIndex = loops.Max((l) => l.Index.GetValueOrDefault(0)) + 1;
+
+                    var replacement = new JSDoLoop(
+                        JSLiteral.New(false),
+                        onlyLabel
+                    );
+                    replacement.Index = nextLoopIndex;
+
+                    var newBreak = new JSBreakExpression();
+                    newBreak.TargetLoop = nextLoopIndex;
+
+                    onlyLabel.ReplaceChildRecursive(labelGroupExit, newBreak);
+
+                    ParentNode.ReplaceChild(lgs, replacement);
+                    VisitReplacement(replacement);
+                } else {
+                    ParentNode.ReplaceChild(lgs, onlyLabel);
+                    VisitReplacement(onlyLabel);
+                }
             } else {
                 VisitChildren(lgs);
             }

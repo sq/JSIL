@@ -115,6 +115,36 @@ namespace JSIL.Ast {
             ExitLabelNode = Labels.Enqueue(exitLabel.Label, exitLabel);
         }
 
+        public JSStatement EntryLabel {
+            get {
+                if (Labels.ContainsKey(EntryLabelNode.Value))
+                    return Labels[EntryLabelNode.Value];
+                else
+                    return null;
+            }
+            set {
+                if ((value.Label == null) || !Labels.ContainsKey(value.Label))
+                    throw new InvalidOperationException();
+
+                EntryLabelNode.Value = value.Label;
+            }
+        }
+
+        public JSStatement ExitLabel {
+            get {
+                if (Labels.ContainsKey(ExitLabelNode.Value))
+                    return Labels[ExitLabelNode.Value];
+                else
+                    return null;
+            }
+            set {
+                if ((value.Label == null) || !Labels.ContainsKey(value.Label))
+                    throw new InvalidOperationException();
+
+                ExitLabelNode.Value = value.Label;
+            }
+        }
+
         private void MarkAsControlFlow (JSStatement s) {
             s.IsControlFlow = true;
         }

@@ -737,6 +737,11 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSExitLabelGroupExpression elge) {
+            var stepLabel = String.Format("$labelgroup{0}", elge.LabelGroup.GroupIndex);
+            Output.WriteRaw("break {0}", stepLabel);
+        }
+
         public void VisitNode (JSUntranslatableStatement us) {
             Output.Identifier("JSIL.UntranslatableNode", null);
             Output.LPar();

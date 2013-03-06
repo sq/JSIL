@@ -195,7 +195,7 @@ namespace JSIL.Transforms {
             VisitChildren(ifs);
         }
 
-        protected IEnumerable<JSGotoExpression> FindGotos (JSNode context, string targetLabel) {
+        public static IEnumerable<JSGotoExpression> FindGotos (JSNode context, string targetLabel) {
             return context.AllChildrenRecursive.OfType<JSGotoExpression>()
                 .Where((ge) => ge.TargetLabel == targetLabel);
         }

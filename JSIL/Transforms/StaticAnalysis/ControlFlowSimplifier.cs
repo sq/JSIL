@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
@@ -10,13 +11,28 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class ControlFlowSimplifier : JSAstVisitor {
-        private static int TraceLevel = 0;
+        private class LabelGroupLabelData {
+            public readonly List<string> ExitTargetLabels = new List<string>();
+
+            public string DirectExitLabel;
+            public string RecursiveExitLabel;
+            public int TimesUsedAsRecursiveExitTarget;
+            public int UntargettedExitCount;
+        }
+
+        private class LabelGroupData : Dictionary<string, LabelGroupLabelData> {
+        }
+
+        private static int TraceLevel = 1;
 
         private readonly Stack<JSBlockStatement> BlockStack = new Stack<JSBlockStatement>();
         private readonly List<int> AbsoluteJumpsSeenStack = new List<int>();
         private readonly Stack<JSSwitchCase> SwitchCaseStack = new Stack<JSSwitchCase>();
+        private readonly Stack<LabelGroupData> LabelGroupStack = new Stack<LabelGroupData>();
 
         private JSSwitchCase LastSwitchCase = null;
+
+        public bool MadeChanges = false;
 
         public ControlFlowSimplifier () {
             AbsoluteJumpsSeenStack.Add(0);
@@ -118,6 +134,7 @@ namespace JSIL.Transforms {
 
                     var replacement = new JSNullExpression();
                     ParentNode.ReplaceChild(node, replacement);
+                    MadeChanges = true;
                     return;
                 } else {
                     if (TraceLevel >= 3)
@@ -137,7 +154,164 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSGotoExpression ge) {
+            if (LabelGroupStack.Count > 0) {
+                var data = LabelGroupStack.Peek();
+                var enclosingLabelledStatement = Stack.OfType<JSStatement>().LastOrDefault((n) => n.Label != null);
+
+                if (enclosingLabelledStatement != null) {
+                    var labelData = data[enclosingLabelledStatement.Label];
+
+                    if (ge is JSExitLabelGroupExpression) {
+                        labelData.UntargettedExitCount += 1;
+                    } else {
+                        labelData.ExitTargetLabels.Add(ge.TargetLabel);
+                    }
+                }
+            }
+
             VisitControlFlowNode(ge);
+        }
+
+        private string ComputeRecursiveExitLabel (LabelGroupData data, string label) {
+            var labelData = data[label];
+            var recursiveExit = labelData.DirectExitLabel;
+            if (recursiveExit == null)
+                return null;
+
+            while (recursiveExit != null) {
+                LabelGroupLabelData targetLabelData;
+                if (!data.TryGetValue(recursiveExit, out targetLabelData))
+                    throw new InvalidDataException();
+
+                if (targetLabelData.DirectExitLabel == null) {
+                    if (
+                        (targetLabelData.ExitTargetLabels.Count == 0) && 
+                        (targetLabelData.UntargettedExitCount == 0)
+                    )
+                        return recursiveExit;
+                    else
+                        return null;
+                } else {
+                    recursiveExit = targetLabelData.DirectExitLabel;
+                }
+            }
+
+            return null;
+        }
+
+        private void ExtractExitLabel (JSLabelGroupStatement lgs) {
+            var exitLabel = lgs.ExitLabel;
+            var originalLabelName = exitLabel.Label;
+
+            lgs.Labels.Remove(originalLabelName);
+            exitLabel.Label = null;
+            exitLabel.IsControlFlow = false;
+
+            var replacement = new JSBlockStatement(
+                lgs,
+                exitLabel
+            );
+
+            // Extract the exit label so it directly follows the label group
+            ParentNode.ReplaceChild(lgs, replacement);
+
+            // Find and convert all the gotos so that they instead break out of the label group
+            var gotos = DeoptimizeSwitchStatements.FindGotos(lgs, originalLabelName);
+            foreach (var g in gotos)
+                lgs.ReplaceChildRecursive(g, new JSExitLabelGroupExpression(lgs));
+
+            if (TraceLevel >= 1)
+                Console.WriteLine("// Extracted exit label '{0}' from label group", originalLabelName);
+            MadeChanges = true;
+        }
+
+        public void VisitNode (JSLabelGroupStatement lgs) {
+            var data = new LabelGroupData();
+            LabelGroupStack.Push(data);
+
+            foreach (var key in lgs.Labels.Keys)
+                data.Add(key.Value, new LabelGroupLabelData());
+
+            VisitChildren(lgs);
+
+            // Scan all the labels to determine their direct exit label, if any
+            foreach (var kvp in data) {
+                var targetLabels = kvp.Value.ExitTargetLabels.Distinct().ToArray();
+
+                if (
+                    (targetLabels.Length == 1) && 
+                    (kvp.Value.UntargettedExitCount == 0)
+                ) {
+                    kvp.Value.DirectExitLabel = targetLabels[0];
+                } else {
+                    kvp.Value.DirectExitLabel = null;
+                }
+            }
+            
+            // Scan all the labels again to determine their recursive exit label
+            foreach (var kvp in data) {
+                var rel = kvp.Value.RecursiveExitLabel = ComputeRecursiveExitLabel(data, kvp.Key);
+
+                if (rel != null)
+                    data[rel].TimesUsedAsRecursiveExitTarget += 1;
+            }
+
+            // If we have one label that is the recursive exit target for all other labels, we can turn it into the exit label
+            var recursiveExitTargets = data.Where(
+                (kvp) => kvp.Value.TimesUsedAsRecursiveExitTarget > 0
+            ).ToArray();
+            if (recursiveExitTargets.Length == 1) {
+                var exitLabel = lgs.ExitLabel;
+                var onlyRecursiveExitTarget = recursiveExitTargets[0].Key;
+
+                if (exitLabel != null) {
+                    if (exitLabel.Label != onlyRecursiveExitTarget) {
+                        Debugger.Break();
+                    }
+                } else {
+                    if (TraceLevel >= 1)
+                        Console.WriteLine("// Marking label '{0}' as exit label", onlyRecursiveExitTarget);
+
+                    lgs.ExitLabel = lgs.Labels[onlyRecursiveExitTarget];
+                    MadeChanges = true;
+                }
+            }
+
+            if ((lgs.ExitLabel != null) && (lgs.Labels.Count > 1))
+                ExtractExitLabel(lgs);
+
+            LabelGroupStack.Pop();
+        }
+
+        public void VisitNode (JSWhileLoop wl) {
+            // Extract the last non-block statement from the body of the while loop
+            var lastChild = wl.Children.LastOrDefault();
+            while (lastChild is JSBlockStatement) {
+                var bs = lastChild as JSBlockStatement;
+                if (bs.IsControlFlow)
+                    break;
+                else
+                    lastChild = bs.Statements.LastOrDefault();
+            }
+
+            // Is it a continue expression?
+            var lastES = lastChild as JSExpressionStatement;
+            if (lastES != null) {
+                var lastContinue = lastES.Expression as JSContinueExpression;
+                if (
+                    (lastContinue != null) &&
+                    (lastContinue.TargetLoop == wl.Index)
+                ) {
+                    // Spurious continue, so murder it
+                    wl.ReplaceChildRecursive(lastContinue, new JSNullExpression());
+
+                    if (TraceLevel >= 1)
+                        Console.WriteLine("// Pruning spurious continue expression {0}", lastContinue);
+                    MadeChanges = true;
+                }
+            }
+
+            VisitChildren(wl);
         }
     }
 }

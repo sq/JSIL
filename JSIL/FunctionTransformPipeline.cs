@@ -289,8 +289,22 @@ namespace JSIL.Internal {
         }
 
         private bool SimplifyControlFlow () {
-            if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true))
-                new ControlFlowSimplifier().Visit(Function);
+            if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true)) {
+                bool shouldCollapse = false;
+                bool shouldRun = true;
+
+                while (shouldRun) {
+                    var cfs = new ControlFlowSimplifier();
+                    cfs.Visit(Function);
+                    shouldRun = cfs.MadeChanges;
+                    shouldCollapse |= cfs.MadeChanges;
+                }
+
+                // HACK: Control flow simplification probably generated lots of nulls, so let's collapse them.
+                // This makes it possible for loop simplification to work right later on.
+                if (shouldCollapse)
+                    CollapseNulls();
+            }
 
             return true;
         }

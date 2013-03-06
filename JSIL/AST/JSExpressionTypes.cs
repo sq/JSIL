@@ -121,6 +121,17 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSExitLabelGroupExpression : JSGotoExpression {
+        [JSAstIgnore]
+        public readonly JSLabelGroupStatement LabelGroup;
+
+        public JSExitLabelGroupExpression (JSLabelGroupStatement labelGroup)
+            : base("$exit" + labelGroup.GroupIndex) {
+
+            LabelGroup = labelGroup;
+        }
+    }
+
     // Technically, the following expressions should be statements. But in ILAst, they're expressions...
     public class JSReturnExpression : JSFlowControlExpression {
         public JSReturnExpression (JSExpression value = null)
