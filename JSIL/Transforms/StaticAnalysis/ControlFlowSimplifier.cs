@@ -29,6 +29,7 @@ namespace JSIL.Transforms {
         private readonly List<int> AbsoluteJumpsSeenStack = new List<int>();
         private readonly Stack<JSSwitchCase> SwitchCaseStack = new Stack<JSSwitchCase>();
         private readonly Stack<LabelGroupData> LabelGroupStack = new Stack<LabelGroupData>();
+        private readonly Stack<int> LoopIndexStack = new Stack<int>();
 
         private JSSwitchCase LastSwitchCase = null;
 
@@ -145,11 +146,38 @@ namespace JSIL.Transforms {
             VisitChildren(node);
         }
 
+        private void RecordUntargettedExit () {
+            if (LabelGroupStack.Count > 0) {
+                var enclosingLabelledStatement = Stack.OfType<JSStatement>().LastOrDefault((n) => n.Label != null);
+
+                if (enclosingLabelledStatement != null) {
+                    foreach (var lg in LabelGroupStack) {
+                        LabelGroupLabelData labelData;
+
+                        if (lg.TryGetValue(enclosingLabelledStatement.Label, out labelData))
+                            labelData.UntargettedExitCount += 1;
+                    }
+                }
+            }
+        }
+
+        public void VisitNode (JSReturnExpression re) {
+            RecordUntargettedExit();
+
+            VisitChildren(re);
+        }
+
         public void VisitNode (JSContinueExpression ce) {
+            if (ce.TargetLoop.HasValue && LoopIndexStack.Contains(ce.TargetLoop.Value))
+                RecordUntargettedExit();
+
             VisitControlFlowNode(ce);
         }
 
         public void VisitNode (JSBreakExpression be) {
+            if (be.TargetLoop.HasValue && LoopIndexStack.Contains(be.TargetLoop.Value))
+                RecordUntargettedExit();
+
             VisitControlFlowNode(be);
         }
 
@@ -188,8 +216,9 @@ namespace JSIL.Transforms {
 
                 if (targetLabelData.DirectExitLabel == null) {
                     if (
-                        (targetLabelData.ExitTargetLabels.Count == 0) && 
-                        (targetLabelData.UntargettedExitCount == 0)
+                        (targetLabelData.ExitTargetLabels.Count == 0) /* && 
+                        FIXME: Is this right?
+                        (targetLabelData.UntargettedExitCount <= 1) */
                     )
                         return recursiveExit;
                     else
@@ -209,6 +238,13 @@ namespace JSIL.Transforms {
         private void ExtractExitLabel (JSLabelGroupStatement lgs) {
             var exitLabel = lgs.ExitLabel;
             var originalLabelName = exitLabel.Label;
+
+            if (exitLabel.AllChildrenRecursive.OfType<JSGotoExpression>().Any()) {
+                if (TraceLevel >= 1)
+                    Console.WriteLine("// Cannot extract exit label '{0}' from label group because it contains a goto or exit", originalLabelName);
+
+                return;
+            }
 
             // The label before this label may have fallen through, so we need to append an ExitLabelGroup
             var previousLabel = lgs.BeforeExitLabel;
@@ -292,19 +328,30 @@ namespace JSIL.Transforms {
                 (kvp) => kvp.Value.TimesUsedAsRecursiveExitTarget > 0
             ).ToArray();
             if (recursiveExitTargets.Length == 1) {
-                var exitLabel = lgs.ExitLabel;
                 var onlyRecursiveExitTarget = recursiveExitTargets[0].Key;
+                var exitLabel = lgs.ExitLabel;
+                var newExitLabel = lgs.Labels[onlyRecursiveExitTarget];
+                var newExitLabelData = data[newExitLabel.Label];
 
-                if (exitLabel != null) {
-                    if (exitLabel.Label != onlyRecursiveExitTarget) {
+                if (
+                    (newExitLabelData.ExitTargetLabels.Count == 0) && 
+                    (newExitLabelData.UntargettedExitCount == 0) &&
+                    (newExitLabel != lgs.Labels.LastOrDefault().Value)
+                ) {
+                    if (TraceLevel >= 1)
+                        Console.WriteLine("// Cannot mark label '{0}' as exit label because it falls through and is not the last label", onlyRecursiveExitTarget);
+                } else if (exitLabel != null) {
+                    if (exitLabel != newExitLabel) {
                         if (TraceLevel >= 1)
                             Console.WriteLine("// Cannot mark label '{0}' as exit label because this labelgroup already has one", onlyRecursiveExitTarget);
+                    } else {
+                        Debugger.Break();
                     }
                 } else {
                     if (TraceLevel >= 1)
                         Console.WriteLine("// Marking label '{0}' as exit label", onlyRecursiveExitTarget);
 
-                    lgs.ExitLabel = lgs.Labels[onlyRecursiveExitTarget];
+                    lgs.ExitLabel = newExitLabel;
                     MadeChanges = true;
                 }
             }
@@ -313,6 +360,14 @@ namespace JSIL.Transforms {
                 ExtractExitLabel(lgs);
 
             LabelGroupStack.Pop();
+        }
+
+        public void VisitNode (JSLoopStatement ls) {
+            LoopIndexStack.Push(ls.Index.GetValueOrDefault(-1));
+
+            VisitChildren(ls);
+
+            LoopIndexStack.Pop();
         }
 
         public void VisitNode (JSWhileLoop wl) {
@@ -343,7 +398,11 @@ namespace JSIL.Transforms {
                 }
             }
 
+            LoopIndexStack.Push(wl.Index.GetValueOrDefault(-1));
+
             VisitChildren(wl);
+
+            LoopIndexStack.Pop();
         }
     }
 }
