@@ -203,22 +203,46 @@ namespace JSIL.Transforms {
             var exitLabel = lgs.ExitLabel;
             var originalLabelName = exitLabel.Label;
 
+            // The label before this label may have fallen through, so we need to append an ExitLabelGroup
+            var previousLabel = lgs.BeforeExitLabel;
+
+            if (previousLabel != null) {
+                var exitStatement = new JSExpressionStatement(new JSExitLabelGroupExpression(lgs));
+
+                var previousBlock = previousLabel as JSBlockStatement;
+                if (previousBlock != null) {
+                    previousBlock.Statements.Add(exitStatement);
+                } else {
+                    var replacement = new JSBlockStatement(
+                        previousLabel, exitStatement
+                    );
+
+                    replacement.Label = previousLabel.Label;
+                    replacement.IsControlFlow = true;
+                    previousLabel.Label = null;
+
+                    lgs.ReplaceChild(previousLabel, replacement);
+                }
+            }
+
             lgs.Labels.Remove(originalLabelName);
             exitLabel.Label = null;
             exitLabel.IsControlFlow = false;
 
-            var replacement = new JSBlockStatement(
-                lgs,
-                exitLabel
-            );
+            {
+                var replacement = new JSBlockStatement(
+                    lgs,
+                    exitLabel
+                );
 
-            // Extract the exit label so it directly follows the label group
-            ParentNode.ReplaceChild(lgs, replacement);
+                // Extract the exit label so it directly follows the label group
+                ParentNode.ReplaceChild(lgs, replacement);
 
-            // Find and convert all the gotos so that they instead break out of the label group
-            var gotos = DeoptimizeSwitchStatements.FindGotos(lgs, originalLabelName);
-            foreach (var g in gotos)
-                lgs.ReplaceChildRecursive(g, new JSExitLabelGroupExpression(lgs));
+                // Find and convert all the gotos so that they instead break out of the label group
+                var gotos = DeoptimizeSwitchStatements.FindGotos(lgs, originalLabelName);
+                foreach (var g in gotos)
+                    lgs.ReplaceChildRecursive(g, new JSExitLabelGroupExpression(lgs));
+            }
 
             if (TraceLevel >= 1)
                 Console.WriteLine("// Extracted exit label '{0}' from label group", originalLabelName);

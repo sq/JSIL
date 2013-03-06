@@ -84,6 +84,7 @@ namespace JSIL.Transforms {
                 var labelGroupExit = onlyLabel.AllChildrenRecursive.OfType<JSExitLabelGroupExpression>().FirstOrDefault();
 
                 if (labelGroupExit != null) {
+                    /* FIXME: This doesn't work
                     var enclosingFunction = Stack.OfType<JSFunctionExpression>().First();
                     var loops = enclosingFunction.AllChildrenRecursive.OfType<JSLoopStatement>();
 
@@ -104,6 +105,8 @@ namespace JSIL.Transforms {
 
                     ParentNode.ReplaceChild(lgs, replacement);
                     VisitReplacement(replacement);
+                     */
+                    VisitChildren(lgs);
                 } else {
                     ParentNode.ReplaceChild(lgs, onlyLabel);
                     VisitReplacement(onlyLabel);

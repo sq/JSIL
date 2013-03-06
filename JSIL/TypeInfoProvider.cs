@@ -653,5 +653,32 @@ namespace JSIL {
 
             return false;
         }
+
+        private LinkedListNode<TKey> MoveToHeadOrTail (TKey key, bool tail) {
+            var node = LinkedList.Find(key);
+            if (node == null)
+                throw new KeyNotFoundException(key.ToString());
+
+            LinkedList.Remove(node);
+
+            if (tail)
+                LinkedList.AddLast(node);
+            else
+                LinkedList.AddFirst(node);
+
+            return node;
+        }
+
+        public LinkedListNode<TKey> MoveToHead (TKey key) {
+            return MoveToHeadOrTail(key, false);
+        }
+
+        public LinkedListNode<TKey> MoveToTail (TKey key) {
+            return MoveToHeadOrTail(key, true);
+        }
+
+        public LinkedListNode<TKey> FindNode (TKey key) {
+            return LinkedList.Find(key);
+        }
     }
 }

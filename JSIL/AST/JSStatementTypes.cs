@@ -126,7 +126,21 @@ namespace JSIL.Ast {
                 if ((value.Label == null) || !Labels.ContainsKey(value.Label))
                     throw new InvalidOperationException();
 
-                EntryLabelNode.Value = value.Label;
+                Labels.Remove(EntryLabelNode.Value);
+                EntryLabelNode = Labels.FindNode(value.Label);
+            }
+        }
+
+        public JSStatement BeforeExitLabel {
+            get {
+                var priorLabel = ExitLabelNode.Previous;
+                if (priorLabel == null)
+                    return null;
+
+                if (Labels.ContainsKey(priorLabel.Value))
+                    return Labels[priorLabel.Value];
+                else
+                    return null;
             }
         }
 
@@ -141,7 +155,8 @@ namespace JSIL.Ast {
                 if ((value.Label == null) || !Labels.ContainsKey(value.Label))
                     throw new InvalidOperationException();
 
-                ExitLabelNode.Value = value.Label;
+                Labels.Remove(ExitLabelNode.Value);
+                ExitLabelNode = Labels.FindNode(value.Label);
             }
         }
 
@@ -199,9 +214,16 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             var sb = new StringBuilder();
+            sb.AppendLine("{");
 
-            foreach (var kvp in Labels)
-                sb.AppendLine(String.Concat(kvp.Value));
+            foreach (var kvp in Labels) {
+                var lines = String.Concat(kvp.Value).Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+
+                foreach (var line in lines)
+                    sb.AppendLine("  " + line);
+            }
+
+            sb.AppendLine("}");
 
             return PrependLabel(sb.ToString());
         }

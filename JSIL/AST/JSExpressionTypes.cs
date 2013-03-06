@@ -130,6 +130,10 @@ namespace JSIL.Ast {
 
             LabelGroup = labelGroup;
         }
+
+        public override string ToString () {
+            return String.Format("exit labelgroup {0}", LabelGroup.GroupIndex);
+        }
     }
 
     // Technically, the following expressions should be statements. But in ILAst, they're expressions...
