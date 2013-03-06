@@ -22,7 +22,6 @@ namespace JSIL {
         public readonly ILBlock Block;
         public readonly JavascriptFormatter Output = null;
 
-        public readonly HashSet<string> ParameterNames = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
         internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
@@ -94,7 +93,6 @@ namespace JSIL {
 
                 var jsp = new JSParameter(parameter.Name, parameter.Type, methodReference);
 
-                ParameterNames.Add(jsp.Name);
                 Variables.Add(jsp.Name, jsp);
             }
 

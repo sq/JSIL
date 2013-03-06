@@ -22,7 +22,6 @@ namespace JSIL.Internal {
         public readonly AssemblyTranslator Translator;
         public readonly QualifiedMemberIdentifier Identifier;
         public readonly JSFunctionExpression Function;
-        public readonly HashSet<string> ParameterNames;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -36,14 +35,12 @@ namespace JSIL.Internal {
         public FunctionTransformPipeline (
             AssemblyTranslator translator,
             QualifiedMemberIdentifier identifier, JSFunctionExpression function,
-            SpecialIdentifiers si, HashSet<string> parameterNames,
-            Dictionary<string, JSVariable> variables
+            SpecialIdentifiers si, Dictionary<string, JSVariable> variables
         ) {
             Translator = translator;
             Identifier = identifier;
             Function = function;
             SpecialIdentifiers = si;
-            ParameterNames = parameterNames;
             Variables = variables;
 
             FillPipeline();
@@ -378,8 +375,7 @@ namespace JSIL.Internal {
         private bool IntroduceVariableReferences () {
             new IntroduceVariableReferences(
                 SpecialIdentifiers.JSIL,
-                Variables,
-                ParameterNames
+                Variables
                 ).Visit(Function);
 
             return true;

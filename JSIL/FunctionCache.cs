@@ -29,7 +29,6 @@ namespace JSIL {
             public MethodReference Reference;
 
             public SpecialIdentifiers SpecialIdentifiers;
-            public HashSet<string> ParameterNames;
             public Dictionary<string, JSVariable> Variables;
 
             public JSFunctionExpression Expression;
@@ -55,7 +54,7 @@ namespace JSIL {
             public MethodInfo Info;
             public MethodReference Method;
             public ILBlockTranslator Translator;
-            public IEnumerable<JSVariable> Parameters;
+            public JSVariable[] Parameters;
             public JSBlockStatement Body;
         }
 
@@ -96,7 +95,6 @@ namespace JSIL {
                 return new Entry(id, Locks) {
                     Info = method.Method,
                     Reference = method.Reference,
-                    ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
                     SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
                 };
             };
@@ -117,7 +115,6 @@ namespace JSIL {
                     Reference = args.Method,
                     Expression = result,
                     Variables = args.Translator.Variables,
-                    ParameterNames = args.Translator.ParameterNames,
                     SpecialIdentifiers = args.Translator.SpecialIdentifiers
                 };
             };
@@ -257,7 +254,7 @@ namespace JSIL {
         internal JSFunctionExpression Create (
             MethodInfo info, MethodDefinition methodDef, MethodReference method, 
             QualifiedMemberIdentifier identifier, ILBlockTranslator translator, 
-            IEnumerable<JSVariable> parameters, JSBlockStatement body
+            JSVariable[] parameters, JSBlockStatement body
         ) {
             var args = new PopulatedCacheEntryArgs {
                 Info = info,

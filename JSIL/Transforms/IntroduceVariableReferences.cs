@@ -12,16 +12,14 @@ namespace JSIL.Transforms {
 
         public readonly HashSet<string> TransformedVariables = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables;
-        public readonly HashSet<string> ParameterNames;
         public readonly JSILIdentifier JSIL;
 
         protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>();
         protected readonly Dictionary<JSVariableDeclarationStatement, JSBlockStatement> Declarations = new Dictionary<JSVariableDeclarationStatement, JSBlockStatement>();
 
-        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables, HashSet<string> parameterNames) {
+        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables) {
             JSIL = jsil;
             Variables = variables;
-            ParameterNames = parameterNames;
         }
 
         protected bool MatchesConstructedReference (JSExpression lhs, JSVariable rhs) {
@@ -116,11 +114,12 @@ namespace JSIL.Transforms {
 
             Variables[newVariable.Identifier] = newVariable;
             Variables.Add(newParameter.Identifier, newParameter);
-            ParameterNames.Remove(parameter.Identifier);
-            ParameterNames.Add(newParameter.Identifier);
 
             var enclosingFunction = Stack.OfType<JSFunctionExpression>().First();
             enclosingFunction.Body.Statements.Insert(0, newDeclaration);
+
+            var oldIndex = Array.IndexOf(enclosingFunction.Parameters, parameter);
+            enclosingFunction.Parameters[oldIndex] = newParameter;
         }
 
         protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex, JSBlockStatement enclosingBlock) {

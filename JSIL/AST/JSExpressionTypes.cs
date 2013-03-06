@@ -22,7 +22,7 @@ namespace JSIL.Ast {
         // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
         // If we were to convert it to an array, later changes to the data the enumerable pulls from wouldn't update it
         [JSAstTraverse(0, "FunctionSignature")]
-        public readonly IEnumerable<JSVariable> Parameters;
+        public readonly JSVariable[] Parameters;
         [JSAstTraverse(1)]
         public readonly JSBlockStatement Body;
 
@@ -32,7 +32,7 @@ namespace JSIL.Ast {
 
         public JSFunctionExpression (
             JSMethod method, Dictionary<string, JSVariable> allVariables,
-            IEnumerable<JSVariable> parameters, JSBlockStatement body,
+            JSVariable[] parameters, JSBlockStatement body,
             MethodTypeFactory methodTypes
         ) {
             Method = method;
@@ -954,6 +954,8 @@ namespace JSIL.Ast {
         public readonly bool ConstantIfArgumentsAre;
         public readonly bool ExplicitThis;
 
+        protected TypeReference _ActualType = null;
+
         static JSInvocationExpression () {
             SetValueNames(
                 typeof(JSInvocationExpression),
@@ -1137,6 +1139,9 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
+            if (_ActualType != null)
+                return _ActualType;
+
             var targetType = Method.GetActualType(typeSystem);
 
             var targetAbstractMethod = Method.SelfAndChildrenRecursive.OfType<JSIdentifier>()
@@ -1150,16 +1155,16 @@ namespace JSIL.Ast {
             var targetFakeMethod = FakeMethod ?? (targetAbstractMethod as JSFakeMethod);
 
             if (targetMethod != null)
-                return SubstituteTypeArgs(targetMethod.Method.Source, targetMethod.Reference.ReturnType, targetMethod.Reference);
+                return _ActualType = SubstituteTypeArgs(targetMethod.Method.Source, targetMethod.Reference.ReturnType, targetMethod.Reference);
             else if (targetFakeMethod != null)
-                return targetFakeMethod.ReturnType;
+                return _ActualType = targetFakeMethod.ReturnType;
 
             // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
             // This should be handled by replacing the JSInvocationExpression with a JSDelegateInvocationExpression
             if (TypeUtil.IsDelegateType(targetType))
                 throw new NotImplementedException("Invocation with a target type that is a delegate");
 
-            return targetType;
+            return _ActualType = targetType;
         }
 
         public string BuildArgumentListString () {

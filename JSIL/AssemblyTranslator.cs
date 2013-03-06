@@ -557,7 +557,7 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.ParameterNames, e.Variables, log);
+                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.Variables, log);
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -1418,7 +1418,7 @@ namespace JSIL {
                     return null;
                 }
 
-                var parameters = from p in translator.ParameterNames select translator.Variables[p];
+                var parameters = (from v in translator.Variables.Values where v.IsParameter && !v.IsThis select v);
 
                 if (method.HasGenericParameters) {
                     var type = new TypeReference("System", "Type", context.CurrentModule.TypeSystem.Object.Module, context.CurrentModule.TypeSystem.Object.Scope);
@@ -1437,7 +1437,7 @@ namespace JSIL {
 
                 function = FunctionCache.Create(
                     methodInfo, methodDef, method, identifier,
-                    translator, parameters, body
+                    translator, parameters.ToArray(), body
                 );
                 function.TemporaryVariableCount += translator.TemporaryVariableCount;
 
@@ -1514,14 +1514,13 @@ namespace JSIL {
 
         private void RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
-            SpecialIdentifiers si, HashSet<string> parameterNames,
-            Dictionary<string, JSVariable> variables, StringBuilder log
+            SpecialIdentifiers si, Dictionary<string, JSVariable> variables, StringBuilder log
         ) {
             FunctionTransformPipeline pipeline;
 
             if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline))
                 pipeline = new FunctionTransformPipeline(
-                    this, memberIdentifier, function, si, parameterNames, variables
+                    this, memberIdentifier, function, si,  variables
                 );
 
             bool completed = false;
