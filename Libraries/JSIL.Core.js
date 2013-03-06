@@ -2620,22 +2620,30 @@ JSIL.$BuildFieldList = function (typeObject) {
   var fl = typeObject.__FieldList__ = [];
   var fieldOffset = 0;
 
+  $fieldloop:
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
 
-    var fieldTypeRef = field._data.fieldType, fieldType = null;
-    if (Object.getPrototypeOf(fieldTypeRef) === JSIL.GenericParameter.prototype) {
-      fieldType = JSIL.$ResolveGenericTypeReferenceInternal(fieldTypeRef, typeObject.__PublicInterface__.prototype);
+    var fieldType = field._data.fieldType;
+
+    var didGenericResolve = false;
+    while (fieldType && (Object.getPrototypeOf(fieldType) === JSIL.GenericParameter.prototype)) {
+      didGenericResolve = true;
+
+      var fieldTypeRef = fieldType;
+      fieldType = JSIL.$ResolveGenericTypeReferenceInternal(fieldType, typeObject.__PublicInterface__.prototype);
 
       if (!fieldType) {
         JSIL.Host.warning(
           "Could not resolve open generic parameter '" + fieldTypeRef.name + 
           "' when building field list for type '" + typeObject.__FullName__ + "'"
         );
-        continue;
+        continue $fieldloop;
       }
-    } else {
-      fieldType = JSIL.ResolveTypeReference(fieldTypeRef, typeObject.__Context__)[1];
+    }
+
+    if (!didGenericResolve) {
+      fieldType = JSIL.ResolveTypeReference(fieldType, typeObject.__Context__)[1];
     }
 
     if ((typeof (fieldType) === "undefined") || (fieldType === null))
