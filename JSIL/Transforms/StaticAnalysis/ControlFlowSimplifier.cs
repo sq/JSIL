@@ -23,7 +23,7 @@ namespace JSIL.Transforms {
         private class LabelGroupData : Dictionary<string, LabelGroupLabelData> {
         }
 
-        private static int TraceLevel = 1;
+        private static int TraceLevel = 0;
 
         private readonly Stack<JSBlockStatement> BlockStack = new Stack<JSBlockStatement>();
         private readonly List<int> AbsoluteJumpsSeenStack = new List<int>();
