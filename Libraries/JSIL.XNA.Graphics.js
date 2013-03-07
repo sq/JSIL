@@ -2270,7 +2270,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
         cachedTexture = {
           image: tempCanvas,
-          id: "text:'" + text + "'",
+          id: cacheKey,
           width: tempCanvas.width,
           height: tempCanvas.height
         };
