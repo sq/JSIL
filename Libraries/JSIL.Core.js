@@ -2415,9 +2415,9 @@ JSIL.FormatMemberAccess = function (targetExpression, memberName) {
   }
 };
 
-JSIL.MakeFieldInitializer = function (typeObject) {
+JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
   var fl = JSIL.GetFieldList(typeObject);
-  if (fl.length < 1)
+  if ((fl.length < 1) && returnNamedFunction)
     return $jsilcore.FunctionNull;
 
   var prototype = typeObject.__PublicInterface__.prototype;
@@ -2428,6 +2428,8 @@ JSIL.MakeFieldInitializer = function (typeObject) {
 
   var defaultInt = 0;
   var defaultFloat = 0.0 / 1.1;
+
+  var targetArgName = returnNamedFunction ? "target" : "this";
 
   for (var i = 0, l = fl.length; i < l; i++) {
     var field = fl[i];
@@ -2440,7 +2442,7 @@ JSIL.MakeFieldInitializer = function (typeObject) {
     var key = "f" + i.toString();
 
     if (field.isStruct) {
-      body.push(JSIL.FormatMemberAccess("target", field.name) + " = new types." + key + "();");
+      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
       types[key] = field.type.__PublicInterface__;
     } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
       // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
@@ -2451,9 +2453,9 @@ JSIL.MakeFieldInitializer = function (typeObject) {
       } else {
         defaultValueString = "defaultFloat";
       }
-      body.push(JSIL.FormatMemberAccess("target", field.name) + " = " + defaultValueString + ";");
+      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = " + defaultValueString + ";");
     } else {
-      body.push(JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";");
+      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = defaults." + key + ";");
 
       if (typeof (field.defaultValueExpression) === "function") {
         // FIXME: This wants a this-reference?
@@ -2467,23 +2469,34 @@ JSIL.MakeFieldInitializer = function (typeObject) {
 
   }
 
-  var boundFunction = JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + ".InitializeFields",
-    ["target"],
-    body.join("\r\n"),
-    { types: types, defaults: defaults, defaultInt: defaultInt, defaultFloat: defaultFloat }
-  );
+  var initializerClosure = { 
+    types: types, 
+    defaults: defaults, 
+    defaultInt: defaultInt, 
+    defaultFloat: defaultFloat 
+  };
 
-  boundFunction.__ThisType__ = typeObject;
-  JSIL.SetValueProperty(boundFunction, "__ThisTypeId__", typeObject.__TypeId__);
+  if (returnNamedFunction) {
+    var boundFunction = JSIL.CreateNamedFunction(
+      typeObject.__FullName__ + ".InitializeFields",
+      ["target"],
+      body.join("\r\n"),
+      initializerClosure
+    );
 
-  return boundFunction;
+    boundFunction.__ThisType__ = typeObject;
+    JSIL.SetValueProperty(boundFunction, "__ThisTypeId__", typeObject.__TypeId__);
+
+    return boundFunction;
+  } else {
+    return [body, initializerClosure];
+  }
 };
 
 JSIL.InitializeInstanceFields = function (instance, typeObject) {
   var fi = typeObject.__FieldInitializer__;
   if (fi === $jsilcore.FunctionNotInitialized)
-    typeObject.__FieldInitializer__ = fi = JSIL.MakeFieldInitializer(typeObject);
+    typeObject.__FieldInitializer__ = fi = JSIL.MakeFieldInitializer(typeObject, true);
   if (fi === $jsilcore.FunctionNull)
     return;
 
@@ -4039,8 +4052,8 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   var ctorBody = [];
 
   ctorBody.push("if (!isTypeInitialized) {");
-  ctorBody.push("  fieldInitializer = JSIL.MakeFieldInitializer(typeObject);");
   ctorBody.push("  JSIL.RunStaticConstructors(typeObject.__PublicInterface__, typeObject);");
+  ctorBody.push("  fieldInitializer = JSIL.MakeFieldInitializer(typeObject, true);");
   ctorBody.push("  isTypeInitialized = true;");
   ctorBody.push("}");
 
