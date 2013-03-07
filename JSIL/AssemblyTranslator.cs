@@ -363,6 +363,8 @@ namespace JSIL {
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
+            var sw = Stopwatch.StartNew();
+
             if (Configuration.RunBugChecks.GetValueOrDefault(true))
                 BugChecks.RunBugChecks();
             else
@@ -455,6 +457,8 @@ namespace JSIL {
 
             pr.OnFinished();
 
+            sw.Stop();
+            result.Elapsed = sw.Elapsed;
             return result;
         }
 
@@ -567,7 +571,7 @@ namespace JSIL {
                 if (Configuration.CodeGenerator.EnableThreadedTransforms.GetValueOrDefault(true)) {
                     Parallel.ForEach(
                         FunctionCache.PendingTransformsQueue.TryDequeueAll,
-                        itemHandler
+                        parallelOptions, itemHandler
                     );
                 } else {
                     QualifiedMemberIdentifier _id;

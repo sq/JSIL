@@ -559,6 +559,7 @@ namespace JSIL.Compiler {
             var logText = new StringBuilder();
             var asmName = Assembly.GetExecutingAssembly().GetName();
             logText.AppendLine(String.Format("// JSILc v{0}.{1}.{2}", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision));
+            logText.AppendLine(String.Format("// Build took {0:0000.00} second(s).", outputs.Elapsed.TotalSeconds));
             logText.AppendLine(String.Format("// The following configuration was used when translating '{0}':", inputFile));
             logText.AppendLine((new JavaScriptSerializer()).Serialize(configuration));
             logText.AppendLine("// The configuration was generated from the following configuration files:");

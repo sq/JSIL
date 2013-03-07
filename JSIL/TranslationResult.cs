@@ -20,6 +20,7 @@ namespace JSIL {
         public readonly List<string> FileOrder = new List<string>();
         public readonly Dictionary<string, ResultFile> Files = new Dictionary<string, ResultFile>();
         public readonly StringBuilder Log = new StringBuilder();
+        public TimeSpan Elapsed;
         public ArraySegment<byte> Manifest;
 
         internal TranslationResult (Configuration configuration) {
