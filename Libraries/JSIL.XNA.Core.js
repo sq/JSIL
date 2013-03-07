@@ -2405,9 +2405,14 @@ $jsilxna.Color = function ($) {
 };
 
 $jsilxna.ClampByte = function (v) {
-  if (v < 0) return 0;
-  else if (v > 255) return 255;
-  else return Math.floor(v);
+  v = (v | 0);
+
+  if (v < 0) 
+    return 0;
+  else if (v > 255) 
+    return 255;
+  else 
+    return v;
 };
 
 (function () {
