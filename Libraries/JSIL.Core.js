@@ -287,7 +287,7 @@ $jsilcore.ArrayNotInitialized = ["ArrayNotInitialized"];
 $jsilcore.ArrayNull = [];
 
 $jsilcore.FunctionNotInitialized = function () { throw new Error("FunctionNotInitialized"); };
-$jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
+$jsilcore.FunctionNull = function () { };
 
 JSIL.Memoize = function Memoize (value) {
   if (typeof (value) === "undefined")
@@ -2426,6 +2426,9 @@ JSIL.MakeFieldInitializer = function (typeObject) {
   var types = {};
   var defaults = {};
 
+  var defaultInt = 0;
+  var defaultFloat = 0.0 / 1.1;
+
   for (var i = 0, l = fl.length; i < l; i++) {
     var field = fl[i];
 
@@ -2444,9 +2447,9 @@ JSIL.MakeFieldInitializer = function (typeObject) {
       //  an object's field slots should be.
       var defaultValueString;
       if (field.type.__IsIntegral__) {
-        defaultValueString = "0";
+        defaultValueString = "defaultInt";
       } else {
-        defaultValueString = "(0.0 / 1.1)";
+        defaultValueString = "defaultFloat";
       }
       body.push(JSIL.FormatMemberAccess("target", field.name) + " = " + defaultValueString + ";");
     } else {
@@ -2468,7 +2471,7 @@ JSIL.MakeFieldInitializer = function (typeObject) {
     typeObject.__FullName__ + ".InitializeFields",
     ["target"],
     body.join("\r\n"),
-    { types: types, defaults: defaults }
+    { types: types, defaults: defaults, defaultInt: defaultInt, defaultFloat: defaultFloat }
   );
 
   boundFunction.__ThisType__ = typeObject;
@@ -4028,104 +4031,33 @@ JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
 };
 
 JSIL.MakeTypeConstructor = function (typeObject) {
-  var openTypeError = function OpenType__ctor () {
-    throw new Error("Cannot construct an instance of an open type");
+  var ctorClosure = {
+    typeObject: typeObject,
+    fieldInitializer: $jsilcore.FunctionNotInitialized,
+    isTypeInitialized: false
   };
+  var ctorBody = [];
 
-  var state = {
-    typeName: typeObject.__FullName__,
-    isStruct: typeObject.__IsStruct__,
-    hasInnerCtor: false,
-    fi: $jsilcore.FunctionNotInitialized,
-    innerCtor: $jsilcore.FunctionNotInitialized,
-    ctorToCall: $jsilcore.FunctionNotInitialized
-  };
+  ctorBody.push("if (!isTypeInitialized) {");
+  ctorBody.push("  fieldInitializer = JSIL.MakeFieldInitializer(typeObject);");
+  ctorBody.push("  JSIL.RunStaticConstructors(typeObject.__PublicInterface__, typeObject);");
+  ctorBody.push("  isTypeInitialized = true;");
+  ctorBody.push("}");
 
-  var maybeRunCctors = function MaybeRunStaticConstructors () {
-    JSIL.RunStaticConstructors(typeObject.__PublicInterface__, typeObject);    
-  };
+  ctorBody.push("fieldInitializer(this);");
 
-  var oneTime = function Type__ctor_Once () {
-    maybeRunCctors();
+  if (typeObject.__IsStruct__)
+    ctorBody.push("if (arguments.length !== 0) {");
 
-    typeObject.__FieldInitializer__ = state.fi = JSIL.MakeFieldInitializer(typeObject);
+  ctorBody.push("  this._ctor.apply(this, arguments);");
 
-    state.innerCtor = this._ctor;
-    state.hasInnerCtor = typeof (state.innerCtor) === "function";
-
-    if (typeObject.__IsClosed__ === false) {
-      state.ctorToCall = openTypeError;
-    } else {
-
-      if (state.isStruct) {
-        if (state.fi !== $jsilcore.FunctionNull) {
-          if (state.hasInnerCtor) {
-            state.ctorToCall = function Type__ctor () {
-              state.fi(this);
-
-              if (arguments.length === 0)
-                return;
-
-              return state.innerCtor.apply(this, arguments);
-            };
-
-          } else {
-            state.ctorToCall = state.fi;
-            
-          }
-
-        } else {
-          if (state.hasInnerCtor) {
-            state.ctorToCall = function Type__ctor () {
-              if (arguments.length !== 0)
-                return state.innerCtor.apply(this, arguments);              
-            };
-            
-          } else {
-            state.ctorToCall = function Type__ctor () {
-            };
-
-          }
-
-        }
-
-      } else {
-        if (state.fi !== $jsilcore.FunctionNull) {
-          if (state.hasInnerCtor) {
-            state.ctorToCall = function Type__ctor () {
-              state.fi(this);
-
-              return state.innerCtor.apply(this, arguments);
-            };
-
-          } else {
-            state.ctorToCall = state.fi;
-
-          }
-
-        } else {
-          if (state.hasInnerCtor) {
-            state.ctorToCall = state.innerCtor;
-
-          } else {
-            state.ctorToCall = function Type__ctor () {
-            };
-
-          }
-
-        }
-      }
-    }
-
-    return state.ctorToCall.apply(this, arguments);
-  };
-
-  state.ctorToCall = oneTime;
+  if (typeObject.__IsStruct__)
+    ctorBody.push("}");
 
   var result = JSIL.CreateNamedFunction(
-    state.typeName, [],
-    "return state.ctorToCall.apply(this, arguments);",
-    { state: state }
+    typeObject.__FullName__, [],
+    ctorBody.join("\n"),
+    ctorClosure
   );
 
   return result;
