@@ -2439,6 +2439,16 @@ JSIL.MakeFieldInitializer = function (typeObject) {
     if (field.isStruct) {
       body.push(JSIL.FormatMemberAccess("target", field.name) + " = new types." + key + "();");
       types[key] = field.type.__PublicInterface__;
+    } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
+      // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
+      //  an object's field slots should be.
+      var defaultValueString;
+      if (field.type.__IsIntegral__) {
+        defaultValueString = "0";
+      } else {
+        defaultValueString = "(0.0 / 1.1)";
+      }
+      body.push(JSIL.FormatMemberAccess("target", field.name) + " = " + defaultValueString + ";");
     } else {
       body.push(JSIL.FormatMemberAccess("target", field.name) + " = defaults." + key + ";");
 
