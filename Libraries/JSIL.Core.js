@@ -1831,7 +1831,16 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var resultTypeObject = JSIL.CloneObject(typeObject);
 
-  resultTypeObject.__PublicInterface__ = result = JSIL.MakeTypeConstructor(resultTypeObject);
+  var constructor;
+
+  if (typeObject.IsInterface)
+    constructor = function Interface__ctor () {
+      throw new Error("Cannot construct an instance of an interface");
+    };
+  else
+    constructor = JSIL.MakeTypeConstructor(resultTypeObject);
+
+  resultTypeObject.__PublicInterface__ = result = constructor;
   resultTypeObject.__OpenType__ = typeObject;
   result.__Type__ = resultTypeObject;
 
@@ -4050,6 +4059,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     isTypeInitialized: false
   };
   var ctorBody = [];
+  var argumentNames = [];
 
   ctorBody.push("if (!isTypeInitialized) {");
   ctorBody.push("  JSIL.RunStaticConstructors(typeObject.__PublicInterface__, typeObject);");
@@ -4059,17 +4069,38 @@ JSIL.MakeTypeConstructor = function (typeObject) {
 
   ctorBody.push("fieldInitializer(this);");
 
-  if (typeObject.__IsStruct__)
-    ctorBody.push("if (arguments.length !== 0) {");
+  ctorBody.push("var argc = arguments.length;");
+  ctorBody.push("if (argc === 0)");
 
+  if (typeObject.__IsStruct__) {
+    ctorBody.push("  return;");
+  } else {
+    ctorBody.push("  this._ctor();");
+  }
+
+  for (var i = 1; i < 9; i++)
+    argumentNames.push("arg" + (i - 1));
+
+  for (var i = 1; i < 9; i++) {
+    ctorBody.push("else if (argc === " + i + ")");
+
+    var line = "  this._ctor(";
+    for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
+      line += argumentNames[j];
+      if (j == jMax - 1)
+        line += ");";
+      else
+        line += ", ";
+    }
+    ctorBody.push(line);
+  }
+
+  ctorBody.push("else");
   ctorBody.push("  this._ctor.apply(this, arguments);");
 
-  if (typeObject.__IsStruct__)
-    ctorBody.push("}");
-
   var result = JSIL.CreateNamedFunction(
-    typeObject.__FullName__, [],
-    ctorBody.join("\n"),
+    typeObject.__FullName__, argumentNames,
+    ctorBody.join("\r\n"),
     ctorClosure
   );
 
