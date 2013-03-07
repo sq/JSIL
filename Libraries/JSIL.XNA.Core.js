@@ -246,14 +246,14 @@ var vectorUtil = {
     };
 
     JSIL.SetLazyValueProperty(
-      state, "create", 
+      state, "$instance", 
       function VectorMethod_GetCreator () {
         if (state.resolvedType === null)
           state.resolvedType = state.typeRef.get();
-        
-        var create = Object.create;
-        var proto = state.resolvedType.prototype;
-        return create.bind(Object, proto);
+
+        var creator = JSIL.CreateNamedFunction(state.resolvedType.__Type__.__FullName__, [], "", null);
+        creator.prototype = state.resolvedType.prototype;
+        return creator;
       }
     );
 
@@ -268,7 +268,7 @@ var vectorUtil = {
       throw new Error("Invalid type combination");
 
     var body = [];
-    body.push("var result = this.create();");
+    body.push("var result = new this.$instance();");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
@@ -364,7 +364,7 @@ var vectorUtil = {
 
   makeNegationOperator: function ($, dataMembers, tVector) {
     var body = [];
-    body.push("var result = this.create();");
+    body.push("var result = new this.$instance();");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
