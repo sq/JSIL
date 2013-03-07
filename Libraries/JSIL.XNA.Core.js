@@ -239,7 +239,7 @@ var vectorUtil = {
     }
   },
 
-  bindToPrototype: function (fn, typeRef) {
+  bindToPrototype: function (fn, typeRef, dataMembers) {
     var state = {
       resolvedType: null,
       typeRef: typeRef
@@ -251,7 +251,11 @@ var vectorUtil = {
         if (state.resolvedType === null)
           state.resolvedType = state.typeRef.get();
 
-        var creator = JSIL.CreateNamedFunction(state.resolvedType.__Type__.__FullName__, [], "", null);
+        var creatorBody = "";
+        for (var i = 0; i < dataMembers.length; i++)
+          creatorBody += "this." + dataMembers[i] + " = " + dataMembers[i] + ";\r\n";
+
+        var creator = JSIL.CreateNamedFunction(state.resolvedType.__Type__.__FullName__, dataMembers, creatorBody, null);
         creator.prototype = state.resolvedType.prototype;
         return creator;
       }
@@ -268,11 +272,11 @@ var vectorUtil = {
       throw new Error("Invalid type combination");
 
     var body = [];
-    body.push("var result = new this.$instance();");
+    body.push("return new this.$instance(");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
-      var line = "result." + dataMember + " = ";
+      var line = "";
 
       if (leftScalar)
         line += "lhs ";
@@ -282,17 +286,20 @@ var vectorUtil = {
       line += operator;
 
       if (rightScalar)
-        line += " rhs;";
+        line += " rhs";
       else
-        line += " rhs." + dataMember + ";";
+        line += " rhs." + dataMember + "";
+
+      if (i < (dataMembers.length - 1))
+        line += ",";
 
       body.push(line);
     }
 
-    body.push("return result;")
+    body.push(");")
 
     var fn = vectorUtil.makeOperatorCore(name, tResult, body, 2, leftScalar, rightScalar);
-    fn = vectorUtil.bindToPrototype(fn, tResult);
+    fn = vectorUtil.bindToPrototype(fn, tResult, dataMembers);
 
     $.Method({Static: true , Public: true }, name, 
       new JSIL.MethodSignature(tResult, [tLeft, tRight], []),
@@ -364,18 +371,22 @@ var vectorUtil = {
 
   makeNegationOperator: function ($, dataMembers, tVector) {
     var body = [];
-    body.push("var result = new this.$instance();");
+    body.push("return new this.$instance(");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
-      var line = "result." + dataMember + " = -value." + dataMember + ";";
+      var line = "-value." + dataMember;
+
+      if (i < (dataMembers.length - 1))
+        line += ",";
+
       body.push(line);
     }
 
-    body.push("return result;");
+    body.push(");");
 
     var fn = vectorUtil.makeOperatorCore("op_UnaryNegation", tVector, body, 1, false, false);
-    fn = vectorUtil.bindToPrototype(fn, tVector);
+    fn = vectorUtil.bindToPrototype(fn, tVector, dataMembers);
 
     $.Method({Static: true , Public: true }, "op_UnaryNegation", 
       new JSIL.MethodSignature(tVector, [tVector], []),
