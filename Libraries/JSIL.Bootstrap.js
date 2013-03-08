@@ -677,6 +677,8 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeStaticClass("System.Console", true, [], function ($) {
+  $.Property({Static: true, Public: true}, "In");
+  $.Property({Static: true, Public: true}, "Out");
 });
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
@@ -4296,3 +4298,42 @@ JSIL.MakeClass(
     );    
   }
 );
+
+JSIL.MakeInterface(
+  "System.ITuple", false, [], function ($) {
+    $.Method({}, "ToString", (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Text.StringBuilder")], [])));
+    $.Method({}, "GetHashCode", (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Collections.IEqualityComparer")], [])));
+    $.Method({}, "get_Size", (new JSIL.MethodSignature($.Int32, [], [])));
+    $.Property({}, "Size");
+  }, []);
+
+JSIL.MakeStaticClass("System.Tuple", true, [], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`1", true, ["T1"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`2", true, ["T1", "T2"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`3", true, ["T1", "T2", "T3"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`4", true, ["T1", "T2", "T3", "T4"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`5", true, ["T1", "T2", "T3", "T4", "T5"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`6", true, ["T1", "T2", "T3", "T4", "T5", "T6"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`7", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`8", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`9", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"], function ($) {
+});
+

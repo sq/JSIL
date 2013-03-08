@@ -1358,7 +1358,9 @@ JSIL.TypeRef.prototype.get = function () {
   try {
     this.cachedReference = this.bindGenericArguments(this.cachedReference);
   } catch (exc) {
-    throw new Error("Failed to bind generic arguments for typeRef '" + this.toString() + "'.", exc);
+    var err = new Error("Failed to bind generic arguments for typeRef '" + this.toString() + "': " + String(exc));
+    err.innerException = exc;
+    throw err;
   }
 
   return this.cachedReference;
