@@ -412,7 +412,7 @@ namespace JSIL.Tests {
             }
         }
 
-        public void Run (string[] args = null, Func<Configuration> makeConfiguration = null) {
+        public void Run (string[] args = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true) {
             var signals = new[] {
                     new ManualResetEventSlim(false), new ManualResetEventSlim(false)
                 };
@@ -476,7 +476,8 @@ namespace JSIL.Tests {
                     Console.WriteLine("// JavaScript output begins //");
                     Console.WriteLine(outputs[1]);
                 }
-                if (generatedJs[0] != null) {
+
+                if (dumpJsOnFailure && (generatedJs[0] != null)) {
                     Console.WriteLine("// Generated javascript begins here //");
                     Console.WriteLine(generatedJs[0]);
                     Console.WriteLine("// Generated javascript ends here //");

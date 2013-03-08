@@ -339,7 +339,7 @@ namespace JSIL.Transforms {
             foreach (var kvp in parameters) {
                 var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToArray();
 
-                if (kvp.Key == null) {
+                if ((kvp.Key == null) || String.IsNullOrWhiteSpace(kvp.Key.Name)) {
                     variables.Add(String.Format("#{0}", i++), value);
                 } else {
                     if (

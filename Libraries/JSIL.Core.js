@@ -615,24 +615,124 @@ JSIL.UnderscoreRegex = /[\.\/\+]/g;
 JSIL.AngleGroupRegex = /\<([^<>]*)\>/g;
 
 JSIL.EscapeName = function (name) {
-  var caretRe = /\`/g;
-  var ltRe = /\</g;
-  var gtRe = /\>/g;
-  var commaRe = /\,/g;
-  var equalsRe = /\=/g;
-
   name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
     return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
   });
 
-  return (
-    name.replace(caretRe, "$$b")
-      .replace(JSIL.UnderscoreRegex, "_")
-      .replace(ltRe, "$$l")
-      .replace(gtRe, "$$g")
-      .replace(commaRe, "$$cm")
-      .replace(equalsRe, "$$eq")
-  );
+  // FIXME: It sucks that this has to manually duplicate the C# escape logic.
+
+  var result = "";
+  for (var i = 0, l = name.length; i < l; i++) {
+    var ch = name[i];
+    var chIndex = ch.charCodeAt(0);
+
+    if ((chIndex < 32) || (chIndex >= 127)) {
+      // FIXME: Padding?
+      result += "$" + ch.toString(16);
+      continue;
+    }
+
+    switch (ch) {
+      case ".":
+      case "/":
+      case "+":
+        result += "_";
+        continue;
+
+      case "`":
+        result += "$b";
+        continue;
+
+      case "~":
+        result += "$t";
+        continue;
+
+      case ":":
+        result += "$co";
+        continue;
+
+      case "<":
+        result += "$l";
+        continue;
+
+      case ">":
+        result += "$g";
+        continue;
+
+      case "(":
+        result += "$lp";
+        continue;
+
+      case ")":
+        result += "$rp";
+        continue;
+
+      case "{":
+        result += "$lc";
+        continue;
+
+      case "}":
+        result += "$rc";
+        continue;
+
+      case "[":
+        result += "$lb";
+        continue;
+
+      case "]":
+        result += "$rb";
+        continue;
+
+      case "@":
+        result += "$at";
+        continue;
+
+      case "-":
+        result += "$da";
+        continue;
+
+      case "=":
+        result += "$eq";
+        continue;
+
+      case " ":
+        result += "$sp";
+        continue;
+
+      case "?":
+        result += "$qu";
+        continue;
+
+      case "!":
+        result += "$ex";
+        continue;
+
+      case "*":
+        result += "$as";
+        continue;
+
+      case "&":
+        result += "$am";
+        continue;
+
+      case ",":
+        result += "$cm";
+        continue;
+
+      case "|":
+        result += "$vb";
+        continue;
+
+      case "'":
+        result += "$q";
+        continue;
+
+    }
+
+    result += ch;
+  }
+
+  return result;
 };
 
 JSIL.GetParentName = function (name) {
@@ -2234,7 +2334,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     var iface = interfaces[i];
 
     if (typeof (iface) === "undefined") {
-      JSIL.Host.warning("Type ", typeName, " implements an undefined interface.");
+      JSIL.Host.warning("Type " + typeName + " implements an undefined interface.");
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
       var resolved = JSIL.ResolveName(
@@ -2244,17 +2344,24 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       if (resolved.exists())
         iface = resolved.get();
       else {
-        JSIL.Host.warning("Type ", typeName, " implements an undefined interface named '", iface, "'.");
+        JSIL.Host.warning("Type " + typeName + " implements an undefined interface named '" + iface + "'.");
+        interfaces[i] = null;
         continue __interfaces__;
       }
     } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
       var resolveContext = typeObject.__PublicInterface__.prototype;
       var resolvedGenericInterface = JSIL.$ResolveGenericTypeReferenceInternal(iface, resolveContext);
 
-      if (resolvedGenericInterface)
-        iface = resolvedGenericInterface.get();
-      else
-        iface = iface.get();
+      try {
+        if (resolvedGenericInterface)
+          iface = resolvedGenericInterface.get();
+        else
+          iface = iface.get();
+      } catch (exc) {
+        JSIL.Host.warning("Type " + typeName + " implements an interface named '" + String(iface.typeName || iface) + "' that could not be resolved: " + exc);
+        interfaces[i] = null;
+        continue __interfaces__;
+      }
     }
 
     if (typeof (iface.__Type__) === "object")
@@ -3370,7 +3477,12 @@ JSIL.BuildTypeList = function (type, publicInterface) {
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
       for (var i = 0; i < interfaces.length; i++) {
-        var iface = JSIL.ResolveTypeReference(interfaces[i], context)[1];
+        var ifaceRef = interfaces[i];
+        // This should have already generated a warning in FixupInterfaces.
+        if (ifaceRef === null)
+          continue;
+
+        var iface = JSIL.ResolveTypeReference(ifaceRef, context)[1];
         toVisit.push(iface);
       }
     }
@@ -3752,6 +3864,10 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     }
 
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
+
+    JSIL.SetValueProperty(staticClassObject, "toString", function StaticClass_toString () {
+      return "<" + fullName + " Public Interface>";
+    });
 
     return staticClassObject;
   };

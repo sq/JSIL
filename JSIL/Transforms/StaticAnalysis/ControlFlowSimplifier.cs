@@ -211,8 +211,11 @@ namespace JSIL.Transforms {
 
             while (recursiveExit != null) {
                 LabelGroupLabelData targetLabelData;
-                if (!data.TryGetValue(recursiveExit, out targetLabelData))
-                    throw new InvalidDataException();
+
+                if (!data.TryGetValue(recursiveExit, out targetLabelData)) {
+                    // The label is part of another label group.
+                    return null;
+                }
 
                 if (targetLabelData.DirectExitLabel == null) {
                     if (

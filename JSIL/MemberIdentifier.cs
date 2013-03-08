@@ -335,7 +335,11 @@ namespace JSIL.Internal {
             if (lhs == rhs)
                 return true;
 
-            var rhsType = new TypeIdentifier(rhs.DeclaringType.Resolve());
+            var declaringType = rhs.DeclaringType.Resolve();
+            if (declaringType == null)
+                return false;
+
+            var rhsType = new TypeIdentifier(declaringType);
 
             if (!Type.Equals(rhsType))
                 return false;

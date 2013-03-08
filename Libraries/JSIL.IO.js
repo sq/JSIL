@@ -197,6 +197,9 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     $.Property({Static: false, Public: true }, "EndOfStream");
   });
 
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.TextWriter", true, [], function ($) {
+  });
+
 }
 
 var $jsilio = JSIL.DeclareAssembly("JSIL.IO");

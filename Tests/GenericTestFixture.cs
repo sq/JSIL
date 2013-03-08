@@ -236,7 +236,7 @@ namespace JSIL.Tests {
             }
         }
 
-        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null) {
+        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true) {
             long elapsed, temp;
             string generatedJs = null, output;
 
@@ -244,7 +244,8 @@ namespace JSIL.Tests {
                 try {
                     output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration);
                 } catch {
-                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    if (dumpJsOnFailure)
+                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;
                 }
 

@@ -180,6 +180,14 @@ namespace JSIL.Internal {
                         sb.Append("$cm");
                         isEscaped = true;
                     break;
+                    case '|':
+                        sb.Append("$vb");
+                        isEscaped = true;
+                    break;
+                    case '\'':
+                        sb.Append("$q");
+                        isEscaped = true;
+                    break;
                     default:
                         if ((ch <= 32) || (ch >= 127)) {
                             sb.AppendFormat("${0:x}", ch);

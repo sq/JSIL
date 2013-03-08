@@ -49,10 +49,32 @@ namespace JSIL.Tests {
         [Ignore]
         public void FSharpExecutable () {
             // FIXME: Doesn't work yet.
-            var js = GetJavascript(
-                @"BinaryTestCases\ConsoleApplication8.exe"
-            );
-            Console.WriteLine(js);
+            using (var test = MakeTest(@"BinaryTestCases\ConsoleApplication8.exe")) {
+                test.Run(makeConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.Assemblies.Ignored.AddRange(new[] {
+                        "Microsoft.VisualC,",
+                        "Accessibility,",
+                        "SMDiagnostics,",
+                        "System.EnterpriseServices,",
+                        "System.Security,",
+                        "System.Runtime.Serialization.Formatters.Soap,",
+                        "System.Runtime.DurableInstancing,",
+                        "System.Data.SqlXml,",
+                        "JSIL.Meta,",
+                        "mscorlib,",
+                        "System.*",
+                        "Microsoft.*",
+                    });
+                    /*
+                    cfg.Assemblies.Stubbed.AddRange(new[] {
+                    });
+                     */
+                    cfg.IncludeDependencies = true;
+                    return cfg;
+                }, dumpJsOnFailure: false);
+            }
+            // Console.WriteLine(js);
         }
 
         [Test]
