@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Threading;
 using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
@@ -114,8 +115,11 @@ namespace JSIL.Internal {
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
-            if (!entry.StaticAnalysisDataLock.TryBlockingEnter())
-                throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline", Identifier));
+            TrackedLockCollection.DeadlockInfo deadlock;
+            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
+
+            if (!lockResult)
+                throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock));
 
             try {
                 while (Pipeline.Count > 0) {
