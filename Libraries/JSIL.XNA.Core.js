@@ -146,6 +146,9 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     Static: false,
     Public: true
   }, "ReadAsset", new JSIL.MethodSignature(null, [], []), function RawXNBAsset_ReadAsset (type) {
+    if (!type)
+      throw new Error("ReadAsset must be provided a type object");
+
     var memoryStream = new System.IO.MemoryStream(this.bytes, false);
 
     var tContentReader = JSIL.GetTypeFromAssembly(

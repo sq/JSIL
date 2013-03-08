@@ -120,10 +120,16 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
-  var forceCanvas = (document.location.search.indexOf("forceCanvas") >= 0);
-  var forceWebGL = (document.location.search.indexOf("forceWebGL") >= 0);
+  if (typeof (document) !== "undefined") {
+    var forceCanvas = (document.location.search.indexOf("forceCanvas") >= 0);
+    var forceWebGL = (document.location.search.indexOf("forceWebGL") >= 0);
 
-  $textCachingSupported = (window.navigator.userAgent.indexOf("; MSIE ") < 0);
+    $textCachingSupported = (window.navigator.userAgent.indexOf("; MSIE ") < 0);
+  } else {
+    var forceCanvas = true;
+    var forceWebGL = false;
+    $textCachingSupported = false;
+  }
 
   if (forceWebGL && enableWebGL) {
     $jsilxna.testedWebGL = $jsilxna.workingWebGL = true;
@@ -2423,14 +2429,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     if (typeof ($jsilxna.ImageFormats[format.name]) === "undefined") 
       throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
-    this.image = document.createElement("img");
+    if (typeof (document) !== "undefined") {
+      this.image = document.createElement("img");
 
-    if (!this.image.id)
+      if (!this.image.id)
+        this.image.id = this.id;
+
+      var textures = document.getElementById("textures");
+      if (textures) 
+        textures.appendChild(this.image);
+    } else {
+      // Headless mode
+      this.image = Object.create(null);
       this.image.id = this.id;
-
-    var textures = document.getElementById("textures");
-    if (textures) 
-      textures.appendChild(this.image);
+    }
   });
 
   $.RawMethod(false, "$fromUri", function (graphicsDevice, uri) {
@@ -2453,10 +2465,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     self.width = self.image.naturalWidth;
     self.height = self.image.naturalHeight;
-
-    var textures = document.getElementById("textures");
-    if (textures) 
-      textures.appendChild(this.image);
   });
 
   $.RawMethod(false, "$fromImage", function (graphicsDevice, image) {
@@ -2473,10 +2481,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     this.width = image.naturalWidth;
     this.height = image.naturalHeight;
-
-    var textures = document.getElementById("textures");
-    if (textures) 
-      textures.appendChild(this.image);
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -2677,14 +2681,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       ctx.globalCompositeOperation = "copy";
       ctx.drawImage(oldImage, 0, 0);
     }
-
-    var textures = document.getElementById("textures");
-    if (textures) {
-      if (oldImage)
-        textures.removeChild(oldImage);
-
-      textures.appendChild(this.image);
-    }
   });
 
   var fastArrayCopy = function (destArray, destOffset, sourceArray, sourceOffset, count) {
@@ -2848,9 +2844,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     Static: false,
     Public: true
   }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
-    var textures = document.getElementById("textures");
-    if (textures) 
-      textures.removeChild(this.image);
   });
 });
 
@@ -2875,9 +2868,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
 
     // Can't use WebGL here since it'll disable the ability to copy from the RT to the framebuffer.
     this.context = $jsilxna.get2DContext(this.canvas, false);
-
-    var targets = document.getElementById("rendertargets");
-    if (targets) targets.appendChild(this.canvas);
 
     $jsilxna.renderTargetTotalBytes += (this.width * this.height * 4);
   });
@@ -2948,9 +2938,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
       return;
 
     $jsilxna.renderTargetTotalBytes -= (this.width * this.height * 4);
-
-    var targets = document.getElementById("rendertargets");
-    if (targets) targets.removeChild(this.canvas);
 
     this.canvas = null;
     this.context = null;
