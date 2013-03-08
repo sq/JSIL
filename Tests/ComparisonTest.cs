@@ -297,14 +297,14 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                "function runTestCase (timeout, elapsed) {{\r\n" +
+                "function runTestCase (timeout, dateNow) {{\r\n" +
                 "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" +
                 "  timeout({0});\r\n" +
-                "  var started = elapsed();\r\n" +
+                "  var started = dateNow();\r\n" +
                 "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
                 "  testAssembly.{2}.{3}({4});\r\n" +
-                "  var ended = elapsed();\r\n" +
-                "  return ended - started;\r\n" +
+                "  var ended = dateNow();\r\n" +
+                "  return (ended - started);\r\n" +
                 "}}",
                 JavascriptExecutionTimeout,
                 Util.EscapeString(testMethod.Module.Assembly.FullName),
@@ -341,7 +341,7 @@ namespace JSIL.Tests {
 
                 StartupPrologue = String.Format("contentManifest['Test'] = [['Script', {0}]]; " +
                     "function runMain () {{ " +
-                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, elapsed); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
+                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, dateNow); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
                     "}}; shellStartup();",
                     Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),

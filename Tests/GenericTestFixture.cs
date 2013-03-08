@@ -22,7 +22,7 @@ namespace JSIL.Tests {
         [TestFixtureSetUp]
         public void FixtureSetUp () {
             EvaluatorPool = new EvaluatorPool(
-                ComparisonTest.JSShellPath, "-m -n",
+                ComparisonTest.JSShellPath, "--no-ion --no-jm --no-ti --thread-count=0",
                 (e) =>
                     e.WriteInput(ComparisonTest.EvaluatorSetupCode)
             );
