@@ -311,8 +311,6 @@ namespace JSIL {
             if ((gp != null) && (gp.Owner == null))
                 return null;
 
-            else if (IsIgnoredType(typeRef))
-                return null;
             else
                 return typeRef.Resolve();
         }
