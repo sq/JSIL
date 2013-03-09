@@ -17,6 +17,7 @@ using Mono.Cecil;
 namespace JSIL.Ast {
     public abstract class JSNode {
         private static readonly Dictionary<Type, int> TypeIds = new Dictionary<Type, int>(new ReferenceComparer<Type>());
+        public static readonly int[][] NodeSelfAndBaseTypeIds;
         public static readonly Type[] NodeTypes;
 
         public readonly int TypeId;
@@ -27,10 +28,47 @@ namespace JSIL.Ast {
 
         static JSNode () {
             var tNode = typeof(JSNode);
-            NodeTypes = (from t in tNode.Assembly.GetTypes() where tNode.IsAssignableFrom(t) select t).ToArray();
+            var typesToWalk = (from t in tNode.Assembly.GetTypes() where tNode.IsAssignableFrom(t) select t).ToArray();
+            var nodeTypesById = new List<Type>();
 
-            foreach (var nodeType in NodeTypes)
-                TypeIds.Add(nodeType, TypeIds.Count);
+            // Assign a unique ID to all node types in the type hierarchy
+            foreach (var nodeType in typesToWalk) {
+                var type = nodeType;
+
+                while (type != null) {
+                    if (!TypeIds.ContainsKey(type)) {
+                        TypeIds.Add(type, nodeTypesById.Count);
+                        nodeTypesById.Add(type);
+                    }
+
+                    if (type == tNode)
+                        break;
+
+                    type = type.BaseType;
+                }
+            }
+
+            NodeTypes = nodeTypesById.ToArray();
+            NodeSelfAndBaseTypeIds = new int[NodeTypes.Length][];
+
+            var ids = new List<int>();
+            for (var i = 0; i < NodeTypes.Length; i++) {
+                ids.Clear();
+
+                var type = NodeTypes[i];
+                while (type != null) {
+                    ids.Add(GetTypeId(type));
+                    if (type == tNode)
+                        break;
+
+                    type = type.BaseType;
+                }
+
+                NodeSelfAndBaseTypeIds[i] = ids.ToArray();
+            }
+
+            JSExpression.Initialize();
+            JSNodeTraversalData.Initialize();
         }
 
         public static int GetTypeId (Type nodeType) {
@@ -38,13 +76,14 @@ namespace JSIL.Ast {
         }
 
         public JSNode () {
-            var td = JSNodeTraversalData.Get(this);
+            TypeId = TypeIds[GetType()];
+
+            var td = JSNodeTraversalData.Get(TypeId);
+
             Children = new JSNodeChildren(this, td, false);
             SelfAndChildren = new JSNodeChildren(this, td, true);
             AllChildrenRecursive = new JSNodeChildrenRecursive(this, td, false);
             SelfAndChildrenRecursive = new JSNodeChildrenRecursive(this, td, true);
-
-            TypeId = TypeIds[GetType()];
         }
 
         /// <summary>
@@ -73,7 +112,7 @@ namespace JSIL.Ast {
 
     [JSAstIgnoreInheritedMembers]
     public abstract class JSExpression : JSNode {
-        private static readonly ConcurrentDictionary<Type, string[]> ValueNames = new ConcurrentDictionary<Type, string[]>();
+        private static string[][] TypeToValueNames;
 
         public static readonly JSNullExpression Null = new JSNullExpression();
 
@@ -82,27 +121,17 @@ namespace JSIL.Ast {
 
         private readonly string[] _ActualValueNames;
 
+        public static void Initialize () {
+            TypeToValueNames = new string[NodeTypes.Length][];
+        }
+
         protected JSExpression (params JSExpression[] values) {
             Values = values;
 
-            {
-                var originalNodeType = this.GetType();
-                var nodeType = originalNodeType;
-
-                while (nodeType != null) {
-                    string[] valueNames;
-                    if (ValueNames.TryGetValue(nodeType, out valueNames)) {
-                        if (nodeType != originalNodeType)
-                            ValueNames.TryAdd(originalNodeType, valueNames);
-
-                        _ActualValueNames = valueNames;
-                    }
-
-                    if (nodeType == nodeType.BaseType)
-                        break;
-
-                    nodeType = nodeType.BaseType;
-                }
+            foreach (var id in NodeSelfAndBaseTypeIds[TypeId]) {
+                _ActualValueNames = TypeToValueNames[id];
+                if (_ActualValueNames != null)
+                    break;
             }
         }
 
@@ -114,8 +143,12 @@ namespace JSIL.Ast {
         }
 
         protected static void SetValueNames (Type nodeType, params string[] valueNames) {
-            if (!ValueNames.TryAdd(nodeType, valueNames))
-                throw new InvalidOperationException("Value names already set for this type.");
+            var id = JSNode.GetTypeId(nodeType);
+
+            if (TypeToValueNames[id] != null)
+                throw new InvalidOperationException("Value names already set for this node type");
+
+            TypeToValueNames[id] = valueNames;
         }
 
         protected string GetValueName (int index) {

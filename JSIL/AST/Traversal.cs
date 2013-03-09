@@ -11,22 +11,20 @@ using System.Linq.Expressions;
 
 namespace JSIL.Ast.Traversal {
     public class JSNodeTraversalData {
-        private static readonly ThreadLocal<Dictionary<Type, JSNodeTraversalData>> Cache = new ThreadLocal<Dictionary<Type, JSNodeTraversalData>>(
-            () => new Dictionary<Type, JSNodeTraversalData>(512, new ReferenceComparer<Type>())
-        );
+        private static JSNodeTraversalData[] TypeToData;
 
         public readonly Type Type;
         public readonly JSNodeTraversalRecord[] Records;
 
-        public static JSNodeTraversalData Get (JSNode node) {
-            JSNodeTraversalData result;
-            var nodeType = node.GetType();
+        public static void Initialize () {
+            TypeToData = new JSNodeTraversalData[JSNode.NodeTypes.Length];
 
-            var cache = Cache.Value;
-            if (!cache.TryGetValue(nodeType, out result))
-                cache.Add(nodeType, result = new JSNodeTraversalData(nodeType));
+            for (var i = 0; i < TypeToData.Length; i++)
+                TypeToData[i] = new JSNodeTraversalData(JSNode.NodeTypes[i]);
+        }
 
-            return result;
+        public static JSNodeTraversalData Get (int nodeTypeId) {
+            return TypeToData[nodeTypeId];
         }
 
         private JSNodeTraversalData (Type nodeType) {
