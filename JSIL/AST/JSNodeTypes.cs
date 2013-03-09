@@ -16,10 +16,26 @@ using Mono.Cecil;
 
 namespace JSIL.Ast {
     public abstract class JSNode {
+        private static readonly Dictionary<Type, int> TypeIds = new Dictionary<Type, int>(new ReferenceComparer<Type>());
+        public static readonly Type[] NodeTypes;
+
+        public readonly int TypeId;
         public readonly JSNodeChildren Children;
         public readonly JSNodeChildren SelfAndChildren;
         public readonly JSNodeChildrenRecursive AllChildrenRecursive;
         public readonly JSNodeChildrenRecursive SelfAndChildrenRecursive;
+
+        static JSNode () {
+            var tNode = typeof(JSNode);
+            NodeTypes = (from t in tNode.Assembly.GetTypes() where tNode.IsAssignableFrom(t) select t).ToArray();
+
+            foreach (var nodeType in NodeTypes)
+                TypeIds.Add(nodeType, TypeIds.Count);
+        }
+
+        public static int GetTypeId (Type nodeType) {
+            return TypeIds[nodeType];
+        }
 
         public JSNode () {
             var td = JSNodeTraversalData.Get(this);
@@ -27,6 +43,8 @@ namespace JSIL.Ast {
             SelfAndChildren = new JSNodeChildren(this, td, true);
             AllChildrenRecursive = new JSNodeChildrenRecursive(this, td, false);
             SelfAndChildrenRecursive = new JSNodeChildrenRecursive(this, td, true);
+
+            TypeId = TypeIds[GetType()];
         }
 
         /// <summary>

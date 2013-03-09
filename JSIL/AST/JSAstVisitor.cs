@@ -55,14 +55,14 @@ namespace JSIL.Ast {
                 () => new Dictionary<Type, VisitorCache>(new ReferenceComparer<Type>())
             );
 
-            protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>(new ReferenceComparer<Type>());
-            protected readonly Dictionary<Type, NodeVisitor> Cache = new Dictionary<Type, NodeVisitor>(new ReferenceComparer<Type>());
+            protected readonly NodeVisitor[] TypeToVisitor;
 
             public readonly Type VisitorType;
 
             protected VisitorCache (Type visitorType) {
                 VisitorType = visitorType;
 
+                var methods = new Dictionary<Type, NodeVisitor>(new ReferenceComparer<Type>());
                 foreach (var m in VisitorType.GetMethods()) {
                     if (m.Name != "VisitNode")
                         continue;
@@ -72,17 +72,22 @@ namespace JSIL.Ast {
                         continue;
 
                     var nodeType = parameters[0].ParameterType;
+                    methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
+                }
 
-                    Methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
+                TypeToVisitor = new NodeVisitor[JSNode.NodeTypes.Length];
+                foreach (var nt in JSNode.NodeTypes) {
+                    var id = JSNode.GetTypeId(nt);
+                    TypeToVisitor[id] = FindNodeVisitor(nt, methods);
                 }
             }
 
-            private NodeVisitor FindNodeVisitor(Type key) {
-                Type currentType = key;
+            private static NodeVisitor FindNodeVisitor(Type nodeType, Dictionary<Type, NodeVisitor> methods) {
+                Type currentType = nodeType;
 
                 while (currentType != null) {
                     NodeVisitor result;
-                    if (Methods.TryGetValue(currentType, out result))
+                    if (methods.TryGetValue(currentType, out result))
                         return result;
 
                     currentType = currentType.BaseType;
@@ -93,9 +98,9 @@ namespace JSIL.Ast {
 
             public static VisitorCache Get (JSAstVisitor visitor) {
                 var visitorType = visitor.GetType();
-                VisitorCache result;
                 var vc = VisitorCaches.Value;
 
+                VisitorCache result;
                 if (!vc.TryGetValue(visitorType, out result)) {
                     vc.Add(visitorType, result = new VisitorCache(visitorType));
                 }
@@ -126,13 +131,7 @@ namespace JSIL.Ast {
                 if (node == null)
                     return null;
 
-                var nodeType = node.GetType();
-                NodeVisitor result;
-                if (!Cache.TryGetValue(nodeType, out result)) {
-                    Cache.Add(nodeType, result = FindNodeVisitor(nodeType));
-                }
-
-                return result;
+                return TypeToVisitor[node.TypeId];
             }
         }
 
