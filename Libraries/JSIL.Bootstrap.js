@@ -2833,6 +2833,23 @@ JSIL.ImplementExternals("System.Activator", function ($) {
   );
 
   $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [], ["T"])), 
+    function CreateInstance (T) {
+      return JSIL.CreateInstanceOfType(T, []);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Array", [$.Object])], ["T"])), 
+    function CreateInstance (T, args) {
+      if (!args)
+        args = [];
+
+      return JSIL.CreateInstanceOfType(T, args);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature($.Object, [
           $jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.Reflection.BindingFlags"), 
           $jsilcore.TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
@@ -2847,6 +2864,9 @@ JSIL.ImplementExternals("System.Activator", function ($) {
     }
   );
 
+});
+
+JSIL.MakeStaticClass("System.Activator", true, [], function ($) {
 });
 
 JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {

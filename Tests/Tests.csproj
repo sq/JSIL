@@ -341,6 +341,7 @@
     <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
     <Compile Include="GenericTestFixture.cs" />
+    <None Include="SimpleTestCases\GenericCreateInstance.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
