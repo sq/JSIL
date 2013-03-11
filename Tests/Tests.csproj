@@ -342,6 +342,7 @@
     <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
     <Compile Include="GenericTestFixture.cs" />
     <None Include="SimpleTestCases\GenericCreateInstance.cs" />
+    <None Include="SimpleTestCases\GenericSelfConstraint.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />

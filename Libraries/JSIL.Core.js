@@ -1326,8 +1326,9 @@ JSIL.TypeRef.prototype.bindGenericArguments = function (unbound) {
         }
       }
 
-      if (typeof (arg) === "object" && Object.getPrototypeOf(arg) === JSIL.TypeRef.prototype)
-        ga[i] = arg = arg.get();
+      if (typeof (arg) === "object" && Object.getPrototypeOf(arg) === JSIL.TypeRef.prototype) {
+        ga[i] = arg = arg.get(true);
+      }
     }
 
     return unbound.Of$NoInitialize.apply(unbound, ga);
@@ -1345,9 +1346,16 @@ JSIL.TypeRef.prototype.getNoInitialize = function () {
 
   return result;
 };
-JSIL.TypeRef.prototype.get = function () {
+JSIL.TypeRef.prototype.get = function (allowPartiallyConstructed) {
   if (this.cachedReference !== null)
     return this.cachedReference;
+
+  if (allowPartiallyConstructed === true) {
+    var inFlight = $jsilcore.InFlightObjectConstructions[this.typeName];
+
+    if (inFlight)
+      return inFlight.publicInterface;
+  }
 
   var result = JSIL.ResolveName(this.context, this.typeName, true);
   if (!result.exists())
@@ -1379,6 +1387,9 @@ JSIL.ExternalsQueue = {};
 
 // FIXME: Used to prevent cycles in type cachers from causing problems. Not sure if this is right.
 $jsilcore.SuppressRecursiveConstructionErrors = 0;
+
+// HACK: So we can allow a class's base class to include itself as a generic argument. :/
+$jsilcore.InFlightObjectConstructions = Object.create(null);
 
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, true);
@@ -4241,11 +4252,37 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     var runtimeType;
     runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
 
+    // We need to make the type object we're constructing available early on, in order for
+    //  recursive generic base classes to work.
     var typeObject = JSIL.CloneObject(runtimeType);
+
+    // Needed for basic bookkeeping to function correctly.
+    typeObject.__Context__ = assembly;
+    typeObject.__FullName__ = fullName;
+    typeObject.__ShortName__ = localName;
+    // Without this, the generated constructor won't behave correctly for 0-argument construction
+    typeObject.__IsStruct__ = !isReferenceType;
+
+    var staticClassObject = JSIL.MakeTypeConstructor(typeObject);
+
+    var typeId = JSIL.AssignTypeId(assembly, fullName);
+    JSIL.SetTypeId(typeObject, staticClassObject, typeId);
+
+    typeObject.__PublicInterface__ = staticClassObject;
+    staticClassObject.__Type__ = typeObject;
+
+    $jsilcore.InFlightObjectConstructions[fullName] = {
+      fullName: fullName,
+      typeObject: typeObject, 
+      publicInterface: staticClassObject
+    };
 
     typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
     var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
     var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || [];
+
+    // HACK: We can't do this check before creating the constructor, because recursion. UGH.
+    typeObject.__IsStruct__ = typeObject.__IsStruct__ && (baseTypeName === "System.ValueType");
 
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
@@ -4263,9 +4300,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__AssignableTypes__ = null;
     typeObject.__AssignableFromTypes__ = {};
     typeObject.__IsReferenceType__ = isReferenceType;
-    typeObject.__Context__ = assembly;
-    typeObject.__FullName__ = fullName;
-    typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
     // FIXME: I'm not sure this is right. See InheritedExternalStubError.cs
@@ -4280,7 +4314,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__RawMethods__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
-    typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
     typeObject.__IsValueType__ = !isReferenceType;
 
@@ -4307,8 +4340,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     var inited = false;
 
-    var staticClassObject = JSIL.MakeTypeConstructor(typeObject);
-
     JSIL.SetValueProperty(staticClassObject, "toString", function TypePublicInterface_ToString () {
       return "<" + fullName + " Public Interface>";
     });
@@ -4316,11 +4347,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     JSIL.SetValueProperty(typeObject, "toString", function Type_ToString () {
       return this.__FullName__;
     });
-
-    var typeId = JSIL.AssignTypeId(assembly, fullName);
-    JSIL.SetTypeId(typeObject, staticClassObject, typeId);
-
-    staticClassObject.__Type__ = typeObject;
 
     staticClassObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false, assembly);
     staticClassObject.prototype.__ShortName__ = localName;
@@ -4333,8 +4359,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     } else {
       typeObject.__IsClosed__ = !(baseType.__IsClosed__ === false);
     }
-
-    typeObject.__PublicInterface__ = staticClassObject;
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
       return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
@@ -4350,6 +4374,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
     JSIL.MakeCastMethods(staticClassObject, typeObject, null);
+
+    delete $jsilcore.InFlightObjectConstructions[fullName];
 
     return staticClassObject;
   };
