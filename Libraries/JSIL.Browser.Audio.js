@@ -119,10 +119,14 @@ JSIL.Audio.HTML5Instance.prototype.$dispose = function () {
   // Manually unregister the event listener because apparently it's 1996 and 
   //  browser GCs still can't actually collect cycles
   this.$unbindEvents();
+  
   // HACK: This forces Gecko-based browsers to free the resources previously 
-  //  used for audio playback, but unfortunately it fills the developer console 
-  //  with spam.
-  this.node.src = "";
+  //  used for audio playback.
+  try {
+    this.node.removeAttribute("src");
+    this.node.load();
+  } catch (exc) {
+  }
 };
 
 JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {

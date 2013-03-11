@@ -4271,6 +4271,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__PublicInterface__ = staticClassObject;
     staticClassObject.__Type__ = typeObject;
 
+    // FIXME: This should probably be a per-assembly dictionary to work right in the case of name collisions.
     $jsilcore.InFlightObjectConstructions[fullName] = {
       fullName: fullName,
       typeObject: typeObject, 
