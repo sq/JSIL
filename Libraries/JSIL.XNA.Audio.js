@@ -110,7 +110,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
 
       for (var i = 0; i < this.wavesPlaying.length; i++) {
         var wave = this.wavesPlaying[i];
-        wave.pause()
+        wave.pause();
       }
 
       // FIXME: AudioContext sucks and has no way to pause streams.
@@ -156,7 +156,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
       var w = this.wavesPlaying[i];
 
       if (!w.isPlaying) {
-        w.pause();
+        w.dispose();
         this.wavesPlaying.splice(i, 1);
         i--;
       }

@@ -14,7 +14,12 @@ JSIL.Audio.InstancePrototype = {
       this.$pause();
   },
   dispose: function () {
-    // TODO: Return to free instance pool    
+    // TODO: Return to free instance pool
+
+    if (this.$dispose)
+      this.$dispose();
+    else
+      this.pause();
   },
   get_volume: function () {
     if (this.$get_volume)
@@ -69,9 +74,19 @@ JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
   this.node = node;
   this.node.loop = loop;
 
-  this.node.addEventListener("ended", this.on_ended.bind(this), true);
+  this.$bindEvents();
 };
 JSIL.Audio.HTML5Instance.prototype = Object.create(JSIL.Audio.InstancePrototype);
+
+JSIL.Audio.HTML5Instance.prototype.$bindEvents = function () {
+  this.$onEndedListener = this.on_ended.bind(this);
+  this.node.addEventListener("ended", this.$onEndedListener, true);
+};
+
+JSIL.Audio.HTML5Instance.prototype.$unbindEvents = function () {
+  this.node.removeEventListener("ended", this.$onEndedListener, true);
+  this.$onEndedListener = null;
+};
 
 JSIL.Audio.HTML5Instance.prototype.$play = function () {
   this.node.play();
@@ -98,6 +113,17 @@ JSIL.Audio.HTML5Instance.prototype.on_ended = function () {
   this.dispose();
 };
 
+JSIL.Audio.HTML5Instance.prototype.$dispose = function () {
+  this.node.pause();
+
+  // Manually unregister the event listener because apparently it's 1996 and 
+  //  browser GCs still can't actually collect cycles
+  this.$unbindEvents();
+  // HACK: This forces Gecko-based browsers to free the resources previously 
+  //  used for audio playback, but unfortunately it fills the developer console 
+  //  with spam.
+  this.node.src = "";
+};
 
 JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this.bufferSource = audioInfo.audioContext.createBufferSource();
@@ -143,7 +169,6 @@ JSIL.Audio.WebKitInstance.prototype.$get_isPlaying = function () {
   var elapsed = this.context.currentTime - this.started;
   return (elapsed <= this.bufferSource.buffer.duration);
 }
-
 
 JSIL.Audio.NullInstance = function (audioInfo, loop) {  
 };
