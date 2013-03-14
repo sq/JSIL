@@ -1795,33 +1795,35 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   });
 
   $.RawMethod(false, "$UpdateViewport", function GraphicsDevice_$UpdateViewport () {
-    this.context.setTransform(1, 0, 0, 1, 0, 0);
-
     var scaleX = 1.0, scaleY = 1.0;
+    var viewport = this.viewport;
+    var context = this.context;
+
+    context.setTransform(1, 0, 0, 1, 0, 0);
 
     if (this.canvas === this.originalCanvas) {
-      scaleX *= this.viewport.Width / this.originalWidth;
-      scaleY *= this.viewport.Height / this.originalHeight;
+      scaleX *= viewport.get_Width() / this.originalWidth;
+      scaleY *= viewport.get_Height() / this.originalHeight;
     } else {
-      scaleX *= this.viewport.Width / this.canvas.width;
-      scaleY *= this.viewport.Height / this.canvas.height;
+      scaleX *= viewport.get_Width() / this.canvas.width;
+      scaleY *= viewport.get_Height() / this.canvas.height;
     }
 
-    this.context.translate(this.viewport.X, this.viewport.Y);
+    context.translate(viewport.get_X(), viewport.get_Y());
 
     if (this.canvas === this.originalCanvas) {
-      if (this.context.isWebGL) {
-        this.context.viewport(0, 0, this.canvas.width, this.canvas.height);
+      if (context.isWebGL) {
+        context.viewport(0, 0, this.canvas.width, this.canvas.height);
       } else {
         scaleX *= (this.canvas.width / this.originalWidth);
         scaleY *= (this.canvas.height / this.originalHeight);
       }
     }
 
-    this.context.scale(scaleX, scaleY);
+    context.scale(scaleX, scaleY);
 
     if (jsilConfig.disableFiltering)
-      this.context.mozImageSmoothingEnabled = this.context.webkitImageSmoothingEnabled = false;
+      context.mozImageSmoothingEnabled = context.webkitImageSmoothingEnabled = false;
   });
 
   $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
