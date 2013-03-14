@@ -33,15 +33,17 @@ JSIL.Shell.RunLaterService.prototype.enqueue = function (callback) {
   this.queue.push(callback);
 };
 
-JSIL.Shell.RunLaterService.prototype.step = function () {
-  var count = this.queue.length;
+JSIL.Shell.RunLaterService.prototype.flush = function () {
+  while (this.queue.length > 0) {
+    var count = this.queue.length;
 
-  for (var i = 0; i < count; i++) {
-    var item = this.queue[i];
-    item();
+    for (var i = 0; i < count; i++) {
+      var item = this.queue[i];
+      item();
+    }
+
+    this.queue.splice(0, count);
   }
-
-  this.queue.splice(0, count);
 };
 
 
