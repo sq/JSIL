@@ -28,6 +28,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
+        public static readonly string DebugJSShellPath;
         public static readonly string LoaderJSPath;
         public static readonly string EvaluatorSetupCode;
 
@@ -49,6 +50,7 @@ namespace JSIL.Tests {
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Tests\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\js.exe"));
+            DebugJSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\debug\js.exe"));
 
             var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\"));
 
@@ -328,7 +330,25 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
+            string[] args, Func<Configuration> makeConfiguration = null
+        ) {
+            string temp1, temp4, temp5;
+            long temp2, temp3;
+
+            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration);
+        }
+
+        public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
+            Func<Configuration> makeConfiguration = null
+        ) {
+            string temp1, temp2;
+
+            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration);
+        }
+
+        public string RunJavascript (
+            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
             Func<Configuration> makeConfiguration = null
         ) {
             var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration);
@@ -392,6 +412,7 @@ namespace JSIL.Tests {
                 }
 
                 // Strip spurious output from the JS.exe REPL and from the standard libraries
+                trailingOutput = null;
                 if (stdout != null) {
                     var startOffset = stdout.IndexOf(sentinelStart);
 
@@ -401,12 +422,15 @@ namespace JSIL.Tests {
                         // End sentinel might not be there if the test case calls quit().
                         var endOffset = stdout.IndexOf(sentinelEnd, startOffset);
                         if (endOffset >= 0) {
+                            trailingOutput = stdout.Substring(endOffset + sentinelEnd.Length);
                             stdout = stdout.Substring(startOffset, endOffset - startOffset);
                         } else {
                             stdout = stdout.Substring(startOffset);
                         }
                     }
                 }
+
+                stderr = evaluator.StandardError;
 
                 return stdout ?? "";
             }

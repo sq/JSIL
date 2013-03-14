@@ -523,6 +523,21 @@ namespace JSIL {
                         }, true
                     );
                 }
+
+                case "System.Void JSIL.Verbatim::TagJSExpression(System.String)": {
+                    var expression = arguments[0] as JSStringLiteral;
+                    if (expression == null)
+                        throw new InvalidOperationException("JSIL.Verbatim.TagJSExpression must recieve a string literal as an argument");
+
+                    var actualExpression = String.Format(
+                        "JSIL.Shell.TagObject({0}, {1})",
+                        expression.Value, Util.EscapeString(expression.Value)
+                    );
+
+                    return new JSVerbatimLiteral(
+                        method.Reference, actualExpression, null, null
+                    );
+                }
             }
 
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);

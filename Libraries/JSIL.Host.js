@@ -117,6 +117,19 @@ JSIL.Host.runLater = function (action) {
   return true;
 };
 
+JSIL.Host.runLaterFlush = function () {
+  var svc = JSIL.Host.getService("runLater", true);
+  if (!svc)
+    return false;
+
+  if (svc.flush) {
+    svc.flush();
+    return true;
+  }
+
+  return false;
+};
+
 JSIL.Host.logWrite = function (text) {
   var svc = JSIL.Host.getService("stdout");
   svc.write(text);

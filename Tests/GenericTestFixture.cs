@@ -19,12 +19,32 @@ namespace JSIL.Tests {
             private set;
         }
 
+        protected virtual bool UseDebugJSShell {
+            get {
+                return false;
+            }
+        }
+
+        protected virtual Dictionary<string, string> SetupEvaluatorEnvironment () {
+            return null;
+        }
+
+        protected virtual string JSShellOptions {
+            get {
+                return "";
+            }
+        }
+
         [TestFixtureSetUp]
         public void FixtureSetUp () {
             EvaluatorPool = new EvaluatorPool(
-                ComparisonTest.JSShellPath, "",
+                UseDebugJSShell 
+                    ? ComparisonTest.DebugJSShellPath 
+                    : ComparisonTest.JSShellPath, 
+                JSShellOptions,
                 (e) =>
-                    e.WriteInput(ComparisonTest.EvaluatorSetupCode)
+                    e.WriteInput(ComparisonTest.EvaluatorSetupCode),
+                SetupEvaluatorEnvironment()
             );
         }
 

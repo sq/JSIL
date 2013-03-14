@@ -12,6 +12,7 @@ namespace JSIL.Tests {
 
         public readonly string JSShellPath;
         public readonly string Options;
+        public readonly Dictionary<string, string> EnvironmentVariables;
         public readonly Action<Evaluator> Initializer;
 
         private readonly ConcurrentBag<Evaluator> Evaluators = new ConcurrentBag<Evaluator>();
@@ -21,10 +22,11 @@ namespace JSIL.Tests {
 
         private volatile int IsDisposed = 0;
 
-        public EvaluatorPool (string jsShellPath, string options, Action<Evaluator> initializer) {
+        public EvaluatorPool (string jsShellPath, string options, Action<Evaluator> initializer, Dictionary<string, string> environmentVariables = null) {
             JSShellPath = jsShellPath;
             Options = options;
             Initializer = initializer;
+            EnvironmentVariables = environmentVariables;
 
             PoolManager = new Thread(ThreadProc);
             PoolManager.Priority = ThreadPriority.AboveNormal;
@@ -73,7 +75,7 @@ namespace JSIL.Tests {
 
         private Evaluator CreateEvaluator () {
             var result = new Evaluator(
-                JSShellPath, Options
+                JSShellPath, Options, EnvironmentVariables
             );
 
             Initializer(result);
@@ -117,7 +119,7 @@ namespace JSIL.Tests {
         private volatile string _StdOut = null, _StdErr = null;
         private Action _JoinImpl;
 
-        public Evaluator (string jsShellPath, string options) {
+        public Evaluator (string jsShellPath, string options, Dictionary<string, string> environmentVariables = null) {
             Id = Interlocked.Increment(ref NextId);
 
             var psi = new ProcessStartInfo(
@@ -130,6 +132,11 @@ namespace JSIL.Tests {
                 UseShellExecute = false,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
+
+            if (environmentVariables != null) {
+                foreach (var kvp in environmentVariables)
+                    psi.EnvironmentVariables[kvp.Key] = kvp.Value;
+            }
 
             ManualResetEventSlim stdoutSignal, stderrSignal;
             stdoutSignal = new ManualResetEventSlim(false);

@@ -60,6 +60,13 @@ namespace JSIL {
         public static object Expression (string javascript) {
             return null;
         }
+
+        /// <summary>
+        /// When running in the SpiderMonkey Javascript Shell, tags a JS expression so you can access detailed information on it.
+        /// </summary>
+        public static void TagJSExpression (string jsExpression) {
+            return;
+        }
     }
 
     public class JSGlobal {

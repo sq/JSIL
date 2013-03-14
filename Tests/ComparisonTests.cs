@@ -22,30 +22,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void BinaryTrees () {
-            using (var test = MakeTest(@"TestCases\BinaryTrees.cs")) {
-                test.Run();
-                test.Run(new[] { "8" });
-            }
-        }
-
-        [Test]
-        public void NBody () {
-            using (var test = MakeTest(@"TestCases\NBody.cs")) {
-                test.Run();
-                test.Run(new[] { "100000" });
-            }
-        }
-
-        [Test]
-        public void FannkuchRedux () {
-            using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
-                test.Run();
-                test.Run(new[] { "8" });
-            }
-        }
-
-        [Test]
         [Ignore]
         public void FSharpExecutable () {
             // FIXME: Doesn't work yet.
@@ -88,35 +64,6 @@ namespace JSIL.Tests {
                 }
             );
             Console.WriteLine(js);
-        }
-
-        [Test]
-        public void UnsafeIntPerformanceComparison () {
-            using (var test = MakeTest(
-                @"SpecialTestCases\UnsafeIntPerformanceComparison.cs"
-            )) {
-                Console.WriteLine("// setup code //");
-                Console.WriteLine(ComparisonTest.EvaluatorSetupCode);
-
-                string js;
-                long elapsedJs, elapsedTranslation;
-
-                var output = test.RunJavascript(
-                    new string[0], out js, out elapsedTranslation, out elapsedJs, 
-                    makeConfiguration: () => {
-                        var cfg = MakeConfiguration();
-                        cfg.CodeGenerator.EnableUnsafeCode = true;
-                        return cfg;
-                    }
-                );
-
-                Console.WriteLine("// startup prologue //");
-                Console.WriteLine(test.StartupPrologue);
-                Console.WriteLine("// output //");
-                Console.WriteLine(output);
-                Console.WriteLine("// generated js //");
-                Console.WriteLine(js);
-            }
         }
 
         [Test]

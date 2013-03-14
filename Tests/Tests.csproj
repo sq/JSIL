@@ -343,13 +343,15 @@
     <Compile Include="GenericTestFixture.cs" />
     <None Include="SimpleTestCases\GenericCreateInstance.cs" />
     <None Include="SimpleTestCases\GenericSelfConstraint.cs" />
+    <None Include="PerformanceTestCases\PointerMethodsAreSingletons.cs" />
+    <Compile Include="PerformanceTests.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
     <None Include="UnsafeTestCases\WriteNestedStruct.cs" />
     <None Include="UnsafeTestCases\Common.cs" />
     <None Include="UnsafeTestCases\ReadNestedStruct.cs" />
-    <None Include="SpecialTestCases\UnsafeIntPerformanceComparison.cs" />
+    <None Include="PerformanceTestCases\UnsafeIntPerformanceComparison.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

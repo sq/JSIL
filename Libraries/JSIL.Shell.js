@@ -25,10 +25,31 @@ JSIL.Shell.StdErrService.prototype.write = function (text) {
 };
 
 
+JSIL.Shell.RunLaterService = function () {
+  this.queue = [];
+};
+
+JSIL.Shell.RunLaterService.prototype.enqueue = function (callback) {
+  this.queue.push(callback);
+};
+
+JSIL.Shell.RunLaterService.prototype.step = function () {
+  var count = this.queue.length;
+
+  for (var i = 0; i < count; i++) {
+    var item = this.queue[i];
+    item();
+  }
+
+  this.queue.splice(0, count);
+};
+
+
 (function () {
   JSIL.Host.registerServices({
-    stdout: new JSIL.Shell.StdOutService(),
-    stderr: new JSIL.Shell.StdErrService()
+    stdout:   new JSIL.Shell.StdOutService(),
+    stderr:   new JSIL.Shell.StdErrService(),
+    runLater: new JSIL.Shell.RunLaterService()
   });
 })();
 
@@ -102,6 +123,28 @@ function shellStartup () {
   if (typeof (runMain) === "function") {
     JSIL.Initialize();
     JSIL.Host.runInitCallbacks();
+    JSIL.Host.runLaterFlush();
     runMain();
   }
-}
+};
+
+var $$ObjectToTag = null;
+JSIL.Shell.TaggedObjectCount = 0;
+
+JSIL.Shell.TagObject = function (obj, tag) {
+  if (typeof (evaluate) === "function") {
+    var index = JSIL.Shell.TaggedObjectCount++;
+    var objectId = "TAGGED_OBJECT_" + index;
+
+    $$ObjectToTag = obj;
+
+    var evalText = "$$ObjectToTag";
+    evaluate(evalText, {
+      fileName: objectId
+    });
+
+    $$ObjectToTag = null;
+
+    printErr("// " + objectId + "='" + tag + "'");
+  }
+};
