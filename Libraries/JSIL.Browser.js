@@ -47,21 +47,29 @@ JSIL.Browser.CanvasService.prototype.applySize = function (element, desiredWidth
   }
 
   element.actualWidth = desiredWidth;
-  element.actualHeight = desiredHeight;  
-  element.width = width;
-  element.height = height;
+  element.actualHeight = desiredHeight;
+
+  if (element.width !== width)
+    element.width = width;
+
+  if (element.height !== height)
+    element.height = height;
 }
 
 JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
-  this.applySize(e, desiredWidth, desiredHeight, true);
+
+  if (arguments.length === 2)
+    this.applySize(e, desiredWidth, desiredHeight, true);
   
   return e;
 };
 
 JSIL.Browser.CanvasService.prototype.create = function (desiredWidth, desiredHeight) {
   var e = document.createElement("canvas");
-  this.applySize(e, desiredWidth, desiredHeight, false);
+
+  if (arguments.length === 2)
+    this.applySize(e, desiredWidth, desiredHeight, false);
   
   return e;
 };
