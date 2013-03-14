@@ -2503,11 +2503,12 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var strictPrefix = "\"use strict\";\r\n";
   var uriPrefix = "//@ sourceURL=jsil://closure/" + name + "\r\n";
 
-  var rawFunctionText = "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
+  var escapedFunctionIdentifier = JSIL.EscapeJSIdentifier(name);
+  var rawFunctionText = "function " + escapedFunctionIdentifier + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +
     body +
-    "\r\n})";
+    "\r\n};\r\n";
 
   var result, keys, closureArgumentList;
 
@@ -2525,7 +2526,9 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var lineBreakRE = /\r(\n?)/g;
 
   rawFunctionText = 
-    uriPrefix + strictPrefix + "    return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n";
+    uriPrefix + strictPrefix + 
+    rawFunctionText.replace(lineBreakRE, "\r\n    ") + 
+    "    return " + escapedFunctionIdentifier + ";\r\n";
 
   var constructor = Function.apply(Function, keys.concat([rawFunctionText]));
   result = constructor.apply(null, closureArgumentList);

@@ -66,7 +66,7 @@ namespace JSIL.Tests {
 
         protected override string JSShellOptions {
             get {
-                return "--ion-eager";
+                return "--ion-eager --thread-count=0";
             }
         }
 
@@ -91,9 +91,9 @@ namespace JSIL.Tests {
                     AssertIsSingleton(data, "pBuffer.getElement");
                     AssertIsSingleton(data, "pBuffer.setElement");
                     // FIXME: Fails. Something about this function makes SpiderMonkey unhappy :-(
-                    // AssertIsSingleton(data, "Program.TestInlineAccess");
+                    AssertIsSingleton(data, "Program.TestInlineAccess");
                 } catch (Exception exc) {
-                    data.Dump(Console.Out, true);
+                    data.Dump(Console.Out);
                     throw;
                 }
             }

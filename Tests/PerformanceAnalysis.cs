@@ -77,7 +77,7 @@ namespace JSIL.Tests {
         private static readonly Regex TaggedObjectType = new Regex(
             @"\#(?'function_index'[ 0-9]+):([ 0-9]+):([ 0-9]+)getgname(.*)" +
             "\"\\$\\$ObjectToTag\"" +
-            @"(\W*)typeset(\W*)([ 0-9]+):(\W*)object\[([0-9]*)\](\W*)(?'class_token'[\[\<])0x(?'type_id'([0-9A-F]+))[\]\>]",
+            @"(\W*)typeset(\W*)([ 0-9]+):(\W*)(void|object\[([0-9]*)\](\W*)(?'class_token'[\[\<])0x(?'type_id'([0-9A-F]+))[\]\>])",
             RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase
         );
         private static readonly Regex TypeInfoPrologue = new Regex(
@@ -136,15 +136,21 @@ namespace JSIL.Tests {
             foreach (Match match in TaggedObjectType.Matches(trailingOutput)) {
                 var functionIndex = int.Parse(match.Groups["function_index"].Value);
                 var taggedObjectIndex = functionIndicesToTaggedObjectIndexes[functionIndex];
-                var typeId = UInt32.Parse(match.Groups["type_id"].Value, NumberStyles.HexNumber);
 
-                if (!result.ContainsKey(typeId))
-                    result.Add(
-                        typeId, taggedObjectIndexesToNames[taggedObjectIndex]
-                    );
+                if (match.Groups["type_id"].Success) {
+                    var typeId = UInt32.Parse(match.Groups["type_id"].Value, NumberStyles.HexNumber);
 
-                if (match.Groups["class_token"].Value == "<")
-                    singletonTypeIDs.Add(typeId);
+                    if (!result.ContainsKey(typeId))
+                        result.Add(
+                            typeId, taggedObjectIndexesToNames[taggedObjectIndex]
+                        );
+
+                    if (match.Groups["class_token"].Value == "<")
+                        singletonTypeIDs.Add(typeId);
+                } else {
+                    // Inexplicably this object has no type.
+                    result.Add(0xFFFFFFFF, taggedObjectIndexesToNames[taggedObjectIndex]);
+                }
             }
 
             if (taggedObjectIndexesToNames.Count != result.Count) {

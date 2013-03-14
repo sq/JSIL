@@ -984,9 +984,7 @@ namespace JSIL {
                     output.Semicolon();
                     output.NewLine();
                     return;
-                }
-
-                if (typedef.IsInterface) {
+                } else if (typedef.IsInterface) {
                     TranslateInterface(context, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
@@ -1011,6 +1009,15 @@ namespace JSIL {
                         DeclareType(context, resolved, astEmitter, output, declaredTypes, IsStubbed(resolved.Module.Assembly));
                     }
                 }
+
+                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                output.Indent();
+                output.NewLine();
+
+                Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", null);
+                var typeCacher = EmitTypeMethodExpressions(
+                    context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons
+                );
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
@@ -1094,12 +1101,11 @@ namespace JSIL {
 
                     output.Comma();
                     output.OpenFunction(null, (f) => {
-                        f.Identifier("$");
+                        f.Identifier("$interfaceBuilder");
                     });
 
                     TranslateTypeDefinition(
-                        context, typedef, astEmitter, output, stubbed,
-                        (o) => o.Identifier("$", null), makingSkeletons
+                        context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, typeCacher
                     );
 
                     output.NewLine();
@@ -1119,6 +1125,11 @@ namespace JSIL {
                 } finally {
                     astEmitter.ReferenceContext.Pop();
                 }
+
+                output.Unindent();
+                output.WriteRaw("})();");
+                output.NewLine();
+                output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
@@ -1194,17 +1205,20 @@ namespace JSIL {
             setValue("__IsNumeric__", isNumeric);
         }
 
-        protected void TranslateTypeDefinition (
-            DecompilerContext context, TypeDefinition typedef, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+        protected TypeExpressionCacher EmitTypeMethodExpressions (
+            DecompilerContext context, TypeDefinition typedef,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons
         ) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
-                return;
+                return null;
 
             if (!makingSkeletons) {
-                output.WriteRaw("var $thisType = $.publicInterface");
+                output.WriteRaw("var $, $thisType");
+                output.Semicolon(true);
+            } else {
+                output.WriteRaw("var $");
                 output.Semicolon(true);
             }
 
@@ -1242,7 +1256,38 @@ namespace JSIL {
                         output.CloseBrace(false);
                         output.Semicolon(true);
                     }
+
+                    output.NewLine();
                 }
+            }
+
+            foreach (var method in methodsToTranslate) {
+                // We translate the static constructor explicitly later, and inject field initialization
+                if (method.Name == ".cctor")
+                    continue;
+
+                EmitMethodBody(
+                    context, method, method, astEmitter, output,
+                    stubbed, typeCacher
+                );
+            }
+
+            return typeCacher;
+        }
+
+        protected void TranslateTypeDefinition (
+            DecompilerContext context, TypeDefinition typedef, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
+            TypeExpressionCacher typeCacher
+        ) {
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
+            if (!ShouldTranslateMethods(typedef))
+                return;
+
+            if (!makingSkeletons) {
+                output.WriteRaw("$ = $interfaceBuilder; $thisType = $.publicInterface");
+                output.Semicolon(true);
             }
 
             context.CurrentType = typedef;
@@ -1250,14 +1295,16 @@ namespace JSIL {
             if (typedef.IsPrimitive)
                 TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
+            var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
+
             foreach (var method in methodsToTranslate) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
 
-                TranslateMethod(
-                    context, method, method, astEmitter, output, 
-                    stubbed, dollar, typeCacher
+                DefineMethod(
+                    context, method, method, astEmitter, output,
+                    stubbed, dollar
                 );
             }
 
@@ -1892,7 +1939,7 @@ namespace JSIL {
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, fixupCctor);
+                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1908,14 +1955,14 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, fixupCctor);
+                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
                 var declaringType = extraCctor.Member.DeclaringType;
                 var newJSType = new JSType(typedef);
 
-                TranslateMethod(
+                EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
                     output, false, dollar, null, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
@@ -2078,11 +2125,96 @@ namespace JSIL {
             return null;
         }
 
-        protected void TranslateMethod (
+        protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
             Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
             Action<JSFunctionExpression> bodyTransformer = null
+        ) {
+            EmitMethodBody(
+                context, methodRef, method,
+                astEmitter, output, stubbed, typeCacher, methodInfo, bodyTransformer
+            );
+            DefineMethod(
+                context, methodRef, method, astEmitter, output, stubbed, dollar, methodInfo
+            );
+        }
+
+        protected void EmitMethodBody (
+            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
+            TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
+            Action<JSFunctionExpression> bodyTransformer = null
+        ) {
+            if (methodInfo == null)
+                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+
+            bool isExternal, isReplaced, methodIsProxied;
+
+            if (!ShouldTranslateMethodBody(
+                method, methodInfo, stubbed,
+                out isExternal, out isReplaced, out methodIsProxied
+            ))
+                return;
+
+            var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
+
+            JSFunctionExpression function;
+            try {
+                function = GetFunctionBodyForMethod(
+                    isExternal, methodInfo
+                );
+            } catch (KeyNotFoundException knf) {
+                throw;
+            }
+
+            astEmitter.ReferenceContext.Push();
+            astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
+            astEmitter.ReferenceContext.EnclosingMethod = null;
+            astEmitter.ReferenceContext.DefiningMethod = methodRef;
+
+            if (methodIsProxied) {
+                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
+                output.NewLine();
+            }
+
+            try {
+                // Generating the function as a statement instead of an argument allows SpiderMonkey to apply more optimizations
+                if (function != null) {
+                    if (bodyTransformer != null)
+                        bodyTransformer(function);
+
+                    var displayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
+
+                    // Disambiguate overloaded methods
+                    if ((methodInfo.MethodGroup != null) && (methodInfo.MethodGroup.Methods.Length > 1))
+                        displayName += String.Format("${0:X2}", Array.IndexOf(methodInfo.MethodGroup.Methods, methodInfo));
+
+                    function.DisplayName = displayName;
+
+                    astEmitter.ReferenceContext.Push();
+                    astEmitter.ReferenceContext.EnclosingMethod = method;
+
+                    try {
+                        astEmitter.Visit(function);
+                    } catch (Exception exc) {
+                        throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
+                    } finally {
+                        astEmitter.ReferenceContext.Pop();
+                    }
+
+                    output.Semicolon();
+                    output.NewLine();
+                }
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+        }
+
+        protected void DefineMethod (
+            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null
         ) {
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -2111,41 +2243,8 @@ namespace JSIL {
 
             output.NewLine();
 
-            if (methodIsProxied) {
-                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
-                output.NewLine();
-            }
-
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
-
-            // Generating the function as a statement instead of an argument allows SpiderMonkey to apply more optimizations
-            if (function != null) {
-                if (bodyTransformer != null)
-                    bodyTransformer(function);
-
-                var displayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
-
-                // Disambiguate overloaded methods
-                if ((methodInfo.MethodGroup != null) && (methodInfo.MethodGroup.Methods.Length > 1))
-                    displayName += String.Format("${0:X2}", Array.IndexOf(methodInfo.MethodGroup.Methods, methodInfo));
-
-                function.DisplayName = displayName;
-
-                astEmitter.ReferenceContext.Push();
-                astEmitter.ReferenceContext.EnclosingMethod = method;
-
-                try {
-                    astEmitter.Visit(function);
-                } catch (Exception exc) {
-                    throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
-                }
-
-                astEmitter.ReferenceContext.Pop();
-
-                output.Semicolon();
-                output.NewLine();
-            }
 
             try {
                 dollar(output);
@@ -2186,10 +2285,12 @@ namespace JSIL {
                     output.OpenFunction(
                         methodInfo.Name,
                         (o) => output.WriteParameterList(
-                            (from gpn in methodInfo.GenericParameterNames select 
-                             new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
-                            .Concat(from p in methodInfo.Parameters select 
-                             new JSParameter(p.Name, p.ParameterType, methodRef))
+                            (from gpn in methodInfo.GenericParameterNames
+                             select
+                                 new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
+                            .Concat(from p in methodInfo.Parameters
+                                    select
+                                        new JSParameter(p.Name, p.ParameterType, methodRef))
                         )
                     );
 
