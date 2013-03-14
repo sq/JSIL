@@ -16,24 +16,6 @@ namespace JSIL.Tests {
             return cfg;
         }
 
-        protected override Dictionary<string, string> SetupEvaluatorEnvironment () {
-            return new Dictionary<string, string> {
-                { "INFERFLAGS", "result" }
-            };
-        }
-
-        protected override string JSShellOptions {
-            get {
-                return "--ion-eager --thread-count=0";
-            }
-        }
-
-        protected override bool UseDebugJSShell {
-            get {
-                return true;
-            }
-        }
-
         [Test]
         public void BinaryTrees () {
             using (var test = MakeTest(@"TestCases\BinaryTrees.cs")) {
@@ -63,23 +45,34 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\UnsafeIntPerformanceComparison.cs"
             )) {
-                Console.WriteLine("// setup code //");
-                Console.WriteLine(ComparisonTest.EvaluatorSetupCode);
+                Console.WriteLine(test.RunJavascript(null, MakeUnsafeConfiguration));
+            }
+        }
+    }
 
-                string js;
-                long elapsedJs, elapsedTranslation;
+    [TestFixture]
+    public class PerformanceAnalysisTests : GenericTestFixture {
+        Configuration MakeUnsafeConfiguration () {
+            var cfg = MakeConfiguration();
+            cfg.CodeGenerator.EnableUnsafeCode = true;
+            return cfg;
+        }
 
-                var output = test.RunJavascript(
-                    new string[0], out js, out elapsedTranslation, out elapsedJs,
-                    makeConfiguration: MakeUnsafeConfiguration
-                );
+        protected override Dictionary<string, string> SetupEvaluatorEnvironment () {
+            return new Dictionary<string, string> {
+                { "INFERFLAGS", "result" }
+            };
+        }
 
-                Console.WriteLine("// startup prologue //");
-                Console.WriteLine(test.StartupPrologue);
-                Console.WriteLine("// output //");
-                Console.WriteLine(output);
-                Console.WriteLine("// generated js //");
-                Console.WriteLine(js);
+        protected override string JSShellOptions {
+            get {
+                return "--ion-eager --thread-count=0";
+            }
+        }
+
+        protected override bool UseDebugJSShell {
+            get {
+                return true;
             }
         }
 
@@ -90,7 +83,7 @@ namespace JSIL.Tests {
             @"Main(\W*)\#(?'function_index'[0-9]*)(\W*)TAGGED_OBJECT_(?'object_index'[0-9]*)(\W*)\(line", RegexOptions.ExplicitCapture
         );
         private static readonly Regex TaggedObjectType = new Regex(
-            @"\#(?'function_index'[ 0-9]+):([ 0-9]+):([ 0-9]+)getgname(.*)" + 
+            @"\#(?'function_index'[ 0-9]+):([ 0-9]+):([ 0-9]+)getgname(.*)" +
             "\"\\$\\$ObjectToTag\"" +
             @"(\W*)typeset(\W*)([ 0-9]+):(\W*)object\[([0-9]*)\](\W*)[\[\<]0x(?'type_id'([0-9A-F]+))[\]\>]",
             RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase
@@ -125,7 +118,7 @@ namespace JSIL.Tests {
                             (kvp2) => kvp2.Value == kvp.Key
                         ))
                         Console.Error.WriteLine("Never got function index for '{0}'", kvp.Value);
-                    
+
                     if (!result.Any(
                             (kvp2) => kvp2.Value == kvp.Value
                         ))
@@ -166,7 +159,7 @@ namespace JSIL.Tests {
                 if (shortForm) {
                     result = String.Format(
                         "{0} {2}0x{1:X8}{3}",
-                        Name ?? "?", TypeId, 
+                        Name ?? "?", TypeId,
                         IsSingleton ? "<" : "[",
                         IsSingleton ? ">" : "]"
                     );
@@ -243,5 +236,5 @@ namespace JSIL.Tests {
                 RunPerformanceAnalysis(test);
             }
         }
-    }
+    }    
 }
