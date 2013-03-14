@@ -344,6 +344,7 @@
     <None Include="SimpleTestCases\GenericCreateInstance.cs" />
     <None Include="SimpleTestCases\GenericSelfConstraint.cs" />
     <None Include="PerformanceTestCases\PointerMethodsAreSingletons.cs" />
+    <Compile Include="PerformanceAnalysis.cs" />
     <Compile Include="PerformanceTests.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />

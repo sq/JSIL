@@ -6,6 +6,8 @@ public static class Program {
         JSIL.Profiling.TagJSExpression("Function.prototype");
 
         TestInlineAccess();
+
+        Console.WriteLine("ok");
     }
 
     public static unsafe void TestInlineAccess () {
