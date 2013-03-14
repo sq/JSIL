@@ -208,7 +208,7 @@ namespace JSIL.Tests {
             return result;
         }
 
-        public void Dump (TextWriter output) {
+        public void Dump (TextWriter output, bool dumpRaw = false) {
             bool errors = false;
 
             foreach (var kvp in TaggedObjectTypesByID) {
@@ -220,7 +220,7 @@ namespace JSIL.Tests {
                 }
             }
 
-            if (errors) {
+            if (errors || dumpRaw) {
                 output.WriteLine("// Stderr follows:");
                 output.Write(RawStdErr);
                 output.WriteLine("// Raw type information follows:");

@@ -2119,6 +2119,34 @@ namespace JSIL {
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
+            // Generating the function as a statement instead of an argument allows SpiderMonkey to apply more optimizations
+            if (function != null) {
+                if (bodyTransformer != null)
+                    bodyTransformer(function);
+
+                var displayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
+
+                // Disambiguate overloaded methods
+                if ((methodInfo.MethodGroup != null) && (methodInfo.MethodGroup.Methods.Length > 1))
+                    displayName += String.Format("${0:X2}", Array.IndexOf(methodInfo.MethodGroup.Methods, methodInfo));
+
+                function.DisplayName = displayName;
+
+                astEmitter.ReferenceContext.Push();
+                astEmitter.ReferenceContext.EnclosingMethod = method;
+
+                try {
+                    astEmitter.Visit(function);
+                } catch (Exception exc) {
+                    throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
+                }
+
+                astEmitter.ReferenceContext.Pop();
+
+                output.Semicolon();
+                output.NewLine();
+            }
+
             try {
                 dollar(output);
                 output.Dot();
@@ -2144,21 +2172,7 @@ namespace JSIL {
                     output.NewLine();
 
                     if (function != null) {
-                        if (bodyTransformer != null)
-                            bodyTransformer(function);
-
-                        function.DisplayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
-
-                        astEmitter.ReferenceContext.Push();
-                        astEmitter.ReferenceContext.EnclosingMethod = method;
-
-                        try {
-                            astEmitter.Visit(function);
-                        } catch (Exception exc) {
-                            throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
-                        }
-
-                        astEmitter.ReferenceContext.Pop();
+                        output.WriteRaw(Util.EscapeIdentifier(function.DisplayName));
                     } else {
                         output.Identifier("JSIL.UntranslatableFunction", null);
                         output.LPar();

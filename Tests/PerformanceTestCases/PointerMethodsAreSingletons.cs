@@ -2,16 +2,20 @@
 
 public static class Program {
     public static void Main () {
-        JSIL.Profiling.TagJSExpression("Object.prototype");
-        JSIL.Profiling.TagJSExpression("Function.prototype");
+        var isOk = TestInlineAccess(new int[128]);
 
-        TestInlineAccess();
+        // Ensure the static method membranes for Program have been removed before we tag the function
+        JSIL.Verbatim.Expression("JSIL.Host.runLaterFlush()");
+        JSIL.Profiling.TagJSExpression("Program.TestInlineAccess");
 
-        Console.WriteLine("ok");
+        if (isOk)
+            Console.WriteLine("ok");
+        else
+            Console.WriteLine("failed");
     }
 
-    public static unsafe void TestInlineAccess () {
-        var buffer = new int[128];
+    public static unsafe bool TestInlineAccess (int[] buffer) {
+        var result = true;
 
         fixed (int* pBuffer = buffer) {
             for (int i = 0, l = buffer.Length; i < l; i++)
@@ -19,10 +23,12 @@ public static class Program {
 
             for (int i = 0, l = buffer.Length; i < l; i++)
                 if (pBuffer[i] != i)
-                    throw new Exception("Mismatch");
+                    result = false;
 
             JSIL.Profiling.TagJSExpression("pBuffer.setElement");
             JSIL.Profiling.TagJSExpression("pBuffer.getElement");
         }
+
+        return result;
     }
 }
