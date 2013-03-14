@@ -2,6 +2,9 @@
 
 public static class Program {
     public static void Main () {
+        JSIL.Profiling.TagJSExpression("Object.prototype");
+        JSIL.Profiling.TagJSExpression("Function.prototype");
+
         TestInlineAccess();
     }
 
@@ -16,8 +19,8 @@ public static class Program {
                 if (pBuffer[i] != i)
                     throw new Exception("Mismatch");
 
-            JSIL.Verbatim.TagJSExpression("pBuffer.setElement");
-            JSIL.Verbatim.TagJSExpression("pBuffer.getElement");
+            JSIL.Profiling.TagJSExpression("pBuffer.setElement");
+            JSIL.Profiling.TagJSExpression("pBuffer.getElement");
         }
     }
 }

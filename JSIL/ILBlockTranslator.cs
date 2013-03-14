@@ -524,10 +524,10 @@ namespace JSIL {
                     );
                 }
 
-                case "System.Void JSIL.Verbatim::TagJSExpression(System.String)": {
+                case "System.Void JSIL.Profiling::TagJSExpression(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)
-                        throw new InvalidOperationException("JSIL.Verbatim.TagJSExpression must recieve a string literal as an argument");
+                        throw new InvalidOperationException("JSIL.Profiling.TagJSExpression must recieve a string literal as an argument");
 
                     var actualExpression = String.Format(
                         "JSIL.Shell.TagObject({0}, {1})",

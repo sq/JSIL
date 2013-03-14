@@ -139,7 +139,7 @@ JSIL.Shell.TagObject = function (obj, tag) {
     $$ObjectToTag = obj;
 
     var evalText = "$$ObjectToTag";
-    evaluate(evalText, {
+    var evalResult = evaluate(evalText, {
       fileName: objectId
     });
 

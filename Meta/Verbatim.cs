@@ -60,7 +60,9 @@ namespace JSIL {
         public static object Expression (string javascript) {
             return null;
         }
+    }
 
+    public static class Profiling {
         /// <summary>
         /// When running in the SpiderMonkey Javascript Shell, tags a JS expression so you can access detailed information on it.
         /// </summary>
