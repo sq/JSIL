@@ -67,9 +67,8 @@ JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight
 
 JSIL.Browser.CanvasService.prototype.create = function (desiredWidth, desiredHeight) {
   var e = document.createElement("canvas");
-
-  if (arguments.length === 2)
-    this.applySize(e, desiredWidth, desiredHeight, false);
+  
+  this.applySize(e, desiredWidth, desiredHeight, false);
   
   return e;
 };

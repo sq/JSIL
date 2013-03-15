@@ -99,7 +99,7 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
     if (!isInitialized) {
       isInitialized = true;
       defaultValue = getDefault.call(self);
-      JSIL.Host.runLater(cleanup);
+      cleanup();
     }
   };
 
@@ -166,7 +166,7 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
       value = getValue.call(this);
       if (!isInitialized) {
         isInitialized = true;
-        JSIL.Host.runLater(cleanup);
+        cleanup();
       }
     }
 
@@ -333,15 +333,18 @@ JSIL.PreInitMembrane.prototype.checkForUseAfterCleanup = function () {
 };
 
 JSIL.PreInitMembrane.prototype.maybeInit = function () {
-  if (this.hasRunCleanup)
-    JSIL.Host.logWriteLine("JIT using out of date property descriptor!");
+  if (this.hasRunCleanup && this.hasRunInitializer) {
+    throw new Error("maybeInit called after init and cleanup");
+  }
 
-  if (this.hasRunInitializer)
-    return;
+  if (!this.hasRunInitializer) {
+    this.hasRunInitializer = true;
+    this.initializer();
+  }
 
-  this.hasRunInitializer = true;
-  this.initializer();
-  JSIL.Host.runLater(this.cleanup);
+  if (!this.hasRunCleanup) {
+    this.cleanup();
+  }
 };
 
 JSIL.PreInitMembrane.prototype.rebindProperties = function () {
@@ -371,6 +374,8 @@ JSIL.PreInitMembrane.prototype.rebindProperties = function () {
 };
 
 JSIL.PreInitMembrane.prototype.cleanup = function () {
+  this.hasRunCleanup = true;
+
   for (var i = 0, l = this.cleanupList.length; i < l; i++) {
     var cleanupFunction = this.cleanupList[i];
 
@@ -379,13 +384,14 @@ JSIL.PreInitMembrane.prototype.cleanup = function () {
 
   this.rebindProperties();
 
-  this.hasRunCleanup = true;
   this.initializer = null;
   this.cleanupList = null;
   this.aliasesByKey = null;
   this.target.__PreInitMembrane__ = null;
   // this.propertiesToRebind = null;
   // this.target = null;
+
+  return true;
 };
 
 JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
@@ -1483,12 +1489,10 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
         JSIL.InitializeType(result);
 
-        JSIL.Host.runLater(function PrivateNameCleanupCallback () {
-          privateName.set(result);
+        privateName.define({ value: result });
 
-          if (isPublic)
-            publicName.set(result);
-        });
+        if (isPublic)
+          publicName.define({ value: result });
       }
     } finally {
     }
@@ -3563,6 +3567,11 @@ JSIL.InitializeType = function (type) {
         }
       );
     }
+
+    if (classObject.__PreInitMembrane__)
+      classObject.__PreInitMembrane__.maybeInit();
+    if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
+      classObject.prototype.__PreInitMembrane__.maybeInit();
   }
 
   // Any closed forms of the type, if it's an open type, should be initialized too.
@@ -3831,9 +3840,11 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var memberBuilder = new JSIL.MemberBuilder($private);
 
+  var typeObject, staticClassObject;
+
   var creator = function CreateStaticClassObject () {
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    var typeObject = JSIL.CloneObject(runtimeType);
+    typeObject = JSIL.CloneObject(runtimeType);
     typeObject.__FullName__ = fullName;
 
     typeObject.__CallStack__ = callStack;
@@ -3855,7 +3866,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     typeObject.IsInterface = false;
 
-    var staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
+    staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
@@ -3883,7 +3894,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     JSIL.SetValueProperty(staticClassObject, "toString", function StaticClass_toString () {
       return "<" + fullName + " Public Interface>";
-    });
+    });    
 
     return staticClassObject;
   };
@@ -4251,13 +4262,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   if (typeof (printStackTrace) === "function")
     stack = printStackTrace();
 
+  var typeObject, staticClassObject;
+
   var createTypeObject = function CreateTypeObject () {
     var runtimeType;
     runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
 
     // We need to make the type object we're constructing available early on, in order for
     //  recursive generic base classes to work.
-    var typeObject = JSIL.CloneObject(runtimeType);
+    typeObject = JSIL.CloneObject(runtimeType);
 
     // Needed for basic bookkeeping to function correctly.
     typeObject.__Context__ = assembly;
@@ -4266,7 +4279,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     // Without this, the generated constructor won't behave correctly for 0-argument construction
     typeObject.__IsStruct__ = !isReferenceType;
 
-    var staticClassObject = JSIL.MakeTypeConstructor(typeObject);
+    staticClassObject = JSIL.MakeTypeConstructor(typeObject);
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
     JSIL.SetTypeId(typeObject, staticClassObject, typeId);
