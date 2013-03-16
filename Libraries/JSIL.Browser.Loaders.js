@@ -8,20 +8,28 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   var body = document.getElementsByTagName("body")[0];
 
   var scriptTag = document.createElement("script");
-  scriptTag.addEventListener("load", function (e) {
-    if (done)
-      return;
 
-    done = true;
-    onComplete(scriptTag, null);
-  }, true);
-  scriptTag.addEventListener("error", function (e) {
-    if (done)
-      return;
+  JSIL.Browser.RegisterOneShotEventListener(
+    scriptTag, "load", true, 
+    function ScriptTag_Load (e) {
+      if (done)
+        return;
 
-    done = true;
-    onComplete(null, e);
-  }, true);
+      done = true;
+      onComplete(scriptTag, null);
+    }
+  ); 
+  JSIL.Browser.RegisterOneShotEventListener(
+    scriptTag, "error", true, 
+    function ScriptTag_Error (e) {
+      if (done)
+        return;
+
+      done = true;
+      onComplete(null, e);
+    }
+  );
+
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
 
@@ -77,11 +85,19 @@ function doXHR (uri, asBinary, onComplete) {
   }
 
   var isDone = false;
+  var releaseEventListeners = function () {
+    req.onprogress = null;
+    req.onload = null;
+    req.onerror = null;
+    req.ontimeout = null;
+    req.onreadystatechange = null;
+  };
   var succeeded = function (response, status, statusText) {
     if (isDone)
       return;
 
     isDone = true;
+    releaseEventListeners();
 
     if (status >= 400) {
       onComplete(
@@ -107,6 +123,8 @@ function doXHR (uri, asBinary, onComplete) {
       return;
 
     isDone = true;
+    releaseEventListeners();
+    
     onComplete(null, error);
   };
 
@@ -344,8 +362,9 @@ var assetLoaders = {
       $jsilbrowserstate.allAssetNames.push(filename);
       allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
     };
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
+
+    JSIL.Browser.RegisterOneShotEventListener(e, "error", true, onError);
+    JSIL.Browser.RegisterOneShotEventListener(e, "load", true, onDoneLoading.bind(null, finisher));
     e.src = jsilConfig.contentRoot + filename;
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
@@ -437,8 +456,8 @@ function loadImageCORSHack (filename, data, onError, onDoneLoading) {
         $jsilbrowserstate.allAssetNames.push(filename);
         allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
       };
-      e.addEventListener("error", onError, true);
-      e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
+      JSIL.Browser.RegisterOneShotEventListener(e, "error", true, onError);
+      JSIL.Browser.RegisterOneShotEventListener(e, "load", true, onDoneLoading.bind(null, finisher));
       e.src = objectURL;
     } else {
       onError(error);

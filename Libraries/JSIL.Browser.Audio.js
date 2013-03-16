@@ -79,12 +79,13 @@ JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
 JSIL.Audio.HTML5Instance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
 JSIL.Audio.HTML5Instance.prototype.$bindEvents = function () {
-  this.$onEndedListener = this.on_ended.bind(this);
-  this.node.addEventListener("ended", this.$onEndedListener, true);
+  this.$onEndedListener = JSIL.Browser.RegisterOneShotEventListener(this.node, "ended", true, this.on_ended.bind(this));
 };
 
 JSIL.Audio.HTML5Instance.prototype.$unbindEvents = function () {
-  this.node.removeEventListener("ended", this.$onEndedListener, true);
+  if (this.$onEndedListener)
+    this.$onEndedListener.unregister();
+  
   this.$onEndedListener = null;
 };
 

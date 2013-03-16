@@ -1443,3 +1443,40 @@ function hideSaveRecordingDialog (evt) {
   } catch (exc) {
   }  
 };
+
+JSIL.Browser.OneShotEventListenerCount = 0;
+
+JSIL.Browser.$MakeWrappedListener = function (listener, notification) {
+  return function WrappedEventListener () {
+    notification();
+
+    return listener.apply(this, arguments);
+  };
+};
+
+JSIL.Browser.RegisterOneShotEventListener = function (element, eventName, capture, listener) {
+  var registered = true;
+  var unregister, wrappedListener;
+
+  unregister = function () {
+    if (registered) {
+      registered = false;
+      element.removeEventListener(eventName, wrappedListener, capture);
+      JSIL.Browser.OneShotEventListenerCount -= 1;
+
+      wrappedListener = null;
+      element = null;
+    }
+  };
+
+  wrappedListener = JSIL.Browser.$MakeWrappedListener(listener, unregister);
+  listener = null;
+
+  JSIL.Browser.OneShotEventListenerCount += 1;
+  element.addEventListener(eventName, wrappedListener, capture);
+
+  return {
+    eventName: eventName,
+    unregister: unregister
+  }
+};

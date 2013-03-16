@@ -2456,10 +2456,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     this.image = document.createElement("img");
     var self = this;
-    this.image.addEventListener("load", function () {
-      self.width = self.image.naturalWidth;
-      self.height = self.image.naturalHeight;
-    }, true);
+    JSIL.Browser.RegisterOneShotEventListener(
+      this.image, "load", true,
+      function Texture2D_FromURI_RecordNaturalSize () {
+        self.width = self.image.naturalWidth;
+        self.height = self.image.naturalHeight;
+      }
+    );
     this.image.src = uri;
 
     if (!this.image.id)
