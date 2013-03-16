@@ -1212,7 +1212,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "Initialize", new JSIL.MethodSignature(null, [], []), function () {    
+  }, "Initialize", new JSIL.MethodSignature(null, [], []), function Game_Initialize () {    
     this.initialized = true;
 
     for (var i = 0, l = this.components._size; i < l; i++) {
@@ -1244,7 +1244,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   }, "ResetElapsedTime", new JSIL.MethodSignature(null, [], []), function () {
     this.forceElapsedTimeToZero = true;
   });
-  $.RawMethod(false, "$ComponentsOfType", function (type) {
+
+  $.RawMethod(false, "$ComponentsOfType", function Game_$ComponentsOfType (type) {
     var result = new Array();
     for (var i = 0, l = this.components._size; i < l; i++) {
       var item = this.components._items[i];
@@ -1298,7 +1299,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "Run", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Run", new JSIL.MethodSignature(null, [], []), function Game_Run () {
     this._profilingMode = (document.location.search.indexOf("profile") >= 0);
     this._balanceFPSCheckbox = (document.getElementById("balanceFramerate") || null);
     if (this._balanceFPSCheckbox)
@@ -1309,7 +1310,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._QueueStep();
   });
 
-  $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
+  $.RawMethod(false, "_QueueStep", function Game_QueueStep () {
     if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
       return;
 
@@ -1531,14 +1532,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "Exit", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Exit", new JSIL.MethodSignature(null, [], []), function Game_Exit () {
     this.Dispose();
   });
 
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", new JSIL.MethodSignature(null, [], []), function Game_Dispose () {
     this.UnloadContent();
 
     this._isDead = true;
