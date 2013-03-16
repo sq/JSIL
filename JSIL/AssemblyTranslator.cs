@@ -1015,8 +1015,9 @@ namespace JSIL {
                 output.NewLine();
 
                 Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", null);
+                int nextDisambiguatedId = 0;
                 var typeCacher = EmitTypeMethodExpressions(
-                    context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons
+                    context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
                 );
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
@@ -1208,7 +1209,8 @@ namespace JSIL {
         protected TypeExpressionCacher EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
-            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons
+            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
+            ref int nextDisambiguatedId
         ) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
@@ -1268,7 +1270,7 @@ namespace JSIL {
 
                 EmitMethodBody(
                     context, method, method, astEmitter, output,
-                    stubbed, typeCacher
+                    stubbed, typeCacher, ref nextDisambiguatedId
                 );
             }
 
@@ -1938,8 +1940,10 @@ namespace JSIL {
                 }
             }
 
+            int temp = 0;
+
             if ((cctor != null) && !stubbed) {
-                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, fixupCctor);
+                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, ref temp, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1955,7 +1959,7 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, fixupCctor);
+                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, ref temp, null, fixupCctor);
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -1964,7 +1968,7 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, null, extraCctor,
+                    output, false, dollar, null, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -2128,12 +2132,13 @@ namespace JSIL {
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
-            Action<JSFunctionExpression> bodyTransformer = null
+            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, ref int nextDisambiguatedId,
+            MethodInfo methodInfo = null, Action<JSFunctionExpression> bodyTransformer = null
         ) {
             EmitMethodBody(
                 context, methodRef, method,
-                astEmitter, output, stubbed, typeCacher, methodInfo, bodyTransformer
+                astEmitter, output, stubbed, typeCacher, ref nextDisambiguatedId,
+                methodInfo, bodyTransformer
             );
             DefineMethod(
                 context, methodRef, method, astEmitter, output, stubbed, dollar, methodInfo
@@ -2143,8 +2148,8 @@ namespace JSIL {
         protected void EmitMethodBody (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
-            Action<JSFunctionExpression> bodyTransformer = null
+            TypeExpressionCacher typeCacher, ref int nextDisambiguatedId,
+            MethodInfo methodInfo = null, Action<JSFunctionExpression> bodyTransformer = null
         ) {
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -2187,8 +2192,8 @@ namespace JSIL {
                     var displayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
 
                     // Disambiguate overloaded methods
-                    if ((methodInfo.MethodGroup != null) && (methodInfo.MethodGroup.Methods.Length > 1))
-                        displayName += String.Format("${0:X2}", Array.IndexOf(methodInfo.MethodGroup.Methods, methodInfo));
+                    if (methodInfo.IsOverloadedRecursive)
+                        displayName += String.Format("${0:X2}", Interlocked.Increment(ref nextDisambiguatedId) - 1);
 
                     function.DisplayName = displayName;
 

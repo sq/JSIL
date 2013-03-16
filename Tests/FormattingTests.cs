@@ -568,6 +568,8 @@ namespace JSIL.Tests {
                 try {
                     Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1$00 (TSource, source)"));
                     Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1$01 (TSource, source, predicate)"));
+                    Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1$00 (TSource, source)"));
+                    Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1$01 (TSource, source, predicate)"));
                 } catch {
                     Console.WriteLine(generatedJs);
 
