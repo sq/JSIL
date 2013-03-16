@@ -526,12 +526,14 @@ JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
       return arrayCtor.BYTES_PER_ELEMENT;
     else
       return -1;
-  } else {
+  } else if (typeObject.__IsStruct__) {
     var result = typeObject.__NativeSize__;
     if (typeof (result) !== "number")
       return -1;
 
     return result;
+  } else {
+    return -1;
   }
 };
 
