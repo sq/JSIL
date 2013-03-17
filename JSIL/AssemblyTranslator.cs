@@ -1134,6 +1134,8 @@ namespace JSIL {
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+            } catch (Exception exc) {
+                throw new Exception(String.Format("An error occurred while declaring the type '{0}'", typedef.FullName), exc);
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
