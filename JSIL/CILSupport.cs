@@ -15,6 +15,16 @@ namespace JSIL.Internal {
     }
 
     public class AssemblyResolver : BaseAssemblyResolver, IDisposable {
+        private static readonly byte[] PCLPublicKeyToken = new byte[] {
+            124, 236, 133, 215,
+            190, 167, 121, 142
+        };
+
+        private static readonly byte[] BCLPublicKeyToken = new byte[] {
+            183, 122, 92, 86,
+            25, 52, 224, 137
+        };
+
         protected readonly AssemblyCache Cache = new AssemblyCache();
         protected readonly bool OwnsCache;
 
@@ -34,11 +44,33 @@ namespace JSIL.Internal {
                 Cache.Dispose();
         }
 
+        public AssemblyNameReference FilterPortableClassLibraryReferences (AssemblyNameReference name) {
+            // Portable class libraries are pretty shoddily constructed. Who came up with this nonsense?
+
+            if (!name.PublicKeyToken.SequenceEqual(PCLPublicKeyToken))
+                return name;
+
+            var bclName = new AssemblyNameReference(
+                name.Name,
+                // FIXME: Hard-coding 4.0 is probably a mistake
+                new Version(4, 0, 0, 0)
+            );
+
+            bclName.Culture = name.Culture;
+            bclName.PublicKeyToken = BCLPublicKeyToken;
+
+            return bclName;
+        }
+
         public override AssemblyDefinition Resolve (AssemblyNameReference name, ReaderParameters parameters) {
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            return Cache.GetOrCreate(name.FullName, (fullName) => base.Resolve(name, parameters));
+            var actualName = FilterPortableClassLibraryReferences(name);
+
+            var result = Cache.GetOrCreate(actualName.FullName, (fullName) => base.Resolve(actualName, parameters));
+
+            return result;
         }
 
         protected void RegisterAssembly (AssemblyDefinition assembly) {
@@ -149,16 +181,24 @@ namespace JSIL.Internal {
                 Environment.ProcessorCount, 4096, new KeyComparer()
             );
 
-            DoResolve = (key, type) =>
-                base.Resolve(type);
+            DoResolve = (key, type) => {
+                var result = base.Resolve(type);
+
+                if ((result == null) && type.FullName.StartsWith("System."))
+                    Debugger.Break();
+
+                return result;
+            };
         }
 
         public override TypeDefinition Resolve (TypeReference type) {
             var key = new Key(type);
 
-            return Cache.GetOrCreate(
+            var result = Cache.GetOrCreate(
                 key, type, DoResolve
             );
+
+            return result;
         }
     }
 
