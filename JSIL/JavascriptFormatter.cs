@@ -494,6 +494,22 @@ namespace JSIL.Internal {
                         return;
                     }
 
+                    var ownerTypeResolved = ownerType.Resolve();
+                    if (ownerTypeResolved != null) {
+                        // Is it a generic parameter of a compiler-generated class (i.e. enumerator function, delegate, etc)
+                        //  nested inside our EnclosingType? If so, uhhhh, shit.
+                        if (
+                            TypeUtil.TypesAreEqual(context.EnclosingType, ownerTypeResolved.DeclaringType) &&
+                            ownerTypeResolved.CustomAttributes.Any(
+                                (ca) => ca.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute"
+                            )
+                        ) {
+                            // FIXME: I HAVE NO IDEA WHAT I AM DOING
+                            OpenGenericParameter(gp.Name, ownerTypeResolved.FullName);
+                            return;
+                        }
+                    }
+
                     throw new NotImplementedException(String.Format(
                         "Unimplemented form of generic type parameter: '{0}'.",
                         gp
@@ -791,7 +807,7 @@ namespace JSIL.Internal {
                 }
             } else {
                 var info = TypeInfo.Get(type);
-                if (info.Replacement != null) {
+                if ((info != null) && (info.Replacement != null)) {
                     WriteRaw(info.Replacement);
                     return;
                 }
@@ -807,9 +823,16 @@ namespace JSIL.Internal {
                     }
                 }
 
-                WriteRaw(Util.EscapeIdentifier(
-                    info.FullName, EscapingMode.TypeIdentifier
-                ));
+                if (info != null) {
+                    WriteRaw(Util.EscapeIdentifier(
+                        info.FullName, EscapingMode.TypeIdentifier
+                    ));
+                } else {
+                    // FIXME: Is this right?
+                    WriteRaw(Util.EscapeIdentifier(
+                        type.FullName, EscapingMode.TypeIdentifier
+                    ));
+                }
             }
         }
 
