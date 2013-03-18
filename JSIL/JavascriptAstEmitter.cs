@@ -444,11 +444,20 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPointerAddExpression pae) {
+            JSExpression delta = pae.Delta;
+            bool addElements = false;
+
+            var offsetInElements = JSPointerExpressionUtil.OffsetFromBytesToElements(delta, pae.Pointer.GetActualType(TypeSystem).GetElementType());
+            if (offsetInElements != null) {
+                addElements = true;
+                delta = offsetInElements;
+            }
+
             Visit(pae.Pointer);
             Output.Dot();
-            Output.Identifier("add");
+            Output.Identifier(addElements ? "addElements" : "add");
             Output.LPar();
-            Visit(pae.Delta);
+            Visit(delta);
             if (pae.MutateInPlace) {
                 Output.Comma();
                 Output.Value(pae.MutateInPlace);

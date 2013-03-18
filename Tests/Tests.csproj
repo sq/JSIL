@@ -354,6 +354,8 @@
     <None Include="UnsafeTestCases\Common.cs" />
     <None Include="UnsafeTestCases\ReadNestedStruct.cs" />
     <None Include="PerformanceTestCases\UnsafeIntPerformanceComparison.cs" />
+    <None Include="UnsafeTestCases\IncrementStructPointer.cs" />
+    <None Include="UnsafeTestCases\AddToStructPointer.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

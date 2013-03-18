@@ -2227,38 +2227,63 @@ namespace JSIL.Ast {
             return null;
         }
 
-        public static JSExpression OffsetFromBytesToElements (JSExpression offsetInBytes, TypeReference elementType) {
-            var elementSize = GetNativeSizeOfElement(elementType);
-            if (!elementSize.HasValue)
-                return null;
-
+        private static JSExpression UnwrapExpression (JSExpression e) {
             while (true) {
-                var cte = offsetInBytes as JSChangeTypeExpression;
-                var cast = offsetInBytes as JSCastExpression;
-                var truncation = offsetInBytes as JSTruncateExpression;
+                var cte = e as JSChangeTypeExpression;
+                var cast = e as JSCastExpression;
+                var truncation = e as JSTruncateExpression;
 
                 if (cte != null)
-                    offsetInBytes = cte.Expression;
+                    e = cte.Expression;
                 else if (cast != null)
-                    offsetInBytes = cast.Expression;
+                    e = cast.Expression;
                 else if (truncation != null)
-                    offsetInBytes = truncation.Expression;
+                    e = truncation.Expression;
                 else
                     break;
+            }
+
+            return e;
+        }
+
+        public static JSExpression OffsetFromBytesToElements (JSExpression offsetInBytes, TypeReference elementType) {
+            if (offsetInBytes == null)
+                return null;
+
+            int depth;
+            elementType = TypeUtil.FullyDereferenceType(elementType, out depth);
+
+            offsetInBytes = UnwrapExpression(offsetInBytes);
+
+            // pBytes + sizeof(T) -> pT[1]
+            var sizeofE = offsetInBytes as JSSizeOfExpression;
+            if (sizeofE != null) {
+                if (TypeUtil.TypesAreEqual(elementType, sizeofE.Type.Type))
+                    return JSLiteral.New(1);
             }
 
             var boe = offsetInBytes as JSBinaryOperatorExpression;
             if (boe == null)
                 return null;
 
-            var rightLiteral = boe.Right as JSIntegerLiteral;
+            var right = UnwrapExpression(boe.Right);
 
-            if (
-                (boe.Operator == JSOperator.Multiply) &&
-                (rightLiteral != null) &&
-                (rightLiteral.Value == elementSize.Value)
-            ) {
-                return boe.Left;
+            var rightLiteral = right as JSIntegerLiteral;
+            var rightSizeof = right as JSSizeOfExpression;
+
+            if (boe.Operator == JSOperator.Multiply) {
+                if (rightLiteral != null) {
+                    // pBytes + (M * N) -> pT[N] if M == sizeof(T)
+
+                    var elementSize = GetNativeSizeOfElement(elementType);
+                    if (elementSize.HasValue && (rightLiteral.Value == elementSize.Value))
+                        return boe.Left;
+                } else if (rightSizeof != null) {
+                    // pBytes + (sizeof(T) * N) -> pT[N]
+
+                    if (TypeUtil.TypesAreEqual(elementType, rightSizeof.Type.Type))
+                        return boe.Left;
+                }
             }
 
             return null;

@@ -8,17 +8,26 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class TypeExpressionCacher : JSAstVisitor {
-        public readonly Dictionary<GenericTypeIdentifier, JSCachedType> CachedTypes;
+        public struct CachedTypeRecord {
+            public readonly TypeReference Type;
+            public readonly int Index;
+
+            public CachedTypeRecord (TypeReference type, int index) {
+                while (type is PointerType)
+                    type = ((PointerType)type).ElementType;
+
+                Type = type;
+                Index = index;
+            }
+        }
+
+        public readonly Dictionary<GenericTypeIdentifier, CachedTypeRecord> CachedTypes;
         public readonly TypeReference ThisType;
         private int NextID = 0;
 
         public TypeExpressionCacher (TypeReference thisType) {
             ThisType = thisType;
-            CachedTypes = new Dictionary<GenericTypeIdentifier, JSCachedType>();
-        }
-
-        private JSCachedType MakeCachedType (TypeReference type) {
-            return new JSCachedType(type, NextID++);
+            CachedTypes = new Dictionary<GenericTypeIdentifier, CachedTypeRecord>();
         }
 
         private JSCachedType GetCachedType (TypeReference type) {
@@ -43,11 +52,12 @@ namespace JSIL.Transforms {
             }
 
             var identifier = new GenericTypeIdentifier(resolved, arguments, (at != null) ? at.Rank : 0);
-            JSCachedType result;
-            if (!CachedTypes.TryGetValue(identifier, out result))
-                CachedTypes.Add(identifier, result = MakeCachedType(type));
 
-            return result;
+            CachedTypeRecord record;
+            if (!CachedTypes.TryGetValue(identifier, out record))
+                CachedTypes.Add(identifier, record = new CachedTypeRecord(type, NextID++));
+
+            return new JSCachedType(type, record.Index);
         }
 
         private JSCachedTypeOfExpression GetCachedTypeOf (TypeReference type) {
@@ -155,18 +165,8 @@ namespace JSIL.Transforms {
             VisitChildren(el);
         }
 
-        public JSCachedType[] CacheTypesForFunction (JSFunctionExpression function) {
-            var currentKeys = new HashSet<GenericTypeIdentifier>(CachedTypes.Keys);
-
+        public void CacheTypesForFunction (JSFunctionExpression function) {
             Visit(function);
-
-            var newKeys = new HashSet<GenericTypeIdentifier>(CachedTypes.Keys);
-            newKeys.ExceptWith(currentKeys);
-
-            return (from k in newKeys 
-                    let ct = CachedTypes[k]
-                    orderby ct.Index
-                    select ct).ToArray();
         }
     }
 }
