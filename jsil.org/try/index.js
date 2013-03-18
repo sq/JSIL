@@ -29,6 +29,8 @@ function loadGists (path, prefix) {
 };
 
 function displayGists (result, prefix) {
+  console.log("prefix=", prefix);
+  
   var container = $("#" + prefix + "_list");
   container.empty();
 
@@ -55,8 +57,13 @@ function displayGists (result, prefix) {
     if (fileKeys.length !== 1)
       continue;
 
-    var fileLanguage = entry.files[fileKeys[0]].language.trim();
+    // Ignore gists that aren't C#
+    var fileLanguage = (entry.files[fileKeys[0]].language || "").trim();
     if (fileLanguage != "C#")
+      continue;
+    
+    // Ignore gists without titles
+    if ((entry.description || "").trim().length < 1)
       continue;
 
     var li = document.createElement("li");
