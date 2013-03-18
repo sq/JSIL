@@ -699,7 +699,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNumberLiteral number) {
-            Output.Value(number.Value);
+            if (number.OriginalType.FullName == "System.Single")
+                Output.Value((float)number.Value);
+            else
+                Output.Value(number.Value);
         }
 
         public void VisitNode (JSBooleanLiteral b) {

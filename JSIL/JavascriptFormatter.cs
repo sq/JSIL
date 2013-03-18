@@ -953,6 +953,10 @@ namespace JSIL.Internal {
             WriteRaw(value.ToString());
         }
 
+        public void Value (float value) {
+            WriteRaw(value.ToString("R", CultureInfo.InvariantCulture));
+        }
+
         public void Value (double value) {
             WriteRaw(value.ToString("R", CultureInfo.InvariantCulture));
         }
