@@ -6,6 +6,66 @@ if (typeof (JSIL) === "undefined")
 if (!$jsilcore)  
   throw new Error("JSIL.Core is required");
 
+JSIL.ImplementExternals("System.IntPtr", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (value) {
+      this.value = $jsilcore.System.Int64.FromInt32(value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int64], [])), 
+    function _ctor (value) {
+      this.value = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToInt32", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function ToInt32 () {
+      return this.value.ToInt32();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToInt64", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function ToInt64 () {
+      return this.value;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.UIntPtr", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.UInt32], [])), 
+    function _ctor (value) {
+      this.value = $jsilcore.System.UInt64.FromUInt32(value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.UInt64], [])), 
+    function _ctor (value) {
+      this.value = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToUInt32", 
+    (new JSIL.MethodSignature($.UInt32, [], [])), 
+    function ToUInt32 () {
+      return this.value.ToUInt32();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToUInt64", 
+    (new JSIL.MethodSignature($.UInt64, [], [])), 
+    function ToUInt64 () {
+      return this.value;
+    }
+  );
+});
+
 JSIL.MakeStruct("System.ValueType", "System.IntPtr", true, []);
 JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, []);
 
@@ -822,6 +882,21 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       return JSIL.GetNativeSizeOf(type);
     }
   );  
+
+  $.Method({Static:true , Public:true }, "OffsetOf", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$jsilcore.TypeRef("System.Type"), $.String], [])), 
+    function OffsetOf (type, fieldName) {
+      var fields = JSIL.GetFieldList(type);
+
+      for (var i = 0, l = fields.length; i < l; i++) {
+        var field = fields[i];
+        if (field.name === fieldName)
+          return new System.IntPtr(field.offsetBytes);
+      }
+
+      throw new System.Exception("No field named '" + fieldName + "' declared in type");
+    }
+  );
 });
 
 JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {

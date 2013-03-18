@@ -357,6 +357,7 @@
     <None Include="UnsafeTestCases\IncrementStructPointer.cs" />
     <None Include="UnsafeTestCases\AddToStructPointer.cs" />
     <None Include="UnsafeTestCases\StructSizes.cs" />
+    <None Include="UnsafeTestCases\StructMemberOffsets.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 public static class Program {
@@ -12,7 +13,14 @@ public static class Program {
             typeof(ByteNestedByte)
         };
 
-        foreach (var type in types)
-            Console.WriteLine("sizeof({0}) == {1}", type.Name, Marshal.SizeOf(type));
+        foreach (var type in types) {
+            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic)) {
+                Console.WriteLine(
+                    "offsetof({0}.{1}) == {2}", 
+                    type.Name, field.Name, 
+                    Marshal.OffsetOf(type, field.Name).ToInt32()
+                );
+            }
+        }
     }
 }

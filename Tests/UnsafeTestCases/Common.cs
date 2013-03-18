@@ -16,3 +16,32 @@ public struct TwoIntFloatPairs {
         return String.Format("A=<{0}> B=<{1}>", A, B);
     }
 }
+
+public struct EmptyStruct {
+}
+
+public struct TwoBytes {
+    byte a, b;
+}
+
+public struct TwoBytesOneInt {
+    byte a, b;
+    int c;
+}
+
+public struct TwoBytesShortDouble {
+    byte a, b;
+    short c;
+    double d;
+}
+
+public struct DoubleTwoBytes {
+    double a;
+    byte b, c;
+}
+
+public struct ByteNestedByte {
+    byte a;
+    DoubleTwoBytes b;
+    byte c;
+}
