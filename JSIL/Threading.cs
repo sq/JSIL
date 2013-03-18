@@ -27,6 +27,10 @@ namespace JSIL.Threading {
                 A = a;
                 B = b;
             }
+
+            public override string ToString () {
+                return String.Format("[{0}, {1}]", A, B);
+            }
         }
 
         public class Wait : IDisposable {

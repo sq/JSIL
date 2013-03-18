@@ -1752,6 +1752,8 @@ namespace JSIL {
 
             var valueType = value.GetActualType(TypeSystem);
 
+            // Assignment from a packed array field into a non-packed array variable needs to change
+            //  the type of the variable so that it is also treated as a packed array.
             if (
                 PackedArrayUtil.IsPackedArrayType(valueType) &&
                 !PackedArrayUtil.IsPackedArrayType(variable.Type)
@@ -2136,6 +2138,9 @@ namespace JSIL {
                 var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                     (kvp) => kvp.Key.Name == getMethodName
                 ).Value;
+
+                // We have to construct a custom reference to the method in order for ILSpy's
+                //  SubstituteTypeArgs method not to explode later on
                 var getMethodReference = new MethodReference(
                     getMethod.Member.Name, targetGit.GenericArguments[0], targetGit
                 );
