@@ -365,6 +365,8 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
       this.nativeSize = structType.__NativeSize__;
+      this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
+      this.marshaller = JSIL.$GetStructMarshaller(structType);
     }
   );
 
@@ -375,6 +377,8 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
       target.nativeSize = source.nativeSize;
+      target.unmarshaller = source.unmarshaller;
+      target.marshaller = source.marshaller;
     }
   );
 
@@ -405,14 +409,14 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, "get",
     function StructPointer_Get () {
       var result = new (this.structType.__PublicInterface__)();
-      JSIL.UnmarshalStruct(result, this.view, this.offsetInBytes);
+      this.unmarshaller(result, this.view, this.offsetInBytes);
       return result;
     }
   );
 
   $.RawMethod(false, "set",
     function StructPointer_Set (value) {
-      JSIL.MarshalStruct(value, this.view, this.offsetInBytes);
+      this.marshaller(value, this.view, this.offsetInBytes);
       return value;
     }
   );
@@ -422,7 +426,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
 
       var result = new (this.structType.__PublicInterface__)();
-      JSIL.UnmarshalStruct(result, this.view, offsetInBytes);
+      this.unmarshaller(result, this.view, offsetInBytes);
       return result;
     }
   );
@@ -430,7 +434,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, "setElement",
     function StructPointer_SetElement (offsetInElements, value) {
       var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
-      JSIL.MarshalStruct(value, this.view, offsetInBytes);
+      this.marshaller(value, this.view, offsetInBytes);
       return value;
     }
   );
@@ -438,14 +442,14 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, "getOffset",
     function StructPointer_GetOffset (offsetInBytes) {
       var result = new (this.structType.__PublicInterface__)();
-      JSIL.UnmarshalStruct(result, this.view, this.offsetInBytes + offsetInBytes);
+      this.unmarshaller(result, this.view, this.offsetInBytes + offsetInBytes);
       return result;
     }
   );
 
   $.RawMethod(false, "setOffset",
     function StructPointer_SetOffset (offsetInBytes, value) {
-      JSIL.MarshalStruct(value, this.view, this.offsetInBytes + offsetInBytes);
+      this.marshaller(value, this.view, this.offsetInBytes + offsetInBytes);
       return value;
     }
   );
@@ -617,6 +621,8 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
   var clampedByteView = null;
 
+  var localOffsetDeclared = false;
+
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
     var offset = field.offsetBytes;
@@ -625,9 +631,25 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
     if (size <= 0)
       throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
 
-    var nativeViewKey = "nativebuf" + i;
-    var byteViewKey = "bytebuf" + i;
     var nativeView = marshallingScratchBuffer.getView(field.type, false);
+    var nativeViewKey, byteViewKey;
+
+    // Attempt to reuse existing views so the closure contains less references
+    var foundExistingViews = false;
+    for (var j = 0; j < i; j++) {
+      nativeViewKey = "nativebuf" + j;
+      byteViewKey = "bytebuf" + j;
+
+      if (closure[nativeViewKey] === nativeView) {
+        foundExistingViews = true;
+        break;
+      }
+    }
+
+    if (!foundExistingViews) {
+      nativeViewKey = "nativebuf" + i;
+      byteViewKey = "bytebuf" + i;
+    }
 
     if (!nativeView) {
       if (field.type.__IsStruct__) {
@@ -660,8 +682,15 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
         body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
       } else {
         // Really, really awful
+        var setLocalOffset = "localOffset = (offset + " + offset + ") | 0;";
+        if (!localOffsetDeclared) {
+          localOffsetDeclared = true;
+          setLocalOffset = "var " + setLocalOffset;
+        }
+
+        body.push(setLocalOffset);
         body.push("for (var i = 0; i < " + size + "; ++i)");
-        body.push("  " + byteViewKey + "[i] = bytes[(offset + i + " + offset + ") | 0];");
+        body.push("  " + byteViewKey + "[i] = bytes[(localOffset + i) | 0];");
         body.push("struct." + field.name + " = " + nativeViewKey + "[0];");
       }
     }
