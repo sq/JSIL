@@ -365,7 +365,8 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
       this.nativeSize = structType.__NativeSize__;
-      this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
+      this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(structType);
+      // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
       this.marshaller = JSIL.$GetStructMarshaller(structType);
     }
   );
@@ -377,7 +378,8 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
       target.nativeSize = source.nativeSize;
-      target.unmarshaller = source.unmarshaller;
+      target.unmarshalConstructor = source.unmarshalConstructor;
+      // target.unmarshaller = source.unmarshaller;
       target.marshaller = source.marshaller;
     }
   );
@@ -408,8 +410,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "get",
     function StructPointer_Get () {
-      var result = new (this.structType.__PublicInterface__)();
-      this.unmarshaller(result, this.view, this.offsetInBytes);
+      var result = new this.unmarshalConstructor(this.view, this.offsetInBytes);
       return result;
     }
   );
@@ -425,8 +426,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
     function StructPointer_GetElement (offsetInElements) {
       var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
 
-      var result = new (this.structType.__PublicInterface__)();
-      this.unmarshaller(result, this.view, offsetInBytes);
+      var result = new this.unmarshalConstructor(this.view, offsetInBytes);
       return result;
     }
   );
@@ -441,15 +441,14 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "getOffset",
     function StructPointer_GetOffset (offsetInBytes) {
-      var result = new (this.structType.__PublicInterface__)();
-      this.unmarshaller(result, this.view, this.offsetInBytes + offsetInBytes);
+      var result = new this.unmarshalConstructor(this.view, (this.offsetInBytes + offsetInBytes) | 0);
       return result;
     }
   );
 
   $.RawMethod(false, "setOffset",
     function StructPointer_SetOffset (offsetInBytes, value) {
-      this.marshaller(value, this.view, this.offsetInBytes + offsetInBytes);
+      this.marshaller(value, this.view, (this.offsetInBytes + offsetInBytes) | 0);
       return value;
     }
   );
@@ -566,6 +565,14 @@ JSIL.$GetStructUnmarshaller = function (typeObject) {
   return unmarshaller;
 }
 
+JSIL.$GetStructUnmarshalConstructor = function (typeObject) {
+  var unmarshalConstructor = typeObject.__StructUnmarshalConstructor__;
+  if (unmarshalConstructor === $jsilcore.FunctionNotInitialized)
+    unmarshalConstructor = typeObject.__StructUnmarshalConstructor__ = JSIL.$MakeStructUnmarshalConstructor(typeObject);
+
+  return unmarshalConstructor;
+}
+
 JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
   var thisType = struct.__ThisType__;
   var unmarshaller = JSIL.$GetStructUnmarshaller(thisType);
@@ -611,10 +618,39 @@ JSIL.$MakeStructUnmarshaller = function (typeObject) {
   return JSIL.$MakeStructMarshalFunctionCore(typeObject, false);
 };
 
+JSIL.$MakeStructUnmarshalConstructor = function (typeObject) {
+  var closure = {};
+  var body = [];
+
+  JSIL.$MakeStructMarshalFunctionSource(typeObject, false, "this", closure, body);
+
+  var constructor =  JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".UnmarshalConstructor",
+    ["bytes", "offset"],
+    body.join('\n'),
+    closure
+  );
+
+  constructor.prototype = typeObject.__PublicInterface__.prototype;
+
+  return constructor;
+};
+
 JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   var closure = {};
   var body = [];
 
+  JSIL.$MakeStructMarshalFunctionSource(typeObject, marshal, "struct", closure, body);
+
+  return JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + (marshal ? ".Marshal" : ".Unmarshal"),
+    ["struct", "bytes", "offset"],
+    body.join('\n'),
+    closure
+  );
+};
+
+JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, structArgName, closure, body) {
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
@@ -663,7 +699,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
           closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
 
         body.push(
-          funcKey + "(struct." + field.name + ", bytes, (offset + " + offset + ") | 0);"
+          funcKey + "(" + structArgName + "." + field.name + ", bytes, (offset + " + offset + ") | 0);"
         );
       } else {
         throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
@@ -678,7 +714,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
       closure[byteViewKey] = clampedByteView;
 
       if (marshal) {
-        body.push(nativeViewKey + "[0] = struct." + field.name + ";");
+        body.push(nativeViewKey + "[0] = " + structArgName + "." + field.name + ";");
         body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
       } else {
         // Really, really awful
@@ -691,17 +727,10 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
         body.push(setLocalOffset);
         body.push("for (var i = 0; i < " + size + "; ++i)");
         body.push("  " + byteViewKey + "[i] = bytes[(localOffset + i) | 0];");
-        body.push("struct." + field.name + " = " + nativeViewKey + "[0];");
+        body.push(structArgName + "." + field.name + " = " + nativeViewKey + "[0];");
       }
     }
   }
-
-  return JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + (marshal ? ".Marshal" : ".Unmarshal"),
-    ["struct", "bytes", "offset"],
-    body.join('\n'),
-    closure
-  );
 };
 
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {

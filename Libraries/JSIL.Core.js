@@ -1997,7 +1997,7 @@ $jsilcore.$Of$NoInitialize = function () {
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
     "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
     "__FieldList__", "__InterfaceMembers__",
-    "__StructComparer__", "__StructMarshaller__", "__StructUnmarshaller__"
+    "__StructComparer__", "__StructMarshaller__", "__StructUnmarshaller__", "__StructUnmarshalConstructor__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -4309,6 +4309,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__StructMarshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__StructUnmarshaller__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__StructUnmarshalConstructor__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
