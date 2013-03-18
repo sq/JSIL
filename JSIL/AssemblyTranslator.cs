@@ -1630,7 +1630,7 @@ namespace JSIL {
             if (field.HasConstant) {
                 JSLiteral constant;
                 if (field.Constant == null) {
-                    constant = JSLiteral.Null(field.FieldType);
+                    constant = JSLiteral.Null(fieldInfo.FieldType);
                 } else {
                     constant = JSLiteral.New(field.Constant as dynamic);
                 }
@@ -1644,16 +1644,16 @@ namespace JSIL {
                 );
             } else {
                 bool forCctor = false;
-                if (field.IsStatic && NeedsStaticConstructor(field.FieldType))
+                if (field.IsStatic && NeedsStaticConstructor(fieldInfo.FieldType))
                     forCctor = true;
-                else if (TypeUtil.IsStruct(field.FieldType))
+                else if (TypeUtil.IsStruct(fieldInfo.FieldType))
                     forCctor = true;
 
                 JSExpression defaultValue;
                 if (!defaultValues.TryGetValue(field, out defaultValue))
                     defaultValue = null;
 
-                JSExpression fieldTypeExpression = new JSTypeReference(field.FieldType, field.DeclaringType);
+                JSExpression fieldTypeExpression = new JSTypeReference(fieldInfo.FieldType, field.DeclaringType);
 
                 if (cctorContext != forCctor)
                     defaultValue = null;
@@ -1704,7 +1704,7 @@ namespace JSIL {
                         thisParameter = new JSThisParameter(field.DeclaringType, null);
 
                     if (defaultValue == null)
-                        defaultValue = new JSDefaultValueLiteral(field.FieldType);
+                        defaultValue = new JSDefaultValueLiteral(fieldInfo.FieldType);
 
                     return new JSBinaryOperatorExpression(
                         JSBinaryOperator.Assignment,
@@ -1713,7 +1713,7 @@ namespace JSIL {
                             new JSField(field, fieldInfo)
                         ),
                         defaultValue,
-                        field.FieldType
+                        fieldInfo.FieldType
                     );
                 } else {
                     JSExpression[] args;
@@ -1825,6 +1825,11 @@ namespace JSIL {
                                 continue;
 
                             if (targetField.DeclaringType != realCctor.DeclaringType)
+                                continue;
+
+                            // Don't generate default value expressions for packed struct arrays.
+                            var targetFieldInfo = _TypeInfoProvider.GetField(targetField);
+                            if ((targetFieldInfo != null) && PackedArrayUtil.IsPackedArrayType(targetFieldInfo.FieldType))
                                 continue;
 
                             var expectedType = ile.Arguments[0].ExpectedType;
@@ -1945,6 +1950,8 @@ namespace JSIL {
             int temp = 0;
 
             if ((cctor != null) && !stubbed) {
+                output.NewLine();
+
                 EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, ref temp, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
@@ -1957,6 +1964,8 @@ namespace JSIL {
                     typeInfo.Members[identifier] = new Internal.MethodInfo(
                         typeInfo, identifier, fakeCctor, new ProxyInfo[0], null
                     );
+
+                output.NewLine();
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);

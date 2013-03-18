@@ -9,11 +9,11 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class FixupPointerArithmetic : JSAstVisitor {
+    public class UnsafeCodeTransforms : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
-        public FixupPointerArithmetic (TypeSystem typeSystem, MethodTypeFactory methodTypes) {
+        public UnsafeCodeTransforms (TypeSystem typeSystem, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
         }
@@ -133,6 +133,34 @@ namespace JSIL.Transforms {
             newPointer = boe.Left;
             offset = boe.Right;
             return true;
+        }
+
+        public void VisitNode (JSNewArrayExpression nae) {
+            var parentBoe = ParentNode as JSBinaryOperatorExpression;
+
+            if (parentBoe != null) {
+                var leftField = parentBoe.Left as JSFieldAccess;
+                if (
+                    (leftField != null) &&
+                    PackedArrayUtil.IsPackedArrayType(leftField.Field.Field.FieldType)
+                ) {
+                    JSNewPackedArrayExpression replacement;
+                    if (nae.Dimensions != null) {
+                        replacement = new JSNewPackedArrayExpression(leftField.Field.Field.FieldType, nae.ElementType, nae.Dimensions, nae.SizeOrArrayInitializer);
+                    } else {
+                        replacement = new JSNewPackedArrayExpression(leftField.Field.Field.FieldType, nae.ElementType, nae.SizeOrArrayInitializer);
+                    }
+                    ParentNode.ReplaceChild(nae, replacement);
+                    VisitReplacement(replacement);
+                    return;
+                }
+            }
+
+            VisitChildren(nae);
+        }
+
+        public void VisitNode (JSNewPackedArrayExpression npae) {
+            VisitChildren(npae);
         }
     }
 }

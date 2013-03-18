@@ -198,7 +198,7 @@ function loadNullSound (audioInfo, filename, data, onError, onDoneLoading) {
 
 function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
   var handleError = function (text) {
-    JSIL.Host.warning(new Error("Error while loading '" + filename + "': " + text));
+    JSIL.Host.warning("Error while loading '" + filename + "': " + text);
     return loadNullSound(audioInfo, filename, data, onError, onDoneLoading);
   };
 
@@ -236,7 +236,7 @@ function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
 
 function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) {
   var handleError = function (text) {
-    JSIL.Host.warning(new Error(text));
+    JSIL.Host.warning(text);
     return loadNullSound(audioInfo, filename, data, onError, onDoneLoading);
   };
 
@@ -265,7 +265,7 @@ function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) 
 
 function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoading) {
   var handleError = function (text) {
-    JSIL.Host.warning(new Error(text));
+    JSIL.Host.warning(text);
     return loadNullSound(audioInfo, filename, data, onError, onDoneLoading);
   };
 
@@ -307,7 +307,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
 
 function loadHTML5Sound (audioInfo, filename, data, onError, onDoneLoading) {
   var handleError = function (text) {
-    JSIL.Host.warning(new Error(text));
+    JSIL.Host.warning(text);
     return loadNullSound(audioInfo, filename, data, onError, onDoneLoading);
   };
 

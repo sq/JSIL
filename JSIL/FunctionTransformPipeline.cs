@@ -253,7 +253,7 @@ namespace JSIL.Internal {
 
         private bool FixupPointerArithmetic () {
             if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
-                new FixupPointerArithmetic(TypeSystem, MethodTypes).Visit(Function);
+                new UnsafeCodeTransforms(TypeSystem, MethodTypes).Visit(Function);
 
             return true;
         }

@@ -779,6 +779,10 @@ namespace JSIL.Ast {
                 return (JSField)Values[1];
             }
         }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Field.Field.FieldType;
+        }
     }
 
     public class JSPropertyAccess : JSDotExpressionBase {
@@ -1890,6 +1894,8 @@ namespace JSIL.Ast {
                         } else {
                             return new JSUntranslatableExpression("Conversion of non-constant integral expression '" + inner + "' to pointer");
                         }
+                    } else if (PackedArrayUtil.IsPackedArrayType(innerType)) {
+                        return new JSPinExpression(inner, null, newType);
                     } else {
                         return new JSUntranslatableExpression("Conversion of expression '" + inner + "' to pointer");
                     }
@@ -2496,6 +2502,26 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("sizeof({0})", Type.Type.FullName);
+        }
+    }
+
+    public class JSNewPackedArrayExpression : JSNewArrayExpression {
+        public readonly TypeReference ActualType;
+
+        public JSNewPackedArrayExpression (TypeReference actualType, TypeReference elementType, JSExpression sizeOrArrayInitializer)
+            : base(elementType, sizeOrArrayInitializer) {
+
+            ActualType = actualType;
+        }
+
+        public JSNewPackedArrayExpression (TypeReference actualType, TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null)
+            : base(elementType, dimensions, initializer) {
+
+            ActualType = actualType;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ActualType;
         }
     }
 }

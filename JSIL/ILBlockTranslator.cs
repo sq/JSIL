@@ -1750,18 +1750,35 @@ namespace JSIL {
                     value = materializedValue;
             }
 
+            var valueType = value.GetActualType(TypeSystem);
+
+            if (
+                PackedArrayUtil.IsPackedArrayType(valueType) &&
+                !PackedArrayUtil.IsPackedArrayType(variable.Type)
+            ) {
+                jsv = ChangeVariableType(jsv, valueType);
+            }
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, jsv,
-                value,
-                value.GetActualType(TypeSystem)
+                value, valueType
             );
+        }
+
+        private JSVariable ChangeVariableType (JSVariable variable, TypeReference newType) {
+            var existingVariable = Variables[variable.Identifier];
+            var newVariable = new JSVariable(existingVariable.Name, newType, existingVariable.Function, existingVariable.DefaultValue);
+
+            Variables[variable.Identifier] = newVariable;
+
+            return variable;
         }
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
             var fieldInfo = GetField(field);
             if (fieldInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
-            else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
+            else if (TypeUtil.IsIgnoredType(fieldInfo.FieldType) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo);
 
             JSExpression result = new JSFieldAccess(
@@ -1769,7 +1786,7 @@ namespace JSIL {
                 new JSField(field, fieldInfo)
             );
 
-            if (CopyOnReturn(field.FieldType))
+            if (CopyOnReturn(fieldInfo.FieldType))
                 result = JSReferenceExpression.New(result);
 
             return result;
@@ -2103,12 +2120,34 @@ namespace JSIL {
             if (target.IsNull)
                 return target;
 
-            var indexer = TranslateNode(node.Arguments[1]);
+            var targetType = target.GetActualType(TypeSystem);
+            var index = TranslateNode(node.Arguments[1]);
 
-            JSExpression result = new JSIndexerExpression(
-                target, indexer,
-                expectedType
-            );
+            JSExpression result;
+
+            if (PackedArrayUtil.IsPackedArrayType(targetType)) {
+                var targetGit = (GenericInstanceType)targetType;
+                var targetTypeInfo = TypeInfo.Get(targetType);
+                var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
+                    (kvp) => kvp.Key.Name == "Get"
+                ).Value;
+                var getMethodReference = new MethodReference(
+                    getMethod.Member.Name, targetGit.GenericArguments[0], targetGit
+                );
+
+                result = JSInvocationExpression.InvokeMethod(
+                    new JSMethod(getMethodReference, getMethod, MethodTypes),
+                    target,
+                    new JSExpression[] {
+                        index
+                    }
+                );
+            } else {
+                result = new JSIndexerExpression(
+                    target, index,
+                    expectedType
+                );
+            }
 
             if (CopyOnReturn(expectedType))
                 result = JSReferenceExpression.New(result);
@@ -2135,17 +2174,37 @@ namespace JSIL {
             if (target.IsNull)
                 return target;
 
-            var indexer = TranslateNode(node.Arguments[1]);
+            var targetType = target.GetActualType(TypeSystem);
+            var index = TranslateNode(node.Arguments[1]);
             var rhs = TranslateNode(node.Arguments[2]);
 
-            return new JSBinaryOperatorExpression(
-                JSOperator.Assignment,
-                new JSIndexerExpression(
-                    target, indexer,
-                    expectedType
-                ),
-                rhs, elementType ?? rhs.GetActualType(TypeSystem)
-            );
+            if (PackedArrayUtil.IsPackedArrayType(targetType)) {
+                var targetGit = (GenericInstanceType)targetType;
+                var targetTypeInfo = TypeInfo.Get(targetType);
+                var setMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
+                    (kvp) => kvp.Key.Name == "Set"
+                ).Value;
+                var setMethodReference = new MethodReference(
+                    setMethod.Member.Name, targetGit.GenericArguments[0], targetGit
+                );
+
+                return JSInvocationExpression.InvokeMethod(
+                    new JSMethod(setMethodReference, setMethod, MethodTypes),
+                    target,
+                    new JSExpression[] {
+                        index, rhs
+                    }
+                );
+            } else {
+                return new JSBinaryOperatorExpression(
+                    JSOperator.Assignment,
+                    new JSIndexerExpression(
+                        target, index,
+                        expectedType
+                    ),
+                    rhs, elementType ?? rhs.GetActualType(TypeSystem)
+                );
+            }
         }
 
         protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {

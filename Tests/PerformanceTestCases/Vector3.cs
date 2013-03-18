@@ -1,27 +1,32 @@
 ﻿using System;
+using JSIL.Meta;
 
 public static class Program {
     const int BufferSize = 8192;
-    const int IterationCount = 512;
+    const int IterationCount = 320;
 
     public static Vector3d[] Vectors = new Vector3d[BufferSize];
-    public static byte[] PackedVectors;
+    [JSPackedArray]
+    public static Vector3d[] PackedVectors = new Vector3d[BufferSize];
+    public static byte[] ManuallyPackedVectors;
 
     public static unsafe void Main () {
-        PackedVectors = new byte[sizeof(Vector3d) * BufferSize];
+        ManuallyPackedVectors = new byte[sizeof(Vector3d) * BufferSize];
 
-        fixed (byte* pPackedBytes = PackedVectors) {
+        fixed (byte* pPackedBytes = ManuallyPackedVectors) {
             var pPackedStructs = (Vector3d*)pPackedBytes;
 
             for (int i = 0; i < BufferSize; i++) {
                 Vectors[i] = new Vector3d(i * 0.5, (double)i, i * 1.5);
+                PackedVectors[i] = Vectors[i];
                 pPackedStructs[i] = Vectors[i];
             }
         }
 
         Console.WriteLine("Arrays: {0:00000.00}ms", Time(TestArrays));
-        Console.WriteLine("PackedPointers: {0:00000.00}ms", Time(TestPackedPointers));
-        Console.WriteLine("Pointers: {0:00000.00}ms", Time(TestPointers));
+        Console.WriteLine("ManuallyPackedStructs: {0:00000.00}ms", Time(TestManuallyPackedStructs));
+        Console.WriteLine("PackedStructs: {0:00000.00}ms", Time(TestPackedStructs));
+        Console.WriteLine("PackedStructPointers: {0:00000.00}ms", Time(TestPackedStructPointers));
     }
 
     public static int Time (Func<Vector3d> func) {
@@ -49,8 +54,8 @@ public static class Program {
         return sum;
     }
 
-    public static unsafe Vector3d TestPackedPointers () {
-        fixed (byte* pPackedBytes = PackedVectors) {
+    public static unsafe Vector3d TestManuallyPackedStructs () {
+        fixed (byte* pPackedBytes = ManuallyPackedVectors) {
             Vector3d sum = new Vector3d();
 
             var pCurrent = (Vector3d*)pPackedBytes;
@@ -63,18 +68,29 @@ public static class Program {
         }
     }
 
-    public static unsafe Vector3d TestPointers () {
-        fixed (Vector3d* pVectors = Vectors) {
-            Vector3d sum = new Vector3d();
+    public static unsafe Vector3d TestPackedStructs () {
+        Vector3d sum = new Vector3d();
 
-            var pCurrent = pVectors;
+        for (int i = 0; i < BufferSize; i++) {
+            sum += PackedVectors[i];
+        }
+
+        return sum;
+    }
+
+    public static unsafe Vector3d TestPackedStructPointers () {
+        Vector3d sum = new Vector3d();
+
+        fixed (Vector3d* pStructs = PackedVectors) {
+            var pCurrent = pStructs;
+
             for (int i = 0; i < BufferSize; i++) {
                 sum += *pCurrent;
                 pCurrent++;
             }
-
-            return sum;
         }
+
+        return sum;
     }
 }
 

@@ -6,6 +6,9 @@ if (typeof (JSIL) === "undefined")
 if (!$jsilcore)  
   throw new Error("JSIL.Core is required");
 
+JSIL.DeclareNamespace("JSIL.Runtime");
+JSIL.DeclareNamespace("JSIL.PackedArray");
+
 JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
@@ -72,6 +75,51 @@ JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, []);
 JSIL.MakeStruct("System.ValueType", "System.Void", true, []);
 
 JSIL.DeclareNamespace("System.Runtime.InteropServices");
+
+JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
+  $.Method({Static:true , Public:true }, "StructureToPtr", 
+    (new JSIL.MethodSignature(null, [
+          $.Object, $jsilcore.TypeRef("System.IntPtr"), 
+          $.Boolean
+        ], [])), 
+    function StructureToPtr (structure, ptr, fDeleteOld) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "SizeOf", 
+    (new JSIL.MethodSignature($.Int32, [$.Object], [])), 
+    function SizeOf (structure) {
+      var type = JSIL.GetType(structure);
+      return JSIL.GetNativeSizeOf(structure);
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "SizeOf", 
+    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Type")], [])), 
+    function SizeOf (type) {
+      return JSIL.GetNativeSizeOf(type);
+    }
+  );  
+
+  $.Method({Static:true , Public:true }, "OffsetOf", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$jsilcore.TypeRef("System.Type"), $.String], [])), 
+    function OffsetOf (type, fieldName) {
+      var fields = JSIL.GetFieldList(type);
+
+      for (var i = 0, l = fields.length; i < l; i++) {
+        var field = fields[i];
+        if (field.name === fieldName)
+          return new System.IntPtr(field.offsetBytes);
+      }
+
+      throw new System.Exception("No field named '" + fieldName + "' declared in type");
+    }
+  );
+});
+
+JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {
+});
 
 JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
@@ -514,6 +562,114 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   );
 });
 
+JSIL.MakeInterface(
+  "JSIL.Runtime.IPackedArray`1", true, ["T"], function ($) {
+    var T = new JSIL.GenericParameter("T", "JSIL.Runtime.IPackedArray");
+
+    $.Method(
+      {}, "Get", 
+      new JSIL.MethodSignature(T, [$.Int32], [])
+    );
+
+    $.Method(
+      {}, "Set", 
+      new JSIL.MethodSignature(null, [$.Int32, T], [])
+    );
+
+    $.Method(
+      {}, "get_Length",
+      new JSIL.MethodSignature($.Int32, [], [])
+    );
+
+    $.Property({}, "Length");
+  }, []
+);
+
+JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.PackedStructArray");
+
+  $.RawMethod(false, ".ctor",
+    function PackedStructArray_ctor (buffer) {
+      this.__IsPackedArray__ = true;
+      this.buffer = buffer;
+      this.memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
+      this.bytes = this.memoryRange.getView($jsilcore.System.Byte.__Type__);
+      this.nativeSize = this.T.__NativeSize__;
+      this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(this.T);
+      // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
+      this.marshaller = JSIL.$GetStructMarshaller(this.T);
+      this.length = (buffer.byteLength / this.nativeSize) >>> 0;
+    }
+  );
+
+  $.Method(
+    {}, "Get", 
+    new JSIL.MethodSignature(T, [$.Int32], []),
+    function PackedStructArray_Get (index) {
+      var offsetInBytes = (index * this.nativeSize) | 0;
+      return new this.unmarshalConstructor(this.bytes, offsetInBytes);
+    }
+  );
+
+  $.Method(
+    {}, "Set", 
+    new JSIL.MethodSignature(null, [$.Int32, T], []),
+    function PackedStructArray_Set (index, value) {
+      var offsetInBytes = (index * this.nativeSize) | 0;
+      this.marshaller(value, this.bytes, offsetInBytes);
+      return value;
+    }
+  );
+
+  $.Method(
+    {}, "get_Length",
+    new JSIL.MethodSignature($.Int32, [], []),
+    function PackedStructArray_get_Length () {
+      return this.length;
+    }
+  );
+
+  $.Property({}, "Length");
+
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("JSIL.Runtime.IPackedArray`1", [T])
+  );
+});
+
+JSIL.IsPackedArray = function IsPackedArray (object) {
+  return !!object.__IsPackedArray__;
+};
+
+JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer) {
+  var elementTypeObject = null, elementTypePublicInterface = null;
+
+  if (typeof (elementType.__Type__) === "object") {
+    elementTypeObject = elementType.__Type__;
+    elementTypePublicInterface = elementType;
+  } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
+    elementTypeObject = elementType;
+    elementTypePublicInterface = elementType.__PublicInterface__;
+  }
+
+  if (!elementTypeObject.__IsStruct__)
+    throw new System.NotImplementedException("Cannot initialize a packed array with non-struct elements");
+
+  var result = null, size = 0;
+  var initializerIsArray = JSIL.IsArray(sizeOrInitializer);
+
+  if (initializerIsArray) {
+    throw new System.NotImplementedException("Cannot initialize a packed struct array with values");
+  } else {
+    size = Number(sizeOrInitializer);
+  }
+
+  var sizeInBytes = (JSIL.GetNativeSizeOf(elementTypeObject) * size) | 0;
+  var buffer = new ArrayBuffer(sizeInBytes);
+  var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
+
+  return new arrayType(buffer);
+};
+
 if (typeof (WeakMap) !== "undefined") {
   $jsilcore.MemoryRangeCache = new WeakMap();
 } else {
@@ -556,8 +712,11 @@ JSIL.GetMemoryRangeForBuffer = function (buffer) {
 };
 
 JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
-  if (!JSIL.IsArray(objectToPin))
+  var isPackedArray = JSIL.IsPackedArray(objectToPin);
+
+  if (!JSIL.IsArray(objectToPin) && !isPackedArray) {
     throw new Error("Object being pinned must be an array");
+  }
 
   var buffer = objectToPin.buffer;
   if (!buffer)
@@ -570,10 +729,21 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   var offsetInBytes = offsetInElements * objectToPin.BYTES_PER_ELEMENT;
 
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
-  memoryRange.storeExistingView(objectToPin);
+  var memoryView;
+
+  if (!isPackedArray) {
+    memoryRange.storeExistingView(objectToPin);
+    memoryView = objectToPin;
+  } else {
+    memoryView = memoryRange.getView($jsilcore.System.Byte.__Type__);
+  }
+
+  var elementType = null;
+  if (isPackedArray)
+    elementType = objectToPin.T;
 
   var pointer = JSIL.NewPointer(
-    null, memoryRange, objectToPin, offsetInBytes
+    elementType, memoryRange, memoryView, offsetInBytes
   );
 
   return pointer;
@@ -856,50 +1026,5 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     }
   }
 };
-
-JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
-  $.Method({Static:true , Public:true }, "StructureToPtr", 
-    (new JSIL.MethodSignature(null, [
-          $.Object, $jsilcore.TypeRef("System.IntPtr"), 
-          $.Boolean
-        ], [])), 
-    function StructureToPtr (structure, ptr, fDeleteOld) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "SizeOf", 
-    (new JSIL.MethodSignature($.Int32, [$.Object], [])), 
-    function SizeOf (structure) {
-      var type = JSIL.GetType(structure);
-      return JSIL.GetNativeSizeOf(structure);
-    }
-  )
-
-  $.Method({Static:true , Public:true }, "SizeOf", 
-    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Type")], [])), 
-    function SizeOf (type) {
-      return JSIL.GetNativeSizeOf(type);
-    }
-  );  
-
-  $.Method({Static:true , Public:true }, "OffsetOf", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$jsilcore.TypeRef("System.Type"), $.String], [])), 
-    function OffsetOf (type, fieldName) {
-      var fields = JSIL.GetFieldList(type);
-
-      for (var i = 0, l = fields.length; i < l; i++) {
-        var field = fields[i];
-        if (field.name === fieldName)
-          return new System.IntPtr(field.offsetBytes);
-      }
-
-      throw new System.Exception("No field named '" + fieldName + "' declared in type");
-    }
-  );
-});
-
-JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {
-});
 
 // FIXME: Implement unpin operation? Probably not needed yet.

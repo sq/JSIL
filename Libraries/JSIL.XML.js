@@ -656,7 +656,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
           return this.$setCurrentNode(null, sAfterDocument);
         }
       default:
-        JSIL.Host.warning("Unsupported node type: ", node.nodeType, " ", node);
+        JSIL.Host.warning("Unsupported node type: " + node.nodeType + " " + node);
         return false;
     }
 

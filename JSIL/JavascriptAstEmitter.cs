@@ -1502,10 +1502,18 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNewArrayExpression newarray) {
-            if (newarray.IsMultidimensional)
-                Output.WriteRaw("JSIL.MultidimensionalArray.New");
-            else
-                Output.WriteRaw("JSIL.Array.New");
+            if (newarray is JSNewPackedArrayExpression) {
+                if (newarray.IsMultidimensional) {
+                    VisitNode(new JSUntranslatableExpression("Multidimensional packed array"));
+                    return;
+                } else
+                    Output.WriteRaw("JSIL.PackedArray.New");
+            } else {
+                if (newarray.IsMultidimensional)
+                    Output.WriteRaw("JSIL.MultidimensionalArray.New");
+                else
+                    Output.WriteRaw("JSIL.Array.New");
+            }
 
             Output.LPar();
 

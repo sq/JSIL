@@ -46,7 +46,7 @@ if (JSIL.Host.isBrowser) {
       try {
         this.buffer = this.context.getImageData(0, 0, this.image.naturalWidth, this.image.naturalHeight);
       } catch (e) {
-        JSIL.Host.warning("Failed to read image pixels for '" + filename + "'", e);
+        JSIL.Host.warning("Failed to read image pixels for '" + filename + "':" + e);
         this.buffer = this.context.createImageData(this.image.naturalWidth, this.image.naturalHeight);
       }
       */

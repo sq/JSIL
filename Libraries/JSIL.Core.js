@@ -232,12 +232,13 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var isSystem = (shortName === "System") || (assemblyName.indexOf("System,") === 0);
   var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
   var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
+  var isJsilMeta = (shortName === "JSIL.Meta") || (assemblyName.indexOf("JSIL.Meta,") === 0);
 
   // Create a new private global namespace for the new assembly
   var template = {};
 
   // Ensure that BCL private namespaces inherit from the JSIL namespace.
-  if (isMscorlib || isSystem || isSystemCore || isSystemXml)
+  if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta)
     template = $jsilcore;
 
   var result = Object.create(template);
@@ -863,7 +864,7 @@ JSIL.GetTypeByName = function (name, assembly) {
       if (typeof (typeFunction) === "function")
         return typeFunction(false);
     } else {
-      JSIL.Host.warning("Invalid assembly reference passed to GetTypeByName: ", assembly);
+      JSIL.Host.warning("Invalid assembly reference passed to GetTypeByName: " + assembly);
     }
   }
 
@@ -891,7 +892,11 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
         throw new Error("Type '" + name + "' has multiple public definitions. You must access it through a specific assembly.");
       };
 
-      JSIL.Host.warning("Public type '" + name + "' defined twice: ", existingAssembly.toString(), " and ", $private.toString());
+      JSIL.Host.warning(
+        "Public type '" + name + "' defined twice: " + 
+        existingAssembly.toString() + " and " + 
+        $private.toString()
+      );
 
       delete JSIL.$PublicTypeAssemblies[key];
     } else {
@@ -2389,7 +2394,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     var ifaceName = iface.__FullNameWithoutArguments__ || iface.__FullName__;
     var ifaceLocalName = JSIL.GetLocalName(ifaceName);
     if (iface.IsInterface !== true) {
-      JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
+      JSIL.Host.warning("Type " + ifaceName + " is not an interface.");
       continue __interfaces__;
     }
 
@@ -2465,7 +2470,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
   if (missingMembers.length > 0) {
     if (JSIL.SuppressInterfaceWarnings !== true)
-      JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): ", missingMembers.join(", "));
+      JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): " + missingMembers.join(", "));
   }
 };
 

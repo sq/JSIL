@@ -89,12 +89,13 @@
     <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="MemberIdentifier.cs" />
     <Compile Include="MethodSignature.cs" />
+    <Compile Include="PackedStructArray.cs" />
     <Compile Include="Progress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
     <Compile Include="Threading.cs" />
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
-    <Compile Include="Transforms\FixupPointerArithmetic.cs" />
+    <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
     <Compile Include="Transforms\DecomposeMutationOperators.cs" />
     <Compile Include="Transforms\FixupStructConstructorInvocations.cs" />
     <Compile Include="Transforms\EmulateInt64.cs" />

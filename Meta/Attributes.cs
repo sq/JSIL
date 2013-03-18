@@ -160,4 +160,13 @@ namespace JSIL.Meta {
     )]
     public class JSAlwaysAccessAsProperty : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that the target should be represented as a packed struct array in JavaScript
+    ///  instead of as a normal JavaScript array containing object instances.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field)]
+    [JSIL.Runtime.LinkedType(typeof(JSIL.Runtime.IPackedArray<>))]
+    public class JSPackedArray : Attribute {
+    }
 }

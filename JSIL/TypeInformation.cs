@@ -1167,9 +1167,11 @@ namespace JSIL.Internal {
 
     public class AttributeGroup {
         public struct Entry {
+            public readonly TypeReference Type;
             public readonly IList<CustomAttributeArgument> Arguments;
 
             public Entry (CustomAttribute ca) {
+                Type = ca.AttributeType;
                 Arguments = ca.ConstructorArguments;
             }
         }
@@ -1507,6 +1509,7 @@ namespace JSIL.Internal {
 
     public class FieldInfo : MemberInfo<FieldDefinition> {
         public readonly bool IsBackingField;
+        public readonly TypeReference FieldType;
         protected readonly string OriginalName;
 
         public FieldInfo (
@@ -1521,6 +1524,14 @@ namespace JSIL.Internal {
 
             if (IsBackingField)
                 OriginalName = String.Format("{0}${1}", Util.EscapeIdentifier(parent.Name), OriginalName);
+
+            var psa = Metadata.GetAttribute("JSIL.Meta.JSPackedArray");
+
+            if ((psa != null) && (psa.Entries.Count > 0)) {
+                FieldType = PackedArrayUtil.MakePackedArrayType(Member.FieldType, psa.Entries[0].Type);
+            } else {
+                FieldType = Member.FieldType;
+            }
         }
 
         protected override string GetName () {
@@ -1531,7 +1542,7 @@ namespace JSIL.Internal {
         }
 
         public override TypeReference ReturnType {
-            get { return Member.FieldType; }
+            get { return FieldType; }
         }
 
         public bool IsImmutable {
