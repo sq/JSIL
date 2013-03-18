@@ -48,6 +48,18 @@ namespace JSIL.Tests {
                 Console.WriteLine(test.RunJavascript(null, MakeUnsafeConfiguration));
             }
         }
+
+        [Test]
+        public void Vector3 () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\Vector3.cs"
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null, makeConfiguration: MakeUnsafeConfiguration));
+            }
+        }
     }
 
     [TestFixture]

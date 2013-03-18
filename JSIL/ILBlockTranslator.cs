@@ -1137,7 +1137,7 @@ namespace JSIL {
         //
 
         protected JSExpression Translate_Sizeof (ILExpression node, TypeReference type) {
-            return new JSUntranslatableExpression("Sizeof");
+            return new JSSizeOfExpression(new JSTypeOfExpression(type));
         }
 
         protected bool UnwrapValueOfExpression (ref JSExpression expression) {

@@ -2450,4 +2450,27 @@ namespace JSIL.Ast {
             return Expression.GetActualType(typeSystem);
         }
     }
+
+    public class JSSizeOfExpression : JSExpression {
+        public JSSizeOfExpression (JSType type) 
+            : base (type) {
+
+            if (type == null)
+                throw new ArgumentNullException("type");
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Int32;
+        }
+
+        public override string ToString () {
+            return String.Format("sizeof({0})", Type.Type.FullName);
+        }
+    }
 }

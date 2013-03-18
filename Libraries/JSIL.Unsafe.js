@@ -129,7 +129,24 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
         this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
         this.offsetInElements = this.offsetInBytes >>> this.shift;
       } else {
-        return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+        // FIXME: Not generating strongly typed pointers
+        return new JSIL.Pointer(
+          this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0
+        );
+      }
+    }
+  );
+
+  $.RawMethod(false, "addElements",
+    function Pointer_AddElements (offsetInElements, modifyInPlace) {
+      if (modifyInPlace === true) {
+        this.offsetInElements = (this.offsetInElements + offsetInElements) | 0;
+        this.offsetInBytes = (this.offsetInBytes + (offsetInElements << this.shift)) | 0;
+      } else {
+        // FIXME: Not generating strongly typed pointers
+        return new JSIL.Pointer(
+          this.memoryRange, this.view, (this.offsetInBytes + (offsetInElements << this.shift)) | 0
+        );
       }
     }
   );
@@ -347,6 +364,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       this.memoryRange = memoryRange;
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
+      this.nativeSize = structType.__NativeSize__;
     }
   );
 
@@ -356,6 +374,31 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       target.memoryRange = source.memoryRange;
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
+      target.nativeSize = source.nativeSize;
+    }
+  );
+
+  $.RawMethod(false, "add",
+    function StructPointer_Add (offsetInBytes, modifyInPlace) {
+      if (modifyInPlace === true) {
+        this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
+      } else {
+        return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+      }
+    }
+  );
+
+  $.RawMethod(false, "addElements",
+    function StructPointer_AddElements (offsetInElements, modifyInPlace) {
+      if (modifyInPlace === true) {
+        this.offsetInBytes = (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0;
+      } else {
+        return new JSIL.StructPointer(
+          this.structType, 
+          this.memoryRange, this.view, 
+          (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0
+        );
+      }
     }
   );
 
@@ -376,13 +419,19 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "getElement",
     function StructPointer_GetElement (offsetInElements) {
-      throw new Error("Not implemented");
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
+
+      var result = new (this.structType.__PublicInterface__)();
+      JSIL.UnmarshalStruct(result, this.view, offsetInBytes);
+      return result;
     }
   );
 
   $.RawMethod(false, "setElement",
     function StructPointer_SetElement (offsetInElements, value) {
-      throw new Error("Not implemented");
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
+      JSIL.MarshalStruct(value, this.view, offsetInBytes);
+      return value;
     }
   );
 

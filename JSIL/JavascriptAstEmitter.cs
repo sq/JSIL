@@ -1888,5 +1888,12 @@ namespace JSIL {
             OverflowCheckStack.Pop();
             Output.RPar();
         }
+
+        public void VisitNode (JSSizeOfExpression sizeofExp) {
+            Output.WriteRaw("JSIL.GetNativeSizeOf");
+            Output.LPar();
+            Visit(sizeofExp.Type);
+            Output.RPar();
+        }
     }
 }
