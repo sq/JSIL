@@ -2833,14 +2833,14 @@ JSIL.ImplementExternals("System.Activator", function ($) {
   );
 
   $.Method({Static:true , Public:true }, "CreateInstance", 
-    (new JSIL.MethodSignature($.Object, [], ["T"])), 
+    (new JSIL.MethodSignature("!!0", [], ["T"])), 
     function CreateInstance (T) {
       return JSIL.CreateInstanceOfType(T, []);
     }
   );
 
   $.Method({Static:true , Public:true }, "CreateInstance", 
-    (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Array", [$.Object])], ["T"])), 
+    (new JSIL.MethodSignature("!!0", [mscorlib.TypeRef("System.Array", [$.Object])], ["T"])), 
     function CreateInstance (T, args) {
       if (!args)
         args = [];
