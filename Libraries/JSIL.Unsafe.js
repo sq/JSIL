@@ -722,20 +722,22 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   if (!buffer)
     throw new Error("Object being pinned must have an underlying memory buffer");
 
-  offsetInElements = offsetInElements || 0;
+  offsetInElements = (offsetInElements || 0) | 0;
   if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length))
     throw new Error("offsetInElements outside the array");
 
-  var offsetInBytes = offsetInElements * objectToPin.BYTES_PER_ELEMENT;
-
+  var offsetInBytes;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   var memoryView;
 
   if (!isPackedArray) {
     memoryRange.storeExistingView(objectToPin);
     memoryView = objectToPin;
+
+    offsetInBytes = (offsetInElements * objectToPin.BYTES_PER_ELEMENT) | 0;
   } else {
     memoryView = memoryRange.getView($jsilcore.System.Byte.__Type__);
+    offsetInBytes = (offsetInElements * objectToPin.nativeSize) | 0;
   }
 
   var elementType = null;

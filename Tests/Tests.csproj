@@ -360,6 +360,7 @@
     <None Include="UnsafeTestCases\StructMemberOffsets.cs" />
     <None Include="UnsafeTestCases\PinAndReadPackedStructArray.cs" />
     <None Include="UnsafeTestCases\PackedStructArray.cs" />
+    <None Include="UnsafeTestCases\PinPackedStructArrayWithOffset.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

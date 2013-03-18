@@ -1880,8 +1880,23 @@ namespace JSIL.Ast {
 
                     var innerType = inner.GetActualType(typeSystem);
                     var indexer = inner as JSIndexerExpression;
+                    var invocation = inner as JSInvocationExpression;
                     if (indexer != null) {
                         return new JSPinExpression(indexer.Target, indexer.Index, newType);
+                    } else if (
+                        (invocation != null) && 
+                        (invocation.ThisReference != null) &&
+                        (invocation.JSMethod != null) &&
+                        invocation.JSMethod.Method.Name.EndsWith("Get") &&
+                        PackedArrayUtil.IsPackedArrayType(invocation.ThisReference.GetActualType(typeSystem))
+                    ) {
+                        var offsetInElements = invocation.Arguments[0];
+
+                        return new JSPinExpression(
+                            invocation.ThisReference, 
+                            offsetInElements, 
+                            newType
+                        );
                     } else if (TypeUtil.IsArray(innerType)) {
                         return new JSPinExpression(inner, null, newType);
                     } else if (TypeUtil.IsIntegral(innerType)) {
