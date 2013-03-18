@@ -1289,10 +1289,8 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            if (!makingSkeletons) {
-                output.WriteRaw("$ = $interfaceBuilder; $thisType = $.publicInterface");
-                output.Semicolon(true);
-            }
+            output.WriteRaw("$ = $interfaceBuilder");
+            output.Semicolon(true);
 
             context.CurrentType = typedef;
 
@@ -1358,6 +1356,10 @@ namespace JSIL {
                 output.CommaSeparatedList(interfaces, astEmitter.ReferenceContext, ListValueType.TypeReference);
                 output.RPar();
             }
+
+            output.NewLine();
+            output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+            output.Semicolon(false);
         }
 
         internal JSFunctionExpression TranslateMethodExpression (

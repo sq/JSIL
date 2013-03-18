@@ -1475,8 +1475,13 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
         var ifn = state.initializer;
         state.constructing = true;
 
+        var setThisType = null;
+
         try {
-          ifn(result);
+          setThisType = ifn(result);
+
+          if (typeof(setThisType) === "function")
+            setThisType(result);          
         } catch (exc) {
           JSIL.Host.abort(exc);
         } finally {
@@ -3930,7 +3935,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   if (initializer) {
     wrappedInitializer = function (to) {
       var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, to.__Type__, to);
-      initializer(interfaceBuilder);
+      return initializer(interfaceBuilder);
     };
   }
 
@@ -4428,33 +4433,11 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     return state;
   };
 
-  if (getTypeObject) {
-    var decl = {
-      value: fullName + ".__creator__",
-      configurable: true,
-      enumerable: true
-    };
-
-    Object.defineProperty(getTypeObject, "__name__", decl);
-    Object.defineProperty(getTypeObject, "debugName", decl);
-    Object.defineProperty(getTypeObject, "displayName", decl);
-  }
-
   var wrappedInitializer = null;
   if (initializer) {
-    var decl = {
-      value: fullName + ".__initializer__",
-      configurable: true,
-      enumerable: true
-    };
-
-    Object.defineProperty(initializer, "__name__", decl);
-    Object.defineProperty(initializer, "debugName", decl);
-    Object.defineProperty(initializer, "displayName", decl);
-
     wrappedInitializer = function (to) {
       var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, to.__Type__, to);
-      initializer(interfaceBuilder);
+      return initializer(interfaceBuilder);
     };
   }
 
