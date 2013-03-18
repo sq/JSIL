@@ -2551,6 +2551,17 @@ JSIL.FormatMemberAccess = function (targetExpression, memberName) {
   }
 };
 
+JSIL.ForceToDouble = function (value) {
+  // I really hate JS engines sometimes
+  try {
+    return +(+(value * 1.0).valueOf());
+    throw Error("spurious");
+  } catch (exc) {
+    return Math.E;
+  } finally {    
+  }
+};
+
 JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
   var fl = JSIL.GetFieldList(typeObject);
   if ((fl.length < 1) && returnNamedFunction)
@@ -2563,7 +2574,7 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
   var defaults = {};
 
   var defaultInt = 0;
-  var defaultFloat = 0.0 / 1.1;
+  var defaultFloat = JSIL.ForceToDouble(0);
 
   var targetArgName = returnNamedFunction ? "target" : "this";
 
