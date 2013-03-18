@@ -622,7 +622,7 @@ JSIL.$MakeStructUnmarshalConstructor = function (typeObject) {
   var closure = {};
   var body = [];
 
-  JSIL.$MakeStructMarshalFunctionSource(typeObject, false, "this", closure, body);
+  JSIL.$MakeStructMarshalFunctionSource(typeObject, false, true, closure, body);
 
   var constructor =  JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".UnmarshalConstructor",
@@ -640,7 +640,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   var closure = {};
   var body = [];
 
-  JSIL.$MakeStructMarshalFunctionSource(typeObject, marshal, "struct", closure, body);
+  JSIL.$MakeStructMarshalFunctionSource(typeObject, marshal, false, closure, body);
 
   return JSIL.CreateNamedFunction(
     typeObject.__FullName__ + (marshal ? ".Marshal" : ".Unmarshal"),
@@ -650,7 +650,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   );
 };
 
-JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, structArgName, closure, body) {
+JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
@@ -658,6 +658,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, structArg
   var clampedByteView = null;
 
   var localOffsetDeclared = false;
+  var structArgName = isConstructor ? "this" : "struct";
 
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
@@ -695,12 +696,21 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, structArg
 
         if (marshal)
           closure[funcKey] = JSIL.$GetStructMarshaller(field.type);
-        else
-          closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
+        else {
+          if (isConstructor)
+            closure[funcKey] = JSIL.$GetStructUnmarshalConstructor(field.type);
+          else
+            closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
+        }
 
-        body.push(
-          funcKey + "(" + structArgName + "." + field.name + ", bytes, (offset + " + offset + ") | 0);"
-        );
+        if (!marshal && isConstructor)
+          body.push(
+            structArgName + "." + field.name + " = new " + funcKey + "(bytes, (offset + " + offset + ") | 0);"
+          );
+        else
+          body.push(
+            funcKey + "(" + structArgName + "." + field.name + ", bytes, (offset + " + offset + ") | 0);"
+          );
       } else {
         throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
       }
