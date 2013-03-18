@@ -565,10 +565,16 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 JSIL.MakeInterface(
   "JSIL.Runtime.IPackedArray`1", true, ["T"], function ($) {
     var T = new JSIL.GenericParameter("T", "JSIL.Runtime.IPackedArray");
+    var TRef = JSIL.Reference.Of(T);
 
     $.Method(
       {}, "Get", 
       new JSIL.MethodSignature(T, [$.Int32], [])
+    );
+
+    $.Method(
+      {}, "GetReference", 
+      new JSIL.MethodSignature(TRef, [$.Int32], [])
     );
 
     $.Method(
@@ -587,6 +593,7 @@ JSIL.MakeInterface(
 
 JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function ($) {
   var T = new JSIL.GenericParameter("T", "JSIL.PackedStructArray");
+  var TRef = JSIL.Reference.Of(T);
 
   $.RawMethod(false, ".ctor",
     function PackedStructArray_ctor (buffer) {
@@ -595,6 +602,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
       this.memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
       this.bytes = this.memoryRange.getView($jsilcore.System.Byte.__Type__);
       this.nativeSize = this.T.__NativeSize__;
+      this.elementReferenceConstructor = JSIL.$GetStructElementReferenceConstructor(this.T);
       this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(this.T);
       // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
       this.marshaller = JSIL.$GetStructMarshaller(this.T);
@@ -608,6 +616,15 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
     function PackedStructArray_Get (index) {
       var offsetInBytes = (index * this.nativeSize) | 0;
       return new this.unmarshalConstructor(this.bytes, offsetInBytes);
+    }
+  );
+
+  $.Method(
+    {}, "GetReference", 
+    new JSIL.MethodSignature(TRef, [$.Int32], []),
+    function PackedStructArray_GetReference (index) {
+      var offsetInBytes = (index * this.nativeSize) | 0;
+      return new this.elementReferenceConstructor(this.bytes, offsetInBytes);
     }
   );
 
@@ -776,9 +793,9 @@ JSIL.PointerLiteral = function (value) {
 };
 
 JSIL.$GetStructMarshaller = function (typeObject) {
-  var marshaller = typeObject.__StructMarshaller__;
+  var marshaller = typeObject.__Marshaller__;
   if (marshaller === $jsilcore.FunctionNotInitialized)
-    marshaller = typeObject.__StructMarshaller__ = JSIL.$MakeStructMarshaller(typeObject);
+    marshaller = typeObject.__Marshaller__ = JSIL.$MakeStructMarshaller(typeObject);
 
   return marshaller;
 }
@@ -790,20 +807,28 @@ JSIL.MarshalStruct = function Struct_Marshal (struct, bytes, offset) {
 };
 
 JSIL.$GetStructUnmarshaller = function (typeObject) {
-  var unmarshaller = typeObject.__StructUnmarshaller__;
+  var unmarshaller = typeObject.__Unmarshaller__;
   if (unmarshaller === $jsilcore.FunctionNotInitialized)
-    unmarshaller = typeObject.__StructUnmarshaller__ = JSIL.$MakeStructUnmarshaller(typeObject);
+    unmarshaller = typeObject.__Unmarshaller__ = JSIL.$MakeStructUnmarshaller(typeObject);
 
   return unmarshaller;
-}
+};
 
 JSIL.$GetStructUnmarshalConstructor = function (typeObject) {
-  var unmarshalConstructor = typeObject.__StructUnmarshalConstructor__;
+  var unmarshalConstructor = typeObject.__UnmarshalConstructor__;
   if (unmarshalConstructor === $jsilcore.FunctionNotInitialized)
-    unmarshalConstructor = typeObject.__StructUnmarshalConstructor__ = JSIL.$MakeStructUnmarshalConstructor(typeObject);
+    unmarshalConstructor = typeObject.__UnmarshalConstructor__ = JSIL.$MakeStructUnmarshalConstructor(typeObject);
 
   return unmarshalConstructor;
-}
+};
+
+JSIL.$GetStructElementReferenceConstructor = function (typeObject) {
+  var elementReferenceConstructor = typeObject.__ElementReferenceConstructor__;
+  if (elementReferenceConstructor === $jsilcore.FunctionNotInitialized)
+    elementReferenceConstructor = typeObject.__ElementReferenceConstructor__ = JSIL.$MakeElementReferenceConstructor(typeObject);
+
+  return elementReferenceConstructor;
+};
 
 JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
   var thisType = struct.__ThisType__;
@@ -911,7 +936,7 @@ JSIL.$MakeStructUnmarshalConstructor = function (typeObject) {
   JSIL.$MakeStructMarshalFunctionSource(typeObject, false, true, closure, body);
 
   var constructor =  JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + ".UnmarshalConstructor",
+    typeObject.__FullName__ + ".UnmarshalledInstance",
     ["bytes", "offset"],
     body.join('\n'),
     closure
@@ -957,21 +982,23 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     var nativeView = marshallingScratchBuffer.getView(field.type, false);
     var nativeViewKey, byteViewKey;
 
-    // Attempt to reuse existing views so the closure contains less references
-    var foundExistingViews = false;
-    for (var j = 0; j < i; j++) {
-      nativeViewKey = "nativebuf" + j;
-      byteViewKey = "bytebuf" + j;
+    if (nativeView) {
+      // Attempt to reuse existing views so the closure contains less references
+      var foundExistingViews = false;
+      for (var j = 0; j < i; j++) {
+        nativeViewKey = "nativebuf" + j;
+        byteViewKey = "bytebuf" + j;
 
-      if (closure[nativeViewKey] === nativeView) {
-        foundExistingViews = true;
-        break;
+        if (closure[nativeViewKey] === nativeView) {
+          foundExistingViews = true;
+          break;
+        }
       }
-    }
 
-    if (!foundExistingViews) {
-      nativeViewKey = "nativebuf" + i;
-      byteViewKey = "bytebuf" + i;
+      if (!foundExistingViews) {
+        nativeViewKey = "nativebuf" + i;
+        byteViewKey = "bytebuf" + i;
+      }
     }
 
     if (!nativeView) {
@@ -1027,6 +1054,109 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       }
     }
   }
+};
+
+JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
+  return function UnmarshallableField () {
+    throw new Error("Field '" + fieldName + "' cannot be marshaled");
+  };
+};
+
+JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) {
+  // FIXME: Should this be creating named closures for better performance? I'm not sure.
+  if (nativeView) {
+    var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
+    var fieldOffset = field.offsetBytes;
+    var fieldSize = field.sizeBytes;
+
+    if (makeSetter) {
+      return function FieldSetter (value) {
+        var bytes = this.$bytes;
+        var offset = (this.$offset + fieldOffset) | 0;
+
+        nativeView[0] = value;
+        bytes.set(clampedByteView, offset);
+      };
+    } else {
+      return function FieldGetter () {
+        var bytes = this.$bytes;
+        var offset = (this.$offset + fieldOffset) | 0;
+
+        for (var i = 0; i < fieldSize; i++)
+          clampedByteView[i] = bytes[(offset + i) | 0];
+
+        return nativeView[0];
+      };
+    }
+
+  } else if (field.type.__IsStruct__) {  
+    if (makeSetter) {
+      var marshaller = JSIL.$GetStructMarshaller(field.type);
+
+      return function StructFieldSetter (value) {
+        var bytes = this.$bytes;
+        var offset = (this.$offset + fieldOffset) | 0;
+
+        marshaller(value, bytes, offset);
+      };
+    } else {
+      var unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(field.type);
+
+      return function StructFieldGetter () {
+        var bytes = this.$bytes;
+        var offset = (this.$offset + fieldOffset) | 0;
+
+        return new unmarshalConstructor(bytes, offset);
+      };
+    }
+    
+  } else {
+    return JSIL.$MakeUnmarshallableFieldAccessor(field.name); 
+  }
+};
+
+JSIL.$MakeElementReferenceConstructor = function (typeObject) {
+  var elementReferencePrototype = Object.create(typeObject.__PublicInterface__.prototype);
+  var fields = JSIL.GetFieldList(typeObject);
+
+  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
+  var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
+
+  for (var i = 0, l = fields.length; i < l; i++) {
+    var field = fields[i];
+    var offset = field.offsetBytes;
+    var size = field.sizeBytes;
+
+    var getter, setter;
+
+    if (size <= 0) {
+      getter = setter = JSIL.$MakeUnmarshallableFieldAccessor(field.name);
+    } else {
+      var nativeView = marshallingScratchBuffer.getView(field.type, false);
+      getter = JSIL.$MakeFieldMarshaller(field, viewBytes, nativeView, false);
+      setter = JSIL.$MakeFieldMarshaller(field, viewBytes, nativeView, true);
+    }
+
+    // FIXME: The use of get/set functions here will really degrade performance in some JS engines
+    Object.defineProperty(
+      elementReferencePrototype, field.name,
+      {
+        get: getter,
+        set: setter,
+        configurable: false,
+        enumerable: true
+      }
+    );
+  }      
+
+  var constructor = function ElementReference (bytes, offset) {
+    this.$bytes = bytes;
+    this.$offset = offset;
+  };
+
+  constructor.prototype = elementReferencePrototype;
+
+  return constructor;
 };
 
 // FIXME: Implement unpin operation? Probably not needed yet.

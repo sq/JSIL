@@ -2002,7 +2002,8 @@ $jsilcore.$Of$NoInitialize = function () {
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
     "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
     "__FieldList__", "__InterfaceMembers__",
-    "__StructComparer__", "__StructMarshaller__", "__StructUnmarshaller__", "__StructUnmarshalConstructor__"
+    "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
+    "__UnmarshalConstructor__", "__ElementReferenceConstructor__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -4331,10 +4332,11 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
-    typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
-    typeObject.__StructMarshaller__ = $jsilcore.FunctionNotInitialized;
-    typeObject.__StructUnmarshaller__ = $jsilcore.FunctionNotInitialized;
-    typeObject.__StructUnmarshalConstructor__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__Comparer__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__Marshaller__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__Unmarshaller__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__UnmarshalConstructor__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__ElementReferenceConstructor__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -6425,9 +6427,9 @@ JSIL.StructEquals = function Struct_Equals (lhs, rhs) {
     return false;
 
   var thisType = lhs.__ThisType__;
-  var comparer = thisType.__StructComparer__;
+  var comparer = thisType.__Comparer__;
   if (comparer === $jsilcore.FunctionNotInitialized)
-    comparer = thisType.__StructComparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
+    comparer = thisType.__Comparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
 
   return comparer(lhs, rhs);
 };

@@ -8,12 +8,12 @@ public static class Program {
     public static unsafe void Main (string[] args) {
         PackedArray[0] = new IntFloatPair {
             Int = 1,
-            Float = 2
+            Float = 2.22f
         };
         PackedArray[1] = PackedArray[0];
 
-        // FIXME: This should fail right now. Need a solution for taking references to elements of a packed struct array.
         PackedArray[0].Int += 2;
+        PackedArray[0].Float += 1.1f;
 
         foreach (var item in PackedArray)
             Console.WriteLine(item);

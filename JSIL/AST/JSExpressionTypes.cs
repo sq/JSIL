@@ -1887,7 +1887,10 @@ namespace JSIL.Ast {
                         (invocation != null) && 
                         (invocation.ThisReference != null) &&
                         (invocation.JSMethod != null) &&
-                        invocation.JSMethod.Method.Name.EndsWith("Get") &&
+                        (
+                            invocation.JSMethod.Method.Name.EndsWith("Get") ||
+                            invocation.JSMethod.Method.Name.EndsWith("GetReference")
+                        ) &&
                         PackedArrayUtil.IsPackedArrayType(invocation.ThisReference.GetActualType(typeSystem))
                     ) {
                         var offsetInElements = invocation.Arguments[0];

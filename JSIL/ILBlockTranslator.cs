@@ -33,7 +33,6 @@ namespace JSIL {
         protected int UnlabelledBlockCount = 0;
         protected int NextSwitchId = 0;
 
-        protected readonly Stack<bool> InFixedStatement = new Stack<bool>();
         protected readonly Stack<bool> AutoCastingState = new Stack<bool>();
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
@@ -109,7 +108,6 @@ namespace JSIL {
             }
 
             AutoCastingState.Push(true);
-            InFixedStatement.Push(false);
         }
 
         protected TypeReference FixupReference (TypeReference reference) {
@@ -740,23 +738,17 @@ namespace JSIL {
         }
 
         public JSBlockStatement TranslateNode (ILFixedStatement fxd) {
-            InFixedStatement.Push(true);
+            var block = TranslateNode(fxd.BodyBlock);
 
-            try {
-                var block = TranslateNode(fxd.BodyBlock);
+            for (var i = 0; i < fxd.Initializers.Count; i++) {
+                var initializer = fxd.Initializers[i];
 
-                for (var i = 0; i < fxd.Initializers.Count; i++) {
-                    var initializer = fxd.Initializers[i];
+                var pinStatement = TranslateFixedInitializer(initializer);
 
-                    var pinStatement = TranslateFixedInitializer(initializer);
-
-                    block.Statements.Insert(i, pinStatement);
-                }
-
-                return block;
-            } finally {
-                InFixedStatement.Pop();
+                block.Statements.Insert(i, pinStatement);
             }
+
+            return block;
         }
 
         static System.Reflection.MethodInfo[] GetNodeTranslators (ILCode code) {
@@ -2140,8 +2132,9 @@ namespace JSIL {
             if (PackedArrayUtil.IsPackedArrayType(targetType)) {
                 var targetGit = (GenericInstanceType)targetType;
                 var targetTypeInfo = TypeInfo.Get(targetType);
+                var getMethodName = getReference ? "GetReference" : "Get";
                 var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
-                    (kvp) => kvp.Key.Name == "Get"
+                    (kvp) => kvp.Key.Name == getMethodName
                 ).Value;
                 var getMethodReference = new MethodReference(
                     getMethod.Member.Name, targetGit.GenericArguments[0], targetGit
@@ -2154,9 +2147,6 @@ namespace JSIL {
                         index
                     }
                 );
-
-                if (getReference && !InFixedStatement.Peek())
-                    return new JSUntranslatableExpression("&(" + target + "[" + index + "])");
             } else {
                 result = new JSIndexerExpression(
                     target, index,

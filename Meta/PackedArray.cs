@@ -12,8 +12,9 @@ namespace JSIL.Runtime {
         }
     }
 
-    public interface IPackedArray<T> {
+    public unsafe interface IPackedArray<T> {
         T Get (int index);
+        void* GetReference (int index);
         void Set (int index, T value);
         int Length { get; }
     }
