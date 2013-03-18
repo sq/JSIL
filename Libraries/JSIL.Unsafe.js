@@ -597,6 +597,60 @@ JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
   }
 };
 
+JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject) {
+  if (typeObject.__IsNativeType__) {
+    var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject, false);
+    if (arrayCtor)
+      return arrayCtor.BYTES_PER_ELEMENT;
+    else
+      return -1;
+  } else if (typeObject.__IsStruct__) {
+    var result = typeObject.__NativeAlignment__;
+    if (typeof (result) !== "number")
+      return -1;
+
+    return result;
+  } else {
+    return -1;
+  }
+};
+
+JSIL.ComputeNativeAlignmentOfStruct = function ComputeNativeAlignmentOfStruct (typeObject) {
+  var fields = JSIL.GetFieldList(typeObject);
+  var maxAlignment = 0;
+
+  for (var i = 0, l = fields.length; i < l; i++) {
+    var field = fields[i];
+    var maxAlignment = Math.max(maxAlignment, field.alignmentBytes);
+  }
+
+  return maxAlignment;
+};
+
+JSIL.ComputeNativeSizeOfStruct = function ComputeNativeSizeOfStruct (typeObject) {
+  var fields = JSIL.GetFieldList(typeObject);
+  var maxAlignment = 0;
+  // Structs are always at least one byte in size
+  var resultSize = 1;
+
+  for (var i = 0, l = fields.length; i < l; i++) {
+    var field = fields[i];
+
+    var maxAlignment = Math.max(maxAlignment, field.alignmentBytes);
+
+    if (field.sizeBytes >= 0)
+      resultSize = Math.max(resultSize, field.offsetBytes + field.sizeBytes);
+  }
+
+  if (maxAlignment > 0) {
+    var resultSizeAligned = (((resultSize + maxAlignment - 1) / maxAlignment) | 0) * maxAlignment;
+    // JSIL.Host.logWriteLine("Native size of '" + typeObject.__FullName__ + "' expanded from " + resultSize + " to " + resultSizeAligned + " by alignment");
+    return resultSizeAligned;
+  } else {
+    return resultSize;
+  }
+};
+
 $jsilcore.MarshallingMemoryRange = null;
 
 JSIL.GetMarshallingScratchBuffer = function () {
@@ -753,6 +807,21 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       throw new Error('Not implemented');
     }
   );
+
+  $.Method({Static:true , Public:true }, "SizeOf", 
+    (new JSIL.MethodSignature($.Int32, [$.Object], [])), 
+    function SizeOf (structure) {
+      var type = JSIL.GetType(structure);
+      return JSIL.GetNativeSizeOf(structure);
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "SizeOf", 
+    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Type")], [])), 
+    function SizeOf (type) {
+      return JSIL.GetNativeSizeOf(type);
+    }
+  );  
 });
 
 JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {

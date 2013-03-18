@@ -2826,19 +2826,28 @@ JSIL.$BuildFieldList = function (typeObject) {
     var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
     var fieldSize = JSIL.GetNativeSizeOf(fieldType);
+    var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType);
+
+    var actualFieldOffset = fieldOffset;
+    if (fieldAlignment > 0) {
+      actualFieldOffset = (((fieldOffset + (fieldAlignment - 1)) / fieldAlignment) | 0) * fieldAlignment;
+    }
+
+    var fieldRecord = {
+      name: field.Name,
+      type: fieldType,
+      isStruct: isStruct,
+      defaultValueExpression: field._data.defaultValueExpression,
+      offsetBytes: actualFieldOffset,
+      sizeBytes: fieldSize,
+      alignmentBytes: fieldAlignment
+    };
 
     if (!field.IsStatic)
-      fl.push({
-        name: field.Name,
-        type: fieldType,
-        isStruct: isStruct,
-        defaultValueExpression: field._data.defaultValueExpression,
-        offsetBytes: fieldOffset,
-        sizeBytes: fieldSize
-      });
+      fl.push(fieldRecord);
 
     if (fieldSize >= 0)
-      fieldOffset += fieldSize;
+      fieldOffset = actualFieldOffset + fieldSize;
   }
 
   // Sort fields by name so that we get a predictable initialization order.
@@ -4346,23 +4355,17 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.IsInterface = false;
     typeObject.__IsValueType__ = !isReferenceType;
 
-    // Lazily initialize struct's native size property
-    JSIL.SetLazyValueProperty(
-      typeObject, "__NativeSize__",
-      function () {
-        var fields = JSIL.GetFieldList(typeObject);
-        var resultSize = 0;
-
-        for (var i = 0, l = fields.length; i < l; i++) {
-          var field = fields[i];
-
-          if (field.sizeBytes >= 0)
-            resultSize += field.sizeBytes;
-        }
-
-        return resultSize;
-      }
-    );
+    // Lazily initialize struct's native size and alignment properties
+    if (typeObject.__IsStruct__) {
+      JSIL.SetLazyValueProperty(
+        typeObject, "__NativeAlignment__",
+        JSIL.ComputeNativeAlignmentOfStruct.bind(null, typeObject)
+      );
+      JSIL.SetLazyValueProperty(
+        typeObject, "__NativeSize__",
+        JSIL.ComputeNativeSizeOfStruct.bind(null, typeObject)
+      );
+    }
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
