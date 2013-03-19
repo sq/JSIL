@@ -961,15 +961,26 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   );
 };
 
+JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeToken, someRandomTypedArray) {
+  body.push("for (var i = 0; i < " + sizeToken + "; ++i)");
+  body.push("  " + destToken + "[i] = " + sourceToken + "[(" + sourceOffsetToken + " + i) | 0];");
+};
+
 JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
+  var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject);
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
   var clampedByteView = null;
 
   var localOffsetDeclared = false;
   var structArgName = isConstructor ? "this" : "struct";
+
+  /*
+  body.push("var isAligned = ((offset % " + nativeAlignment + ") | 0) === 0;");
+  body.push("if (!isAligned) throw new Error('Unaligned marshal');");
+  */
 
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
@@ -1048,8 +1059,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         }
 
         body.push(setLocalOffset);
-        body.push("for (var i = 0; i < " + size + "; ++i)");
-        body.push("  " + byteViewKey + "[i] = bytes[(localOffset + i) | 0];");
+        JSIL.$EmitMemcpyIntrinsic(body, byteViewKey, "bytes", "localOffset", size, viewBytes);
         body.push(structArgName + "." + field.name + " = " + nativeViewKey + "[0];");
       }
     }
