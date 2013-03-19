@@ -324,8 +324,17 @@ JSIL.PreInitMembrane = function (target, initializer) {
   this.aliasesByKey = {};
   this.propertiesToRebind = [];
 
-  this.maybeInit = Object.getPrototypeOf(this).maybeInit.bind(this);
-  this.cleanup = Object.getPrototypeOf(this).cleanup.bind(this);
+  // Function.bind is too slow to rely on in a hot path function like these
+  var self = this;
+  var _maybeInit = Object.getPrototypeOf(this).maybeInit;
+  var _cleanup = Object.getPrototypeOf(this).cleanup;
+
+  this.maybeInit = function bound_maybeInit () {
+    _maybeInit.call(self);
+  };
+  this.cleanup = function bound_cleanup () {
+    return _cleanup.call(self);
+  };
 };
 
 JSIL.PreInitMembrane.prototype.checkForUseAfterCleanup = function () {
@@ -449,6 +458,7 @@ JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
 JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
   this.checkForUseAfterCleanup();
 
+  var aliasesByKey = this.aliasesByKey;
   var actualFn = $jsilcore.FunctionNotInitialized;
   var target = this.target;
   var membrane;
@@ -460,7 +470,7 @@ JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
     if (target[key].__IsMembrane__)
       JSIL.SetValueProperty(target, key, actualFn);
 
-    var aliases = this.aliasesByKey[key];
+    var aliases = aliasesByKey[key];
     if (aliases) {
       for (var i = 0, l = aliases.length; i < l; i++) {
         var alias = aliases[i];
@@ -471,7 +481,7 @@ JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
     }
 
     // delete this.aliasesByKey[key];
-  }.bind(this));
+  });
 
   var maybeInit = this.maybeInit;
 
@@ -2150,6 +2160,14 @@ $jsilcore.$Of$NoInitialize = function () {
   return result;
 };
 
+$jsilcore.$MakeOf$NoInitialize = function (publicInterface) {
+  var fn = $jsilcore.$Of$NoInitialize;
+
+  return function Of$NoInitialize_bound () {
+    return fn.apply(publicInterface, arguments);
+  };
+};
+
 $jsilcore.$MakeOf = function (publicInterface) {
   var typeObject = publicInterface.__Type__;
   var typeName = typeObject.__FullName__;
@@ -2201,6 +2219,7 @@ JSIL.RebindRawMethods = function (publicInterface, typeObject) {
       var methodName = item.name;
       var method = publicInterface[methodName];
 
+      // FIXME: Stop using Function.bind here, it's slow
       var boundMethod = method.bind(publicInterface);
       JSIL.SetValueProperty(publicInterface, methodName, boundMethod);
     }
@@ -3624,6 +3643,19 @@ JSIL.InitializeType = function (type) {
   }
 };
 
+JSIL.$InvokeStaticConstructor = function (staticConstructor, typeObject, classObject) {
+  try {
+    staticConstructor.call(classObject);
+  } catch (e) {
+    if (JSIL.ThrowOnStaticCctorError) {
+      JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
+    } else {
+      JSIL.Host.warning("Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ":");
+      JSIL.Host.warning(e);
+    }
+  }
+}
+
 JSIL.RunStaticConstructors = function (classObject, typeObject) {
   var base = typeObject.__BaseType__;
 
@@ -3650,18 +3682,8 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
     var key = $jsilcore.cctorKeys[i];
     var cctor = classObject[key];
 
-    if (typeof (cctor) === "function") {
-      try {
-        cctor.call(classObject);
-      } catch (e) {
-        if (JSIL.ThrowOnStaticCctorError) {
-          JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
-        } else {
-          JSIL.Host.warning("Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ":");
-          JSIL.Host.warning(e);
-        }
-      }
-    }
+    if (typeof (cctor) === "function")
+      JSIL.$InvokeStaticConstructor(cctor, typeObject, classObject);
   }
 };
 
@@ -3906,7 +3928,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__PublicInterface__ = staticClassObject;
 
     if (typeObject.__GenericArguments__.length > 0) {
-      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(staticClassObject);
       staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
@@ -4396,7 +4418,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     staticClassObject.prototype.__ShortName__ = localName;
 
     if (typeObject.__GenericArguments__.length > 0) {
-      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(staticClassObject);
       staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
@@ -4500,7 +4522,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     });
 
     if (typeObject.__GenericArguments__.length > 0) {
-      publicInterface.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(publicInterface);
+      publicInterface.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(publicInterface);
       publicInterface.Of = $jsilcore.$MakeOf(publicInterface);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
@@ -6653,7 +6675,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     );
 
     if (typeObject.__GenericArguments__.length > 0) {
-      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(staticClassObject);
       staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
