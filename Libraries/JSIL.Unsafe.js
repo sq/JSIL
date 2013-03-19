@@ -910,11 +910,17 @@ JSIL.ComputeNativeSizeOfStruct = function ComputeNativeSizeOfStruct (typeObject)
 
 $jsilcore.MarshallingMemoryRange = null;
 
-JSIL.GetMarshallingScratchBuffer = function () {
+JSIL.GetMarshallingScratchBuffer = function (minimumSize) {
+  var requestedBufferSize = Math.max(minimumSize, 8) | 0;
+
   var memoryRange = $jsilcore.MarshallingMemoryRange;
+  
+  // If the current scratch buffer is too small, make a bigger one
+  if (memoryRange && memoryRange.buffer.byteLength < requestedBufferSize)
+    memoryRange = null;
+
   if (!memoryRange) {
-    // FIXME: Probably big enough, but who knows?
-    var scratchBuffer = new ArrayBuffer(1024);
+    var scratchBuffer = new ArrayBuffer(requestedBufferSize);
     memoryRange = $jsilcore.MarshallingMemoryRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
   }
 
@@ -970,7 +976,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
   var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject);
-  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
+  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
   var clampedByteView = null;
 
@@ -1129,7 +1135,8 @@ JSIL.$MakeElementReferenceConstructor = function (typeObject) {
   var elementReferencePrototype = Object.create(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
-  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer();
+  var nativeSize = JSIL.GetNativeSizeOf(typeObject);
+  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
 
   for (var i = 0, l = fields.length; i < l; i++) {
