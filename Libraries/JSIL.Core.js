@@ -2739,19 +2739,19 @@ JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
   );
 };
 
-JSIL.$MakeCopierCore = function (typeObject, context, body) {
+JSIL.$MakeCopierCore = function (typeObject, context, body, resultVar) {
   var fields = JSIL.GetFieldList(typeObject);
 
   if (context.prototype.__CopyMembers__) {
     context.copier = context.prototype.__CopyMembers__;
-    body.push("  context.copier(source, result);");
+    body.push("  context.copier(source, " + resultVar + ");");
   } else {
     for (var i = 0; i < fields.length; i++) {
       // FIXME
       var field = fields[i];
       var isStruct = field.isStruct;
 
-      var line = "  " + JSIL.FormatMemberAccess("result", field.name) + " = " + JSIL.FormatMemberAccess("source", field.name);
+      var line = "  " + JSIL.FormatMemberAccess(resultVar, field.name) + " = " + JSIL.FormatMemberAccess("source", field.name);
       if (isStruct)
         line += ".MemberwiseClone();"
       else
@@ -2770,7 +2770,7 @@ JSIL.$MakeMemberCopier = function (typeObject, publicInterface) {
 
   var body = [];
 
-  JSIL.$MakeCopierCore(typeObject, context, body);
+  JSIL.$MakeCopierCore(typeObject, context, body, "result");
 
   return JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".MemberCopier",
@@ -2786,9 +2786,8 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   };
 
   var body = ["// Copy constructor"];
-  body.push("  var result = this;");
 
-  JSIL.$MakeCopierCore(typeObject, context, body);
+  JSIL.$MakeCopierCore(typeObject, context, body, "this");
 
   var subtypeRe = /[\+\/]/g;
   var nameRe = /[^A-Za-z_0-9]/g;
@@ -6747,25 +6746,47 @@ JSIL.CompareValues = function (lhs, rhs) {
 };
 
 var $nextHashCode = 0;
+var $hashCodeWeakMap = null;
+if (typeof (WeakMap) !== "undefined") {
+  $hashCodeWeakMap = new WeakMap();
 
-JSIL.ObjectHashCode = function (obj) {
-  var type = typeof obj;
+  JSIL.ObjectHashCode = function (obj) {
+    var type = typeof obj;
 
-  if (type === "object") {
-    var ghc = obj.GetHashCode;
+    if (type === "object") {
+      if (obj.GetHashCode)
+        return (obj.GetHashCode() | 0);
 
-    if (ghc && (typeof (ghc) === "function"))
-      return obj.GetHashCode();
-    
-    var hc = obj.__HashCode__;
-    if (!hc)
-      hc = obj.__HashCode__ = (++$nextHashCode);
+      var hc = $hashCodeWeakMap.get(obj);
+      if (!hc) {
+        hc = (++$nextHashCode) | 0;
+        $hashCodeWeakMap.set(obj, hc);
+      }
 
-    return hc;
-  } else {
-    return String(obj);
-  }
-};
+      return hc;
+    } else {
+      return String(obj);
+    }
+  };
+} else {
+
+  JSIL.ObjectHashCode = function (obj) {
+    var type = typeof obj;
+
+    if (type === "object") {
+      if (obj.GetHashCode)
+        return (obj.GetHashCode() | 0);
+
+      var hc = obj.__HashCode__;
+      if (!hc)
+        hc = obj.__HashCode__ = (++$nextHashCode) | 0;
+
+      return hc;
+    } else {
+      return String(obj);
+    }
+  };
+}
 
 // MemberwiseClone if parameter is struct, otherwise do nothing.
 JSIL.CloneParameter = function (parameterType, value) {
