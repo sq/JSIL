@@ -12,6 +12,6 @@ bin\JSILc "Examples\WebGL\WebGL.sln"
 title Building Tetris
 bin\JSILc "Examples\ThirdParty\Tetris\tetris.sln" "jsil.org\demos\Tetris\Tetris.jsilconfig" --platform=x86 --configuration=Debug
 title Building Platformer Starter Kit
-bin\JSILc "C:\Users\Kevin\Documents\Projects\PlatformerStarterKit\PlatformerStarterKit.sln" "jsil.org\demos\Platformer\Platformer.jsilconfig" --platform=x86 --configuration=Debug
+bin\JSILc "C:\Users\Kevin\Documents\Projects\PlatformerStarterKit\Platformer (Windows).sln" "jsil.org\demos\Platformer\Platformer.jsilconfig" --platform=x86 --configuration=Debug
 title Building RPG Starter Kit
 bin\JSILc "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGameWindows.sln" "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGame\bin\x86\Debug\RolePlayingGame.XmlSerializers.dll" "jsil.org\demos\RPG\RPG.jsilconfig" --platform="Mixed Platforms" --configuration=Debug

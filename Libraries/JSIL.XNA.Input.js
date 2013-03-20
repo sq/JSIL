@@ -606,3 +606,160 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadTriggers", functio
   );
 
 });
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchPanel", function ($) {
+  $.Method({Static:true , Public:true }, "GetState", 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection"), [], [])), 
+    function GetState () {
+      return new Microsoft.Xna.Framework.Input.Touch.TouchCollection(null);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ReadGesture", 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.GestureSample"), [], [])), 
+    function ReadGesture () {
+      throw new Error('Not implemented');
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")])], [])), 
+    function _ctor (touches) {
+      // FIXME
+      this.touches = touches;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Add", 
+    (new JSIL.MethodSignature(null, [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function Add (item) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function Contains (item) {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CopyTo", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")]), $.Int32], [])), 
+    function CopyTo (array, arrayIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "FindById", 
+    (new JSIL.MethodSignature($.Boolean, [$.Int32, $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")])], [])), 
+    function FindById (id, /* ref */ touchLocation) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      // FIXME
+      return 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsConnected", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsConnected () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsReadOnly", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsReadOnly () {
+      // FIXME
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation"), [$.Int32], [])), 
+    function get_Item (index) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enumerator"), [], [])), 
+    function GetEnumerator () {
+      // Stupid XNA samples calling this without checking IsConnected, grrr
+      // FIXME
+      return JSIL.GetEnumerator([]);
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "GetLocInfo", 
+    (new JSIL.MethodSignature($.Boolean, [
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.XNAINPUT_TOUCH_LOCATION_STATE")]), $.Int32, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection/LocInfo")])
+        ], [])), 
+    function GetLocInfo (/* ref */ state, index, /* ref */ locInfo) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "GetPreviousLocation", 
+    (new JSIL.MethodSignature($.Boolean, [
+          $.Int32, $.Int32, 
+          $jsilcore.TypeRef("JSIL.Reference", [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")])
+        ], [])), 
+    function GetPreviousLocation (id, prevLocationCount, /* ref */ location) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IndexOf", 
+    (new JSIL.MethodSignature($.Int32, [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function IndexOf (item) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Insert", 
+    (new JSIL.MethodSignature(null, [$.Int32, $xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function Insert (index, item) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Remove", 
+    (new JSIL.MethodSignature($.Boolean, [$xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function Remove (item) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveAt", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function RemoveAt (index) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Item", 
+    (new JSIL.MethodSignature(null, [$.Int32, $xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchLocation")], [])), 
+    function set_Item (index, value) {
+      throw new Error('Not implemented');
+    }
+  );
+});

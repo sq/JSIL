@@ -22,6 +22,7 @@ var $xnaasms = new JSIL.AssemblyCollection({
   0: "Microsoft.Xna.Framework", 
   1: "Microsoft.Xna.Framework.Game", 
   2: "Microsoft.Xna.Framework.GamerServices", 
+  4: "Microsoft.Xna.Framework.Input.Touch, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553", 
   5: "mscorlib",
   11: "System.Drawing", 
   15: "System.Windows.Forms", 

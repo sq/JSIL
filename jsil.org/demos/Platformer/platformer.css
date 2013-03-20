@@ -3,39 +3,39 @@
 	top: 2px;
 }
 #welcomeMessage {
-	width: 680px;
-	height: 400px;
-	left: 300px;
-	top: 40px;
+	width: 600px;
+	height: 300px;
+	left: 100px;
+	top: 70px;
 }
 #loadButton {
 	width: 200px;
 	height: 40px;
-	left: 539px;
-	top: 359px;
+	left: 299px;
+	top: 289px;
 }
 #quitButton {
 	width: 32px;
 	height: 32px;
-	left: 1284px;
+	left: 804px;
 	top: 2px;
 }
 #loadingProgress {
 	width: 600px;
 	height: 40px;
-	left: 339px;
-	top: 359px;
+	left: 99px;
+	top: 289px;
 }
 #progressBar {
 	height: 40px;
 }
 #log {
-	width: 1280px;
+	width: 800px;
 	height: 150px;
 	left: 2px;
-	top: 724px;
+	top: 484px;
 }
 #stats {
-	left: 1284px;
+	left: 804px;
 	top: 50px;
 }
