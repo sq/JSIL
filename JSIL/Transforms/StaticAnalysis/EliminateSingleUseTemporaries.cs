@@ -8,6 +8,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : StaticAnalysisJSAstVisitor {
+        public static bool DryRun = false;
         public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
@@ -202,11 +203,13 @@ namespace JSIL.Transforms {
                         if (TraceLevel >= 1)
                             Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
 
-                        EliminatedVariables.Add(v);
-                        EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Method.QualifiedIdentifier);
+                        if (!DryRun) {
+                            EliminatedVariables.Add(v);
+                            EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Method.QualifiedIdentifier);
 
-                        // We've invalidated the static analysis data so the best choice is to abort.
-                        break;
+                            // We've invalidated the static analysis data so the best choice is to abort.
+                            break;
+                        }
                     } else {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
@@ -244,7 +247,8 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                var replacement = assignments.First().NewValue;
+                var replacementAssignment = assignments.First();
+                var replacement = replacementAssignment.NewValue;
                 if (replacement.SelfAndChildrenRecursive.Contains(v)) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
@@ -259,14 +263,52 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
+                var replacementField = replacement.AllChildrenRecursive.OfType<JSField>().FirstOrDefault();
+
+                if (replacementField != null) {
+                    var affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>().ToArray();
+                    bool invalidatedByLaterFieldAccess = false;
+                    foreach (var field in affectedFields) {
+                        foreach (var fieldAccess in FirstPass.FieldAccesses) {
+                            // Different field. Note that we only compare the FieldInfo, not the this-reference.
+                            // Otherwise, aliasing (accessing the same field through two this references) would cause us
+                            //  to incorrectly eliminate a local.
+                            if (fieldAccess.Field.Field != replacementField.Field)
+                                continue;
+
+                            // Ignore field accesses before the replacement was initialized
+                            if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
+                                continue;
+
+                            // It's a read, so no impact on whether this optimization is valid
+                            if (fieldAccess.IsRead)
+                                continue;
+
+                            if (TraceLevel >= 2)
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, replacementField.Field));
+
+                            invalidatedByLaterFieldAccess = true;
+                            break;
+                        }
+
+                        if (invalidatedByLaterFieldAccess)
+                            break;
+                    }
+
+                    if (invalidatedByLaterFieldAccess)
+                        continue;
+                }
+
                 if (TraceLevel >= 1)
                     Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
 
-                EliminatedVariables.Add(v);
-                EliminateVariable(fn, v, replacement, fn.Method.QualifiedIdentifier);
+                if (!DryRun) {
+                    EliminatedVariables.Add(v);
+                    EliminateVariable(fn, v, replacement, fn.Method.QualifiedIdentifier);
 
-                // We've invalidated the static analysis data so the best choice is to abort.
-                break;
+                    // We've invalidated the static analysis data so the best choice is to abort.
+                    break;
+                }
             }
         }
     }

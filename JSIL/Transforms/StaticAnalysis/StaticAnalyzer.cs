@@ -262,6 +262,7 @@ namespace JSIL.Transforms {
 
             if (isAssignment) {
                 if (leftVar != null) {
+                    // If we found the variable by un-nesting dot expressions, then it's affected, but not assigned.
                     if (!leftIsNested) {
                         if ((left == leftVar) && leftVar.IsThis)
                             State.ReassignsThisReference = true;
@@ -297,15 +298,37 @@ namespace JSIL.Transforms {
             var field = fa.Field;
             var v = ExtractAffectedVariable(fa.ThisReference);
 
+            var parentNodeIndices = GetParentNodeIndices();
+
             if (fa.HasGlobalStateDependency) {
                 State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, field.Field.DeclaringType
+                    parentNodeIndices, StatementIndex, NodeIndex, field.Field.DeclaringType
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, v
+                    parentNodeIndices, StatementIndex, NodeIndex, v
                 ));
             }
+
+            bool isRead = true;
+
+            var enclosingBoe = GetEnclosingNodes<JSBinaryOperatorExpression>((boe) => boe.Operator is JSAssignmentOperator).FirstOrDefault();
+            var enclosingByRef = GetEnclosingNodes<JSPassByReferenceExpression>().FirstOrDefault();
+            var enclosingInvocation = GetEnclosingNodes<JSInvocationExpressionBase>().FirstOrDefault();
+            if (enclosingBoe.Node != null) {
+                if (enclosingBoe.ChildName == "Left")
+                    isRead = false;
+            } else if (enclosingByRef.Node != null) {
+                isRead = false;
+            } else if (enclosingInvocation.Node != null) {
+                if (enclosingInvocation.ChildName == "ThisReference")
+                    isRead = false;
+            }
+
+            State.FieldAccesses.Add(new FunctionAnalysis1stPass.FieldAccess(
+                parentNodeIndices, StatementIndex, NodeIndex,
+                field, isRead
+            ));
 
             VisitChildren(fa);
         }
@@ -591,6 +614,19 @@ namespace JSIL.Transforms {
             }
         }
 
+        public class FieldAccess : Item {
+            public readonly JSField Field;
+            public readonly bool IsRead;
+
+            public FieldAccess (
+                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                JSField field, bool isRead
+            ) : base(parentNodeIndices, statementIndex, nodeIndex) {
+                Field = field;
+                IsRead = isRead;
+            }
+        }
+
         public class Invocation : Item {
             public readonly JSType ThisType;
             public readonly string ThisVariable;
@@ -635,6 +671,7 @@ namespace JSIL.Transforms {
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
         public readonly List<Invocation> Invocations = new List<Invocation>();
+        public readonly List<FieldAccess> FieldAccesses = new List<FieldAccess>();
 
         // If not null, this method's return value is always the result of a call to a particular method.
         public JSMethod ResultMethod = null;
