@@ -1072,13 +1072,13 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [$.Int32], [])), 
     function ReadChars (count) {
       var result = new Array(count);
+
       for (var i = 0; i < count; i++) {
-        // FIXME: This should probably be ReadChar?
-        var b = this.m_stream.ReadByte();
-        if (b === -1)
+        var ch = $jsilio.ReadCharFromStream(this.m_stream, this.m_encoding);
+        if (ch === -1)
           return result.slice(0, i - 1);
 
-        result[i] = String.fromCharCode(b);
+        result[i] = ch;
       };
 
       return result;
@@ -1140,8 +1140,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
       if (size <= 0)
         return "";
 
-      var bytes = this.ReadBytes(size);
-      return JSIL.StringFromByteArray(bytes);
+      var bytes = this.$readBytesTemp(size);
+      var result = this.m_encoding.$decode(bytes, 0, size);
+      return result;
     }
   );
 
