@@ -1,22 +1,36 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <title>Learning WebGL &mdash; lesson 7 in C#</title>
+    <title>JSIL Simple WebGL demo</title>
 
-    <script type="text/javascript" src="Libraries/glMatrix-0.9.5.min.js"></script>
-    <script type="text/javascript" src="Libraries/webgl-utils.js"></script>
+    <script type="text/javascript" src="Files/glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="Files/webgl-utils.js"></script>
 </head>
 <body onload="onLoad()">
+    <style>
+      body {
+        font-family: Calibri, Tahoma, Verdana, Arial, sans serif;
+        font-size: 13pt;
+      }
+      input {
+        font-family: Consolas, Courier New, monospace;
+        font-size: 11pt;
+      }
+    </style>
     <script type="text/javascript">
       var jsilConfig = {
         manifests: [
           "WebGL.dll",
           "Files/WebGL.csproj"
         ],
+        
+        readOnlyStorage: true,
 
         scriptRoot: "",
         libraryRoot: "../Libraries/",
         fileRoot: "Files/",
-        contentRoot: "Content/"
+        contentRoot: "Content/",
+        fileVirtualRoot: ""
       };
       
       function runMain () {
@@ -26,7 +40,10 @@
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>      
     
+    <a href="http://jsil.org/"><img src="http://jsil.org/images/jsil_48px.png" alt="JSIL" align="left" border="0"></a>
     <a href="http://learningwebgl.com/blog/?p=684">Based on Lesson 7 from Learning WebGL</a><br>
+    <a href="Page.cs">View C# Source Code</a> | <a href="WebGL, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null.js">View Compiled JavaScript</a>
+    <hr>
 
     <canvas id="canvas" style="border: none;" width="500" height="500"></canvas>
 
@@ -39,13 +56,13 @@
 
     <table style="border: 0; padding: 10px;">
         <tr>
-            <td><b>Direction:</b>
+            <td><b>Direction&nbsp;</b>
             <td>X: <input type="text" id="lightDirectionX" value="-0.25">
             <td>Y: <input type="text" id="lightDirectionY" value="-0.25">
             <td>Z: <input type="text" id="lightDirectionZ" value="-1.0">
         </tr>
         <tr>
-            <td><b>Colour:</b>
+            <td><b>Color&nbsp;</b>
             <td>R: <input type="text" id="directionalR" value="0.8">
             <td>G: <input type="text" id="directionalG" value="0.8">
             <td>B: <input type="text" id="directionalB" value="0.8">
@@ -55,7 +72,7 @@
     <h2>Ambient light:</h2>
     <table style="border: 0; padding: 10px;">
         <tr>
-            <td><b>Colour:</b>
+            <td><b>Color&nbsp;</b>
             <td>R: <input type="text" id="ambientR" value="0.2">
             <td>G: <input type="text" id="ambientG" value="0.2">
             <td>B: <input type="text" id="ambientB" value="0.2">

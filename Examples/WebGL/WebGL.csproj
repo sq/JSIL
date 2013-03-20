@@ -52,12 +52,19 @@
     <Content Include="crate.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="glMatrix-0.9.5.min.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="webgl-utils.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Don't edit this build event by hand! The condition ensures that when VS kicks off a JSILc build, JSILc won't then kick off another JSILc build recursively, forever... -->
   <PropertyGroup Condition="$(JSIL) != 'building'">
     <PostBuildEvent>
       del $(SolutionDir)..\..\jsil.org\demos\WebGL\*.js
+      copy $(SolutionDir)Page.cs $(SolutionDir)..\..\jsil.org\demos\WebGL\Page.cs
       $(SolutionDir)..\..\bin\JSILc.exe $(SolutionPath)
     </PostBuildEvent>
   </PropertyGroup>
