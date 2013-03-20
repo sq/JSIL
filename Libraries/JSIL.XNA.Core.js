@@ -1845,10 +1845,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
           $.Int32, $.Int32
         ], [])), 
     function _ctor (x, y, width, height) {
-      this.X = x;
-      this.Y = y;
-      this.Width = width;
-      this.Height = height;
+      this.X = x | 0;
+      this.Y = y | 0;
+      this.Width = width | 0;
+      this.Height = height | 0;
     }
   );
 
@@ -1930,10 +1930,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "Inflate", 
     (new JSIL.MethodSignature(null, [$.Int32, $.Int32], [])), 
     function Inflate (x, y) {
-      this.X -= x;
-      this.Y -= y;
-      this.Width += (x * 2);
-      this.Height += (y * 2);
+      this.X = (this.X - x) | 0;
+      this.Y = (this.Y - y) | 0;
+      this.Width = (this.Width + (x * 2)) | 0;
+      this.Height = (this.Height + (y * 2)) | 0;
     }
   );
 
@@ -1950,24 +1950,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "OffsetPoint", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function OffsetPoint (amount) {
-      this.X += amount.X;
-      this.Y += amount.Y;
+      this.X = (this.X + amount.X) | 0;
+      this.Y = (this.Y + amount.Y) | 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "Offset", 
     (new JSIL.MethodSignature(null, [$.Int32, $.Int32], [])), 
     function Offset (offsetX, offsetY) {
-      this.X += offsetX;
-      this.Y += offsetY;
+      this.X = (this.X + offsetX) | 0;
+      this.Y = (this.Y + offsetY) | 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Location", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function set_Location (value) {
-      this.X = value.X;
-      this.Y = value.Y;
+      this.X = value.X | 0;
+      this.Y = value.Y | 0;
 
       return value;
     }
@@ -1992,8 +1992,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32, $.Int32], [])), 
     function _ctor (x, y) {
-      this.X = x;
-      this.Y = y;
+      this.X = x | 0;
+      this.Y = y | 0;
     }
   );
 
