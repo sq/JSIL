@@ -992,12 +992,13 @@ namespace JSIL.Internal {
                                 return false;
 
                             case "__DynamicSite":
+                            case "__SiteContainer":
                                 return true;
 
                             case "__CachedAnonymousMethodDelegate":
                                 if (isField)
                                     return true;
-                            break;
+                                break;
                         }
                     } else if (
                         (length >= 4) &&
