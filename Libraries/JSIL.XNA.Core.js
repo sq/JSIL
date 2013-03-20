@@ -1784,7 +1784,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
 
     if (x2 > x1 && y2 > y1) 
       return new Microsoft.Xna.Framework.Rectangle(
-        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+        x1 | 0, y1 | 0, (x2 - x1) | 0, (y2 - y1) | 0
       );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
@@ -1818,7 +1818,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
 
     if (x2 > x1 && y2 > y1) 
       return new Microsoft.Xna.Framework.Rectangle(
-        x1, y1, (x2 - x1) | 0, (y2 - y1) | 0
+        x1 | 0, y1 | 0, (x2 - x1) | 0, (y2 - y1) | 0
       );
 
     return Microsoft.Xna.Framework.Rectangle._empty;
@@ -2866,7 +2866,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
       var canvas = JSIL.Host.getCanvas();
 
       this._clientBounds = new Microsoft.Xna.Framework.Rectangle(
-        0, 0, canvas.width, canvas.height
+        0, 0, canvas.width | 0, canvas.height | 0
       );
     }
   );

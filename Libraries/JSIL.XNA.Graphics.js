@@ -713,41 +713,41 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Viewport", function ($
     Static: false,
     Public: true
   }, "set_X", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
-    this._x = value;
+    this._x = value | 0;
   });
 
   $.Method({
     Static: false,
     Public: true
   }, "set_Y", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
-    this._y = value;
+    this._y = value | 0;
   });
 
   $.Method({
     Static: false,
     Public: true
   }, "set_Width", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
-    this._width = value;
+    this._width = value | 0;
   });
 
   $.Method({
     Static: false,
     Public: true
   }, "set_Height", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
-    this._height = value;
+    this._height = value | 0;
   });
 
   $.Method({Static:false, Public:true }, "get_Bounds", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_Bounds () {
-      return new Microsoft.Xna.Framework.Rectangle(this._x, this._y, this._width, this._height);
+      return new Microsoft.Xna.Framework.Rectangle(this._x | 0, this._y | 0, this._width | 0, this._height | 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "get_TitleSafeArea", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_TitleSafeArea () {
-      return new Microsoft.Xna.Framework.Rectangle(this._x, this._y, this._width, this._height);
+      return new Microsoft.Xna.Framework.Rectangle(this._x | 0, this._y | 0, this._width | 0, this._height | 0);
     }
   );
 });
@@ -1072,9 +1072,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.colorRef()
         ], [])), 
     function Draw (texture, position, color) {
+      var w = texture.get_Width();
+      var h = texture.get_Height();
+
       this.InternalDraw(
-        texture, position.X, position.Y, texture.Width, texture.Height,
-        0, 0, texture.Width, texture.Height, 
+        texture, position.X, position.Y, w, h,
+        0, 0, w, h, 
         color, 0, 
         0, 0, 
         1, 1, 
@@ -1096,8 +1099,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        sourceWidth = texture.get_Width();
+        sourceHeight = texture.get_Height();
       }
 
       this.InternalDraw(
@@ -1127,8 +1130,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        sourceWidth = texture.get_Width();
+        sourceHeight = texture.get_Height();
       }
 
       this.InternalDraw(
@@ -1158,8 +1161,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        sourceWidth = texture.get_Width();
+        sourceHeight = texture.get_Height();
       }
 
       this.InternalDraw(
@@ -1181,7 +1184,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     function DrawRect (texture, destinationRectangle, color) {
       this.InternalDraw(
         texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
-        0, 0, texture.Width, texture.Height,
+        0, 0, texture.get_Width(), texture.get_Height(),
         color, 0, 
         0, 0, 
         1, 1,
@@ -1203,8 +1206,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        sourceWidth = texture.get_Width();
+        sourceHeight = texture.get_Height();
       }
 
       this.InternalDraw(
@@ -1233,8 +1236,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        sourceWidth = texture.get_Width();
+        sourceHeight = texture.get_Height();
       }
 
       this.InternalDraw(
@@ -1468,7 +1471,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceY = 0;
       }
 
-      var maxWidth = texture.Width - sourceX, maxHeight = texture.Height - sourceY;
+      var maxWidth = texture.get_Width() - sourceX, maxHeight = texture.get_Height() - sourceY;
 
       if (sourceW > maxWidth) 
         sourceW = maxWidth;
@@ -2076,6 +2079,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
 
 });
 
+$jsilxna.CachedText = function (canvas, id) {
+  this.image = canvas;
+  this.id = id;
+  this.width = this.image.width | 0;
+  this.height = this.image.height | 0;
+  this.sizeBytes = canvas.sizeBytes = (canvas.width * canvas.height * 4) | 0;
+};
+
+$jsilxna.CachedText.prototype = Object.create(null);
+
+$jsilxna.CachedText.prototype.get_Width = function () {
+  return this.width;
+};
+
+$jsilxna.CachedText.prototype.get_Height = function () {
+  return this.height;
+};
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function ($) {
 
   $.Method({Static:false, Public:false}, ".ctor", 
@@ -2276,14 +2297,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           true
         );
 
-        cachedTexture = {
-          image: tempCanvas,
-          id: cacheKey,
-          width: tempCanvas.width,
-          height: tempCanvas.height
-        };
-
-        cachedTexture.sizeBytes = tempCanvas.sizeBytes = tempCanvas.width * tempCanvas.height * 4;
+        cachedTexture = new $jsilxna.CachedText(
+          tempCanvas, cacheKey
+        );
 
         $jsilxna.textCache.setItem(cacheKey, cachedTexture);
       }
@@ -2421,8 +2437,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function ($) {
   $.RawMethod(false, "$internalCtor", function (graphicsDevice, width, height, mipMap, format) {
     this._parent = graphicsDevice;
-    this.width = width;
-    this.height = height;
+    this.width = width | 0;
+    this.height = height | 0;
     this.mipMap = mipMap;
     this.format = format;
     this.isDisposed = false;
@@ -2459,8 +2475,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     JSIL.Browser.RegisterOneShotEventListener(
       this.image, "load", true,
       function Texture2D_FromURI_RecordNaturalSize () {
-        self.width = self.image.naturalWidth;
-        self.height = self.image.naturalHeight;
+        self.width = self.image.naturalWidth | 0;
+        self.height = self.image.naturalHeight | 0;
       }
     );
     this.image.src = uri;
@@ -2468,8 +2484,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     if (!this.image.id)
       this.image.id = this.id;
 
-    self.width = self.image.naturalWidth;
-    self.height = self.image.naturalHeight;
+    self.width = self.image.naturalWidth | 0;
+    self.height = self.image.naturalHeight | 0;
   });
 
   $.RawMethod(false, "$fromImage", function (graphicsDevice, image) {
@@ -2484,8 +2500,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     if (!this.image.id)
       this.image.id = this.id;
 
-    this.width = image.naturalWidth;
-    this.height = image.naturalHeight;
+    this.width = image.naturalWidth | 0;
+    this.height = image.naturalHeight | 0;
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -2602,9 +2618,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     (new JSIL.MethodSignature($xnaasms.xna.TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_Bounds () {
       if (!this._bounds)
-        this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.width, this.height);
+        this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.width | 0, this.height | 0);
       else
-        this._bounds._ctor(0, 0, this.width, this.height);
+        this._bounds._ctor(0, 0, this.width | 0, this.height | 0);
 
       return this._bounds;
     }
@@ -2857,16 +2873,16 @@ $jsilxna.renderTargetTotalBytes = 0;
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", function ($) {
   $.RawMethod(false, "$internalCtor", function (graphicsDevice, width, height, mipMap, format) {
     this._parent = graphicsDevice;
-    this.width = width;
-    this.height = height;
+    this.width = width | 0;
+    this.height = height | 0;
     this.mipMap = mipMap;
     this.format = format;
     this.isDisposed = false;
     this.id = String(++$jsilxna.nextImageId);
 
     this.image = this.canvas = JSIL.Host.createCanvas(width, height);
-    this.canvas.naturalWidth = width;
-    this.canvas.naturalHeight = height;
+    this.canvas.naturalWidth = width | 0;
+    this.canvas.naturalHeight = height | 0;
     
     if (!this.image.id)
       this.image.id = this.id;
@@ -2874,7 +2890,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     // Can't use WebGL here since it'll disable the ability to copy from the RT to the framebuffer.
     this.context = $jsilxna.get2DContext(this.canvas, false);
 
-    $jsilxna.renderTargetTotalBytes += (this.width * this.height * 4);
+    $jsilxna.renderTargetTotalBytes += (this.width * this.height * 4) | 0;
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -2942,7 +2958,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     if (!this.canvas)
       return;
 
-    $jsilxna.renderTargetTotalBytes -= (this.width * this.height * 4);
+    $jsilxna.renderTargetTotalBytes -= (this.width * this.height * 4) | 0;
 
     this.canvas = null;
     this.context = null;
