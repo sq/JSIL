@@ -347,6 +347,8 @@
     <Compile Include="PerformanceAnalysis.cs" />
     <None Include="PerformanceTestCases\Vector3.cs" />
     <Compile Include="PerformanceTests.cs" />
+    <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
+    <None Include="SimpleTestCases\BooleanCasts.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />

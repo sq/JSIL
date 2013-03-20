@@ -2605,6 +2605,7 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
 
   var defaultInt = 0;
   var defaultFloat = JSIL.ForceToDouble(0);
+  var defaultBoolean = false;
 
   var targetArgName = returnNamedFunction ? "target" : "this";
 
@@ -2625,7 +2626,9 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
       // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
       //  an object's field slots should be.
       var defaultValueString;
-      if (field.type.__IsIntegral__) {
+      if (field.type.__FullName__ === "System.Boolean") {
+        defaultValueString = "defaultBoolean";
+      } else if (field.type.__IsIntegral__) {
         defaultValueString = "defaultInt";
       } else {
         defaultValueString = "defaultFloat";
@@ -2650,7 +2653,8 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
     types: types, 
     defaults: defaults, 
     defaultInt: defaultInt, 
-    defaultFloat: defaultFloat 
+    defaultFloat: defaultFloat,
+    defaultBoolean: defaultBoolean
   };
 
   if (returnNamedFunction) {
