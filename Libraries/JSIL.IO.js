@@ -317,7 +317,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
   $.Method({Static:true , Public:true }, "ReadAllText", 
     new JSIL.MethodSignature($.String, [$.String], []),
-    function (filename) {
+    function ReadAllText (filename) {
       var storageRoot = JSIL.Host.getStorageRoot();
 
       if (storageRoot) {
@@ -325,6 +325,24 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
         if (resolved && resolved.type === "file")
           return JSIL.StringFromByteArray(resolved.readAllBytes());
+        else
+          throw new System.IO.FileNotFoundException(filename);
+      }
+
+      throw new System.NotImplementedException("No storage root available");
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ReadAllBytes", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.String], []),
+    function ReadAllBytes (filename) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var resolved = storageRoot.resolvePath(filename, false);
+
+        if (resolved && resolved.type === "file")
+          return resolved.readAllBytes();
         else
           throw new System.IO.FileNotFoundException(filename);
       }
