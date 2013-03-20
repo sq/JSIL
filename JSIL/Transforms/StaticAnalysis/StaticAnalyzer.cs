@@ -702,7 +702,7 @@ namespace JSIL.Transforms {
         public const bool Tracing = false;
 
         protected readonly bool _IsPure;
-        protected bool? _CachedIsPure = false;
+        protected bool? _CachedIsPure;
         protected bool _ComputingPurity = false;
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;

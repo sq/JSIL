@@ -296,7 +296,7 @@ namespace JSIL.Transforms {
                                 continue;
 
                             // If the field access comes after the last use of the temporary, we don't care
-                            if ((lastAccess != null) && (fieldAccess.NodeIndex > lastAccess.NodeIndex))
+                            if ((lastAccess != null) && (fieldAccess.StatementIndex > lastAccess.StatementIndex))
                                 continue;
 
                             // It's a read, so no impact on whether this optimization is valid
