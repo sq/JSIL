@@ -158,6 +158,14 @@ namespace JSIL.Transforms {
                     }
                 }
 
+                // If we didn't find a slot, check to see if all the assignments come before all the accesses.
+                if (!foundAssignmentSlot) {
+                    var minAccessIndex = targetAccesses.Min((a) => a.StatementIndex);
+
+                    if (assignments.All((a) => a.StatementIndex < minAccessIndex))
+                        foundAssignmentSlot = true;
+                }
+
                 if (!foundAssignmentSlot)
                     return false;
 
@@ -258,14 +266,21 @@ namespace JSIL.Transforms {
 
                 if (!IsEffectivelyConstant(v, replacement)) {
                     if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is not a constant expression.", v));
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is not a constant expression.", v, replacement));
 
                     continue;
                 }
 
-                var replacementField = replacement.AllChildrenRecursive.OfType<JSField>().FirstOrDefault();
+                var replacementField = replacement as JSFieldAccess;
+                if (replacementField == null) {
+                    var replacementRef = replacement as JSReferenceExpression;
+                    if (replacementRef != null)
+                        replacementField = replacementRef.Referent as JSFieldAccess;
+                }
 
                 if (replacementField != null) {
+                    var lastAccess = accesses.LastOrDefault();
+
                     var affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>().ToArray();
                     bool invalidatedByLaterFieldAccess = false;
                     foreach (var field in affectedFields) {
@@ -273,11 +288,15 @@ namespace JSIL.Transforms {
                             // Different field. Note that we only compare the FieldInfo, not the this-reference.
                             // Otherwise, aliasing (accessing the same field through two this references) would cause us
                             //  to incorrectly eliminate a local.
-                            if (fieldAccess.Field.Field != replacementField.Field)
+                            if (fieldAccess.Field.Field != replacementField.Field.Field)
                                 continue;
 
                             // Ignore field accesses before the replacement was initialized
                             if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
+                                continue;
+
+                            // If the field access comes after the last use of the temporary, we don't care
+                            if ((lastAccess != null) && (fieldAccess.NodeIndex > lastAccess.NodeIndex))
                                 continue;
 
                             // It's a read, so no impact on whether this optimization is valid

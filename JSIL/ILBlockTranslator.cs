@@ -467,6 +467,10 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, methodInfo, new[] { thisExpression }.Concat(arguments).ToArray());
 
             switch (method.Method.Member.FullName) {
+                // Doing this replacement here enables more elimination of temporary variables
+                case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
+                    return arguments.First();
+
                 case "System.Object JSIL.Builtins::Eval(System.String)":
                     return JSInvocationExpression.InvokeStatic(
                         JS.eval, arguments

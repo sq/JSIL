@@ -244,15 +244,6 @@ namespace JSIL.Transforms {
                     VisitReplacement(newIe);
                     return;
                 } else if (
-                    (method.Reference.DeclaringType.FullName == "System.Type") &&
-                    (method.Method.Name == "GetTypeFromHandle")
-                ) {
-                    var typeObj = ie.Arguments.FirstOrDefault();
-                    ParentNode.ReplaceChild(ie, typeObj);
-
-                    VisitReplacement(typeObj);
-                    return;
-                } else if (
                     (method.Reference.DeclaringType.Name == "RuntimeHelpers") &&
                     (method.Method.Name == "InitializeArray")
                 ) {

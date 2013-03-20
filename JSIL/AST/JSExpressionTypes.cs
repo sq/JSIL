@@ -619,6 +619,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return new TypeReference("System", "Type", typeSystem.Object.Module, typeSystem.Object.Scope);
+        }
+
         public override string ToString () {
             return String.Format("typeof ({0})", base.ToString());
         }
