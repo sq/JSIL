@@ -215,9 +215,9 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                if (invocations.Length > 0) {
+                if (invocations.Length > 1) {
                     if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it.", v));
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it multiple times.", v));
 
                     continue;
                 }

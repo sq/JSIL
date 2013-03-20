@@ -11,6 +11,13 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class StaticAnalyzer : JSAstVisitor {
+        public struct EnclosingNode<T> {
+            public T Node;
+            public string Name;
+            public JSNode Child;
+            public string ChildName;
+        }
+
         public readonly TypeSystem TypeSystem;
         public readonly FunctionCache FunctionSource;
 
@@ -122,19 +129,40 @@ namespace JSIL.Transforms {
             VisitChildren(fn);
         }
 
-        protected IEnumerable<T> GetEnclosingNodes<T> (Func<T, bool> selector = null, Func<JSNode, bool> halter = null)
+        protected IEnumerable<EnclosingNode<T>> GetEnclosingNodes<T> (Func<T, bool> selector = null, Func<JSNode, bool> halter = null)
             where T : JSNode {
 
-            foreach (var n in Stack) {
-                var value = n as T;
+            JSNode previous = null;
+            string previousName = null;
 
-                if (value != null) {
-                    if ((selector == null) || selector(value))
-                        yield return value;
+            // Fuck the C# compiler and its busted enumerator transform
+            // https://connect.microsoft.com/VisualStudio/feedback/details/781746/c-compiler-produces-incorrect-code-for-use-of-enumerator-structs-inside-enumerator-functions
+            using (var eNodes = (IEnumerator<JSNode>)Stack.GetEnumerator())
+            using (var eNames = (IEnumerator<string>)NameStack.GetEnumerator())
+            while (eNodes.MoveNext() && eNames.MoveNext()) {
+                iterationStart:
+                var value = eNodes.Current as T;
+                var name = eNames.Current;
+
+                if (value == null) {
+                    previous = eNodes.Current;
+                    previousName = name;
+                    continue;
+                }
+
+                if ((selector == null) || selector(value)) {
+                    yield return new EnclosingNode<T> {
+                        Node = value,
+                        Child = previous,
+                        ChildName = previousName
+                    };
                 }
 
                 if ((halter != null) && halter(value))
-                    break;
+                    yield break;
+
+                previous = eNodes.Current;
+                previousName = name;
             }
         }
 
@@ -215,9 +243,13 @@ namespace JSIL.Transforms {
                 left = ((JSReferenceExpression)left).Referent;
             }
 
+            var leftIsNested = false;
+
             var leftDot = left as JSDotExpressionBase;
             // If the LHS is one or more nested dot expressions, unnest them (leftward) to find the root variable.
             while (leftDot != null) {
+                leftIsNested = true;
+
                 if (leftDot.Target is JSDotExpressionBase)
                     leftDot = (JSDotExpressionBase)leftDot.Target;
                 else
@@ -230,19 +262,21 @@ namespace JSIL.Transforms {
 
             if (isAssignment) {
                 if (leftVar != null) {
-                    if ((left == leftVar) && leftVar.IsThis)
-                        State.ReassignsThisReference = true;
+                    if (!leftIsNested) {
+                        if ((left == leftVar) && leftVar.IsThis)
+                            State.ReassignsThisReference = true;
 
-                    var leftType = left.GetActualType(TypeSystem);
-                    var rightType = boe.Right.GetActualType(TypeSystem);
+                        var leftType = left.GetActualType(TypeSystem);
+                        var rightType = boe.Right.GetActualType(TypeSystem);
 
-                    State.Assignments.Add(
-                        new FunctionAnalysis1stPass.Assignment(
-                            GetParentNodeIndices(), StatementIndex, NodeIndex,
-                            leftVar, boe.Right, boe.Operator,
-                            leftType, rightType
-                        )
-                    );
+                        State.Assignments.Add(
+                            new FunctionAnalysis1stPass.Assignment(
+                                GetParentNodeIndices(), StatementIndex, NodeIndex,
+                                leftVar, boe.Right, boe.Operator,
+                                leftType, rightType
+                            )
+                        );
+                    }
 
                     ModifiedVariable(leftVar);
                 }
@@ -434,12 +468,19 @@ namespace JSIL.Transforms {
             ).ToArray();
 
             if ((enclosingAssignmentStatements.Length == 0) && (
-                !(enclosingStatement is JSVariableDeclarationStatement)
+                !(enclosingStatement.Node is JSVariableDeclarationStatement)
             )) {
-                bool isControlFlow = (enclosingStatement is JSIfStatement) || 
-                    (enclosingStatement is JSSwitchStatement);
+                bool isControlFlow =
+                    (
+                        (enclosingStatement.Node is JSIfStatement) &&
+                        (enclosingStatement.ChildName != "Condition")
+                    ) || (
+                        (enclosingStatement.Node is JSSwitchStatement) &&
+                        (enclosingStatement.ChildName != "Condition")
+                    );
 
-                var enclosingBlock = enclosingStatement as JSBlockStatement;
+                // Don't do the condition check here since a loop's condition can be evaluated multiple times
+                var enclosingBlock = enclosingStatement.Node as JSBlockStatement;
                 if (enclosingBlock != null)
                     isControlFlow |= enclosingBlock is JSLoopStatement;
 
