@@ -44,6 +44,8 @@ Tests/*Cases/*.js
 /jsil.org/demos/Lumberjack/Content
 /jsil.org/demos/Lumberjack/Files
 /jsil.org/demos/Lumberjack/*.js
+/jsil.org/demos/WebGL/*.js
+/jsil.org/demos/WebGL/Files/*
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
 /Examples/obj
@@ -70,3 +72,5 @@ Corlib/*.js
 *.sublime-*
 *.VisualState.xml
 /jsil.org/try/Libraries
+/Examples/WebGL/bin
+/Examples/WebGL/obj
