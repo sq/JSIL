@@ -2255,7 +2255,7 @@ namespace JSIL.Ast {
             return null;
         }
 
-        private static JSExpression UnwrapExpression (JSExpression e) {
+        public static JSExpression UnwrapExpression (JSExpression e) {
             while (true) {
                 var cte = e as JSChangeTypeExpression;
                 var cast = e as JSCastExpression;

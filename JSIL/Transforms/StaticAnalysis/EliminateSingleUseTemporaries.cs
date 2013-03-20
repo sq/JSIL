@@ -271,7 +271,7 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                var replacementField = replacement as JSFieldAccess;
+                var replacementField = JSPointerExpressionUtil.UnwrapExpression(replacement) as JSFieldAccess;
                 if (replacementField == null) {
                     var replacementRef = replacement as JSReferenceExpression;
                     if (replacementRef != null)
