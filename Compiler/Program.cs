@@ -140,8 +140,8 @@ namespace JSIL.Compiler {
                         (b) => commandLineConfig.UseLocalProxies = b == null},
                     {"fv=|frameworkVersion=", 
                         "Specifies the version of the .NET framework proxies to use. " +
-                        "This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). " +
-                        "Accepted values are '3.5' and '4.0'. Default: '4.0'",
+                        "This ensures that correct type information is provided (as different versions of the framework use different standard libraries). " +
+                        "The only accepted value is currently '4.0'. Default: '4.0'",
                         (fv) => commandLineConfig.FrameworkVersion = double.Parse(fv)},
 
                     "Profile options",

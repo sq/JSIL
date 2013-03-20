@@ -141,8 +141,6 @@ namespace JSIL {
             try {
                 if (frameworkVersion == 4.0) {
                     proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
-                } else if (frameworkVersion <= 3.5) {
-                    proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
                 } else {
                     throw new ArgumentOutOfRangeException(
                         "FrameworkVersion",
