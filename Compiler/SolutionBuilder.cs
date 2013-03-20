@@ -241,7 +241,10 @@ namespace JSIL.SolutionBuilder {
 
             var pc = new ProjectCollection();
             var parms = new BuildParameters(pc);
-            var globalProperties = new Dictionary<string, string>();
+            var globalProperties = new Dictionary<string, string> {
+                {"JSIL", "building"},
+                {"JSILVersion", Assembly.GetExecutingAssembly().GetName().ToString() }
+            };
 
             var hostServices = new HostServices();
             var eventRecorder = new BuildEventRecorder();
@@ -288,7 +291,8 @@ namespace JSIL.SolutionBuilder {
                 Console.Error.WriteLine("// Building project '{0}'...", project.FullPath);
 
                 var request = new BuildRequestData(
-                    project, new string[] { buildTarget }, 
+                    project, 
+                    new string[] { buildTarget }, 
                     hostServices, BuildRequestDataFlags.None
                 );
 
