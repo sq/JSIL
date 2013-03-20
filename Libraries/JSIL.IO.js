@@ -279,7 +279,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
       var fromResolved = storageRoot.resolvePath(from, false);
 
       if (!fromResolved || fromResolved.type !== "file")
-        throw new System.FileNotFoundException(from);
+        throw new System.IO.FileNotFoundException(from);
 
       var toResolved = storageRoot.createFile(to, overwrite);
       if (!toResolved)
@@ -325,6 +325,8 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
         if (resolved && resolved.type === "file")
           return JSIL.StringFromByteArray(resolved.readAllBytes());
+        else
+          throw new System.IO.FileNotFoundException(filename);
       }
 
       throw new System.NotImplementedException("No storage root available");
