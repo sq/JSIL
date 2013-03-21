@@ -45,6 +45,7 @@ namespace JSIL.Transforms {
 
         public SignatureCacher () {
             CachedSignatures = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
+            VisitNestedFunctions = true;
         }
 
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
