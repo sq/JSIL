@@ -346,6 +346,7 @@
     <None Include="PerformanceTestCases\PointerMethodsAreSingletons.cs" />
     <Compile Include="PerformanceAnalysis.cs" />
     <None Include="PerformanceTestCases\Vector3.cs" />
+    <None Include="PerformanceTestCases\OverloadedMethodCalls.cs" />
     <Compile Include="PerformanceTests.cs" />
     <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
     <None Include="SimpleTestCases\BooleanCasts.cs" />
