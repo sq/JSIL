@@ -1863,18 +1863,23 @@ JSIL.ResolveTypeReference = function (typeReference, context) {
   }
 };
 
+JSIL.ResolveTypeArgument = function (typeArg, context) {
+  var result = JSIL.ResolveTypeReference(typeArg, context)[1];
+
+  if (typeof (result) === "undefined")
+    throw new Error("Undefined passed as type argument");
+  else if (result === null)
+    throw new Error("Null passed as type argument");
+
+  return result;
+};
+
 JSIL.ResolveTypeArgumentArray = function (typeArgs, context) {
   var resolvedArguments = typeArgs;
 
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
-  for (var i = 0, l = resolvedArguments.length; i < l; i++) {
-    resolvedArguments[i] = JSIL.ResolveTypeReference(resolvedArguments[i], context)[1];
-
-    if (typeof(resolvedArguments[i]) === "undefined")
-      throw new Error("Undefined passed as type argument");
-    else if (resolvedArguments[i] === null)
-      throw new Error("Null passed as type argument");
-  }
+  for (var i = 0, l = resolvedArguments.length; i < l; i++)
+    resolvedArguments[i] = JSIL.ResolveTypeArgument(typeArgs[i], context);
 
   return resolvedArguments;
 };
@@ -5488,11 +5493,9 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
 
   var self = this;
 
-  if (false) {
-    JSIL.SetLazyValueProperty(this, "CallStatic", function () {
-      return JSIL.MethodSignature.$MakeCallStatic(self.returnType, self.argumentTypes, self.genericArgumentNames);
-    });
-  }
+  JSIL.SetLazyValueProperty(this, "CallStatic", function () {
+    return JSIL.MethodSignature.$MakeCallStatic(self.returnType, self.argumentTypes, self.genericArgumentNames);
+  });
 };
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
@@ -5684,8 +5687,37 @@ JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, gene
     argumentNames.push(argumentName);
   }
 
+  body.push("var method = this.LookupMethod(context, name);");
+  body.push("");
+
+  if (genericArgumentNames.length > 0) {
+    body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
+    body.push("  throw new Error('Invalid number of generic arguments');");
+    body.push("JSIL.ResolveTypeArgumentArray(ga);");
+    body.push("");
+  } else {
+    body.push("if (ga && ga.length > 0)");
+    body.push("  throw new Error('Invalid number of generic arguments');");
+  }
+
+  comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
+  body.push("return method.call(");
+  body.push("  context" + comma);
+
+  for (var i = 0, l = genericArgumentNames.length; i < l; i++) {
+    comma = ((i < (l - 1)) || (argumentTypes.length > 0)) ? "," : "";
+    body.push("  ga[" + i + "]" + comma);
+  }
+
+  for (var i = 0, l = argumentTypes.length; i < l; i++) {
+    var comma = (i < (l - 1)) ? "," : "";
+    body.push("  arg" + i + comma);
+  }
+
+  body.push(");");
+
   var result = JSIL.CreateNamedFunction(
-    "MethodSignature.CallStatic",
+    "MethodSignature.CallStatic$" + genericArgumentNames.length + "$" + argumentTypes.length,
     argumentNames,
     body.join("\r\n"),
     closure
@@ -5693,7 +5725,8 @@ JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, gene
   return result;
 };
 
-JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...parameters */) {
+/*
+JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga) { // ... parameters
   var method = this.LookupMethod(context, name);
 
   if (ga !== null) {
@@ -5719,6 +5752,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
     return method.apply(context, parameters);
   }
 };
+*/
 
 JSIL.MethodSignature.prototype.CallVirtual = function (escapedName, ga, thisReference /*, ...parameters */) {
   var method = this.LookupMethod(thisReference, escapedName);
