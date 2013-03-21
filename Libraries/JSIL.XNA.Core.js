@@ -129,13 +129,13 @@ JSIL.MakeClass("SoundAssetBase", "CallbackSoundAsset", true, [], function ($) {
 
 JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
   var $NewCr = function () {
-    return ($NewCr = JSIL.Memoize(function () {
-      return new JSIL.MethodSignature(null, [
+    return ($NewCr = JSIL.Memoize(
+      new JSIL.ConstructorSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), [
         $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentManager"), $xnaasms[5].TypeRef("System.IO.Stream"), 
         $.String, $xnaasms[5].TypeRef("System.Action`1", [$xnaasms[5].TypeRef("System.IDisposable")]), 
         $.Int32
-      ], []);
-    })) ();
+      ])
+    )) ();
   };
 
   $.Method({
@@ -160,11 +160,8 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
 
     var memoryStream = new System.IO.MemoryStream(this.bytes, false);
 
-    var tContentReader = JSIL.GetTypeFromAssembly(
-      $xnaasms.xna, "Microsoft.Xna.Framework.Content.ContentReader", [], true
-    );
     var contentReader = $NewCr().Construct(
-      tContentReader, this.contentManager, memoryStream, this.name, null, 0
+      this.contentManager, memoryStream, this.name, null, 0
     );
 
     contentReader.ReadHeader();
