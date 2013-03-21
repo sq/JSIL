@@ -20,13 +20,31 @@ namespace JSIL.Transforms {
                 Index = index;
                 IsConstructor = isConstructor;
             }
+
+            public override int GetHashCode () {
+                return Method.GetHashCode() ^ Signature.GetHashCode() ^ IsConstructor.GetHashCode();
+            }
+
+            public bool Equals (CachedSignatureRecord rhs) {
+                return
+                    (Method == rhs.Method) &&
+                    Signature.Equals(rhs.Signature) &&
+                    (IsConstructor == rhs.IsConstructor);
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is CachedSignatureRecord)
+                    return Equals((CachedSignatureRecord)obj);
+                else
+                    return base.Equals(obj);
+            }
         }
 
-        public readonly Dictionary<MethodSignature, CachedSignatureRecord> CachedSignatures;
+        public readonly Dictionary<CachedSignatureRecord, CachedSignatureRecord> CachedSignatures;
         private int NextID = 0;
 
         public SignatureCacher () {
-            CachedSignatures = new Dictionary<MethodSignature, CachedSignatureRecord>();
+            CachedSignatures = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
         }
 
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
@@ -37,9 +55,11 @@ namespace JSIL.Transforms {
             else if (TypeUtil.IsOpenType(method.DeclaringType))
                 return;
 
-            CachedSignatureRecord record;
-            if (!CachedSignatures.TryGetValue(signature, out record))
-                CachedSignatures.Add(signature, record = new CachedSignatureRecord(method, signature, NextID++, isConstructor));
+            var record = new CachedSignatureRecord(method, signature, NextID, isConstructor);
+            if (!CachedSignatures.ContainsKey(record)) {
+                CachedSignatures.Add(record, record);
+                NextID++;
+            }
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
@@ -89,9 +109,10 @@ namespace JSIL.Transforms {
             TypeReferenceContext referenceContext, 
             bool forConstructor
         ) {
-            CachedSignatureRecord record;
+            var record = new CachedSignatureRecord(methodReference, methodSignature, -1, forConstructor);
+
             if (
-                !CachedSignatures.TryGetValue(methodSignature, out record) ||
+                !CachedSignatures.TryGetValue(record, out record) ||
                 (record.Method != methodReference) ||
                 (record.IsConstructor != forConstructor) 
             )

@@ -545,11 +545,11 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsTrue(generatedJs.Contains(".A()"));
-                Assert.IsTrue(generatedJs.Contains(".A(1)"));
-                Assert.IsTrue(generatedJs.Contains(".B()"));
-                Assert.IsTrue(generatedJs.Contains("$S00().Construct("));
-                Assert.IsTrue(generatedJs.Contains("$S01().Construct("));
+                Assert.IsTrue(generatedJs.Contains(".Construct()"));
+                Assert.IsTrue(generatedJs.Contains(".Construct(1)"));
+                Assert.IsTrue(generatedJs.Contains(".Construct(\"s\")"));
+                Assert.IsFalse(generatedJs.Contains("new A"));
+                Assert.IsFalse(generatedJs.Contains("new B"));
             } catch {
                 Console.WriteLine(generatedJs);
 
