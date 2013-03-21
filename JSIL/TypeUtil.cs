@@ -241,7 +241,7 @@ namespace JSIL {
             return false;
         }
 
-        public static bool IsOpenType (TypeReference type) {
+        public static bool IsOpenType (TypeReference type, Func<GenericParameter, bool> filter = null) {
             type = DereferenceType(type);
 
             var gp = type as GenericParameter;
@@ -249,25 +249,29 @@ namespace JSIL {
             var at = type as ArrayType;
             var byref = type as ByReferenceType;
 
-            if (gp != null)
-                return true;
+            if (gp != null) {
+                if (filter != null)
+                    return filter(gp);
+                else
+                    return true;
+            }
 
             if (git != null) {
                 var elt = git.ElementType;
 
                 foreach (var ga in git.GenericArguments) {
-                    if (IsOpenType(ga))
+                    if (IsOpenType(ga, filter))
                         return true;
                 }
 
-                return IsOpenType(elt);
+                return IsOpenType(elt, filter);
             }
 
             if (at != null)
-                return IsOpenType(at.ElementType);
+                return IsOpenType(at.ElementType, filter);
 
             if (byref != null)
-                return IsOpenType(byref.ElementType);
+                return IsOpenType(byref.ElementType, filter);
 
             return false;
         }

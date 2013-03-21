@@ -48,11 +48,26 @@ namespace JSIL.Transforms {
         }
 
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
-            if (TypeUtil.IsOpenType(signature.ReturnType))
+            Func<GenericParameter, bool> filter =
+                (gp) => {
+                    var ownerMethod = gp.Owner as MethodReference;
+                    if (ownerMethod == null)
+                        return true;
+
+                    if (ownerMethod == method)
+                        return false;
+                    // FIXME: Nulls?
+                    else if (ownerMethod.Resolve() == method.Resolve())
+                        return false;
+                    else
+                        return true;
+                };
+
+            if (TypeUtil.IsOpenType(signature.ReturnType, filter))
                 return;
-            else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
+            else if (signature.ParameterTypes.Any((gp) => TypeUtil.IsOpenType(gp, filter)))
                 return;
-            else if (TypeUtil.IsOpenType(method.DeclaringType))
+            else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
                 return;
 
             var record = new CachedSignatureRecord(method, signature, NextID, isConstructor);
