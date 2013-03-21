@@ -95,6 +95,7 @@
     <Compile Include="SpecialIdentifiers.cs" />
     <Compile Include="Threading.cs" />
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
+    <Compile Include="Transforms\CacheSignatures.cs" />
     <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
     <Compile Include="Transforms\DecomposeMutationOperators.cs" />
     <Compile Include="Transforms\FixupStructConstructorInvocations.cs" />

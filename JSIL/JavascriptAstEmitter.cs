@@ -30,6 +30,9 @@ namespace JSIL {
 
         public readonly TypeReferenceContext ReferenceContext = new TypeReferenceContext();
 
+        // FIXME: Eliminate this by using ast node replacement like type caching does.
+        public SignatureCacher SignatureCacher = null;
+
         protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
@@ -1564,7 +1567,9 @@ namespace JSIL {
 
             try {
                 if (isOverloaded) {
-                    Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    SignatureCacher.WriteToOutput(
+                        Output, newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
+                    );
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = newexp.ConstructorReference;
@@ -1675,7 +1680,7 @@ namespace JSIL {
             Output.RPar();
         }
 
-        protected bool CanUseFastOverloadDispatch (MethodInfo method) {
+        public static bool CanUseFastOverloadDispatch (MethodInfo method) {
             MethodSignatureSet mss;
 
             if (method.DeclaringType.MethodSignatures.TryGet(method.NamedSignature.Name, out mss)) {
@@ -1750,7 +1755,9 @@ namespace JSIL {
 
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
-                    Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
+                    SignatureCacher.WriteToOutput(
+                        Output, jsm.Reference, method.Signature, ReferenceContext, false
+                    );
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = jsm.Reference;

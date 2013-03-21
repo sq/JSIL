@@ -5879,38 +5879,6 @@ Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
 });
 
 
-JSIL.MethodSignatureCache = function () {
-  this._cache = {};
-};
-
-JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentTypes, genericArgumentNames, context) {
-  var cached = this._cache[id];
-  if (cached)
-    return cached;
-
-  if (arguments.length === 1)
-    throw new Error("Method signature '" + id + "' used without being defined!");
-
-  return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
-};
-
-JSIL.MethodSignatureCache.prototype.make = function (id, returnType, argumentTypes, genericArgumentNames, context) {
-  var result = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
-
-  var cached = this._cache[id];
-  if (cached) {
-    if (cached.get_Hash() !== result.get_Hash())
-      throw new Error("The signature ID '" + id + "' has multiple definitions! This indicates that you are mixing old & new JSIL output.");
-  }
-
-  return this._cache[id] = result;
-};
-
-JSIL.MethodSignatureCache.prototype.toString = function () {
-  return "<Method Signature Cache>";
-};
-
-
 //
 // System.Type.cs
 //

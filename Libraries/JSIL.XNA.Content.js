@@ -621,7 +621,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
-    $sig.get("newCr", null, [
+    new JSIL.MethodSignature(null, [
         $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentManager"), $xnaasms[5].TypeRef("System.IO.Stream"), 
         $.String, $xnaasms[5].TypeRef("System.Action`1", [$xnaasms[5].TypeRef("System.IDisposable")]), 
         $.Int32

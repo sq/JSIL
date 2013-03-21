@@ -11,8 +11,6 @@ $jsilxna.allowWebGL = true;
 $jsilxna.testedWebGL = false;
 $jsilxna.workingWebGL = false;
 
-var $sig = new JSIL.MethodSignatureCache();
-
 var $xnaasms = new JSIL.AssemblyCollection({
   corlib: "mscorlib",
   xna: "Microsoft.Xna.Framework",
@@ -130,6 +128,16 @@ JSIL.MakeClass("SoundAssetBase", "CallbackSoundAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
+  var $NewCr = function () {
+    return ($NewCr = JSIL.Memoize(function () {
+      return new JSIL.MethodSignature(null, [
+        $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentManager"), $xnaasms[5].TypeRef("System.IO.Stream"), 
+        $.String, $xnaasms[5].TypeRef("System.Action`1", [$xnaasms[5].TypeRef("System.IDisposable")]), 
+        $.Int32
+      ], []);
+    })) ();
+  };
+
   $.Method({
     Static: false,
     Public: true
@@ -155,7 +163,7 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     var tContentReader = JSIL.GetTypeFromAssembly(
       $xnaasms.xna, "Microsoft.Xna.Framework.Content.ContentReader", [], true
     );
-    var contentReader = $sig.get("newCr").Construct(
+    var contentReader = $NewCr().Construct(
       tContentReader, this.contentManager, memoryStream, this.name, null, 0
     );
 

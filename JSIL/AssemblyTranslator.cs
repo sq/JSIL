@@ -472,8 +472,6 @@ namespace JSIL {
                     );
                 }
 
-                tw.WriteLine("var $sig = new JSIL.MethodSignatureCache();");
-
                 if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
                     tw.WriteLine();
                     tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
@@ -1227,9 +1225,12 @@ namespace JSIL {
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
             var typeCacher = new TypeExpressionCacher(typedef);
-            if (
-                Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true)
-            ) {
+            var signatureCacher = new SignatureCacher();
+
+            var cacheTypes = Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true);
+            var cacheSignatures = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
+
+            if (cacheTypes || cacheSignatures) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
@@ -1243,7 +1244,10 @@ namespace JSIL {
                     if (functionBody == null)
                         continue;
 
-                    typeCacher.CacheTypesForFunction(functionBody);
+                    if (cacheTypes)
+                        typeCacher.CacheTypesForFunction(functionBody);
+                    if (cacheSignatures)
+                        signatureCacher.CacheSignaturesForFunction(functionBody);
                 }
 
                 var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
@@ -1258,9 +1262,24 @@ namespace JSIL {
                         output.CloseBrace(false);
                         output.Semicolon(true);
                     }
-
-                    output.NewLine();
                 }
+
+                var css = signatureCacher.CachedSignatures.Values.OrderBy((cs) => cs.Index).ToArray();
+                if (css.Length > 0) {
+                    foreach (var cs in css) {
+                        output.WriteRaw("var $S{0:X2} = function () ", cs.Index);
+                        output.OpenBrace();
+                        output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Index);
+                        output.Signature(cs.Method, cs.Signature, astEmitter.ReferenceContext, cs.IsConstructor, false);
+                        output.WriteRaw(")) ()");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
+                        output.Semicolon(true);
+                    }
+                }
+
+                if ((cts.Length > 0) || (css.Length > 0))
+                    output.NewLine();
             }
 
             foreach (var method in methodsToTranslate) {
@@ -1270,7 +1289,7 @@ namespace JSIL {
 
                 EmitMethodBody(
                     context, method, method, astEmitter, output,
-                    stubbed, typeCacher, ref nextDisambiguatedId
+                    stubbed, typeCacher, signatureCacher, ref nextDisambiguatedId
                 );
             }
 
@@ -1952,7 +1971,7 @@ namespace JSIL {
             if ((cctor != null) && !stubbed) {
                 output.NewLine();
 
-                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1970,7 +1989,7 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -1979,7 +1998,7 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, null, ref temp, extraCctor,
+                    output, false, dollar, null, null, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -2143,13 +2162,14 @@ namespace JSIL {
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, ref int nextDisambiguatedId,
-            MethodInfo methodInfo = null, Action<JSFunctionExpression> bodyTransformer = null
+            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher,
+            ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
+            Action<JSFunctionExpression> bodyTransformer = null
         ) {
             EmitMethodBody(
                 context, methodRef, method,
-                astEmitter, output, stubbed, typeCacher, ref nextDisambiguatedId,
-                methodInfo, bodyTransformer
+                astEmitter, output, stubbed, typeCacher, signatureCacher, 
+                ref nextDisambiguatedId, methodInfo, bodyTransformer
             );
             DefineMethod(
                 context, methodRef, method, astEmitter, output, stubbed, dollar, methodInfo
@@ -2158,9 +2178,10 @@ namespace JSIL {
 
         protected void EmitMethodBody (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            TypeExpressionCacher typeCacher, ref int nextDisambiguatedId,
-            MethodInfo methodInfo = null, Action<JSFunctionExpression> bodyTransformer = null
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, 
+            ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
+            Action<JSFunctionExpression> bodyTransformer = null
         ) {
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -2183,6 +2204,9 @@ namespace JSIL {
             } catch (KeyNotFoundException knf) {
                 throw;
             }
+
+            // FIXME
+            astEmitter.SignatureCacher = signatureCacher;
 
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;

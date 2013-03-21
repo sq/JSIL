@@ -28,8 +28,8 @@ namespace JSIL.Translator {
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
-            public bool? EliminatePointlessFinallyBlocks;
             public bool? CacheTypeExpressions;
+            public bool? EliminatePointlessFinallyBlocks;
             public bool? PreferAccessorMethods;
             public bool? HintIntegerArithmetic;
             public bool? EnableThreadedTransforms;

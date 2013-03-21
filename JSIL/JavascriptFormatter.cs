@@ -1098,59 +1098,20 @@ namespace JSIL.Internal {
         }
 
         public void ConstructorSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
-            SignatureImpl(method, signature, context, true);
+            Signature(method, signature, context, true, true);
         }
 
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
-            SignatureImpl(method, signature, context, false);
+            Signature(method, signature, context, false, true);
         }
 
-        private void SignatureImpl (MethodReference method, MethodSignature signature, TypeReferenceContext context, bool forConstructor) {
-            // The signature cache can cause problems inside methods for generic signatures.
-            var cached = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
-
-            // We also don't want to use the cache for method definitions in skeletons.
-            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
-                cached = false;
-
-            if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
-                if (TypeUtil.IsOpenType(signature.ReturnType))
-                    cached = false;
-                else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
-                    cached = false;
-            }
-
+        public void Signature (MethodReference method, MethodSignature signature, TypeReferenceContext context, bool forConstructor, bool allowCache) {
             if (forConstructor)
-                cached = false;
+                WriteRaw("new JSIL.ConstructorSignature");
+            else
+                WriteRaw("new JSIL.MethodSignature");
 
-            if (cached) {
-                var defineNew = (context.InvokingMethod == null) && (context.EnclosingMethod == null);
-
-                WriteRaw(defineNew ? "$sig.make" : "$sig.get");
-                LPar();
-
-                WriteRaw("0x{0:X}", signature.ID);
-
-                /*
-                 * FIXME: Not possible since IDs for jsil.core/jsil.bootstrap APIs aren't defined.
-                if (!defineNew) {
-                    RPar();
-                    return;
-                }
-                 */
-
-                Comma();
-
-            } else {
-                LPar();
-
-                if (forConstructor)
-                    WriteRaw("new JSIL.ConstructorSignature");
-                else
-                    WriteRaw("new JSIL.MethodSignature");
-
-                LPar();
-            }
+            LPar();
 
             var oldSignature = context.SignatureMethod;
             context.SignatureMethod = method;
@@ -1197,9 +1158,6 @@ namespace JSIL.Internal {
             }
 
             RPar();
-
-            if (!cached)
-                RPar();
         }
     }
 }
