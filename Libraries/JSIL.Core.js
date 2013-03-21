@@ -5613,14 +5613,19 @@ JSIL.MethodSignature.prototype.toString = function (name) {
 };
 
 JSIL.MethodSignature.$EmitInvocation = function (
-  body, thisReferenceArg, hasReturnValue, argumentTypes, genericArgumentNames
+  body, methodToken, thisReferenceArg, prefix, argumentTypes, genericArgumentNames
 ) {
-  var comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
-  var returnPrefix = hasReturnValue ? "return " : "";
+  var comma;
 
-  body.push(returnPrefix + "method.call(");
+  if (genericArgumentNames)
+    comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
+  else
+    comma = argumentTypes.length > 0 ? "," : "";
+
+  body.push(prefix + methodToken + ".call(");
   body.push("  " + thisReferenceArg + comma);
 
+  if (genericArgumentNames)
   for (var i = 0, l = genericArgumentNames.length; i < l; i++) {
     comma = ((i < (l - 1)) || (argumentTypes.length > 0)) ? "," : "";
     body.push("  ga[" + i + "]" + comma);
@@ -5689,7 +5694,9 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   }
 
   JSIL.MethodSignature.$EmitInvocation(
-    body, thisReferenceArg, !!returnType, argumentTypes, genericArgumentNames
+    body, "method", thisReferenceArg, 
+    (!!returnType) ? "return " : "", 
+    argumentTypes, genericArgumentNames
   );
 
   var result = JSIL.CreateNamedFunction(
@@ -5788,7 +5795,11 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
 
   if (typeObject.__IsNativeType__) {
     body.push("var ctor = publicInterface.prototype['_ctor'];");
-    body.push("return ctor.apply(publicInterface, arguments);");
+
+    JSIL.MethodSignature.$EmitInvocation(
+      body, "ctor", "publicInterface", 
+      "return ", argumentTypes
+    );
   } else {
     closure.proto = publicInterface.prototype;
     delete closure.publicInterface;
@@ -5806,7 +5817,10 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
   } else {
     closure.ctor = this.LookupMethod(closure.proto, "_ctor");
 
-    body.push("var ctorResult = ctor.apply(result, arguments);");
+    JSIL.MethodSignature.$EmitInvocation(
+      body, "ctor", "result", 
+      "var ctorResult = ", argumentTypes
+    );
 
     // Handle wacky constructors that return a non-this reference (like new String(chars) )
     body.push("if (ctorResult && (ctorResult !== result))");
