@@ -65,8 +65,11 @@ namespace JSIL.Transforms {
                 ctor.IsOverloadedRecursive &&
                 !ctor.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
 
+            // New improved ConstructorSignature.Construct is faster than fast overload dispatch! :)
+            /*
             if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(ctor))
                 isOverloaded = false;
+             */
 
             if (isOverloaded)
                 CacheSignature(newexp.ConstructorReference, ctor.Signature, true);

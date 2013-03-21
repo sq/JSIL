@@ -1560,8 +1560,11 @@ namespace JSIL {
 
             bool hasArguments = newexp.Arguments.Count > 0;
 
+            // New improved ConstructorSignature.Construct is faster than fast overload dispatch! :)
+            /*
             if (isOverloaded && CanUseFastOverloadDispatch(ctor))
                 isOverloaded = false;
+             */
 
             ReferenceContext.Push();
 

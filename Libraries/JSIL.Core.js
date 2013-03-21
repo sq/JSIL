@@ -5790,18 +5790,26 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
 
   body.push("fieldInitializer(this);");
 
+  var ctorKey = "_ctor";
+
   if (typeObject.__IsStruct__ && argumentNames.length === 0) {
   } else {
-    closure.ctor = this.LookupMethod(proto, "_ctor");
+    ctorKey = this.GetKey("_ctor");
+    if (!proto[ctorKey]) {
+      if (!proto["_ctor"])
+        throw new Error("No method named '_ctor' found");
+      else
+        ctorKey = "_ctor";
+    }
 
     JSIL.MethodSignature.$EmitInvocation(
-      body, "ctor.call", "this", 
+      body, "this['" + ctorKey + "']", null, 
       "return ", argumentNames
     );
   }
 
   var result = JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + "$" + argumentNames.length,
+    typeObject.__FullName__ + "." + ctorKey,    
     argumentNames,
     body.join("\r\n"),
     closure
