@@ -5493,8 +5493,16 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
 
   var self = this;
 
+  JSIL.SetLazyValueProperty(this, "Call", function () {
+    return JSIL.MethodSignature.$MakeCallMethod("direct", self.returnType, self.argumentTypes, self.genericArgumentNames);
+  });
+
   JSIL.SetLazyValueProperty(this, "CallStatic", function () {
-    return JSIL.MethodSignature.$MakeCallStatic(self.returnType, self.argumentTypes, self.genericArgumentNames);
+    return JSIL.MethodSignature.$MakeCallMethod("static", self.returnType, self.argumentTypes, self.genericArgumentNames);
+  });
+
+  JSIL.SetLazyValueProperty(this, "CallVirtual", function () {
+    return JSIL.MethodSignature.$MakeCallMethod("virtual", self.returnType, self.argumentTypes, self.genericArgumentNames);
   });
 };
 
@@ -5647,47 +5655,40 @@ JSIL.MethodSignature.prototype.LookupMethod = function (context, name) {
   return method;
 };
 
-JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference /*, ...parameters */) {
-  var method = this.LookupMethod(context, name);
-
-  if (thisReference === null)
-    thisReference = context;
-
-  if (ga !== null) {
-    JSIL.ResolveTypeArgumentArray(ga);
-    var parameters = ga.concat(Array.prototype.slice.call(arguments, 4));
-    return method.apply(thisReference, parameters);
-  }
-
-  var argc = arguments.length;
-
-  if (argc === 4) {
-    return method.call(thisReference);
-  } else if (argc === 5) {
-    return method.call(thisReference, arguments[4]);
-  } else if (argc === 6) {
-    return method.call(thisReference, arguments[4], arguments[5]);
-  } else if (argc === 7) {
-    return method.call(thisReference, arguments[4], arguments[5], arguments[6]);
-  } else if (argc === 8) {
-    return method.call(thisReference, arguments[4], arguments[5], arguments[6], arguments[7]);
-  } else {
-    var parameters = Array.prototype.slice.call(arguments, 4);
-    return method.apply(thisReference, parameters);
-  }
-};
-
-JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, genericArgumentNames) {
+JSIL.MethodSignature.$MakeCallMethod = function (callMethodType, returnType, argumentTypes, genericArgumentNames) {
   var closure = {};
   var body = [];
-  var argumentNames = ["context", "name", "ga"];
+  var argumentNames;
+  var contextArg, thisReferenceArg;
+  var suffix;
+
+  switch (callMethodType) {
+    case "static":
+      suffix = "Static";
+      thisReferenceArg = contextArg = "context";
+      argumentNames = ["context", "name", "ga"];
+      break;
+    case "direct":
+      suffix = "";
+      thisReferenceArg = "thisReference";
+      contextArg = "context";
+      argumentNames = ["context", "name", "ga", "thisReference"];
+      break;
+    case "virtual":
+      suffix = "Virtual";
+      thisReferenceArg = contextArg = "thisReference";
+      argumentNames = ["name", "ga", "thisReference"];
+      break;
+    default:
+      throw new Error("Invalid callMethodType");
+  }
 
   for (var i = 0, l = argumentTypes.length; i < l; i++) {
     var argumentName = "arg" + i;
     argumentNames.push(argumentName);
   }
 
-  body.push("var method = this.LookupMethod(context, name);");
+  body.push("var method = this.LookupMethod(" + contextArg + ", name);");
   body.push("");
 
   if (genericArgumentNames.length > 0) {
@@ -5698,11 +5699,14 @@ JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, gene
   } else {
     body.push("if (ga && ga.length > 0)");
     body.push("  throw new Error('Invalid number of generic arguments');");
+    body.push("");
   }
 
-  comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
-  body.push("return method.call(");
-  body.push("  context" + comma);
+  var comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
+  var returnPrefix = !!returnType ? "return " : "";
+
+  body.push(returnPrefix + "method.call(");
+  body.push("  " + thisReferenceArg + comma);
 
   for (var i = 0, l = genericArgumentNames.length; i < l; i++) {
     comma = ((i < (l - 1)) || (argumentTypes.length > 0)) ? "," : "";
@@ -5710,75 +5714,19 @@ JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, gene
   }
 
   for (var i = 0, l = argumentTypes.length; i < l; i++) {
-    var comma = (i < (l - 1)) ? "," : "";
+    comma = (i < (l - 1)) ? "," : "";
     body.push("  arg" + i + comma);
   }
 
   body.push(");");
 
   var result = JSIL.CreateNamedFunction(
-    "MethodSignature.CallStatic$" + genericArgumentNames.length + "$" + argumentTypes.length,
+    "MethodSignature.Call" + suffix + "$" + genericArgumentNames.length + "$" + argumentTypes.length,
     argumentNames,
     body.join("\r\n"),
     closure
   );
   return result;
-};
-
-/*
-JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga) { // ... parameters
-  var method = this.LookupMethod(context, name);
-
-  if (ga !== null) {
-    JSIL.ResolveTypeArgumentArray(ga);
-    var parameters = ga.concat(Array.prototype.slice.call(arguments, 3));
-    return method.apply(context, parameters);
-  }
-
-  var argc = arguments.length;
-
-  if (argc === 3) {
-    return method.call(context);
-  } else if (argc === 4) {
-    return method.call(context, arguments[3]);
-  } else if (argc === 5) {
-    return method.call(context, arguments[3], arguments[4]);
-  } else if (argc === 6) {
-    return method.call(context, arguments[3], arguments[4], arguments[5]);
-  } else if (argc === 7) {
-    return method.call(context, arguments[3], arguments[4], arguments[5], arguments[6]);
-  } else {
-    var parameters = Array.prototype.slice.call(arguments, 3);
-    return method.apply(context, parameters);
-  }
-};
-*/
-
-JSIL.MethodSignature.prototype.CallVirtual = function (escapedName, ga, thisReference /*, ...parameters */) {
-  var method = this.LookupMethod(thisReference, escapedName);
-
-  if (ga !== null) {
-    JSIL.ResolveTypeArgumentArray(ga);
-    var parameters = ga.concat(Array.prototype.slice.call(arguments, 3));
-    return method.apply(thisReference, parameters);
-  }
-
-  var argc = arguments.length;
-
-  if (argc === 3) {
-    return method.call(thisReference);
-  } else if (argc === 4) {
-    return method.call(thisReference, arguments[3]);
-  } else if (argc === 5) {
-    return method.call(thisReference, arguments[3], arguments[4]);
-  } else if (argc === 6) {
-    return method.call(thisReference, arguments[3], arguments[4], arguments[5]);
-  } else if (argc === 7) {
-    return method.call(thisReference, arguments[3], arguments[4], arguments[5], arguments[6]);
-  } else {
-    var parameters = Array.prototype.slice.call(arguments, 3);
-    return method.apply(thisReference, parameters);
-  }
 };
 
 JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
