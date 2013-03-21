@@ -5485,6 +5485,14 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentNames = genericArgumentNames;
   else
     this.genericArgumentNames = [];
+
+  var self = this;
+
+  if (false) {
+    JSIL.SetLazyValueProperty(this, "CallStatic", function () {
+      return JSIL.MethodSignature.$MakeCallStatic(self.returnType, self.argumentTypes, self.genericArgumentNames);
+    });
+  }
 };
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
@@ -5620,11 +5628,8 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
   return result;
 };
 
-JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference /*, ...parameters */) {
+JSIL.MethodSignature.prototype.LookupMethod = function (context, name) {
   var key = this.GetKey(name);
-
-  if (thisReference === null)
-    thisReference = context;
 
   var method = context[key];
   if (typeof (method) !== "function") {
@@ -5635,6 +5640,15 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
       "' defined in context '" + JSIL.GetTypeName(context) + "'"
     );
   }
+
+  return method;
+};
+
+JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference /*, ...parameters */) {
+  var method = this.LookupMethod(context, name);
+
+  if (thisReference === null)
+    thisReference = context;
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
@@ -5660,18 +5674,27 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
   }
 };
 
-JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...parameters */) {
-  var key = this.GetKey(name);
+JSIL.MethodSignature.$MakeCallStatic = function (returnType, argumentTypes, genericArgumentNames) {
+  var closure = {};
+  var body = [];
+  var argumentNames = ["context", "name", "ga"];
 
-  var method = context[key];
-  if (typeof (method) !== "function") {
-    var signature = this.toString(name);
-
-    throw new Error(
-      "No method with signature '" + signature +
-      "' defined in context '" + JSIL.GetTypeName(context) + "'"
-    );
+  for (var i = 0, l = argumentTypes.length; i < l; i++) {
+    var argumentName = "arg" + i;
+    argumentNames.push(argumentName);
   }
+
+  var result = JSIL.CreateNamedFunction(
+    "MethodSignature.CallStatic",
+    argumentNames,
+    body.join("\r\n"),
+    closure
+  );
+  return result;
+};
+
+JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...parameters */) {
+  var method = this.LookupMethod(context, name);
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
@@ -5698,17 +5721,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
 };
 
 JSIL.MethodSignature.prototype.CallVirtual = function (escapedName, ga, thisReference /*, ...parameters */) {
-  var key = this.GetKey(escapedName);
-
-  var method = thisReference[key];
-  if (typeof (method) !== "function") {
-    var signature = this.toString(escapedName);
-
-    throw new Error(
-      "No method with signature '" + signature +
-      "' defined in context '" + JSIL.GetTypeName(thisReference) + "'"
-    );
-  }
+  var method = this.LookupMethod(thisReference, escapedName);
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
