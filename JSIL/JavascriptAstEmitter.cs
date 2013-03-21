@@ -1570,9 +1570,13 @@ namespace JSIL {
 
             try {
                 if (isOverloaded) {
-                    SignatureCacher.WriteToOutput(
-                        Output, newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
-                    );
+                    if (SignatureCacher != null)
+                        SignatureCacher.WriteToOutput(
+                            Output, newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
+                        );
+                    else
+                        Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = newexp.ConstructorReference;
@@ -1758,9 +1762,13 @@ namespace JSIL {
 
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
-                    SignatureCacher.WriteToOutput(
-                        Output, jsm.Reference, method.Signature, ReferenceContext, false
-                    );
+                    if (SignatureCacher != null)
+                        SignatureCacher.WriteToOutput(
+                            Output, jsm.Reference, method.Signature, ReferenceContext, false
+                        );
+                    else
+                        Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
+
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = jsm.Reference;
