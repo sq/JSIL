@@ -191,13 +191,20 @@ namespace WebGL {
         public static void InitTexture () {
             CrateTexture = GL.createTexture();
 
-            var imageBytes = File.ReadAllBytes("crate.png");
-            var objectUrl = JSIL.Builtins.Global["JSIL"].GetObjectURLForBytes(imageBytes, "image/png");
             var imageElement = Document.createElement("img");
             imageElement.onload = (Action)(
                 () => UploadTexture(CrateTexture, imageElement)
             );
-            imageElement.src = objectUrl;
+
+            try {
+                var imageBytes = File.ReadAllBytes("crate.png");
+                var objectUrl = Builtins.Global["JSIL"].GetObjectURLForBytes(imageBytes, "image/png");
+                imageElement.src = objectUrl;
+            } catch {
+                // Object URLs probably aren't supported. Load the image a second time. ;/
+                Console.WriteLine("Falling back to a second HTTP request for crate.png because Object URLs are not available");
+                imageElement.src = "Files/crate.png";
+            }
         }
 
         public static void Tick () {
