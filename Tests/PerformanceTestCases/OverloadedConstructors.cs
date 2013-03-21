@@ -3,8 +3,7 @@ using JSIL.Meta;
 
 public static class Program {
     const int BufferSize = 8192;
-    // const int IterationCount = 320;
-    const int IterationCount = 128;
+    const int IterationCount = 320;
 
     public static Vector3d[] Vectors = new Vector3d[BufferSize];
 

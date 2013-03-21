@@ -5613,7 +5613,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
 };
 
 JSIL.MethodSignature.$EmitInvocation = function (
-  body, methodToken, thisReferenceArg, prefix, argumentTypes, genericArgumentNames
+  body, callText, thisReferenceArg, prefix, argumentTypes, genericArgumentNames
 ) {
   var comma;
 
@@ -5622,8 +5622,10 @@ JSIL.MethodSignature.$EmitInvocation = function (
   else
     comma = argumentTypes.length > 0 ? "," : "";
 
-  body.push(prefix + methodToken + ".call(");
-  body.push("  " + thisReferenceArg + comma);
+  body.push(prefix + callText + "(");
+
+  if (thisReferenceArg)
+    body.push("  " + thisReferenceArg + comma);
 
   if (genericArgumentNames)
   for (var i = 0, l = genericArgumentNames.length; i < l; i++) {
@@ -5694,7 +5696,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   }
 
   JSIL.MethodSignature.$EmitInvocation(
-    body, "method", thisReferenceArg, 
+    body, "method.call", thisReferenceArg, 
     (!!returnType) ? "return " : "", 
     argumentTypes, genericArgumentNames
   );
@@ -5776,10 +5778,43 @@ JSIL.ConstructorSignature.prototype.get_Hash = function () {
   return this._hash = "$" + JSIL.HashTypeArgumentArray(this.argumentTypes, this.context) + "=void";
 };
 
+JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNames) {
+  var typeObject = this.get_Type();
+  var publicInterface = typeObject.__PublicInterface__;
+  var closure = {};
+  var body = [];
+
+  var proto = publicInterface.prototype;
+
+  closure.fieldInitializer = JSIL.GetFieldInitializer(typeObject);
+
+  body.push("fieldInitializer(this);");
+
+  if (typeObject.__IsStruct__ && argumentNames.length === 0) {
+  } else {
+    closure.ctor = this.LookupMethod(proto, "_ctor");
+
+    JSIL.MethodSignature.$EmitInvocation(
+      body, "ctor.call", "this", 
+      "return ", argumentNames
+    );
+  }
+
+  var result = JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + "$" + argumentNames.length,
+    argumentNames,
+    body.join("\r\n"),
+    closure
+  );
+  result.prototype = proto;
+
+  return result;
+};
+
 JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
   var typeObject = this.get_Type();
-  var argumentTypes = this.argumentTypes;
   var publicInterface = typeObject.__PublicInterface__;
+  var argumentTypes = this.argumentTypes;
 
   var closure = {
     typeObject: typeObject,
@@ -5793,41 +5828,25 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
     argumentNames.push(argumentName);
   }
 
+  JSIL.RunStaticConstructors(publicInterface, typeObject);
+
   if (typeObject.__IsNativeType__) {
-    body.push("var ctor = publicInterface.prototype['_ctor'];");
+    closure.ctor = publicInterface.prototype["_ctor"];
 
     JSIL.MethodSignature.$EmitInvocation(
-      body, "ctor", "publicInterface", 
+      body, "ctor.call", "publicInterface", 
       "return ", argumentTypes
     );
   } else {
-    closure.proto = publicInterface.prototype;
-    delete closure.publicInterface;
-
-    body.push("var result = Object.create(proto);");
-  }
-
-  JSIL.RunStaticConstructors(publicInterface, typeObject);
-
-  closure.fieldInitializer = JSIL.GetFieldInitializer(typeObject);
-
-  body.push("fieldInitializer(result);");
-
-  if (typeObject.__IsStruct__ && argumentTypes.length === 0) {
-  } else {
-    closure.ctor = this.LookupMethod(closure.proto, "_ctor");
-
-    JSIL.MethodSignature.$EmitInvocation(
-      body, "ctor", "result", 
-      "var ctorResult = ", argumentTypes
+    closure.constructor = this.$MakeBoundConstructor(
+      argumentNames
     );
-
-    // Handle wacky constructors that return a non-this reference (like new String(chars) )
-    body.push("if (ctorResult && (ctorResult !== result))");
-    body.push("  return ctorResult;");
+    
+    JSIL.MethodSignature.$EmitInvocation(
+      body, "new constructor", null, 
+      "return ", argumentTypes
+    );
   }
-
-  body.push("return result;");
 
   var result = JSIL.CreateNamedFunction(
     "ConstructorSignature.Construct$" + argumentTypes.length,
@@ -5835,39 +5854,6 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
     body.join("\r\n"),
     closure
   );
-  return result;
-};
-
-JSIL.ConstructorSignature.prototype.Construct = function (/*, ...parameters */) {  
-  var typeObject = this.get_Type();
-  var publicInterface = typeObject.__PublicInterface__;
-  var result;
-
-  if (typeObject.__IsNativeType__) {
-    var ctor = publicInterface.prototype["_ctor"];
-    return ctor.apply(publicInterface, arguments);
-  } else {
-    var proto = publicInterface.prototype;
-    result = Object.create(proto);
-  }
-
-  JSIL.RunStaticConstructors(publicInterface, typeObject);  
-  JSIL.InitializeInstanceFields(result, typeObject);
-
-  var argc = arguments.length;
-
-  if (typeObject.__IsStruct__ && (argc === 0)) {
-  } else {
-    var ctor = this.LookupMethod(proto, "_ctor");
-    var ctorResult;
-
-    ctorResult = ctor.apply(result, arguments);
-
-    // Handle wacky constructors that return a non-this reference (like new String(chars) )
-    if (ctorResult && (ctorResult !== result))
-      return ctorResult;
-  }
-
   return result;
 };
 
