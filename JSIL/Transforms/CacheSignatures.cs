@@ -34,6 +34,8 @@ namespace JSIL.Transforms {
                 return;
             else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
                 return;
+            else if (TypeUtil.IsOpenType(method.DeclaringType))
+                return;
 
             CachedSignatureRecord record;
             if (!CachedSignatures.TryGetValue(signature, out record))
