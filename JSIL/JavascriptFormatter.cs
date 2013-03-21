@@ -1097,7 +1097,15 @@ namespace JSIL.Internal {
             NewLine();
         }
 
+        public void ConstructorSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
+            SignatureImpl(method, signature, context, true);
+        }
+
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
+            SignatureImpl(method, signature, context, false);
+        }
+
+        private void SignatureImpl (MethodReference method, MethodSignature signature, TypeReferenceContext context, bool forConstructor) {
             // The signature cache can cause problems inside methods for generic signatures.
             var cached = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
 
@@ -1111,6 +1119,9 @@ namespace JSIL.Internal {
                 else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
                     cached = false;
             }
+
+            if (forConstructor)
+                cached = false;
 
             if (cached) {
                 var defineNew = (context.InvokingMethod == null) && (context.EnclosingMethod == null);
@@ -1133,7 +1144,11 @@ namespace JSIL.Internal {
             } else {
                 LPar();
 
-                WriteRaw("new JSIL.MethodSignature");
+                if (forConstructor)
+                    WriteRaw("new JSIL.ConstructorSignature");
+                else
+                    WriteRaw("new JSIL.MethodSignature");
+
                 LPar();
             }
 
@@ -1141,16 +1156,23 @@ namespace JSIL.Internal {
             context.SignatureMethod = method;
 
             try {
-                if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
-                    WriteRaw("null");
-                else {
-                    if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(signature.ReturnType))
-                        TypeIdentifier(signature.ReturnType as dynamic, context, false);
-                    else
-                        TypeReference(signature.ReturnType, context);
+                if (forConstructor) {
+                    TypeReference(method.DeclaringType, context);
+
+                    Comma();
+                } else {
+                    if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
+                        WriteRaw("null");
+                    else {
+                        if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(signature.ReturnType))
+                            TypeIdentifier(signature.ReturnType as dynamic, context, false);
+                        else
+                            TypeReference(signature.ReturnType, context);
+                    }
+
+                    Comma();
                 }
 
-                Comma();
                 OpenBracket(false);
 
                 CommaSeparatedListCore(
@@ -1164,7 +1186,7 @@ namespace JSIL.Internal {
 
                 CloseBracket(false);
 
-                if (signature.GenericParameterNames != null) {
+                if (!forConstructor && (signature.GenericParameterNames != null)) {
                     Comma();
                     OpenBracket(false);
                     CommaSeparatedList(signature.GenericParameterNames, context, ListValueType.Primitive);

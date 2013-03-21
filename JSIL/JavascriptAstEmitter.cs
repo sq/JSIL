@@ -1564,7 +1564,7 @@ namespace JSIL {
 
             try {
                 if (isOverloaded) {
-                    Output.MethodSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = newexp.ConstructorReference;
@@ -1572,17 +1572,8 @@ namespace JSIL {
                     Output.Identifier("Construct");
                     Output.LPar();
 
-                    IncludeTypeParens.Push(false);
-                    try {
-                        Visit(newexp.Type);
-                    } finally {
-                        IncludeTypeParens.Pop();
-                    }
-
-                    if (hasArguments) {
-                        Output.Comma();
+                    if (hasArguments)
                         CommaSeparatedList(newexp.Arguments);
-                    }
 
                     Output.RPar();
                 } else {
