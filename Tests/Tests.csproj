@@ -342,6 +342,8 @@
     <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
     <None Include="FailingTestCases\PassPackedArrayAsNormalArrayArgument.cs" />
     <None Include="FailingTestCases\PassNormalArrayAsPackedArrayArgument.cs" />
+    <None Include="FailingTestCases\ReturnNormalArrayAsPackedArray.cs" />
+    <None Include="FailingTestCases\ReturnPackedArrayAsNormalArray.cs" />
     <Compile Include="GenericTestFixture.cs" />
     <None Include="SimpleTestCases\GenericCreateInstance.cs" />
     <None Include="SimpleTestCases\GenericSelfConstraint.cs" />

@@ -93,5 +93,43 @@ namespace JSIL.Internal {
 
             return null;
         }
+
+        public static JSExpression FilterInvocationResult (MethodInfo method, JSExpression result, TypeSystem typeSystem) {
+            if (method == null)
+                return result;
+
+            var resultType = result.GetActualType(typeSystem);
+            var resultIsPackedArray = PackedArrayUtil.IsPackedArrayType(resultType);
+            var returnValueAttribute = method.Metadata.GetAttribute("JSIL.Meta.JSPackedArrayReturnValueAttribute");
+
+            if (returnValueAttribute != null) {
+                if (!resultIsPackedArray)
+                    return JSChangeTypeExpression.New(result, PackedArrayUtil.MakePackedArrayType(resultType, returnValueAttribute.Entries.First().Type), typeSystem);
+            }
+
+            return result;
+        }
+
+        public static void CheckReturnValue (MethodInfo method, JSExpression returnValue, TypeSystem typeSystem) {
+            if (method == null)
+                return;
+
+            var resultType = returnValue.GetActualType(typeSystem);
+            var resultIsPackedArray = PackedArrayUtil.IsPackedArrayType(resultType);
+
+            var returnValueAttribute = method.Metadata.GetAttribute("JSIL.Meta.JSPackedArrayReturnValueAttribute");
+            if (returnValueAttribute != null) {
+                if (!resultIsPackedArray)
+                    throw new ArgumentException(
+                        "Return value of method '" + method.Name + "' must be a packed array."
+                    );
+            } else {
+                if (resultIsPackedArray)
+                    throw new ArgumentException(
+                        "Return value of method '" + method.Name + "' is a packed array. " + 
+                        "For this to be valid you must attach a JSPackedArrayReturnValueAttribute to the method."
+                    );
+            }
+        }
     }
 }

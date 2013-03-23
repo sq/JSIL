@@ -439,7 +439,7 @@ namespace JSIL {
             return newExpression;
         }
 
-        protected JSExpression Translate_MethodReplacement (
+        protected JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
         ) {
@@ -581,6 +581,8 @@ namespace JSIL {
                 else
                     result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
             }
+
+            result = PackedArrayUtil.FilterInvocationResult(method.Method, result, TypeSystem);
 
             return result;
         }
@@ -1722,9 +1724,11 @@ namespace JSIL {
 
         protected JSReturnExpression Translate_Ret (ILExpression node) {
             if (node.Arguments.FirstOrDefault() != null) {
-                return new JSReturnExpression(
-                    TranslateNode(node.Arguments[0])
-                );
+                var returnValue = TranslateNode(node.Arguments[0]);
+
+                PackedArrayUtil.CheckReturnValue(TypeInfo.Get(ThisMethodReference) as Internal.MethodInfo, returnValue, TypeSystem);
+
+                return new JSReturnExpression(returnValue);
             } else if (node.Arguments.Count == 0) {
                 return new JSReturnExpression();
             } else {
@@ -2905,7 +2909,7 @@ namespace JSIL {
                 thisExpression = new JSNullExpression();
             }
 
-            var result = Translate_MethodReplacement(
+            var result = DoMethodReplacement(
                 new JSMethod(method, methodInfo, MethodTypes), 
                 thisExpression, arguments, false, 
                 !method.HasThis, explicitThis || methodInfo.IsConstructor
@@ -2975,7 +2979,7 @@ namespace JSIL {
                 );
             }
 
-            var result = Translate_MethodReplacement(
+            var result = DoMethodReplacement(
                new JSMethod(method, methodInfo, MethodTypes), 
                thisExpression, translatedArguments, true, 
                false, explicitThis

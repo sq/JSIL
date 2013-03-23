@@ -183,6 +183,14 @@ namespace JSIL.Meta {
         }
     }
 
+    /// <summary>
+    /// Specifies that JSIL should represent the function's return value as a packed array.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    [JSIL.Runtime.LinkedType(typeof(JSIL.Runtime.IPackedArray<>))]
+    public class JSPackedArrayReturnValueAttribute : Attribute {
+    }
+
     [AttributeUsage(AttributeTargets.Method)]
     public class JSAllowPackedArrayArgumentsAttribute : Attribute {
     }
