@@ -182,4 +182,8 @@ namespace JSIL.Meta {
             ArgumentNames = argumentNames;
         }
     }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class JSAllowPackedArrayArgumentsAttribute : Attribute {
+    }
 }

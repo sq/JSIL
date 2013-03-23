@@ -472,6 +472,8 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
             }
 
+            int totalFailureCount = 0;
+
             foreach (var buildGroup in buildGroups) {
                 var config = buildGroup.BaseConfiguration;
                 var variables = buildGroup.BaseVariables;
@@ -541,6 +543,8 @@ namespace JSIL.Compiler {
                         EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
                         buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
+
+                        totalFailureCount += translator.Failures.Count;
                     }
                 }
             }
@@ -549,6 +553,8 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Press the any key to continue.");
                 Console.ReadKey();
             }
+
+            Environment.ExitCode = totalFailureCount;
         }
 
         static void EmitLog (

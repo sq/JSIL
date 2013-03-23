@@ -45,6 +45,8 @@ namespace JSIL {
         public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
+        public readonly List<Exception> Failures = new List<Exception>();
+
         public event Action<string> AssemblyLoaded;
         public event Action<string> ProxyAssemblyLoaded;
 
@@ -1447,6 +1449,8 @@ namespace JSIL {
                         optimizer.Optimize(context, ilb);
                     }
                 } catch (Exception exception) {
+                    Failures.Add(exception);
+
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(bodyDef.FullName, exception);
 
@@ -1480,6 +1484,8 @@ namespace JSIL {
                 try {
                     body = translator.Translate();
                 } catch (Exception exc) {
+                    Failures.Add(exc);
+
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(bodyDef.FullName, exc);
 
@@ -1863,6 +1869,7 @@ namespace JSIL {
                                 defaultValue = translator.TranslateNode(ile.Arguments[0]);
                             } catch (Exception ex) {
                                 WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+
                                 continue;
                             }
 
@@ -1887,6 +1894,7 @@ namespace JSIL {
                             } catch (Exception ex) {
                                 // This may fail because we didn't do a full translation.
                                 WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+
                                 continue;
                             }
 

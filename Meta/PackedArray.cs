@@ -33,6 +33,7 @@ namespace JSIL.Runtime {
         /// If the specified array is backed by a typed array, returns its backing array buffer.
         /// </summary>
         [JSReplacement("JSIL.GetArrayBuffer($array)")]
+        [JSAllowPackedArrayArguments]
         [JSIsPure]
         public static dynamic GetArrayBuffer<T> (this T[] array)
             where T : struct {
@@ -46,6 +47,7 @@ namespace JSIL.Runtime {
         /// If the specified array is a packed array, returns its backing typed array.
         /// </summary>
         [JSReplacement("JSIL.GetBackingTypedArray($array)")]
+        [JSAllowPackedArrayArguments]
         [JSIsPure]
         public static byte[] GetBackingTypedArray<T> (this T[] array)
             where T : struct {

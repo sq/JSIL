@@ -34,6 +34,9 @@ namespace JSIL.Internal {
         }
 
         public static void CheckInvocationSafety (MethodInfo method, JSExpression[] argumentValues, TypeSystem typeSystem) {
+            if (method.Metadata.HasAttribute("JSIL.Meta.JSAllowPackedArrayArgumentsAttribute"))
+                return;
+
             TypeReference temp;
             string[] argumentNames = GetPackedArrayArgumentNames(method, out temp);
 
