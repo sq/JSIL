@@ -2248,7 +2248,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     return;
 
   var members = typeObject.__Members__ = Array.prototype.slice.call(members);
-  var resolveContext = publicInterface.prototype;
+  var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
   var trace = false;
@@ -2274,8 +2274,12 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
     // If the method is already renamed, don't bother trying to rename it again.
     // Renaming it again would clobber the rename target with null.
-    if (typeof (rm[oldName]) !== "undefined")
+    if (typeof (rm[oldName]) !== "undefined") {
+      if (trace)
+        console.log(typeObject.__FullName__ + ": " + oldName + " not found");
+
       continue;
+    }
 
     var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
 
@@ -2291,6 +2295,9 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
       if (trace)
         console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
+    } else {
+      if (trace)
+        console.log(typeObject.__FullName__ + ": " + oldName + " -|");
     }
   }
 };

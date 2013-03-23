@@ -348,6 +348,7 @@
     <None Include="PerformanceTestCases\Vector3.cs" />
     <None Include="PerformanceTestCases\OverloadedMethodCalls.cs" />
     <None Include="PerformanceTestCases\OverloadedConstructors.cs" />
+    <None Include="PerformanceTestCases\UncachedOverloadedMethodCalls.cs" />
     <Compile Include="PerformanceTests.cs" />
     <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
     <None Include="SimpleTestCases\BooleanCasts.cs" />
