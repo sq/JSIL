@@ -205,7 +205,7 @@ namespace JSIL.Tests {
         private void RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, bool shouldRunJs = true, AssemblyCache asmCache = null,
-            Func<Configuration> makeConfiguration = null
+            Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null 
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
@@ -224,13 +224,13 @@ namespace JSIL.Tests {
                     stubbedAssemblies, typeInfo, asmCache)
                     ) {
                     if (shouldRunJs) {
-                        test.Run(makeConfiguration: makeConfiguration);
+                        test.Run(makeConfiguration: makeConfiguration, onTranslationFailure: onTranslationFailure);
                     } else {
                         string js;
                         long elapsed;
                         try {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            test.GenerateJavascript(new string[0], out js, out elapsed, makeConfiguration);
+                            test.GenerateJavascript(new string[0], out js, out elapsed, makeConfiguration, onTranslationFailure);
 
                             Console.WriteLine("generated");
 
@@ -341,7 +341,11 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected void RunSingleComparisonTestCase (object[] parameters, Func<Configuration> makeConfiguration = null) {
+        protected void RunSingleComparisonTestCase (
+            object[] parameters, 
+            Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
+        ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
 
@@ -350,7 +354,8 @@ namespace JSIL.Tests {
             try {
                 RunComparisonTest(
                     (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
-                    makeConfiguration: makeConfiguration
+                    makeConfiguration: makeConfiguration,
+                    onTranslationFailure: onTranslationFailure
                 );
             } finally {
                 if ((bool)parameters[4]) {

@@ -1,4 +1,7 @@
-﻿using System;
+﻿//@assertFailureString Return value of method 'ReturnPackedArray' must be a packed array
+//@assertThrows JavaScriptEvaluatorException
+
+using System;
 using JSIL.Meta;
 
 public struct IntFloatPair {

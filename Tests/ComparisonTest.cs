@@ -223,7 +223,8 @@ namespace JSIL.Tests {
 
         public TOutput Translate<TOutput> (
             Func<TranslationResult, TOutput> processResult,
-            Func<Configuration> makeConfiguration = null
+            Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
         ) {
             Configuration configuration;
 
@@ -239,26 +240,35 @@ namespace JSIL.Tests {
 
             using (var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache)) {
                 var assemblyPath = Util.GetPathOfAssembly(Assembly);
+                TranslationResult translationResult = null;
 
-                var translationResult = translator.Translate(
-                    assemblyPath, TypeInfo == null
-                );
+                try {
+                    translationResult = translator.Translate(
+                        assemblyPath, TypeInfo == null
+                    );
 
-                AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, translationResult);
+                    AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, translationResult);
 
-                result = processResult(translationResult);
+                    result = processResult(translationResult);
+                } finally {
+                    if (onTranslationFailure != null) {
+                        foreach (var failure in translator.Failures)
+                            onTranslationFailure(failure);
+                    }
 
-                // If we're using a preconstructed type information provider, we need to remove the type information
-                //  from the assembly we just translated
-                if (TypeInfo != null) {
-                    Assert.AreEqual(1, translationResult.Assemblies.Count);
-                    TypeInfo.Remove(translationResult.Assemblies.ToArray());
-                }
+                    // If we're using a preconstructed type information provider, we need to remove the type information
+                    //  from the assembly we just translated
+                    if ((TypeInfo != null) && (translationResult != null)) {
+                        Assert.AreEqual(1, translationResult.Assemblies.Count);
+                        TypeInfo.Remove(translationResult.Assemblies.ToArray());
+                    }
 
-                // If we're using a preconstructed assembly cache, make sure the test case assembly didn't get into
-                //  the cache, since that would leak memory.
-                if (AssemblyCache != null) {
-                    AssemblyCache.TryRemove(Assembly.FullName);
+                    // If we're using a preconstructed assembly cache, make sure the test case assembly didn't get into
+                    //  the cache, since that would leak memory.
+                    if (AssemblyCache != null) {
+                        AssemblyCache.TryRemove(Assembly.FullName);
+                    }
+
                 }
             }
 
@@ -267,13 +277,13 @@ namespace JSIL.Tests {
 
         public string GenerateJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation,
-            Func<Configuration> makeConfiguration = null
+            Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
         ) {
-
             var translationStarted = DateTime.UtcNow.Ticks;
 
             string translatedJs = Translate(
-                (tr) => tr.WriteToString(), makeConfiguration
+                (tr) => tr.WriteToString(), makeConfiguration, onTranslationFailure
             );
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
@@ -330,28 +340,31 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
-            string[] args, Func<Configuration> makeConfiguration = null
+            string[] args, Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
         ) {
             string temp1, temp4, temp5;
             long temp2, temp3;
 
-            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration);
+            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration, onTranslationFailure);
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
-            Func<Configuration> makeConfiguration = null
+            Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
         ) {
             string temp1, temp2;
 
-            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration);
+            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration, onTranslationFailure);
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
-            Func<Configuration> makeConfiguration = null
+            Func<Configuration> makeConfiguration = null,
+            Action<Exception> onTranslationFailure = null
         ) {
-            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration);
+            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration, onTranslationFailure);
 
             using (var evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
@@ -436,7 +449,12 @@ namespace JSIL.Tests {
             }
         }
 
-        public void Run (string[] args = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true) {
+        public void Run (
+            string[] args = null, 
+            Func<Configuration> makeConfiguration = null, 
+            bool dumpJsOnFailure = true,
+            Action<Exception> onTranslationFailure = null
+        ) {
             var signals = new[] {
                     new ManualResetEventSlim(false), new ManualResetEventSlim(false)
                 };
@@ -462,7 +480,11 @@ namespace JSIL.Tests {
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
-                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1], out elapsed[2], makeConfiguration: makeConfiguration).Replace("\r", "").Trim();
+                    outputs[1] = RunJavascript(
+                        args, out generatedJs[0], out elapsed[1], out elapsed[2], 
+                        makeConfiguration: makeConfiguration,
+                        onTranslationFailure: onTranslationFailure
+                    ).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[1] = ex;
                 }

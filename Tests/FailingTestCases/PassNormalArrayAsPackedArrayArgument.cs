@@ -1,4 +1,7 @@
-﻿using System;
+﻿//@assertFailureString Invalid attempt to pass a normal array as parameter
+//@assertThrows JavaScriptEvaluatorException
+
+using System;
 using JSIL.Meta;
 
 public struct IntFloatPair {
