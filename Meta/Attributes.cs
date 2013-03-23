@@ -169,4 +169,17 @@ namespace JSIL.Meta {
     [JSIL.Runtime.LinkedType(typeof(JSIL.Runtime.IPackedArray<>))]
     public class JSPackedArray : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that JSIL should represent the named argument(s) as packed arrays.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    [JSIL.Runtime.LinkedType(typeof(JSIL.Runtime.IPackedArray<>))]
+    public class JSPackedArrayArgumentsAttribute : Attribute {
+        public readonly string[] ArgumentNames;
+
+        public JSPackedArrayArgumentsAttribute (params string[] argumentNames) {
+            ArgumentNames = argumentNames;
+        }
+    }
 }

@@ -7,39 +7,32 @@ using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
+using JSIL.Internal;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
     public class FailingTests : GenericTestFixture {
         [Test]
-        public void AllFailingTests () {
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases"));
-            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+        [TestCaseSource("FailingTestCasesSource")]
+        public void FailingTestCases (object[] parameters) {
+            var passed = false;
 
-            List<string> passedTests = new List<string>();
+            try {
+                RunSingleComparisonTestCase(parameters);
 
-            foreach (var filename in simpleTests) {
-                Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
-
-                try {
-                    using (var test = MakeTest(filename)) {
-                        test.JavascriptExecutionTimeout = 5.0f;
-                        test.Run();
-                        Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
-                    }
-
-                    passedTests.Add(Path.GetFileName(filename));
-                } catch (JavaScriptEvaluatorException jse) {
-                    Console.WriteLine(jse.ToString());
-                } catch (AssertionException ex) {
-                    Console.WriteLine(ex.ToString());
-                }
+                passed = true;
+            } catch (JavaScriptEvaluatorException jse) {
+                Console.WriteLine(jse.ToString());
+            } catch (AssertionException ex) {
+                Console.WriteLine(ex.ToString());
             }
 
-            if (passedTests.Count > 0) {
-                Assert.Fail("One or more tests passed that should have failed:\r\n" + String.Join("\r\n", passedTests));
-            }
+            Assert.IsFalse(passed, "Test passed when it should have failed");
+        }
+
+        protected IEnumerable<TestCaseData> FailingTestCasesSource () {
+            return FolderTestSource("FailingTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
     }
 }

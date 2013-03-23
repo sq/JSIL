@@ -568,7 +568,7 @@ JSIL.MakeInterface(
     var TRef = JSIL.Reference.Of(T);
 
     $.Method(
-      {}, "Get", 
+      {}, "get_Item", 
       new JSIL.MethodSignature(T, [$.Int32], [])
     );
 
@@ -578,7 +578,7 @@ JSIL.MakeInterface(
     );
 
     $.Method(
-      {}, "Set", 
+      {}, "set_Item", 
       new JSIL.MethodSignature(null, [$.Int32, T], [])
     );
 
@@ -611,9 +611,9 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   );
 
   $.Method(
-    {}, "Get", 
+    {}, "get_Item", 
     new JSIL.MethodSignature(T, [$.Int32], []),
-    function PackedStructArray_Get (index) {
+    function PackedStructArray_get_Item (index) {
       var offsetInBytes = (index * this.nativeSize) | 0;
       return new this.unmarshalConstructor(this.bytes, offsetInBytes);
     }
@@ -629,9 +629,9 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   );
 
   $.Method(
-    {}, "Set", 
+    {}, "set_Item", 
     new JSIL.MethodSignature(null, [$.Int32, T], []),
-    function PackedStructArray_Set (index, value) {
+    function PackedStructArray_set_Item (index, value) {
       var offsetInBytes = (index * this.nativeSize) | 0;
       this.marshaller(value, this.bytes, offsetInBytes);
       return value;

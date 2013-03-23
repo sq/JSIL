@@ -107,6 +107,24 @@ namespace JSIL {
                 }
             }
 
+            var methodInfo = TypeInfo.Get(methodReference) as Internal.MethodInfo;
+            TypeReference packedArrayAttributeType;
+            var packedArrayArgumentNames = PackedArrayUtil.GetPackedArrayArgumentNames(methodInfo, out packedArrayAttributeType);
+
+            if (packedArrayArgumentNames != null)
+            foreach (var argumentName in packedArrayArgumentNames) {
+                if (!Variables.ContainsKey(argumentName))
+                    throw new ArgumentException("JSPackedArrayArguments specifies an argument named '" + argumentName + "' but no such argument exists");
+
+                var variable = Variables[argumentName];
+
+                var newVariableType = PackedArrayUtil.MakePackedArrayType(variable.GetActualType(TypeSystem), packedArrayAttributeType);
+                if (newVariableType == null)
+                    throw new ArgumentException("JSPackedArrayArguments specifies an argument named '" + argumentName + "' but it cannot be made a packed array");
+
+                ChangeVariableType(Variables[argumentName], newVariableType);
+            }
+
             AutoCastingState.Push(true);
         }
 
@@ -426,6 +444,8 @@ namespace JSIL {
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
         ) {
             var methodInfo = method.Method;
+
+            PackedArrayUtil.CheckInvocationSafety(method.Method, arguments, TypeSystem);
 
             bool retry = false;
             do {
@@ -1781,7 +1801,13 @@ namespace JSIL {
 
         private JSVariable ChangeVariableType (JSVariable variable, TypeReference newType) {
             var existingVariable = Variables[variable.Identifier];
-            var newVariable = new JSVariable(existingVariable.Name, newType, existingVariable.Function, existingVariable.DefaultValue);
+            JSVariable newVariable;
+
+            if (existingVariable.IsParameter) {
+                newVariable = new JSParameter(existingVariable.Name, newType, existingVariable.Function, false);
+            } else {
+                newVariable = new JSVariable(existingVariable.Name, newType, existingVariable.Function, existingVariable.DefaultValue);
+            }
 
             Variables[variable.Identifier] = newVariable;
 
@@ -2146,7 +2172,7 @@ namespace JSIL {
             if (PackedArrayUtil.IsPackedArrayType(targetType)) {
                 var targetGit = (GenericInstanceType)targetType;
                 var targetTypeInfo = TypeInfo.Get(targetType);
-                var getMethodName = getReference ? "GetReference" : "Get";
+                var getMethodName = getReference ? "GetReference" : "get_Item";
                 var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                     (kvp) => kvp.Key.Name == getMethodName
                 ).Value;
@@ -2204,7 +2230,7 @@ namespace JSIL {
                 var targetGit = (GenericInstanceType)targetType;
                 var targetTypeInfo = TypeInfo.Get(targetType);
                 var setMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
-                    (kvp) => kvp.Key.Name == "Set"
+                    (kvp) => kvp.Key.Name == "set_Item"
                 ).Value;
                 var setMethodReference = new MethodReference(
                     setMethod.Member.Name, targetGit.GenericArguments[0], targetGit

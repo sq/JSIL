@@ -14,14 +14,16 @@ namespace JSIL.Runtime {
     }
 
     public unsafe interface IPackedArray<T> {
-        [JSResultIsNew]
-        [JSIsPure]
-        T Get (int index);
+        T this[int index] {
+            [JSResultIsNew]
+            [JSIsPure]
+            get;
+            [JSEscapingArguments("value")]
+            [JSMutatedArguments()]
+            set;
+        }
         [JSResultIsNew]
         void* GetReference (int index);
-        [JSEscapingArguments("value")]
-        [JSMutatedArguments()]
-        void Set (int index, T value);
         [JSIsPure]
         int Length { get; }
     }
