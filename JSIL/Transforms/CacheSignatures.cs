@@ -40,12 +40,19 @@ namespace JSIL.Transforms {
             }
         }
 
+        public readonly bool LocalCachingEnabled;
+        public readonly Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, CachedSignatureRecord>> LocalCachedSignatureSets;
         public readonly Dictionary<CachedSignatureRecord, CachedSignatureRecord> CachedSignatures;
+        private readonly Stack<JSFunctionExpression> FunctionStack = new Stack<JSFunctionExpression>();
         private int NextID = 0;
 
-        public SignatureCacher () {
+        public SignatureCacher (TypeInfoProvider typeInfo, bool localCachingEnabled) {
+            LocalCachedSignatureSets = new Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, CachedSignatureRecord>>(
+                new MemberIdentifier.Comparer(typeInfo)
+            );
             CachedSignatures = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
             VisitNestedFunctions = true;
+            LocalCachingEnabled = localCachingEnabled;
         }
 
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
@@ -64,17 +71,63 @@ namespace JSIL.Transforms {
                         return true;
                 };
 
-            if (TypeUtil.IsOpenType(signature.ReturnType, filter))
-                return;
-            else if (signature.ParameterTypes.Any((gp) => TypeUtil.IsOpenType(gp, filter)))
-                return;
-            else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
-                return;
+            var cacheLocally = false;
 
-            var record = new CachedSignatureRecord(method, signature, NextID, isConstructor);
-            if (!CachedSignatures.ContainsKey(record)) {
-                CachedSignatures.Add(record, record);
-                NextID++;
+            if (TypeUtil.IsOpenType(signature.ReturnType, filter))
+                cacheLocally = true;
+            else if (signature.ParameterTypes.Any((gp) => TypeUtil.IsOpenType(gp, filter)))
+                cacheLocally = true;
+            else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
+                cacheLocally = true;
+
+            Dictionary<CachedSignatureRecord, CachedSignatureRecord> signatureSet;
+
+            if (cacheLocally && LocalCachingEnabled) {
+                var fn = FunctionStack.Peek();
+                if ((fn.Method == null) || (fn.Method.Method == null))
+                    return;
+
+                var functionIdentifier = fn.Method.Method.Identifier;
+                if (!LocalCachedSignatureSets.TryGetValue(functionIdentifier, out signatureSet))
+                    signatureSet = LocalCachedSignatureSets[functionIdentifier] = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
+            } else {
+                signatureSet = CachedSignatures;
+            }
+
+            var record = new CachedSignatureRecord(method, signature, signatureSet.Count, isConstructor);
+
+            if (!signatureSet.ContainsKey(record))
+                signatureSet.Add(record, record);
+        }
+
+        public void VisitNode (JSFunctionExpression fe) {
+            FunctionStack.Push(fe);
+
+            try {
+                VisitChildren(fe);
+            } finally {
+                var functionIdentifier = fe.Method.Method.Identifier;
+                Dictionary<CachedSignatureRecord, CachedSignatureRecord> signatureSet;
+                if (LocalCachedSignatureSets.TryGetValue(functionIdentifier, out signatureSet)) {
+                    var trType = new TypeReference("System", "Type", null, null);
+
+                    int i = 0;
+                    foreach (var record in signatureSet.Values) {
+                        var stmt = new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
+                            JSOperator.Assignment,
+                            new JSRawOutputIdentifier(
+                                (f) => f.WriteRaw("$s{0:X2}", record.Index),
+                                trType
+                            ),
+                            new JSLocalCachedSignatureExpression(trType, record.Method, record.Signature, record.IsConstructor),
+                            trType
+                        ));
+
+                        fe.Body.Statements.Insert(i++, stmt);
+                    }
+                }
+
+                FunctionStack.Pop();
             }
         }
 
@@ -120,18 +173,28 @@ namespace JSIL.Transforms {
         }
 
         public void WriteToOutput (
-            JavascriptFormatter output, 
+            JavascriptFormatter output, JSFunctionExpression enclosingFunction,
             MethodReference methodReference, MethodSignature methodSignature, 
             TypeReferenceContext referenceContext, 
             bool forConstructor
         ) {
             var record = new CachedSignatureRecord(methodReference, methodSignature, -1, forConstructor);
 
-            if (
-                !CachedSignatures.TryGetValue(record, out record) ||
-                (record.Method != methodReference) ||
-                (record.IsConstructor != forConstructor) 
-            )
+            if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
+                var functionIdentifier = enclosingFunction.Method.Method.Identifier;
+                Dictionary<CachedSignatureRecord, CachedSignatureRecord> localSignatureSet;
+
+                if (LocalCachedSignatureSets.TryGetValue(functionIdentifier, out localSignatureSet)) {
+                    CachedSignatureRecord localRecord;
+                    if (localSignatureSet.TryGetValue(record, out localRecord)) {
+                        output.WriteRaw("$s{0:X2}", localRecord.Index);
+
+                        return;
+                    }
+                }
+            }
+
+            if (!CachedSignatures.TryGetValue(record, out record))
                 output.Signature(methodReference, methodSignature, referenceContext, forConstructor, true);
             else
                 output.WriteRaw("$S{0:X2}()", record.Index);

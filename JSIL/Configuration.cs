@@ -28,6 +28,7 @@ namespace JSIL.Translator {
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
+            public bool? CacheGenericMethodSignatures;
             public bool? CacheTypeExpressions;
             public bool? EliminatePointlessFinallyBlocks;
             public bool? PreferAccessorMethods;
@@ -49,10 +50,12 @@ namespace JSIL.Translator {
                     result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
                 if (CacheMethodSignatures.HasValue)
                     result.CacheMethodSignatures = CacheMethodSignatures;
-                if (EliminatePointlessFinallyBlocks.HasValue)
-                    result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
+                if (CacheGenericMethodSignatures.HasValue)
+                    result.CacheGenericMethodSignatures = CacheGenericMethodSignatures;
                 if (CacheTypeExpressions.HasValue)
                     result.CacheTypeExpressions = CacheTypeExpressions;
+                if (EliminatePointlessFinallyBlocks.HasValue)
+                    result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
                 if (PreferAccessorMethods.HasValue)
                     result.PreferAccessorMethods = PreferAccessorMethods;
                 if (HintIntegerArithmetic.HasValue)

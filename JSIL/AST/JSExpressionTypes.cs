@@ -2546,4 +2546,22 @@ namespace JSIL.Ast {
             return ActualType;
         }
     }
+
+    public class JSLocalCachedSignatureExpression : JSExpression {
+        public readonly TypeReference Type;
+        public readonly MethodReference Reference;
+        public readonly MethodSignature Signature;
+        public readonly bool IsConstructor;
+
+        public JSLocalCachedSignatureExpression (TypeReference type, MethodReference reference, MethodSignature signature, bool isConstructor) {
+            Type = type;
+            Reference = reference;
+            Signature = signature;
+            IsConstructor = isConstructor;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Type;
+        }
+    }
 }

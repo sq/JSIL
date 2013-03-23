@@ -1572,7 +1572,8 @@ namespace JSIL {
                 if (isOverloaded) {
                     if (SignatureCacher != null)
                         SignatureCacher.WriteToOutput(
-                            Output, newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
+                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
                         );
                     else
                         Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
@@ -1764,7 +1765,8 @@ namespace JSIL {
 
                     if (SignatureCacher != null)
                         SignatureCacher.WriteToOutput(
-                            Output, jsm.Reference, method.Signature, ReferenceContext, false
+                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, method.Signature, ReferenceContext, false
                         );
                     else
                         Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
@@ -1923,6 +1925,10 @@ namespace JSIL {
             Output.LPar();
             Visit(sizeofExp.Type);
             Output.RPar();
+        }
+
+        public void VisitNode (JSLocalCachedSignatureExpression lcse) {
+            Output.Signature(lcse.Reference, lcse.Signature, ReferenceContext, lcse.IsConstructor, false);
         }
     }
 }
