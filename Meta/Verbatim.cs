@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using JSIL.Meta;
 
 namespace JSIL {
     public static class Services {
@@ -30,6 +31,14 @@ namespace JSIL {
         /// <param name="expression">The expression to evaluate.</param>
         public static dynamic Eval (string expression) {
             return null;
+        }
+
+        public static bool IsTruthy (dynamic value) {
+            throw new NotImplementedException("Not available outside JS");
+        }
+
+        public static bool IsFalsy (dynamic value) {
+            throw new NotImplementedException("Not available outside JS");
         }
 
         /// <summary>

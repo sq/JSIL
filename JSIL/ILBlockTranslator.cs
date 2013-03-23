@@ -478,6 +478,12 @@ namespace JSIL {
                         JS.eval, arguments
                     );
 
+                case "System.Boolean JSIL.Builtins::IsTruthy(System.Object)":
+                    return new JSUnaryOperatorExpression(JSOperator.LogicalNot, new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean), TypeSystem.Boolean);
+
+                case "System.Boolean JSIL.Builtins::IsFalsy(System.Object)":
+                    return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
+
                 case "System.Object JSIL.Verbatim::Expression(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)

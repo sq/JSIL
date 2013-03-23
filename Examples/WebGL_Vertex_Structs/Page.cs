@@ -70,15 +70,14 @@ namespace WebGL {
         }
 
         public static bool InitGL () {
-            dynamic gl = null;
+            object gl = null;
 
             try {
                 gl = Canvas.getContext("experimental-webgl");
             } catch {
             }
 
-            // FIXME: !gl generates ~gl in output JS for some reason
-            if (Verbatim.Expression("!gl")) {
+            if (Builtins.IsTruthy(gl)) {
                 Builtins.Global["alert"]("Could not initialize WebGL");
                 return false;
             } else {
