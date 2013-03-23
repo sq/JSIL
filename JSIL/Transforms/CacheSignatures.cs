@@ -22,17 +22,22 @@ namespace JSIL.Transforms {
             }
 
             public override int GetHashCode () {
-                return Method.GetHashCode() ^ Signature.GetHashCode() ^ IsConstructor.GetHashCode();
+                return Method.Name.GetHashCode() ^ Signature.GetHashCode() ^ IsConstructor.GetHashCode();
             }
 
             public bool Equals (CachedSignatureRecord rhs) {
-                return
+                var result =
                     (
                         (Method == rhs.Method) ||
                         (Method.FullName == rhs.Method.FullName)
                     ) &&
                     Signature.Equals(rhs.Signature) &&
                     (IsConstructor == rhs.IsConstructor);
+
+                if (!result)
+                    return false;
+                else
+                    return result;
             }
 
             public override bool Equals (object obj) {
