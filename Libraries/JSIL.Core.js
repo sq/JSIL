@@ -5648,10 +5648,17 @@ JSIL.MethodSignature.$EmitInvocation = function (
   body.push(");");
 };
 
+JSIL.MethodSignature.$CallMethodCache = Object.create(null);
+
 JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   // TODO: Investigate caching these closures keyed off (callMethodType, (returnType ? 1 : 0), genericArgumentNames.length, argumentTypes.length)
   // Caching them might impair performance because the arguments to each closure would no longer be monomorphic,
   //  but it might pay for itself given the reduced memory usage.
+
+  var cacheKey = callMethodType + "$" + this.GetKey();
+  var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
+  if (cachedResult)
+    return cachedResult;
 
   var returnType = this.returnType;
   var argumentTypes = this.argumentTypes;
@@ -5713,6 +5720,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
     argumentNames,
     body.join("\r\n")
   );
+  JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
   return result;
 };
 
