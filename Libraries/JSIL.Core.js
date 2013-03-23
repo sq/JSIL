@@ -5541,23 +5541,15 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentNames = genericArgumentNames;
   else
     this.genericArgumentNames = [];
-
-  var self = this;
-
-  JSIL.SetLazyValueProperty(this, "Call", function () {
-    return self.$MakeCallMethod("direct");
-  });
-
-  JSIL.SetLazyValueProperty(this, "CallStatic", function () {
-    return self.$MakeCallMethod("static");
-  });
-
-  JSIL.SetLazyValueProperty(this, "CallVirtual", function () {
-    return self.$MakeCallMethod("virtual");
-  });
 };
 
 JSIL.MethodSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
+
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "Call", function () { return this.$MakeCallMethod("direct"); });
+
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallStatic", function () { return this.$MakeCallMethod("static"); });
+
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallVirtual", function () { return this.$MakeCallMethod("virtual"); });
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
   var argTypes = [];
@@ -5771,13 +5763,11 @@ JSIL.ConstructorSignature = function (type, argumentTypes, context) {
   }
 
   var self = this;
-
-  JSIL.SetLazyValueProperty(this, "Construct", function () {
-    return self.$MakeConstructMethod();
-  });
 };
 
 JSIL.ConstructorSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
+
+JSIL.SetLazyValueProperty(JSIL.ConstructorSignature.prototype, "Construct", function () { return this.$MakeConstructMethod(); });
 
 JSIL.ConstructorSignature.prototype.get_Type = function () {
   if (this._typeObject !== null)
