@@ -140,40 +140,58 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   Object.defineProperty(target, key, descriptor);
 };
 
-JSIL.SetLazyValueProperty = function (target, key, getValue) {
+JSIL.SetLazyValueProperty = function (target, key, getValue, onPrototype) {
   var isInitialized = false;
-  var value;
 
   var descriptor = {
     configurable: true,
     enumerable: true,
   };
 
-  var cleanup = function () {
-    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+  if (onPrototype) {
+    var cleanup = function (value) {
+      JSIL.SetValueProperty(this, key, value);
+    };
 
-    // Someone could have replaced us with a new property. If so, don't trample
-    // over them.
-    if (
-      currentDescriptor &&
-      (currentDescriptor.get === descriptor.get)
-    )
-      JSIL.SetValueProperty(target, key, value);
-  };
+    var getter = function LazyValueProperty_Get () {
+      var value = getValue.call(this);
+      cleanup.call(this, value);
+      return value;
+    };
 
-  var getter = function LazyValueProperty_Get () {
-    if (!isInitialized) {
-      value = getValue.call(this);
-      if (!isInitialized) {
-        isInitialized = true;
-        cleanup();
+    descriptor.get = getter;
+  } else {
+    var value;
+
+    var cleanup = function () {
+      var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+      // Someone could have replaced us with a new property. If so, don't trample
+      // over them.
+      if (
+        currentDescriptor &&
+        (currentDescriptor.get === descriptor.get)
+      ) {
+        JSIL.SetValueProperty(target, key, value);
+      } else {
+        return;
       }
-    }
+    };
 
-    return value;
-  };
+    var getter = function LazyValueProperty_Get () {
+      if (!isInitialized) {
+        value = getValue.call(this);
+        if (!isInitialized) {
+          isInitialized = true;
+          cleanup.call(this);
+        }
+      }
 
-  descriptor.get = getter;
+      return value;
+    };
+
+    descriptor.get = getter;
+  }
 
   Object.defineProperty(target, key, descriptor);
 };
@@ -5545,11 +5563,11 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
 
 JSIL.MethodSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
 
-JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "Call", function () { return this.$MakeCallMethod("direct"); });
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "Call", function () { return this.$MakeCallMethod("direct"); }, true);
 
-JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallStatic", function () { return this.$MakeCallMethod("static"); });
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallStatic", function () { return this.$MakeCallMethod("static"); }, true);
 
-JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallVirtual", function () { return this.$MakeCallMethod("virtual"); });
+JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "CallVirtual", function () { return this.$MakeCallMethod("virtual"); }, true);
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
   var argTypes = [];
@@ -5767,7 +5785,7 @@ JSIL.ConstructorSignature = function (type, argumentTypes, context) {
 
 JSIL.ConstructorSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
 
-JSIL.SetLazyValueProperty(JSIL.ConstructorSignature.prototype, "Construct", function () { return this.$MakeConstructMethod(); });
+JSIL.SetLazyValueProperty(JSIL.ConstructorSignature.prototype, "Construct", function () { return this.$MakeConstructMethod(); }, true);
 
 JSIL.ConstructorSignature.prototype.get_Type = function () {
   if (this._typeObject !== null)
