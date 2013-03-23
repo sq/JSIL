@@ -234,6 +234,8 @@ namespace JSIL.Internal {
 
             Enqueue(OptimizeAccessorMethods);
 
+            Enqueue(IntroducePackedArrays);
+
             Enqueue(FixupPointerArithmetic);
 
             // If integer arithmetic hinting is enabled, we need to decompose mutation operators
@@ -254,6 +256,12 @@ namespace JSIL.Internal {
         private bool FixupPointerArithmetic () {
             if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
                 new UnsafeCodeTransforms(TypeSystem, MethodTypes).Visit(Function);
+
+            return true;
+        }
+
+        private bool IntroducePackedArrays () {
+            new IntroducePackedArrays(TypeSystem, MethodTypes).Visit(Function);
 
             return true;
         }

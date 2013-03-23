@@ -654,7 +654,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
 });
 
 JSIL.IsPackedArray = function IsPackedArray (object) {
-  return !!object.__IsPackedArray__;
+  return object && !!object.__IsPackedArray__;
 };
 
 JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer) {
@@ -675,16 +675,26 @@ JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer)
   var initializerIsArray = JSIL.IsArray(sizeOrInitializer);
 
   if (initializerIsArray) {
-    throw new System.NotImplementedException("Cannot initialize a packed struct array with values");
+    size = Number(sizeOrInitializer.length) | 0;
   } else {
-    size = Number(sizeOrInitializer);
+    size = Number(sizeOrInitializer) | 0;
   }
 
   var sizeInBytes = (JSIL.GetNativeSizeOf(elementTypeObject) * size) | 0;
   var buffer = new ArrayBuffer(sizeInBytes);
   var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
 
-  return new arrayType(buffer);
+  var result = new arrayType(buffer);
+
+  // Copy the initializer elements into the packed array
+  if (initializerIsArray) {
+    for (var i = 0; i < size; i++) {
+      var element = sizeOrInitializer[i];
+      result.Set(i, element);
+    }
+  }
+
+  return result;
 };
 
 if (typeof (WeakMap) !== "undefined") {
@@ -1174,6 +1184,34 @@ JSIL.$MakeElementReferenceConstructor = function (typeObject) {
   constructor.prototype = elementReferencePrototype;
 
   return constructor;
+};
+
+JSIL.GetBackingTypedArray = function (array) {
+  var isPackedArray = JSIL.IsPackedArray(array);
+
+  if (!JSIL.IsTypedArray(array) && !isPackedArray) {
+    throw new Error("Object has no backing typed array");
+  }
+
+  if (isPackedArray) {
+    return array.bytes;
+  } else {
+    return array;
+  }
+};
+
+JSIL.GetArrayBuffer = function (array) {
+  var isPackedArray = JSIL.IsPackedArray(array);
+
+  if (!JSIL.IsTypedArray(array) && !isPackedArray) {
+    throw new Error("Object has no array buffer");
+  }
+
+  if (isPackedArray) {
+    return array.bytes.buffer;
+  } else {
+    return array.buffer;
+  }
 };
 
 // FIXME: Implement unpin operation? Probably not needed yet.

@@ -47,6 +47,9 @@ Tests/*Cases/*.js
 /jsil.org/demos/WebGL/*.js
 /jsil.org/demos/WebGL/Page.cs
 /jsil.org/demos/WebGL/Files/*
+/jsil.org/demos/WebGL_Vertex_Structs/*.js
+/jsil.org/demos/WebGL_Vertex_Structs/Page.cs
+/jsil.org/demos/WebGL_Vertex_Structs/Files/*
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
 /Examples/obj
@@ -75,3 +78,5 @@ Corlib/*.js
 /jsil.org/try/Libraries
 /Examples/WebGL/bin
 /Examples/WebGL/obj
+/Examples/WebGL_Vertex_Structs/bin
+/Examples/WebGL_Vertex_Structs/obj

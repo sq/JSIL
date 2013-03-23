@@ -4831,7 +4831,7 @@ JSIL.AreTypedArraysSupported = function () {
 }
 
 JSIL.IsTypedArray = function (value) {
-  if ((typeof (value) === "object") && value.buffer) {
+  if ((typeof (value) === "object") && value && value.buffer) {
     if (typeof (ArrayBuffer) !== "undefined") {
       if (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype)
         return true;
