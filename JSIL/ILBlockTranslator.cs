@@ -396,8 +396,10 @@ namespace JSIL {
                         argsDict.Add(kvp.Name, kvp.Value);
                     }
 
+                    var isConstantIfArgumentsAre = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSIsPure");
+
                     return new JSVerbatimLiteral(
-                        method, (string)parms[0].Value, argsDict, resultType
+                        method, (string)parms[0].Value, argsDict, resultType, isConstantIfArgumentsAre
                     );
                 }
             }

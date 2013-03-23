@@ -295,14 +295,16 @@ namespace JSIL.Ast {
         public readonly TypeReference Type;
         public readonly string Expression;
         public readonly IDictionary<string, JSExpression> Variables;
+        public readonly bool IsConstantIfArgumentsAre;
 
-        public JSVerbatimLiteral (MethodReference originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
+        public JSVerbatimLiteral (MethodReference originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null, bool isConstantIfArgumentsAre = false)
             : base(GetValues(variables)) {
 
             OriginalMethod = originalMethod;
             Type = type;
             Expression = expression;
             Variables = variables;
+            IsConstantIfArgumentsAre = isConstantIfArgumentsAre;
         }
 
         protected static JSExpression[] GetValues (IDictionary<string, JSExpression> variables) {
@@ -314,6 +316,15 @@ namespace JSIL.Ast {
 
         public override object Literal {
             get { return Expression; }
+        }
+
+        public override bool IsConstant {
+            get {
+                if (!IsConstantIfArgumentsAre)
+                    return false;
+                else
+                    return Variables.Values.All((v) => v.IsConstant);
+            }
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {

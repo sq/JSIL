@@ -15,11 +15,14 @@ namespace JSIL.Runtime {
 
     public unsafe interface IPackedArray<T> {
         [JSResultIsNew]
+        [JSIsPure]
         T Get (int index);
+        [JSResultIsNew]
         void* GetReference (int index);
         [JSEscapingArguments("value")]
         [JSMutatedArguments()]
         void Set (int index, T value);
+        [JSIsPure]
         int Length { get; }
     }
 
@@ -28,6 +31,7 @@ namespace JSIL.Runtime {
         /// If the specified array is backed by a typed array, returns its backing array buffer.
         /// </summary>
         [JSReplacement("JSIL.GetArrayBuffer($array)")]
+        [JSIsPure]
         public static dynamic GetArrayBuffer<T> (this T[] array)
             where T : struct {
 
@@ -40,6 +44,7 @@ namespace JSIL.Runtime {
         /// If the specified array is a packed array, returns its backing typed array.
         /// </summary>
         [JSReplacement("JSIL.GetBackingTypedArray($array)")]
+        [JSIsPure]
         public static byte[] GetBackingTypedArray<T> (this T[] array)
             where T : struct {
 

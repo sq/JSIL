@@ -9,6 +9,7 @@ title Building Pathtracer
 bin\JSILc "Examples\SimplePathtracer.sln"
 title Building WebGL
 bin\JSILc "Examples\WebGL\WebGL.sln"
+bin\JSILc "Examples\WebGL_Vertex_Structs\WebGL_Vertex_Structs.sln"
 title Building Tetris
 bin\JSILc "Examples\ThirdParty\Tetris\tetris.sln" "jsil.org\demos\Tetris\Tetris.jsilconfig" --platform=x86 --configuration=Debug
 title Building Platformer Starter Kit
