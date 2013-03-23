@@ -27,7 +27,10 @@ namespace JSIL.Transforms {
 
             public bool Equals (CachedSignatureRecord rhs) {
                 return
-                    (Method == rhs.Method) &&
+                    (
+                        (Method == rhs.Method) ||
+                        (Method.FullName == rhs.Method.FullName)
+                    ) &&
                     Signature.Equals(rhs.Signature) &&
                     (IsConstructor == rhs.IsConstructor);
             }
@@ -100,6 +103,13 @@ namespace JSIL.Transforms {
                 signatureSet.Add(record, record);
         }
 
+        private JSRawOutputIdentifier MakeRawOutputIdentifierForRecord (CachedSignatureRecord record, TypeReference type) {
+            return new JSRawOutputIdentifier(
+                (f) => f.WriteRaw("$s{0:X2}", record.Index),
+                type
+            );
+        }
+
         public void VisitNode (JSFunctionExpression fe) {
             FunctionStack.Push(fe);
 
@@ -115,10 +125,7 @@ namespace JSIL.Transforms {
                     foreach (var record in signatureSet.Values) {
                         var stmt = new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
                             JSOperator.Assignment,
-                            new JSRawOutputIdentifier(
-                                (f) => f.WriteRaw("$s{0:X2}", record.Index),
-                                trType
-                            ),
+                            MakeRawOutputIdentifierForRecord(record, trType),
                             new JSLocalCachedSignatureExpression(trType, record.Method, record.Signature, record.IsConstructor),
                             trType
                         ));
