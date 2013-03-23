@@ -352,6 +352,7 @@
     <Compile Include="PerformanceTests.cs" />
     <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
     <None Include="SimpleTestCases\BooleanCasts.cs" />
+    <None Include="TestCases\GenericStaticMethods2.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
