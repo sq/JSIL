@@ -2603,6 +2603,8 @@ namespace JSIL {
             if (methodMember != null) {
                 if (methodMember.Method.IsStatic)
                     thisArg = new JSType(methodMember.Reference.DeclaringType);
+                else if (methodMember.Method.DeclaringType.IsInterface)
+                    methodRef = new JSDotExpression(thisArg, methodMember);
             }
 
             return JSIL.NewDelegate(
