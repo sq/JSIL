@@ -11,11 +11,13 @@ namespace JSIL.Proxies {
         [JSChangeName("length")]
         [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
+        [JSIsPure]
         abstract public int Length { get; }
 
         [JSChangeName("length")]
         [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
+        [JSIsPure]
         abstract public long LongLength { get; } 
 
 
