@@ -351,13 +351,15 @@ JSIL.ImplementExternals(
 
     $.Method({Static: false, Public: true }, ".ctor",
       new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")]), "System.Int32", "System.Int32"], [], $jsilcore),
-      JSIL.StringFromCharArray
+      function (chars, start, length) {
+        return new String(JSIL.StringFromCharArray(chars, start, length));
+      }
     );
 
     $.Method({Static: false, Public: true }, ".ctor",
       new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")])], [], $jsilcore),
       function (chars) {
-        return JSIL.StringFromCharArray(chars, 0, chars.length);
+        return new String(JSIL.StringFromCharArray(chars, 0, chars.length));
       }
     );
 
@@ -368,7 +370,7 @@ JSIL.ImplementExternals(
         for (var i = 0; i < length; i++)
           arr[i] = ch;
         
-        return arr.join("");
+        return new String(arr.join(""));
       }
     );
 
