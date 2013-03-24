@@ -1266,13 +1266,13 @@ namespace JSIL {
                     }
                 }
 
-                var css = signatureCacher.CachedSignatures.Values.OrderBy((cs) => cs.Index).ToArray();
+                var css = signatureCacher.CachedSignatures.OrderBy((cs) => cs.Value).ToArray();
                 if (css.Length > 0) {
                     foreach (var cs in css) {
-                        output.WriteRaw("var $S{0:X2} = function () ", cs.Index);
+                        output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
                         output.OpenBrace();
-                        output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Index);
-                        output.Signature(cs.Method, cs.Signature, astEmitter.ReferenceContext, cs.IsConstructor, false);
+                        output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
+                        output.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
                         output.WriteRaw(")) ()");
                         output.Semicolon(true);
                         output.CloseBrace(false);

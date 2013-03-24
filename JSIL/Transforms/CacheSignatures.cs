@@ -11,13 +11,11 @@ namespace JSIL.Transforms {
         public struct CachedSignatureRecord {
             public readonly MethodReference Method;
             public readonly MethodSignature Signature;
-            public readonly int Index;
             public readonly bool IsConstructor;
 
-            public CachedSignatureRecord (MethodReference method, MethodSignature signature, int index, bool isConstructor) {
+            public CachedSignatureRecord (MethodReference method, MethodSignature signature, bool isConstructor) {
                 Method = method;
                 Signature = signature;
-                Index = index;
                 IsConstructor = isConstructor;
             }
 
@@ -49,16 +47,15 @@ namespace JSIL.Transforms {
         }
 
         public readonly bool LocalCachingEnabled;
-        public readonly Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, CachedSignatureRecord>> LocalCachedSignatureSets;
-        public readonly Dictionary<CachedSignatureRecord, CachedSignatureRecord> CachedSignatures;
+        public readonly Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>> LocalCachedSignatureSets;
+        public readonly Dictionary<CachedSignatureRecord, int> CachedSignatures;
         private readonly Stack<JSFunctionExpression> FunctionStack = new Stack<JSFunctionExpression>();
-        private int NextID = 0;
 
         public SignatureCacher (TypeInfoProvider typeInfo, bool localCachingEnabled) {
-            LocalCachedSignatureSets = new Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, CachedSignatureRecord>>(
+            LocalCachedSignatureSets = new Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>>(
                 new MemberIdentifier.Comparer(typeInfo)
             );
-            CachedSignatures = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
+            CachedSignatures = new Dictionary<CachedSignatureRecord, int>();
             VisitNestedFunctions = true;
             LocalCachingEnabled = localCachingEnabled;
         }
@@ -88,7 +85,8 @@ namespace JSIL.Transforms {
             else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
                 cacheLocally = true;
 
-            Dictionary<CachedSignatureRecord, CachedSignatureRecord> signatureSet;
+            Dictionary<CachedSignatureRecord, int> signatureSet;
+            int index;
 
             if (cacheLocally && LocalCachingEnabled) {
                 var fn = FunctionStack.Peek();
@@ -97,20 +95,20 @@ namespace JSIL.Transforms {
 
                 var functionIdentifier = fn.Method.Method.Identifier;
                 if (!LocalCachedSignatureSets.TryGetValue(functionIdentifier, out signatureSet))
-                    signatureSet = LocalCachedSignatureSets[functionIdentifier] = new Dictionary<CachedSignatureRecord, CachedSignatureRecord>();
+                    signatureSet = LocalCachedSignatureSets[functionIdentifier] = new Dictionary<CachedSignatureRecord, int>();
             } else {
                 signatureSet = CachedSignatures;
             }
 
-            var record = new CachedSignatureRecord(method, signature, signatureSet.Count, isConstructor);
+            var record = new CachedSignatureRecord(method, signature, isConstructor);
 
             if (!signatureSet.ContainsKey(record))
-                signatureSet.Add(record, record);
+                signatureSet.Add(record, signatureSet.Count);
         }
 
-        private JSRawOutputIdentifier MakeRawOutputIdentifierForRecord (CachedSignatureRecord record, TypeReference type) {
+        private JSRawOutputIdentifier MakeRawOutputIdentifierForIndex (TypeReference type, int index) {
             return new JSRawOutputIdentifier(
-                (f) => f.WriteRaw("$s{0:X2}", record.Index),
+                (f) => f.WriteRaw("$s{0:X2}", index),
                 type
             );
         }
@@ -122,15 +120,16 @@ namespace JSIL.Transforms {
                 VisitChildren(fe);
             } finally {
                 var functionIdentifier = fe.Method.Method.Identifier;
-                Dictionary<CachedSignatureRecord, CachedSignatureRecord> signatureSet;
+                Dictionary<CachedSignatureRecord, int> signatureSet;
                 if (LocalCachedSignatureSets.TryGetValue(functionIdentifier, out signatureSet)) {
                     var trType = new TypeReference("System", "Type", null, null);
 
                     int i = 0;
-                    foreach (var record in signatureSet.Values) {
+                    foreach (var kvp in signatureSet) {
+                        var record = kvp.Key;
                         var stmt = new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
                             JSOperator.Assignment,
-                            MakeRawOutputIdentifierForRecord(record, trType),
+                            MakeRawOutputIdentifierForIndex(trType, kvp.Value),
                             new JSLocalCachedSignatureExpression(trType, record.Method, record.Signature, record.IsConstructor),
                             trType
                         ));
@@ -190,26 +189,28 @@ namespace JSIL.Transforms {
             TypeReferenceContext referenceContext, 
             bool forConstructor
         ) {
-            var record = new CachedSignatureRecord(methodReference, methodSignature, -1, forConstructor);
+            int index;
+
+            var record = new CachedSignatureRecord(methodReference, methodSignature, forConstructor);
 
             if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
                 var functionIdentifier = enclosingFunction.Method.Method.Identifier;
-                Dictionary<CachedSignatureRecord, CachedSignatureRecord> localSignatureSet;
+                Dictionary<CachedSignatureRecord, int> localSignatureSet;
 
                 if (LocalCachedSignatureSets.TryGetValue(functionIdentifier, out localSignatureSet)) {
                     CachedSignatureRecord localRecord;
-                    if (localSignatureSet.TryGetValue(record, out localRecord)) {
-                        output.WriteRaw("$s{0:X2}", localRecord.Index);
+                    if (localSignatureSet.TryGetValue(record, out index)) {
+                        output.WriteRaw("$s{0:X2}", index);
 
                         return;
                     }
                 }
             }
 
-            if (!CachedSignatures.TryGetValue(record, out record))
+            if (!CachedSignatures.TryGetValue(record, out index))
                 output.Signature(methodReference, methodSignature, referenceContext, forConstructor, true);
             else
-                output.WriteRaw("$S{0:X2}()", record.Index);
+                output.WriteRaw("$S{0:X2}()", index);
         }
     }
 }
