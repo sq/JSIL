@@ -241,6 +241,11 @@ namespace WebGL {
             return (float)(degrees * Math.PI / 180);
         }
 
+        [JSIsPure]
+        public static float GetTextboxFloat (string textboxId) {
+            return float.Parse(Document.getElementById(textboxId).value);
+        }
+
         public static void DrawScene () {
             GL.viewport(0, 0, Canvas.width, Canvas.height);
             GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
@@ -250,12 +255,11 @@ namespace WebGL {
             GLMatrix4.rotate(Matrices.ModelView, DegreesToRadians(RotationX), new [] { 1f, 0, 0 });
             GLMatrix4.rotate(Matrices.ModelView, DegreesToRadians(RotationY), new [] { 0, 1f, 0 });
 
-            var vertexExemplar = default(CubeVertex);
             var sizeofFloat = Marshal.SizeOf(typeof(float));
-            var sizeofVertex = Marshal.SizeOf(vertexExemplar);
-            var sizeofPosition = Marshal.SizeOf(vertexExemplar.Position);
-            var sizeofNormal = Marshal.SizeOf(vertexExemplar.Normal);
-            var sizeofTexCoord = Marshal.SizeOf(vertexExemplar.TexCoord);
+            var sizeofVertex = Marshal.SizeOf(CubeVertex.Exemplar);
+            var sizeofPosition = Marshal.SizeOf(CubeVertex.Exemplar.Position);
+            var sizeofNormal = Marshal.SizeOf(CubeVertex.Exemplar.Normal);
+            var sizeofTexCoord = Marshal.SizeOf(CubeVertex.Exemplar.TexCoord);
             var offsetOfPosition = Marshal.OffsetOf(typeof(CubeVertex), "Position").ToInt32();
             var offsetOfNormal = Marshal.OffsetOf(typeof(CubeVertex), "Normal").ToInt32();
             var offsetOfTexCoord = Marshal.OffsetOf(typeof(CubeVertex), "TexCoord").ToInt32();
@@ -278,15 +282,15 @@ namespace WebGL {
             if (lighting) {
                 GL.uniform3f(
                     Uniforms.AmbientColor,
-                    float.Parse(Document.getElementById("ambientR").value),
-                    float.Parse(Document.getElementById("ambientG").value),
-                    float.Parse(Document.getElementById("ambientB").value)
+                    GetTextboxFloat("ambientR"),
+                    GetTextboxFloat("ambientG"),
+                    GetTextboxFloat("ambientB")
                 );
 
                 var lightingDirection = new [] {
-                    float.Parse(Document.getElementById("lightDirectionX").value),
-                    float.Parse(Document.getElementById("lightDirectionY").value),
-                    float.Parse(Document.getElementById("lightDirectionZ").value)
+                    GetTextboxFloat("lightDirectionX"),
+                    GetTextboxFloat("lightDirectionY"),
+                    GetTextboxFloat("lightDirectionZ")
                 };
                 GLVector3.normalize(lightingDirection, lightingDirection);
                 GLVector3.scale(lightingDirection, -1);
@@ -295,9 +299,9 @@ namespace WebGL {
 
                 GL.uniform3f(
                     Uniforms.DirectionalColor,
-                    float.Parse(Document.getElementById("directionalR").value),
-                    float.Parse(Document.getElementById("directionalG").value),
-                    float.Parse(Document.getElementById("directionalB").value)
+                    GetTextboxFloat("directionalR"),
+                    GetTextboxFloat("directionalG"),
+                    GetTextboxFloat("directionalB")
                 );
             }
 
@@ -354,6 +358,8 @@ namespace WebGL {
     }
 
     public struct CubeVertex {
+        public static readonly CubeVertex Exemplar = default(CubeVertex);
+
         public readonly Vector3f Position;
         public readonly Vector3f Normal;
         public readonly Vector2f TexCoord;
@@ -369,120 +375,6 @@ namespace WebGL {
         [JSPackedArray]
         public static readonly CubeVertex[] Vertices;
 
-        public static readonly Vector3f[] Positions = new [] {
-            // Front face
-            new Vector3f(-1, -1,  1),
-            new Vector3f( 1, -1,  1),
-            new Vector3f( 1,  1,  1),
-            new Vector3f(-1,  1,  1),
-
-            // Back face
-            new Vector3f(-1, -1, -1),
-            new Vector3f(-1,  1, -1),
-            new Vector3f( 1,  1, -1),
-            new Vector3f( 1, -1, -1),
-
-            // Top face
-            new Vector3f(-1,  1, -1),
-            new Vector3f(-1,  1,  1),
-            new Vector3f( 1,  1,  1),
-            new Vector3f( 1,  1, -1),
-
-            // Bottom face
-            new Vector3f(-1, -1, -1),
-            new Vector3f( 1, -1, -1),
-            new Vector3f( 1, -1,  1),
-            new Vector3f(-1, -1,  1),
-
-            // Right face
-            new Vector3f( 1, -1, -1),
-            new Vector3f( 1,  1, -1),
-            new Vector3f( 1,  1,  1),
-            new Vector3f( 1, -1,  1),
-
-            // Left face
-            new Vector3f(-1, -1, -1),
-            new Vector3f(-1, -1,  1),
-            new Vector3f(-1,  1,  1),
-            new Vector3f(-1,  1, -1),
-        };
-
-        public static readonly Vector3f[] Normals = new [] {
-            // Front face
-             new Vector3f(0,  0,  1),
-             new Vector3f(0,  0,  1),
-             new Vector3f(0,  0,  1),
-             new Vector3f(0,  0,  1),
-
-            // Back face
-             new Vector3f(0,  0, -1),
-             new Vector3f(0,  0, -1),
-             new Vector3f(0,  0, -1),
-             new Vector3f(0,  0, -1),
-
-            // Top face
-             new Vector3f(0,  1,  0),
-             new Vector3f(0,  1,  0),
-             new Vector3f(0,  1,  0),
-             new Vector3f(0,  1,  0),
-
-            // Bottom face
-             new Vector3f(0, -1,  0),
-             new Vector3f(0, -1,  0),
-             new Vector3f(0, -1,  0),
-             new Vector3f(0, -1,  0),
-
-            // Right face
-             new Vector3f(1,  0,  0),
-             new Vector3f(1,  0,  0),
-             new Vector3f(1,  0,  0),
-             new Vector3f(1,  0,  0),
-
-            // Left face
-            new Vector3f(-1,  0,  0),
-            new Vector3f(-1,  0,  0),
-            new Vector3f(-1,  0,  0),
-            new Vector3f(-1,  0,  0)
-        };
-
-        public static readonly Vector2f[] TexCoords = new [] {
-            // Front face
-            new Vector2f(0, 0),
-            new Vector2f(1, 0),
-            new Vector2f(1, 1),
-            new Vector2f(0, 1),
-
-            // Back face
-            new Vector2f(1, 0),
-            new Vector2f(1, 1),
-            new Vector2f(0, 1),
-            new Vector2f(0, 0),
-
-            // Top face
-            new Vector2f(0, 1),
-            new Vector2f(0, 0),
-            new Vector2f(1, 0),
-            new Vector2f(1, 1),
-
-            // Bottom face
-            new Vector2f(1, 1),
-            new Vector2f(0, 1),
-            new Vector2f(0, 0),
-            new Vector2f(1, 0),
-
-            // Right face
-            new Vector2f(1, 0),
-            new Vector2f(1, 1),
-            new Vector2f(0, 1),
-            new Vector2f(0, 0),
-
-            // Left face
-            new Vector2f(0, 0),
-            new Vector2f(1, 0),
-            new Vector2f(1, 1),
-            new Vector2f(0, 1)
-        };
-
         public static readonly ushort[] Indices = new ushort[] {
             0, 1, 2,      0, 2, 3,    // Front face
             4, 5, 6,      4, 6, 7,    // Back face
@@ -493,10 +385,125 @@ namespace WebGL {
         };
 
         static CubeData () {
-            Vertices = new CubeVertex[Positions.Length];
+            // Temporary stream arrays because I'm way too lazy to convert these to individual vertices by hand
+            var positions = new [] {
+                // Front face
+                new Vector3f(-1, -1,  1),
+                new Vector3f( 1, -1,  1),
+                new Vector3f( 1,  1,  1),
+                new Vector3f(-1,  1,  1),
+
+                // Back face
+                new Vector3f(-1, -1, -1),
+                new Vector3f(-1,  1, -1),
+                new Vector3f( 1,  1, -1),
+                new Vector3f( 1, -1, -1),
+
+                // Top face
+                new Vector3f(-1,  1, -1),
+                new Vector3f(-1,  1,  1),
+                new Vector3f( 1,  1,  1),
+                new Vector3f( 1,  1, -1),
+
+                // Bottom face
+                new Vector3f(-1, -1, -1),
+                new Vector3f( 1, -1, -1),
+                new Vector3f( 1, -1,  1),
+                new Vector3f(-1, -1,  1),
+
+                // Right face
+                new Vector3f( 1, -1, -1),
+                new Vector3f( 1,  1, -1),
+                new Vector3f( 1,  1,  1),
+                new Vector3f( 1, -1,  1),
+
+                // Left face
+                new Vector3f(-1, -1, -1),
+                new Vector3f(-1, -1,  1),
+                new Vector3f(-1,  1,  1),
+                new Vector3f(-1,  1, -1),
+            };
+
+            var normals = new [] {
+                // Front face
+                 new Vector3f(0,  0,  1),
+                 new Vector3f(0,  0,  1),
+                 new Vector3f(0,  0,  1),
+                 new Vector3f(0,  0,  1),
+
+                // Back face
+                 new Vector3f(0,  0, -1),
+                 new Vector3f(0,  0, -1),
+                 new Vector3f(0,  0, -1),
+                 new Vector3f(0,  0, -1),
+
+                // Top face
+                 new Vector3f(0,  1,  0),
+                 new Vector3f(0,  1,  0),
+                 new Vector3f(0,  1,  0),
+                 new Vector3f(0,  1,  0),
+
+                // Bottom face
+                 new Vector3f(0, -1,  0),
+                 new Vector3f(0, -1,  0),
+                 new Vector3f(0, -1,  0),
+                 new Vector3f(0, -1,  0),
+
+                // Right face
+                 new Vector3f(1,  0,  0),
+                 new Vector3f(1,  0,  0),
+                 new Vector3f(1,  0,  0),
+                 new Vector3f(1,  0,  0),
+
+                // Left face
+                new Vector3f(-1,  0,  0),
+                new Vector3f(-1,  0,  0),
+                new Vector3f(-1,  0,  0),
+                new Vector3f(-1,  0,  0)
+            };
+
+            var texCoords = new [] {
+                // Front face
+                new Vector2f(0, 0),
+                new Vector2f(1, 0),
+                new Vector2f(1, 1),
+                new Vector2f(0, 1),
+
+                // Back face
+                new Vector2f(1, 0),
+                new Vector2f(1, 1),
+                new Vector2f(0, 1),
+                new Vector2f(0, 0),
+
+                // Top face
+                new Vector2f(0, 1),
+                new Vector2f(0, 0),
+                new Vector2f(1, 0),
+                new Vector2f(1, 1),
+
+                // Bottom face
+                new Vector2f(1, 1),
+                new Vector2f(0, 1),
+                new Vector2f(0, 0),
+                new Vector2f(1, 0),
+
+                // Right face
+                new Vector2f(1, 0),
+                new Vector2f(1, 1),
+                new Vector2f(0, 1),
+                new Vector2f(0, 0),
+
+                // Left face
+                new Vector2f(0, 0),
+                new Vector2f(1, 0),
+                new Vector2f(1, 1),
+                new Vector2f(0, 1)
+            };
+
+            Vertices = new CubeVertex[positions.Length];
 
             for (var i = 0; i < Vertices.Length; i++) {
-                Vertices[i] = new CubeVertex(Positions[i], Normals[i], TexCoords[i]);
+                Vertices[i] = new CubeVertex(positions[i], normals[i], texCoords[i]);
             }
         }
     }
