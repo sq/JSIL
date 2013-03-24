@@ -3267,11 +3267,13 @@ JSIL.ImplementExternals("System.Convert", function ($) {
       $.Method(descriptor, methodName, makeSignature($.UInt64, true), from.uint64);
     }
 
-    $.Method(descriptor, methodName, makeSignature($.Single), from.float);
-    $.Method(descriptor, methodName, makeSignature($.Double), from.float);
+    if (from.float) {
+      $.Method(descriptor, methodName, makeSignature($.Single), from.float);
+      $.Method(descriptor, methodName, makeSignature($.Double), from.float);
 
-    $.Method(descriptor, methodName, makeSignature($.Single, true), from.float);
-    $.Method(descriptor, methodName, makeSignature($.Double, true), from.float);
+      $.Method(descriptor, methodName, makeSignature($.Single, true), from.float);
+      $.Method(descriptor, methodName, makeSignature($.Double, true), from.float);
+    }
 
     $.Method(descriptor, methodName, makeSignature($.String), from.string);
 
@@ -3371,24 +3373,51 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     string: makeAdapter($jsilcore.$ParseInt)
   });
 
-  // FIXME
-  /*
+  var boolToUInt64 = function (b) {
+    return $jsilcore.System.UInt64.FromInt32(b ? 1 : 0);
+  };
+
+  var intToUInt64 = function (i) {
+    return $jsilcore.System.UInt64.FromInt32(i);
+  };
+
+  var uintToUInt64 = function (u) {
+    return $jsilcore.System.UInt64.FromUInt32(u);
+  };
+
+  var parseUInt64 = function (text) {
+    return $jsilcore.System.UInt64.Parse(text);
+  };
+
   makeConvertMethods("UInt64", $.UInt64, {
-    boolean: boolToInt,
-    uint: returnSame,
-    int: returnSame,
-    float: returnSame,
-    string: makeAdapter($jsilcore.$ParseInt)
+    boolean: boolToUInt64,
+    uint: uintToUInt64,
+    int: intToUInt64,
+    string: parseUInt64
   });
 
+  var boolToInt64 = function (b) {
+    return $jsilcore.System.Int64.FromInt32(b ? 1 : 0);
+  }
+
+  var intToInt64 = function (i) {
+    return $jsilcore.System.Int64.FromInt32(i);
+  };
+
+  var uintToInt64 = function (u) {
+    return $jsilcore.System.Int64.FromUInt32(u);
+  };
+
+  var parseInt64 = function (text) {
+    return $jsilcore.System.Int64.Parse(text);
+  };
+
   makeConvertMethods("Int64", $.Int64, {
-    boolean: boolToInt,
-    uint: returnSame,
-    int: returnSame,
-    float: returnSame,
-    string: makeAdapter($jsilcore.$ParseInt)
+    boolean: boolToInt64,
+    uint: uintToInt64,
+    int: intToInt64,
+    string: parseInt64
   });
-  */
   
   makeConvertMethods("Single", $.Single, {
     boolean: boolToInt,
