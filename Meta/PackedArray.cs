@@ -49,7 +49,7 @@ namespace JSIL.Runtime {
         [JSReplacement("JSIL.GetBackingTypedArray($array)")]
         [JSAllowPackedArrayArguments]
         [JSIsPure]
-        public static byte[] GetBackingTypedArray<T> (this T[] array)
+        public static dynamic GetBackingTypedArray<T> (this T[] array)
             where T : struct {
 
             throw new NotImplementedException("Not supported when running as C#");

@@ -76,12 +76,12 @@ namespace WebGL {
             }
 
             if (Builtins.IsTruthy(gl)) {
-                Builtins.Global["alert"]("Could not initialize WebGL");
-                return false;
-            } else {
                 GL = gl;
                 Console.WriteLine("Initialized WebGL");
                 return true;
+            } else {
+                Builtins.Global["alert"]("Could not initialize WebGL");
+                return false;
             }
         }
 

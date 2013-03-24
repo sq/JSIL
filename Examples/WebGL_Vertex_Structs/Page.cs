@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using JSIL;
 using JSIL.Meta;
@@ -18,7 +19,7 @@ namespace WebGL {
         }
 
         public class BufferCollection {
-            public object CubeVertexPositions, CubeVertexNormals, CubeTextureCoords;
+            public object CubeVertices;
             public object CubeIndices;
         }
 
@@ -78,12 +79,12 @@ namespace WebGL {
             }
 
             if (Builtins.IsTruthy(gl)) {
-                Builtins.Global["alert"]("Could not initialize WebGL");
-                return false;
-            } else {
                 GL = gl;
                 Console.WriteLine("Initialized WebGL");
                 return true;
+            } else {
+                Builtins.Global["alert"]("Could not initialize WebGL");
+                return false;
             }
         }
 
@@ -164,14 +165,8 @@ namespace WebGL {
         }
 
         public static void InitBuffers () {
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertexPositions = GL.createBuffer());
-            GL.bufferData(GL.ARRAY_BUFFER, CubeData.Positions.GetBackingTypedArray(), GL.STATIC_DRAW);
-
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertexNormals = GL.createBuffer());
-            GL.bufferData(GL.ARRAY_BUFFER, CubeData.Normals.GetBackingTypedArray(), GL.STATIC_DRAW);
-
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeTextureCoords = GL.createBuffer());
-            GL.bufferData(GL.ARRAY_BUFFER, CubeData.TexCoords.GetBackingTypedArray(), GL.STATIC_DRAW);
+            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertices = GL.createBuffer());
+            GL.bufferData(GL.ARRAY_BUFFER, CubeData.Vertices.GetArrayBuffer(), GL.STATIC_DRAW);
 
             GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, Buffers.CubeIndices = GL.createBuffer());
             GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, CubeData.Indices, GL.STATIC_DRAW);
@@ -255,14 +250,23 @@ namespace WebGL {
             GLMatrix4.rotate(Matrices.ModelView, DegreesToRadians(RotationX), new [] { 1f, 0, 0 });
             GLMatrix4.rotate(Matrices.ModelView, DegreesToRadians(RotationY), new [] { 0, 1f, 0 });
 
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertexPositions);
-            GL.vertexAttribPointer(Attributes.VertexPosition, 3, GL.FLOAT, false, 0, 0);
+            var vertexExemplar = default(CubeVertex);
+            var sizeofFloat = Marshal.SizeOf(typeof(float));
+            var sizeofVertex = Marshal.SizeOf(vertexExemplar);
+            var sizeofPosition = Marshal.SizeOf(vertexExemplar.Position);
+            var sizeofNormal = Marshal.SizeOf(vertexExemplar.Normal);
+            var sizeofTexCoord = Marshal.SizeOf(vertexExemplar.TexCoord);
+            var offsetOfPosition = Marshal.OffsetOf(typeof(CubeVertex), "Position").ToInt32();
+            var offsetOfNormal = Marshal.OffsetOf(typeof(CubeVertex), "Normal").ToInt32();
+            var offsetOfTexCoord = Marshal.OffsetOf(typeof(CubeVertex), "TexCoord").ToInt32();
 
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertexNormals);
-            GL.vertexAttribPointer(Attributes.VertexNormal, 3, GL.FLOAT, false, 0, 0);
+            // Contrary to what you would expect from reading the documentation, and from a stride of 0 being densely-packed elements,
+            //  glVertexAttribPointer's 'stride' parameter is the *complete* size of a vertex, not the size excluding the attribute you are describing.
 
-            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeTextureCoords);
-            GL.vertexAttribPointer(Attributes.TextureCoord, 2, GL.FLOAT, false, 0, 0);
+            GL.bindBuffer(GL.ARRAY_BUFFER, Buffers.CubeVertices);
+            GL.vertexAttribPointer(Attributes.VertexPosition, sizeofPosition / sizeofFloat, GL.FLOAT, false, sizeofVertex, offsetOfPosition);
+            GL.vertexAttribPointer(Attributes.VertexNormal, sizeofNormal / sizeofFloat, GL.FLOAT, false, sizeofVertex, offsetOfNormal);
+            GL.vertexAttribPointer(Attributes.TextureCoord, sizeofTexCoord / sizeofFloat, GL.FLOAT, false, sizeofVertex, offsetOfTexCoord);
 
             GL.activeTexture(GL.TEXTURE0);
             GL.bindTexture(GL.TEXTURE_2D, CrateTexture);
@@ -349,8 +353,22 @@ namespace WebGL {
         }
     }
 
+    public struct CubeVertex {
+        public readonly Vector3f Position;
+        public readonly Vector3f Normal;
+        public readonly Vector2f TexCoord;
+
+        public CubeVertex (Vector3f position, Vector3f normal, Vector2f texCoord) {
+            Position = position;
+            Normal = normal;
+            TexCoord = texCoord;
+        }
+    }
+
     public static class CubeData {
         [JSPackedArray]
+        public static readonly CubeVertex[] Vertices;
+
         public static readonly Vector3f[] Positions = new [] {
             // Front face
             new Vector3f(-1, -1,  1),
@@ -389,7 +407,6 @@ namespace WebGL {
             new Vector3f(-1,  1, -1),
         };
 
-        [JSPackedArray]
         public static readonly Vector3f[] Normals = new [] {
             // Front face
              new Vector3f(0,  0,  1),
@@ -428,7 +445,6 @@ namespace WebGL {
             new Vector3f(-1,  0,  0)
         };
 
-        [JSPackedArray]
         public static readonly Vector2f[] TexCoords = new [] {
             // Front face
             new Vector2f(0, 0),
@@ -475,5 +491,13 @@ namespace WebGL {
             16, 17, 18,   16, 18, 19, // Right face
             20, 21, 22,   20, 22, 23  // Left face
         };
+
+        static CubeData () {
+            Vertices = new CubeVertex[Positions.Length];
+
+            for (var i = 0; i < Vertices.Length; i++) {
+                Vertices[i] = new CubeVertex(Positions[i], Normals[i], TexCoords[i]);
+            }
+        }
     }
 }

@@ -91,7 +91,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     (new JSIL.MethodSignature($.Int32, [$.Object], [])), 
     function SizeOf (structure) {
       var type = JSIL.GetType(structure);
-      return JSIL.GetNativeSizeOf(structure);
+      return JSIL.GetNativeSizeOf(type);
     }
   )
 
@@ -690,7 +690,7 @@ JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer)
   if (initializerIsArray) {
     for (var i = 0; i < size; i++) {
       var element = sizeOrInitializer[i];
-      result.Set(i, element);
+      result.set_Item(i, element);
     }
   }
 
