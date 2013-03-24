@@ -1808,6 +1808,20 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
     ctorImpl
   );
 
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return decimalToNumber(lhs) === decimalToNumber(rhs);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return decimalToNumber(lhs) !== decimalToNumber(rhs);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "op_Addition", 
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function (lhs, rhs) {

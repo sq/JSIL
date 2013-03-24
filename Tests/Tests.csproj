@@ -358,6 +358,7 @@
     <None Include="SimpleTestCases\BooleanCasts.cs" />
     <None Include="TestCases\GenericStaticMethods2.cs" />
     <None Include="SimpleTestCases\InterfaceMemberAsDelegate.cs" />
+    <None Include="SimpleTestCases\DecimalEquality.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
