@@ -46,16 +46,27 @@ namespace JSIL.Transforms {
             }
         }
 
+        public class CachedSignatureRecordComparer : IEqualityComparer<CachedSignatureRecord> {
+            public bool Equals (CachedSignatureRecord x, CachedSignatureRecord y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (CachedSignatureRecord obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public readonly bool LocalCachingEnabled;
         public readonly Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>> LocalCachedSignatureSets;
         public readonly Dictionary<CachedSignatureRecord, int> CachedSignatures;
         private readonly Stack<JSFunctionExpression> FunctionStack = new Stack<JSFunctionExpression>();
+        private readonly CachedSignatureRecordComparer Comparer = new CachedSignatureRecordComparer();
 
         public SignatureCacher (TypeInfoProvider typeInfo, bool localCachingEnabled) {
             LocalCachedSignatureSets = new Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>>(
                 new MemberIdentifier.Comparer(typeInfo)
             );
-            CachedSignatures = new Dictionary<CachedSignatureRecord, int>();
+            CachedSignatures = new Dictionary<CachedSignatureRecord, int>(Comparer);
             VisitNestedFunctions = true;
             LocalCachingEnabled = localCachingEnabled;
         }
@@ -95,7 +106,7 @@ namespace JSIL.Transforms {
 
                 var functionIdentifier = fn.Method.Method.Identifier;
                 if (!LocalCachedSignatureSets.TryGetValue(functionIdentifier, out signatureSet))
-                    signatureSet = LocalCachedSignatureSets[functionIdentifier] = new Dictionary<CachedSignatureRecord, int>();
+                    signatureSet = LocalCachedSignatureSets[functionIdentifier] = new Dictionary<CachedSignatureRecord, int>(Comparer);
             } else {
                 signatureSet = CachedSignatures;
             }
