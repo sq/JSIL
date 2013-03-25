@@ -493,6 +493,15 @@ namespace JSIL {
                 case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
                     return arguments.First();
 
+                case "T JSIL.Builtins::CreateNamedFunction(System.String,System.String[],System.String,System.Object)":
+                    JSExpression closureArg = null;
+                    if (arguments.Length > 3)
+                        closureArg = arguments[3];
+
+                    return JSIL.CreateNamedFunction(
+                        method.GenericArguments.First(), arguments[0], arguments[1], arguments[2], closureArg
+                    );
+
                 case "System.Object JSIL.Builtins::Eval(System.String)":
                     return JSInvocationExpression.InvokeStatic(
                         JS.eval, arguments

@@ -213,6 +213,27 @@ namespace JSIL {
                 new[] { sizeInBytes, new JSType(pointerType.GetElementType()) }
             );
         }
+
+        public JSInvocationExpression CreateNamedFunction (TypeReference resultType, JSExpression name, JSExpression argumentNames, JSExpression body, JSExpression closure = null) {
+            var nae = argumentNames as JSNewArrayExpression;
+            if (nae != null)
+                argumentNames = nae.SizeOrArrayInitializer;
+
+            // FIXME: We should do a cast of the result to ensure it's actually the requested result type instead of just a raw JS function
+            return JSInvocationExpression.InvokeStatic(
+                Dot(
+                    new JSFakeMethod(
+                        "CreateNamedFunction", resultType,
+                        new[] {
+                            TypeSystem.String, new ArrayType(TypeSystem.String), TypeSystem.String, TypeSystem.Object
+                        }, MethodTypes
+                    )
+                ),
+                new[] { 
+                    name, argumentNames, body, closure
+                }
+            );
+        }
     }
 
     public class SpecialIdentifiers {

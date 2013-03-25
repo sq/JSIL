@@ -2562,6 +2562,27 @@ JSIL.EscapeJSIdentifier = function (identifier) {
   return JSIL.EscapeName(identifier).replace(nameRe, "_");
 };
 
+JSIL.GetObjectKeys = function (obj) {
+  // This is a .NET object, so return the names of any public fields/properties.
+  if (obj && obj.GetType) {
+    var typeObject = obj.GetType();
+    var bindingFlags = $jsilcore.System.Reflection.BindingFlags.$Flags("Instance", "Public");
+    var fields = JSIL.GetMembersInternal(typeObject, bindingFlags, "FieldInfo");
+    var properties = JSIL.GetMembersInternal(typeObject, bindingFlags, "PropertyInfo");
+    var result = [];
+
+    for (var i = 0, l = fields.length; i < l; i++)
+      result.push(fields[i].get_Name());
+
+    for (var i = 0, l = properties.length; i < l; i++)
+      result.push(properties[i].get_Name());
+
+    return result;
+  } else {
+    return Object.keys(obj);
+  }
+};
+
 JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
   var strictPrefix = "\"use strict\";\r\n";
@@ -2577,7 +2598,7 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var result, keys, closureArgumentList;
 
   if (closure) {
-    keys = Object.keys(closure);    
+    keys = JSIL.GetObjectKeys(closure);    
     closureArgumentList = new Array(keys.length);
 
     for (var i = 0, l = keys.length; i < l; i++)

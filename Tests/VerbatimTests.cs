@@ -46,5 +46,13 @@ namespace JSIL.Tests {
                 "threw\r\nnull", "threw\r\nnot null"
             );
         }
+
+        [Test]
+        public void CreateNamedFunction () {
+            var js = GetJavascript(
+                @"SpecialTestCases\CreateNamedFunction.cs",
+                "3"
+            );
+        }
     }
 }
