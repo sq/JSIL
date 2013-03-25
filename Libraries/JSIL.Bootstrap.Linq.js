@@ -185,7 +185,17 @@ JSIL.ImplementExternals(
         }
       );
      });
-  
+    
+    $.Method({Static: true , Public: true }, "ToList",
+      new JSIL.MethodSignature(
+       $jsilcore.TypeRef("System.Collections.Generic.List`1", ["!!0"]),
+       [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])],
+       ["TSource"]
+    ),
+    function (TSource, enumerable) {
+      var constructor = new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Collections.Generic.List`1", [TSource]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [TSource])]);
+      return constructor.Construct(enumerable);
+    });  
   }
 );
 

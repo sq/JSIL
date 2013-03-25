@@ -362,6 +362,7 @@
     <None Include="SimpleTestCases\StringFromCharArray.cs" />
     <None Include="SimpleTestCases\EnumerableCast.cs" />
     <None Include="SpecialTestCases\CreateNamedFunction.cs" />
+    <None Include="SimpleTestCases\EnumerableToList.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
