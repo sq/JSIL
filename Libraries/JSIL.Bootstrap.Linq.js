@@ -159,6 +159,33 @@ JSIL.ImplementExternals(
       }
     );    
 
+    $.Method({Static: true , Public: true }, "Cast",
+      new JSIL.MethodSignature(
+        $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]),
+        [$jsilcore.TypeRef("System.Collections.IEnumerable")],
+        ["TResult"]
+      ),
+     function (TResult, enumerable) {
+      var state = {};
+
+      return new JSIL.AbstractEnumerable(
+        function getNext (result) {
+          var ok = state.enumerator.IEnumerator_MoveNext();
+
+          if (ok)
+            result.set(TResult.$Cast(state.enumerator.IEnumerator_Current));
+
+          return ok;
+        },
+        function reset () {
+          state.enumerator = JSIL.GetEnumerator(enumerable);
+        },
+        function dispose () {
+          state.enumerator.IDisposable_Dispose();
+        }
+      );
+     });
+  
   }
 );
 

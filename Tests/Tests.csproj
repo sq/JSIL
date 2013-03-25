@@ -360,6 +360,7 @@
     <None Include="SimpleTestCases\InterfaceMemberAsDelegate.cs" />
     <None Include="SimpleTestCases\DecimalEquality.cs" />
     <None Include="SimpleTestCases\StringFromCharArray.cs" />
+    <None Include="SimpleTestCases\EnumerableCast.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
