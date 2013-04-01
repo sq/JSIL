@@ -152,15 +152,21 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSDefaultValueLiteral dvl) {
-            var ct = GetCachedType(dvl.Value);
-            if (ct != null)
-                dvl.CachedTypeIndex = ct.Index;
+            // We need to check this since it's a literal and it could show up in the tree multiple times.
+            if (!dvl.CachedTypeIndex.HasValue) {
+                var ct = GetCachedType(dvl.Value);
+                if (ct != null)
+                    dvl.CachedTypeIndex = ct.Index;
+            }
 
             VisitChildren(dvl);
         }
 
         public void VisitNode (JSEnumLiteral el) {
-            el.SetCachedType(GetCachedType(el.EnumType));
+            // It's a literal so it could show up in the tree multiple times.
+            if (el.CachedEnumType == null) {
+                el.SetCachedType(GetCachedType(el.EnumType));
+            }
 
             VisitChildren(el);
         }

@@ -172,19 +172,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void NestedInitialization () {
-            var generatedJs = GetJavascript(
+            var output = "a = 5, b = 7\r\na = 5, b = 7";
+            GenericTest(
                 @"SpecialTestCases\NestedInitialization.cs",
-                "a = 5, b = 7\r\na = 5, b = 7"
+                output, output
             );
-
-            try {
-                Assert.IsTrue(generatedJs.Contains("var b ="));
-                Assert.IsTrue(generatedJs.Contains(", (b = \"7"));
-            } catch {
-                Console.WriteLine(generatedJs);
-
-                throw;
-            }
         }
 
         [Test]

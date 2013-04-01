@@ -120,50 +120,51 @@ namespace JSIL.Transforms {
 
             // Try to find a spot between the source variable's assignments where all of our
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
+            // FIXME: I think this section might be fundamentally flawed. Do let me know if you agree. :)
             var v = source as JSVariable;
             if (v != null) {
-                var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
-                if (assignments.Length < 1)
+                var sourceAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
+                if (sourceAssignments.Length < 1)
                     return v.IsParameter;
 
-                var targetAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
-                if (targetAssignments.Length < 1)
+                var sourceAccesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                if (sourceAccesses.Length < 1)
                     return false;
 
-                var targetAccesses = (from a in FirstPass.Accesses where target.Equals(a.Source) select a).ToArray();
-                if (targetAccesses.Length < 1)
-                    return false;
+                var targetAssignmentIndices = (from a in FirstPass.Assignments where target.Equals(a.Target) select a.StatementIndex);
+                var targetAccessIndices = (from a in FirstPass.Accesses where target.Equals(a.Source) select a.StatementIndex).ToArray();
+                var targetUseIndices = targetAccessIndices.Concat(targetAssignmentIndices).ToArray();
 
-                var targetFirstAssigned = targetAssignments.FirstOrDefault();
-                var targetLastAssigned = targetAssignments.LastOrDefault();
+                if (sourceAssignments.Length == 1) {
+                    if (targetAccessIndices.All((tai) => tai > sourceAssignments[0].StatementIndex))
+                        return true;
+                }
 
-                var targetFirstAccessed = targetAccesses.FirstOrDefault();
-                var targetLastAccessed = targetAccesses.LastOrDefault();
+                var sourceFirstAssigned = sourceAssignments.First();
+                var sourceLastAssigned = sourceAssignments.Last();
+
+                var sourceFirstAccessed = sourceAccesses.First();
+                var sourceLastAccessed = sourceAccesses.Last();
 
                 bool foundAssignmentSlot = false;
 
-                for (int i = 0, c = assignments.Length; i < c; i++) {
-                    int assignment = assignments[i].StatementIndex, nextAssignment = int.MaxValue;
+                for (int i = 0, c = targetUseIndices.Length; i < c; i++) {
+                    int assignment = targetUseIndices[i], nextAssignment = int.MaxValue;
                     if (i < c - 1)
-                        nextAssignment = assignments[i + 1].StatementIndex;
+                        nextAssignment = targetUseIndices[i + 1];
 
                     if (
-                        (targetFirstAssigned.StatementIndex >= assignment) &&
-                        (targetFirstAssigned.StatementIndex < nextAssignment) &&
-                        (targetFirstAccessed.StatementIndex >= assignment) &&
-                        (targetLastAccessed.StatementIndex <= nextAssignment)
+                        (sourceFirstAssigned.StatementIndex >= assignment) &&
+                        (sourceLastAssigned.StatementIndex < nextAssignment) &&
+                        (sourceFirstAccessed.StatementIndex >= assignment) &&
+                        (sourceLastAccessed.StatementIndex <= nextAssignment)
                     ) {
+                        if (TraceLevel >= 5)
+                            Debug.WriteLine("Found assignment slot for {0} <- {1} between {2} and {3}", target, source, assignment, nextAssignment);
+
                         foundAssignmentSlot = true;
                         break;
                     }
-                }
-
-                // If we didn't find a slot, check to see if all the assignments come before all the accesses.
-                if (!foundAssignmentSlot) {
-                    var minAccessIndex = targetAccesses.Min((a) => a.StatementIndex);
-
-                    if (assignments.All((a) => a.StatementIndex < minAccessIndex))
-                        foundAssignmentSlot = true;
                 }
 
                 if (!foundAssignmentSlot)
@@ -247,14 +248,6 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                var copies = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
-                if ((copies.Length + accesses.Length) > 1) {
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
-
-                    continue;
-                }
-
                 var replacementAssignment = assignments.First();
                 var replacement = replacementAssignment.NewValue;
                 if (replacement.SelfAndChildrenRecursive.Contains(v)) {
@@ -262,6 +255,21 @@ namespace JSIL.Transforms {
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
 
                     continue;
+                }
+
+                var copies = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
+                if (
+                    (copies.Length + accesses.Length) > 1
+                ) {
+                    if (replacement is JSLiteral) {
+                        if (TraceLevel >= 5)
+                            Debug.WriteLine(String.Format("Skipping veto of elimination for {0} because it is a literal.", v));
+                    } else {
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
+
+                        continue;
+                    }
                 }
 
                 if (!IsEffectivelyConstant(v, replacement)) {
@@ -343,7 +351,13 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             if ((boe.Operator == JSOperator.Assignment) && (boe.Left.Equals(Variable))) {
-                ParentNode.ReplaceChild(boe, new JSNullExpression());
+                // This is important because we could be eliminating an assignment that looks like:
+                //  x = y = 5;
+                // And if we simply replace 'y = 5' with an null, everything is ruined.
+                if (ParentNode is JSExpressionStatement)
+                    ParentNode.ReplaceChild(boe, new JSNullExpression());
+                else
+                    ParentNode.ReplaceChild(boe, boe.Right);
             } else {
                 VisitChildren(boe);
             }
