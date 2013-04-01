@@ -124,7 +124,8 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
     var forceCanvas = (document.location.search.indexOf("forceCanvas") >= 0);
     var forceWebGL = (document.location.search.indexOf("forceWebGL") >= 0);
 
-    $textCachingSupported = (window.navigator.userAgent.indexOf("; MSIE ") < 0);
+    $textCachingSupported = (window.navigator.userAgent.indexOf("; MSIE ") < 0) &&    
+      (window.navigator.userAgent.indexOf("IE 11.0") < 0);
   } else {
     var forceCanvas = true;
     var forceWebGL = false;
