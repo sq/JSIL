@@ -150,13 +150,32 @@ namespace JSIL.Tests {
                 }
             }
 
-            var parameters = new CompilerParameters(new[] {
+            var references = new List<string> {
                 "mscorlib.dll", "System.dll", 
                 "System.Core.dll", "System.Xml.dll", 
                 "Microsoft.CSharp.dll",
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
-            }) {
-                CompilerOptions = "/unsafe",
+            };
+
+            var compilerOptions = "/unsafe";
+
+            foreach (var sourceFile in filenames) {
+                var sourceText = File.ReadAllText(sourceFile);
+                foreach (var metacomment in Metacomment.FromText(sourceText)) {
+                    switch (metacomment.Command.ToLower()) {
+                        case "reference":
+                            references.Add(metacomment.Arguments);
+                            break;
+
+                        case "compileroption":
+                            compilerOptions += metacomment.Arguments;
+                            break;
+                    }
+                }
+            }
+
+            var parameters = new CompilerParameters(references.ToArray()) {
+                CompilerOptions = compilerOptions,
                 GenerateExecutable = false,
                 GenerateInMemory = false,
                 IncludeDebugInformation = true,
@@ -188,6 +207,34 @@ namespace JSIL.Tests {
         public static bool ContainsRegex (this string text, string regex) {
             var m = Regex.Matches(text, regex);
             return (m.Count > 0);
+        }
+    }
+
+    public class Metacomment {
+        public static Regex Regex = new Regex(
+            @"//@(?'command'[A-Za-z_0-9]+) (?'arguments'[^\n\r]*)",
+            RegexOptions.ExplicitCapture
+        );
+
+        public readonly string Command;
+        public readonly string Arguments;
+
+        public Metacomment (string command, string arguments) {
+            Command = command;
+            Arguments = arguments;
+        }
+
+        public override string ToString () {
+            return String.Format("{0} {1}", Command, Arguments);
+        }
+
+        public static Metacomment[] FromText (string text) {
+            var result = new List<Metacomment>();
+
+            foreach (Match match in Regex.Matches(text))
+                result.Add(new Metacomment(match.Groups["command"].Value, match.Groups["arguments"].Value));
+
+            return result.ToArray();
         }
     }
 }

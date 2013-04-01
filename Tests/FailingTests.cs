@@ -14,11 +14,6 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class FailingTests : GenericTestFixture {
-        public static Regex MetacommentRegex = new Regex(
-            @"//@(?'command'[A-Za-z_0-9]+) (?'arguments'[^\n\r]*)",
-            RegexOptions.ExplicitCapture
-        );
-
         [Test]
         [TestCaseSource("FailingTestCasesSource")]
         public void FailingTestCases (object[] parameters) {
@@ -51,31 +46,28 @@ namespace JSIL.Tests {
                 Console.WriteLine(failure.ToString());
 
             var testFileText = File.ReadAllText(testFilename);
-            foreach (Match metacommentMatch in MetacommentRegex.Matches(testFileText)) {
-                Console.WriteLine(metacommentMatch.Value);
+            foreach (var metacomment in Metacomment.FromText(testFileText)) {
+                Console.WriteLine(metacomment);
 
-                var command = metacommentMatch.Groups["command"].Value.ToLower();
-                var args = metacommentMatch.Groups["arguments"].Value;
-
-                switch (command) {
+                switch (metacomment.Command.ToLower()) {
                     case "assertfailurestring":
                         Assert.IsTrue(
                             translationFailures.Any(
-                                (f) => f.ToString().Contains(args)
+                                (f) => f.ToString().Contains(metacomment.Arguments)
                             ),
-                            "Expected translation to generate a failure containing the string '" + args + "'"
+                            "Expected translation to generate a failure containing the string '" + metacomment.Arguments + "'"
                         );
 
                         break;
 
                     case "assertthrows":
-                        if ((thrown == null) || (thrown.GetType().Name.ToLower() != args.Trim().ToLower()))
-                            Assert.Fail("Expected test to throw an exception of type '" + args + "'");
+                        if ((thrown == null) || (thrown.GetType().Name.ToLower() != metacomment.Arguments.Trim().ToLower()))
+                            Assert.Fail("Expected test to throw an exception of type '" + metacomment.Arguments + "'");
 
                         break;
 
                     default:
-                        throw new NotImplementedException("Command type '" + command + "' not supported in metacomments");
+                        throw new NotImplementedException("Command type '" + metacomment.Command + "' not supported in metacomments");
                 }
             }
 
