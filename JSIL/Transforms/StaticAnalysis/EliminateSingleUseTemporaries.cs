@@ -356,7 +356,7 @@ namespace JSIL.Transforms {
                 // And if we simply replace 'y = 5' with an null, everything is ruined.
                 if (ParentNode is JSExpressionStatement)
                     ParentNode.ReplaceChild(boe, new JSNullExpression());
-                else
+                else if (ParentNode != null)
                     ParentNode.ReplaceChild(boe, boe.Right);
             } else {
                 VisitChildren(boe);
