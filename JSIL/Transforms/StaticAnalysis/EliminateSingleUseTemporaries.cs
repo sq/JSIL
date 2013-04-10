@@ -354,7 +354,7 @@ namespace JSIL.Transforms {
                 // This is important because we could be eliminating an assignment that looks like:
                 //  x = y = 5;
                 // And if we simply replace 'y = 5' with an null, everything is ruined.
-                if (ParentNode is JSExpressionStatement)
+                if ((ParentNode is JSExpressionStatement) || (ParentNode is JSVariableDeclarationStatement))
                     ParentNode.ReplaceChild(boe, new JSNullExpression());
                 else if (ParentNode != null)
                     ParentNode.ReplaceChild(boe, boe.Right);
