@@ -11,7 +11,7 @@ namespace JSIL.Tests {
     public class DependencyTests {
         [Test]
         public void EnumeratesAssemblyDependencies () {
-            var assembly = CompilerUtil.CompileCS(new[] { 
+            var assembly = CompilerUtil.Compile(new[] { 
                 Path.Combine(
                     ComparisonTest.TestSourceFolder,
                     @"SpecialTestCases\EnumeratesAssemblyDependencies.cs"

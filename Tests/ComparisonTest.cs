@@ -68,7 +68,7 @@ namespace JSIL.Tests {
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll)$", "$0.js"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs)$", "$0.js"
             );
         }
 
@@ -111,12 +111,6 @@ namespace JSIL.Tests {
             );
 
             switch (extensions[0]) {
-                case ".cs":
-                    Assembly = CompilerUtil.CompileCS(absoluteFilenames, assemblyName);
-                    break;
-                case ".vb":
-                    Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName);
-                    break;
                 case ".exe":
                 case ".dll":
                     var fns = absoluteFilenames.ToArray();
@@ -126,7 +120,8 @@ namespace JSIL.Tests {
                     Assembly = Assembly.LoadFile(fns[0]);
                     break;
                 default:
-                    throw new ArgumentException("Unsupported source file type for test");
+                    Assembly = CompilerUtil.Compile(absoluteFilenames, assemblyName);
+                    break;
             }
 
             if (typeInfo != null)

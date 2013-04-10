@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using Microsoft.CSharp;
+using Microsoft.FSharp.Compiler.CodeDom;
 using Microsoft.VisualBasic;
 
 namespace JSIL.Tests {
@@ -28,25 +29,37 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly CompileCS (
+        public static Assembly Compile (
             IEnumerable<string> filenames, string assemblyName
         ) {
-            return Compile(
-                () => new CSharpCodeProvider(new Dictionary<string, string>() { 
-                    { "CompilerVersion", "v4.0" } 
-                }),
-                filenames, assemblyName
-            );
-        }
+            var extension = Path.GetExtension(filenames.First()).ToLower();
+            Func<CodeDomProvider> provider = null;
 
-        public static Assembly CompileVB (
-            IEnumerable<string> filenames, string assemblyName
-        ) {
+            switch (extension) {
+                case ".cs":
+                    provider = () => new CSharpCodeProvider(new Dictionary<string, string>() { 
+                        { "CompilerVersion", "v4.0" } 
+                    });
+                    break;
+
+                case ".vb":
+                    provider = () => new VBCodeProvider(new Dictionary<string, string>() { 
+                        { "CompilerVersion", "v4.0" } 
+                    });
+                    break;
+
+                case ".fs":
+                    provider = () => {
+                        var result = new FSharpCodeProvider();
+                        return result;
+                    };
+                    break;
+                default:
+                    throw new NotImplementedException("Extension '" + extension + "' cannot be compiled for test cases");
+            }
+
             return Compile(
-                () => new VBCodeProvider(new Dictionary<string, string>() { 
-                    { "CompilerVersion", "v4.0" } 
-                }), 
-                filenames, assemblyName
+                provider, filenames, assemblyName
             );
         }
 
@@ -117,13 +130,13 @@ namespace JSIL.Tests {
             }
 
             var references = new List<string> {
-                "mscorlib.dll", "System.dll", 
+                "System.dll", 
                 "System.Core.dll", "System.Xml.dll", 
                 "Microsoft.CSharp.dll",
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             };
 
-            var compilerOptions = "/unsafe";
+            var compilerOptions = "";
 
             foreach (var sourceFile in filenames) {
                 var sourceText = File.ReadAllText(sourceFile);

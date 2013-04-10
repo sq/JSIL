@@ -370,7 +370,10 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
-            var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s).ToArray();
+            var testNames = Directory.GetFiles(testPath, "*.cs")
+                .Concat(Directory.GetFiles(testPath, "*.vb"))
+                .Concat(Directory.GetFiles(testPath, "*.fs"))
+                .OrderBy((s) => s).ToArray();
 
             string commonFile = null;
 
