@@ -17,5 +17,5 @@
 
     let public Main (args : System.String[]) : System.Int32 =
         let formatted = formatChar true 'a'
-        printfn "formatted char: %s" formatted
+        System.Console.WriteLine formatted
         0

@@ -1979,3 +1979,36 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.GroupCollection", functi
     }
   );
 });
+
+JSIL.ImplementExternals("System.Char", function ($) {  
+  $.Method({Static:true , Public:true }, "IsControl", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsControl (c) {
+      // FIXME: Unicode
+      var charCode = c.charCodeAt(0);
+      return (charCode <= 0x1F) || (charCode === 0x7F);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "IsDigit", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsDigit (c) {
+      // FIXME: Unicode
+      var charCode = c.charCodeAt(0);
+      return (charCode >= 48) && (charCode <= 57);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "IsWhiteSpace", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsWhiteSpace (c) {
+      // FIXME: Unicode
+      var charCode = c.charCodeAt(0);
+      return 
+        ((charCode >= 0x09) && (charCode <= 0x13)) || 
+        (charCode === 0x20) ||
+        (charCode === 0xA0) || 
+        (charCode === 0x85);
+    }
+  );
+});
