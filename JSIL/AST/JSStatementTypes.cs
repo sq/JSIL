@@ -255,6 +255,8 @@ namespace JSIL.Ast {
 
             if (boe == null)
                 Declarations.RemoveAll((c) => c == oldChild);
+            else if (boe.Operator != JSOperator.Assignment)
+                throw new InvalidOperationException("A variable declaration statement may only contain assignments");
             else
                 for (int i = 0, c = Declarations.Count; i < c; i++) {
                     if (Declarations[i] == oldChild)
