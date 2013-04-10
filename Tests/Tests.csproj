@@ -134,6 +134,7 @@
     <None Include="EncodingTestCases\UTF16GetString.cs" />
     <None Include="DateTimeTestCases\TimeSpanComparison.cs" />
     <None Include="DateTimeTestCases\TimeSpanToStringAndParse.cs" />
+    <Compile Include="CompilerUtil.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
@@ -364,6 +365,7 @@
     <None Include="SpecialTestCases\CreateNamedFunction.cs" />
     <None Include="SimpleTestCases\EnumerableToList.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
+    <None Include="SimpleTestCases\Issue118_1.fs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
