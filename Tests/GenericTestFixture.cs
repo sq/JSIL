@@ -12,6 +12,17 @@ using NUnit.Framework;
 namespace JSIL.Tests {
 
     public class GenericTestFixture : IDisposable {
+        
+        public static string ReplaceNewLine(string raw) { return raw.Replace("\r\n", System.Environment.NewLine); }
+        public static string NormalizeFileName(string raw) { return raw.Replace("\\", Path.DirectorySeparatorChar.ToString()); }
+        public static string[] NormalizeFileNames(IEnumerable<string> raw) { 
+            return raw.Select(NormalizeFileName).ToArray();
+        }
+        public static string GetTestName(string raw) { 
+            // NUnit on Mono seems to not like "." in Testnames
+            return Path.GetFileName(NormalizeFileName(raw)).Replace(".", "_");
+        }
+
         protected TypeInfoProvider DefaultTypeInfoProvider;
 
         public EvaluatorPool EvaluatorPool {
@@ -72,7 +83,7 @@ namespace JSIL.Tests {
         ) {
             return new ComparisonTest(
                 EvaluatorPool,
-                filename, stubbedAssemblies,
+                NormalizeFileName(filename), stubbedAssemblies,
                 typeInfo, assemblyCache
             );
         }
@@ -109,7 +120,7 @@ namespace JSIL.Tests {
 
             string commonFile = null;
             for (var i = 0; i < filenames.Length; i++) {
-                if (filenames[i].Contains("\\Common.")) {
+                if (filenames[i].Contains(Path.Combine ("", "Common."))) {
                     commonFile = filenames[i];
                     break;
                 }
@@ -208,6 +219,7 @@ namespace JSIL.Tests {
             Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null 
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
+            filename = NormalizeFileName(filename);
 
             try {
                 var testFilenames = new List<string>() { filename };
@@ -270,7 +282,7 @@ namespace JSIL.Tests {
                 }
 
                 if (expectedText != null)
-                    Assert.AreEqual(expectedText, output.Trim());
+                    Assert.AreEqual(ReplaceNewLine(expectedText), output.Trim());
             }
 
             return generatedJs;
@@ -284,14 +296,14 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies, typeInfo)) {
+            using (var test = new ComparisonTest(EvaluatorPool, NormalizeFileName(fileName), stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
                     var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
 
-                    Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
-                    Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
+                    Assert.AreEqual(ReplaceNewLine(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
+                    Assert.AreEqual(ReplaceNewLine(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;
@@ -305,7 +317,7 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null, jsOutput = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, NormalizeFileName(fileName), stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
@@ -388,11 +400,12 @@ namespace JSIL.Tests {
                 var testName = testNames[i];
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
-
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(testName))
+                var name = GetTestName(testName);
+                var data = (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
+                    .SetName(name)
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
                     .SetCategory(folderName);
+                yield return data;
             }
         }
 
@@ -407,9 +420,9 @@ namespace JSIL.Tests {
 
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
-
+                var name = GetTestName(actualTestName);
                 var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(actualTestName));
+                    .SetName(name);
 
                 if (isIgnored)
                     item.Ignore();

@@ -103,7 +103,7 @@ namespace JSIL.Compiler {
                     {"sbc|suppressbugcheck",
                         "Suppresses JSIL bug checks that detect bugs in .NET runtimes and standard libraries.",
                         (b) => commandLineConfig.RunBugChecks = b == null },
-
+#if !__MonoCS__
                     "Solution Builder options",
                     {"configuration=", 
                         "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
@@ -117,7 +117,7 @@ namespace JSIL.Compiler {
                     {"logVerbosity=", 
                         "When building one or more solution files, specifies the level of log verbosity. Valid options are 'Quiet', 'Minimal', 'Normal', 'Detailed', and 'Diagnostic'.",
                         (v) => commandLineConfig.SolutionBuilder.LogVerbosity = v },
-
+#endif
                     "Assembly options",
                     {"p=|proxy=", 
                         "Loads a type proxy assembly to provide type information for the translator.",
@@ -237,6 +237,7 @@ namespace JSIL.Compiler {
                 );
             }
 
+#if !__MonoCS__
             foreach (var solution in
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
@@ -337,6 +338,7 @@ namespace JSIL.Compiler {
                     });
                 }
             }
+#endif
 
             var assemblyNames = (from fn in filenames
                                  where Path.GetExtension(fn).Contains(",") ||

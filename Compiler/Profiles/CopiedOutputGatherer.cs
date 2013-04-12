@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using JSIL.SolutionBuilder;
 using Microsoft.Build.Evaluation;
 using System.Threading;
+#if !__MonoCS__
+using JSIL.SolutionBuilder;
+#endif
 
 namespace JSIL.Utilities {
     public static class CopiedOutputGatherer {
@@ -49,7 +51,8 @@ namespace JSIL.Utilities {
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
         }
-
+		
+#if !__MonoCS__
         public static void GatherFromProjectFiles (
             Compiler.VariableSet variables, Compiler.Configuration configuration, BuildResult buildResult
         ) {
@@ -130,5 +133,6 @@ namespace JSIL.Utilities {
                 }
             }
         }
-    }
+#endif
+	}
 }

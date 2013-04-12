@@ -16,6 +16,8 @@ using Microsoft.Build.Logging;
 
 namespace JSIL.SolutionBuilder {
     public static class SolutionBuilder {
+		
+#if !__MonoCS__
         private static object GetField (object target, string fieldName, BindingFlags fieldFlags) {
             return target.GetType().GetField(fieldName, fieldFlags).GetValue(target);        
         }
@@ -95,10 +97,11 @@ namespace JSIL.SolutionBuilder {
 
             return (ProjectInstance[])result;
         }
-
+#endif
         public static void HandleCommandLine (int connectTimeoutMs = 2500) {
             var commandLineArgs = Environment.GetCommandLineArgs();
-            if ((commandLineArgs.Length == 3) && (commandLineArgs[1] == "--buildSolution")) {
+			if ((commandLineArgs.Length == 3) && (commandLineArgs[1] == "--buildSolution")) {
+#if !__MonoCS__
                 try {
                     var jss = new JavaScriptSerializer();
                     jss.MaxJsonLength = 1024 * 1024 * 64;
@@ -135,10 +138,14 @@ namespace JSIL.SolutionBuilder {
                     Environment.Exit(1);
                 }
 
-                Environment.Exit(0);
+				Environment.Exit(0);
+#else
+				Console.Error.WriteLine("SLN Support was disabled in buid because dependencies are not available on mono!");
+				Environment.Exit(1);
+#endif
             }
         }
-
+#if !__MonoCS__
         private static BuildResult OutOfProcessBuild (Dictionary<string, object> arguments, int startupTimeoutMs = 5000) {
             var jss = new JavaScriptSerializer();
             jss.MaxJsonLength = 1024 * 1024 * 64;
@@ -380,8 +387,9 @@ namespace JSIL.SolutionBuilder {
 
             return result.ToArray();
         }
+#endif
     }
-
+#if !__MonoCS__
     public class BuiltProject {
         public BuiltProject Parent;
         public int Id;
@@ -474,4 +482,5 @@ namespace JSIL.SolutionBuilder {
             AllItemsBuilt = allItemsBuilt;
         }
     }
+#endif
 }

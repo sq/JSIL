@@ -170,10 +170,18 @@ namespace JSIL.Tests {
                 );
             }
 
-            if (results.Errors.Count > 0) {
+            if (results.Errors.Cast<CompilerError>().Count((ce) => !ce.IsWarning) > 0) {
                 throw new Exception(
                     String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray())
                 );
+            } else if (results.Errors.Count > 0) {
+                // Mono produces much more warnings.
+                Console.WriteLine(
+                    "Compiler warnings for {0}: {1}",
+                    assemblyName,
+                    String.Join(
+                        Environment.NewLine, 
+                        results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray()));
             }
 
             WriteCompileManifest(filenames, tempPath);
