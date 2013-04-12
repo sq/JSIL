@@ -203,8 +203,12 @@ namespace JSIL.Tests {
                     Debug.WriteLine("{0:X2} in : {1}", Id, line);
             }
 
-            Process.StandardInput.Write(text);
-            Process.StandardInput.Flush();
+            // HACK: Workaround for NUnit/StreamWriter bug on Mono
+            var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+            Process.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
+            Process.StandardInput.BaseStream.Flush();
+            //Process.StandardInput.Write(text);
+            //Process.StandardInput.Flush();
         }
 
         public void WriteInput (string format, params object[] args) {
@@ -216,10 +220,13 @@ namespace JSIL.Tests {
                 throw new ObjectDisposedException("evaluator");
 
             if (Interlocked.CompareExchange(ref InputClosed, 1, 0) != 0)
-                return;
+				return;
 
-            Process.StandardInput.Flush();
-            Process.StandardInput.Close();
+            // HACK: Workaround for NUnit/StreamWriter bug on Mono
+            Process.StandardInput.BaseStream.Flush();			
+            Process.StandardInput.BaseStream.Close();
+            //Process.StandardInput.Flush();
+            //Process.StandardInput.Close();
         }
 
         public void Join () {

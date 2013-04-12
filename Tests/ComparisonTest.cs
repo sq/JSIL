@@ -15,6 +15,15 @@ using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
     public class ComparisonTest : IDisposable {
+        public static bool IsLinux
+        {
+            get
+            {
+                int p = (int) Environment.OSVersion.Platform;
+                return (p == 4) || (p == 6) || (p == 128);
+            }
+        }
+
         public float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
@@ -48,11 +57,15 @@ namespace JSIL.Tests {
             var testAssembly = typeof(ComparisonTest).Assembly;
             var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
 
-            TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Tests\"));
-            JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\js.exe"));
-            DebugJSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\debug\js.exe"));
-
-            var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\"));
+            TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Tests", ""));
+            if (IsLinux) {
+                JSShellPath = "js";
+                DebugJSShellPath = "js";
+            } else {
+                JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "js.exe"));
+                DebugJSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "debug", "js.exe"));
+            }
+            var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, "..", "Libraries", ""));
 
             LoaderJSPath = Path.Combine(librarySourceFolder, @"JSIL.js");
 
@@ -99,7 +112,7 @@ namespace JSIL.Tests {
             EvaluatorPool = pool;
 
             var extensions = (from f in filenames select Path.GetExtension(f).ToLower()).Distinct().ToArray();
-            var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, f));
+            var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, GenericTestFixture.NormalizeFileName(f)));
 
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");
