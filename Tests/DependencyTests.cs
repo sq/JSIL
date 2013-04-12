@@ -14,9 +14,10 @@ namespace JSIL.Tests {
             var assembly = CompilerUtil.Compile(new[] { 
                 Path.Combine(
                     ComparisonTest.TestSourceFolder,
-                    @"SpecialTestCases\EnumeratesAssemblyDependencies.cs"
+                    @"SpecialTestCases",
+                    "EnumeratesAssemblyDependencies.cs"
                 )
-            }, "DependencyTests\\EnumeratesAssemblyDependencies");
+            }, Path.Combine("DependencyTests", "EnumeratesAssemblyDependencies"));
 
             var translator = new AssemblyTranslator(
                 new Translator.Configuration {

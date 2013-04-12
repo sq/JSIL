@@ -473,8 +473,8 @@ namespace JSIL.Tests {
         public void EscapesOutputFilenames () {
             using (var test = new ComparisonTest(
                 EvaluatorPool,
-                new[] { @"TestCases\HelloWorld.cs" },
-                @"MetadataTests\EscapesOutputFilenames"
+                new[] { NormalizeFileName(@"TestCases\HelloWorld.cs") },
+                NormalizeFileName(@"MetadataTests\EscapesOutputFilenames")
             )) {
                 var filenames = test.Translate((tr) => {
                     return (from file in tr.OrderedFiles select file.Filename).ToArray();
