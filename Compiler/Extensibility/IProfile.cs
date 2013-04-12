@@ -5,11 +5,13 @@ using System.Text;
 
 namespace JSIL.Compiler.Extensibility {
     public interface IProfile {
+#if !__MonoCS__
         bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
         SolutionBuilder.BuildResult ProcessBuildResult (
             VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
         );
+#endif
         Configuration GetConfiguration (
             Configuration defaultConfiguration
         );
