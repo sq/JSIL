@@ -18,6 +18,10 @@ namespace JSIL.Tests {
         public static string[] NormalizeFileNames(IEnumerable<string> raw) { 
             return raw.Select(NormalizeFileName).ToArray();
         }
+        public static string GetTestName(string raw) { 
+            // NUnit on Mono seems to not like "." in Testnames
+            return Path.GetFileName(NormalizeFileName(raw)).Replace(".", "_");
+        }
 
         protected TypeInfoProvider DefaultTypeInfoProvider;
 
@@ -396,11 +400,12 @@ namespace JSIL.Tests {
                 var testName = testNames[i];
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
-
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(testName))
+                var name = GetTestName(testName);
+                var data = (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
+                    .SetName(name)
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
                     .SetCategory(folderName);
+                yield return data;
             }
         }
 
@@ -415,9 +420,9 @@ namespace JSIL.Tests {
 
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
-
+                var name = GetTestName(actualTestName);
                 var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(actualTestName));
+                    .SetName(name);
 
                 if (isIgnored)
                     item.Ignore();
