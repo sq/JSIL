@@ -10,7 +10,6 @@ using Microsoft.Win32;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
-
     public class GenericTestFixture : IDisposable {
         protected TypeInfoProvider DefaultTypeInfoProvider;
 
@@ -391,7 +390,7 @@ namespace JSIL.Tests {
                     continue;
 
                 yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(testName))
+                    .SetName(PickTestNameForFilename(testName))
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
                     .SetCategory(folderName);
             }
@@ -410,12 +409,27 @@ namespace JSIL.Tests {
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
                 var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
-                    .SetName(Path.GetFileName(actualTestName));
+                    .SetName(PickTestNameForFilename(actualTestName));
 
                 if (isIgnored)
                     item.Ignore();
 
                 yield return item;
+            }
+        }
+
+        public static string PickTestNameForFilename (string filename) {
+            var result = Path.GetFileNameWithoutExtension(filename);
+
+            switch (Path.GetExtension(filename).ToLowerInvariant()) {
+                case ".cs":
+                    return result + " (C#)";
+                case ".vb":
+                    return result + " (VB)";
+                case ".fs":
+                    return result + " (F#)";
+                default:
+                    return result;
             }
         }
     }
