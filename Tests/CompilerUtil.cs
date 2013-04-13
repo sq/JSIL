@@ -159,7 +159,9 @@ namespace JSIL.Tests {
                 GenerateInMemory = false,
                 IncludeDebugInformation = true,
                 TempFiles = new TempFileCollection(tempPath, true),
-                OutputAssembly = outputAssembly
+                OutputAssembly = outputAssembly,
+                WarningLevel = 4,
+                TreatWarningsAsErrors = false
             };
 
             CompilerResults results;
@@ -170,9 +172,20 @@ namespace JSIL.Tests {
                 );
             }
 
-            if (results.Errors.Count > 0) {
+            var compileErrorsAndWarnings = results.Errors.Cast<CompilerError>().ToArray();
+            var compileWarnings = (from ce in compileErrorsAndWarnings where ce.IsWarning select ce).ToArray();
+            var compileErrors = (from ce in compileErrorsAndWarnings where !ce.IsWarning select ce).ToArray();
+
+            if (compileWarnings.Length > 0) {
+                Console.Error.WriteLine(
+                    "// C# Compiler warning(s) follow //\r\n{0}\r\n// End of C# compiler warning(s) //",
+                    String.Join(Environment.NewLine, compileWarnings.Select(Convert.ToString).ToArray())
+                );
+            }
+
+            if (compileErrors.Length > 0) {
                 throw new Exception(
-                    String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray())
+                    String.Join(Environment.NewLine, compileErrors.Select(Convert.ToString).ToArray())
                 );
             }
 
