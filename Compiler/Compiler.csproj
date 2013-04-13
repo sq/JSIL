@@ -59,11 +59,24 @@
   <PropertyGroup>
     <ApplicationIcon>jsil.ico</ApplicationIcon>
   </PropertyGroup>
-  <ItemGroup>
+  <!-- Set platform specific defines to allow basic feature detection. -->
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Unix' ">
+    <DefineConstants>$(DefineConstants);UNIX</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'OSX' ">
+    <DefineConstants>$(DefineConstants);OSX</DefineConstants>
+  </PropertyGroup>
+  <!-- MSBuild is not available in Mono yet as an API, so we disable it on non-windows platforms -->
+  <ItemGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Build.Engine" />
     <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="Microsoft.Build.Utilities.v4.0" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web.Extensions" />

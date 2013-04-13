@@ -5,8 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using JSIL.SolutionBuilder;
-using Microsoft.Build.Evaluation;
 using System.Threading;
+
+#if WINDOWS
+using Microsoft.Build.Evaluation;
+#endif
 
 namespace JSIL.Utilities {
     public static class CopiedOutputGatherer {
@@ -53,6 +56,7 @@ namespace JSIL.Utilities {
         public static void GatherFromProjectFiles (
             Compiler.VariableSet variables, Compiler.Configuration configuration, BuildResult buildResult
         ) {
+#if WINDOWS
             var outputDir = variables.ExpandPath(configuration.OutputDirectory, false);
 
             var fileOutputDir = configuration.FileOutputDirectory;
@@ -129,6 +133,9 @@ namespace JSIL.Utilities {
                     }
                 }
             }
+#else // !WINDOWS
+            Console.Error.WriteLine("// CopiedOutputGatherer not running because JSIL was compiled on a non-Windows platform.");
+#endif
         }
     }
 }

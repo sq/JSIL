@@ -9,10 +9,13 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
+
+#if WINDOWS
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
+#endif
 
 namespace JSIL.SolutionBuilder {
     public static class SolutionBuilder {
@@ -24,6 +27,7 @@ namespace JSIL.SolutionBuilder {
             target.GetType().GetField(fieldName, fieldFlags).SetValue(target, value);            
         }
 
+#if WINDOWS
         // The only way to actually specify a solution configuration/platform is by messing around with internal/private types!
         // Using the normal globalProperties method to set configuration/platform will break all the projects inside the
         //  solution by forcibly overriding their configuration/platform. MSBuild is garbage.
@@ -95,6 +99,7 @@ namespace JSIL.SolutionBuilder {
 
             return (ProjectInstance[])result;
         }
+#endif
 
         public static void HandleCommandLine (int connectTimeoutMs = 2500) {
             var commandLineArgs = Environment.GetCommandLineArgs();
@@ -221,6 +226,7 @@ namespace JSIL.SolutionBuilder {
         ) {
             bool defaultInProcess = Debugger.IsAttached;
 
+#if WINDOWS
             if (!inProcess.GetValueOrDefault(defaultInProcess)) {
                 var argsDict = new Dictionary<string, object> {
                     {"solutionFile", solutionFile},
@@ -350,8 +356,12 @@ namespace JSIL.SolutionBuilder {
                 eventRecorder.TargetFiles.ToArray(),
                 allItemsBuilt.ToArray()
             );
+#else // !WINDOWS
+            throw new NotImplementedException("Solution building is only supported on Windows when JSILc is compiled using MSBuild/Visual Studio.");
+#endif
         }
-        
+
+#if WINDOWS
         // Enumerate all the projects the BuildManager built while building the projects we asked it to build.
         // This will allow us to identify any secondary outputs (like XNB files).
         private static BuiltItem[] ExtractChildProjectResults (BuildManager manager) {
@@ -380,6 +390,7 @@ namespace JSIL.SolutionBuilder {
 
             return result.ToArray();
         }
+#endif
     }
 
     public class BuiltProject {
@@ -392,6 +403,7 @@ namespace JSIL.SolutionBuilder {
         }
     }
 
+#if WINDOWS
     public class BuildEventRecorder : ILogger {
         public readonly Dictionary<int, BuiltProject> ProjectsById = new Dictionary<int, BuiltProject>();
         public readonly HashSet<string> TargetFiles = new HashSet<string>(); 
@@ -428,6 +440,7 @@ namespace JSIL.SolutionBuilder {
             set;
         }
     }
+#endif
 
     public class BuiltItem {
         public readonly string TargetName;
@@ -438,6 +451,7 @@ namespace JSIL.SolutionBuilder {
         public BuiltItem () {
         }
 
+#if WINDOWS
         internal BuiltItem (string targetName, ITaskItem item) {
             TargetName = targetName;
             OutputPath = item.ItemSpec;
@@ -445,6 +459,7 @@ namespace JSIL.SolutionBuilder {
             foreach (var name in item.MetadataNames)
                 Metadata.Add((string)name, item.GetMetadata((string)name));
         }
+#endif
 
         public override string ToString () {
             return String.Format("{0}: {1} ({2} metadata)", TargetName, OutputPath, Metadata.Count);
