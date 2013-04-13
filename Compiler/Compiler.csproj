@@ -68,7 +68,7 @@
     <DefineConstants>$(DefineConstants);OSX</DefineConstants>
   </PropertyGroup>
   <!-- MSBuild is not available in Mono yet as an API, so we disable it on non-windows platforms -->
-  <ItemGroup Condition=" '$(OS)' != 'Windows_NT' ">
+  <ItemGroup Condition=" '$(OS)' == 'Windows_NT' ">
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Build.Engine" />
     <Reference Include="Microsoft.Build.Framework" />
