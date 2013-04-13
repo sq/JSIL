@@ -15,6 +15,7 @@ using Mono.Cecil;
 
 namespace JSIL.Internal {
     public enum EscapingMode {
+        None,
         MemberIdentifier,
         TypeIdentifier,
         String
@@ -60,6 +61,9 @@ namespace JSIL.Internal {
         }
 
         public static string EscapeIdentifier (string identifier, EscapingMode escapingMode = EscapingMode.MemberIdentifier) {
+            if (escapingMode == EscapingMode.None)
+                return identifier;
+
             bool isEscaped = false;
             string result = identifier;
 

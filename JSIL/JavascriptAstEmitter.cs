@@ -80,7 +80,7 @@ namespace JSIL {
         public override void VisitNode (JSNode node) {
             if ((node != null) && !node.IsNull) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
-                Output.Identifier("JSIL.UntranslatableNode", null);
+                Output.Identifier("JSIL.UntranslatableNode", EscapingMode.None);
                 Output.LPar();
                 Output.Value(node.GetType().Name);
                 Output.RPar();
@@ -746,7 +746,7 @@ namespace JSIL {
                 }
             }
 
-            Output.Identifier("JSIL.UntranslatableInstruction", null);
+            Output.Identifier("JSIL.UntranslatableInstruction", EscapingMode.None);
             Output.LPar();
             Output.Value(go.ToString());
             Output.RPar();
@@ -758,7 +758,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUntranslatableStatement us) {
-            Output.Identifier("JSIL.UntranslatableNode", null);
+            Output.Identifier("JSIL.UntranslatableNode", EscapingMode.None);
             Output.LPar();
             Output.Value((us.Type ?? "").ToString());
             Output.RPar();
@@ -766,7 +766,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUntranslatableExpression ue) {
-            Output.Identifier("JSIL.UntranslatableInstruction", null);
+            Output.Identifier("JSIL.UntranslatableInstruction", EscapingMode.None);
             Output.LPar();
             Output.Value((ue.Type ?? "").ToString());
             Output.RPar();
@@ -969,7 +969,7 @@ namespace JSIL {
                     PassByRefStack.Pop();
                 }
             } else {
-                Output.Identifier("JSIL.UnmaterializedReference", null);
+                Output.Identifier("JSIL.UnmaterializedReference", EscapingMode.None);
                 Output.LPar();
                 Output.Value(byref.Referent.ToString());
                 Output.RPar();
@@ -1781,7 +1781,7 @@ namespace JSIL {
                             Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
                             Output.CloseBracket(false);
                         } else
-                            Output.Identifier("null", null);
+                            Output.Identifier("null", EscapingMode.None);
                     };
 
                     if (isStatic) {
@@ -1803,7 +1803,7 @@ namespace JSIL {
 
                         Visit(invocation.Type);
                         Output.Dot();
-                        Output.Identifier("prototype", null);
+                        Output.Identifier("prototype", EscapingMode.None);
                         Output.Comma();
 
                         Output.Value(methodName);
@@ -1840,13 +1840,13 @@ namespace JSIL {
                         if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);
                             Output.Dot();
-                            Output.Identifier("prototype", null);
+                            Output.Identifier("prototype", EscapingMode.None);
                             Output.Dot();
                         }
 
                         Visit(invocation.Method);
                         Output.Dot();
-                        Output.Identifier("call", null);
+                        Output.Identifier("call", EscapingMode.None);
                         Output.LPar();
 
                         Visit(invocation.ThisReference);

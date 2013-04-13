@@ -722,16 +722,16 @@ namespace JSIL.Internal {
             WriteRaw("}");
         }
 
-        public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
-            if (escapingMode.HasValue)
-                WriteRaw(Util.EscapeIdentifier(
-                    name, escapingMode.Value
-                ));
-            else
-                WriteRaw(name);
+        public void Identifier (string name, EscapingMode escapingMode = EscapingMode.MemberIdentifier) {
+            WriteRaw(Util.EscapeIdentifier(
+                name, escapingMode
+            ));
         }
 
         internal void Identifier (string name, TypeReferenceContext context, bool includeParens = false) {
+            if (context == null)
+                throw new ArgumentNullException("context");
+
             Identifier(name);
         }
 

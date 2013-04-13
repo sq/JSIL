@@ -737,7 +737,7 @@ namespace JSIL {
         }
 
         protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
-            output.Identifier("JSIL.MakeInterface", null);
+            output.Identifier("JSIL.MakeInterface", EscapingMode.None);
             output.LPar();
             output.NewLine();
             
@@ -771,9 +771,9 @@ namespace JSIL {
                     if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
                         continue;
 
-                    output.Identifier("$", null);
+                    output.Identifier("$", EscapingMode.None);
                     output.Dot();
-                    output.Identifier("Method", null);
+                    output.Identifier("Method", EscapingMode.None);
                     output.LPar();
 
                     output.WriteRaw("{}");
@@ -794,9 +794,9 @@ namespace JSIL {
                 if ((propertyInfo != null) && propertyInfo.IsIgnored)
                     continue;
 
-                output.Identifier("$", null);
+                output.Identifier("$", EscapingMode.None);
                 output.Dot();
-                output.Identifier("Property", null);
+                output.Identifier("Property", EscapingMode.None);
                 output.LPar();
 
                 output.WriteRaw("{}");
@@ -837,7 +837,7 @@ namespace JSIL {
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(enm);
 
-            output.Identifier("JSIL.MakeEnum", null);
+            output.Identifier("JSIL.MakeEnum", EscapingMode.None);
             output.LPar();
             output.NewLine();
 
@@ -882,7 +882,7 @@ namespace JSIL {
         }
 
         protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo) {
-            output.Identifier("JSIL.MakeDelegate", null);
+            output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
             output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
@@ -971,7 +971,7 @@ namespace JSIL {
                 output.DeclareNamespace(typedef.Namespace);
 
                 if (typeInfo.IsExternal) {
-                    output.Identifier("JSIL.MakeExternalType", null);
+                    output.Identifier("JSIL.MakeExternalType", EscapingMode.None);
                     output.LPar();
 
                     output.Value(typeInfo.FullName);
@@ -1012,7 +1012,7 @@ namespace JSIL {
                 output.Indent();
                 output.NewLine();
 
-                Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", null);
+                Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
                 int nextDisambiguatedId = 0;
                 var typeCacher = EmitTypeMethodExpressions(
                     context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
@@ -1021,13 +1021,13 @@ namespace JSIL {
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
                 if (makingSkeletons) {
-                    output.Identifier("JSIL.ImplementExternals", null);
+                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
                     output.LPar();
 
                     output.Value(typeInfo.FullName);
 
                 } else if (isStatic) {
-                    output.Identifier("JSIL.MakeStaticClass", null);
+                    output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
                     output.Value(typeInfo.FullName);
@@ -1044,9 +1044,9 @@ namespace JSIL {
 
                 } else {
                     if (typedef.IsValueType)
-                        output.Identifier("JSIL.MakeStruct", null);
+                        output.Identifier("JSIL.MakeStruct", EscapingMode.None);
                     else
-                        output.Identifier("JSIL.MakeClass", null);
+                        output.Identifier("JSIL.MakeClass", EscapingMode.None);
 
                     output.LPar();
 
@@ -1192,7 +1192,7 @@ namespace JSIL {
             var setValue = (Action<string, bool>)((name, value) => {
                 dollar(output);
                 output.Dot();
-                output.Identifier("SetValue", null);
+                output.Identifier("SetValue", EscapingMode.None);
                 output.LPar();
                 output.Value(name);
                 output.Comma();
@@ -1370,7 +1370,7 @@ namespace JSIL {
 
                 dollar(output);
                 output.Dot();
-                output.Identifier("ImplementInterfaces", null);
+                output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
                 output.CommaSeparatedList(interfaces, astEmitter.ReferenceContext, ListValueType.TypeReference);
                 output.RPar();
@@ -2298,9 +2298,9 @@ namespace JSIL {
                 dollar(output);
                 output.Dot();
                 if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
-                    output.Identifier("ExternalMethod", null);
+                    output.Identifier("ExternalMethod", EscapingMode.None);
                 else
-                    output.Identifier("Method", null);
+                    output.Identifier("Method", EscapingMode.None);
                 output.LPar();
 
                 // FIXME: Include IsVirtual?
@@ -2321,7 +2321,7 @@ namespace JSIL {
                     if (function != null) {
                         output.WriteRaw(Util.EscapeIdentifier(function.DisplayName));
                     } else {
-                        output.Identifier("JSIL.UntranslatableFunction", null);
+                        output.Identifier("JSIL.UntranslatableFunction", EscapingMode.None);
                         output.LPar();
                         output.Value(method.FullName);
                         output.RPar();
@@ -2376,11 +2376,11 @@ namespace JSIL {
             output.Dot();
 
             if (propertyInfo.IsExternal)
-                output.Identifier("ExternalProperty", null);
+                output.Identifier("ExternalProperty", EscapingMode.None);
             else if (property.DeclaringType.HasGenericParameters && isStatic)
-                output.Identifier("GenericProperty", null);
+                output.Identifier("GenericProperty", EscapingMode.None);
             else
-                output.Identifier("Property", null);
+                output.Identifier("Property", EscapingMode.None);
 
             output.LPar();
 
