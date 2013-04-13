@@ -1,4 +1,6 @@
-﻿using System;
+﻿//@compileroption /unsafe
+
+using System;
 
 public static class Program {
     public static void Main () {

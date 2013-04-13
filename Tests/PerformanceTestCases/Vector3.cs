@@ -1,4 +1,6 @@
-﻿using System;
+﻿//@compileroption /unsafe
+
+using System;
 using JSIL.Meta;
 
 public static class Program {
