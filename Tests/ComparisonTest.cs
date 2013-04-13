@@ -57,7 +57,10 @@ namespace JSIL.Tests {
             var testAssembly = typeof(ComparisonTest).Assembly;
             var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
 
-            TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Tests", ""));
+            TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Tests"));
+            if (TestSourceFolder[TestSourceFolder.Length - 1] != Path.DirectorySeparatorChar)
+                TestSourceFolder += Path.DirectorySeparatorChar;
+
             if (IsLinux) {
                 JSShellPath = "js";
                 DebugJSShellPath = "js";
@@ -65,7 +68,10 @@ namespace JSIL.Tests {
                 JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "js.exe"));
                 DebugJSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "debug", "js.exe"));
             }
-            var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, "..", "Libraries", ""));
+
+            var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, "..", "Libraries"));
+            if (librarySourceFolder[librarySourceFolder.Length - 1] != Path.DirectorySeparatorChar)
+                librarySourceFolder += Path.DirectorySeparatorChar;
 
             LoaderJSPath = Path.Combine(librarySourceFolder, @"JSIL.js");
 
@@ -112,7 +118,7 @@ namespace JSIL.Tests {
             EvaluatorPool = pool;
 
             var extensions = (from f in filenames select Path.GetExtension(f).ToLower()).Distinct().ToArray();
-            var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, GenericTestFixture.NormalizeFileName(f)));
+            var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, Portability.NormalizeDirectorySeparators(f)));
 
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");

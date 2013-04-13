@@ -78,4 +78,19 @@ namespace JSIL.Tests {
             return result.ToArray();
         }
     }
+
+    public static class Portability {
+        public static string NormalizeNewLines (string text) {
+            return text.Replace("\r\n", Environment.NewLine);
+        }
+
+        public static string NormalizeDirectorySeparators (string filename) {
+            return filename.Replace('\\', Path.DirectorySeparatorChar);
+        }
+
+        public static IEnumerable<string> NormalizeDirectorySeparators (IEnumerable<string> filenames) {
+            return filenames.Select(NormalizeDirectorySeparators);
+        }
+
+    }
 }

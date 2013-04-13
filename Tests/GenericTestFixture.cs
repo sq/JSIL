@@ -12,13 +12,6 @@ using NUnit.Framework;
 namespace JSIL.Tests {
 
     public class GenericTestFixture : IDisposable {
-        
-        public static string ReplaceNewLine(string raw) { return raw.Replace("\r\n", System.Environment.NewLine); }
-        public static string NormalizeFileName(string raw) { return raw.Replace("\\", Path.DirectorySeparatorChar.ToString()); }
-        public static string[] NormalizeFileNames(IEnumerable<string> raw) { 
-            return raw.Select(NormalizeFileName).ToArray();
-        }
-
         protected TypeInfoProvider DefaultTypeInfoProvider;
 
         public EvaluatorPool EvaluatorPool {
@@ -79,7 +72,7 @@ namespace JSIL.Tests {
         ) {
             return new ComparisonTest(
                 EvaluatorPool,
-                NormalizeFileName(filename), stubbedAssemblies,
+                Portability.NormalizeDirectorySeparators(filename), stubbedAssemblies,
                 typeInfo, assemblyCache
             );
         }
@@ -215,7 +208,7 @@ namespace JSIL.Tests {
             Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null 
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
-            filename = NormalizeFileName(filename);
+            filename = Portability.NormalizeDirectorySeparators(filename);
 
             try {
                 var testFilenames = new List<string>() { filename };
@@ -278,7 +271,7 @@ namespace JSIL.Tests {
                 }
 
                 if (expectedText != null)
-                    Assert.AreEqual(ReplaceNewLine(expectedText), output.Trim());
+                    Assert.AreEqual(Portability.NormalizeNewLines(expectedText), output.Trim());
             }
 
             return generatedJs;
@@ -292,14 +285,14 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, NormalizeFileName(fileName), stubbedAssemblies, typeInfo)) {
+            using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
                     var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
 
-                    Assert.AreEqual(ReplaceNewLine(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
-                    Assert.AreEqual(ReplaceNewLine(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
+                    Assert.AreEqual(Portability.NormalizeNewLines(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
+                    Assert.AreEqual(Portability.NormalizeNewLines(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;
@@ -313,7 +306,7 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null, jsOutput = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, NormalizeFileName(fileName), stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
