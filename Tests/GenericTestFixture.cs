@@ -204,7 +204,8 @@ namespace JSIL.Tests {
         private void RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, bool shouldRunJs = true, AssemblyCache asmCache = null,
-            Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null 
+            Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null,
+            string compilerOptions = ""
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
             filename = Portability.NormalizeDirectorySeparators(filename);
@@ -221,8 +222,9 @@ namespace JSIL.Tests {
                         ComparisonTest.TestSourceFolder,
                         ComparisonTest.MapSourceFileToTestFile(filename)
                     ),
-                    stubbedAssemblies, typeInfo, asmCache)
-                    ) {
+                    stubbedAssemblies, typeInfo, asmCache,
+                    compilerOptions: compilerOptions
+                )) {
                     if (shouldRunJs) {
                         test.Run(makeConfiguration: makeConfiguration, onTranslationFailure: onTranslationFailure);
                     } else {
@@ -344,7 +346,8 @@ namespace JSIL.Tests {
         protected void RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            Action<Exception> onTranslationFailure = null,
+            string compilerOptions = ""
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -355,7 +358,8 @@ namespace JSIL.Tests {
                 RunComparisonTest(
                     (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
                     makeConfiguration: makeConfiguration,
-                    onTranslationFailure: onTranslationFailure
+                    onTranslationFailure: onTranslationFailure,
+                    compilerOptions: compilerOptions
                 );
             } finally {
                 if ((bool)parameters[4]) {

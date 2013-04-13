@@ -551,7 +551,8 @@ namespace JSIL.Tests {
                     var cfg = MakeConfiguration();
                     cfg.CodeGenerator.EnableUnsafeCode = true;
                     return cfg;
-                }
+                },
+                compilerOptions: "/unsafe"
             );
         }
 

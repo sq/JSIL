@@ -30,7 +30,7 @@ namespace JSIL.Tests {
         }
 
         public static Assembly Compile (
-            IEnumerable<string> filenames, string assemblyName
+            IEnumerable<string> filenames, string assemblyName, string compilerOptions = ""
         ) {
             var extension = Path.GetExtension(filenames.First()).ToLower();
             Func<CodeDomProvider> provider = null;
@@ -59,7 +59,7 @@ namespace JSIL.Tests {
             }
 
             return Compile(
-                provider, filenames, assemblyName
+                provider, filenames, assemblyName, compilerOptions
             );
         }
 
@@ -104,7 +104,7 @@ namespace JSIL.Tests {
         }
 
         private static Assembly Compile (
-            Func<CodeDomProvider> getProvider, IEnumerable<string> filenames, string assemblyName
+            Func<CodeDomProvider> getProvider, IEnumerable<string> filenames, string assemblyName, string compilerOptions
         ) {
             var tempPath = Path.Combine(TempPath, assemblyName);
             Directory.CreateDirectory(tempPath);
@@ -143,8 +143,6 @@ namespace JSIL.Tests {
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             };
 
-            var compilerOptions = "";
-
             foreach (var sourceFile in filenames) {
                 var sourceText = File.ReadAllText(sourceFile);
                 foreach (var metacomment in Metacomment.FromText(sourceText)) {
@@ -154,7 +152,7 @@ namespace JSIL.Tests {
                             break;
 
                         case "compileroption":
-                            compilerOptions += metacomment.Arguments;
+                            compilerOptions += " " + metacomment.Arguments;
                             break;
                     }
                 }

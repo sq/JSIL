@@ -111,7 +111,7 @@ namespace JSIL.Tests {
             EvaluatorPool pool,
             IEnumerable<string> filenames, string outputPath,
             string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null,
-            AssemblyCache assemblyCache = null
+            AssemblyCache assemblyCache = null, string compilerOptions = ""
         ) {
             var started = DateTime.UtcNow.Ticks;
             OutputPath = outputPath;
@@ -139,7 +139,7 @@ namespace JSIL.Tests {
                     Assembly = Assembly.LoadFile(fns[0]);
                     break;
                 default:
-                    Assembly = CompilerUtil.Compile(absoluteFilenames, assemblyName);
+                    Assembly = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
                     break;
             }
 
