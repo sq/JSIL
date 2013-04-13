@@ -66,6 +66,10 @@ namespace JSIL.Tests {
 
                         break;
 
+                    case "reference":
+                    case "compileroption":
+                        break;
+
                     default:
                         throw new NotImplementedException("Command type '" + metacomment.Command + "' not supported in metacomments");
                 }

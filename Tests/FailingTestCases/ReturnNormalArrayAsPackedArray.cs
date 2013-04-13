@@ -1,4 +1,5 @@
-﻿//@assertFailureString Return value of method 'ReturnPackedArray' must be a packed array
+﻿//@compileroption /unsafe
+//@assertFailureString Return value of method 'ReturnPackedArray' must be a packed array
 //@assertThrows JavaScriptEvaluatorException
 
 using System;

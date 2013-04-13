@@ -1,4 +1,5 @@
-﻿//@assertFailureString Invalid attempt to pass a packed array as parameter
+﻿//@compileroption /unsafe
+//@assertFailureString Invalid attempt to pass a packed array as parameter
 //@assertThrows JavaScriptEvaluatorException
 
 using System;
