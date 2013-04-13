@@ -114,10 +114,17 @@ namespace JSIL.Tests {
                 Path.GetFileNameWithoutExtension(assemblyName) + ".dll"
             );
 
+            var warningTextPath = Path.Combine(
+                tempPath, "warnings.txt"
+            );
+
             if (
                 File.Exists(outputAssembly) &&
                 CheckCompileManifest(filenames, tempPath)
             ) {
+                if (File.Exists(warningTextPath))
+                    Console.Error.WriteLine(File.ReadAllText(warningTextPath));
+
                 return Assembly.LoadFile(outputAssembly);
             }
 
@@ -177,10 +184,19 @@ namespace JSIL.Tests {
             var compileErrors = (from ce in compileErrorsAndWarnings where !ce.IsWarning select ce).ToArray();
 
             if (compileWarnings.Length > 0) {
-                Console.Error.WriteLine(
+                var warningText = String.Format(
                     "// C# Compiler warning(s) follow //\r\n{0}\r\n// End of C# compiler warning(s) //",
                     String.Join(Environment.NewLine, compileWarnings.Select(Convert.ToString).ToArray())
                 );
+                Console.Error.WriteLine(
+                    warningText
+                );
+                File.WriteAllText(
+                    warningTextPath, warningText
+                );
+            } else {
+                if (File.Exists(warningTextPath))
+                    File.Delete(warningTextPath);
             }
 
             if (compileErrors.Length > 0) {
