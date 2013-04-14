@@ -691,6 +691,8 @@
     <None Include="SimpleTestCases\InheritedInterfaces.cs" />
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethos.cs" />
     <None Include="SimpleTestCases\InheritedAndNewMethod.cs" />
+    <None Include="SimpleTestCases\DoubleInheritedInterface.cs" />
+    <None Include="SimpleTestCases\DoubleInheritedInterfaceAndNew.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
