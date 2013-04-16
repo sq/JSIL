@@ -1831,7 +1831,7 @@ namespace JSIL.Internal {
             if (cn != null)
                 return cn;
 
-            result = ShortName;
+            result = Member.Name;
             
             if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);

@@ -1372,8 +1372,21 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
-                output.CommaSeparatedList(interfaces, astEmitter.ReferenceContext, ListValueType.TypeReference);
+
+                for (var i = 0; i < interfaces.Length; i++) {
+                    var @interface = interfaces[i];
+
+                    if (i != 0)
+                        output.Comma();
+                    output.NewLine();
+
+                    output.Comment("{0}", i);
+                    output.TypeReference(@interface, astEmitter.ReferenceContext);
+                }
+
+                output.NewLine();
                 output.RPar();
+                output.Semicolon(true);
             }
 
             output.NewLine();
@@ -2351,9 +2364,43 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
+
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+        }
+
+        protected void TranslateOverrides (
+            DecompilerContext context, TypeInfo typeInfo,
+            MethodDefinition method, MethodInfo methodInfo,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+        ) {
+            astEmitter.ReferenceContext.Push();
+            try {
+                astEmitter.ReferenceContext.EnclosingType = null;
+                astEmitter.ReferenceContext.DefiningType = null;
+
+                output.Indent();
+
+                foreach (var @override in methodInfo.Overrides) {
+                    output.NewLine();
+                    output.Dot();
+                    output.Identifier("Overrides");
+                    output.LPar();
+
+                    var interfaceIndex = typeInfo.Interfaces.TakeWhile(
+                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item2, @override.InterfaceType)
+                    ).Count();
+                    output.Value(interfaceIndex);
+
+                    output.RPar();
+                }
+
+                output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
