@@ -1312,6 +1312,7 @@ namespace JSIL.Internal {
         JSReadPolicy ReadPolicy { get; }
         JSWritePolicy WritePolicy { get; }
         JSInvokePolicy InvokePolicy { get; }
+        IEnumerable<OverrideInfo> Overrides { get; }
     }
 
     public abstract class MemberInfo<T> : IMemberInfo
@@ -1409,6 +1410,12 @@ namespace JSIL.Internal {
 
         protected virtual string GetName () {
             return ChangedName ?? Member.Name;
+        }
+
+        public virtual IEnumerable<OverrideInfo> Overrides {
+            get {
+                yield break;
+            }
         }
 
         public ITypeInfoSource Source {
@@ -1726,6 +1733,16 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             return GetName(false);
+        }
+
+        public override IEnumerable<OverrideInfo> Overrides {
+            get {
+                var typeInfo = DeclaringType.Source;
+                var implementationType = DeclaringType.Definition;
+
+                foreach (var @override in Member.Overrides)
+                    yield return new OverrideInfo(typeInfo, implementationType, @override);
+            }
         }
 
         public NamedMethodSignature NamedSignature {
@@ -2145,6 +2162,17 @@ namespace JSIL.Internal {
 
         public void Dispose () {
             Cache.Dispose();
+        }
+    }
+
+    public class OverrideInfo {
+        public readonly TypeReference InterfaceType, ImplementationType;
+        public readonly MemberIdentifier MemberIdentifier;
+
+        public OverrideInfo (ITypeInfoSource typeInfo, TypeReference implementationType, MethodReference @override) {
+            InterfaceType = @override.DeclaringType;
+            ImplementationType = implementationType;
+            MemberIdentifier = new MemberIdentifier(typeInfo, @override);
         }
     }
 }
