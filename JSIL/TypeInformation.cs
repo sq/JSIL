@@ -1582,15 +1582,7 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             string result;
-            var over = (Member.GetMethod ?? Member.SetMethod).Overrides.FirstOrDefault();
-
-            if (DeclaringType.IsInterface) {
-                result = ChangedName ?? String.Format("{0}.{1}", DeclaringType.LocalName, ShortName);
-            } else if (over != null) {
-                // FIXME: Should this be LocalName and not Name?
-                result = ChangedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
-            } else
-                result = ChangedName ?? ShortName;
+            result = ChangedName ?? ShortName;
 
             return result;
         }
@@ -1817,24 +1809,12 @@ namespace JSIL.Internal {
 
         public string GetName (bool stripGenericSuffix) {
             string result;
-            var over = Member.Overrides.FirstOrDefault();
 
             var cn = ChangedName;
             if (cn != null)
                 return cn;
 
-            if (DeclaringType.IsInterface) {
-                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(DeclaringType.Definition), ShortName);
-            // FIXME: Enable this so MultipleGenericInterfaces2.cs passes.
-            /*
-            } else if (Member.Name.IndexOf(".") > 0) {
-                // Qualified reference to an interface member
-                result = Member.Name;
-            */
-            } else if (over != null)
-                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(over.DeclaringType.Resolve()), ShortName);
-            else
-                result = ShortName;
+            result = ShortName;
             
             if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
