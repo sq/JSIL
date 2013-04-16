@@ -118,8 +118,10 @@ namespace JSIL.Internal {
             TrackedLockCollection.DeadlockInfo deadlock;
             var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
 
-            if (!lockResult)
-                throw new ThreadStateException(String.Format("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock));
+            if (!lockResult) {
+                Console.Error.WriteLine(String.Format("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock));
+                return false;
+            }
 
             try {
                 while (Pipeline.Count > 0) {
