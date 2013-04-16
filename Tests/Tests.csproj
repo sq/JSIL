@@ -680,8 +680,8 @@
     <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
     <None Include="SimpleTestCases\InterfaceColliding.cs" />
     <None Include="SimpleTestCases\InterfaceCollidingImplicit.cs" />
-    <None Include="SimpleTestCases\FSharp.Core.Printf.Simple.fs" />
-    <None Include="SimpleTestCases\FSharp.Core.Printf.StringArg.fs" />
+    <None Include="FailingTestCases\FSharp.Core.Printf.Simple.fs" />
+    <None Include="FailingTestCases\FSharp.Core.Printf.StringArg.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
