@@ -1784,7 +1784,9 @@ namespace JSIL {
                             Output.Identifier("null", EscapingMode.None);
                     };
 
-                    if (isStatic) {
+                    if (method.DeclaringType.IsInterface) {
+                        throw new NotImplementedException("Overloaded interface method call");
+                    } else if (isStatic) {
                         Output.Identifier("CallStatic");
                         Output.LPar();
 
@@ -1828,7 +1830,21 @@ namespace JSIL {
                             Output.Comma();
                     }
                 } else {
-                    if (isStatic) {
+                    if (method.DeclaringType.IsInterface) {
+                        Output.Identifier(method.DeclaringType.Definition, ReferenceContext, false);
+
+                        Output.Dot();
+                        Visit(invocation.Method);
+
+                        Output.Dot();
+                        Output.WriteRaw("Call");
+
+                        Output.LPar();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else if (isStatic) {
                         if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);
                             Output.Dot();

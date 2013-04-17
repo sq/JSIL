@@ -202,7 +202,7 @@ namespace JSIL.Internal {
 
         public void Unindent () {
             if (_IndentLevel == 0)
-                Debug.WriteLine("WARNING: Indent level is already 0");
+                throw new InvalidOperationException("Indent level is already 0");
 
             _IndentLevel -= 1;
         }
