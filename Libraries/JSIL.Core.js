@@ -2391,6 +2391,8 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
+  var trace = true;
+
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
     return;
@@ -2398,10 +2400,17 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (typeObject.IsInterface)
     return;
 
+  if (!interfaces.length)
+    return;
+
   var context = typeObject.__Context__;
 
   var typeName = typeObject.__FullName__;
   var missingMembers = [];
+
+  var typeMembers = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance"));
+
+  var namePairs = [[null, null], [null, null]];
 
   __interfaces__:
   for (var i = 0, l = interfaces.length; i < l; i++) {
@@ -2453,7 +2462,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "Public", "DeclaredOnly"));
+    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "DeclaredOnly"));
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
@@ -2461,101 +2470,125 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     __members__:
     for (var j = 0; j < members.length; j++) {
       var member = members[j];
-      var shortName = member._descriptor.Name;
-      var qualifiedName = "I" + iface.__TypeId__ + "$" + shortName;
 
-      var hasShort = proto.hasOwnProperty(shortName);
-      var hasQualified = proto.hasOwnProperty(qualifiedName);
+      namePairs[0][0] = member._descriptor.Name;
+      namePairs[0][1] = "I" + iface.__TypeId__ + "$" + member._descriptor.Name;
 
-      var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, shortName);
-      var hasQualifiedRecursive = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
-
-      switch (member.__MemberType__) {
-        case "MethodInfo":
-          var shortImpl = proto[shortName];
-          var qualifiedImpl = proto[qualifiedName];
-          break;
-
-        case "PropertyInfo":
-          var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, shortName);
-          var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
-          break;
-
-        default:
-          // FIXME
-          continue __members__;
-          break;
+      if (member._data.signature) {
+        namePairs[1][0] = member._data.signature.GetKey(namePairs[0][0]);
+        namePairs[1][1] = member._data.signature.GetKey(namePairs[0][1]);
+      } else {
+        namePairs[1][0] = null;
+        namePairs[1][1] = null;
       }
 
-      if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
-        hasShortRecursive = hasShort = false;
+      namePairs.forEach(function (namePair) {
+        var shortName = namePair[0];
+        var qualifiedName = namePair[1];
 
-      if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
-        hasQualifiedRecursive = hasQualified = false;
+        if (!shortName)
+          return;
 
-      if (
-        hasShortRecursive && 
-        (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
-        shortImpl.__IsPlaceholder__ != false
-      ) {
-        hasShortRecursive = hasShort = false;
-      }
+        console.log(shortName, qualifiedName);
 
-      if (
-        hasQualifiedRecursive && 
-        (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
-        qualifiedImpl.__IsPlaceholder__ != false
-      ) {
-        hasQualifiedRecursive = hasQualified = false;
-      }
+        var hasShort = proto.hasOwnProperty(shortName);
+        var hasQualified = proto.hasOwnProperty(qualifiedName);
 
-      if (!hasShortRecursive && !hasQualifiedRecursive) {
-        missingMembers.push(qualifiedName);
-        continue __members__;
-      }
+        var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, shortName);
+        var hasQualifiedRecursive = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
 
-      if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
         switch (member.__MemberType__) {
           case "MethodInfo":
-            JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
+            var shortImpl = proto[shortName];
+            var qualifiedImpl = proto[qualifiedName];
             break;
 
           case "PropertyInfo":
-            Object.defineProperty(proto, qualifiedName, shortImpl);
+            var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, shortName);
+            var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
             break;
+
+          default:
+            // FIXME
+            return;
         }
-      }
+
+        if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
+          hasShortRecursive = hasShort = false;
+
+        if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
+          hasQualifiedRecursive = hasQualified = false;
+
+        if (
+          hasShortRecursive && 
+          (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
+          shortImpl.__IsPlaceholder__ != false
+        ) {
+          hasShortRecursive = hasShort = false;
+        }
+
+        if (
+          hasQualifiedRecursive && 
+          (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
+          qualifiedImpl.__IsPlaceholder__ != false
+        ) {
+          hasQualifiedRecursive = hasQualified = false;
+        }
+
+        if (!hasShortRecursive && !hasQualifiedRecursive) {
+          missingMembers.push(qualifiedName);
+          return;
+        }
+
+        if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
+          if (trace)
+            console.log(qualifiedName, "->", shortName);
+
+          switch (member.__MemberType__) {
+            case "MethodInfo":
+              JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
+              JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
+              break;
+
+            case "PropertyInfo":
+              Object.defineProperty(proto, qualifiedName, shortImpl);
+              break;
+          }
+        } else {
+          if (trace)
+            console.log("Skipping " + qualifiedName);
+        }
+      });
+
     }
 
     if (interfaces.indexOf(iface) < 0)
       interfaces.push(iface);
   }
 
-  // Calling GetMembersInternal on types without interfaces can cause cyclic construction of BindingFlags :/
-  if (interfaces.length > 0) {
-    // Now walk all the members defined in the typeObject itself, and see if any of them explicitly override
-    //  an interface member (.overrides in IL, .Overrides() in JS)
-    members = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance"));
+  // Now walk all the members defined in the typeObject itself, and see if any of them explicitly override
+  //  an interface member (.overrides in IL, .Overrides() in JS)
+  for (var i = 0; i < typeMembers.length; i++) {
+    var member = typeMembers[i];
+    var overrides = member.__Overrides__;
+    if (!overrides || !overrides.length)
+      continue;
 
-    for (var i = 0; i < members.length; i++) {
-      var member = members[i];
-      var overrides = member.__Overrides__;
-      if (!overrides || !overrides.length)
-        continue;
+    for (var j = 0; j < overrides.length; j++) {
+      var override = overrides[j];
+      var iface = interfaces[override.interfaceIndex];
+      var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
+      var key = member._data.signature.GetKey(interfaceQualifiedName);
 
-      for (var j = 0; j < overrides.length; j++) {
-        var override = overrides[j];
-        var iface = interfaces[override.interfaceIndex];
-        var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
-        var key = member._data.signature.GetKey(interfaceQualifiedName);
+      if (trace)
+        console.log(key, "->", member._descriptor.EscapedName);
 
-        JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
-      }
+      JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
     }
   }
 
   if (missingMembers.length > 0) {
-    if (JSIL.SuppressInterfaceWarnings !== true)
+    if ((JSIL.SuppressInterfaceWarnings !== true) || trace)
       JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): " + missingMembers.join(", "));
   }
 };

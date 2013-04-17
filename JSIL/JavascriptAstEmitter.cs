@@ -1831,7 +1831,7 @@ namespace JSIL {
                     }
                 } else {
                     if ((method != null) && method.DeclaringType.IsInterface) {
-                        Output.Identifier(method.DeclaringType.Definition, ReferenceContext, false);
+                        Output.Identifier(invocation.JSMethod.Reference.DeclaringType, ReferenceContext, false);
 
                         Output.Dot();
                         Visit(invocation.Method);
