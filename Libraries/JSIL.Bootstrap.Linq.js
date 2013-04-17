@@ -48,7 +48,7 @@ JSIL.ImplementExternals(
           if (enumerator.IEnumerator_MoveNext())
             return true;
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -70,7 +70,7 @@ JSIL.ImplementExternals(
               return true;
           }
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -86,7 +86,7 @@ JSIL.ImplementExternals(
           while (e.IEnumerator_MoveNext())
             result += 1;
         } finally {
-          e.IDisposable_Dispose();
+          JSIL.Dispose(e);
         }
         return result;
       }
@@ -100,7 +100,7 @@ JSIL.ImplementExternals(
           if (enumerator.IEnumerator_MoveNext())
             return enumerator.IEnumerator_Current;
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         throw new System.Exception("Enumerable contains no items");
@@ -128,7 +128,7 @@ JSIL.ImplementExternals(
             state.enumerator = JSIL.GetEnumerator(enumerable);
           },
           function dispose () {
-            state.enumerator.IDisposable_Dispose();
+            JSIL.Dispose(state.enumerator);
           }
         );
       }
@@ -152,7 +152,7 @@ JSIL.ImplementExternals(
               return true;
           }
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -181,7 +181,7 @@ JSIL.ImplementExternals(
           state.enumerator = JSIL.GetEnumerator(enumerable);
         },
         function dispose () {
-          state.enumerator.IDisposable_Dispose();
+          JSIL.Dispose(state.enumerator);
         }
       );
      });

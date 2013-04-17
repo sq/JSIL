@@ -913,11 +913,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (items) {
       var e = JSIL.GetEnumerator(items);
+      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
       try {
-        while (e.IEnumerator_MoveNext())
-          this.Add(e.IEnumerator_Current);
+        while (moveNext.Call(e))
+          this.Add(getCurrent.Call(e));
       } finally {
-        e.IDisposable_Dispose();
+        JSIL.Dispose(e);
       }
     }
   );
@@ -2305,11 +2307,23 @@ JSIL.MakeArrayEnumerator = function (array) {
   return new ($jsilcore.$tArrayEnumerator) (array, -1);
 };
 
+JSIL.Dispose = function (disposable) {
+  if ((typeof (disposable) === "undefined") || (disposable === null))
+    throw new Error("Disposable is null or undefined");
+
+  var tIDisposable = $jsilcore.System.IDisposable;
+
+  if (tIDisposable.$Is(disposable))
+    tIDisposable.Dispose.Call(disposable);
+  else if (typeof (disposable.Dispose) === "function")
+    disposable.Dispose();
+};
+
 JSIL.GetEnumerator = function (enumerable) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
-  var tIEnumerable = System.Collections.IEnumerable;
+  var tIEnumerable = $jsilcore.System.Collections.IEnumerable;
 
   if (JSIL.IsArray(enumerable))
     return JSIL.MakeArrayEnumerator(enumerable);
@@ -2329,11 +2343,14 @@ JSIL.EnumerableToArray = function (enumerable) {
   var e = JSIL.GetEnumerator(enumerable);
   var result = [];
 
+  var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+  var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+
   try {
-    while (e.IEnumerator_MoveNext())
-      result.push(e.IEnumerator_Current);
+    while (moveNext.Call(e))
+      result.push(getCurrent.Call(e));
   } finally {
-    e.IDisposable_Dispose();
+    JSIL.Dispose(e);
   }
 
   return result;

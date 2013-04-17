@@ -1066,11 +1066,12 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
   return result;
 };
 
-JSIL.MemberRecord = function (type, descriptor, data, attributes) {
+JSIL.MemberRecord = function (type, descriptor, data, attributes, overrides) {
   this.type = type;
   this.descriptor = descriptor;
   this.data = data;
   this.attributes = attributes;
+  this.overrides = overrides;
 };
 
 JSIL.AttributeRecord = function (context, type, getConstructorArguments, initializer) {
@@ -1080,8 +1081,7 @@ JSIL.AttributeRecord = function (context, type, getConstructorArguments, initial
   this.initializer = initializer;
 };
 
-JSIL.OverrideRecord = function (context, interfaceIndex, interfaceMemberName) {
-  this.context = context;
+JSIL.OverrideRecord = function (interfaceIndex, interfaceMemberName) {
   this.interfaceIndex = interfaceIndex;
   this.interfaceMemberName = interfaceMemberName;
 };
@@ -2357,7 +2357,7 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
     var newData = Object.create(data);
     newData.fieldType = resolvedFieldType;
 
-    members[i] = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes);
+    members[i] = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes, member.overrides);
   }
 };
 
@@ -2453,7 +2453,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = JSIL.GetMembersInternal(iface, $jsilcore.System.Reflection.BindingFlags.$Flags("Instance", "Public"));
+    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "Public", "DeclaredOnly"));
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
@@ -2531,6 +2531,29 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       interfaces.push(iface);
   }
 
+  // Calling GetMembersInternal on types without interfaces can cause cyclic construction of BindingFlags :/
+  if (interfaces.length > 0) {
+    // Now walk all the members defined in the typeObject itself, and see if any of them explicitly override
+    //  an interface member (.overrides in IL, .Overrides() in JS)
+    members = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance"));
+
+    for (var i = 0; i < members.length; i++) {
+      var member = members[i];
+      var overrides = member.__Overrides__;
+      if (!overrides || !overrides.length)
+        continue;
+
+      for (var j = 0; j < overrides.length; j++) {
+        var override = overrides[j];
+        var iface = interfaces[override.interfaceIndex];
+        var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
+        var key = member._data.signature.GetKey(interfaceQualifiedName);
+
+        JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
+      }
+    }
+  }
+
   if (missingMembers.length > 0) {
     if (JSIL.SuppressInterfaceWarnings !== true)
       JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): " + missingMembers.join(", "));
@@ -2574,7 +2597,7 @@ JSIL.GetObjectKeys = function (obj) {
   // This is a .NET object, so return the names of any public fields/properties.
   if (obj && obj.GetType) {
     var typeObject = obj.GetType();
-    var bindingFlags = $jsilcore.System.Reflection.BindingFlags.$Flags("Instance", "Public");
+    var bindingFlags = $jsilcore.BindingFlags.$Flags("Instance", "Public");
     var fields = JSIL.GetMembersInternal(typeObject, bindingFlags, "FieldInfo");
     var properties = JSIL.GetMembersInternal(typeObject, bindingFlags, "PropertyInfo");
     var result = [];
@@ -5015,7 +5038,7 @@ JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructor
 };
 
 JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndex, interfaceMemberName) {
-  var record = new JSIL.OverrideRecord(this.context, interfaceIndex, interfaceMemberName);
+  var record = new JSIL.OverrideRecord(interfaceIndex, interfaceMemberName);
   this.overrides.push(record);
 
   return this;
@@ -5154,12 +5177,12 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   return result;
 };
 
-JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, attributes) {
+JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, memberBuilder) {
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
     this.typeObject.__Members__ = members = [];
 
-  var record = new JSIL.MemberRecord(type, descriptor, data, attributes);
+  var record = new JSIL.MemberRecord(type, descriptor, data, memberBuilder.attributes, memberBuilder.overrides);
   Array.prototype.push.call(members, record);
 
   return members.length - 1;
@@ -5200,7 +5223,7 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   };
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("FieldInfo", descriptor, data, memberBuilder.attributes);
+  this.PushMember("FieldInfo", descriptor, data, memberBuilder);
 
   JSIL.SetValueProperty(this.publicInterface, descriptor.EscapedName, value);
   return memberBuilder;
@@ -5268,7 +5291,7 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, property
   }
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("PropertyInfo", descriptor, null, memberBuilder.attributes);
+  this.PushMember("PropertyInfo", descriptor, null, memberBuilder);
 
   return memberBuilder;
 };
@@ -5280,7 +5303,7 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, p
   props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("PropertyInfo", descriptor, null, memberBuilder.attributes);
+  this.PushMember("PropertyInfo", descriptor, null, memberBuilder);
 
   return memberBuilder;
 };
@@ -5294,7 +5317,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   };
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  var fieldIndex = this.PushMember("FieldInfo", descriptor, data, memberBuilder.attributes);
+  var fieldIndex = this.PushMember("FieldInfo", descriptor, data, memberBuilder);
 
   if (!descriptor.Static)
     return memberBuilder;
@@ -5437,7 +5460,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     mangledName: mangledName,
     isExternal: true,
     isPlaceholder: isPlaceholder
-  }, memberBuilder.attributes);
+  }, memberBuilder);
 
   return memberBuilder;
 };
@@ -5494,7 +5517,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
     signature: signature, 
     mangledName: mangledName,
     isExternal: false
-  }, memberBuilder.attributes);
+  }, memberBuilder);
 
   return memberBuilder;
 };
@@ -5532,7 +5555,7 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
     signature: signature, 
     mangledName: mangledName,
     isExternal: false
-  }, memberBuilder.attributes);
+  }, memberBuilder);
 
   return memberBuilder;
 };
@@ -6439,7 +6462,16 @@ $jsilcore.BindingFlags = {
   ExactBinding: 65536, 
   SuppressChangeType: 131072, 
   OptionalParamBinding: 262144, 
-  IgnoreReturn: 16777216 
+  IgnoreReturn: 16777216,
+  $Flags: function () {
+    var result = 0;
+
+    for (var i = 0; i < arguments.length; i++) {
+      result |= $jsilcore.BindingFlags[arguments[i]];
+    }
+
+    return result;
+  }
 };
 
 // Ensures that all the type's members have associated MemberInfo instances and returns them.
@@ -6493,6 +6525,7 @@ JSIL.GetReflectionCache = function (typeObject) {
     info._data = data;
     info._descriptor = descriptor;
     info.__Attributes__ = member.attributes;
+    info.__Overrides__ = member.overrides;
 
     cache.push(info);
   }
