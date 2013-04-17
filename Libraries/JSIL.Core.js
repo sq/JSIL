@@ -2491,6 +2491,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       namePairs[0][1] = "I" + iface.__TypeId__ + "$" + member._descriptor.Name;
 
       if (member._data.signature) {
+
         var resolvedSignature = JSIL.$ResolveGenericMethodSignature(iface, member._data.signature, iface) || member._data.signature;
 
         namePairs[1][0] = resolvedSignature.GetKey(namePairs[0][0]);
@@ -5233,6 +5234,10 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
     this.typeObject.__Members__ = members = [];
+
+  // Simplify usage of member records by not requiring a null check on data
+  if (!data)
+    data = Object.create(null);
 
   var record = new JSIL.MemberRecord(type, descriptor, data, memberBuilder.attributes, memberBuilder.overrides);
   Array.prototype.push.call(members, record);
