@@ -2274,7 +2274,9 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
-  var trace = false;
+  var trace = true;
+
+  var isInterface = typeObject.IsInterface;
 
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
@@ -2292,35 +2294,49 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var data = member.data;
     var signature = data.signature;
 
+    var unqualifiedName = descriptor.EscapedName;
     var oldName = data.mangledName;
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-    // If the method is already renamed, don't bother trying to rename it again.
-    // Renaming it again would clobber the rename target with null.
-    if (typeof (rm[oldName]) !== "undefined") {
-      if (trace)
-        console.log(typeObject.__FullName__ + ": " + oldName + " not found");
+    if (isInterface) {
+      var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
 
-      continue;
-    }
+      if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
+        var oldObject = publicInterface[unqualifiedName];
+        var newObject = oldObject.Rebind(typeObject, resolvedSignature);
+        JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
 
-    var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
-
-    if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
-      var newName = resolvedSignature.GetKey(descriptor.EscapedName);
-
-      var methodReference = target[oldName];
-
-      typeObject.__RenamedMethods__[oldName] = newName;
-
-      JSIL.SetValueProperty(target, oldName, null);
-      JSIL.SetValueProperty(target, newName, methodReference);
-
-      if (trace)
-        console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
+        if (trace)
+          console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
+      }
     } else {
-      if (trace)
-        console.log(typeObject.__FullName__ + ": " + oldName + " -|");
+      // If the method is already renamed, don't bother trying to rename it again.
+      // Renaming it again would clobber the rename target with null.
+      if (typeof (rm[oldName]) !== "undefined") {
+        if (trace)
+          console.log(typeObject.__FullName__ + ": " + oldName + " not found");
+
+        continue;
+      }
+
+      var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
+
+      if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
+        var newName = resolvedSignature.GetKey(descriptor.EscapedName);
+
+        var methodReference = target[oldName];
+
+        typeObject.__RenamedMethods__[oldName] = newName;
+
+        JSIL.SetValueProperty(target, oldName, null);
+        JSIL.SetValueProperty(target, newName, methodReference);
+
+        if (trace)
+          console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
+      } else {
+        if (trace)
+          console.log(typeObject.__FullName__ + ": " + oldName + " -|");
+      }
     }
   }
 };
@@ -2409,6 +2425,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var missingMembers = [];
 
   var typeMembers = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance"));
+  var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var namePairs = [[null, null], [null, null]];
 
@@ -2432,7 +2449,6 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         continue __interfaces__;
       }
     } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-      var resolveContext = typeObject.__PublicInterface__.prototype;
       var resolvedGenericInterface = JSIL.$ResolveGenericTypeReferenceInternal(iface, resolveContext);
 
       try {
@@ -2475,8 +2491,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       namePairs[0][1] = "I" + iface.__TypeId__ + "$" + member._descriptor.Name;
 
       if (member._data.signature) {
-        namePairs[1][0] = member._data.signature.GetKey(namePairs[0][0]);
-        namePairs[1][1] = member._data.signature.GetKey(namePairs[0][1]);
+        var resolvedSignature = JSIL.$ResolveGenericMethodSignature(iface, member._data.signature, iface) || member._data.signature;
+
+        namePairs[1][0] = resolvedSignature.GetKey(namePairs[0][0]);
+        namePairs[1][1] = resolvedSignature.GetKey(namePairs[0][1]);
+        namePairs[0][1] = resolvedSignature.GetKey(namePairs[0][1]);
       } else {
         namePairs[1][0] = null;
         namePairs[1][1] = null;
@@ -6057,10 +6076,14 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
 
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
 
+JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
+  return new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature);
+};
+
 JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   var result = thisReference[this.methodKey];
   if (!result)
-    throw new Error("Method '" + this.methodName + "' of interface '" + this.typeObject.__FullName__ + "' is not implemented by object " + thisReference);
+    throw new Error("Method '" + this.signature.toString(this.methodName) + "' of interface '" + this.typeObject.__FullName__ + "' is not implemented by object " + thisReference);
 
   return result;
 };
