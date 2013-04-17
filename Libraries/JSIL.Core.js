@@ -5745,6 +5745,11 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
       thisReferenceArg = contextArg = "thisReference";
       argumentNames = ["name", "ga", "thisReference"];
       break;
+    case "interface":
+      suffix = "";
+      thisReferenceArg = contextArg = "thisReference";
+      argumentNames = ["thisReference"];
+      break;
     default:
       throw new Error("Invalid callMethodType");
   }
@@ -5754,10 +5759,15 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
     argumentNames.push(argumentName);
   }
 
-  body.push("var method = this.LookupMethod(" + contextArg + ", name);");
+  if (callMethodType === "interface") {
+    body.push("var method = this.LookupMethod(" + contextArg + ");");
+  } else {
+    body.push("var method = this.LookupMethod(" + contextArg + ", name);");
+  }
   body.push("");
 
-  if (genericArgumentNames.length > 0) {
+  if (callMethodType === "interface") {
+  } else if (genericArgumentNames.length > 0) {
     body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
     body.push("  throw new Error('Invalid number of generic arguments');");
     body.push("JSIL.ResolveTypeArgumentArray(ga);");
@@ -5775,7 +5785,10 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   );
 
   var result = JSIL.CreateNamedFunction(
-    "MethodSignature.Call" + suffix + "$" + genericArgumentNames.length + "$" + argumentTypes.length,
+    (callMethodType === "interface" ? "InterfaceMethod" : "MethodSignature") +
+    ".Call" + suffix + 
+    "$" + genericArgumentNames.length + 
+    "$" + argumentTypes.length,
     argumentNames,
     body.join("\r\n")
   );
@@ -5986,8 +5999,19 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
   this.qualifiedName = "I" + typeObject.__TypeId__ + "$" + this.methodName;
 };
 
-JSIL.InterfaceMethod.prototype.Call = function (thisReference) {
-  return this.signature.CallVirtual(this.qualifiedName, null, thisReference);
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
+
+JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
+  var result = thisReference[this.methodKey];
+  if (!result)
+    throw new Error("Method '" + this.methodName + "' of interface '" + this.typeObject.__FullName__ + "' is not implemented by object " + thisReference);
+
+  return result;
+};
+
+JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
+  this.methodKey = this.signature.GetKey(this.qualifiedName);
+  return this.signature.$MakeCallMethod("interface");
 };
 
 JSIL.InterfaceMethod.prototype.toString = function () {
