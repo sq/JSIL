@@ -2397,6 +2397,9 @@ namespace JSIL {
                     ).Count();
                     output.Value(interfaceIndex);
 
+                    output.Comma();
+                    output.Value(@override.MemberIdentifier.Name);
+
                     output.RPar();
                 }
 

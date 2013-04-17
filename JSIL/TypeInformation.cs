@@ -1589,7 +1589,7 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             string result;
-            result = ChangedName ?? ShortName;
+            result = ChangedName ?? Member.Name;
 
             return result;
         }

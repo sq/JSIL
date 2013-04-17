@@ -1080,6 +1080,12 @@ JSIL.AttributeRecord = function (context, type, getConstructorArguments, initial
   this.initializer = initializer;
 };
 
+JSIL.OverrideRecord = function (context, interfaceIndex, interfaceMemberName) {
+  this.context = context;
+  this.interfaceIndex = interfaceIndex;
+  this.interfaceMemberName = interfaceMemberName;
+};
+
 JSIL.AttributeRecord.prototype.GetType = function () {
   if (this.resolvedType)
     return this.resolvedType;
@@ -2364,28 +2370,20 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
     var ps = typeObject.__Properties__;
 
     if (JSIL.IsArray(ps)) {
+      var typeShortName = typeObject.__ShortName__;
+
       for (var i = 0, l = ps.length; i < l; i++) {
         var property = ps[i];
         var isStatic = property[0];
         var name = property[1];
         var isVirtual = property[2];
 
-        var localName = JSIL.GetLocalName(name);
-        var parentName = JSIL.GetParentName(name);
-        var shortName = isVirtual ? originalTypeObject.__ShortName__ : typeObject.__ShortName__;
-
-        // We need to strip nested type prefixes (Foo/NestedType) so that the short name becomes
-        //  "NestedType" instead of "Foo_NestedType".
-        var shortNamePieces = shortName.split(JSIL.UnderscoreRegex);
-        shortName = shortNamePieces[shortNamePieces.length - 1];
-        var escapedShortName = JSIL.EscapeName(shortName);
-
         var methodSource = publicInterface;
 
         if (isStatic)
-          JSIL.InterfaceBuilder.MakeProperty(shortName, name, publicInterface, methodSource);
+          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface, methodSource);
         else
-          JSIL.InterfaceBuilder.MakeProperty(shortName, localName, publicInterface.prototype, methodSource.prototype, parentName);
+          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface.prototype, methodSource.prototype);
       }
     }
 
@@ -4996,6 +4994,7 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
 JSIL.MemberBuilder = function (context) {
   this.context = context;
   this.attributes = [];
+  this.overrides = [];
 };
 
 JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructorArguments, initializer) {
@@ -5003,6 +5002,13 @@ JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructor
   this.attributes.push(record);
 
   // Allows call chaining for multiple attributes
+  return this;
+};
+
+JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndex, interfaceMemberName) {
+  var record = new JSIL.OverrideRecord(this.context, interfaceIndex, interfaceMemberName);
+  this.overrides.push(record);
+
   return this;
 };
 
@@ -5191,43 +5197,54 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   return memberBuilder;
 };
 
-JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource, interfacePrefix) {
+JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource) {
   var prop = {
     configurable: true,
     enumerable: true
   };
 
-  if ((typeof (interfacePrefix) !== "string") || (interfacePrefix.length < 1))
-    interfacePrefix = "";
-  else
-    interfacePrefix = JSIL.EscapeName(interfacePrefix) + "_"; 
+  var interfacePrefix = JSIL.GetParentName(name);
+  if (interfacePrefix.length)
+    interfacePrefix += ".";
+  var localName = JSIL.GetLocalName(name);
 
-  var getterName = interfacePrefix + "get_" + name;
-  var setterName = interfacePrefix + "set_" + name;
+  var getterName = JSIL.EscapeName(interfacePrefix + "get_" + localName);
+  var setterName = JSIL.EscapeName(interfacePrefix + "set_" + localName);
 
   var getter = methodSource[getterName];
   var setter = methodSource[setterName];
 
   if (typeof (getter) === "function") {
     prop["get"] = getter;
+  } else {
+    prop["get"] = function () {
+      throw new Error("Property is not readable");
+    };
   }
+
   if (typeof (setter) === "function") {
     prop["set"] = setter;
+  } else {
+    prop["set"] = function () {
+      throw new Error("Property is not writable");
+    };
   }
 
   if (!prop.get && !prop.set) {
     prop["get"] = prop["set"] = function () {
-      throw new Error("Property has no getter or setter: " + typeShortName + "." + name + "\r\n looked for: " + getterName + " & " + setterName);
+      throw new Error("Property has no getter or setter: " + name + "\r\n looked for: " + getterName + " & " + setterName);
     };
   }
 
-  Object.defineProperty(target, interfacePrefix + name, prop);
+  var escapedName = JSIL.EscapeName(name);
 
-  var typeQualifiedName = typeShortName + "$" + interfacePrefix + name;
+  Object.defineProperty(target, escapedName, prop);
+
+  var typeQualifiedName = JSIL.EscapeName(typeShortName + "$" + interfacePrefix + localName);
   Object.defineProperty(target, typeQualifiedName, prop);
 
   if ((getter && getter.__IsMembrane__) || (setter && setter.__IsMembrane__)) {
-    JSIL.RebindPropertyAfterPreInit(target, interfacePrefix + name);
+    JSIL.RebindPropertyAfterPreInit(target, escapedName);
     JSIL.RebindPropertyAfterPreInit(target, typeQualifiedName);
   }
 };
