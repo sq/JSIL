@@ -5138,7 +5138,7 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
 
   JSIL.SetValueProperty(
     result, "Target", 
-    result.Static ? this.publicInterface : this.publicInterface.prototype,
+    (result.Static || this.typeObject.IsInterface) ? this.publicInterface : this.publicInterface.prototype,
     false
   );
 
@@ -5471,6 +5471,14 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   if (this.typeObject.IsInterface) {
     this.typeObject.__InterfaceMembers__[methodName] = Function;
     this.typeObject.__InterfaceMembers__[mangledName] = Function;
+
+    var methodObject = new JSIL.InterfaceMethod(this.typeObject, methodName, signature);
+
+    JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
+
+    if (!descriptor.Target[methodName])
+      JSIL.SetValueProperty(descriptor.Target, methodName, methodObject);
+
     return;
   }
 
@@ -5798,6 +5806,18 @@ JSIL.MethodSignature.prototype.get_Hash = function () {
   return this._hash = hash;
 };
 
+Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
+  configurable: false,
+  enumerable: true,
+  get: JSIL.MethodSignature.prototype.get_GenericSuffix
+});
+
+Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
+  configurable: false,
+  enumerable: true,
+  get: JSIL.MethodSignature.prototype.get_Hash
+});
+
 
 JSIL.ConstructorSignature = function (type, argumentTypes, context) {
   this._lastKeyName = "<null>";
@@ -5956,17 +5976,20 @@ JSIL.ResolvedMethodSignature.prototype.toString = function () {
 };
 
 
-Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
-  configurable: false,
-  enumerable: true,
-  get: JSIL.MethodSignature.prototype.get_GenericSuffix
-});
+JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
+  this.typeObject = typeObject;
+  this.methodName = methodName;
+  this.signature = signature;
+  this.qualifiedName = "I" + typeObject.__TypeId__ + "$" + this.methodName;
+};
 
-Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
-  configurable: false,
-  enumerable: true,
-  get: JSIL.MethodSignature.prototype.get_Hash
-});
+JSIL.InterfaceMethod.prototype.Call = function (thisReference) {
+  return this.signature.CallVirtual(this.qualifiedName, null, thisReference);
+};
+
+JSIL.InterfaceMethod.prototype.toString = function () {
+  return this.qualifiedName;
+};
 
 
 //

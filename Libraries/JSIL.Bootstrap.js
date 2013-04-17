@@ -2309,14 +2309,16 @@ JSIL.GetEnumerator = function (enumerable) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
+  var tIEnumerable = System.Collections.IEnumerable;
+
   if (JSIL.IsArray(enumerable))
     return JSIL.MakeArrayEnumerator(enumerable);
-  else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
-    return enumerable.IEnumerable$b1_GetEnumerator();
-  else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")
-    return enumerable.IEnumerable_GetEnumerator();    
+  // FIXME: Detect IEnumerable<T> interface and use it?
+  // Probably introduces ambiguity if it is implemented multiple times.
+  else if (tIEnumerable.$Is(enumerable))
+    return tIEnumerable.GetEnumerator.Call(enumerable);
   else if (typeof (enumerable.GetEnumerator) === "function")
-    return enumerable.GetEnumerator();    
+    return enumerable.GetEnumerator();
   else if (typeof (enumerable) === "string")
     return JSIL.MakeArrayEnumerator(enumerable);
   else
