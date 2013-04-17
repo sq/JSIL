@@ -2045,8 +2045,7 @@ $jsilcore.$Of$NoInitialize = function () {
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
     "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
-    "__FieldList__", "__InterfaceMembers__",
-    "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
+    "__FieldList__", "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
     "__UnmarshalConstructor__", "__ElementReferenceConstructor__"
   ];
 
@@ -2454,31 +2453,38 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = iface.__InterfaceMembers__;
+    var members = JSIL.GetMembersInternal(iface, $jsilcore.System.Reflection.BindingFlags.$Flags("Instance", "Public"));
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
 
     __members__:
-    for (var key in members) {
-      if (!members.hasOwnProperty(key))
-        continue __members__;
+    for (var j = 0; j < members.length; j++) {
+      var member = members[j];
+      var shortName = member._descriptor.Name;
+      var qualifiedName = "I" + iface.__TypeId__ + "$" + shortName;
 
-      var memberType = members[key];
-      var qualifiedName = escapedLocalName + "_" + key;
-
-      var hasShort = proto.hasOwnProperty(key);
+      var hasShort = proto.hasOwnProperty(shortName);
       var hasQualified = proto.hasOwnProperty(qualifiedName);
 
-      var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, key);
+      var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, shortName);
       var hasQualifiedRecursive = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
 
-      if (memberType === Function) {
-        var shortImpl = proto[key];
-        var qualifiedImpl = proto[qualifiedName];
-      } else if (memberType === Property) {
-        var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, key);
-        var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
+      switch (member.__MemberType__) {
+        case "MethodInfo":
+          var shortImpl = proto[shortName];
+          var qualifiedImpl = proto[qualifiedName];
+          break;
+
+        case "PropertyInfo":
+          var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, shortName);
+          var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
+          break;
+
+        default:
+          // FIXME
+          continue __members__;
+          break;
       }
 
       if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
@@ -2509,10 +2515,14 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       }
 
       if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
-        if (memberType === Function) {
-          JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, key));
-        } else if (memberType === Property) {
-          Object.defineProperty(proto, qualifiedName, shortImpl);
+        switch (member.__MemberType__) {
+          case "MethodInfo":
+            JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
+            break;
+
+          case "PropertyInfo":
+            Object.defineProperty(proto, qualifiedName, shortImpl);
+            break;
         }
       }
     }
@@ -4561,7 +4571,6 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
-    typeObject.__InterfaceMembers__ = {};
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
@@ -5250,15 +5259,13 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, meth
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, propertyType) {
-  if (this.typeObject.IsInterface) {
-    this.typeObject.__InterfaceMembers__[name] = Property;
-    return;
-  }
-
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
-  var props = this.typeObject.__Properties__;
-  props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
+  if (this.typeObject.IsInterface) {
+  } else {
+    var props = this.typeObject.__Properties__;
+    props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
+  }
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember("PropertyInfo", descriptor, null, memberBuilder.attributes);
@@ -5469,24 +5476,20 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
   if (this.typeObject.IsInterface) {
-    this.typeObject.__InterfaceMembers__[methodName] = Function;
-    this.typeObject.__InterfaceMembers__[mangledName] = Function;
-
     var methodObject = new JSIL.InterfaceMethod(this.typeObject, methodName, signature);
 
     JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
 
     if (!descriptor.Target[methodName])
       JSIL.SetValueProperty(descriptor.Target, methodName, methodObject);
+  } else {
+    var fullName = this.namespace + "." + methodName;
 
-    return;
+    JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
   }
 
-  var fullName = this.namespace + "." + methodName;
-
-  JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
-
   var memberBuilder = new JSIL.MemberBuilder(this.context);
+
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
     mangledName: mangledName,
@@ -6444,6 +6447,9 @@ JSIL.GetReflectionCache = function (typeObject) {
     var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
     var info = Object.create(infoType.prototype);
     */
+
+    // HACK: Makes it possible to tell what type a member is trivially
+    JSIL.SetValueProperty(info, "__MemberType__", type);
 
     return info;
   };
