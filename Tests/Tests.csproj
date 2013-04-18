@@ -142,6 +142,7 @@
     <None Include="DateTimeTestCases\TimeSpanToStringAndParse.cs" />
     <Compile Include="CompilerUtil.cs" />
     <None Include="ReflectionTestCases\ListInterfaceMethods.cs" />
+    <None Include="ReflectionTestCases\ListGenericInterfaceMethods.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />

@@ -1,37 +1,37 @@
 ﻿using System;
 using System.Reflection;
 
-public interface A {
+public interface A<T> {
     void MethodA ();
-    void MethodA (int i);
+    void MethodA (T i);
     int MethodB ();
 }
 
-public interface B : A {
-    float MethodC ();
+public interface B<T> : A<T> {
+    T MethodC ();
 }
 
 public static class Program {
     public static void Main (string[] args) {
-        Console.WriteLine("A");
+        Console.WriteLine("A<int>");
         Common.Util.ListMethods(
-            typeof(A),
+            typeof(A<int>),
             BindingFlags.Instance
         );
 
         Common.Util.ListMethods(
-            typeof(A),
+            typeof(A<int>),
             BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
         );
 
-        Console.WriteLine("B");
+        Console.WriteLine("B<float>");
         Common.Util.ListMethods(
-            typeof(B),
+            typeof(B<float>),
             BindingFlags.Instance
         );
 
         Common.Util.ListMethods(
-            typeof(B),
+            typeof(B<float>),
             BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
         );
     }

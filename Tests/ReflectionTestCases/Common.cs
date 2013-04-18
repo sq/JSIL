@@ -91,6 +91,16 @@ namespace Common {
             foreach (var attribute in attributes)
                 Console.WriteLine(attribute);
         }
+
+        public static void ListMethods (Type type, BindingFlags flags) {
+            foreach (var method in type.GetMethods(flags)) {
+                var argumentTypes = "";
+                foreach (var parameter in method.GetParameters())
+                    argumentTypes += parameter.ParameterType.Name;
+
+                Console.WriteLine("{0} {1} ({2})", method.ReturnType.Name, method.Name, argumentTypes);
+            }
+        }
     }
 
     public class AttributeA : Attribute {
