@@ -357,7 +357,7 @@ namespace JSIL {
             } else {
                 if (pa.TypeQualified) {
                     // FIXME: Oh god, terrible hack
-                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.Name) + "$");
+                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.LocalName) + "$");
                 }
 
                 Visit(pa.Member);
