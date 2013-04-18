@@ -527,7 +527,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
         for (var i = 0; i < argumentTypes.length; i++) {
           // FIXME
           var pi = JSIL.CreateInstanceOfType(tParameterInfo, null);
-          argumentTypes.push(pi);
+          result.push(pi);
         }
       }
 
@@ -538,6 +538,9 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static:false, Public:true }, "get_ReturnType", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
     function get_ReturnType () {
+      if (!this._data.signature.returnType)
+        return $jsilcore.System.Void.__Type__;
+
       var result = this._cachedReturnType;
 
       if (typeof (result) === "undefined") {
@@ -734,4 +737,98 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
 });
 
 JSIL.MakeClass("System.Reflection.Assembly", "System.Reflection.RuntimeAssembly", true, [], function ($) {
+});
+
+JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [], []), 
+    function _ctor () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Attributes", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ParameterAttributes"), [], []), 
+    function get_Attributes () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_CustomAttributes", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Reflection.CustomAttributeData")]), [], []), 
+    function get_CustomAttributes () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DefaultValue", 
+    new JSIL.MethodSignature($.Object, [], []), 
+    function get_DefaultValue () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_HasDefaultValue", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function get_HasDefaultValue () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Member", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MemberInfo"), [], []), 
+    function get_Member () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Name", 
+    new JSIL.MethodSignature($.String, [], []), 
+    function get_Name () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ParameterType", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []), 
+    function get_ParameterType () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Position", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_Position () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetCustomAttributes", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Object]), [$.Boolean], []), 
+    function GetCustomAttributes (inherit) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetCustomAttributes", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Object]), [$jsilcore.TypeRef("System.Type"), $.Boolean], []), 
+    function GetCustomAttributes (attributeType, inherit) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    new JSIL.MethodSignature($.String, [], []), 
+    function toString () {
+      return this.get_Name();
+    }
+  );
+});
+
+JSIL.MakeClass("System.Object", "System.Reflection.ParameterInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "Name");
+    $.Property({Public: true , Static: false, Virtual: true }, "ParameterType");
+    $.Property({Public: true , Static: false, Virtual: true }, "Position");
 });
