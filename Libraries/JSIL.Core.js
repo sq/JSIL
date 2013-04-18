@@ -2274,7 +2274,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
-  var trace = true;
+  var trace = false;
 
   var isInterface = typeObject.IsInterface;
 
@@ -2407,7 +2407,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
-  var trace = true;
+  var trace = false;
 
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
@@ -2509,7 +2509,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         if (!shortName)
           return;
 
-        console.log(shortName, qualifiedName);
+        if (trace)
+          console.log(shortName, qualifiedName);
 
         var hasShort = proto.hasOwnProperty(shortName);
         var hasQualified = proto.hasOwnProperty(qualifiedName);
@@ -4883,7 +4884,11 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       if (!members.hasOwnProperty(key))
         continue;
 
-      var value = Math.floor(members[key]);
+      var value = members[key];
+      if (typeof (value) !== "number")
+        continue;
+
+      value = value | 0;
 
       $.__Type__.__Names__.push(key);
       $.__Type__.__ValueToName__[value] = key;
@@ -6603,12 +6608,17 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
 
   var constructorsOnly = (memberType === "ConstructorInfo");
 
-  var allowInherited = (flags & bindingFlags.DeclaredOnly) == 0;
+  var allowInherited = ((flags & bindingFlags.DeclaredOnly) == 0) &&
+    // FIXME: WTF is going on here?
+    !typeObject.IsInterface;
 
   var publicOnly = (flags & bindingFlags.Public) != 0;
   var nonPublicOnly = (flags & bindingFlags.NonPublic) != 0;
   if (publicOnly && nonPublicOnly)
     publicOnly = nonPublicOnly = false;
+  // FIXME: Is this right?
+  else if (!publicOnly && !nonPublicOnly)
+    publicOnly = true;
 
   var staticOnly = (flags & bindingFlags.Static) != 0;
   var instanceOnly = (flags & bindingFlags.Instance) != 0;

@@ -911,8 +911,8 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getGetMethodImpl = function (nonPublic) {
     var methodName = "get_" + this.get_Name();
     var bindingFlags = (nonPublic 
-      ? $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+      ? $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
@@ -920,8 +920,8 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getSetMethodImpl = function (nonPublic) {
     var methodName = "set_" + this.get_Name();
     var bindingFlags = (nonPublic 
-      ? $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+      ? $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
