@@ -2285,7 +2285,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   if (!JSIL.IsArray(members))
     return;
 
-  var members = typeObject.__Members__ = Array.prototype.slice.call(members);
+  members = typeObject.__Members__ = Array.prototype.slice.call(members);
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
@@ -7242,4 +7242,39 @@ JSIL.GetTypedArrayConstructorForElementType = function (typeObject, byteFallback
 };
 
 JSIL.ResolveGenericMemberSignatures = function (publicInterface, typeObject) {
+  var members = typeObject.__Members__;
+  if (!JSIL.IsArray(members))
+    return;
+
+  members = typeObject.__Members__ = Array.prototype.slice.call(members);
+  var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
+
+  for (var i = 0, l = members.length; i < l; i++) {
+    var member = members[i];
+    var descriptor = member.descriptor;
+    var data = member.data;
+    if (!data)
+      continue;
+
+    var signature = data.signature;
+    if (!signature)
+      continue;
+
+    var resolvedSignature = JSIL.$ResolveGenericMethodSignature(
+      typeObject, signature, resolveContext
+    );
+
+    if (!resolvedSignature)
+      continue;
+
+    var newData = Object.create(data);
+
+    if (!newData.genericSignature)
+      newData.genericSignature = signature;
+
+    newData.signature = resolvedSignature;
+
+    var newMember = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes, member.overrides);
+    members[i] = newMember;
+  }
 };
