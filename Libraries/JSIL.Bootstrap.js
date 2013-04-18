@@ -750,22 +750,24 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
     function () {
       return JSIL.GetEnumerator(this._array);
     }
-  );
+  )
+    .Overrides(0, "GetEnumerator");
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.EnumerableArrayOverlay")]), [], []),
     function () {
       return JSIL.GetEnumerator(this._array);
     }
-  );
+  )
+    .Overrides(1, "GetEnumerator");
   
   // FIXME: Implement actual members of IList.
 
   $.ImplementInterfaces(
-    System.Collections.IEnumerable,
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")]),
-    System.Collections.IList,
-    $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")])
+    /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"),
+    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")]),
+    /* 2 */ $jsilcore.TypeRef("System.Collections.IList"),
+    /* 3 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")])
   );
 });
 

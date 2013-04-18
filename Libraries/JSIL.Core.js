@@ -2419,7 +2419,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
-  var trace = false;
+  var trace = true;
 
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
@@ -2504,9 +2504,13 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
       if (member._data.signature) {
         var signature = member._data.signature;
+
         namePairs[1][0] = signature.GetKey(namePairs[0][0]);
         namePairs[1][1] = signature.GetKey(namePairs[0][1]);
         namePairs[0][1] = signature.GetKey(namePairs[0][1]);
+
+        if (trace)
+          console.log(signature.toString(member._descriptor.Name), namePairs[1][1]);
       } else {
         namePairs[1][0] = null;
         namePairs[1][1] = null;
@@ -4315,9 +4319,14 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     var innerCastFunction = castFunction;
 
     var createOverlay = function Overlay_ArrayInterface (value) {
+      console.log("createOverlay", typeObject.__FullName__);
+
       if (JSIL.IsArray(value)) {
-        // FIXME: Detect correct type
-        var tOverlay = JSIL.ArrayInterfaceOverlay.Of(System.Object);
+        var tElement = $jsilcore.System.Object.__Type__;
+        if (typeObject.__GenericArguments__.length === 1)
+          tElement = typeObject.__GenericArgumentValues__[0];
+
+        var tOverlay = JSIL.ArrayInterfaceOverlay.Of(tElement);
 
         return new tOverlay(value);
       }
