@@ -2086,7 +2086,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         this.tKeysEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
       }
 
-      var result = new JSIL.AbstractEnumerable(
+      var result = new (JSIL.AbstractEnumerable.Of(this.TKey))(
         (function getKeysProxy () {
           var keys = [];
 
@@ -2116,7 +2116,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         this.tValuesEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
       }
 
-      var result = new JSIL.AbstractEnumerable(
+      var result = new (JSIL.AbstractEnumerable.Of(this.TValue))(
         (function getValuesProxy () {
           var values = [];
 
@@ -2348,7 +2348,9 @@ JSIL.EnumerableToArray = function (enumerable) {
   return result;
 };
 
-JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($) {
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.AbstractEnumerator");
+
   $.RawMethod(false, "__CopyMembers__", 
     function AbstractEnumerator_CopyMembers (source, target) {
       target._getNextItem = source._getNextItem;
@@ -2408,9 +2410,8 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
     }
   );
 
-
   $.Method({Static: false, Public: true }, "get_Current",
-    new JSIL.MethodSignature(JSIL.AnyType, []),
+    new JSIL.MethodSignature(T, []),
     function () {
       return this._current.get();
     }
@@ -2419,7 +2420,9 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
   $.Property({Static: false, Public: true, Virtual: true }, "Current");
 
   $.ImplementInterfaces(
-    System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
+    /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerator"), 
+    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]),
+    /* 2 */ $jsilcore.TypeRef("System.IDisposable")
   );
 });
 

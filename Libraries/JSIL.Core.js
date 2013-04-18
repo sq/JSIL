@@ -4478,7 +4478,13 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     // Without this, the generated constructor won't behave correctly for 0-argument construction
     typeObject.__IsStruct__ = !isReferenceType;
 
-    staticClassObject = JSIL.MakeTypeConstructor(typeObject);
+    if (genericArguments && genericArguments.length) {
+      staticClassObject = function OpenType () {
+        throw new Error("Cannot create an instance of open generic type '" + fullName + "'");
+      };
+    } else {
+      staticClassObject = JSIL.MakeTypeConstructor(typeObject);
+    }
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
     JSIL.SetTypeId(typeObject, staticClassObject, typeId);
