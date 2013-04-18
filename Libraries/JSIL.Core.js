@@ -3201,7 +3201,16 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       for (var i = 0; i < group.count; i++) {
         var groupEntry = group.list[i];
 
-        result[i] = groupEntry.Resolve(methodEscapedName);
+        // FIXME: Do we still need generic logic here?
+
+        var typeObject = JSIL.GetType(target);
+        var resolveContext = target;
+
+        var resolvedGeneric = JSIL.$ResolveGenericMethodSignature(typeObject, groupEntry, resolveContext);
+        if (resolvedGeneric != null)
+          result[i] = resolvedGeneric.Resolve(methodEscapedName);
+        else
+          result[i] = groupEntry.Resolve(methodEscapedName);
       }
 
       isResolved = true;
