@@ -3493,8 +3493,9 @@ JSIL.$CreateMethodMembranes = function (typeObject, publicInterface) {
     return function () { return value; };
   };
 
+  var bindingFlags = $jsilcore.BindingFlags.$Flags("NonPublic", "Public");
   var methods = JSIL.GetMembersInternal(
-    typeObject, 0, "MethodInfo", true
+    typeObject, bindingFlags, "MethodInfo", true
   );
 
   // We need to ensure that all the mangled method names have membranes applied.
