@@ -3541,15 +3541,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
   //  properties or methods - we need to access the data members directly.
 
   var instanceMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.Instance, "MethodInfo", false
+    typeObject, $jsilcore.BindingFlags.$Flags("Instance", "Public", "NonPublic"), "MethodInfo", false
   );
 
   var constructors = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Instance, "MethodInfo", true
+    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic"), "MethodInfo", true
   );
 
   var staticMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Static, "MethodInfo", true
+    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Static", "Public", "NonPublic"), "MethodInfo", true
   );
 
   var methods = staticMethods.concat(instanceMethods).concat(constructors);
@@ -4868,10 +4868,10 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
         continue;
 
       var value = members[key];
-      if (typeof (value) !== "number")
+      if (typeof (value) === "function")
         continue;
 
-      value = value | 0;
+      value = Math.floor(value);
 
       $.__Type__.__Names__.push(key);
       $.__Type__.__ValueToName__[value] = key;
