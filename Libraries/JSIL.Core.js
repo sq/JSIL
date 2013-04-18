@@ -2186,6 +2186,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if (isClosed) {
     resultTypeObject.__AssignableFromTypes__ = {};
+    JSIL.ResolveGenericMemberSignatures(result, resultTypeObject);
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
     JSIL.FixupFieldTypes(result, resultTypeObject);
@@ -2307,17 +2308,16 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var descriptor = member.descriptor;
     var data = member.data;
     var signature = data.signature;
+    var genericSignature = data.genericSignature;
 
     var unqualifiedName = descriptor.EscapedName;
     var oldName = data.mangledName;
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
     if (isInterface) {
-      var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
-
-      if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
+      if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
         var oldObject = publicInterface[unqualifiedName];
-        var newObject = oldObject.Rebind(typeObject, resolvedSignature);
+        var newObject = oldObject.Rebind(typeObject, signature);
         JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
 
         if (trace)
@@ -2333,10 +2333,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
         continue;
       }
 
-      var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
-
-      if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
-        var newName = resolvedSignature.GetKey(descriptor.EscapedName);
+      if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
+        var newName = signature.GetKey(descriptor.EscapedName);
 
         var methodReference = target[oldName];
 
@@ -2505,12 +2503,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       namePairs[0][1] = "I" + iface.__TypeId__ + "$" + member._descriptor.Name;
 
       if (member._data.signature) {
-
-        var resolvedSignature = JSIL.$ResolveGenericMethodSignature(iface, member._data.signature, iface) || member._data.signature;
-
-        namePairs[1][0] = resolvedSignature.GetKey(namePairs[0][0]);
-        namePairs[1][1] = resolvedSignature.GetKey(namePairs[0][1]);
-        namePairs[0][1] = resolvedSignature.GetKey(namePairs[0][1]);
+        var signature = member._data.signature;
+        namePairs[1][0] = signature.GetKey(namePairs[0][0]);
+        namePairs[1][1] = signature.GetKey(namePairs[0][1]);
+        namePairs[0][1] = signature.GetKey(namePairs[0][1]);
       } else {
         namePairs[1][0] = null;
         namePairs[1][1] = null;
@@ -3205,16 +3201,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       for (var i = 0; i < group.count; i++) {
         var groupEntry = group.list[i];
 
-        // FIXME: Do we still need generic logic here?
-
-        var typeObject = JSIL.GetType(target);
-        var resolveContext = target;
-
-        var resolvedGeneric = JSIL.$ResolveGenericMethodSignature(typeObject, groupEntry, resolveContext);
-        if (resolvedGeneric != null)
-          result[i] = resolvedGeneric.Resolve(methodEscapedName);
-        else
-          result[i] = groupEntry.Resolve(methodEscapedName);
+        result[i] = groupEntry.Resolve(methodEscapedName);
       }
 
       isResolved = true;
@@ -3403,24 +3390,9 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 
-  // We need to resolve generic method signatures before sorting the member list.
-  // Otherwise, two method signatures may be sorted as different even though their resolved
-  //  signatures are the same, which will make them appear not to hide each other.
-  var resolvedSignatures = new Array(memberList.length);
-
-  for (var i = 0, l = memberList.length; i < l; i++) {
-    var member = memberList[i];
-    var memberSignature = member._data.signature;
-
-    // Assign a temporary __index__ to each member so that the comparer can find the resolved signature.
-    member.__index__ = i;
-
-    resolvedSignatures[i] = JSIL.$ResolveGenericMethodSignature(typeObject, memberSignature, resolveContext) || memberSignature;
-  }
-
   var comparer = function (lhs, rhs) {
-    var lhsHash = resolvedSignatures[lhs.__index__].Hash;
-    var rhsHash = resolvedSignatures[rhs.__index__].Hash;
+    var lhsHash = lhs._data.signature.get_Hash();
+    var rhsHash = rhs._data.signature.get_Hash();
 
     var result = JSIL.CompareValues(lhsHash, rhsHash);
 
@@ -3466,10 +3438,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   // Sweep through the member list and replace any hidden members with null.
   for (var i = 0, l = memberList.length; i < l; i++) {
     var member = memberList[i];
-    var memberSignature = resolvedSignatures[member.__index__];
-
-    // Remove the temporary __index__ member because it is no longer needed.
-    delete member.__index__;
+    var memberSignature = member._data.signature;
 
     var memberSignatureHash = memberSignature.get_Hash();
 
@@ -5533,6 +5502,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
+    genericSignature: null,
     mangledName: mangledName,
     isExternal: true,
     isPlaceholder: isPlaceholder
@@ -5591,6 +5561,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
+    genericSignature: null,
     mangledName: mangledName,
     isExternal: false
   }, memberBuilder);
@@ -5629,6 +5600,7 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember("MethodInfo", descriptor, {
     signature: signature, 
+    genericSignature: null,
     mangledName: mangledName,
     isExternal: false
   }, memberBuilder);
@@ -7267,4 +7239,7 @@ JSIL.GetTypedArrayConstructorForElementType = function (typeObject, byteFallback
   }
 
   return result;
+};
+
+JSIL.ResolveGenericMemberSignatures = function (publicInterface, typeObject) {
 };
