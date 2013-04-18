@@ -739,6 +739,8 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
 });
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay");
+
   $.RawMethod(false, ".ctor", 
     function (array) {
       this._array = array;
@@ -748,15 +750,15 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
   $.Method({Static:false, Public:true }, "IEnumerable.GetEnumerator", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
     function () {
-      return JSIL.GetEnumerator(this._array);
+      return JSIL.GetEnumerator(this._array, this.T);
     }
   )
     .Overrides(0, "GetEnumerator");
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.EnumerableArrayOverlay")]), [], []),
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
     function () {
-      return JSIL.GetEnumerator(this._array);
+      return JSIL.GetEnumerator(this._array, this.T);
     }
   )
     .Overrides(1, "GetEnumerator");
@@ -765,9 +767,9 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"),
-    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")]),
+    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [T]),
     /* 2 */ $jsilcore.TypeRef("System.Collections.IList"),
-    /* 3 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "JSIL.ArrayInterfaceOverlay")])
+    /* 3 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [T])
   );
 });
 
@@ -914,7 +916,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "AddRange", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (items) {
-      var e = JSIL.GetEnumerator(items);
+      var e = JSIL.GetEnumerator(items, this.T);
       var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
       var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
       try {
@@ -1503,32 +1505,6 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
     }
   );
 
-});
-
-JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
-  $.Method({Public: true , Static: false}, ".ctor", 
-    new JSIL.MethodSignature(null, [System.Array]),
-    function (array) {
-      this.array = array;
-    }
-  );
-
-  var tEnumerator = [null];
-
-  $.Method({Public: true , Static: false}, "GetEnumerator", 
-    new JSIL.MethodSignature(System.Collections.IEnumerator$b1, []),
-    function () {
-      if (tEnumerator[0] === null) {
-        tEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
-      }
-
-      return new (tEnumerator[0])(this.array, -1);
-    }
-  );
-
-  $.ImplementInterfaces(
-    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  );
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], function ($) {
@@ -2302,11 +2278,19 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
 
 $jsilcore.$tArrayEnumerator = null;
 
-JSIL.MakeArrayEnumerator = function (array) {
-  if ($jsilcore.$tArrayEnumerator === null)
-    $jsilcore.$tArrayEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
+JSIL.MakeArrayEnumerator = function (array, elementType) {
+  var tArrayEnumerator;
 
-  return new ($jsilcore.$tArrayEnumerator) (array, -1);
+  if (!elementType) {
+    if ($jsilcore.$tArrayEnumerator === null)
+      $jsilcore.$tArrayEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
+
+    tArrayEnumerator = $jsilcore.$tArrayEnumerator;
+  } else {
+    tArrayEnumerator = JSIL.ArrayEnumerator.Of(elementType);
+  }
+
+  return new tArrayEnumerator(array, -1);
 };
 
 JSIL.Dispose = function (disposable) {
@@ -2321,22 +2305,28 @@ JSIL.Dispose = function (disposable) {
     disposable.Dispose();
 };
 
-JSIL.GetEnumerator = function (enumerable) {
+JSIL.GetEnumerator = function (enumerable, elementType) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
   var tIEnumerable = $jsilcore.System.Collections.IEnumerable;
+  var tIEnumerable$b1 = null;
+
+  if (!elementType)
+    elementType = $jsilcore.System.Object.__Type__;
+  else
+    tIEnumerable$b1 = $jsilcore.System.Collections.Generic.IEnumerable$b1.Of(elementType);
 
   if (JSIL.IsArray(enumerable))
-    return JSIL.MakeArrayEnumerator(enumerable);
-  // FIXME: Detect IEnumerable<T> interface and use it?
-  // Probably introduces ambiguity if it is implemented multiple times.
+    return JSIL.MakeArrayEnumerator(enumerable, elementType);
+  else if (tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
+    return tIEnumerable$b1.GetEnumerator.Call(enumerable);
   else if (tIEnumerable.$Is(enumerable))
     return tIEnumerable.GetEnumerator.Call(enumerable);
   else if (typeof (enumerable.GetEnumerator) === "function")
     return enumerable.GetEnumerator();
   else if (typeof (enumerable) === "string")
-    return JSIL.MakeArrayEnumerator(enumerable);
+    return JSIL.MakeArrayEnumerator(enumerable, elementType);
   else
     throw new Error("Value is not enumerable");
 };

@@ -2419,7 +2419,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
-  var trace = true;
+  var trace = false;
 
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
@@ -4319,8 +4319,6 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     var innerCastFunction = castFunction;
 
     var createOverlay = function Overlay_ArrayInterface (value) {
-      console.log("createOverlay", typeObject.__FullName__);
-
       if (JSIL.IsArray(value)) {
         var tElement = $jsilcore.System.Object.__Type__;
         if (typeObject.__GenericArguments__.length === 1)

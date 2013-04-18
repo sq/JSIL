@@ -42,7 +42,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Any", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
 
         try {
           if (enumerator.IEnumerator_MoveNext())
@@ -62,7 +62,7 @@ JSIL.ImplementExternals(
         ["TSource"]
       ),
       function (T, enumerable, predicate) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
         
         try {
           while (enumerator.IEnumerator_MoveNext()) {
@@ -80,7 +80,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Count", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var e = JSIL.GetEnumerator(enumerable);
+        var e = JSIL.GetEnumerator(enumerable, T);
         var result = 0;
         try {
           while (e.IEnumerator_MoveNext())
@@ -95,7 +95,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "First", 
       new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
         try {
           if (enumerator.IEnumerator_MoveNext())
             return enumerator.IEnumerator_Current;
@@ -144,7 +144,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Contains", 
       (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), "!!0"], ["TSource"])), 
       function Contains$b1 (TSource, source, item) {
-        var enumerator = JSIL.GetEnumerator(source);
+        var enumerator = JSIL.GetEnumerator(source, TSource);
 
         try {
           while (enumerator.IEnumerator_MoveNext()) {
