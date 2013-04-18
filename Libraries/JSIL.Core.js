@@ -2315,14 +2315,12 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
     if (isInterface) {
-      if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
-        var oldObject = publicInterface[unqualifiedName];
-        var newObject = oldObject.Rebind(typeObject, signature);
-        JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
+      var oldObject = publicInterface[unqualifiedName];
+      var newObject = oldObject.Rebind(typeObject, signature);
+      JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
 
-        if (trace)
-          console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
-      }
+      if (trace)
+        console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
     } else {
       // If the method is already renamed, don't bother trying to rename it again.
       // Renaming it again would clobber the rename target with null.
@@ -6109,8 +6107,14 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
 };
 
 JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
-  this.methodKey = this.signature.GetKey(this.qualifiedName);
-  return this.signature.$MakeCallMethod("interface");
+  if (this.typeObject.__IsClosed__) {
+    this.methodKey = this.signature.GetKey(this.qualifiedName);
+    return this.signature.$MakeCallMethod("interface");
+  } else {
+    return function () {
+      throw new Error("Cannot invoke method '" + this.methodName + "' of open generic interface '" + this.typeObject.__FullName__ + "'");
+    };
+  }
 };
 
 JSIL.InterfaceMethod.prototype.toString = function () {

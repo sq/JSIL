@@ -2163,8 +2163,11 @@ namespace JSIL {
 
             if (lengthProp == null)
                 return new JSUntranslatableExpression(String.Format("Retrieving the length of a type with no length property: {0}", argType.FullName));
-            else
-                return Translate_CallGetter(node, lengthProp.GetMethod);
+            else {
+                var getMethod = lengthProp.GetMethod;
+
+                return Translate_CallGetter(node, CecilUtil.RebindMethod(getMethod, argType));
+            }
         }
 
         protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
@@ -2192,9 +2195,7 @@ namespace JSIL {
 
                 // We have to construct a custom reference to the method in order for ILSpy's
                 //  SubstituteTypeArgs method not to explode later on
-                var getMethodReference = new MethodReference(
-                    getMethod.Member.Name, targetGit.GenericArguments[0], targetGit
-                );
+                var getMethodReference = CecilUtil.RebindMethod(getMethod.Member, targetGit, targetGit.GenericArguments[0]);
 
                 result = JSInvocationExpression.InvokeMethod(
                     new JSMethod(getMethodReference, getMethod, MethodTypes),
@@ -2245,8 +2246,9 @@ namespace JSIL {
                 var setMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                     (kvp) => kvp.Key.Name == "set_Item"
                 ).Value;
-                var setMethodReference = new MethodReference(
-                    setMethod.Member.Name, targetGit.GenericArguments[0], targetGit
+
+                var setMethodReference = CecilUtil.RebindMethod(
+                    setMethod.Member, targetGit
                 );
 
                 return JSInvocationExpression.InvokeMethod(

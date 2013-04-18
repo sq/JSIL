@@ -649,7 +649,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   $.Property({}, "Length");
 
   $.ImplementInterfaces(
-    $jsilcore.TypeRef("JSIL.Runtime.IPackedArray`1", [T])
+    /* 0 */ $jsilcore.TypeRef("JSIL.Runtime.IPackedArray`1", [T])
   );
 });
 
