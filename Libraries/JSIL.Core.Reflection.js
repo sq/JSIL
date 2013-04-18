@@ -519,15 +519,24 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static: false, Public: true }, "GetParameters", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
     function GetParameters () {
-      var result = [];
-      var argumentTypes = this._data.signature.argumentTypes;
-      var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
+      var result = this._cachedParameters;
 
-      if (argumentTypes) {
-        for (var i = 0; i < argumentTypes.length; i++) {
-          // FIXME
-          var pi = JSIL.CreateInstanceOfType(tParameterInfo, null);
-          result.push(pi);
+      if (typeof (result) === "undefined") {
+        result = this._cachedParameters = [];
+
+        var argumentTypes = this._data.signature.argumentTypes;
+        var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
+
+        if (argumentTypes) {
+          for (var i = 0; i < argumentTypes.length; i++) {
+            var argumentType = JSIL.ResolveTypeReference(
+              argumentTypes[i], this._typeObject.__Context__
+            )[1];
+
+            // FIXME: Missing non-type information
+            var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
+            result.push(pi);
+          }
         }
       }
 
@@ -742,12 +751,10 @@ JSIL.MakeClass("System.Reflection.Assembly", "System.Reflection.RuntimeAssembly"
 JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
-  $.Method({Static:false, Public:false}, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
-    function _ctor () {
-      throw new Error('Not implemented');
-    }
-  );
+  $.RawMethod(false, "$fromArgumentTypeAndPosition", function (argumentType, position) {
+    this.argumentType = argumentType;
+    this.position = position;
+  });
 
   $.Method({Static:false, Public:true }, "get_Attributes", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ParameterAttributes"), [], []), 
@@ -787,21 +794,22 @@ JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceB
   $.Method({Static:false, Public:true }, "get_Name", 
     new JSIL.MethodSignature($.String, [], []), 
     function get_Name () {
-      throw new Error('Not implemented');
+      // FIXME
+      return "Parameter" + this.position;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_ParameterType", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []), 
     function get_ParameterType () {
-      throw new Error('Not implemented');
+      return this.argumentType;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Position", 
     new JSIL.MethodSignature($.Int32, [], []), 
     function get_Position () {
-      throw new Error('Not implemented');
+      return this.position;
     }
   );
 

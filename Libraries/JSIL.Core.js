@@ -1239,6 +1239,7 @@ JSIL.GenericParameter = function (name, context) {
 
   JSIL.SetValueProperty(this, "__FullName__", this.name.humanReadable);
 };
+
 JSIL.GenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
     throw new Error("No context provided when resolving generic parameter '" + this.name + "'");
@@ -1247,9 +1248,15 @@ JSIL.GenericParameter.prototype.get = function (context) {
 
   return this.name.get(context);
 };
+
 JSIL.GenericParameter.prototype.toString = function () {
   return "<Generic Parameter " + this.name.humanReadable + ">";
 };
+
+JSIL.GenericParameter.prototype.get_Name = function () {
+  return this.name.humanReadable;
+};
+
 
 JSIL.PositionalGenericParameter = function (name, context) {
   this.index = parseInt(name.substr(2));
@@ -1265,9 +1272,11 @@ JSIL.PositionalGenericParameter = function (name, context) {
   Object.defineProperty(this, "__FullName__", fullNameDecl);
   Object.defineProperty(this, "__FullNameWithoutArguments__", fullNameDecl);
 };
+
 JSIL.PositionalGenericParameter.prototype.getFullName = function () {
   return "!!" + this.index;
 };
+
 JSIL.PositionalGenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
     throw new Error("No context provided when resolving generic method parameter #" + this.index);
@@ -1276,6 +1285,7 @@ JSIL.PositionalGenericParameter.prototype.get = function (context) {
 
   throw new Error("Not implemented");
 };
+
 JSIL.PositionalGenericParameter.prototype.toString = function (context) {
   if (
     (typeof (context) === "object") && (context !== null) &&
@@ -1285,6 +1295,10 @@ JSIL.PositionalGenericParameter.prototype.toString = function (context) {
   }
 
   return "<Generic Method Parameter #" + this.index + ">";
+};
+
+JSIL.PositionalGenericParameter.prototype.get_Name = function () {
+  return "!!" + this.index;
 };
 
 JSIL.TypeRef = function (context, name, genericArguments) {
@@ -6472,6 +6486,9 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   JSIL.InitializeInstanceFields(instance, type);
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
+
+    if (!constructor)
+      throw new Error("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
   } else if (constructorName === null) {
     return instance;
   } else {
