@@ -1008,9 +1008,11 @@ namespace JSIL {
                     }
                 }
 
-                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                output.Indent();
-                output.NewLine();
+                if (!makingSkeletons) {
+                    output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                    output.Indent();
+                    output.NewLine();
+                }
 
                 Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
                 int nextDisambiguatedId = 0;
@@ -1125,9 +1127,12 @@ namespace JSIL {
                     astEmitter.ReferenceContext.Pop();
                 }
 
-                output.Unindent();
-                output.WriteRaw("})();");
-                output.NewLine();
+                if (!makingSkeletons) {
+                    output.Unindent();
+                    output.WriteRaw("})();");
+                    output.NewLine();
+                }
+
                 output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
@@ -1219,9 +1224,6 @@ namespace JSIL {
             if (!makingSkeletons) {
                 output.WriteRaw("var $, $thisType");
                 output.Semicolon(true);
-            } else {
-                output.WriteRaw("var $");
-                output.Semicolon(true);
             }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
@@ -1308,7 +1310,10 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            output.WriteRaw("$ = $interfaceBuilder");
+            if (makingSkeletons)
+                output.WriteRaw("var $ = $interfaceBuilder");
+            else
+                output.WriteRaw("$ = $interfaceBuilder");
             output.Semicolon(true);
 
             context.CurrentType = typedef;
@@ -1390,7 +1395,9 @@ namespace JSIL {
             }
 
             output.NewLine();
-            output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+            if (!makingSkeletons)
+                output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+
             output.Semicolon(false);
         }
 
