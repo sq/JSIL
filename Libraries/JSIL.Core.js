@@ -6114,6 +6114,8 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
 };
 
 JSIL.InterfaceMethod.prototype.toString = function () {
+  // HACK: This makes it possible to do
+  //  MethodSignature.CallVirtual(IFoo.Method, thisReference)
   return this.qualifiedName;
 };
 

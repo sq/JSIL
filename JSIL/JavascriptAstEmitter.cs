@@ -1785,7 +1785,22 @@ namespace JSIL {
                     };
 
                     if ((method != null) && method.DeclaringType.IsInterface) {
-                        throw new NotImplementedException("Overloaded interface method call");
+                        Output.Identifier("CallVirtual");
+                        Output.LPar();
+
+                        // HACK: Pass the interface method object instead of the method name.
+                        //  This works because InterfaceMethod.toString returns the qualified name of the interface method.
+                        Output.Identifier(invocation.JSMethod.Reference.DeclaringType, ReferenceContext, false);
+                        Output.Dot();
+                        Visit(invocation.Method);
+
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
                     } else if (isStatic) {
                         Output.Identifier("CallStatic");
                         Output.LPar();
