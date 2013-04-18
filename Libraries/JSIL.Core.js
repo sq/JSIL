@@ -2436,7 +2436,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var typeName = typeObject.__FullName__;
   var missingMembers = [];
 
-  var typeMembers = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance"));
+  var typeMembers = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public"));
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var namePairs = [[null, null], [null, null]];
@@ -2950,7 +2950,7 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   var uri = typeObject.__FullName__.replace(subtypeRe, ".");
 
   var constructor = JSIL.CreateNamedFunction(
-    typeObject.__FullName__,
+    typeObject.__FullName__ + ".CopyConstructor",
     ["source"],
     body.join("\r\n"),
     {
@@ -2972,8 +2972,9 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
 };
 
 JSIL.$BuildFieldList = function (typeObject) {
+  var bindingFlags = $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public");
   var fields = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
+    typeObject, bindingFlags, "FieldInfo"
   );
   var fl = typeObject.__FieldList__ = [];
   var fieldOffset = 0;
