@@ -2490,7 +2490,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "DeclaredOnly"));
+    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public"));
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
