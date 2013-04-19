@@ -1282,6 +1282,22 @@ namespace JSIL {
                     }
                 }
 
+                var cims = signatureCacher.CachedInterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
+                if (cims.Length > 0) {
+                    foreach (var cim in cims) {
+                        output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
+                        output.OpenBrace();
+                        output.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
+                        output.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                        output.Dot();
+                        output.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                        output.WriteRaw(")) ()");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
+                        output.Semicolon(true);
+                    }
+                }
+
                 if ((cts.Length > 0) || (css.Length > 0))
                     output.NewLine();
             }

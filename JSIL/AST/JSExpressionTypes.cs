@@ -2564,4 +2564,30 @@ namespace JSIL.Ast {
             return Type;
         }
     }
+
+    public class JSCachedInterfaceMember : JSExpression {
+        public readonly int Index;
+
+        public JSCachedInterfaceMember (JSType type, JSIdentifier member, int index)
+            : base(type, member) {
+            Index = index;
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[0];
+            }
+        }
+
+        public JSIdentifier Identifier {
+            get {
+                return (JSIdentifier)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            // FIXME: Return constructed method type?
+            return typeSystem.Object;
+        }
+    }
 }

@@ -23,7 +23,7 @@ namespace JSIL.Transforms {
                 return Method.Name.GetHashCode() ^ Signature.GetHashCode() ^ IsConstructor.GetHashCode();
             }
 
-            public bool Equals (CachedSignatureRecord rhs) {
+            public bool Equals (ref CachedSignatureRecord rhs) {
                 var result =
                     (
                         (Method == rhs.Method) ||
@@ -39,16 +39,17 @@ namespace JSIL.Transforms {
             }
 
             public override bool Equals (object obj) {
-                if (obj is CachedSignatureRecord)
-                    return Equals((CachedSignatureRecord)obj);
-                else
+                if (obj is CachedSignatureRecord) {
+                    var rhs = (CachedSignatureRecord)obj;
+                    return Equals(ref rhs);
+                } else
                     return base.Equals(obj);
             }
         }
 
         public class CachedSignatureRecordComparer : IEqualityComparer<CachedSignatureRecord> {
             public bool Equals (CachedSignatureRecord x, CachedSignatureRecord y) {
-                return x.Equals(y);
+                return x.Equals(ref y);
             }
 
             public int GetHashCode (CachedSignatureRecord obj) {
@@ -56,17 +57,63 @@ namespace JSIL.Transforms {
             }
         }
 
+        public struct CachedInterfaceMemberRecord {
+            public readonly TypeReference InterfaceType;
+            public readonly string InterfaceMember;
+
+            public CachedInterfaceMemberRecord (TypeReference declaringType, string memberName) {
+                InterfaceType = declaringType;
+                InterfaceMember = memberName;
+            }
+
+            public bool Equals (ref CachedInterfaceMemberRecord rhs) {
+                var result =
+                    TypeUtil.TypesAreEqual(InterfaceType, rhs.InterfaceType, true) &&
+                    InterfaceMember.Equals(rhs.InterfaceMember);
+
+                if (!result)
+                    return false;
+                else
+                    return result;
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is CachedInterfaceMemberRecord) {
+                    var rhs = (CachedInterfaceMemberRecord)obj;
+                    return Equals(ref rhs);
+                } else
+                    return base.Equals(obj);
+            }
+
+            public override int GetHashCode () {
+                return InterfaceType.Name.GetHashCode() ^ InterfaceMember.GetHashCode();
+            }
+        }
+
+        public class CachedInterfaceMemberRecordComparer : IEqualityComparer<CachedInterfaceMemberRecord> {
+            public bool Equals (CachedInterfaceMemberRecord x, CachedInterfaceMemberRecord y) {
+                return x.Equals(ref y);
+            }
+
+            public int GetHashCode (CachedInterfaceMemberRecord obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public readonly bool LocalCachingEnabled;
         public readonly Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>> LocalCachedSignatureSets;
         public readonly Dictionary<CachedSignatureRecord, int> CachedSignatures;
+        public readonly Dictionary<CachedInterfaceMemberRecord, int> CachedInterfaceMembers;
         private readonly Stack<JSFunctionExpression> FunctionStack = new Stack<JSFunctionExpression>();
         private readonly CachedSignatureRecordComparer Comparer = new CachedSignatureRecordComparer();
+        private readonly CachedInterfaceMemberRecordComparer InterfaceMemberComparer = new CachedInterfaceMemberRecordComparer();
 
         public SignatureCacher (TypeInfoProvider typeInfo, bool localCachingEnabled) {
             LocalCachedSignatureSets = new Dictionary<MemberIdentifier, Dictionary<CachedSignatureRecord, int>>(
                 new MemberIdentifier.Comparer(typeInfo)
             );
             CachedSignatures = new Dictionary<CachedSignatureRecord, int>(Comparer);
+            CachedInterfaceMembers = new Dictionary<CachedInterfaceMemberRecord, int>(InterfaceMemberComparer);
             VisitNestedFunctions = true;
             LocalCachingEnabled = localCachingEnabled;
         }
@@ -115,6 +162,16 @@ namespace JSIL.Transforms {
 
             if (!signatureSet.ContainsKey(record))
                 signatureSet.Add(record, signatureSet.Count);
+        }
+
+        private void CacheInterfaceMember (TypeReference declaringType, string memberName) {
+            if (TypeUtil.IsOpenType(declaringType))
+                return;
+
+            var record = new CachedInterfaceMemberRecord(declaringType, memberName);
+
+            if (!CachedInterfaceMembers.ContainsKey(record))
+                CachedInterfaceMembers.Add(record, CachedInterfaceMembers.Count);
         }
 
         private JSRawOutputIdentifier MakeRawOutputIdentifierForIndex (TypeReference type, int index) {
@@ -166,6 +223,9 @@ namespace JSIL.Transforms {
             if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
+            if ((method != null) && method.DeclaringType.IsInterface)
+                CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Reference.Name);
+
             if ((jsm != null) && (method != null) && isOverloaded)
                 CacheSignature(jsm.Reference, method.Signature, false);
 
@@ -194,14 +254,16 @@ namespace JSIL.Transforms {
             Visit(function);
         }
 
-        public void WriteToOutput (
+        /// <summary>
+        /// Writes a method signature to the output.
+        /// </summary>
+        public void WriteSignatureToOutput (
             JavascriptFormatter output, JSFunctionExpression enclosingFunction,
             MethodReference methodReference, MethodSignature methodSignature, 
             TypeReferenceContext referenceContext, 
             bool forConstructor
         ) {
             int index;
-
             var record = new CachedSignatureRecord(methodReference, methodSignature, forConstructor);
 
             if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
@@ -222,6 +284,25 @@ namespace JSIL.Transforms {
                 output.Signature(methodReference, methodSignature, referenceContext, forConstructor, true);
             else
                 output.WriteRaw("$S{0:X2}()", index);
+        }
+
+        /// <summary>
+        /// Writes an interface member reference to the output.
+        /// </summary>
+        public void WriteInterfaceMemberToOutput (
+            JavascriptFormatter output, JavascriptAstEmitter emitter, JSFunctionExpression enclosingFunction,
+            MethodReference methodReference, JSExpression method,
+            TypeReferenceContext referenceContext
+        ) {
+            int index;
+            var record = new CachedInterfaceMemberRecord(methodReference.DeclaringType, methodReference.Name);
+
+            if (!CachedInterfaceMembers.TryGetValue(record, out index)) {
+                output.Identifier(methodReference.DeclaringType, referenceContext, false);
+                output.Dot();
+                emitter.Visit(method);
+            } else
+                output.WriteRaw("$IM{0:X2}()", index);
         }
     }
 }
