@@ -1062,13 +1062,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
     getEnumeratorImpl
   )
-    .Overrides("System.Collections.IEnumerator", "GetEnumerator");
+    .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 
   $.Method({Static:false, Public:true }, "GetEnumerator",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
     getEnumeratorImpl
   )
-    .Overrides("System.Collections.Generic.IEnumerator`1", "GetEnumerator");
+    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
   $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
 

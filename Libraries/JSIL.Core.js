@@ -2612,7 +2612,28 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     for (var j = 0; j < overrides.length; j++) {
       var override = overrides[j];
-      var iface = interfaces[override.interfaceIndex];
+      var iface = null;
+      switch (typeof (override.interfaceIndex)) {
+        case "string":
+          // If the index is a string, search all the interfaces implemented by this type for a substring match.
+          // FIXME: If there are multiple matches this picks the first one. Probably not great...
+
+          for (var k = 0; k < interfaces.length; k++) {
+            if (interfaces[k].__FullName__.indexOf(override.interfaceIndex) >= 0) {
+              iface = interfaces[k];
+              break;
+            }
+          }
+
+          break;
+        case "number":
+          iface = interfaces[override.interfaceIndex];
+          break;
+      }
+
+      if (!iface)
+        throw new Error("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface with index '" + override.interfaceIndex + "'");
+
       var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
