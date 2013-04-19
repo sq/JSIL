@@ -747,7 +747,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
     }
   );
 
-  $.Method({Static:false, Public:true }, "IEnumerable.GetEnumerator", 
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
     function () {
       return JSIL.GetEnumerator(this._array, this.T);
@@ -1058,15 +1058,17 @@ $jsilcore.$ListExternals = function ($, T, type) {
     return new enumeratorType(this);
   };
 
-  $.Method({Static:false, Public:true }, "IEnumerable_GetEnumerator", 
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
     getEnumeratorImpl
-  );
+  )
+    .Overrides("System.Collections.IEnumerator", "GetEnumerator");
 
-  $.Method({Static:false, Public:true }, "IEnumerable$b1_GetEnumerator",
+  $.Method({Static:false, Public:true }, "GetEnumerator",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
     getEnumeratorImpl
-  );
+  )
+    .Overrides("System.Collections.Generic.IEnumerator`1", "GetEnumerator");
 
   $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
 
@@ -1283,7 +1285,7 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "ICollection$b1_get_IsReadOnly",
+  $.Method({Static:false, Public:true }, "get_IsReadOnly",
     new JSIL.MethodSignature($.Boolean, [], []),
     function () {
       return false;
@@ -2146,7 +2148,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
       var tKvp = System.Collections.Generic.KeyValuePair$b2.Of(this.TKey, this.TValue);
       var tKey = this.TKey, tValue = this.TValue;
 
-      return new JSIL.AbstractEnumerator(
+      return new (JSIL.AbstractEnumerator.Of(tKvp)) (
         function getNext (result) {
           var keys = this._state.keys;
           var valueIndex = ++(this._state.valueIndex);
@@ -3957,20 +3959,6 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   $.Method({Static:false, Public:true }, "RemoveLast", 
     (new JSIL.MethodSignature(null, [], [])), 
     function RemoveLast () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "IEnumerable`1.GetEnumerator", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")]), [], [])), 
-    function IEnumerable$b1_GetEnumerator () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "IEnumerable.GetEnumerator", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), 
-    function IEnumerable_GetEnumerator () {
       throw new Error('Not implemented');
     }
   );
