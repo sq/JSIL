@@ -143,6 +143,7 @@
     <Compile Include="CompilerUtil.cs" />
     <None Include="ReflectionTestCases\ListInterfaceMethods.cs" />
     <None Include="ReflectionTestCases\ListGenericInterfaceMethods.cs" />
+    <None Include="PerformanceTestCases\InterfaceMethodCalls.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />

@@ -4149,11 +4149,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       ["expression", "bypassCustomCheckMethod"],
       "if (!bypassCustomCheckMethod && checkMethod(expression))\r\n" +
       "  return true;\r\n" +
-      "if (expression)\r\n" +
-      "  return assignableFromTypes[expression.__ThisTypeId__] === true;\r\n" +
-      "else\r\n" +
+      "if (expression) {\r\n" +
+      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  return (expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]);\r\n" +
+      "} else\r\n" +
       "  return false;\r\n",
       {
+        typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
         checkMethod: checkMethod
       }
@@ -4162,11 +4164,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     isFunction = JSIL.CreateNamedFunction(
       typeName + ".$Is", 
       ["expression"],
-      "if (expression)\r\n" +
-      "  return assignableFromTypes[expression.__ThisTypeId__] === true;\r\n" +
-      "else\r\n" +
+      "if (expression) {\r\n" +
+      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  return (expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]);\r\n" +
+      "} else\r\n" +
       "  return false;\r\n",
       {
+        typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
       }
     );
@@ -4178,11 +4182,14 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       ["expression"],
       "if (checkMethod(expression))\r\n" +
       "  return expression;\r\n" +
-      "else if (expression && assignableFromTypes[expression.__ThisTypeId__])\r\n" +
-      "  return expression;\r\n" +
-      "else\r\n" +
-      "  return null;\r\n",
+      "else if (expression) {\r\n" +
+      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  if ((expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]))\r\n" +
+      "    return expression;\r\n" +
+      "}\r\n\r\n" +
+      "return null;\r\n",
       {
+        typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
         checkMethod: checkMethod
       }
@@ -4191,11 +4198,14 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     asFunction = JSIL.CreateNamedFunction(
       typeName + ".$As", 
       ["expression"],
-      "if (expression && assignableFromTypes[expression.__ThisTypeId__])\r\n" +
-      "  return expression;\r\n" +
-      "else\r\n" +
-      "  return null;\r\n",
+      "if (expression) {\r\n" +
+      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  if ((expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]))\r\n" +
+      "    return expression;\r\n" +
+      "}\r\n\r\n" +
+      "return null;\r\n",
       {
+        typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
       }
     );
