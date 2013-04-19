@@ -258,7 +258,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "CreateText", 
+  $.Method({Static:true , Public:true }, "AppendText", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [$.String], [])), 
     function AppendText (path) {
       return new System.IO.StreamWriter(path, true);
