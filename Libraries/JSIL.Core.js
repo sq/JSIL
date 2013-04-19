@@ -5276,7 +5276,9 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
     result.EscapedName += "$b" + signature.genericArgumentNames.length;
   }
 
-  result.SpecialName = (name == ".ctor") || (name == ".cctor") || (name == "_ctor") || (name == "_cctor");
+  result.SpecialName = (name == ".ctor") || (name == "_ctor") ||
+    (name.indexOf(".cctor") === 0) ||
+    (name.indexOf("_cctor") === 0);
 
   JSIL.SetValueProperty(
     result, "Target", 

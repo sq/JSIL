@@ -1948,9 +1948,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BlendState", function ($) {
-  $.Method({Static: true, Public: true}, ".cctor", 
-    new JSIL.MethodSignature(null, [], []),
-    function () {
+  $.RawMethod(true, ".cctor2", function () {
       Microsoft.Xna.Framework.Graphics.BlendState.Opaque = new Microsoft.Xna.Framework.Graphics.BlendState();
       Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend = new Microsoft.Xna.Framework.Graphics.BlendState();
       Microsoft.Xna.Framework.Graphics.BlendState.Additive = new Microsoft.Xna.Framework.Graphics.BlendState();
@@ -3311,9 +3309,7 @@ $jsilxna.ImageFormats = {
 };
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", function ($) {
-  $.Method({Static:true, Public:true }, ".cctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
-    function _cctor () {
+  $.RawMethod(true, ".cctor2", function () {
       Microsoft.Xna.Framework.Graphics.SamplerState.PointClamp = new Microsoft.Xna.Framework.Graphics.SamplerState(
         Microsoft.Xna.Framework.Graphics.TextureFilter.Point, 
         Microsoft.Xna.Framework.Graphics.TextureAddressMode.Clamp, 

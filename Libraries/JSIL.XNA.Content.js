@@ -498,8 +498,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.EffectReader", function
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", function ($) {
-  $.Method({Static: true, Public: true}, ".cctor", 
-    new JSIL.MethodSignature(null, [], []), 
+  $.RawMethod(true, ".cctor2",  
     function () {
       var assembly = $xnaasms.xna;
       var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;

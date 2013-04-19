@@ -234,7 +234,7 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
 });
 
 JSIL.ImplementExternals("System.Drawing.Size", function ($) {
-  $.RawMethod(true, ".cctor", function () {
+  $.RawMethod(true, ".cctor2", function () {
     System.Drawing.Size.prototype.width = 0;
     System.Drawing.Size.prototype.height = 0;
     System.Drawing.Size.Empty = new System.Drawing.Size();
@@ -278,7 +278,7 @@ JSIL.ImplementExternals("System.Drawing.Size", function ($) {
 });
 
 JSIL.ImplementExternals("System.Drawing.Point", function ($) {
-  $.RawMethod(true, ".cctor", function () {
+  $.RawMethod(true, ".cctor2", function () {
     System.Drawing.Point.prototype.x = 0;
     System.Drawing.Point.prototype.y = 0;
     System.Drawing.Point.Empty = new System.Drawing.Point();
@@ -322,7 +322,7 @@ JSIL.ImplementExternals("System.Drawing.Point", function ($) {
 });
 
 JSIL.ImplementExternals("System.Drawing.Rectangle", function ($) {
-  $.RawMethod(true, ".cctor", function () {
+  $.RawMethod(true, ".cctor2", function () {
     System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
   });
 

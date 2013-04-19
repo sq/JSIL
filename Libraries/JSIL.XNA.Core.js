@@ -1749,10 +1749,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameTime", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     Microsoft.Xna.Framework.Rectangle._empty = new Microsoft.Xna.Framework.Rectangle();
   });
 
@@ -1981,10 +1978,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
   });
 
@@ -2130,10 +2124,7 @@ $jsilxna.Color = function ($) {
     target.b = source.b;
   });
 
-  $.Method({
-    Static: true,
-    Public: false
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     var self = this;
     var proto = this.prototype;
     var makeColor = $jsilxna.makeColor;
