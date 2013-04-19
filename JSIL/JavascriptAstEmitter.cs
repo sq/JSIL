@@ -1976,5 +1976,11 @@ namespace JSIL {
         public void VisitNode (JSLocalCachedSignatureExpression lcse) {
             Output.Signature(lcse.Reference, lcse.Signature, ReferenceContext, lcse.IsConstructor, false);
         }
+
+        public void VisitNode (JSLocalCachedInterfaceMemberExpression lcime) {
+            Output.Identifier(lcime.InterfaceType, ReferenceContext);
+            Output.Dot();
+            Output.Identifier(lcime.MemberName, EscapingMode.MemberIdentifier);
+        }
     }
 }

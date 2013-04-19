@@ -1268,7 +1268,7 @@ namespace JSIL {
                     }
                 }
 
-                var css = signatureCacher.CachedSignatures.OrderBy((cs) => cs.Value).ToArray();
+                var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
                 if (css.Length > 0) {
                     foreach (var cs in css) {
                         output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
@@ -1282,7 +1282,7 @@ namespace JSIL {
                     }
                 }
 
-                var cims = signatureCacher.CachedInterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
+                var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
                 if (cims.Length > 0) {
                     foreach (var cim in cims) {
                         output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);

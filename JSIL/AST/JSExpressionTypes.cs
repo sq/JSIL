@@ -2565,10 +2565,10 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSCachedInterfaceMember : JSExpression {
+    public class JSCachedInterfaceMemberExpression : JSExpression {
         public readonly int Index;
 
-        public JSCachedInterfaceMember (JSType type, JSIdentifier member, int index)
+        public JSCachedInterfaceMemberExpression (JSType type, JSIdentifier member, int index)
             : base(type, member) {
             Index = index;
         }
@@ -2588,6 +2588,22 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             // FIXME: Return constructed method type?
             return typeSystem.Object;
+        }
+    }
+
+    public class JSLocalCachedInterfaceMemberExpression : JSExpression {
+        public readonly TypeReference TypeOfExpression;
+        public readonly TypeReference InterfaceType;
+        public readonly string MemberName;
+
+        public JSLocalCachedInterfaceMemberExpression (TypeReference typeOfExpression, TypeReference interfaceType, string memberName) {
+            TypeOfExpression = typeOfExpression;
+            InterfaceType = interfaceType;
+            MemberName = memberName;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return TypeOfExpression;
         }
     }
 }
