@@ -1354,6 +1354,37 @@ JSIL.TypeRef.prototype.toString = function () {
 
   return result;
 };
+JSIL.TypeRef.prototype.toName = function () {
+  var result = null;
+
+  if (this.typeName === null)
+    result = JSIL.GetTypeName(this.cachedReference);
+  else
+    result = this.typeName;
+
+  // HACK: System.Array[T] -> T[]
+  if (
+    (this.typeName === "System.Array") && 
+    this.genericArguments && 
+    this.genericArguments.length
+  ) {
+    return JSIL.TypeReferenceToName(this.genericArguments[0]) + "[]";
+  }
+
+  if (this.genericArguments && this.genericArguments.length) {
+    result += "[";
+
+    for (var i = 0, l = this.genericArguments.length; i < l; i++) {
+      result += JSIL.TypeReferenceToName(this.genericArguments[i]);
+      if (i < (l - 1))
+        result += ", ";
+    }
+
+    result += "]";
+  }
+
+  return result;
+};
 JSIL.TypeRef.prototype.getTypeId = function () {
   if (this.cachedReference !== null)
     return this.cachedReference.__TypeId__;
@@ -5804,7 +5835,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   var signature;
 
   if (this.returnType !== null) {
-    signature = this.returnType.toString(this) + " ";
+    signature = JSIL.TypeReferenceToName(this.returnType) + " ";
   } else {
     signature = "void ";
   }
@@ -5829,7 +5860,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   }
 
   for (var i = 0; i < this.argumentTypes.length; i++) {
-    signature += this.argumentTypes[i].toString(this);
+    signature += JSIL.TypeReferenceToName(this.argumentTypes[i]);
 
     if (i < this.argumentTypes.length - 1)
       signature += ", "
@@ -7375,5 +7406,29 @@ JSIL.ResolveGenericMemberSignatures = function (publicInterface, typeObject) {
 
     var newMember = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes, member.overrides);
     members[i] = newMember;
+  }
+};
+
+JSIL.TypeReferenceToName = function (typeReference) {
+  var result = null;
+
+  if (
+    typeof (typeReference) === "string"
+  ) {
+    return typeReference;
+  } else if (
+    typeof (typeReference) === "object"
+  ) {
+    if (typeReference === null)
+      throw new Error("Null type reference");
+
+    if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
+      return typeReference.toName();
+  }
+
+  if (typeof (typeReference.__Type__) === "object") {
+    return typeReference.__Type__.toString();
+  } else {
+    return typeReference.toString();
   }
 };
