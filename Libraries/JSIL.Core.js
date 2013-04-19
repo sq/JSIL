@@ -2640,20 +2640,19 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       }
 
       if (!iface)
-        throw new Error("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface with index '" + override.interfaceIndex + "'");
+        throw new Error("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface of type '" + typeObject.__FullName__ + "' with index '" + override.interfaceIndex + "'");
 
       var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
-      if (proto[key] && !proto[key].__IsPlaceholder__) {
-        if (trace)
-          console.log(key, "-|", member._descriptor.EscapedName);
-      } else {
-        if (trace)
-          console.log(key, "->", member._descriptor.EscapedName);
+      if (trace)
+        console.log(key, "->", member._descriptor.EscapedName);
 
-        JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
-      }
+      // Important: This may overwrite an existing member with this key, from an automatic interface fixup
+      //  like 'Foo.GetEnumerator' -> 'Foo.Ixx$GetEnumerator'.
+      // This is desirable because an explicit override (via .Overrides) should always trump automatic
+      //  overrides via name/signature matching.
+      JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
     }
   }
 

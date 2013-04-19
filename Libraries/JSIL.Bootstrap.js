@@ -1073,11 +1073,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
   )
     .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 
-  $.Method({Static:false, Public:true }, "GetEnumerator",
-    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
-    getEnumeratorImpl
-  )
-    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
+  if (type !== "ArrayList") {
+    $.Method({Static:false, Public:true }, "GetEnumerator",
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
+      getEnumeratorImpl
+    )
+      .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
+  }
 
   $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
 
@@ -1289,11 +1291,6 @@ $jsilcore.$ArrayListExternals = function ($) {
   var toArrayImpl = function () {
     return Array.prototype.slice.call(this._items, 0, this._size);
   };
-
-  $.Method({Static:false, Public:true }, "ToArray", 
-    new JSIL.MethodSignature(mscorlib.TypeRef("System.Array", [mscorlib.TypeRef("System.Object")]), [], []),
-    toArrayImpl
-  );
 
   $.Method({Static:false, Public:true }, "ToArray", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Array"), [mscorlib.TypeRef("System.Type")], []),
