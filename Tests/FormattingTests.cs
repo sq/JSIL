@@ -592,7 +592,13 @@ namespace JSIL.Tests {
                 try {
                     Assert.IsTrue(generatedJs.Contains("this.Test("), "this.Test was not direct-dispatched");
                     // FIXME: Is this right?
-                    Assert.IsTrue(generatedJs.Contains("Interface.Test2.Call("), "test.Interface_Test2 was not direct-dispatched");
+                    Assert.IsTrue(
+                        generatedJs.Contains("Interface.Test2.Call(") ||
+                        (
+                            generatedJs.ContainsRegex(@"\$IM([0-9]*) = JSIL.Memoize\(\$asm([0-9]*).Interface.Test2\)") &&
+                            generatedJs.ContainsRegex(@"\$IM([0-9]*)\(\).Call\(")
+                        ), 
+                    "test.Interface_Test2 was not direct-dispatched");
                 } catch {
                     Console.WriteLine(generatedJs);
 
