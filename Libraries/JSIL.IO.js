@@ -608,22 +608,6 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       this._length = 0;
     }
   );
-  
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
-    function _ctor (path, mode, access) {
-      // FIXME: access
-      System.IO.FileStream.prototype._ctor.call(this, path, mode);
-    }
-  );
-  
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), $jsilcore.TypeRef("System.IO.FileShare")], [])), 
-    function _ctor (path, mode, access, share) {
-      // FIXME: access, share
-      System.IO.FileStream.prototype._ctor.call(this, path, mode);
-    }
-  );
 
   var ctorImpl = function _ctor (path, mode) {
     System.IO.Stream.prototype._ctor.call(this);
