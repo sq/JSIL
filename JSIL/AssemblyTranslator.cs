@@ -1016,9 +1016,12 @@ namespace JSIL {
 
                 Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
                 int nextDisambiguatedId = 0;
-                var typeCacher = EmitTypeMethodExpressions(
+                var cachers = EmitTypeMethodExpressions(
                     context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
                 );
+
+                var typeCacher = cachers.Item1;
+                var signatureCacher = cachers.Item2;
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
@@ -1106,7 +1109,10 @@ namespace JSIL {
                     });
 
                     TranslateTypeDefinition(
-                        context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, typeCacher
+                        context, typedef, 
+                        astEmitter, output, 
+                        stubbed, dollar, makingSkeletons, 
+                        typeCacher, signatureCacher
                     );
 
                     output.NewLine();
@@ -1211,15 +1217,18 @@ namespace JSIL {
             setValue("__IsNumeric__", isNumeric);
         }
 
-        protected TypeExpressionCacher EmitTypeMethodExpressions (
+        protected Tuple<TypeExpressionCacher, SignatureCacher> EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
+            var typeCacher = new TypeExpressionCacher(typedef);
+            var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
-                return null;
+                return Tuple.Create(typeCacher, signatureCacher);
 
             if (!makingSkeletons) {
                 output.WriteRaw("var $, $thisType");
@@ -1227,9 +1236,6 @@ namespace JSIL {
             }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
-
-            var typeCacher = new TypeExpressionCacher(typedef);
-            var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
 
             var cacheTypes = Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true);
             var cacheSignatures = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
@@ -1313,15 +1319,20 @@ namespace JSIL {
                 );
             }
 
-            return typeCacher;
+            return Tuple.Create(typeCacher, signatureCacher);
         }
 
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
             bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
-            TypeExpressionCacher typeCacher
+            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
@@ -1375,7 +1386,8 @@ namespace JSIL {
                 TranslateTypeStaticConstructor(
                     context, typedef, astEmitter, 
                     output, typeInfo.StaticConstructor, 
-                    stubbed, dollar
+                    stubbed, dollar,
+                    typeCacher, signatureCacher
                 );
 
             if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
@@ -1805,8 +1817,14 @@ namespace JSIL {
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar
+            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar,
+            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             var typeSystem = context.CurrentModule.TypeSystem;
             var staticFields = 
@@ -2015,7 +2033,11 @@ namespace JSIL {
             if ((cctor != null) && !stubbed) {
                 output.NewLine();
 
-                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(
+                    context, cctor, cctor, 
+                    astEmitter, output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                );
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -2033,7 +2055,11 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(
+                    context, fakeCctor, fakeCctor, 
+                    astEmitter, output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                );
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -2042,7 +2068,8 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, null, null, ref temp, extraCctor,
+                    output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -2227,6 +2254,11 @@ namespace JSIL {
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 

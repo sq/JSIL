@@ -1570,13 +1570,10 @@ namespace JSIL {
 
             try {
                 if (isOverloaded) {
-                    if (SignatureCacher != null)
-                        SignatureCacher.WriteSignatureToOutput(
-                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
-                        );
-                    else
-                        Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    SignatureCacher.WriteSignatureToOutput(
+                        Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                        newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
+                    );
 
                     Output.Dot();
 
@@ -1763,13 +1760,10 @@ namespace JSIL {
 
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
-                    if (SignatureCacher != null)
-                        SignatureCacher.WriteSignatureToOutput(
-                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm.Reference, method.Signature, ReferenceContext, false
-                        );
-                    else
-                        Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
+                    SignatureCacher.WriteSignatureToOutput(
+                        Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                        jsm.Reference, method.Signature, ReferenceContext, false
+                    );
 
                     Output.Dot();
 
@@ -1790,17 +1784,11 @@ namespace JSIL {
 
                         // HACK: Pass the interface method object instead of the method name.
                         //  This works because InterfaceMethod.toString returns the qualified name of the interface method.
-                        if (SignatureCacher != null)
-                            SignatureCacher.WriteInterfaceMemberToOutput(
-                                Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                                jsm.Reference, invocation.Method,
-                                ReferenceContext
-                            );
-                        else {
-                            Output.Identifier(invocation.JSMethod.Reference.DeclaringType, ReferenceContext, false);
-                            Output.Dot();
-                            Visit(invocation.Method);
-                        }
+                        SignatureCacher.WriteInterfaceMemberToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, invocation.Method,
+                            ReferenceContext
+                        );
 
                         Output.Comma();
                         genericArgs();
@@ -1854,17 +1842,11 @@ namespace JSIL {
                     }
                 } else {
                     if ((method != null) && method.DeclaringType.IsInterface) {
-                        if (SignatureCacher != null)
-                            SignatureCacher.WriteInterfaceMemberToOutput(
-                                Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                                jsm.Reference, invocation.Method,
-                                ReferenceContext
-                            );
-                        else {
-                            Output.Identifier(invocation.JSMethod.Reference.DeclaringType, ReferenceContext, false);
-                            Output.Dot();
-                            Visit(invocation.Method);
-                        }
+                        SignatureCacher.WriteInterfaceMemberToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, invocation.Method,
+                            ReferenceContext
+                        );
 
                         Output.Dot();
                         Output.WriteRaw("Call");
