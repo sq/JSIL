@@ -196,9 +196,19 @@ JSIL.SetLazyValueProperty = function (target, key, getValue, onPrototype) {
   Object.defineProperty(target, key, descriptor);
 };
 
+JSIL.$NextTypeId = 0;
+JSIL.$NextDispatcherId = 0;
+JSIL.$AssignedTypeIds = {};
+JSIL.$GenericParameterTypeIds = {};
+JSIL.$PublicTypes = {};
+JSIL.$PublicTypeAssemblies = {};
+
 JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
   if (!value)
     value = prototype;
+
+  if (typeof (value) !== "string")
+    throw new Error("Type IDs must be strings");
 
   JSIL.SetValueProperty(typeObject, "__TypeId__", value);
   JSIL.SetValueProperty(publicInterface, "__TypeId__", value);
@@ -206,6 +216,25 @@ JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
   if (arguments.length === 4)
     JSIL.SetValueProperty(prototype, "__ThisTypeId__", value);
 }
+
+JSIL.AssignTypeId = function (assembly, typeName) {
+  var typeName = JSIL.EscapeName(typeName);
+
+  if (typeof (assembly.__AssemblyId__) === "undefined")
+    throw new Error("Invalid assembly context");
+
+  if (typeof (JSIL.$PublicTypeAssemblies[typeName]) !== "undefined") {
+    assembly = JSIL.$PublicTypeAssemblies[typeName];
+  }
+
+  var key = assembly.__AssemblyId__ + "$" + typeName;
+  var result = JSIL.$AssignedTypeIds[key];
+
+  if (typeof (result) !== "string")
+    result = JSIL.$AssignedTypeIds[key] = String(++(JSIL.$NextTypeId));
+  
+  return result;
+};
 
 JSIL.DeclareAssembly = function (assemblyName) {
   var existing = JSIL.GetAssembly(assemblyName, true);
@@ -578,13 +607,6 @@ JSIL.RebindPropertyAfterPreInit = function (target, propertyName) {
 $jsilcore.SystemObjectInitialized = false;
 $jsilcore.RuntimeTypeInitialized = false;
 
-JSIL.$NextTypeId = 0;
-JSIL.$NextDispatcherId = 0;
-JSIL.$PublicTypes = {};
-JSIL.$PublicTypeAssemblies = {};
-JSIL.$AssignedTypeIds = {};
-JSIL.$GenericParameterTypeIds = {};
-
 JSIL.AssemblyCollection = function (obj) {
   var makeGetter = function (assemblyName) {
     return function GetAssemblyFromCollection () {
@@ -598,25 +620,6 @@ JSIL.AssemblyCollection = function (obj) {
       this, k, makeGetter(obj[k])
     );
   }
-};
-
-JSIL.AssignTypeId = function (assembly, typeName) {
-  var typeName = JSIL.EscapeName(typeName);
-
-  if (typeof (assembly.__AssemblyId__) === "undefined")
-    throw new Error("Invalid assembly context");
-
-  if (typeof (JSIL.$PublicTypeAssemblies[typeName]) !== "undefined") {
-    assembly = JSIL.$PublicTypeAssemblies[typeName];
-  }
-
-  var key = assembly.__AssemblyId__ + "$" + typeName;
-  var result = JSIL.$AssignedTypeIds[key];
-
-  if (typeof (result) !== "string")
-    result = JSIL.$AssignedTypeIds[key] = String(++(JSIL.$NextTypeId));
-  
-  return result;
 };
 
 JSIL.Name = function (name, context) {
