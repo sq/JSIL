@@ -145,6 +145,7 @@
     <None Include="ReflectionTestCases\ListGenericInterfaceMethods.cs" />
     <None Include="PerformanceTestCases\InterfaceMethodCalls.cs" />
     <None Include="PerformanceTestCases\GenericInterfaceMethodCalls.cs" />
+    <None Include="SimpleTestCases\ListGetEnumerator.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />

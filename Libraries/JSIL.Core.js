@@ -2606,9 +2606,17 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   //  an interface member (.overrides in IL, .Overrides() in JS)
   for (var i = 0; i < typeMembers.length; i++) {
     var member = typeMembers[i];
+
     var overrides = member.__Overrides__;
     if (!overrides || !overrides.length)
       continue;
+
+    if (member._data.isExternal) {
+      if (trace)
+        console.log("Skipping external method '" + member._descriptor.EscapedName + "'");
+
+      continue;
+    }
 
     for (var j = 0; j < overrides.length; j++) {
       var override = overrides[j];
@@ -2637,10 +2645,15 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
-      if (trace)
-        console.log(key, "->", member._descriptor.EscapedName);
+      if (proto[key] && !proto[key].__IsPlaceholder__) {
+        if (trace)
+          console.log(key, "-|", member._descriptor.EscapedName);
+      } else {
+        if (trace)
+          console.log(key, "->", member._descriptor.EscapedName);
 
-      JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
+        JSIL.SetLazyValueProperty(proto, key, JSIL.MakeInterfaceMemberGetter(proto, member._descriptor.EscapedName));
+      }
     }
   }
 
@@ -5274,7 +5287,7 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   return result;
 };
 
-JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, memberBuilder) {
+JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, memberBuilder, forExternal) {
   var members = this.typeObject.__Members__;
   if (!JSIL.IsArray(members))
     this.typeObject.__Members__ = members = [];
@@ -5282,6 +5295,27 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
   // Simplify usage of member records by not requiring a null check on data
   if (!data)
     data = Object.create(null);
+
+  // Throw if two members with identical signatures and names are added
+  if (data.signature) {
+    var existingMembersWithSameName = members.filter(function (m) {
+      return (m.descriptor.EscapedName == descriptor.EscapedName);
+    });
+
+    var existingMembersWithSameNameAndSignature = existingMembersWithSameName.filter(function (m) {
+      return m.data.signature && 
+        (m.data.signature.GetKey() == data.signature.GetKey());
+    });
+
+    if (existingMembersWithSameNameAndSignature.length > 0) {
+      if (forExternal) {
+        // No need to push this, the external is already implemented. Cool!
+      } else {
+        // This means that we accidentally implemented the same method twice, or something equally terrible.
+        throw new Error("A member with the signature '" + data.signature.toString(descriptor.EscapedName) + "' has already been declared in the type '" + this.typeObject.__FullName__ + "'.");
+      }
+    }
+  }
 
   var record = new JSIL.MemberRecord(type, descriptor, data, memberBuilder.attributes, memberBuilder.overrides);
   Array.prototype.push.call(members, record);
@@ -5562,7 +5596,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     mangledName: mangledName,
     isExternal: true,
     isPlaceholder: isPlaceholder
-  }, memberBuilder);
+  }, memberBuilder, true);
 
   return memberBuilder;
 };
@@ -5769,7 +5803,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   var signature;
 
   if (this.returnType !== null) {
-    signature = this.ResolveTypeReference(this.returnType)[1].toString(this) + " ";
+    signature = this.returnType.toString(this) + " ";
   } else {
     signature = "void ";
   }
@@ -5794,7 +5828,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   }
 
   for (var i = 0; i < this.argumentTypes.length; i++) {
-    signature += this.ResolveTypeReference(this.argumentTypes[i])[1].toString(this);
+    signature += this.argumentTypes[i].toString(this);
 
     if (i < this.argumentTypes.length - 1)
       signature += ", "

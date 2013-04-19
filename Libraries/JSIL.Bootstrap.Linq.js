@@ -95,10 +95,10 @@ JSIL.ImplementExternals(
 
         var result = 0;
         try {
-          while (moveNext.Call(e))
+          while (moveNext.Call(enumerator))
             result += 1;
         } finally {
-          JSIL.Dispose(e);
+          JSIL.Dispose(enumerator);
         }
         return result;
       }

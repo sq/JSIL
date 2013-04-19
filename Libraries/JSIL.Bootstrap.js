@@ -1058,6 +1058,15 @@ $jsilcore.$ListExternals = function ($, T, type) {
     return new enumeratorType(this);
   };
 
+  switch (type) {
+    case "List":
+      $.Method({Static:false, Public:true }, "GetEnumerator", 
+        (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [T]), [], [])), 
+        getEnumeratorImpl
+      );
+      break;
+  }
+
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
     getEnumeratorImpl
@@ -1071,27 +1080,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
     .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
   $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
-
-  switch (type) {
-    case "ArrayList":
-      $.Method({Static:false, Public:true }, "GetEnumerator", 
-        new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
-        getEnumeratorImpl
-      );
-      break;
-    case "List":
-      $.Method({Static:false, Public:true }, "GetEnumerator", 
-        (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [T]), [], [])), 
-        getEnumeratorImpl
-      );
-      break;
-    default:
-      $.Method({Static:false, Public:true }, "GetEnumerator",
-        new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
-        getEnumeratorImpl
-      );
-      break;
-  }
 
   $.Method({Static:false, Public:true }, "Insert", 
     (new JSIL.MethodSignature(null, [$.Int32, T], [])), 
@@ -1323,14 +1311,6 @@ $jsilcore.$CollectionExternals = function ($) {
   var mscorlib = JSIL.GetCorlib();
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []),
-    function () {
-      $jsilcore.InitResizableArray(this, this.T, 16);
-      this._size = 0;
-    }
-  );
-
-  $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
     function (list) {
       this._items = JSIL.EnumerableToArray(list);
@@ -1519,11 +1499,11 @@ JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], functi
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   $.Property({Public: true , Static: false}, "Count");
-  $.Property({Public: false, Static: false}, "ICollection`1.IsReadOnly");
+  $.Property({Public: false, Static: false}, "IsReadOnly");
 
   $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.IEnumerable"),
     $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
-    "System.Collections.IEnumerable",
     $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
     $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
   );
@@ -2319,18 +2299,24 @@ JSIL.GetEnumerator = function (enumerable, elementType) {
   else
     tIEnumerable$b1 = $jsilcore.System.Collections.Generic.IEnumerable$b1.Of(elementType);
 
+  var result = null;
   if (JSIL.IsArray(enumerable))
-    return JSIL.MakeArrayEnumerator(enumerable, elementType);
+    result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else if (tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
-    return tIEnumerable$b1.GetEnumerator.Call(enumerable);
+    result = tIEnumerable$b1.GetEnumerator.Call(enumerable);
   else if (tIEnumerable.$Is(enumerable))
-    return tIEnumerable.GetEnumerator.Call(enumerable);
+    result = tIEnumerable.GetEnumerator.Call(enumerable);
   else if (typeof (enumerable.GetEnumerator) === "function")
-    return enumerable.GetEnumerator();
+    result = enumerable.GetEnumerator();
   else if (typeof (enumerable) === "string")
-    return JSIL.MakeArrayEnumerator(enumerable, elementType);
+    result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else
     throw new Error("Value is not enumerable");
+
+  if (!result)
+    throw new Error("Value's GetEnumerator method did not return an enumerable.");
+
+  return result;
 };
 
 JSIL.EnumerableToArray = function (enumerable) {

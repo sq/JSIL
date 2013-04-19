@@ -189,13 +189,6 @@ JSIL.ImplementExternals(
     };
 
     $.Method({Static:false, Public:true }, "GetMethod", 
-      (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, "System.Reflection.BindingFlags"], [])), 
-      function GetMethod (name, flags) {
-        return getMethodImpl(this, name, flags);
-      }
-    );
-
-    $.Method({Static:false, Public:true }, "GetMethod", 
       (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String], [])), 
       function GetMethod (name) {
         return getMethodImpl(
