@@ -1394,10 +1394,7 @@ namespace JSIL {
                 translateProperties();
             }
 
-            var interfaces = (from i in typeInfo.Interfaces
-                              where !i.Item1.IsIgnored
-                              select i.Item2).ToArray();
-
+            var interfaces = typeInfo.AllInterfacesRecursive;
             if (!makingSkeletons && (interfaces.Length > 0)) {
                 output.NewLine();
 
@@ -1406,11 +1403,21 @@ namespace JSIL {
                 output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
 
-                for (var i = 0; i < interfaces.Length; i++) {
-                    var @interface = interfaces[i];
+                bool firstInterface = true;
 
-                    if (i != 0)
+                for (var i = 0; i < interfaces.Length; i++) {
+                    if (interfaces[i].Item1 != typeInfo)
+                        continue;
+                    if (interfaces[i].Item2.IsIgnored)
+                        continue;
+
+                    var @interface = interfaces[i].Item3;
+
+                    if (firstInterface)
+                        firstInterface = false;
+                    else
                         output.Comma();
+
                     output.NewLine();
 
                     output.Comment("{0}", i);
@@ -2447,9 +2454,10 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaceIndex = typeInfo.Interfaces.TakeWhile(
-                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item2, @override.InterfaceType)
+                    var interfaceIndex = typeInfo.AllInterfacesRecursive.TakeWhile(
+                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
                     ).Count();
+
                     output.Value(interfaceIndex);
 
                     output.Comma();

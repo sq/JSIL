@@ -379,6 +379,7 @@ namespace JSIL.Internal {
         public readonly TypeInfo BaseClass;
 
         public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
+        private System.Tuple<TypeInfo, TypeInfo, TypeReference>[] _AllInterfacesRecursive = null;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -723,6 +724,23 @@ namespace JSIL.Internal {
 
         public override string ToString () {
             return Definition.FullName;
+        }
+
+        public System.Tuple<TypeInfo, TypeInfo, TypeReference>[] AllInterfacesRecursive {
+            get {
+                if (_AllInterfacesRecursive == null) {
+                    var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
+                    var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
+
+                    foreach (var type in types)
+                        foreach (var @interface in type.Interfaces)
+                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+
+                    _AllInterfacesRecursive = list.ToArray();
+                }
+
+                return _AllInterfacesRecursive;
+            }
         }
 
         internal void ConstructMethodGroups () {

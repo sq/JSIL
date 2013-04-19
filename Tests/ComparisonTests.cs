@@ -54,6 +54,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void MonoInheritedInterfacesExplicit () {
+            using (var test = MakeTest(@"BinaryTestCases\InheritedInterfacesExplicit.dll"))
+                test.Run();
+        }
+
+        [Test]
+        public void MonoInheritedAndExplicitOverwrittenMethods () {
+            using (var test = MakeTest(@"BinaryTestCases\InheritedAndExplicitOverwrittenMethods.dll"))
+                test.Run();
+        }
+
+        [Test]
         public void MonoFixedArray () {
             var js = GetJavascript(
                 @"BinaryTestCases\MonoPinArray.exe",
