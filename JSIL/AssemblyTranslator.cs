@@ -2372,7 +2372,7 @@ namespace JSIL {
                 output.LPar();
 
                 // FIXME: Include IsVirtual?
-                output.MemberDescriptor(method.IsPublic, method.IsStatic);
+                output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
 
                 output.Comma();
                 output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
