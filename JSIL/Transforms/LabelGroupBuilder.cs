@@ -313,6 +313,12 @@ namespace JSIL.Transforms {
                 // Hoist the single label from this label group into the containing label group, 
                 //  after the label that contains this label group.
                 var hoistedLabel = labels[1];
+
+                // Flattening would create a cycle.
+                // FIXME: Why the hell does this happen?
+                if (hoistedLabel.Key == keyNode.Value)
+                    return false;
+
                 var hoistedKeyNode = lgs.Labels.EnqueueAfter(
                     keyNode, hoistedLabel.Key, hoistedLabel.Value
                 );
