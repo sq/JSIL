@@ -548,5 +548,17 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void Issue184 () {
+            var output = "001.000";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue184.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
