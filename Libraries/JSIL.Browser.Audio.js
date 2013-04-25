@@ -152,6 +152,11 @@ JSIL.Audio.HTML5Instance.prototype.$stop = function () {
 }
 
 JSIL.Audio.HTML5Instance.prototype.$set_volume = function (value) {
+  if (value < 0)
+    value = 0;
+  else if (value > 1)
+    value = 1;
+  
   return this.node.volume = value;
 }
 
@@ -194,7 +199,7 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this.context = audioInfo.audioContext;
   this.started = 0;
   this.pausedAtOffset = null;
-  
+
   this._volume = 1.0;
   this._volumeMultiplier = 1.0;
 };
