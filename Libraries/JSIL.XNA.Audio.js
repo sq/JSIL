@@ -384,7 +384,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   $.Method({Static:false, Public:true }, "get_State", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundState"), [], [])), 
     function get_State () {
-      throw new Error('Not implemented');
+      if (!this.instance)
+        return Microsoft.Xna.Framework.Audio.SoundState.Stopped;
+      else if (this.instance.get_isPaused())
+        return Microsoft.Xna.Framework.Audio.SoundState.Paused;
+      else if (this.instance.get_isPlaying())
+        return Microsoft.Xna.Framework.Audio.SoundState.Playing;
+      else
+        return Microsoft.Xna.Framework.Audio.SoundState.Stopped;
     }
   );
 
@@ -415,7 +422,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
     (new JSIL.MethodSignature(null, [], [])), 
     function Resume () {
       if (this.instance !== null)
-        this.instance.play();
+        this.instance.resume();
     }
   );
 
@@ -453,7 +460,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function Stop (immediate) {
       if (this.instance !== null)
-        this.instance.pause();
+        this.instance.stop();
 
       this.instance = null;
     }
