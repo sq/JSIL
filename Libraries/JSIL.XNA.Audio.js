@@ -38,7 +38,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function ($) {
-
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [$xnaasms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioEngine"), $.String], [])), 
     function _ctor (engine, name) {
@@ -54,10 +53,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function 
     }
   );
 
+  var warnedAboutSetVolume = false;
+
   $.Method({Static:false, Public:true }, "SetVolume", 
     (new JSIL.MethodSignature(null, [$.Single], [])), 
     function SetVolume (volume) {
       // FIXME
+
+      if (!warnedAboutSetVolume) {
+        warnedAboutSetVolume = true;
+        JSIL.Host.warning("AudioCategory.SetVolume is not supported.");
+      }
     }
   );
 });
@@ -96,10 +102,25 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     return this._name;
   });
 
+  var warnedAboutVariables = Object.create(null);
+
   $.Method({Static:false, Public:true }, "SetVariable", 
     (new JSIL.MethodSignature(null, [$.String, $.Single], [])), 
     function SetVariable (name, value) {
       // FIXME
+      if (name === "Volume") {
+        for (var i = 0; i < this.wavesPlaying.length; i++) {
+          var wave = this.wavesPlaying[i];
+          wave.volume = value;
+        }
+      } else {
+        if (name in warnedAboutVariables)
+          return;
+
+        warnedAboutVariables[name] = true;
+
+        JSIL.Host.warning("XACT audio variable '" + name + "' not supported.");
+      }
     }
   );
 
@@ -155,7 +176,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     for (var i = 0; i < this.wavesPlaying.length; i++) {
       var w = this.wavesPlaying[i];
 
-      if (!w.isPlaying) {
+      if (!w.get_isPlaying() && !w.get_isPaused()) {
         w.dispose();
         this.wavesPlaying.splice(i, 1);
         i--;
@@ -168,7 +189,25 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     function get_IsPlaying () {
       this.$gc();
       
-      return (this.wavesPlaying.length > 0);
+      return (this.wavesPlaying.length > 0) && this.wavesPlaying[0].get_isPlaying();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsPaused", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsPaused () {
+      this.$gc();
+      
+      return (this.wavesPlaying.length > 0) && this.wavesPlaying[0].get_isPaused();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsStopped", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsStopped () {
+      this.$gc();      
+      
+      return (this.wavesPlaying.length === 0);
     }
   );
 
@@ -177,23 +216,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     function Resume () {
       this.$gc();
 
-      // FIXME: AudioContext sucks and has no way to pause streams.
-      this.Stop();
-      this.Play();
+      for (var i = 0; i < this.wavesPlaying.length; i++) {
+        var wave = this.wavesPlaying[i];
+        wave.resume();
+      }
     }
   );
 
   $.Method({Static:false, Public:true }, "Stop", 
     (new JSIL.MethodSignature(null, [$xnaasms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioStopOptions")], [])), 
     function Stop (options) {
-      this.$gc();
-
       while (this.wavesPlaying.length > 0) {
         var wave = this.wavesPlaying.shift();
-        wave.pause();
+        wave.stop();
       }
 
-      this.wavesPlaying = [];
+      this.$gc();
     }
   );
 
