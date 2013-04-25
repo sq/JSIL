@@ -10,6 +10,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function _ctor (settingsFile) {
+      this.categories = Object.create(null);
     }
   );
 
@@ -19,6 +20,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
           $.String
         ], [])), 
     function _ctor (settingsFile, lookAheadTime, rendererId) {
+      this.categories = Object.create(null);
     }
   );
 
@@ -41,7 +43,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function 
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [$xnaasms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioEngine"), $.String], [])), 
     function _ctor (engine, name) {
-      this._engine = engine;
+      this._parent = engine;
       this._name = name;
     }
   );
@@ -53,17 +55,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function 
     }
   );
 
-  var warnedAboutSetVolume = false;
-
   $.Method({Static:false, Public:true }, "SetVolume", 
     (new JSIL.MethodSignature(null, [$.Single], [])), 
     function SetVolume (volume) {
-      // FIXME
+      var categories = this._parent.categories;
+      var category = categories[this._name];
 
-      if (!warnedAboutSetVolume) {
-        warnedAboutSetVolume = true;
-        JSIL.Host.warning("AudioCategory.SetVolume is not supported.");
+      if (!category) {
+        JSIL.Host.warning("No category named '" + this._name + "' exists in this audio engine.");
+        return;
       }
+
+      category.volumeMultiplier = volume;
+      category.$gc();
+
+      var wavesPlaying = category.wavesPlaying;
+      for (var i = 0, l = wavesPlaying.length; i < l; i++)
+        wavesPlaying[i].set_volumeMultiplier(volume);
     }
   );
 });
@@ -111,7 +119,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
       if (name === "Volume") {
         for (var i = 0; i < this.wavesPlaying.length; i++) {
           var wave = this.wavesPlaying[i];
-          wave.volume = value;
+          wave.set_volume(value);
         }
       } else {
         if (name in warnedAboutVariables)
@@ -133,9 +141,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
         var wave = this.wavesPlaying[i];
         wave.pause();
       }
-
-      // FIXME: AudioContext sucks and has no way to pause streams.
-      this.wavesPlaying = [];
     }
   );
 
@@ -146,6 +151,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
 
       var soundName = this.sounds[0];
       var sound = this.soundBank.sounds[soundName];
+      var categoryName = sound.Category || null;
+      var category = this.audioEngine.categories[categoryName] || null;
 
       for (var i = 0; i < sound.Tracks.length; i++) {
         var track = sound.Tracks[i];
@@ -160,6 +167,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
             // Handle broken audio implementations
             if (wave !== null) {
               var instance = wave.$createInstance(evt.LoopCount > 0);
+
+              if (category) {
+                instance.set_volumeMultiplier(category.volumeMultiplier);
+                category.$gc();
+                category.wavesPlaying.push(instance);
+              }
+
               instance.play();
 
               this.wavesPlaying.push(instance);
@@ -244,18 +258,38 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   );
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundBank", function ($) {
+$jsilxna.SoundCategory = function (name) {
+  this.name = name;
+  this.sounds = [];
+  this.wavesPlaying = [];
+  this.volumeMultiplier = 1.0;
+};
 
+$jsilxna.SoundCategory.prototype.$gc = function () {
+  for (var i = 0; i < this.wavesPlaying.length; i++) {
+    var w = this.wavesPlaying[i];
+
+    if (!w.get_isPlaying() && !w.get_isPaused()) {
+      this.wavesPlaying.splice(i, 1);
+      i--;
+    }
+  }
+};
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundBank", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$xnaasms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioEngine"), $.String], [])), 
     function _ctor (audioEngine, filename) {
       var json = JSIL.Host.getAsset(filename, true);
 
       this.name = json.Name;
+      this.audioEngine = audioEngine;
 
-      this.cues = {};
-      this.sounds = {};
-      this.waves = {};
+      this.cues = Object.create(null);
+      this.sounds = Object.create(null);
+      this.waves = Object.create(null);
+      
+      var categories = audioEngine.categories;
 
       for (var i = 0, l = json.Cues.length; i < l; i++) {
         var cue = json.Cues[i];
@@ -265,6 +299,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundBank", function ($) 
 
       for (var i = 0, l = json.Sounds.length; i < l; i++) {
         var sound = json.Sounds[i];
+        var categoryName = sound.Category || null;
+
+        if (categoryName) {
+          var category = categories[categoryName];
+          if (!category)
+            categories[categoryName] = category = new $jsilxna.SoundCategory(categoryName);
+
+          category.sounds.push(sound);
+        }
 
         this.sounds[sound.Name] = sound;
       }
@@ -374,7 +417,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
     else
       this.instance.loop = this.looped;
 
-    this.instance.volume = this.volume;
+    this.instance.set_volume(this.volume);
   });
 
   $.Method({Static:false, Public:true }, "Dispose", 
@@ -483,7 +526,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
       this.volume = value;
 
       if (this.instance !== null)
-        this.instance.volume = value;
+        this.instance.set_volume(value);
     }
   );
 

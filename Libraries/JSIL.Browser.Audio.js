@@ -38,14 +38,22 @@ JSIL.Audio.InstancePrototype = {
       this.stop();
   },
   get_volume: function () {
-    if (this.$get_volume)
-      return this.$get_volume();
-    else
-      return 1;
+    return this._volume;
   },
   set_volume: function (value) {
+    this._volume = value;
+
     if (this.$set_volume)
-      this.$set_volume(value);
+      this.$set_volume(this._volume * this._volumeMultiplier);
+  },
+  get_volumeMultiplier: function () {
+    return this._volumeMultiplier;
+  },
+  set_volumeMultiplier: function (value) {
+    this._volumeMultiplier = value;
+
+    if (this.$set_volume)
+      this.$set_volume(this._volume * this._volumeMultiplier);
   },
   get_loop: function () {
     return this._loop;
@@ -71,6 +79,13 @@ JSIL.Audio.InstancePrototype = {
 };
 
 Object.defineProperty(JSIL.Audio.InstancePrototype, "volume", {
+  get: JSIL.Audio.InstancePrototype.get_volume,
+  set: JSIL.Audio.InstancePrototype.set_volume,
+  configurable: true,
+  enumerable: true
+});
+
+Object.defineProperty(JSIL.Audio.InstancePrototype, "volumeMultiplier", {
   get: JSIL.Audio.InstancePrototype.get_volume,
   set: JSIL.Audio.InstancePrototype.set_volume,
   configurable: true,
@@ -132,10 +147,6 @@ JSIL.Audio.HTML5Instance.prototype.$resume = function () {
 
 JSIL.Audio.HTML5Instance.prototype.$stop = function () {
   this.node.pause();
-}
-
-JSIL.Audio.HTML5Instance.prototype.$get_volume = function () {
-  return this.node.volume;
 }
 
 JSIL.Audio.HTML5Instance.prototype.$set_volume = function (value) {
@@ -210,10 +221,6 @@ JSIL.Audio.WebKitInstance.prototype.$stop = function () {
   this.started = 0;
   this.bufferSource.stop(0);
 };
-
-JSIL.Audio.WebKitInstance.prototype.$get_volume = function () {
-  return this.gainNode.gain.value;
-}
 
 JSIL.Audio.WebKitInstance.prototype.$set_volume = function (value) {
   this.gainNode.gain.value = value;
