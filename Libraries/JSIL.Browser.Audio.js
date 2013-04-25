@@ -117,6 +117,8 @@ JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
   this._isPaused = false;
   this.node = node;
   this.node.loop = loop;
+  this._volume = 1.0;
+  this._volumeMultiplier = 1.0;
 
   this.$bindEvents();
 };
@@ -192,6 +194,9 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this.context = audioInfo.audioContext;
   this.started = 0;
   this.pausedAtOffset = null;
+  
+  this._volume = 1.0;
+  this._volumeMultiplier = 1.0;
 };
 JSIL.Audio.WebKitInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
