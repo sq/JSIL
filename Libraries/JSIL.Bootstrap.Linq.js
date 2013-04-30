@@ -224,6 +224,37 @@ JSIL.ImplementExternals(
       var constructor = new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Collections.Generic.List`1", [TSource]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [TSource])]);
       return constructor.Construct(enumerable);
     });  
+
+    $.Method({Static:true , Public:true }, "OfType", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), [$jsilcore.TypeRef("System.Collections.IEnumerable")], ["TResult"]), 
+      function OfType$b1 (TResult, source) {
+        var state = {};
+
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = System.Collections.IEnumerator.get_Current;
+
+        return new (JSIL.AbstractEnumerable.Of(TResult))(
+          function getNext (result) {
+            while (moveNext.Call(state.enumerator)) {
+              var current = get_Current.Call(state.enumerator);
+
+              if (TResult.$Is(current)) {
+                result.set(current);
+                return true;
+              }
+            }
+
+            return false;
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(source);
+          },
+          function dispose () {
+            JSIL.Dispose(state.enumerator);
+          }
+        );
+      }
+    );    
   }
 );
 
