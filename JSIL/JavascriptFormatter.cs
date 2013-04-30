@@ -425,17 +425,35 @@ namespace JSIL.Internal {
                 return tr.Module.Assembly.FullName;
         }
 
-        protected void OpenGenericParameter (string name, string context) {
+        protected void LocalOpenGenericParameter (GenericParameter gp) {
+            WriteRaw("$.GenericParameter");
+            LPar();
+            Value(gp.Name);
+            RPar();
+
+            WriteGenericParameterAttributes(gp);
+        }
+
+        protected void OpenGenericParameter (GenericParameter gp, string context) {
             WriteRaw("new");
             Space();
             WriteRaw("JSIL.GenericParameter", null);
             LPar();
 
-            Value(name);
+            Value(gp.Name);
             Comma();
             Value(context);
 
             RPar();
+
+            WriteGenericParameterAttributes(gp);
+        }
+
+        protected void WriteGenericParameterAttributes (GenericParameter gp) {
+            if ((gp.Attributes & GenericParameterAttributes.Covariant) == GenericParameterAttributes.Covariant)
+                WriteRaw(".out()");
+            if ((gp.Attributes & GenericParameterAttributes.Contravariant) == GenericParameterAttributes.Contravariant)
+                WriteRaw(".in()");
         }
 
         protected void TypeReferenceInternal (GenericParameter gp, TypeReferenceContext context) {
@@ -481,16 +499,12 @@ namespace JSIL.Internal {
                     }
 
                     if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
-                        OpenGenericParameter(gp.Name, context.DefiningType.FullName);
+                        OpenGenericParameter(gp, context.DefiningType.FullName);
                         return;
                     }
 
                     if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingType)) {
-                        WriteRaw("$.GenericParameter");
-                        LPar();
-                        Value(gp.Name);
-                        RPar();
-
+                        LocalOpenGenericParameter(gp);
                         return;
                     }
 
@@ -505,7 +519,7 @@ namespace JSIL.Internal {
                             )
                         ) {
                             // FIXME: I HAVE NO IDEA WHAT I AM DOING
-                            OpenGenericParameter(gp.Name, ownerTypeResolved.FullName);
+                            OpenGenericParameter(gp, ownerTypeResolved.FullName);
                             return;
                         }
                     }

@@ -799,5 +799,27 @@ namespace JSIL.Tests {
                 }
             );
         }
+
+        [Test]
+        public void InterfaceVariance () {
+            var output = "";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\InterfaceVariance.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsTrue(
+                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

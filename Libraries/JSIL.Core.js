@@ -1223,6 +1223,8 @@ JSIL.GenericParameter = function (name, context) {
   var key;
 
   this.name = new JSIL.Name(name, context);
+  this.covariant = false;
+  this.contravariant = false;
 
   if (typeof (context) === "string") {
     key = JSIL.EscapeName(String(context)) + "$" + JSIL.EscapeName(String(name));
@@ -1243,6 +1245,16 @@ JSIL.GenericParameter = function (name, context) {
   JSIL.SetValueProperty(this, "__FullName__", this.name.humanReadable);
 };
 
+JSIL.GenericParameter.prototype.in = function () {
+  this.contravariant = true;
+  return this;
+};
+
+JSIL.GenericParameter.prototype.out = function () {
+  this.covariant = true;
+  return this;
+};
+
 JSIL.GenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
     throw new Error("No context provided when resolving generic parameter '" + this.name + "'");
@@ -1253,7 +1265,16 @@ JSIL.GenericParameter.prototype.get = function (context) {
 };
 
 JSIL.GenericParameter.prototype.toString = function () {
-  return "<Generic Parameter " + this.name.humanReadable + ">";
+  var result = "<GP ";
+
+  if (this.contravariant)
+    result += "in ";
+
+  if (this.covariant)
+    result += "out ";
+
+  result += this.name.humanReadable + ">";
+  return result;
 };
 
 JSIL.GenericParameter.prototype.get_Name = function () {

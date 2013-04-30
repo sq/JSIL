@@ -148,6 +148,7 @@
     <None Include="PerformanceTestCases\GenericInterfaceMethodCalls.cs" />
     <None Include="SimpleTestCases\ListGetEnumerator.cs" />
     <None Include="SimpleTestCases\InterfaceCovariance.cs" />
+    <None Include="SpecialTestCases\InterfaceVariance.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
