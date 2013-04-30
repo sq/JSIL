@@ -1182,6 +1182,7 @@ public static class Common {
     [Serializable]
     public class SoundEntry {
         public string Name;
+        public string Category;
         public TrackEntry[] Tracks;
     }
 
@@ -1238,7 +1239,7 @@ public static class Common {
         Dictionary<string, CompressResult> existingJournal, List<CompressResult> journal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
-        const int CompressVersion = 1;
+        const int CompressVersion = 2;
 
         Console.Error.WriteLine("// Processing {0}...", projectFile);
 
@@ -1286,6 +1287,7 @@ public static class Common {
                 (from sound in soundBank.m_sounds
                  select new SoundEntry {
                      Name = sound.m_name,
+                     Category = (sound.m_category == null) ? null : sound.m_category.Name,
                      Tracks = (
                         from track in sound.m_tracks
                         select new TrackEntry {

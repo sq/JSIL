@@ -382,7 +382,7 @@ namespace JSIL.Compiler {
             return Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
         }
 
-        static Action<ProgressReporter> MakeProgressHandler (string description) {
+        static ProgressHandler MakeProgressHandler (string description) {
             const int scale = 40;
 
             return (progress) => {
@@ -426,7 +426,7 @@ namespace JSIL.Compiler {
 
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, assemblyCache, 
-                onProxyAssemblyLoaded: (name) => {
+                onProxyAssemblyLoaded: (name, classification) => {
                     Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name));
                 }
             );
@@ -435,8 +435,8 @@ namespace JSIL.Compiler {
             translator.RunningTransforms += MakeProgressHandler ("Translating ");
             translator.Writing += MakeProgressHandler           ("Writing JS  ");
 
-            translator.AssemblyLoaded += (fn) => {
-                Console.Error.WriteLine("// Loaded {0}", ShortenPath(fn));
+            translator.AssemblyLoaded += (fn, classification) => {
+                Console.Error.WriteLine("// Loaded {0} ({1})", ShortenPath(fn), classification);
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
             };

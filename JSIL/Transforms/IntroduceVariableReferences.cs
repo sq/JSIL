@@ -274,7 +274,10 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (ParentNode is JSFunctionExpression) {
+            if (
+                (ParentNode is JSFunctionExpression) &&
+                (this.CurrentName == "FunctionSignature")
+            ) {
                 VisitChildren(variable);
                 return;
             }
@@ -288,15 +291,6 @@ namespace JSIL.Transforms {
                     (ParentNode is JSWriteThroughReferenceExpression) &&
                     (this.CurrentName == "Left")
                 )
-            ) {
-                VisitChildren(variable);
-                return;
-            }
-
-            // Don't transform instances of a variable on the LHS of a variable declaration.
-            if (
-                Stack.OfType<JSVariableDeclarationStatement>().Any() &&
-                NameStack.Contains("Left")
             ) {
                 VisitChildren(variable);
                 return;
@@ -341,6 +335,12 @@ namespace JSIL.Transforms {
                 } else {
                     VisitChildren(boe);
                 }
+            } else if (ParentNode is JSVariableDeclarationStatement) {
+                // Don't walk through the left-hand side of variable declarations.
+                VisitChildren(
+                    boe,
+                    (node, name) => name != "Left"
+                );
             } else {
                 VisitChildren(boe);
             }

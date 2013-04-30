@@ -221,7 +221,7 @@ namespace JSIL.Ast {
         /// <summary>
         /// Traverses all of a node's children. This is the default behavior for VisitNode.
         /// </summary>
-        protected virtual void VisitChildren (JSNode node) {
+        protected virtual void VisitChildren (JSNode node, Func<JSNode, string, bool> predicate = null) {
             if (node == null)
                 throw new ArgumentNullException("node");
 
@@ -239,8 +239,10 @@ namespace JSIL.Ast {
                     NextSibling = e.Current;
                     nextSiblingName = e.CurrentName;
 
-                    if (toVisit != null)
-                        Visit(toVisit, toVisitName);
+                    if (toVisit != null) {
+                        if ((predicate == null) || predicate(toVisit, toVisitName))
+                            Visit(toVisit, toVisitName);
+                    }
 
                     PreviousSibling = toVisit;
                 }
@@ -249,8 +251,10 @@ namespace JSIL.Ast {
                     var toVisit = NextSibling;
                     NextSibling = null;
 
-                    if (toVisit != null)
-                        Visit(toVisit, nextSiblingName);
+                    if (toVisit != null) {
+                        if ((predicate == null) || predicate(toVisit, nextSiblingName))
+                            Visit(toVisit, nextSiblingName);
+                    }
                 }
             } finally {
                 PreviousSibling = oldPreviousSibling;

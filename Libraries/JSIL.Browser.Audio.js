@@ -3,15 +3,31 @@ JSIL.Audio = {};
 JSIL.Audio.InstancePrototype = {
   play: function () {
     this._isPlaying = true;
+    this._isPaused = false;
 
     if (this.$play)
       this.$play();
   },
   pause: function () {
     this._isPlaying = false;
+    this._isPaused = true;
 
     if (this.$pause)
       this.$pause();
+  },
+  resume: function () {
+    this._isPlaying = true;
+    this._isPaused = false;
+
+    if (this.$resume)
+      this.$resume();
+  },
+  stop: function () {
+    this._isPlaying = false;
+    this._isPaused = false;
+
+    if (this.$stop)
+      this.$stop();
   },
   dispose: function () {
     // TODO: Return to free instance pool
@@ -19,17 +35,25 @@ JSIL.Audio.InstancePrototype = {
     if (this.$dispose)
       this.$dispose();
     else
-      this.pause();
+      this.stop();
   },
   get_volume: function () {
-    if (this.$get_volume)
-      return this.$get_volume();
-    else
-      return 1;
+    return this._volume;
   },
   set_volume: function (value) {
+    this._volume = value;
+
     if (this.$set_volume)
-      this.$set_volume(value);
+      this.$set_volume(this._volume * this._volumeMultiplier);
+  },
+  get_volumeMultiplier: function () {
+    return this._volumeMultiplier;
+  },
+  set_volumeMultiplier: function (value) {
+    this._volumeMultiplier = value;
+
+    if (this.$set_volume)
+      this.$set_volume(this._volume * this._volumeMultiplier);
   },
   get_loop: function () {
     return this._loop;
@@ -45,10 +69,23 @@ JSIL.Audio.InstancePrototype = {
       return this.$get_isPlaying();
     else
       return this._isPlaying;
+  },
+  get_isPaused: function () {
+    if (this.$get_isPaused)
+      return this.$get_isPaused();
+    else
+      return this._isPaused;
   }
 };
 
 Object.defineProperty(JSIL.Audio.InstancePrototype, "volume", {
+  get: JSIL.Audio.InstancePrototype.get_volume,
+  set: JSIL.Audio.InstancePrototype.set_volume,
+  configurable: true,
+  enumerable: true
+});
+
+Object.defineProperty(JSIL.Audio.InstancePrototype, "volumeMultiplier", {
   get: JSIL.Audio.InstancePrototype.get_volume,
   set: JSIL.Audio.InstancePrototype.set_volume,
   configurable: true,
@@ -68,11 +105,20 @@ Object.defineProperty(JSIL.Audio.InstancePrototype, "isPlaying", {
   enumerable: true
 });
 
+Object.defineProperty(JSIL.Audio.InstancePrototype, "isPaused", {
+  get: JSIL.Audio.InstancePrototype.get_isPaused,
+  configurable: true,
+  enumerable: true
+});
+
 
 JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
   this._isPlaying = false;
+  this._isPaused = false;
   this.node = node;
   this.node.loop = loop;
+  this._volume = 1.0;
+  this._volumeMultiplier = 1.0;
 
   this.$bindEvents();
 };
@@ -97,11 +143,20 @@ JSIL.Audio.HTML5Instance.prototype.$pause = function () {
   this.node.pause();
 }
 
-JSIL.Audio.HTML5Instance.prototype.$get_volume = function () {
-  return this.node.volume;
+JSIL.Audio.HTML5Instance.prototype.$resume = function () {
+  this.node.play();
+}
+
+JSIL.Audio.HTML5Instance.prototype.$stop = function () {
+  this.node.pause();
 }
 
 JSIL.Audio.HTML5Instance.prototype.$set_volume = function (value) {
+  if (value < 0)
+    value = 0;
+  else if (value > 1)
+    value = 1;
+  
   return this.node.volume = value;
 }
 
@@ -110,7 +165,7 @@ JSIL.Audio.HTML5Instance.prototype.$set_loop = function (value) {
 }
 
 JSIL.Audio.HTML5Instance.prototype.on_ended = function () {
-  this.isPlaying = false;
+  this._isPlaying = false;
   this.dispose();
 };
 
@@ -131,33 +186,51 @@ JSIL.Audio.HTML5Instance.prototype.$dispose = function () {
 };
 
 JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
-  this.bufferSource = audioInfo.audioContext.createBufferSource();
   this.gainNode = audioInfo.audioContext.createGainNode();
-
-  this.bufferSource.buffer = buffer;
-  this.bufferSource.loop = loop;
-
-  this.bufferSource.connect(this.gainNode);
   this.gainNode.connect(audioInfo.audioContext.destination);
+
+  this.$createBufferSource = function () {
+    this.bufferSource = audioInfo.audioContext.createBufferSource();
+    this.bufferSource.buffer = buffer;
+    this.bufferSource.loop = loop;
+    this.bufferSource.connect(this.gainNode);
+  };
 
   this.context = audioInfo.audioContext;
   this.started = 0;
+  this.pausedAtOffset = null;
+
+  this._volume = 1.0;
+  this._volumeMultiplier = 1.0;
 };
 JSIL.Audio.WebKitInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
 JSIL.Audio.WebKitInstance.prototype.$play = function () {
+  this.$createBufferSource();
   this.started = this.context.currentTime;
-  this.bufferSource.noteOn(0);
+  this.pausedAtOffset = null;
+  this.bufferSource.start(0);
 }
 
 JSIL.Audio.WebKitInstance.prototype.$pause = function () {
-  this.started = 0;
-  this.bufferSource.noteOff(0);
+  this.pausedAtOffset = this.context.currentTime - this.started;
+  this.$stop();
 }
 
-JSIL.Audio.WebKitInstance.prototype.$get_volume = function () {
-  return this.gainNode.gain.value;
+JSIL.Audio.WebKitInstance.prototype.$resume = function () {
+  // Apparently it's 1993 and audio APIs must precisely emulate analog
+  //  hardware characteristics instead of doing useful things
+  // http://stackoverflow.com/a/14715786
+  this.$createBufferSource();
+  this.started = this.context.currentTime - this.pausedAtOffset;
+  this.bufferSource.start(0, this.pausedAtOffset);
+  this.pausedAtOffset = null;
 }
+
+JSIL.Audio.WebKitInstance.prototype.$stop = function () {
+  this.started = 0;
+  this.bufferSource.stop(0);
+};
 
 JSIL.Audio.WebKitInstance.prototype.$set_volume = function (value) {
   this.gainNode.gain.value = value;

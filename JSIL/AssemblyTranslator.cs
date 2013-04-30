@@ -20,6 +20,11 @@ using ICSharpCode.Decompiler;
 using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
+    public delegate void AssemblyLoadedHandler (string assemblyName, string classification);
+    public delegate void ProgressHandler (ProgressReporter pr);
+    public delegate void DecompilingMethodHandler (string methodName, ProgressReporter pr);
+    public delegate void LoadErrorHandler (string name, Exception error);
+
     public class AssemblyTranslator : IDisposable {
         struct MethodToAnalyze {
             public readonly MethodDefinition MD;
@@ -47,17 +52,18 @@ namespace JSIL {
 
         public readonly List<Exception> Failures = new List<Exception>();
 
-        public event Action<string> AssemblyLoaded;
-        public event Action<string> ProxyAssemblyLoaded;
+        public event AssemblyLoadedHandler AssemblyLoaded;
+        public event AssemblyLoadedHandler AssemblyNotLoaded;
+        public event AssemblyLoadedHandler ProxyAssemblyLoaded;
 
-        public event Action<ProgressReporter> Decompiling;
-        public event Action<ProgressReporter> RunningTransforms;
-        public event Action<ProgressReporter> Writing;
-        public event Action<string, ProgressReporter> DecompilingMethod;
+        public event ProgressHandler Decompiling;
+        public event ProgressHandler RunningTransforms;
+        public event ProgressHandler Writing;
+        public event DecompilingMethodHandler DecompilingMethod;
 
-        public event Action<string, Exception> CouldNotLoadSymbols;
-        public event Action<string, Exception> CouldNotResolveAssembly;
-        public event Action<string, Exception> CouldNotDecompileMethod;
+        public event LoadErrorHandler CouldNotLoadSymbols;
+        public event LoadErrorHandler CouldNotResolveAssembly;
+        public event LoadErrorHandler CouldNotDecompileMethod;
         public event Action<string> Warning;
         public event Action<string, string[]> IgnoredMethod;
 
@@ -87,7 +93,7 @@ namespace JSIL {
             TypeInfoProvider typeInfoProvider = null,
             AssemblyManifest manifest = null,
             AssemblyCache assemblyCache = null,
-            Action<string> onProxyAssemblyLoaded = null
+            AssemblyLoadedHandler onProxyAssemblyLoaded = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
             Warning = (s) => {
@@ -189,7 +195,7 @@ namespace JSIL {
 
         private void OnProxiesFoundHandler (AssemblyDefinition asm) {
             if (ProxyAssemblyLoaded != null)
-                ProxyAssemblyLoaded(asm.Name.Name);
+                ProxyAssemblyLoaded(asm.Name.Name, "proxy");
         }
 
         public void AddProxyAssembly (string path) {
@@ -247,6 +253,24 @@ namespace JSIL {
             };
         }
 
+        protected bool IsIgnored (string assemblyName) {
+            foreach (var ia in Configuration.Assemblies.Ignored) {
+                if (Regex.IsMatch(assemblyName, ia, RegexOptions.IgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        protected string ClassifyAssembly (AssemblyDefinition asm) {
+            if (IsIgnored(asm.FullName))
+                return "ignored";
+            else if (IsStubbed(asm))
+                return "stubbed";
+            else
+                return "translate";
+        }
+
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
             if (String.IsNullOrWhiteSpace(path))
                 throw new InvalidDataException("Assembly path was empty.");
@@ -265,7 +289,7 @@ namespace JSIL {
             result.Add(assembly);
 
             if (AssemblyLoaded != null)
-                AssemblyLoaded(path);
+                AssemblyLoaded(path, ClassifyAssembly(assembly));
 
             if (includeDependencies) {
                 var parallelOptions = GetParallelOptions();
@@ -282,16 +306,15 @@ namespace JSIL {
                         visitedModules.Add(module.FullyQualifiedName);
 
                         foreach (var reference in module.AssemblyReferences) {
-                            bool ignored = false;
-                            foreach (var ia in Configuration.Assemblies.Ignored) {
-                                if (Regex.IsMatch(reference.FullName, ia, RegexOptions.IgnoreCase)) {
-                                    ignored = true;
-                                    break;
-                                }
+                            bool ignored = IsIgnored(reference.FullName);
+
+                            if (ignored) {
+                                if (AssemblyNotLoaded != null)
+                                    AssemblyNotLoaded(reference.FullName, "ignored");
+
+                                continue;
                             }
 
-                            if (ignored)
-                                continue;
                             if (assemblyNames.Contains(reference.FullName))
                                 continue;
 
@@ -299,6 +322,7 @@ namespace JSIL {
                             assembliesToLoad.Add(reference);
                         }
                     }
+
                     modulesToVisit.Clear();
 
                     Parallel.For(
@@ -314,7 +338,7 @@ namespace JSIL {
 
                             if (refAssembly != null) {
                                 if (AssemblyLoaded != null)
-                                    AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
+                                    AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName, ClassifyAssembly(refAssembly));
 
                                 lock (result)
                                     result.Add(refAssembly);

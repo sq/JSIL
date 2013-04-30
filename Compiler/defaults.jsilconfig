@@ -3,20 +3,21 @@
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",
-      "System.*",
-      "Microsoft.*",
-      "FSharp.Core"
+      "System,",
+      "System\\.(.*),",
+      "Microsoft\\.(.*),",
+      "FSharp.Core,"
     ],
     "Ignored": [
-      "Microsoft.VisualC,",
+      "Microsoft\\.VisualC,",
       "Accessibility,",
       "SMDiagnostics,",
-      "System.EnterpriseServices,",
-      "System.Security,",
-      "System.Runtime.Serialization.Formatters.Soap,",
-      "System.Runtime.DurableInstancing,",
-      "System.Data.SqlXml,",
-      "JSIL.Meta,"
+      "System\\.EnterpriseServices,",
+      "System\\.Security,",
+      "System\\.Runtime\\.Serialization\\.Formatters\\.Soap,",
+      "System\\.Runtime\\.DurableInstancing,",
+      "System\\.Data\\.SqlXml,",
+      "JSIL\\.Meta,"
     ]
   },
   "ProfileSettings": {
