@@ -468,9 +468,10 @@ var vectorUtil = {
 
     $.Method({Static: true , Public: true }, "Normalize",
       new JSIL.MethodSignature(tVector, [tVector], []),
-      function (v) {
-        fn.call(v);
-        return v;
+      function Normalize_Static (v) {
+        var result = v.MemberwiseClone();
+        fn.call(result);
+        return result;
       }
     );
   },
