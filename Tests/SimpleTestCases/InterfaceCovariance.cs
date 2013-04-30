@@ -10,22 +10,19 @@ public class B : A {
 
 public static class Program {
     public static void Main (string[] args) {
-        var listA = new List<A> {
-            new A(),
-            new B()
-        };
-
-        var listB = new List<B> {
+        object listB = new List<B> {
             new B(),
             new B()
         };
 
-        foreach (var b in listA.OfType<B>())
-            Console.WriteLine(b);
+        Console.WriteLine(listB is IEnumerable<object> ? "true" : "false");
+        Console.WriteLine(listB is IEnumerable<A> ? "true" : "false");
+        Console.WriteLine(listB is IEnumerable<B> ? "true" : "false");
 
-        var bAsEnumerableA = (IEnumerable<A>)listB;
+        object item1 = ((List<B>)listB)[0];
 
-        foreach (var a in bAsEnumerableA)
-            Console.WriteLine(a);
+        Console.WriteLine(item1 is object ? "true" : "false");
+        Console.WriteLine(item1 is A ? "true" : "false");
+        Console.WriteLine(item1 is B ? "true" : "false");
     }
 }

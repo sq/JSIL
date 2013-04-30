@@ -815,6 +815,12 @@ namespace JSIL.Tests {
                 Assert.IsTrue(
                     generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
                 );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"in U\""), "U name missing variance indicator"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"out V\""), "V name missing variance indicator"
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 

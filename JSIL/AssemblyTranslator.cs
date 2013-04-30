@@ -17,6 +17,7 @@ using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+using GenericParameterAttributes = Mono.Cecil.GenericParameterAttributes;
 using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
@@ -772,9 +773,7 @@ namespace JSIL {
             output.Comma();
 
             output.OpenBracket();
-            output.CommaSeparatedList(
-                (from p in iface.GenericParameters select p.Name), null, ListValueType.Primitive
-            );
+            WriteGenericParameterNames(output, iface.GenericParameters);
             output.CloseBracket();
 
             output.Comma();
@@ -858,6 +857,23 @@ namespace JSIL {
             output.NewLine();
         }
 
+        private string PickGenericParameterName (GenericParameter gp) {
+            var result = gp.Name;
+
+            if ((gp.Attributes & GenericParameterAttributes.Covariant) == GenericParameterAttributes.Covariant)
+                result = "out " + result;
+            if ((gp.Attributes & GenericParameterAttributes.Contravariant) == GenericParameterAttributes.Contravariant)
+                result = "in " + result;
+
+            return result;
+        }
+
+        private void WriteGenericParameterNames (JavascriptFormatter output, IEnumerable<GenericParameter> parameters) {
+            output.CommaSeparatedList(
+                (from p in parameters select PickGenericParameterName(p)), null, ListValueType.Primitive
+            );
+        }
+
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(enm);
 
@@ -917,9 +933,7 @@ namespace JSIL {
             output.Comma();
             output.OpenBracket();
             if (del.HasGenericParameters)
-                output.CommaSeparatedList(
-                    (from p in del.GenericParameters select p.Name), null, ListValueType.Primitive
-                );
+                WriteGenericParameterNames(output, del.GenericParameters);
             output.CloseBracket();
 
             output.RPar();
@@ -1066,9 +1080,7 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket();
                     if (typedef.HasGenericParameters)
-                        output.CommaSeparatedList(
-                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
-                        );
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
                     output.CloseBracket();
 
                 } else {
@@ -1113,9 +1125,7 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket();
                     if (typedef.HasGenericParameters)
-                        output.CommaSeparatedList(
-                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
-                        );
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
                     output.CloseBracket();
 
                 }
