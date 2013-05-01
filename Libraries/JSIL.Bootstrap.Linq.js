@@ -196,6 +196,27 @@ JSIL.ImplementExternals(
       var constructor = new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Collections.Generic.List`1", [TSource]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [TSource])]);
       return constructor.Construct(enumerable);
     });  
+
+    $.Method({Static:true , Public:true }, "ElementAt", 
+      new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $.Int32], ["TSource"]), 
+      function ElementAt$b1 (TSource, source, index) {
+        // FIXME: Wasteful
+        var temp = JSIL.EnumerableToArray(source);
+        return temp[index];
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "ElementAtOrDefault", 
+      new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $.Int32], ["TSource"]), 
+      function ElementAtOrDefault$b1 (TSource, source, index) {
+        // FIXME: Wasteful
+        var temp = JSIL.EnumerableToArray(source);
+        if ((index >= 0) && (index <= temp.length))
+          return temp[index];
+        else
+          return JSIL.DefaultValue(TSource);
+      }
+    );
   }
 );
 

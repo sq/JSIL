@@ -373,6 +373,7 @@
     <None Include="SimpleTestCases\EnumerableToList.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
     <None Include="SimpleTestCases\Issue118_1.fs" />
+    <None Include="SimpleTestCases\EnumerableElementAt.cs" />
     <Compile Include="ThreadingTests.cs" />
     <None Include="UnsafeTestCases\WriteSimpleStruct.cs" />
     <None Include="UnsafeTestCases\ReadSimpleStruct.cs" />
