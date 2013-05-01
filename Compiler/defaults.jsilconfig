@@ -1,5 +1,5 @@
 ﻿{
-  "OutputDirectory": "%configdirectory%",
+  "OutputDirectory": "%currentdirectory%",
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",

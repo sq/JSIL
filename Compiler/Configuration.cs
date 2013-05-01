@@ -91,6 +91,7 @@ namespace JSIL.Compiler {
             foreach (var kvp in CustomVariables)
                 result[kvp.Key] = BindCustomVariable(kvp.Key);
 
+            result["CurrentDirectory"] = () => Environment.CurrentDirectory;
             result["ConfigDirectory"] = () => Path;
             result["OutputDirectory"] = () => OutputDirectory;
             result["FileOutputDirectory"] = () => FileOutputDirectory;
