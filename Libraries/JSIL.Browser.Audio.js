@@ -253,6 +253,8 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
     this.bufferSource.loop = loop;
     // Input -> Gain (this converts mono up to stereo)
     this.bufferSource.connect(this.gainNode);
+
+    this.$set_pitch(this._pitch);
   };
 
   // Gain -> Channels [0, 1]
@@ -324,6 +326,25 @@ JSIL.Audio.WebKitInstance.prototype.$set_pan = function (value) {
     this.gainNodeLeft.gain.value = 1;
     this.gainNodeRight.gain.value = 1;
   }
+}
+
+JSIL.Audio.WebKitInstance.prototype.$set_pitch = function (value) {
+  if (!this.bufferSource)
+    return;
+
+  var ratio = Math.pow(2.0, value);
+
+  // Attempting to match the behavior of XAudio here
+  var min_ratio = 1 / 1024;
+  var max_ratio = 1024;
+
+  if (ratio < min_ratio)
+    ratio = min_ratio;
+  else if (ratio > max_ratio)
+    ratio = max_ratio;
+
+  // FIXME: The spec does not actually say what this property does...
+  this.bufferSource.playbackRate.value = ratio;
 }
 
 JSIL.Audio.WebKitInstance.prototype.$set_loop = function (value) {
