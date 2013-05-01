@@ -225,11 +225,6 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this.gainNode.channelCountMode = "explicit";
   this.gainNode.channelInterpretation = "speakers";
 
-  // Ensure gain is done in stereo across both channels
-  this.gainNode.channelCount = 2;
-  this.gainNode.channelCountMode = "explicit";
-  this.gainNode.channelInterpretation = "speakers";
-
   // We need these to split out left/right channels and then recombine them (for panning)
   this.channelSplitter = audioInfo.audioContext.createChannelSplitter(2);
   this.channelMerger = audioInfo.audioContext.createChannelMerger(2);
