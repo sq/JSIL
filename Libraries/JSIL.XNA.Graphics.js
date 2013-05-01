@@ -2730,7 +2730,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
       case "Microsoft.Xna.Framework.Color":
       case "Microsoft.Xna.Framework.Graphics.Color":
-        $jsilxna.PackColorsFromColorBytes(data, startIndex, imageData.data, 0, elementCount, true);
+        $jsilxna.PackColorsFromColorBytesRGBA(data, startIndex, imageData.data, 0, elementCount, true);
         break;
       default:
         throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
@@ -2747,7 +2747,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
       case "Microsoft.Xna.Framework.Color":
       case "Microsoft.Xna.Framework.Graphics.Color":
-        bytes = $jsilxna.UnpackColorsToColorBytes(data, startIndex, elementCount);
+        bytes = $jsilxna.UnpackColorsToColorBytesRGBA(data, startIndex, elementCount);
         startIndex = 0;
         elementCount = bytes.length;
         swapRedAndBlue = true;
@@ -3274,7 +3274,7 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedA
   return result;
 };
 
-$jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) {
+$jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
   var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
   for (var i = 0, l = elementCount; i < l; i++) {
@@ -3290,13 +3290,13 @@ $jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) 
   return result;
 };
 
-$jsilxna.PackColorsFromColorBytes = function (destArray, destOffset, sourceArray, sourceOffset, count) {
+$jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceArray, sourceOffset, count) {
   for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s+=4) {
     // Destination array already has plenty of color instances for us to use.
     var color = destArray[d];
-    color.b = sourceArray[s];
+    color.r = sourceArray[s];
     color.g = sourceArray[(s + 1) | 0];
-    color.r = sourceArray[(s + 2) | 0];
+    color.b = sourceArray[(s + 2) | 0];
     color.a = sourceArray[(s + 3) | 0];
   }
 };
