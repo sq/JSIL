@@ -324,8 +324,6 @@ JSIL.Audio.WebKitInstance.prototype.$set_pan = function (value) {
     this.gainNodeLeft.gain.value = 1;
     this.gainNodeRight.gain.value = 1;
   }
-
-  document.title = System.String.Format("gain L={0:0.00} R={1:0.00}", this.gainNodeLeft.gain.value, this.gainNodeRight.gain.value);
 }
 
 JSIL.Audio.WebKitInstance.prototype.$set_loop = function (value) {
