@@ -91,9 +91,9 @@ JSIL.MakeClass("HTML5Asset", "SoundAssetBase", true, [], function ($) {
     function Play (volume, pitch, pan) {
       var instance = this.$newInstance();
 
-      instance.volume = volume;
-
-      // FIXME: No pitch or pan
+      instance.set_volume(volume);
+      instance.set_pan(pan);
+      instance.set_pitch(pitch);
 
       instance.play();
 

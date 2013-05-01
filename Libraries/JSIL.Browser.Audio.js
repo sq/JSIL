@@ -1,5 +1,8 @@
 JSIL.Audio = {};
 
+JSIL.Audio.$WarnedAboutPan = false;
+JSIL.Audio.$WarnedAboutPitch = false;
+
 JSIL.Audio.InstancePrototype = {
   play: function () {
     this._isPlaying = true;
@@ -54,6 +57,32 @@ JSIL.Audio.InstancePrototype = {
 
     if (this.$set_volume)
       this.$set_volume(this._volume * this._volumeMultiplier);
+  },
+  get_pan: function () {
+    return this._pan;
+  },
+  set_pan: function (value) {
+    this._pan = value;
+
+    if (this.$set_pan)
+      this.$set_pan(this._pan);
+    else if ((value !== 0) && (!JSIL.Audio.$WarnedAboutPan)) {
+      JSIL.Audio.$WarnedAboutPan = true;
+      JSIL.Host.warning("Your browser does not have an implementation of panning for sound effects.");
+    }
+  },
+  get_pitch: function () {
+    return this._pitch;
+  },
+  set_pitch: function (value) {
+    this._pitch = value;
+
+    if (this.$set_pitch)
+      this.$set_pitch(this._pitch);
+    else if ((value !== 0) && (!JSIL.Audio.$WarnedAboutPitch)) {
+      JSIL.Audio.$WarnedAboutPitch = true;
+      JSIL.Host.warning("Your browser does not have an implementation of pitch shifting for sound effects.");
+    }
   },
   get_loop: function () {
     return this._loop;
@@ -119,6 +148,8 @@ JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
   this.node.loop = loop;
   this._volume = 1.0;
   this._volumeMultiplier = 1.0;
+  this._pan = 0;
+  this._pitch = 0;
 
   this.$bindEvents();
 };
@@ -186,15 +217,59 @@ JSIL.Audio.HTML5Instance.prototype.$dispose = function () {
 };
 
 JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
-  this.gainNode = audioInfo.audioContext.createGainNode();
-  this.gainNode.connect(audioInfo.audioContext.destination);
+  // This node is used for volume control
+  this.gainNode = audioInfo.audioContext.createGain();
+
+  // Ensure mono sources are converted up to stereo.
+  this.gainNode.channelCount = 2;
+  this.gainNode.channelCountMode = "explicit";
+  this.gainNode.channelInterpretation = "speakers";
+
+  // Ensure gain is done in stereo across both channels
+  this.gainNode.channelCount = 2;
+  this.gainNode.channelCountMode = "explicit";
+  this.gainNode.channelInterpretation = "speakers";
+
+  // We need these to split out left/right channels and then recombine them (for panning)
+  this.channelSplitter = audioInfo.audioContext.createChannelSplitter(2);
+  this.channelMerger = audioInfo.audioContext.createChannelMerger(2);
+
+  // These two are used for left/right panning
+  this.gainNodeLeft = audioInfo.audioContext.createGain();
+
+  // Ensure gain is done on a single channel
+  this.gainNodeLeft.channelCount = 1;
+  this.gainNodeLeft.channelCountMode = "explicit";
+
+  this.gainNodeRight = audioInfo.audioContext.createGain();
+
+  // Ensure gain is done on a single channel
+  this.gainNodeRight.channelCount = 1;
+  this.gainNodeRight.channelCountMode = "explicit";
 
   this.$createBufferSource = function () {
     this.bufferSource = audioInfo.audioContext.createBufferSource();
     this.bufferSource.buffer = buffer;
     this.bufferSource.loop = loop;
+    // Input -> Gain (this converts mono up to stereo)
     this.bufferSource.connect(this.gainNode);
   };
+
+  // Gain -> Channels [0, 1]
+  this.gainNode.connect(this.channelSplitter);
+
+  // Channel 0 -> Left Gain
+  this.channelSplitter.connect(this.gainNodeLeft, 0, 0);
+  // Channel 1 -> Right Gain
+  this.channelSplitter.connect(this.gainNodeRight, 1, 0);
+
+  // Left Gain -> Channel 0
+  this.gainNodeLeft.connect(this.channelMerger, 0, 0);
+  // Right Gain -> Channel 1
+  this.gainNodeRight.connect(this.channelMerger, 0, 1);
+
+  // Channels [0, 1] -> Output
+  this.channelMerger.connect(audioInfo.audioContext.destination);
 
   this.context = audioInfo.audioContext;
   this.started = 0;
@@ -202,6 +277,8 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
 
   this._volume = 1.0;
   this._volumeMultiplier = 1.0;
+  this._pan = 0;
+  this._pitch = 0;
 };
 JSIL.Audio.WebKitInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
@@ -236,6 +313,21 @@ JSIL.Audio.WebKitInstance.prototype.$set_volume = function (value) {
   this.gainNode.gain.value = value;
 }
 
+JSIL.Audio.WebKitInstance.prototype.$set_pan = function (value) {
+  if (value < 0) {
+    this.gainNodeLeft.gain.value = 1;
+    this.gainNodeRight.gain.value = 1 + value;    
+  } else if (value > 0) {
+    this.gainNodeLeft.gain.value = 1 - value;
+    this.gainNodeRight.gain.value = 1;
+  } else {
+    this.gainNodeLeft.gain.value = 1;
+    this.gainNodeRight.gain.value = 1;
+  }
+
+  document.title = System.String.Format("gain L={0:0.00} R={1:0.00}", this.gainNodeLeft.gain.value, this.gainNodeRight.gain.value);
+}
+
 JSIL.Audio.WebKitInstance.prototype.$set_loop = function (value) {
   this.bufferSource.loop = value;
 }
@@ -249,6 +341,10 @@ JSIL.Audio.WebKitInstance.prototype.$get_isPlaying = function () {
 }
 
 JSIL.Audio.NullInstance = function (audioInfo, loop) {  
+  this._volume = 1.0;
+  this._volumeMultiplier = 1.0;
+  this._pan = 0;
+  this._pitch = 0;
 };
 JSIL.Audio.NullInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
 
@@ -500,12 +596,18 @@ function initSoundLoader () {
 
   if (audioInfo.hasAudioContext) {
     audioInfo.audioContext = new audioContextCtor();  
+
     // Firefox exposes the AudioContext ctor without actually implementing the API
     audioInfo.hasAudioContext =
       audioInfo.audioContext.decodeAudioData && 
       audioInfo.audioContext.createBufferSource &&
-      audioInfo.audioContext.createGainNode &&
+      audioInfo.audioContext.createGain &&
+      audioInfo.audioContext.createChannelSplitter &&
+      audioInfo.audioContext.createChannelMerger &&
       audioInfo.audioContext.destination;
+
+    if (!audioInfo.hasAudioContext)
+      JSIL.Host.warning("Your browser's implementation of the Web Audio API is broken and is being ignored by JSIL.");
   }
 
   assetLoaders["Sound"] = loadSoundGeneric.bind(null, audioInfo);

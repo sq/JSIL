@@ -408,6 +408,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
       this.looped = false;
       this.instance = null;
       this.volume = 1;
+      this.pan = 0;
+      this.pitch = 0;
     }
   );
 
@@ -418,6 +420,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
       this.instance.loop = this.looped;
 
     this.instance.set_volume(this.volume);
+    this.instance.set_pan(this.pan);
+    this.instance.set_pitch(this.pitch);
   });
 
   $.Method({Static:false, Public:true }, "Dispose", 
@@ -483,6 +487,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_Pan", 
+    new JSIL.MethodSignature($.Single, [], []), 
+    function get_Pan () {
+      return this.pan;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Pitch", 
+    new JSIL.MethodSignature($.Single, [], []), 
+    function get_Pitch () {
+      return this.pitch;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Pause", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Pause () {
@@ -527,6 +545,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
 
       if (this.instance !== null)
         this.instance.set_volume(value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Pan", 
+    new JSIL.MethodSignature(null, [$.Single], []), 
+    function set_Pan (value) {
+      this.pan = value;
+
+      if (this.instance !== null)
+        this.instance.set_pan(value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Pitch", 
+    new JSIL.MethodSignature(null, [$.Single], []), 
+    function set_Pitch (value) {
+      this.pitch = value;
+
+      if (this.instance !== null)
+        this.instance.set_pitch(value);
     }
   );
 
