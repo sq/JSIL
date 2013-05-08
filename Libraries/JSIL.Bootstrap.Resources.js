@@ -209,6 +209,14 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Clone", 
+    (new JSIL.MethodSignature($.Object, [], [])), 
+    function get_Name () {
+      // FIXME
+      return new System.Globalization.CultureInfo(this.m_name, this.m_useUserOverride);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Name", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Name () {
