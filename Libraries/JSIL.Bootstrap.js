@@ -4015,9 +4015,9 @@ JSIL.MakeInterface(
 );
 
 JSIL.MakeInterface(
-  "System.Collections.Generic.IComparer`1", true, ["T"], 
+  "System.Collections.Generic.IComparer`1", true, ["in T"], 
   function ($) {
-    var T = new JSIL.GenericParameter("T", "System.Collections.Generic.IComparer`1");
+    var T = new JSIL.GenericParameter("T", "System.Collections.Generic.IComparer`1").in();
 
     $.Method({}, "Compare", 
       new JSIL.MethodSignature($.Int32, [T, T], [])
