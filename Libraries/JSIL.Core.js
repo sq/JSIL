@@ -7508,6 +7508,8 @@ JSIL.FillTypeObjectGenericArguments = function (typeObject, argumentNames) {
 };
 
 JSIL.GetTypeAndBases = function (typeObject) {
+  // FIXME: Memoize the result of this function?
+
   var result = [typeObject];
   JSIL.$EnumBasesOfType(typeObject, result);
   return result;
@@ -7531,6 +7533,8 @@ JSIL.$EnumBasesOfType = function (typeObject, resultList) {
 };
 
 JSIL.GetInterfacesImplementedByType = function (typeObject) {
+  // FIXME: Memoize the result of this function?
+
   var typeAndBases = JSIL.GetTypeAndBases(typeObject);
   var result = [];
 
@@ -7558,33 +7562,102 @@ JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resu
   }
 };
 
-JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTypeObject, variantParameterIndices) {
+JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTypeObject, variantParameters) {
+  // FIXME: Memoize the result of this function?
+
+  var trace = 0;
+
+  // We have to scan exhaustively through all the interfaces implemented by this type
   var interfaces = JSIL.GetInterfacesImplementedByType(actualTypeObject);
-  System.Console.WriteLine("Type {0} implements {1} interface(s): [ {2} ]", actualTypeObject.__FullName__, interfaces.length, interfaces.join(", "));
+
+  if (trace >= 2)
+    System.Console.WriteLine("Type {0} implements {1} interface(s): [ {2} ]", actualTypeObject.__FullName__, interfaces.length, interfaces.join(", "));
+
+  var openExpected = expectedInterfaceObject.__OpenType__;
+  if (!openExpected || !openExpected.IsInterface)
+    throw new Error("Expected interface object must be a closed generic interface type");
+
+  // Scan for interfaces that could potentially match through variance
+  for (var i = 0, l = interfaces.length; i < l; i++) {
+    var iface = interfaces[i];
+
+    var openIface = iface.__OpenType__;
+
+    // Variance only applies to closed generic interface types... I think.
+    if (!openIface || !openIface.IsInterface)
+      continue;
+
+    if (openIface !== openExpected)
+      continue;
+
+    var ifaceResult = true;
+
+    check_parameters:
+    for (var j = 0; j < variantParameters.length; j++) {
+      var vp = variantParameters[j];
+      var lhs = expectedInterfaceObject.__GenericArgumentValues__[vp.index];
+      var rhs = iface.__GenericArgumentValues__[vp.index];
+
+      var parameterResult = true;
+      var foundIndex = -1;
+
+      if (vp.in) {
+        var typeAndBasesLhs = JSIL.GetTypeAndBases(lhs);
+        foundIndex = typeAndBasesLhs.indexOf(rhs)
+        if (foundIndex < 0)
+          ifaceResult = parameterResult = false;
+      } 
+
+      if (vp.out) {
+        var typeAndBasesRhs = JSIL.GetTypeAndBases(rhs);
+        foundIndex = typeAndBasesRhs.indexOf(lhs) < 0;
+        if (foundIndex < 0)
+          ifaceResult = parameterResult = false;
+      }
+
+      if (trace >= 1)
+        System.Console.WriteLine(
+          "Variance check {4}{5}{0}: {1} <-> {2} === {3}", 
+          vp.name, lhs, rhs, parameterResult, 
+          vp.in ? "in " : "", vp.out ? "out " : ""
+        );
+    }
+
+    if (ifaceResult)
+      return true;
+  }
+
+  return false;
 };
 
 JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asFunction) {
-  var trace = true;
+  var trace = false;
 
   var result = {
     "is": isFunction,
     "as": asFunction
   };
 
-  var variantParameterIndices = [];
+  var variantParameters = [];
   var parameterVariances = typeObject.__GenericArgumentVariance__;
   if (!parameterVariances)
     return result;
 
   for (var i = 0, l = parameterVariances.length; i < l; i++) {
     var variance = parameterVariances[i];
-    if (variance.in || variance.out)
-      variantParameterIndices.push(i);
+
+    if (variance.in || variance.out) {
+      var vp = Object.create(variance);
+      vp.name = typeObject.__GenericArguments__[i];
+      vp.index = i;
+      variantParameters.push(vp);
+    }
   }
 
-  if (variantParameterIndices.length === 0) {
+  if (variantParameters.length === 0) {
     if (trace)
       System.Console.WriteLine("None of interface {0}'s parameters are variant", typeObject.__FullName__);
+
     return result;
   }
 
@@ -7595,7 +7668,7 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
       System.Console.WriteLine("({0} is {1}) == {2}", value, typeObject.__FullName__, result);
 
     if (!result)
-      result = JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameterIndices);
+      result = JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameters);
 
     if (trace)
       System.Console.WriteLine("({0} is {1}) == {2}", value, typeObject.__FullName__, result);
@@ -7610,7 +7683,7 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
       System.Console.WriteLine("{0} as {1} failed", value, typeObject.__FullName__);
 
     if (!result) {
-      if (JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameterIndices))
+      if (JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameters))
         result = value;
 
       if (trace)
