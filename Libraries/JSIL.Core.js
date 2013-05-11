@@ -7465,6 +7465,9 @@ JSIL.FillTypeObjectGenericArguments = function (typeObject, argumentNames) {
   var variances = [];
 
   if (argumentNames) {
+    if (!JSIL.IsArray(argumentNames))
+      throw new Error("Generic argument names must be undefined or an array");
+
     for (var i = 0, l = argumentNames.length; i < l; i++) {
       var variance = {
         "in": false,

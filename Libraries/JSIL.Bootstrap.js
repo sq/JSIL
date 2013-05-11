@@ -1714,7 +1714,7 @@ JSIL.ImplementExternals("System.Math", function ($) {
   );
 });
 
-JSIL.MakeStaticClass("System.Math", true, function ($) {
+JSIL.MakeStaticClass("System.Math", true, [], function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
