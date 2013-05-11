@@ -4143,7 +4143,9 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__RenamedMethods__ = {};
     typeObject.__RawMethods__ = [];
     typeObject.__TypeInitialized__ = false;
-    typeObject.__GenericArguments__ = genericArguments || [];
+
+    JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
+
     typeObject.__Attributes__ = memberBuilder.attributes;
 
     typeObject.IsInterface = false;
@@ -4633,7 +4635,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       typeObject.__RenamedMethods__ = {};
 
     typeObject.__RawMethods__ = [];
-    typeObject.__GenericArguments__ = genericArguments || [];
+
+    JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
+
     typeObject.IsInterface = false;
     typeObject.__IsValueType__ = !isReferenceType;
 
@@ -4755,7 +4759,9 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
     typeObject.__FullName__ = fullName;
-    typeObject.__GenericArguments__ = genericArguments || [];
+
+    JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
+
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
@@ -7032,7 +7038,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__AssignableTypes__ = null;
     typeObject.__IsEnum__ = false;
 
-    typeObject.__GenericArguments__ = genericArguments || [];
+    JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
     var staticClassObject = typeObject.__PublicInterface__ = Object.create(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
@@ -7452,4 +7458,41 @@ JSIL.TypeReferenceToName = function (typeReference) {
   } else {
     return typeReference.toString();
   }
+};
+
+JSIL.FillTypeObjectGenericArguments = function (typeObject, argumentNames) {
+  var names = [];
+  var variances = [];
+
+  if (argumentNames) {
+    for (var i = 0, l = argumentNames.length; i < l; i++) {
+      var variance = {
+        "in": false,
+        "out": false
+      };
+      var argumentName = argumentNames[i];
+      var tokens = argumentName.trim().split(" ");
+
+      for (var j = 0; j < tokens.length - 1; j++) {
+        switch (tokens[j]) {
+          case "in":
+            variance.in = true;
+            break;
+
+          case "out":
+            variance.out = true;
+            break;
+
+          default:
+            throw new Error("Invalid generic argument modifier: " + tokens[j]);
+        }
+      }
+
+      variances.push(variance);
+      names.push(tokens[tokens.length - 1].trim());
+    }
+  }
+
+  typeObject.__GenericArguments__ = names;
+  typeObject.__GenericArgumentVariance__ = variances;
 };
