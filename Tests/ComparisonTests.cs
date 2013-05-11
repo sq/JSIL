@@ -555,6 +555,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("InterfaceTestCasesSource")]
+        public void InterfaceTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> InterfaceTestCasesSource () {
+            return FolderTestSource("InterfaceTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
         [TestCaseSource("UnsafeTestCasesSource")]
         public void UnsafeTestCases (object[] parameters) {
             RunSingleComparisonTestCase(
