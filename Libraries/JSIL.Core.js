@@ -4221,6 +4221,8 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
   var isIList = typeName.indexOf(".IList") >= 0;
 
+  var isInterface = typeObject.IsInterface || false;
+
   // HACK: Handle casting arrays to IEnumerable by creating an overlay.
   if (isIEnumerable || isIList) {
     checkMethod = function Check_ArrayInterface (value) {
@@ -4335,9 +4337,6 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   };
 
   switch (specialType) {
-    case "interface":
-      break;
-
     case "enum":
       customCheckOnly = true;    
       asFunction = throwCastError;
@@ -4431,12 +4430,20 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     };
 
     asFunction = function As_ArrayInterface (value) {
+      // FIXME: I think the order of these function calls should be reversed.
       return createOverlay(innerAsFunction(value));
     };
 
     castFunction = function Cast_ArrayInterface (value) {
+      // FIXME: I think the order of these function calls should be reversed.
       return createOverlay(innerCastFunction(value));
     };
+  }
+
+  if (isInterface) {
+    var wrappedFunctions = JSIL.WrapCastMethodsForInterfaceVariance(typeObject, isFunction, asFunction);
+    isFunction = wrappedFunctions.is;
+    asFunction = wrappedFunctions.as;
   }
 
   return {
@@ -7498,4 +7505,120 @@ JSIL.FillTypeObjectGenericArguments = function (typeObject, argumentNames) {
 
   typeObject.__GenericArguments__ = names;
   typeObject.__GenericArgumentVariance__ = variances;
+};
+
+JSIL.GetTypeAndBases = function (typeObject) {
+  var result = [typeObject];
+  JSIL.$EnumBasesOfType(typeObject, result);
+  return result;
+};
+
+JSIL.$EnumBasesOfType = function (typeObject, resultList) {
+  var currentType = typeObject;
+
+  while (currentType) {
+    var baseRef = currentType.__BaseType__;
+    if (!baseRef)
+      break;
+
+    var base = JSIL.ResolveTypeReference(baseRef, currentType.__Context__)[1];
+
+    if (base)
+      resultList.push(base);
+
+    currentType = base;
+  }
+};
+
+JSIL.GetInterfacesImplementedByType = function (typeObject) {
+  var typeAndBases = JSIL.GetTypeAndBases(typeObject);
+  var result = [];
+
+  for (var i = 0, l = typeAndBases.length; i < l; i++) {
+    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(typeAndBases[i], result);
+  }
+
+  return result;
+};
+
+JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList) {
+  var interfaces = typeObject.__Interfaces__;
+
+  if (interfaces && interfaces.length) {
+    for (var i = 0, l = interfaces.length; i < l; i++) {
+      var ifaceRef = interfaces[i];
+      var iface = JSIL.ResolveTypeReference(ifaceRef, typeObject.__Context__)[1];
+
+      if (iface && (resultList.indexOf(iface) < 0)) {
+        resultList.push(iface);
+
+        JSIL.$EnumInterfacesImplementedByTypeExcludingBases(iface, resultList);
+      }
+    }
+  }
+};
+
+JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTypeObject, variantParameterIndices) {
+  var interfaces = JSIL.GetInterfacesImplementedByType(actualTypeObject);
+  System.Console.WriteLine("Type {0} implements {1} interface(s): [ {2} ]", actualTypeObject.__FullName__, interfaces.length, interfaces.join(", "));
+};
+
+JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asFunction) {
+  var trace = true;
+
+  var result = {
+    "is": isFunction,
+    "as": asFunction
+  };
+
+  var variantParameterIndices = [];
+  var parameterVariances = typeObject.__GenericArgumentVariance__;
+  if (!parameterVariances)
+    return result;
+
+  for (var i = 0, l = parameterVariances.length; i < l; i++) {
+    var variance = parameterVariances[i];
+    if (variance.in || variance.out)
+      variantParameterIndices.push(i);
+  }
+
+  if (variantParameterIndices.length === 0) {
+    if (trace)
+      System.Console.WriteLine("None of interface {0}'s parameters are variant", typeObject.__FullName__);
+    return result;
+  }
+
+  result.is = function Is_VariantInterface (value) {
+    var result = isFunction(value);
+
+    if (trace)
+      System.Console.WriteLine("({0} is {1}) == {2}", value, typeObject.__FullName__, result);
+
+    if (!result)
+      result = JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameterIndices);
+
+    if (trace)
+      System.Console.WriteLine("({0} is {1}) == {2}", value, typeObject.__FullName__, result);
+
+    return result;
+  };
+
+  result.as = function As_VariantInterface (value) {
+    var result = asFunction(value);
+
+    if (trace && !result)
+      System.Console.WriteLine("{0} as {1} failed", value, typeObject.__FullName__);
+
+    if (!result) {
+      if (JSIL.CheckInterfaceVariantEquality(typeObject, JSIL.GetType(value), variantParameterIndices))
+        result = value;
+
+      if (trace)
+        System.Console.WriteLine("{0} as {1} variantly {2}", value, typeObject.__FullName__, result ? "succeeded" : "failed");
+    }
+
+    return result;
+  };
+
+  return result;
 };
