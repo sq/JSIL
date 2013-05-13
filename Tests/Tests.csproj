@@ -150,7 +150,7 @@
     <None Include="InterfaceTestCases\InterfaceCovariance.cs" />
     <None Include="SpecialTestCases\InterfaceVariance.cs" />
     <None Include="InterfaceTestCases\InterfaceCovariance2.cs" />
-    <None Include="FailingTestCases\MultipleGenericInterfaces2.cs" />
+    <None Include="InterfaceTestCases\MultipleGenericInterfaces2.cs" />
     <None Include="FailingTestCases\StaticConstructorOrdering.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
