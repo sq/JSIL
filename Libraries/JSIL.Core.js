@@ -6239,15 +6239,15 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
   return result;
 };
 
-JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidatesForType = function (typeObject) {
+JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {
   var cache = this.variantInvocationCandidateCache;
-  var typeId = typeObject.__TypeId__;
+  var typeId = thisReference.__TypeId__;
 
   var result = cache[typeId];
 
   if (typeof (result) === "undefined") {
     cache[typeId] = result = JSIL.$GenerateVariantInvocationCandidates(
-      this.typeObject, this.signature, this.qualifiedName, this.variantGenericArguments, typeObject
+      this.typeObject, this.signature, this.qualifiedName, this.variantGenericArguments, JSIL.GetType(thisReference)
     );
   }
 
@@ -6259,8 +6259,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   var variantInvocationCandidates = null;
 
   if (!result && this.variantGenericArguments.length) {
-    var thisReferenceType = JSIL.GetType(thisReference);
-    variantInvocationCandidates = this.GetVariantInvocationCandidatesForType(thisReferenceType);
+    variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
 
     if (variantInvocationCandidates)
     for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
