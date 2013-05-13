@@ -2298,7 +2298,7 @@ JSIL.$ResolveGenericMethodSignature = function (typeObject, signature, resolveCo
   changed = JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes) || changed;
 
   if (changed)
-    return new JSIL.MethodSignature(returnType[0], argumentTypes, genericArgumentNames, typeObject.__Context__);
+    return new JSIL.MethodSignature(returnType[0], argumentTypes, genericArgumentNames, typeObject.__Context__, signature);
 
   return null;
 };
@@ -2553,7 +2553,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var member = members[j];
 
       namePairs[0][0] = member._descriptor.Name;
-      namePairs[0][1] = "I" + iface.__TypeId__ + "$" + member._descriptor.Name;
+      namePairs[0][1] = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.Name;
 
       if (member._data.signature) {
         var signature = member._data.signature;
@@ -2694,7 +2694,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       if (!iface)
         throw new Error("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface of type '" + typeObject.__FullName__ + "' with index '" + override.interfaceIndex + "'");
 
-      var interfaceQualifiedName = "I" + iface.__TypeId__ + "$" + JSIL.EscapeName(override.interfaceMemberName);
+      var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
       if (trace)
@@ -5812,7 +5812,7 @@ JSIL.SignatureBase.prototype.LookupMethod = function (context, name) {
 };
 
 
-JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context) {
+JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context, openSignature) {
   this._lastKeyName = "<null>";
   this._lastKey = "<null>";
   this._genericSuffix = null;
@@ -5835,6 +5835,8 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentNames = genericArgumentNames;
   else
     this.genericArgumentNames = [];
+
+  this.openSignature = openSignature || null;
 };
 
 JSIL.MethodSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
@@ -6221,9 +6223,11 @@ JSIL.ResolvedMethodSignature.prototype.toString = function () {
 
 JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
   this.typeObject = typeObject;
+  this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
   this.signature = signature;
-  this.qualifiedName = "I" + typeObject.__TypeId__ + "$" + this.methodName;
+  this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
+  this.variantInvocationCandidateCache = Object.create(null);
 };
 
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
@@ -6232,10 +6236,60 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
   return new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature);
 };
 
+JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidatesForType = function (typeObject) {
+  var cache = this.variantInvocationCandidateCache;
+  var typeId = typeObject.__TypeId__;
+
+  var result = cache[typeId];
+
+  if (typeof (result) === "undefined") {
+    cache[typeId] = result = JSIL.$GenerateVariantInvocationCandidates(
+      this.typeObject, this.signature, this.qualifiedName, this.variantGenericArguments, typeObject
+    );
+  }
+
+  return result;
+};
+
 JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   var result = thisReference[this.methodKey];
-  if (!result)
-    throw new Error("Method '" + this.signature.toString(this.methodName) + "' of interface '" + this.typeObject.__FullName__ + "' is not implemented by object " + thisReference);
+  var variantInvocationCandidates = null;
+
+  if (!result && this.variantGenericArguments.length) {
+    var thisReferenceType = JSIL.GetType(thisReference);
+    variantInvocationCandidates = this.GetVariantInvocationCandidatesForType(thisReferenceType);
+
+    if (variantInvocationCandidates)
+    for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
+      var candidate = variantInvocationCandidates[i];
+
+      result = thisReference[candidate];
+      if (result)
+        break;
+    }
+  }
+
+  if (!result) {
+    var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
+      this.typeObject.__FullName__ + "' is not implemented by object " + 
+      thisReference + "\n";
+
+    if (variantInvocationCandidates) {
+      errorString += "(Looked for key(s): '";
+      errorString += this.methodKey + "'";
+
+      for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
+        var candidate = variantInvocationCandidates[i];
+        errorString += ", \n'" +candidate + "'";
+      }
+
+      errorString += ")";
+    } else {
+      errorString += "(Looked for key '" + this.methodKey + "')";
+    }
+
+    throw new Error(errorString);
+  }
 
   return result;
 };
@@ -6255,6 +6309,18 @@ JSIL.InterfaceMethod.prototype.toString = function () {
   // HACK: This makes it possible to do
   //  MethodSignature.CallVirtual(IFoo.Method, thisReference)
   return this.qualifiedName;
+};
+
+
+JSIL.$GetSignaturePrefixForType = function (typeObject) {
+  if (typeObject.IsInterface) {
+    if (typeObject.__OpenType__)
+      return "I" + typeObject.__OpenType__.__TypeId__ + "$";
+    else
+      return "I" + typeObject.__TypeId__ + "$";    
+  } else {
+    return "";
+  }
 };
 
 
@@ -7562,8 +7628,9 @@ JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resu
   }
 };
 
-JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTypeObject, variantParameters) {
+JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject, actualTypeObject, variantParameters) {
   // FIXME: Memoize the result of this function?
+  var result = [];
 
   var trace = 0;
 
@@ -7624,10 +7691,36 @@ JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTy
     }
 
     if (ifaceResult)
-      return true;
+      result.push(iface);
   }
 
-  return false;
+  return result;
+};
+
+JSIL.CheckInterfaceVariantEquality = function (expectedInterfaceObject, actualTypeObject, variantParameters) {
+  // FIXME: Memoize the result of this function?
+  var matchingInterfaces = JSIL.$FindMatchingInterfacesThroughVariance(expectedInterfaceObject, actualTypeObject, variantParameters);
+  return matchingInterfaces.length > 0;
+};
+
+JSIL.$FindVariantGenericArguments = function (typeObject) {
+  var result = [];
+  var argumentVariances = typeObject.__GenericArgumentVariance__;
+  if (!argumentVariances)
+    return result;
+
+  for (var i = 0, l = argumentVariances.length; i < l; i++) {
+    var variance = argumentVariances[i];
+
+    if (variance.in || variance.out) {
+      var vp = Object.create(variance);
+      vp.name = typeObject.__GenericArguments__[i];
+      vp.index = i;
+      result.push(vp);
+    }
+  }
+
+  return result;
 };
 
 JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asFunction) {
@@ -7638,22 +7731,7 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
     "as": asFunction
   };
 
-  var variantParameters = [];
-  var parameterVariances = typeObject.__GenericArgumentVariance__;
-  if (!parameterVariances)
-    return result;
-
-  for (var i = 0, l = parameterVariances.length; i < l; i++) {
-    var variance = parameterVariances[i];
-
-    if (variance.in || variance.out) {
-      var vp = Object.create(variance);
-      vp.name = typeObject.__GenericArguments__[i];
-      vp.index = i;
-      variantParameters.push(vp);
-    }
-  }
-
+  var variantParameters = JSIL.$FindVariantGenericArguments(typeObject);
   if (variantParameters.length === 0) {
     if (trace)
       System.Console.WriteLine("None of interface {0}'s parameters are variant", typeObject.__FullName__);
@@ -7692,6 +7770,36 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
 
     return result;
   };
+
+  return result;
+};
+
+JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature, qualifiedMethodName, variantGenericArguments, thisReferenceType) {
+  var trace = false;
+
+  var matchingInterfaces = JSIL.$FindMatchingInterfacesThroughVariance(interfaceObject, thisReferenceType, variantGenericArguments);
+
+  if (trace)
+    System.Console.WriteLine("Matching interfaces in candidate generator: [ {0} ]", matchingInterfaces.join(", "));
+
+  if (!matchingInterfaces.length)
+    return null;
+
+  var result = [];
+
+  generate_candidates:
+  for (var i = 0, l = matchingInterfaces.length; i < l; i++) {
+    var matchingInterface = matchingInterfaces[i];
+
+    // FIXME: This is incredibly expensive.
+    var variantSignature = JSIL.$ResolveGenericMethodSignature(
+      matchingInterface, signature.openSignature, matchingInterface.__PublicInterface__
+    );
+
+    var candidate = variantSignature.GetKey(qualifiedMethodName);
+
+    result.push(candidate);
+  }
 
   return result;
 };
