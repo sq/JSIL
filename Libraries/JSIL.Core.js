@@ -6228,12 +6228,15 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
   this.signature = signature;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = Object.create(null);
+  this.fallbackMethod = JSIL.$PickFallbackMethodForInterfaceMethod(typeObject, methodName, signature);
 };
 
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
 
 JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
-  return new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature);
+  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature);
+  result.fallbackMethod = this.fallbackMethod;
+  return result;
 };
 
 JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidatesForType = function (typeObject) {
@@ -6268,6 +6271,9 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
         break;
     }
   }
+
+  if (!result)
+    result = this.fallbackMethod;
 
   if (!result) {
     var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
@@ -7802,4 +7808,28 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
   }
 
   return result;
+};
+
+JSIL.$GetEnumeratorFallback = function () {
+  if (typeof (this) === "string")
+    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__);
+  else
+    // HACK: Too hard to detect the correct element type here.
+    return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__);
+};
+
+// FIXME: This can probably be replaced with compiler and/or runtime intelligence 
+//  to create interface overlays for strings, just like arrays.
+JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodName, signature) {
+  // HACK: Ensures that you can enumerate the chars of a JS string or array in cases where they lack an overlay.
+  if (
+    (
+      (interfaceObject.__FullName__ === "System.Collections.Generic.IEnumerable`1") ||
+      (interfaceObject.__FullName__ === "System.Collections.IEnumerable")
+    ) && (methodName === "GetEnumerator")
+  ) {
+    return JSIL.$GetEnumeratorFallback;
+  }
+
+  return null;
 };

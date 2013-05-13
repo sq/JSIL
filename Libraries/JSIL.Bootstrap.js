@@ -11,13 +11,13 @@ JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 JSIL.DeclareNamespace("System.Diagnostics");
 
-// Unfortunately necessary :-(
+// HACK: Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
   return this === rhs;
 };
 
 
-// Nasty compatibility shim for JS Error <-> C# Exception
+// HACK: Nasty compatibility shim for JS Error <-> C# Exception
 Error.prototype.get_Message = function () {
   return String(this);
 };
@@ -2299,14 +2299,15 @@ JSIL.GetEnumerator = function (enumerable, elementType) {
   var result = null;
   if (JSIL.IsArray(enumerable))
     result = JSIL.MakeArrayEnumerator(enumerable, elementType);
+  else if (typeof (enumerable) === "string")
+    result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else if (tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
     result = tIEnumerable$b1.GetEnumerator.Call(enumerable);
   else if (tIEnumerable.$Is(enumerable))
     result = tIEnumerable.GetEnumerator.Call(enumerable);
   else if (typeof (enumerable.GetEnumerator) === "function")
+    // HACK: This is gross.
     result = enumerable.GetEnumerator();
-  else if (typeof (enumerable) === "string")
-    result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else
     throw new Error("Value is not enumerable");
 

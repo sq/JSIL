@@ -152,6 +152,7 @@
     <None Include="InterfaceTestCases\InterfaceCovariance2.cs" />
     <None Include="InterfaceTestCases\MultipleGenericInterfaces2.cs" />
     <None Include="FailingTestCases\StaticConstructorOrdering.cs" />
+    <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
