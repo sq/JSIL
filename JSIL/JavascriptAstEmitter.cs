@@ -294,7 +294,7 @@ namespace JSIL {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
                 !(statement.Expression is JSUntranslatableExpression) &&
-                !(statement.Expression is JSIgnoredMemberReference);
+                !(statement.Expression is JSIgnoredExpression);
 
             Visit(statement.Expression);
 
@@ -357,7 +357,7 @@ namespace JSIL {
             } else {
                 if (pa.TypeQualified) {
                     // FIXME: Oh god, terrible hack
-                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.Name) + "$");
+                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.LocalName) + "$");
                 }
 
                 Visit(pa.Member);
@@ -800,6 +800,13 @@ namespace JSIL {
 
                 CommaSeparatedList(args);
             }
+            Output.RPar();
+        }
+
+        public void VisitNode (JSIgnoredTypeReference itr) {
+            Output.WriteRaw("JSIL.IgnoredType");
+            Output.LPar();
+            Output.Value(itr.Type.FullName);
             Output.RPar();
         }
 
@@ -1570,13 +1577,10 @@ namespace JSIL {
 
             try {
                 if (isOverloaded) {
-                    if (SignatureCacher != null)
-                        SignatureCacher.WriteToOutput(
-                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
-                        );
-                    else
-                        Output.ConstructorSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    SignatureCacher.WriteSignatureToOutput(
+                        Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                        newexp.ConstructorReference, ctor.Signature, ReferenceContext, true
+                    );
 
                     Output.Dot();
 
@@ -1763,13 +1767,10 @@ namespace JSIL {
 
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
-                    if (SignatureCacher != null)
-                        SignatureCacher.WriteToOutput(
-                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm.Reference, method.Signature, ReferenceContext, false
-                        );
-                    else
-                        Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
+                    SignatureCacher.WriteSignatureToOutput(
+                        Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                        jsm.Reference, method.Signature, ReferenceContext, false
+                    );
 
                     Output.Dot();
 
@@ -1784,7 +1785,26 @@ namespace JSIL {
                             Output.Identifier("null", EscapingMode.None);
                     };
 
-                    if (isStatic) {
+                    if ((method != null) && method.DeclaringType.IsInterface) {
+                        Output.Identifier("CallVirtual");
+                        Output.LPar();
+
+                        // HACK: Pass the interface method object instead of the method name.
+                        //  This works because InterfaceMethod.toString returns the qualified name of the interface method.
+                        SignatureCacher.WriteInterfaceMemberToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, invocation.Method,
+                            ReferenceContext
+                        );
+
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else if (isStatic) {
                         Output.Identifier("CallStatic");
                         Output.LPar();
 
@@ -1828,7 +1848,22 @@ namespace JSIL {
                             Output.Comma();
                     }
                 } else {
-                    if (isStatic) {
+                    if ((method != null) && method.DeclaringType.IsInterface) {
+                        SignatureCacher.WriteInterfaceMemberToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, invocation.Method,
+                            ReferenceContext
+                        );
+
+                        Output.Dot();
+                        Output.WriteRaw("Call");
+
+                        Output.LPar();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else if (isStatic) {
                         if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);
                             Output.Dot();
@@ -1929,6 +1964,12 @@ namespace JSIL {
 
         public void VisitNode (JSLocalCachedSignatureExpression lcse) {
             Output.Signature(lcse.Reference, lcse.Signature, ReferenceContext, lcse.IsConstructor, false);
+        }
+
+        public void VisitNode (JSLocalCachedInterfaceMemberExpression lcime) {
+            Output.Identifier(lcime.InterfaceType, ReferenceContext);
+            Output.Dot();
+            Output.Identifier(lcime.MemberName, EscapingMode.MemberIdentifier);
         }
     }
 }

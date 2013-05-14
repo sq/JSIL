@@ -379,6 +379,7 @@ namespace JSIL.Internal {
         public readonly TypeInfo BaseClass;
 
         public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
+        private System.Tuple<TypeInfo, TypeInfo, TypeReference>[] _AllInterfacesRecursive = null;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -723,6 +724,23 @@ namespace JSIL.Internal {
 
         public override string ToString () {
             return Definition.FullName;
+        }
+
+        public System.Tuple<TypeInfo, TypeInfo, TypeReference>[] AllInterfacesRecursive {
+            get {
+                if (_AllInterfacesRecursive == null) {
+                    var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
+                    var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
+
+                    foreach (var type in types)
+                        foreach (var @interface in type.Interfaces)
+                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+
+                    _AllInterfacesRecursive = list.ToArray();
+                }
+
+                return _AllInterfacesRecursive;
+            }
         }
 
         internal void ConstructMethodGroups () {
@@ -1312,6 +1330,7 @@ namespace JSIL.Internal {
         JSReadPolicy ReadPolicy { get; }
         JSWritePolicy WritePolicy { get; }
         JSInvokePolicy InvokePolicy { get; }
+        IEnumerable<OverrideInfo> Overrides { get; }
     }
 
     public abstract class MemberInfo<T> : IMemberInfo
@@ -1409,6 +1428,12 @@ namespace JSIL.Internal {
 
         protected virtual string GetName () {
             return ChangedName ?? Member.Name;
+        }
+
+        public virtual IEnumerable<OverrideInfo> Overrides {
+            get {
+                yield break;
+            }
         }
 
         public ITypeInfoSource Source {
@@ -1582,15 +1607,7 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             string result;
-            var over = (Member.GetMethod ?? Member.SetMethod).Overrides.FirstOrDefault();
-
-            if (DeclaringType.IsInterface) {
-                result = ChangedName ?? String.Format("{0}.{1}", DeclaringType.LocalName, ShortName);
-            } else if (over != null) {
-                // FIXME: Should this be LocalName and not Name?
-                result = ChangedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
-            } else
-                result = ChangedName ?? ShortName;
+            result = ChangedName ?? Member.Name;
 
             return result;
         }
@@ -1736,6 +1753,16 @@ namespace JSIL.Internal {
             return GetName(false);
         }
 
+        public override IEnumerable<OverrideInfo> Overrides {
+            get {
+                var typeInfo = DeclaringType.Source;
+                var implementationType = DeclaringType.Definition;
+
+                foreach (var @override in Member.Overrides)
+                    yield return new OverrideInfo(typeInfo, implementationType, @override);
+            }
+        }
+
         public NamedMethodSignature NamedSignature {
             get {
                 if (_Signature == null)
@@ -1817,24 +1844,12 @@ namespace JSIL.Internal {
 
         public string GetName (bool stripGenericSuffix) {
             string result;
-            var over = Member.Overrides.FirstOrDefault();
 
             var cn = ChangedName;
             if (cn != null)
                 return cn;
 
-            if (DeclaringType.IsInterface) {
-                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(DeclaringType.Definition), ShortName);
-            // FIXME: Enable this so MultipleGenericInterfaces2.cs passes.
-            /*
-            } else if (Member.Name.IndexOf(".") > 0) {
-                // Qualified reference to an interface member
-                result = Member.Name;
-            */
-            } else if (over != null)
-                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(over.DeclaringType.Resolve()), ShortName);
-            else
-                result = ShortName;
+            result = Member.Name;
             
             if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
@@ -2165,6 +2180,17 @@ namespace JSIL.Internal {
 
         public void Dispose () {
             Cache.Dispose();
+        }
+    }
+
+    public class OverrideInfo {
+        public readonly TypeReference InterfaceType, ImplementationType;
+        public readonly MemberIdentifier MemberIdentifier;
+
+        public OverrideInfo (ITypeInfoSource typeInfo, TypeReference implementationType, MethodReference @override) {
+            InterfaceType = @override.DeclaringType;
+            ImplementationType = implementationType;
+            MemberIdentifier = new MemberIdentifier(typeInfo, @override);
         }
     }
 }

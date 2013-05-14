@@ -7,7 +7,9 @@ if (!$jsilcore)
 JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.Linq.Expressions");
 
-JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($) {
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.AbstractEnumerable");
+
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [JSIL.AnyType, JSIL.AnyType, JSIL.AnyType]),
     function (getNextItem, reset, dispose) {
@@ -23,17 +25,18 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($
   );
 
   $.Method({Static: false, Public: true }, "GetEnumerator",
-    new JSIL.MethodSignature("System.Collections.IEnumerator", []),
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), []),
     function () {
       if (this._getEnumerator !== null)
         return this._getEnumerator();
       else
-        return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
+        return new (JSIL.AbstractEnumerator.Of(this.T))(this._getNextItem, this._reset, this._dispose);
     }
   );
 
   $.ImplementInterfaces(
-    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+    /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"), 
+    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [T])
   );
 });
 
@@ -42,13 +45,15 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Any", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
+
+        var moveNext = System.Collections.IEnumerator.MoveNext;
 
         try {
-          if (enumerator.IEnumerator_MoveNext())
+          if (moveNext.Call(enumerator))
             return true;
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -62,15 +67,19 @@ JSIL.ImplementExternals(
         ["TSource"]
       ),
       function (T, enumerable, predicate) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
+        
+        var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(T);
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = tIEnumerator.get_Current;
         
         try {
-          while (enumerator.IEnumerator_MoveNext()) {
-            if (predicate(enumerator.IEnumerator_Current))
+          while (moveNext.Call(enumerator)) {
+            if (predicate(get_Current.Call(enumerator)))
               return true;
           }
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -80,13 +89,16 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Count", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var e = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
+
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+
         var result = 0;
         try {
-          while (e.IEnumerator_MoveNext())
+          while (moveNext.Call(enumerator))
             result += 1;
         } finally {
-          e.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
         return result;
       }
@@ -95,12 +107,17 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "First", 
       new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var enumerator = JSIL.GetEnumerator(enumerable);
+        var enumerator = JSIL.GetEnumerator(enumerable, T);
+
+        var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(T);
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = tIEnumerator.get_Current;
+
         try {
-          if (enumerator.IEnumerator_MoveNext())
-            return enumerator.IEnumerator_Current;
+          if (moveNext.Call(enumerator))
+            return get_Current.Call(enumerator);
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         throw new System.Exception("Enumerable contains no items");
@@ -116,11 +133,15 @@ JSIL.ImplementExternals(
       function (TSource, TResult, enumerable, selector) {
         var state = {};
 
-        return new JSIL.AbstractEnumerable(
+        var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = tIEnumerator.get_Current;
+
+        return new (JSIL.AbstractEnumerable.Of(TResult))(
           function getNext (result) {
-            var ok = state.enumerator.IEnumerator_MoveNext();
+            var ok = moveNext.Call(state.enumerator);
             if (ok)
-              result.set(selector(state.enumerator.IEnumerator_Current));
+              result.set(selector(get_Current.Call(state.enumerator)));
 
             return ok;
           },
@@ -128,7 +149,7 @@ JSIL.ImplementExternals(
             state.enumerator = JSIL.GetEnumerator(enumerable);
           },
           function dispose () {
-            state.enumerator.IDisposable_Dispose();
+            JSIL.Dispose(state.enumerator);
           }
         );
       }
@@ -143,16 +164,20 @@ JSIL.ImplementExternals(
 
     $.Method({Static:true , Public:true }, "Contains", 
       (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), "!!0"], ["TSource"])), 
-      function Contains$b1 (TSource, source, item) {
-        var enumerator = JSIL.GetEnumerator(source);
+      function Contains$b1 (T, source, item) {
+        var enumerator = JSIL.GetEnumerator(source, T);
+
+        var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(T);
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = tIEnumerator.get_Current;
 
         try {
-          while (enumerator.IEnumerator_MoveNext()) {
-            if (JSIL.ObjectEquals(enumerator.IEnumerator_Current, item))
+          while (moveNext.Call(enumerator)) {
+            if (JSIL.ObjectEquals(get_Current.Call(enumerator), item))
               return true;
           }
         } finally {
-          enumerator.IDisposable_Dispose();
+          JSIL.Dispose(enumerator);
         }
 
         return false;
@@ -168,12 +193,15 @@ JSIL.ImplementExternals(
      function (TResult, enumerable) {
       var state = {};
 
-      return new JSIL.AbstractEnumerable(
+      var moveNext = System.Collections.IEnumerator.MoveNext;
+      var get_Current = System.Collections.IEnumerator.get_Current;
+
+      return new (JSIL.AbstractEnumerable.Of(TResult))(
         function getNext (result) {
-          var ok = state.enumerator.IEnumerator_MoveNext();
+          var ok = moveNext.Call(state.enumerator);
 
           if (ok)
-            result.set(TResult.$Cast(state.enumerator.IEnumerator_Current));
+            result.set(TResult.$Cast(get_Current.Call(state.enumerator)));
 
           return ok;
         },
@@ -181,7 +209,7 @@ JSIL.ImplementExternals(
           state.enumerator = JSIL.GetEnumerator(enumerable);
         },
         function dispose () {
-          state.enumerator.IDisposable_Dispose();
+          JSIL.Dispose(state.enumerator);
         }
       );
      });
@@ -217,6 +245,37 @@ JSIL.ImplementExternals(
           return JSIL.DefaultValue(TSource);
       }
     );
+
+    $.Method({Static:true , Public:true }, "OfType", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), [$jsilcore.TypeRef("System.Collections.IEnumerable")], ["TResult"]), 
+      function OfType$b1 (TResult, source) {
+        var state = {};
+
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = System.Collections.IEnumerator.get_Current;
+
+        return new (JSIL.AbstractEnumerable.Of(TResult))(
+          function getNext (result) {
+            while (moveNext.Call(state.enumerator)) {
+              var current = get_Current.Call(state.enumerator);
+
+              if (TResult.$Is(current)) {
+                result.set(current);
+                return true;
+              }
+            }
+
+            return false;
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(source);
+          },
+          function dispose () {
+            JSIL.Dispose(state.enumerator);
+          }
+        );
+      }
+    );    
   }
 );
 

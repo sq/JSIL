@@ -29,7 +29,6 @@ namespace JSIL {
             public MethodReference Reference;
 
             public SpecialIdentifiers SpecialIdentifiers;
-            public Dictionary<string, JSVariable> Variables;
 
             public JSFunctionExpression Expression;
             public FunctionAnalysis1stPass FirstPass;
@@ -114,7 +113,6 @@ namespace JSIL {
                     Info = args.Info,
                     Reference = args.Method,
                     Expression = result,
-                    Variables = args.Translator.Variables,
                     SpecialIdentifiers = args.Translator.SpecialIdentifiers
                 };
             };
@@ -210,6 +208,9 @@ namespace JSIL {
         }
 
         public FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forMethod) {
+            if (method == null)
+                return null;
+
             var id = method.QualifiedIdentifier;
             Entry entry = Cache.GetOrCreate(
                 id, method, MakeCacheEntry

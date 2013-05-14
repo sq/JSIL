@@ -7,6 +7,8 @@ var $useTextCaching = true, $textCachingSupported = true;
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
+JSIL.DeclareNamespace("JSIL");
+
 $jsilxna.allowWebGL = true;
 $jsilxna.testedWebGL = false;
 $jsilxna.workingWebGL = false;
@@ -1750,10 +1752,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameTime", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     Microsoft.Xna.Framework.Rectangle._empty = new Microsoft.Xna.Framework.Rectangle();
   });
 
@@ -1982,10 +1981,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
   });
 
@@ -2131,10 +2127,7 @@ $jsilxna.Color = function ($) {
     target.b = source.b;
   });
 
-  $.Method({
-    Static: true,
-    Public: false
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     var self = this;
     var proto = this.prototype;
     var makeColor = $jsilxna.makeColor;
@@ -2724,33 +2717,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
   );
 
   var callAsyncCallback = function (callback, state, data) {
-    // FIXME: Terrible hack
-    var awh = {
-      WaitOne: function () {
-        return;
-      },
-      Close: function () {
-        return;
-      }
-    };
+    var asyncResult = new JSIL.FakeAsyncResult(state);
+    asyncResult.data = data;
 
-    var asyncResult = {
-      IsCompleted: true,
-      IAsyncResult_IsCompleted: true,
-      get_IsCompleted: function () { return true; },
-      IAsyncResult_get_IsCompleted: function () { return true; },
-      AsyncState: state,
-      IAsyncResult_AsyncState: state,
-      get_AsyncState: function () { return state; },
-      IAsyncResult_get_AsyncState: function () { return state; },
-      data: data,
-      IAsyncResult_AsyncWaitHandle: awh,
-      IAsyncResult_get_AsyncWaitHandle: function () { return awh; }
-    };
-
-    if (typeof (callback) === "function") {
+    if (typeof (callback) === "function")
       callback(asyncResult);
-    }
 
     return asyncResult;
   };
@@ -3027,4 +2998,106 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function
     }
   );
 
+});
+
+JSIL.MakeClass("System.Object", "JSIL.FakeAsyncResult", true, [], function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.RawMethod(false, ".ctor", function (state) {
+    this._state = state;
+  });
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_AsyncState", 
+    new JSIL.MethodSignature($.Object, [], []), 
+    function () {
+      return this._state;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_AsyncWaitHandle", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.WaitHandle"), [], []), 
+    function () {
+      return new JSIL.FakeWaitHandle();
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_CompletedSynchronously", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function () {
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_IsCompleted", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function () {
+      return true;
+    }
+  );
+
+  $.Property({Static:false, Public:true , Virtual:true }, "IsCompleted", $.Boolean);
+  $.Property({Static:false, Public:true , Virtual:true }, "AsyncWaitHandle", $jsilcore.TypeRef("System.Threading.WaitHandle"));
+  $.Property({Static:false, Public:true , Virtual:true }, "AsyncState", $.Object);
+  $.Property({Static:false, Public:true , Virtual:true }, "CompletedSynchronously", $.Boolean);
+
+  $.ImplementInterfaces(
+    /* 0 */ $jsilcore.TypeRef("System.IAsyncResult")
+  );
+});
+
+JSIL.MakeClass("System.Object", "JSIL.FakeWaitHandle", true, [], function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:true , Virtual:true }, "Close", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Close () {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Dispose () {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [$.Int32, $.Boolean], []), 
+    function WaitOne (millisecondsTimeout, exitContext) {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.TimeSpan"), $.Boolean], []), 
+    function WaitOne (timeout, exitContext) {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function WaitOne () {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [$.Int32], []), 
+    function WaitOne (millisecondsTimeout) {
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.TimeSpan")], []), 
+    function WaitOne (timeout) {
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "WaitOne", 
+    new JSIL.MethodSignature($.Boolean, [$.Int64, $.Boolean], []), 
+    function WaitOne (timeout, exitContext) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.ImplementInterfaces(
+    /* 0 */ $jsilcore.TypeRef("System.IDisposable")
+  );
 });

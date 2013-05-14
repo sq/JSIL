@@ -34,12 +34,6 @@
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Compiler.CodeDom, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <HintPath>..\Upstream\FSharp\FSharp.Compiler.CodeDom.dll</HintPath>
-    </Reference>
-    <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\Upstream\FSharp\FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\Upstream\nunit.framework.dll</HintPath>
     </Reference>
@@ -49,6 +43,12 @@
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml" />
+    <Reference Include="FSharp.Compiler.CodeDom, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
+      <HintPath>..\Upstream\FSharp\FSharp.Compiler.CodeDom.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <HintPath>..\Upstream\FSharp\FSharp.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <None Include="AnalysisTestCases\ReturnStructArgument.cs" />
@@ -85,7 +85,10 @@
     <None Include="AnalysisTestCases\ImmutableStructReinitializationInControlFlow.cs" />
     <None Include="AnalysisTestCases\ImmutableStructReinitializationInLoop.cs" />
     <None Include="AnalysisTestCases\Issue184.cs" />
-    <Compile Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
+    <None Include="AnalysisTestCases\AffectedFieldThroughCall.cs" />
+    <None Include="AnalysisTestCases\AffectedFieldThroughRecursiveCall.cs" />
+    <None Include="AnalysisTestCases\TemporaryFunctionCallPurity.cs" />
+    <None Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
@@ -101,7 +104,7 @@
     <None Include="ReflectionTestCases\ListFields.cs" />
     <None Include="ReflectionTestCases\ListHiddenMethods.cs" />
     <Compile Include="APITests.cs" />
-    <None Include="SimpleTestCases\InterfaceInheritanceDifferentNames.cs" />
+    <None Include="InterfaceTestCases\InterfaceInheritanceDifferentNames.cs" />
     <None Include="BrowserXMLTestCases\SimpleDocument.cs" />
     <None Include="SimpleTestCases\RecursiveArrayInitializer.cs" />
     <None Include="BrowserXMLTestCases\Common.cs" />
@@ -144,8 +147,22 @@
     <Compile Include="CompilerUtil.cs" />
     <Compile Include="ConfigurationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
+    <None Include="ReflectionTestCases\ListInterfaceMethods.cs" />
+    <None Include="ReflectionTestCases\ListGenericInterfaceMethods.cs" />
+    <None Include="PerformanceTestCases\InterfaceMethodCalls.cs" />
+    <None Include="PerformanceTestCases\GenericInterfaceMethodCalls.cs" />
+    <None Include="SimpleTestCases\ListGetEnumerator.cs" />
+    <None Include="InterfaceTestCases\InterfaceCovariance.cs" />
+    <None Include="SpecialTestCases\InterfaceVariance.cs" />
+    <None Include="InterfaceTestCases\InterfaceCovariance2.cs" />
+    <None Include="InterfaceTestCases\MultipleGenericInterfaces2.cs" />
+    <None Include="FailingTestCases\StaticConstructorOrdering.cs" />
+    <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
+    <None Include="PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs" />
+    <None Include="SimpleTestCases\Issue194.cs" />
+    <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
-    <None Include="SimpleTestCases\NestedInterfaces.cs" />
+    <None Include="InterfaceTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
     <None Include="TestCases\EnumNullableArithmetic.cs" />
     <None Include="TestCases\DynamicComplex.cs" />
@@ -155,7 +172,7 @@
     <None Include="SimpleTestCases\ArrayResize.cs" />
     <None Include="SimpleTestCases\StringContains.cs" />
     <None Include="SimpleTestCases\StringSubstring.cs" />
-    <None Include="SimpleTestCases\InterfaceOverloads.cs" />
+    <None Include="InterfaceTestCases\InterfaceOverloads.cs" />
     <None Include="TestCases\ArrayFieldWithSelfReference.cs" />
     <None Include="TestCases\CharField.cs" />
     <None Include="TestCases\ArrayFieldOfThisType.cs" />
@@ -225,14 +242,14 @@
     <None Include="TestCases\MethodGenericParameterAsTypeParameter.cs" />
     <None Include="TestCases\MethodGenericParameterAsTypeParameter2.cs" />
     <None Include="SimpleTestCases\Mutate2DArray.cs" />
-    <None Include="SimpleTestCases\InterfaceOverride.cs" />
+    <None Include="InterfaceTestCases\InterfaceOverride.cs" />
     <None Include="SimpleTestCases\TruncationRoundToZero.cs" />
     <None Include="SimpleTestCases\StringRemove.cs" />
     <None Include="SimpleTestCases\ArrayDefaultValues2.cs" />
     <None Include="SimpleTestCases\IntegerToStringNullFormat.cs" />
     <None Include="TestCases\DictionaryKeyValuePairs.cs" />
     <None Include="SpecialTestCases\AutoPropertyEfficiency.cs" />
-    <None Include="SimpleTestCases\InterfacePropertyMatching.cs" />
+    <None Include="InterfaceTestCases\InterfacePropertyMatching.cs" />
     <None Include="SimpleTestCases\PropertyMultipleAssignment.cs" />
     <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
     <None Include="TestCases\StructBoxing.cs" />
@@ -270,7 +287,7 @@
     <None Include="Int64TestCases\Int64Nullable.cs" />
     <None Include="Int64TestCases\Int64Type.cs" />
     <None Include="SimpleTestCases\MathIntrinsics.cs" />
-    <None Include="SimpleTestCases\CastArrayToIEnumerable.cs" />
+    <None Include="InterfaceTestCases\CastArrayToIEnumerable.cs" />
     <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
     <None Include="IOTestCases\StreamInt64Properties.cs" />
     <None Include="Int64TestCases\Int64InPlaceAddition.cs" />
@@ -311,7 +328,7 @@
     <None Include="ReflectionTestCases\GetConstantAttributes.cs" />
     <None Include="TestCases\NestedStructEquals.cs" />
     <None Include="TestCases\ComplexStructEquals.cs" />
-    <None Include="SimpleTestCases\AssignArrayToIEnumerable.cs" />
+    <None Include="InterfaceTestCases\AssignArrayToIEnumerable.cs" />
     <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SpecialTestCases\GetHostService.cs" />
     <None Include="SimpleTestCases\DecimalCast.cs" />
@@ -328,13 +345,13 @@
     <None Include="SimpleTestCases\NullableCompoundAssignment.cs" />
     <None Include="Int64TestCases\Int64CastToEnum.cs" />
     <None Include="SimpleTestCases\EventHandlerSample.cs" />
-    <None Include="SimpleTestCases\InterfaceEqualityComparison.cs" />
+    <None Include="InterfaceTestCases\InterfaceEqualityComparison.cs" />
     <None Include="SimpleTestCases\Int32OverflowAndUnderflow.cs" />
     <None Include="FailingTestCases\SmallIntOverflowAndUnderflow.cs" />
     <None Include="FailingTestCases\Int32Multiply.cs" />
     <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
     <None Include="SpecialTestCases\InheritedExternalStubError.cs" />
-    <None Include="SimpleTestCases\CastArrayToIList.cs" />
+    <None Include="InterfaceTestCases\CastArrayToIList.cs" />
     <None Include="UnsafeTestCases\PinIntArrayAndRead.cs" />
     <None Include="UnsafeTestCases\ReadAndWritePinnedIntArray.cs" />
     <None Include="UnsafeTestCases\ReadIntsAsBytes.cs" />
@@ -366,7 +383,7 @@
     <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
     <None Include="SimpleTestCases\BooleanCasts.cs" />
     <None Include="TestCases\GenericStaticMethods2.cs" />
-    <None Include="SimpleTestCases\InterfaceMemberAsDelegate.cs" />
+    <None Include="InterfaceTestCases\InterfaceMemberAsDelegate.cs" />
     <None Include="SimpleTestCases\DecimalEquality.cs" />
     <None Include="SimpleTestCases\StringFromCharArray.cs" />
     <None Include="SimpleTestCases\EnumerableCast.cs" />
@@ -456,8 +473,8 @@
     <None Include="SimpleTestCases\NestedNamespaces.cs" />
     <None Include="SimpleTestCases\BasePropertyInvocation.cs" />
     <None Include="SimpleTestCases\Indexers.cs" />
-    <None Include="SimpleTestCases\Interfaces.cs" />
-    <None Include="SimpleTestCases\InterfaceInheritance.cs" />
+    <None Include="InterfaceTestCases\Interfaces.cs" />
+    <None Include="InterfaceTestCases\InterfaceInheritance.cs" />
     <None Include="SimpleTestCases\IntAndFloatCast.cs" />
     <None Include="TestCases\Lambdas.cs" />
     <None Include="TestCases\ForEach.cs" />
@@ -512,7 +529,6 @@
     <None Include="TestCases\ValueTypeMethods.cs" />
     <None Include="SimpleTestCases\GetType.cs" />
     <None Include="SpecialTestCases\IgnoreInterface.cs" />
-    <None Include="SimpleTestCases\InheritedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedProperties.cs" />
     <None Include="SimpleTestCases\IfNull.cs" />
     <None Include="SimpleTestCases\StringCharacters.cs" />
@@ -524,7 +540,7 @@
     <None Include="SpecialTestCases\SingleUseExceptionTemporaries.cs" />
     <None Include="TestCases\LambdaRefParameters.cs" />
     <None Include="SimpleTestCases\MemberRefMangledNames.cs" />
-    <None Include="SimpleTestCases\InterfaceProperties.cs" />
+    <None Include="InterfaceTestCases\InterfaceProperties.cs" />
     <None Include="SpecialTestCases\IfBooleanProperty.cs" />
     <None Include="SpecialTestCases\ReplacementArgumentNameMismatch.cs" />
     <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
@@ -680,6 +696,19 @@
     <None Include="IOTestCases\BasicStreamNavigation.cs" />
     <Compile Include="TestUtil.cs" />
     <Compile Include="VerbatimTests.cs" />
+    <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
+    <None Include="InterfaceTestCases\InterfaceColliding.cs" />
+    <None Include="InterfaceTestCases\InterfaceCollidingImplicit.cs" />
+    <None Include="FailingTestCases\FSharp.Core.Printf.Simple.fs" />
+    <None Include="FailingTestCases\FSharp.Core.Printf.StringArg.fs" />
+    <None Include="FailingTestCases\VirtualAndNewMethods.cs" />
+    <None Include="InterfaceTestCases\InheritedInterfaces.cs" />
+    <None Include="FailingTestCases\InheritedAndNewMethod.cs" />
+    <None Include="InterfaceTestCases\DoubleInheritedInterface.cs" />
+    <None Include="InterfaceTestCases\DoubleInheritedInterfaceAndNew.cs" />
+    <None Include="BinaryTestCases\InheritedAndExplicitOverwrittenMethods.cs" />
+    <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
+    <None Include="BinaryTestCases\InheritedInterfacesExplicit.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
@@ -708,6 +737,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="BinaryTestCases\MonoPinArray.exe" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="BinaryTestCases\InheritedAndExplicitOverwrittenMethods.dll" />
+    <Content Include="BinaryTestCases\InheritedInterfacesExplicit.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

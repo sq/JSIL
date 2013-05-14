@@ -258,7 +258,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "CreateText", 
+  $.Method({Static:true , Public:true }, "AppendText", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [$.String], [])), 
     function AppendText (path) {
       return new System.IO.StreamWriter(path, true);
@@ -606,22 +606,6 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
       this._pos = 0;
       this._length = 0;
-    }
-  );
-  
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
-    function _ctor (path, mode, access) {
-      // FIXME: access
-      System.IO.FileStream.prototype._ctor.call(this, path, mode);
-    }
-  );
-  
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), $jsilcore.TypeRef("System.IO.FileShare")], [])), 
-    function _ctor (path, mode, access, share) {
-      // FIXME: access, share
-      System.IO.FileStream.prototype._ctor.call(this, path, mode);
     }
   );
 

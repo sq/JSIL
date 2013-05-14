@@ -12,15 +12,22 @@ namespace JSIL.Transforms {
         public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
+        public readonly ITypeInfoSource TypeInfo;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
+        protected readonly HashSet<string> VariablesExemptedFromEffectivelyConstantStatus = new HashSet<string>();
+
         protected FunctionAnalysis1stPass FirstPass = null;
 
-        public EliminateSingleUseTemporaries (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, Dictionary<string, JSVariable> variables)
-            : base (member, functionSource) {
+        public EliminateSingleUseTemporaries (
+            QualifiedMemberIdentifier member, IFunctionSource functionSource, 
+            TypeSystem typeSystem, Dictionary<string, JSVariable> variables,
+            ITypeInfoSource typeInfo
+        ) : base (member, functionSource) {
             TypeSystem = typeSystem;
             Variables = variables;
+            TypeInfo = typeInfo;
         }
 
         protected void EliminateVariable (JSNode context, JSVariable variable, JSExpression replaceWith, QualifiedMemberIdentifier method) {
@@ -123,6 +130,11 @@ namespace JSIL.Transforms {
             // FIXME: I think this section might be fundamentally flawed. Do let me know if you agree. :)
             var v = source as JSVariable;
             if (v != null) {
+                // Ensure that we never treat a local variable as constant if functions we call allow it to escape
+                //  or modify it, because that can completely invalidate our purity analysis.
+                if (VariablesExemptedFromEffectivelyConstantStatus.Contains(v.Identifier))
+                    return false;
+
                 var sourceAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 if (sourceAssignments.Length < 1)
                     return v.IsParameter;
@@ -176,8 +188,84 @@ namespace JSIL.Transforms {
             return false;
         }
 
+        protected void ExemptVariablesFromEffectivelyConstantStatus () {
+            foreach (var invocation in FirstPass.Invocations) {
+                var invocationSecondPass = GetSecondPass(invocation.Method);
+
+                if (invocationSecondPass == null) {
+                    foreach (var kvp in invocation.Variables) {
+                        foreach (var variableName in kvp.Value) {
+                            if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
+                                if (TraceLevel >= 2)
+                                    Debug.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method ?? invocation.NonJSMethod);
+                            }
+
+                            VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
+                        }
+                    }
+
+                } else {
+
+                    foreach (var kvp in invocation.Variables) {
+                        var argumentName = kvp.Key;
+                        string reason = null;
+
+                        if (
+                            (invocationSecondPass.Data != null) &&
+                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable.Identifier == argumentName)
+                        ) {
+                            reason = "touches it with side effects";
+                        } else if (                            
+                            invocationSecondPass.EscapingVariables.Contains(argumentName)
+                        ) {
+                            reason = "allows it to escape";
+                        }
+
+                        if (reason != null) {
+                            foreach (var variableName in kvp.Value) {
+                                if (ShouldExemptVariableFromEffectivelyConstantStatus(variableName)) {
+                                    if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
+                                        if (TraceLevel >= 2)
+                                            Debug.WriteLine("Exempting variable '{0}' from effectively constant status because {1} {2}", variableName, invocation.Method ?? invocation.NonJSMethod, reason);
+                                    }
+
+                                    VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool ShouldExemptVariableFromEffectivelyConstantStatus (string variableName) {
+            // FIXME: Why does this happen?
+            if (!Variables.ContainsKey(variableName))
+                return false;
+
+            var actualVariable = Variables[variableName];
+            var variableType = actualVariable.GetActualType(TypeSystem);
+
+            // Structs and primitives won't be mutated by functions we pass them to (we ensure this)
+            if (!TypeUtil.IsReferenceType(variableType))
+                return false;
+
+            // Strings are immutable. Woot!
+            if (variableType.FullName == "System.String")
+                return false;
+
+            var variableTypeInfo = TypeInfo.Get(variableType);
+
+            // The object itself is immutable, so this is probably okay.
+            // FIXME: Transitive modification of the immutable type's members could be a problem here?
+            if ((variableTypeInfo != null) && (variableTypeInfo.IsImmutable))
+                return false;
+
+            return true;
+        }
+
         public void VisitNode (JSFunctionExpression fn) {
-            var nullList = new List<int>();
             FirstPass = GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
                 throw new InvalidOperationException(String.Format(
@@ -185,27 +273,16 @@ namespace JSIL.Transforms {
                     fn.Method.QualifiedIdentifier
                 ));
 
-            VisitChildren(fn);
+            ExemptVariablesFromEffectivelyConstantStatus();
 
             foreach (var v in fn.AllVariables.Values.ToArray()) {
                 if (v.IsThis || v.IsParameter)
-                    continue;
-
-                var valueType = v.GetActualType(TypeSystem);
-                if (TypeUtil.IsIgnoredType(valueType))
                     continue;
 
                 var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
                 var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
-
-                if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
-
-                    continue;
-                }
 
                 if (assignments.FirstOrDefault() == null) {
                     if ((accesses.Length == 0) && (invocations.Length == 0) && (reassignments.Length == 0)) {
@@ -223,6 +300,17 @@ namespace JSIL.Transforms {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
                     }
+
+                    continue;
+                }
+
+                var valueType = v.GetActualType(TypeSystem);
+                if (TypeUtil.IsIgnoredType(valueType))
+                    continue;
+
+                if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
 
                     continue;
                 }
@@ -286,40 +374,74 @@ namespace JSIL.Transforms {
                         replacementField = replacementRef.Referent as JSFieldAccess;
                 }
 
-                if (replacementField != null) {
+                var _affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>();
+                if (replacementField != null)
+                    _affectedFields = _affectedFields.Concat(new[] { replacementField.Field });
+
+                var affectedFields = new HashSet<FieldInfo>((from jsf in _affectedFields select jsf.Field));
+                _affectedFields = null;
+
+                {
+                    var firstAssignment = assignments.FirstOrDefault();
                     var lastAccess = accesses.LastOrDefault();
 
-                    var affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>().ToArray();
                     bool invalidatedByLaterFieldAccess = false;
-                    foreach (var field in affectedFields) {
-                        foreach (var fieldAccess in FirstPass.FieldAccesses) {
-                            // Different field. Note that we only compare the FieldInfo, not the this-reference.
-                            // Otherwise, aliasing (accessing the same field through two this references) would cause us
-                            //  to incorrectly eliminate a local.
-                            if (fieldAccess.Field.Field != replacementField.Field.Field)
-                                continue;
 
-                            // Ignore field accesses before the replacement was initialized
-                            if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
-                                continue;
+                    foreach (var fieldAccess in FirstPass.FieldAccesses) {
+                        // Note that we only compare the FieldInfo, not the this-reference.
+                        // Otherwise, aliasing (accessing the same field through two this references) would cause us
+                        //  to incorrectly eliminate a local.
+                        if (!affectedFields.Contains(fieldAccess.Field.Field))
+                            continue;
 
-                            // If the field access comes after the last use of the temporary, we don't care
-                            if ((lastAccess != null) && (fieldAccess.StatementIndex > lastAccess.StatementIndex))
-                                continue;
+                        // Ignore field accesses before the replacement was initialized
+                        if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
+                            continue;
 
-                            // It's a read, so no impact on whether this optimization is valid
-                            if (fieldAccess.IsRead)
-                                continue;
+                        // If the field access comes after the last use of the temporary, we don't care
+                        if ((lastAccess != null) && (fieldAccess.StatementIndex > lastAccess.StatementIndex))
+                            continue;
 
+                        // It's a read, so no impact on whether this optimization is valid
+                        if (fieldAccess.IsRead)
+                            continue;
+
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, fieldAccess.Field.Field));
+
+                        invalidatedByLaterFieldAccess = true;
+                        break;
+                    }
+
+                    if (invalidatedByLaterFieldAccess)
+                        continue;
+
+                    foreach (var invocation in FirstPass.Invocations) {
+                        // If the invocation comes after (or is) the last use of the temporary, we don't care
+                        if ((lastAccess != null) && (invocation.StatementIndex >= lastAccess.StatementIndex))
+                            continue;
+
+                        // Same goes for the first assignment.
+                        if ((firstAssignment != null) && (invocation.StatementIndex <= firstAssignment.StatementIndex))
+                            continue;
+
+                        var invocationSecondPass = GetSecondPass(invocation.Method);
+                        if (
+                            (invocationSecondPass == null) ||
+                            (invocationSecondPass.MutatedFields == null)
+                        ) {
+                            if (invocation.Variables.Any((kvp) => kvp.Value.Contains(v.Identifier))) {
+                                if (TraceLevel >= 2)
+                                    Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use with it as an argument", v, invocation.Method ?? invocation.NonJSMethod));
+
+                                invalidatedByLaterFieldAccess = true;
+                            }
+                        } else if (affectedFields.Any(invocationSecondPass.FieldIsMutatedRecursively)) {
                             if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, replacementField.Field));
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method ?? invocation.NonJSMethod));
 
                             invalidatedByLaterFieldAccess = true;
-                            break;
                         }
-
-                        if (invalidatedByLaterFieldAccess)
-                            break;
                     }
 
                     if (invalidatedByLaterFieldAccess)

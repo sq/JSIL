@@ -17,6 +17,7 @@ using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+using GenericParameterAttributes = Mono.Cecil.GenericParameterAttributes;
 using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
@@ -583,7 +584,7 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.Variables, log);
+                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log);
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -772,9 +773,7 @@ namespace JSIL {
             output.Comma();
 
             output.OpenBracket();
-            output.CommaSeparatedList(
-                (from p in iface.GenericParameters select p.Name), null, ListValueType.Primitive
-            );
+            WriteGenericParameterNames(output, iface.GenericParameters);
             output.CloseBracket();
 
             output.Comma();
@@ -858,6 +857,23 @@ namespace JSIL {
             output.NewLine();
         }
 
+        private string PickGenericParameterName (GenericParameter gp) {
+            var result = gp.Name;
+
+            if ((gp.Attributes & GenericParameterAttributes.Covariant) == GenericParameterAttributes.Covariant)
+                result = "out " + result;
+            if ((gp.Attributes & GenericParameterAttributes.Contravariant) == GenericParameterAttributes.Contravariant)
+                result = "in " + result;
+
+            return result;
+        }
+
+        private void WriteGenericParameterNames (JavascriptFormatter output, IEnumerable<GenericParameter> parameters) {
+            output.CommaSeparatedList(
+                (from p in parameters select PickGenericParameterName(p)), null, ListValueType.Primitive
+            );
+        }
+
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(enm);
 
@@ -917,9 +933,7 @@ namespace JSIL {
             output.Comma();
             output.OpenBracket();
             if (del.HasGenericParameters)
-                output.CommaSeparatedList(
-                    (from p in del.GenericParameters select p.Name), null, ListValueType.Primitive
-                );
+                WriteGenericParameterNames(output, del.GenericParameters);
             output.CloseBracket();
 
             output.RPar();
@@ -1032,15 +1046,20 @@ namespace JSIL {
                     }
                 }
 
-                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                output.Indent();
-                output.NewLine();
+                if (!makingSkeletons) {
+                    output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                    output.Indent();
+                    output.NewLine();
+                }
 
                 Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
                 int nextDisambiguatedId = 0;
-                var typeCacher = EmitTypeMethodExpressions(
+                var cachers = EmitTypeMethodExpressions(
                     context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
                 );
+
+                var typeCacher = cachers.Item1;
+                var signatureCacher = cachers.Item2;
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
@@ -1061,9 +1080,7 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket();
                     if (typedef.HasGenericParameters)
-                        output.CommaSeparatedList(
-                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
-                        );
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
                     output.CloseBracket();
 
                 } else {
@@ -1108,9 +1125,7 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket();
                     if (typedef.HasGenericParameters)
-                        output.CommaSeparatedList(
-                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
-                        );
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
                     output.CloseBracket();
 
                 }
@@ -1128,7 +1143,10 @@ namespace JSIL {
                     });
 
                     TranslateTypeDefinition(
-                        context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, typeCacher
+                        context, typedef, 
+                        astEmitter, output, 
+                        stubbed, dollar, makingSkeletons, 
+                        typeCacher, signatureCacher
                     );
 
                     output.NewLine();
@@ -1149,9 +1167,12 @@ namespace JSIL {
                     astEmitter.ReferenceContext.Pop();
                 }
 
-                output.Unindent();
-                output.WriteRaw("})();");
-                output.NewLine();
+                if (!makingSkeletons) {
+                    output.Unindent();
+                    output.WriteRaw("})();");
+                    output.NewLine();
+                }
+
                 output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
@@ -1230,28 +1251,25 @@ namespace JSIL {
             setValue("__IsNumeric__", isNumeric);
         }
 
-        protected TypeExpressionCacher EmitTypeMethodExpressions (
+        protected Tuple<TypeExpressionCacher, SignatureCacher> EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
+            var typeCacher = new TypeExpressionCacher(typedef);
+            var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
-                return null;
+                return Tuple.Create(typeCacher, signatureCacher);
 
             if (!makingSkeletons) {
                 output.WriteRaw("var $, $thisType");
                 output.Semicolon(true);
-            } else {
-                output.WriteRaw("var $");
-                output.Semicolon(true);
             }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
-
-            var typeCacher = new TypeExpressionCacher(typedef);
-            var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
 
             var cacheTypes = Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true);
             var cacheSignatures = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
@@ -1290,13 +1308,29 @@ namespace JSIL {
                     }
                 }
 
-                var css = signatureCacher.CachedSignatures.OrderBy((cs) => cs.Value).ToArray();
+                var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
                 if (css.Length > 0) {
                     foreach (var cs in css) {
                         output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
                         output.OpenBrace();
                         output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
                         output.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
+                        output.WriteRaw(")) ()");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
+                        output.Semicolon(true);
+                    }
+                }
+
+                var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
+                if (cims.Length > 0) {
+                    foreach (var cim in cims) {
+                        output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
+                        output.OpenBrace();
+                        output.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
+                        output.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                        output.Dot();
+                        output.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
                         output.WriteRaw(")) ()");
                         output.Semicolon(true);
                         output.CloseBrace(false);
@@ -1319,20 +1353,28 @@ namespace JSIL {
                 );
             }
 
-            return typeCacher;
+            return Tuple.Create(typeCacher, signatureCacher);
         }
 
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
             bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
-            TypeExpressionCacher typeCacher
+            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            output.WriteRaw("$ = $interfaceBuilder");
+            if (makingSkeletons)
+                output.WriteRaw("var $ = $interfaceBuilder");
+            else
+                output.WriteRaw("$ = $interfaceBuilder");
             output.Semicolon(true);
 
             context.CurrentType = typedef;
@@ -1378,17 +1420,15 @@ namespace JSIL {
                 TranslateTypeStaticConstructor(
                     context, typedef, astEmitter, 
                     output, typeInfo.StaticConstructor, 
-                    stubbed, dollar
+                    stubbed, dollar,
+                    typeCacher, signatureCacher
                 );
 
             if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
                 translateProperties();
             }
 
-            var interfaces = (from i in typeInfo.Interfaces
-                              where !i.Item1.IsIgnored
-                              select i.Item2).ToArray();
-
+            var interfaces = typeInfo.AllInterfacesRecursive;
             if (!makingSkeletons && (interfaces.Length > 0)) {
                 output.NewLine();
 
@@ -1396,12 +1436,37 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
-                output.CommaSeparatedList(interfaces, astEmitter.ReferenceContext, ListValueType.TypeReference);
+
+                bool firstInterface = true;
+
+                for (var i = 0; i < interfaces.Length; i++) {
+                    if (interfaces[i].Item1 != typeInfo)
+                        continue;
+                    if (interfaces[i].Item2.IsIgnored)
+                        continue;
+
+                    var @interface = interfaces[i].Item3;
+
+                    if (firstInterface)
+                        firstInterface = false;
+                    else
+                        output.Comma();
+
+                    output.NewLine();
+
+                    output.Comment("{0}", i);
+                    output.TypeReference(@interface, astEmitter.ReferenceContext);
+                }
+
+                output.NewLine();
                 output.RPar();
+                output.Semicolon(true);
             }
 
             output.NewLine();
-            output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+            if (!makingSkeletons)
+                output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+
             output.Semicolon(false);
         }
 
@@ -1618,13 +1683,13 @@ namespace JSIL {
 
         private void RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
-            SpecialIdentifiers si, Dictionary<string, JSVariable> variables, StringBuilder log
+            SpecialIdentifiers si, StringBuilder log
         ) {
             FunctionTransformPipeline pipeline;
 
             if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline))
                 pipeline = new FunctionTransformPipeline(
-                    this, memberIdentifier, function, si,  variables
+                    this, memberIdentifier, function, si
                 );
 
             bool completed = false;
@@ -1793,8 +1858,14 @@ namespace JSIL {
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar
+            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar,
+            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             var typeSystem = context.CurrentModule.TypeSystem;
             var staticFields = 
@@ -2003,7 +2074,11 @@ namespace JSIL {
             if ((cctor != null) && !stubbed) {
                 output.NewLine();
 
-                EmitAndDefineMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(
+                    context, cctor, cctor, 
+                    astEmitter, output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                );
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -2021,7 +2096,11 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                EmitAndDefineMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, ref temp, null, fixupCctor);
+                EmitAndDefineMethod(
+                    context, fakeCctor, fakeCctor, 
+                    astEmitter, output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                );
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -2030,7 +2109,8 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, null, null, ref temp, extraCctor,
+                    output, false, dollar, 
+                    typeCacher, signatureCacher, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -2215,6 +2295,11 @@ namespace JSIL {
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
+            if (typeCacher == null)
+                throw new ArgumentNullException("typeCacher");
+            if (signatureCacher == null)
+                throw new ArgumentNullException("signatureCacher");
+
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
@@ -2328,7 +2413,7 @@ namespace JSIL {
                 output.LPar();
 
                 // FIXME: Include IsVirtual?
-                output.MemberDescriptor(method.IsPublic, method.IsStatic);
+                output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
 
                 output.Comma();
                 output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
@@ -2375,9 +2460,47 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
+
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+        }
+
+        protected void TranslateOverrides (
+            DecompilerContext context, TypeInfo typeInfo,
+            MethodDefinition method, MethodInfo methodInfo,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+        ) {
+            astEmitter.ReferenceContext.Push();
+            try {
+                astEmitter.ReferenceContext.EnclosingType = null;
+                astEmitter.ReferenceContext.DefiningType = null;
+
+                output.Indent();
+
+                foreach (var @override in methodInfo.Overrides) {
+                    output.NewLine();
+                    output.Dot();
+                    output.Identifier("Overrides");
+                    output.LPar();
+
+                    var interfaceIndex = typeInfo.AllInterfacesRecursive.TakeWhile(
+                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
+                    ).Count();
+
+                    output.Value(interfaceIndex);
+
+                    output.Comma();
+                    output.Value(@override.MemberIdentifier.Name);
+
+                    output.RPar();
+                }
+
+                output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }

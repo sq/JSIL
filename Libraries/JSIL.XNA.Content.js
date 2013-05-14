@@ -498,8 +498,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.EffectReader", function
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", function ($) {
-  $.Method({Static: true, Public: true}, ".cctor", 
-    new JSIL.MethodSignature(null, [], []), 
+  $.RawMethod(true, ".cctor2",  
     function () {
       var assembly = $xnaasms.xna;
       var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
@@ -1006,7 +1005,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
         this.baseReader = manager.GetTypeReader(baseType);
       }
 
-      var bindingFlags = $jsilcore.System.Reflection.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic");
+      var bindingFlags = $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic");
       // FIXME: The order that comes back from GetProperties/GetFields might not be the same as it is in the .NET CLR.
       //  Given this, how can we reliably support ReflectiveReader?
       var properties = this.targetType.GetProperties(bindingFlags);

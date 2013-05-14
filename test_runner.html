@@ -88,9 +88,11 @@
       }
 
       function onLoadFixture () {
+        var button = document.getElementById("runscript");
         checkHash();
         setInterval(checkHash, 100);
-        document.getElementById("runscript").addEventListener("click", runScript, true);
+        button.removeAttribute("disabled");
+        button.addEventListener("click", runScript, true);
       }
     </script>
   </body>

@@ -1767,6 +1767,11 @@ namespace JSIL {
         protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
             JSExpression result = MapVariable(variable);
 
+            var valueType = result.GetActualType(TypeSystem);
+            var valueTypeInfo = TypeInfo.Get(valueType);
+            if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
+                return new JSIgnoredTypeReference(true, valueType);
+
             return result;
         }
 
@@ -1782,7 +1787,7 @@ namespace JSIL {
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
             var value = TranslateNode(node.Arguments[0]);
-            if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
+            if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredExpression))
                 return new JSNullExpression();
 
             JSVariable jsv = MapVariable(variable);
@@ -1805,6 +1810,10 @@ namespace JSIL {
             ) {
                 jsv = ChangeVariableType(jsv, valueType);
             }
+
+            var valueTypeInfo = TypeInfo.Get(valueType);
+            if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
+                return new JSIgnoredTypeReference(true, valueType);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, jsv,
@@ -1876,7 +1885,7 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
-            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredMemberReference))
+            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredExpression))
                 return new JSNullExpression();
 
             var fieldInfo = GetField(field);
@@ -2163,8 +2172,11 @@ namespace JSIL {
 
             if (lengthProp == null)
                 return new JSUntranslatableExpression(String.Format("Retrieving the length of a type with no length property: {0}", argType.FullName));
-            else
-                return Translate_CallGetter(node, lengthProp.GetMethod);
+            else {
+                var getMethod = lengthProp.GetMethod;
+
+                return Translate_CallGetter(node, CecilUtil.RebindMethod(getMethod, argType));
+            }
         }
 
         protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
@@ -2192,9 +2204,7 @@ namespace JSIL {
 
                 // We have to construct a custom reference to the method in order for ILSpy's
                 //  SubstituteTypeArgs method not to explode later on
-                var getMethodReference = new MethodReference(
-                    getMethod.Member.Name, targetGit.GenericArguments[0], targetGit
-                );
+                var getMethodReference = CecilUtil.RebindMethod(getMethod.Member, targetGit, targetGit.GenericArguments[0]);
 
                 result = JSInvocationExpression.InvokeMethod(
                     new JSMethod(getMethodReference, getMethod, MethodTypes),
@@ -2245,8 +2255,9 @@ namespace JSIL {
                 var setMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                     (kvp) => kvp.Key.Name == "set_Item"
                 ).Value;
-                var setMethodReference = new MethodReference(
-                    setMethod.Member.Name, targetGit.GenericArguments[0], targetGit
+
+                var setMethodReference = CecilUtil.RebindMethod(
+                    setMethod.Member, targetGit
                 );
 
                 return JSInvocationExpression.InvokeMethod(

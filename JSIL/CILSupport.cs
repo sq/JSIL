@@ -211,4 +211,20 @@ namespace JSIL.Internal {
             return obj.FullName.GetHashCode();
         }
     }
+
+    public static class CecilUtil {
+        // WHY IS CECIL SO DUMB?
+        public static MethodReference RebindMethod (MethodReference method, TypeReference newDeclaringType, TypeReference newReturnType = null) {
+            var result = new MethodReference(
+                method.Name, newReturnType ?? method.ReturnType, newDeclaringType
+            );
+
+            result.HasThis = method.HasThis;
+            result.ExplicitThis = method.ExplicitThis;
+
+            // TODO: Copy more attributes?
+
+            return result;
+        }
+    }
 }

@@ -54,6 +54,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void MonoInheritedInterfacesExplicit () {
+            using (var test = MakeTest(@"BinaryTestCases\InheritedInterfacesExplicit.dll"))
+                test.Run();
+        }
+
+        [Test]
+        public void MonoInheritedAndExplicitOverwrittenMethods () {
+            using (var test = MakeTest(@"BinaryTestCases\InheritedAndExplicitOverwrittenMethods.dll"))
+                test.Run();
+        }
+
+        [Test]
         public void MonoFixedArray () {
             var js = GetJavascript(
                 @"BinaryTestCases\MonoPinArray.exe",
@@ -540,6 +552,16 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> ReflectionTestCasesSource () {
             return FolderTestSource("ReflectionTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("InterfaceTestCasesSource")]
+        public void InterfaceTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> InterfaceTestCasesSource () {
+            return FolderTestSource("InterfaceTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
         [Test]

@@ -591,7 +591,14 @@ namespace JSIL.Tests {
 
                 try {
                     Assert.IsTrue(generatedJs.Contains("this.Test("), "this.Test was not direct-dispatched");
-                    Assert.IsTrue(generatedJs.Contains("test.Interface_Test2("), "test.Interface_Test2 was not direct-dispatched");
+                    // FIXME: Is this right?
+                    Assert.IsTrue(
+                        generatedJs.Contains("Interface.Test2.Call(") ||
+                        (
+                            generatedJs.ContainsRegex(@"\$IM([0-9]*) = JSIL.Memoize\(\$asm([0-9]*).Interface.Test2\)") &&
+                            generatedJs.ContainsRegex(@"\$IM([0-9]*)\(\).Call\(")
+                        ), 
+                    "test.Interface_Test2 was not direct-dispatched");
                 } catch {
                     Console.WriteLine(generatedJs);
 
@@ -791,6 +798,58 @@ namespace JSIL.Tests {
                     return cfg;
                 }
             );
+        }
+
+        [Test]
+        public void InterfaceVariance () {
+            var output = "";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\InterfaceVariance.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsTrue(
+                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"in U\""), "U name missing variance indicator"
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("\"out V\""), "V name missing variance indicator"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void CallSiteVariablesEliminated () {
+            var output = "a\r\n6";
+            var generatedJs = GetJavascript(
+                @"TestCases\DynamicReturnTypes.cs",
+                output, () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.CacheTypeExpressions = true;
+                    return cfg;
+                }
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains(".CallSite"),
+                    "A CallSite was not fully eliminated"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
         }
     }
 }

@@ -538,14 +538,21 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIgnoredMemberReference : JSExpression {
+    public abstract class JSIgnoredExpression : JSExpression {
         public readonly bool ThrowError;
+
+        protected JSIgnoredExpression (bool throwError) {
+            ThrowError = throwError;
+        }
+    }
+
+    public class JSIgnoredMemberReference : JSIgnoredExpression {
         public readonly IMemberInfo Member;
         [JSAstIgnore]
         public readonly JSExpression[] Arguments;
 
-        public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
-            ThrowError = throwError;
+        public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments)
+            : base (throwError) {
             Member = member;
             Arguments = arguments;
         }
@@ -594,6 +601,38 @@ namespace JSIL.Ast {
                 return method.ReturnType;
             }
 
+            return typeSystem.Void;
+        }
+    }
+
+    public class JSIgnoredTypeReference : JSIgnoredExpression {
+        public readonly TypeReference Type;
+
+        public JSIgnoredTypeReference (bool throwError, TypeReference type)
+            : base(throwError) {
+            Type = type;
+        }
+
+        public override string ToString () {
+            return String.Format("Reference to ignored type {0}", Type.FullName);
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSIgnoredTypeReference;
+            if (rhs != null) {
+                if (!TypeUtil.TypesAreEqual(Type, rhs.Type))
+                    return false;
+
+                return true;
+            }
+
+            return EqualsImpl(obj, true);
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Void;
         }
     }
@@ -2562,6 +2601,48 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Type;
+        }
+    }
+
+    public class JSCachedInterfaceMemberExpression : JSExpression {
+        public readonly int Index;
+
+        public JSCachedInterfaceMemberExpression (JSType type, JSIdentifier member, int index)
+            : base(type, member) {
+            Index = index;
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[0];
+            }
+        }
+
+        public JSIdentifier Identifier {
+            get {
+                return (JSIdentifier)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            // FIXME: Return constructed method type?
+            return typeSystem.Object;
+        }
+    }
+
+    public class JSLocalCachedInterfaceMemberExpression : JSExpression {
+        public readonly TypeReference TypeOfExpression;
+        public readonly TypeReference InterfaceType;
+        public readonly string MemberName;
+
+        public JSLocalCachedInterfaceMemberExpression (TypeReference typeOfExpression, TypeReference interfaceType, string memberName) {
+            TypeOfExpression = typeOfExpression;
+            InterfaceType = interfaceType;
+            MemberName = memberName;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return TypeOfExpression;
         }
     }
 }

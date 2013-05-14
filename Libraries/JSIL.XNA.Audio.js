@@ -342,10 +342,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundBank", function ($) 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($) {
-  $.Method({
-    Static: true,
-    Public: true
-  }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
+  $.RawMethod(true, ".cctor2", function () {
     Microsoft.Xna.Framework.Media.MediaPlayer.repeat = false;
     Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = null;
   });

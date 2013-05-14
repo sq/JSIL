@@ -294,6 +294,27 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode (JSIndexerExpression ie) {
+            var v = ExtractAffectedVariable(ie.Target);
+            var enclosingBoe = GetEnclosingNodes<JSBinaryOperatorExpression>((boe) => boe.Operator is JSAssignmentOperator).FirstOrDefault();
+
+            if (
+                (v != null) &&
+                (enclosingBoe.Node != null) &&
+                (enclosingBoe.ChildName == "Left")
+            ) {
+                var parentNodeIndices = GetParentNodeIndices();
+
+                State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
+                    parentNodeIndices, StatementIndex, NodeIndex, v, "element modified"
+                ));
+            } else {
+                ;
+            }
+
+            VisitChildren(ie);
+        }
+
         public void VisitNode (JSFieldAccess fa) {
             var field = fa.Field;
             var v = ExtractAffectedVariable(fa.ThisReference);
@@ -306,7 +327,7 @@ namespace JSIL.Transforms {
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v
+                    parentNodeIndices, StatementIndex, NodeIndex, v, "field modified"
                 ));
             }
 
@@ -352,7 +373,7 @@ namespace JSIL.Transforms {
                 // Setter
                 if (v != null) {
                     State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        GetParentNodeIndices(), StatementIndex, NodeIndex, v
+                        GetParentNodeIndices(), StatementIndex, NodeIndex, v, "property set"
                     ));
                 }
                 /*
@@ -430,11 +451,11 @@ namespace JSIL.Transforms {
                 ModifiedVariable(thisVar);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, ie.Method, variables
                 ));
             } else {
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, type, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, type, method, ie.Method, variables
                 ));
             }
 
@@ -447,7 +468,7 @@ namespace JSIL.Transforms {
                 var variables = ExtractAffectedVariables(jsm, newexp.Parameters);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, (JSVariable)null, jsm, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, (JSVariable)null, jsm, newexp.ConstructorReference, variables
                 ));
             }
 
@@ -605,12 +626,14 @@ namespace JSIL.Transforms {
 
         public class SideEffect : Item {
             public readonly JSVariable Variable;
+            public readonly string Type;
 
             public SideEffect (
                 int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable variable
+                JSVariable variable, string type
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
+                Type = type;
             }
         }
 
@@ -631,23 +654,28 @@ namespace JSIL.Transforms {
             public readonly JSType ThisType;
             public readonly string ThisVariable;
             public readonly JSMethod Method;
+            public readonly object NonJSMethod;
             public readonly IDictionary<string, string[]> Variables;
 
             public Invocation (
                 int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSType type, JSMethod method, 
+                JSType type, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             )
                 : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
                 ThisVariable = null;
                 Method = method;
+                if (method == null)
+                    NonJSMethod = nonJSMethod;
+                else
+                    NonJSMethod = null;
                 Variables = variables;
             }
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable thisVariable, JSMethod method, 
+                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                JSVariable thisVariable, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 if (thisVariable != null)
@@ -657,6 +685,10 @@ namespace JSIL.Transforms {
 
                 ThisType = null;
                 Method = method;
+                if (method == null)
+                    NonJSMethod = nonJSMethod;
+                else
+                    NonJSMethod = null;
                 Variables = variables;
             }
         }
@@ -706,6 +738,8 @@ namespace JSIL.Transforms {
         protected bool _ComputingPurity = false;
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
+        public readonly HashSet<FieldInfo> MutatedFields;
+        public readonly HashSet<FieldInfo>[] RecursivelyMutatedFields;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -716,6 +750,8 @@ namespace JSIL.Transforms {
         public readonly FunctionAnalysis1stPass Data;
 
         public FunctionAnalysis2ndPass (FunctionCache functionCache, FunctionAnalysis1stPass data) {
+            FunctionAnalysis2ndPass invocationSecondPass;
+
             FunctionCache = functionCache;
             Data = data;
 
@@ -780,7 +816,6 @@ namespace JSIL.Transforms {
 
                 // Scan over all the invocations performed by this function and see if any of them cause
                 //  a variable to escape
-                FunctionAnalysis2ndPass invocationSecondPass;
                 foreach (var invocation in Data.Invocations) {
                     if (invocation.Method != null)
                         invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
@@ -854,6 +889,33 @@ namespace JSIL.Transforms {
                 ViolatesThisReferenceImmutability = true;
             }
 
+            MutatedFields = new HashSet<FieldInfo>(
+                from fa in data.FieldAccesses where !fa.IsRead select fa.Field.Field
+            );
+
+            var recursivelyMutatedFields = new HashSet<HashSet<FieldInfo>>();
+
+            foreach (var invocation in Data.Invocations) {
+                if (invocation.Method != null) {
+                    invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
+                } else {
+                    invocationSecondPass = null;
+                }
+
+                if ((invocationSecondPass == null) || (invocationSecondPass.MutatedFields == null)) {
+                    // Can't know for sure.
+                    MutatedFields = null;
+                    break;
+                }
+
+                recursivelyMutatedFields.Add(invocationSecondPass.MutatedFields);
+
+                foreach (var rrmf in invocationSecondPass.RecursivelyMutatedFields)
+                    recursivelyMutatedFields.Add(rrmf);
+            }
+
+            RecursivelyMutatedFields = recursivelyMutatedFields.ToArray();
+
             Trace(data.Function.Method.Reference.FullName);
         }
 
@@ -894,6 +956,8 @@ namespace JSIL.Transforms {
 
             ResultVariable = null;
             ResultIsNew = method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
+
+            MutatedFields = null;
 
             Trace(method.Member.FullName);
         }
@@ -991,6 +1055,20 @@ namespace JSIL.Transforms {
                 _differences = null;
                 return true;
             }
+        }
+
+        public bool FieldIsMutatedRecursively (FieldInfo field) {
+            if (MutatedFields == null)
+                // Can't know for sure
+                return true;
+            else if (MutatedFields.Contains(field))
+                return true;
+
+            foreach (var rrmf in RecursivelyMutatedFields)
+                if (rrmf.Contains(field))
+                    return true;
+
+            return false;
         }
 
         public override bool Equals (object obj) {
