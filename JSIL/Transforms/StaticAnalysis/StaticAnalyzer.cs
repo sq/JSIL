@@ -451,11 +451,11 @@ namespace JSIL.Transforms {
                 ModifiedVariable(thisVar);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, ie.Method, variables
                 ));
             } else {
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, type, method, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, type, method, ie.Method, variables
                 ));
             }
 
@@ -468,7 +468,7 @@ namespace JSIL.Transforms {
                 var variables = ExtractAffectedVariables(jsm, newexp.Parameters);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
-                    GetParentNodeIndices(), StatementIndex, NodeIndex, (JSVariable)null, jsm, variables
+                    GetParentNodeIndices(), StatementIndex, NodeIndex, (JSVariable)null, jsm, newexp.ConstructorReference, variables
                 ));
             }
 
@@ -654,23 +654,28 @@ namespace JSIL.Transforms {
             public readonly JSType ThisType;
             public readonly string ThisVariable;
             public readonly JSMethod Method;
+            public readonly object NonJSMethod;
             public readonly IDictionary<string, string[]> Variables;
 
             public Invocation (
                 int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSType type, JSMethod method, 
+                JSType type, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             )
                 : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
                 ThisVariable = null;
                 Method = method;
+                if (method == null)
+                    NonJSMethod = nonJSMethod;
+                else
+                    NonJSMethod = null;
                 Variables = variables;
             }
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable thisVariable, JSMethod method, 
+                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                JSVariable thisVariable, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 if (thisVariable != null)
@@ -680,6 +685,10 @@ namespace JSIL.Transforms {
 
                 ThisType = null;
                 Method = method;
+                if (method == null)
+                    NonJSMethod = nonJSMethod;
+                else
+                    NonJSMethod = null;
                 Variables = variables;
             }
         }

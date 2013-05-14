@@ -197,7 +197,7 @@ namespace JSIL.Transforms {
                         foreach (var variableName in kvp.Value) {
                             if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                 if (TraceLevel >= 2)
-                                    Debug.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method);
+                                    Debug.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method ?? invocation.NonJSMethod);
                             }
 
                             VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
@@ -226,7 +226,7 @@ namespace JSIL.Transforms {
                                 if (ShouldExemptVariableFromEffectivelyConstantStatus(variableName)) {
                                     if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                         if (TraceLevel >= 2)
-                                            Debug.WriteLine("Exempting variable '{0}' from effectively constant status because {1} {2}", variableName, invocation.Method, reason);
+                                            Debug.WriteLine("Exempting variable '{0}' from effectively constant status because {1} {2}", variableName, invocation.Method ?? invocation.NonJSMethod, reason);
                                     }
 
                                     VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
@@ -417,18 +417,18 @@ namespace JSIL.Transforms {
                         break;
 
                     foreach (var invocation in FirstPass.Invocations) {
-                        // If the invocation comes after the last use of the temporary, we don't care
-                        if ((lastAccess != null) && (invocation.StatementIndex > lastAccess.StatementIndex))
+                        // If the invocation comes after (or is) the last use of the temporary, we don't care
+                        if ((lastAccess != null) && (invocation.StatementIndex >= lastAccess.StatementIndex))
                             continue;
 
                         // Same goes for the first assignment.
-                        if ((firstAssignment != null) && (invocation.StatementIndex < firstAssignment.StatementIndex))
+                        if ((firstAssignment != null) && (invocation.StatementIndex <= firstAssignment.StatementIndex))
                             continue;
 
                         var invocationSecondPass = GetSecondPass(invocation.Method);
                         if ((invocationSecondPass == null) || (invocationSecondPass.MutatedFields == null)) {
                             if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use", v, invocation.Method));
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use", v, invocation.Method ?? invocation.NonJSMethod));
 
                             invalidatedByLaterFieldAccess = true;
                             continue;
@@ -436,7 +436,7 @@ namespace JSIL.Transforms {
 
                         if (affectedFields.Any(invocationSecondPass.FieldIsMutatedRecursively)) {
                             if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method));
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method ?? invocation.NonJSMethod));
 
                             invalidatedByLaterFieldAccess = true;
                             continue;

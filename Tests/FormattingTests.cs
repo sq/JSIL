@@ -827,5 +827,29 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void CallSiteVariablesEliminated () {
+            var output = "a\r\n6";
+            var generatedJs = GetJavascript(
+                @"TestCases\DynamicReturnTypes.cs",
+                output, () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.CacheTypeExpressions = true;
+                    return cfg;
+                }
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains(".CallSite"),
+                    "A CallSite was not fully eliminated"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
