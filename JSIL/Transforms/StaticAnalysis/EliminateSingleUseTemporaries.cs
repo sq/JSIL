@@ -9,7 +9,7 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : StaticAnalysisJSAstVisitor {
         public static bool DryRun = false;
-        public static int TraceLevel = 0;
+        public static int TraceLevel = 5;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
@@ -294,6 +294,7 @@ namespace JSIL.Transforms {
                 _affectedFields = null;
 
                 {
+                    var firstAssignment = assignments.FirstOrDefault();
                     var lastAccess = accesses.LastOrDefault();
 
                     bool invalidatedByLaterFieldAccess = false;
@@ -330,6 +331,10 @@ namespace JSIL.Transforms {
                     foreach (var invocation in FirstPass.Invocations) {
                         // If the invocation comes after the last use of the temporary, we don't care
                         if ((lastAccess != null) && (invocation.StatementIndex > lastAccess.StatementIndex))
+                            continue;
+
+                        // Same goes for the first assignment.
+                        if ((firstAssignment != null) && (invocation.StatementIndex < firstAssignment.StatementIndex))
                             continue;
 
                         var invocationFirstPass = GetFirstPass(invocation.Method.QualifiedIdentifier);
