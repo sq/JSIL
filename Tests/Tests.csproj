@@ -154,6 +154,7 @@
     <None Include="FailingTestCases\StaticConstructorOrdering.cs" />
     <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
     <None Include="PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs" />
+    <None Include="SimpleTestCases\Issue194.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
