@@ -452,20 +452,25 @@ JSIL.ImplementExternals(
       }
     );
 
+    var formatRegex = new RegExp("{([0-9]*)(?::([^}]*))?}|{{|}}", "g");
+
     $.Method({Static:true , Public:true }, "Format", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
       function (format) {
         format = String(format);
 
-        var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
         var match = null;
-
         var values = Array.prototype.slice.call(arguments, 1);
 
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
         var matcher = function (match, index, valueFormat, offset, str) {
+          if (match === "{{")
+            return "{";
+          else if (match === "}}")
+            return "}";
+
           index = parseInt(index);
 
           var value = values[index];
@@ -486,7 +491,7 @@ JSIL.ImplementExternals(
           }
         };
 
-        return format.replace(regex, matcher);
+        return format.replace(formatRegex, matcher);
       }
     );
 

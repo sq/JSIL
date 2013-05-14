@@ -160,6 +160,7 @@
     <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
     <None Include="PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs" />
     <None Include="SimpleTestCases\Issue194.cs" />
+    <None Include="SimpleTestCases\AssignNewToOut.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
