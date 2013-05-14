@@ -584,5 +584,17 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void TemporaryFunctionCallPurity () {
+            var output = "";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\TemporaryFunctionCallPurity.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

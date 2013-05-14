@@ -452,7 +452,7 @@ namespace JSIL.Internal {
 
                 do {
                     if (!RunStaticAnalysisDependentTransform(new EliminateSingleUseTemporaries(
-                        Identifier, FunctionSource, TypeSystem, Variables
+                        Identifier, FunctionSource, TypeSystem, Variables, TypeInfoProvider
                     ), (visitor) => {
                         eliminated[0] = visitor.EliminatedVariables.Count > 0;
                     }))

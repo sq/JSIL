@@ -12,15 +12,22 @@ namespace JSIL.Transforms {
         public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
+        public readonly ITypeInfoSource TypeInfo;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
+        protected readonly HashSet<string> VariablesExemptedFromEffectivelyConstantStatus = new HashSet<string>();
+
         protected FunctionAnalysis1stPass FirstPass = null;
 
-        public EliminateSingleUseTemporaries (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, Dictionary<string, JSVariable> variables)
-            : base (member, functionSource) {
+        public EliminateSingleUseTemporaries (
+            QualifiedMemberIdentifier member, IFunctionSource functionSource, 
+            TypeSystem typeSystem, Dictionary<string, JSVariable> variables,
+            ITypeInfoSource typeInfo
+        ) : base (member, functionSource) {
             TypeSystem = typeSystem;
             Variables = variables;
+            TypeInfo = typeInfo;
         }
 
         protected void EliminateVariable (JSNode context, JSVariable variable, JSExpression replaceWith, QualifiedMemberIdentifier method) {
@@ -123,6 +130,11 @@ namespace JSIL.Transforms {
             // FIXME: I think this section might be fundamentally flawed. Do let me know if you agree. :)
             var v = source as JSVariable;
             if (v != null) {
+                // Ensure that we never treat a local variable as constant if functions we call allow it to escape
+                //  or modify it, because that can completely invalidate our purity analysis.
+                if (VariablesExemptedFromEffectivelyConstantStatus.Contains(v.Identifier))
+                    return false;
+
                 var sourceAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 if (sourceAssignments.Length < 1)
                     return v.IsParameter;
@@ -176,8 +188,80 @@ namespace JSIL.Transforms {
             return false;
         }
 
+        protected void ExemptVariablesFromEffectivelyConstantStatus () {
+            foreach (var invocation in FirstPass.Invocations) {
+                var invocationSecondPass = GetSecondPass(invocation.Method);
+
+                if (invocationSecondPass == null) {
+                    foreach (var kvp in invocation.Variables) {
+                        foreach (var variableName in kvp.Value) {
+                            if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
+                                if (TraceLevel >= 2)
+                                    Debug.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method);
+                            }
+
+                            VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
+                        }
+                    }
+
+                } else {
+
+                    foreach (var kvp in invocation.Variables) {
+                        var argumentName = kvp.Key;
+                        string reason = null;
+
+                        if (
+                            (invocationSecondPass.Data != null) &&
+                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable.Identifier == argumentName)
+                        ) {
+                            reason = "touches it with side effects";
+                        } else if (                            
+                            invocationSecondPass.EscapingVariables.Contains(argumentName)
+                        ) {
+                            reason = "allows it to escape";
+                        }
+
+                        if (reason != null) {
+                            foreach (var variableName in kvp.Value) {
+                                if (ShouldExemptVariableFromEffectivelyConstantStatus(variableName)) {
+                                    if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
+                                        if (TraceLevel >= 2)
+                                            Debug.WriteLine("Exempting variable '{0}' from effectively constant status because {1} {2}", variableName, invocation.Method, reason);
+                                    }
+
+                                    VariablesExemptedFromEffectivelyConstantStatus.Add(variableName);
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool ShouldExemptVariableFromEffectivelyConstantStatus (string variableName) {
+            var actualVariable = Variables[variableName];
+            var variableType = actualVariable.GetActualType(TypeSystem);
+
+            // Structs and primitives won't be mutated by functions we pass them to (we ensure this)
+            if (!TypeUtil.IsReferenceType(variableType))
+                return false;
+
+            // Strings are immutable. Woot!
+            if (variableType.FullName == "System.String")
+                return false;
+
+            var variableTypeInfo = TypeInfo.Get(variableType);
+
+            // The object itself is immutable, so this is probably okay.
+            // FIXME: Transitive modification of the immutable type's members could be a problem here?
+            if ((variableTypeInfo != null) && (variableTypeInfo.IsImmutable))
+                return false;
+
+            return true;
+        }
+
         public void VisitNode (JSFunctionExpression fn) {
-            var nullList = new List<int>();
             FirstPass = GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
                 throw new InvalidOperationException(String.Format(
@@ -185,7 +269,7 @@ namespace JSIL.Transforms {
                     fn.Method.QualifiedIdentifier
                 ));
 
-            VisitChildren(fn);
+            ExemptVariablesFromEffectivelyConstantStatus();
 
             foreach (var v in fn.AllVariables.Values.ToArray()) {
                 if (v.IsThis || v.IsParameter)

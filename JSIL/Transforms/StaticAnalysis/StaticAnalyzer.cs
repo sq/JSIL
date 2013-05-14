@@ -294,6 +294,27 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode (JSIndexerExpression ie) {
+            var v = ExtractAffectedVariable(ie.Target);
+            var enclosingBoe = GetEnclosingNodes<JSBinaryOperatorExpression>((boe) => boe.Operator is JSAssignmentOperator).FirstOrDefault();
+
+            if (
+                (v != null) &&
+                (enclosingBoe.Node != null) &&
+                (enclosingBoe.ChildName == "Left")
+            ) {
+                var parentNodeIndices = GetParentNodeIndices();
+
+                State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
+                    parentNodeIndices, StatementIndex, NodeIndex, v, "element modified"
+                ));
+            } else {
+                ;
+            }
+
+            VisitChildren(ie);
+        }
+
         public void VisitNode (JSFieldAccess fa) {
             var field = fa.Field;
             var v = ExtractAffectedVariable(fa.ThisReference);
@@ -306,7 +327,7 @@ namespace JSIL.Transforms {
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v
+                    parentNodeIndices, StatementIndex, NodeIndex, v, "field modified"
                 ));
             }
 
@@ -352,7 +373,7 @@ namespace JSIL.Transforms {
                 // Setter
                 if (v != null) {
                     State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        GetParentNodeIndices(), StatementIndex, NodeIndex, v
+                        GetParentNodeIndices(), StatementIndex, NodeIndex, v, "property set"
                     ));
                 }
                 /*
@@ -605,12 +626,14 @@ namespace JSIL.Transforms {
 
         public class SideEffect : Item {
             public readonly JSVariable Variable;
+            public readonly string Type;
 
             public SideEffect (
                 int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable variable
+                JSVariable variable, string type
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
+                Type = type;
             }
         }
 
