@@ -240,6 +240,10 @@ namespace JSIL.Transforms {
         }
 
         private bool ShouldExemptVariableFromEffectivelyConstantStatus (string variableName) {
+            // FIXME: Why does this happen?
+            if (!Variables.ContainsKey(variableName))
+                return false;
+
             var actualVariable = Variables[variableName];
             var variableType = actualVariable.GetActualType(TypeSystem);
 
