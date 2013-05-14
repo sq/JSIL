@@ -3,9 +3,9 @@
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",
-      "System,",
-      "System\\.(.*),",
-      "Microsoft\\.(.*),",
+      "^System,",
+      "^System\\.(.+),",
+      "^Microsoft\\.(.+),",
       "FSharp.Core,"
     ],
     "Ignored": [

@@ -262,7 +262,7 @@ namespace JSIL {
             return false;
         }
 
-        protected string ClassifyAssembly (AssemblyDefinition asm) {
+        public string ClassifyAssembly (AssemblyDefinition asm) {
             if (IsIgnored(asm.FullName))
                 return "ignored";
             else if (IsStubbed(asm))
