@@ -279,21 +279,10 @@ namespace JSIL.Transforms {
                 if (v.IsThis || v.IsParameter)
                     continue;
 
-                var valueType = v.GetActualType(TypeSystem);
-                if (TypeUtil.IsIgnoredType(valueType))
-                    continue;
-
                 var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
                 var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
-
-                if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
-
-                    continue;
-                }
 
                 if (assignments.FirstOrDefault() == null) {
                     if ((accesses.Length == 0) && (invocations.Length == 0) && (reassignments.Length == 0)) {
@@ -311,6 +300,17 @@ namespace JSIL.Transforms {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
                     }
+
+                    continue;
+                }
+
+                var valueType = v.GetActualType(TypeSystem);
+                if (TypeUtil.IsIgnoredType(valueType))
+                    continue;
+
+                if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
 
                     continue;
                 }
@@ -414,7 +414,7 @@ namespace JSIL.Transforms {
                     }
 
                     if (invalidatedByLaterFieldAccess)
-                        break;
+                        continue;
 
                     foreach (var invocation in FirstPass.Invocations) {
                         // If the invocation comes after (or is) the last use of the temporary, we don't care
@@ -426,25 +426,26 @@ namespace JSIL.Transforms {
                             continue;
 
                         var invocationSecondPass = GetSecondPass(invocation.Method);
-                        if ((invocationSecondPass == null) || (invocationSecondPass.MutatedFields == null)) {
-                            if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use", v, invocation.Method ?? invocation.NonJSMethod));
+                        if (
+                            (invocationSecondPass == null) ||
+                            (invocationSecondPass.MutatedFields == null)
+                        ) {
+                            if (invocation.Variables.Any((kvp) => kvp.Value.Contains(v.Identifier))) {
+                                if (TraceLevel >= 2)
+                                    Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use with it as an argument", v, invocation.Method ?? invocation.NonJSMethod));
 
-                            invalidatedByLaterFieldAccess = true;
-                            continue;
-                        }
-
-                        if (affectedFields.Any(invocationSecondPass.FieldIsMutatedRecursively)) {
+                                invalidatedByLaterFieldAccess = true;
+                            }
+                        } else if (affectedFields.Any(invocationSecondPass.FieldIsMutatedRecursively)) {
                             if (TraceLevel >= 2)
                                 Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method ?? invocation.NonJSMethod));
 
                             invalidatedByLaterFieldAccess = true;
-                            continue;
                         }
                     }
 
                     if (invalidatedByLaterFieldAccess)
-                        break;
+                        continue;
                 }
 
                 if (TraceLevel >= 1)

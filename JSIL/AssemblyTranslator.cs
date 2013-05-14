@@ -584,7 +584,7 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, e.Variables, log);
+                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log);
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -1683,13 +1683,13 @@ namespace JSIL {
 
         private void RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
-            SpecialIdentifiers si, Dictionary<string, JSVariable> variables, StringBuilder log
+            SpecialIdentifiers si, StringBuilder log
         ) {
             FunctionTransformPipeline pipeline;
 
             if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline))
                 pipeline = new FunctionTransformPipeline(
-                    this, memberIdentifier, function, si,  variables
+                    this, memberIdentifier, function, si
                 );
 
             bool completed = false;

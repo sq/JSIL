@@ -23,7 +23,6 @@ namespace JSIL.Internal {
         public readonly AssemblyTranslator Translator;
         public readonly QualifiedMemberIdentifier Identifier;
         public readonly JSFunctionExpression Function;
-        public readonly Dictionary<string, JSVariable> Variables;
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
         public readonly Queue<FunctionTransformPipelineStage> Pipeline = new Queue<FunctionTransformPipelineStage>();
@@ -36,13 +35,12 @@ namespace JSIL.Internal {
         public FunctionTransformPipeline (
             AssemblyTranslator translator,
             QualifiedMemberIdentifier identifier, JSFunctionExpression function,
-            SpecialIdentifiers si, Dictionary<string, JSVariable> variables
+            SpecialIdentifiers si
         ) {
             Translator = translator;
             Identifier = identifier;
             Function = function;
             SpecialIdentifiers = si;
-            Variables = variables;
 
             FillPipeline();
 
@@ -190,9 +188,7 @@ namespace JSIL.Internal {
 
             Enqueue(EmulateStructAssignment);
 
-            Enqueue(IntroduceVariableDeclarations);
-
-            Enqueue(IntroduceVariableReferences);
+            Enqueue(IntroduceVariableDeclarationsAndReferences);
 
             Enqueue(SimplifyLoops);
 
@@ -400,19 +396,15 @@ namespace JSIL.Internal {
             return true;
         }
 
-        private bool IntroduceVariableReferences () {
-            new IntroduceVariableReferences(
-                SpecialIdentifiers.JSIL,
-                Variables
+        private bool IntroduceVariableDeclarationsAndReferences () {
+            new IntroduceVariableDeclarations(
+                Function.AllVariables,
+                TypeInfoProvider
                 ).Visit(Function);
 
-            return true;
-        }
-
-        private bool IntroduceVariableDeclarations () {
-            new IntroduceVariableDeclarations(
-                Variables,
-                TypeInfoProvider
+            new IntroduceVariableReferences(
+                SpecialIdentifiers.JSIL,
+                Function.AllVariables
                 ).Visit(Function);
 
             return true;
@@ -452,7 +444,7 @@ namespace JSIL.Internal {
 
                 do {
                     if (!RunStaticAnalysisDependentTransform(new EliminateSingleUseTemporaries(
-                        Identifier, FunctionSource, TypeSystem, Variables, TypeInfoProvider
+                        Identifier, FunctionSource, TypeSystem, Function.AllVariables, TypeInfoProvider
                     ), (visitor) => {
                         eliminated[0] = visitor.EliminatedVariables.Count > 0;
                     }))

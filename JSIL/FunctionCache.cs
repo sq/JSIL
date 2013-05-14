@@ -29,7 +29,6 @@ namespace JSIL {
             public MethodReference Reference;
 
             public SpecialIdentifiers SpecialIdentifiers;
-            public Dictionary<string, JSVariable> Variables;
 
             public JSFunctionExpression Expression;
             public FunctionAnalysis1stPass FirstPass;
@@ -114,7 +113,6 @@ namespace JSIL {
                     Info = args.Info,
                     Reference = args.Method,
                     Expression = result,
-                    Variables = args.Translator.Variables,
                     SpecialIdentifiers = args.Translator.SpecialIdentifiers
                 };
             };
