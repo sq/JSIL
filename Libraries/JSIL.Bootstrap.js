@@ -1194,8 +1194,11 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Sort", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
     function Sort (comparer) {
+      var tComparer = System.Collections.Generic.IComparer$b1.Of(this.T);
+      var compare = tComparer.Compare;
+
       this._items.sort(function (lhs, rhs) {
-        return comparer.IComparer$b1_Compare(lhs, rhs);
+        return compare.Call(comparer, lhs, rhs);
       });
     }
   );
