@@ -1017,6 +1017,10 @@ JSIL.UntranslatableInstruction = function (instruction, operand) {
     JSIL.Host.abort(new Error("A MSIL instruction of type " + instruction + " could not be translated."));
 };
 
+JSIL.IgnoredType = function (typeName) {
+  JSIL.Host.abort(new Error("An attempt was made to reference the type '" + typeName + "', but it was explicitly ignored during translation."));
+};
+
 JSIL.IgnoredMember = function (memberName) {
   JSIL.Host.abort(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };

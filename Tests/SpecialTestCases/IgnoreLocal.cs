@@ -7,7 +7,7 @@ public static class Program {
     }
   
     public static void Main (string[] args) {
-        TestClass local = null;
+        TestClass local = new TestClass();
         Console.WriteLine(local);
     }
 }

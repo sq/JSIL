@@ -294,7 +294,7 @@ namespace JSIL {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
                 !(statement.Expression is JSUntranslatableExpression) &&
-                !(statement.Expression is JSIgnoredMemberReference);
+                !(statement.Expression is JSIgnoredExpression);
 
             Visit(statement.Expression);
 
@@ -800,6 +800,13 @@ namespace JSIL {
 
                 CommaSeparatedList(args);
             }
+            Output.RPar();
+        }
+
+        public void VisitNode (JSIgnoredTypeReference itr) {
+            Output.WriteRaw("JSIL.IgnoredType");
+            Output.LPar();
+            Output.Value(itr.Type.FullName);
             Output.RPar();
         }
 

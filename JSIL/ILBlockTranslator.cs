@@ -1767,6 +1767,11 @@ namespace JSIL {
         protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
             JSExpression result = MapVariable(variable);
 
+            var valueType = result.GetActualType(TypeSystem);
+            var valueTypeInfo = TypeInfo.Get(valueType);
+            if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
+                return new JSIgnoredTypeReference(true, valueType);
+
             return result;
         }
 
@@ -1782,7 +1787,7 @@ namespace JSIL {
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
             var value = TranslateNode(node.Arguments[0]);
-            if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
+            if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredExpression))
                 return new JSNullExpression();
 
             JSVariable jsv = MapVariable(variable);
@@ -1805,6 +1810,10 @@ namespace JSIL {
             ) {
                 jsv = ChangeVariableType(jsv, valueType);
             }
+
+            var valueTypeInfo = TypeInfo.Get(valueType);
+            if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
+                return new JSIgnoredTypeReference(true, valueType);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, jsv,
@@ -1876,7 +1885,7 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
-            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredMemberReference))
+            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredExpression))
                 return new JSNullExpression();
 
             var fieldInfo = GetField(field);
