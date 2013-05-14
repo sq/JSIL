@@ -560,5 +560,29 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void AffectedFieldThroughCall () {
+            var output = "Expected 100, actual 100.\r\nExpected 10, actual 10.";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\AffectedFieldThroughCall.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void AffectedFieldThroughRecursiveCall () {
+            var output = "Expected 100, actual 100.\r\nExpected 10, actual 10.";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\AffectedFieldThroughRecursiveCall.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
