@@ -4122,3 +4122,14 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`8", true, ["T1"
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`9", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"], function ($) {
 });
 
+JSIL.MakeInterface(
+  "System.IAsyncResult", true, [], function ($) {
+    $.Method({}, "get_IsCompleted", new JSIL.MethodSignature($.Boolean, [], []));
+    $.Method({}, "get_AsyncWaitHandle", new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.WaitHandle"), [], []));
+    $.Method({}, "get_AsyncState", new JSIL.MethodSignature($.Object, [], []));
+    $.Method({}, "get_CompletedSynchronously", new JSIL.MethodSignature($.Boolean, [], []));
+    $.Property({}, "IsCompleted");
+    $.Property({}, "AsyncWaitHandle");
+    $.Property({}, "AsyncState");
+    $.Property({}, "CompletedSynchronously");
+  }, []);
