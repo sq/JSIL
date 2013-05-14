@@ -286,44 +286,45 @@ namespace JSIL.Transforms {
                         replacementField = replacementRef.Referent as JSFieldAccess;
                 }
 
-                if (replacementField != null) {
+                var _affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>();
+                if (replacementField != null)
+                    _affectedFields = _affectedFields.Concat(new[] { replacementField.Field });
+
+                var affectedFields = new HashSet<FieldInfo>((from jsf in _affectedFields select jsf.Field));
+                _affectedFields = null;
+
+                {
                     var lastAccess = accesses.LastOrDefault();
 
-                    var affectedFields = replacement.SelfAndChildrenRecursive.OfType<JSField>().ToArray();
                     bool invalidatedByLaterFieldAccess = false;
-                    foreach (var field in affectedFields) {
-                        foreach (var fieldAccess in FirstPass.FieldAccesses) {
-                            // Different field. Note that we only compare the FieldInfo, not the this-reference.
-                            // Otherwise, aliasing (accessing the same field through two this references) would cause us
-                            //  to incorrectly eliminate a local.
-                            if (fieldAccess.Field.Field != replacementField.Field.Field)
-                                continue;
+                    foreach (var fieldAccess in FirstPass.FieldAccesses) {
+                        // Note that we only compare the FieldInfo, not the this-reference.
+                        // Otherwise, aliasing (accessing the same field through two this references) would cause us
+                        //  to incorrectly eliminate a local.
+                        if (!affectedFields.Contains(fieldAccess.Field.Field))
+                            continue;
 
-                            // Ignore field accesses before the replacement was initialized
-                            if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
-                                continue;
+                        // Ignore field accesses before the replacement was initialized
+                        if (fieldAccess.NodeIndex <= replacementAssignment.NodeIndex)
+                            continue;
 
-                            // If the field access comes after the last use of the temporary, we don't care
-                            if ((lastAccess != null) && (fieldAccess.StatementIndex > lastAccess.StatementIndex))
-                                continue;
+                        // If the field access comes after the last use of the temporary, we don't care
+                        if ((lastAccess != null) && (fieldAccess.StatementIndex > lastAccess.StatementIndex))
+                            continue;
 
-                            // It's a read, so no impact on whether this optimization is valid
-                            if (fieldAccess.IsRead)
-                                continue;
+                        // It's a read, so no impact on whether this optimization is valid
+                        if (fieldAccess.IsRead)
+                            continue;
 
-                            if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, replacementField.Field));
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, replacementField.Field));
 
-                            invalidatedByLaterFieldAccess = true;
-                            break;
-                        }
-
-                        if (invalidatedByLaterFieldAccess)
-                            break;
+                        invalidatedByLaterFieldAccess = true;
+                        break;
                     }
 
                     if (invalidatedByLaterFieldAccess)
-                        continue;
+                        break;
                 }
 
                 if (TraceLevel >= 1)
