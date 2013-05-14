@@ -297,6 +297,7 @@ namespace JSIL.Transforms {
                     var lastAccess = accesses.LastOrDefault();
 
                     bool invalidatedByLaterFieldAccess = false;
+
                     foreach (var fieldAccess in FirstPass.FieldAccesses) {
                         // Note that we only compare the FieldInfo, not the this-reference.
                         // Otherwise, aliasing (accessing the same field through two this references) would cause us
@@ -321,6 +322,44 @@ namespace JSIL.Transforms {
 
                         invalidatedByLaterFieldAccess = true;
                         break;
+                    }
+
+                    if (invalidatedByLaterFieldAccess)
+                        break;
+
+                    foreach (var invocation in FirstPass.Invocations) {
+                        // If the invocation comes after the last use of the temporary, we don't care
+                        if ((lastAccess != null) && (invocation.StatementIndex > lastAccess.StatementIndex))
+                            continue;
+
+                        var invocationFirstPass = GetFirstPass(invocation.Method.QualifiedIdentifier);
+
+                        if (invocationFirstPass == null) {
+                            if (TraceLevel >= 2)
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without analysis data ({1}) is invoked between its initialization and use", v, invocation.Method));
+
+                            invalidatedByLaterFieldAccess = true;
+                            continue;
+                        }
+
+                        var invocationSecondPass = GetSecondPass(invocation.Method);
+                        if ((invocationSecondPass != null) && invocationSecondPass.IsPure) {
+                            if (TraceLevel >= 3)
+                                Debug.WriteLine(String.Format("Assuming {0} cannot mutate any fields because it is pure.", invocation.Method));
+
+                            continue;
+                        }
+
+                        if (invocationFirstPass.FieldAccesses.Any((fa) => 
+                            affectedFields.Contains(fa.Field.Field) &&
+                            !fa.IsRead
+                        )) {
+                            if (TraceLevel >= 2)
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method));
+
+                            invalidatedByLaterFieldAccess = true;
+                            continue;
+                        }
                     }
 
                     if (invalidatedByLaterFieldAccess)
