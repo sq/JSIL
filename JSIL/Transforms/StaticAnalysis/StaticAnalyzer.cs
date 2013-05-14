@@ -707,6 +707,7 @@ namespace JSIL.Transforms {
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
         public readonly HashSet<FieldInfo> MutatedFields;
+        public readonly HashSet<FieldInfo>[] RecursivelyMutatedFields;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -860,6 +861,8 @@ namespace JSIL.Transforms {
                 from fa in data.FieldAccesses where !fa.IsRead select fa.Field.Field
             );
 
+            var recursivelyMutatedFields = new HashSet<HashSet<FieldInfo>>();
+
             foreach (var invocation in Data.Invocations) {
                 if (invocation.Method != null) {
                     invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
@@ -873,8 +876,13 @@ namespace JSIL.Transforms {
                     break;
                 }
 
-                MutatedFields.UnionWith(invocationSecondPass.MutatedFields);
+                recursivelyMutatedFields.Add(invocationSecondPass.MutatedFields);
+
+                foreach (var rrmf in invocationSecondPass.RecursivelyMutatedFields)
+                    recursivelyMutatedFields.Add(rrmf);
             }
+
+            RecursivelyMutatedFields = recursivelyMutatedFields.ToArray();
 
             Trace(data.Function.Method.Reference.FullName);
         }
@@ -1015,6 +1023,20 @@ namespace JSIL.Transforms {
                 _differences = null;
                 return true;
             }
+        }
+
+        public bool FieldIsMutatedRecursively (FieldInfo field) {
+            if (MutatedFields == null)
+                // Can't know for sure
+                return true;
+            else if (MutatedFields.Contains(field))
+                return true;
+
+            foreach (var rrmf in RecursivelyMutatedFields)
+                if (rrmf.Contains(field))
+                    return true;
+
+            return false;
         }
 
         public override bool Equals (object obj) {

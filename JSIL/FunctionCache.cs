@@ -210,6 +210,9 @@ namespace JSIL {
         }
 
         public FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forMethod) {
+            if (method == null)
+                return null;
+
             var id = method.QualifiedIdentifier;
             Entry entry = Cache.GetOrCreate(
                 id, method, MakeCacheEntry

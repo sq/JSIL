@@ -9,7 +9,7 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : StaticAnalysisJSAstVisitor {
         public static bool DryRun = false;
-        public static int TraceLevel = 5;
+        public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
@@ -319,7 +319,7 @@ namespace JSIL.Transforms {
                             continue;
 
                         if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, replacementField.Field));
+                            Debug.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, fieldAccess.Field.Field));
 
                         invalidatedByLaterFieldAccess = true;
                         break;
@@ -346,7 +346,7 @@ namespace JSIL.Transforms {
                             continue;
                         }
 
-                        if (affectedFields.Any(invocationSecondPass.MutatedFields.Contains)) {
+                        if (affectedFields.Any(invocationSecondPass.FieldIsMutatedRecursively)) {
                             if (TraceLevel >= 2)
                                 Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method));
 
