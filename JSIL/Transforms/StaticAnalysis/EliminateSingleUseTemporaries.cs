@@ -337,28 +337,16 @@ namespace JSIL.Transforms {
                         if ((firstAssignment != null) && (invocation.StatementIndex < firstAssignment.StatementIndex))
                             continue;
 
-                        var invocationFirstPass = GetFirstPass(invocation.Method.QualifiedIdentifier);
-
-                        if (invocationFirstPass == null) {
+                        var invocationSecondPass = GetSecondPass(invocation.Method);
+                        if ((invocationSecondPass == null) || (invocationSecondPass.MutatedFields == null)) {
                             if (TraceLevel >= 2)
-                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without analysis data ({1}) is invoked between its initialization and use", v, invocation.Method));
+                                Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use", v, invocation.Method));
 
                             invalidatedByLaterFieldAccess = true;
                             continue;
                         }
 
-                        var invocationSecondPass = GetSecondPass(invocation.Method);
-                        if ((invocationSecondPass != null) && invocationSecondPass.IsPure) {
-                            if (TraceLevel >= 3)
-                                Debug.WriteLine(String.Format("Assuming {0} cannot mutate any fields because it is pure.", invocation.Method));
-
-                            continue;
-                        }
-
-                        if (invocationFirstPass.FieldAccesses.Any((fa) => 
-                            affectedFields.Contains(fa.Field.Field) &&
-                            !fa.IsRead
-                        )) {
+                        if (affectedFields.Any(invocationSecondPass.MutatedFields.Contains)) {
                             if (TraceLevel >= 2)
                                 Debug.WriteLine(String.Format("Cannot eliminate {0}; a method call ({1}) potentially mutates a field it references", v, invocation.Method));
 

@@ -706,6 +706,7 @@ namespace JSIL.Transforms {
         protected bool _ComputingPurity = false;
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
+        public readonly HashSet<FieldInfo> MutatedFields;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -716,6 +717,8 @@ namespace JSIL.Transforms {
         public readonly FunctionAnalysis1stPass Data;
 
         public FunctionAnalysis2ndPass (FunctionCache functionCache, FunctionAnalysis1stPass data) {
+            FunctionAnalysis2ndPass invocationSecondPass;
+
             FunctionCache = functionCache;
             Data = data;
 
@@ -780,7 +783,6 @@ namespace JSIL.Transforms {
 
                 // Scan over all the invocations performed by this function and see if any of them cause
                 //  a variable to escape
-                FunctionAnalysis2ndPass invocationSecondPass;
                 foreach (var invocation in Data.Invocations) {
                     if (invocation.Method != null)
                         invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
@@ -854,6 +856,26 @@ namespace JSIL.Transforms {
                 ViolatesThisReferenceImmutability = true;
             }
 
+            MutatedFields = new HashSet<FieldInfo>(
+                from fa in data.FieldAccesses where !fa.IsRead select fa.Field.Field
+            );
+
+            foreach (var invocation in Data.Invocations) {
+                if (invocation.Method != null) {
+                    invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
+                } else {
+                    invocationSecondPass = null;
+                }
+
+                if ((invocationSecondPass == null) || (invocationSecondPass.MutatedFields == null)) {
+                    // Can't know for sure.
+                    MutatedFields = null;
+                    break;
+                }
+
+                MutatedFields.UnionWith(invocationSecondPass.MutatedFields);
+            }
+
             Trace(data.Function.Method.Reference.FullName);
         }
 
@@ -894,6 +916,8 @@ namespace JSIL.Transforms {
 
             ResultVariable = null;
             ResultIsNew = method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
+
+            MutatedFields = null;
 
             Trace(method.Member.FullName);
         }
