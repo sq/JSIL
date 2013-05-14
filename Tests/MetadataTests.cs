@@ -20,7 +20,7 @@ namespace JSIL.Tests {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreType.cs",
                 "Test",
-                "attempt was made to reference the member '.ctor()'"
+                "attempt was made to reference the type 'Test'"
             );
         }
 
@@ -29,7 +29,7 @@ namespace JSIL.Tests {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreDerivedType.cs",
                 "DerivedClass",
-                "attempt was made to reference the member '.ctor()'"
+                "attempt was made to reference the type 'DerivedClass'"
             );
         }
 
