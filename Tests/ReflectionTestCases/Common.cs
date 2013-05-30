@@ -101,6 +101,16 @@ namespace Common {
                 Console.WriteLine("{0} {1} ({2})", method.ReturnType.Name, method.Name, argumentTypes);
             }
         }
+
+        public static void ListConstructors (Type type, BindingFlags flags) {
+            foreach (var constructor in type.GetConstructors(flags)) {
+                var argumentTypes = "";
+                foreach (var parameter in constructor.GetParameters())
+                    argumentTypes += parameter.ParameterType.Name;
+
+                Console.WriteLine("({0})", argumentTypes);
+            }
+        }
     }
 
     public class AttributeA : Attribute {

@@ -188,15 +188,17 @@ JSIL.ImplementExternals(
       return methods[0];
     };
 
-    $.Method({Static:false, Public:true }, "GetMethod", 
-      (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String], [])), 
-      function GetMethod (name) {
-        return getMethodImpl(
-          this, name, 
-          System.Reflection.BindingFlags.Instance | 
-          System.Reflection.BindingFlags.Static | 
-          System.Reflection.BindingFlags.Public
-        );
+    $.Method({Public: true , Static: false}, "GetMethod",
+      new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String]),      
+      function (name) {
+        return getMethodImpl(this, name, defaultFlags());
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMethod",
+      new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, "System.Reflection.BindingFlags"]),      
+      function (name, flags) {
+        return getMethodImpl(this, name, flags);
       }
     );
 
@@ -283,6 +285,17 @@ JSIL.ImplementExternals(
       return result;
     };
 
+    var defaultFlags = function () {
+      return System.Reflection.BindingFlags.$Flags("Public", "Instance", "Static");
+    };
+
+    $.Method({Public: true , Static: false}, "GetField",
+      new JSIL.MethodSignature("System.Reflection.FieldInfo", [$.String]),      
+      function (name) {
+        return getSingleFiltered(this, name, defaultFlags(), "FieldInfo");
+      }
+    );
+
     $.Method({Public: true , Static: false}, "GetField",
       new JSIL.MethodSignature("System.Reflection.FieldInfo", [$.String, "System.Reflection.BindingFlags"]),      
       function (name, flags) {
@@ -291,16 +304,16 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetProperty",
-      new JSIL.MethodSignature("System.Reflection.PropertyInfo", [$.String, "System.Reflection.BindingFlags"]),      
-      function (name, flags) {
-        return getSingleFiltered(this, name, flags, "PropertyInfo");
+      new JSIL.MethodSignature("System.Reflection.PropertyInfo", [$.String]),      
+      function (name) {
+        return getSingleFiltered(this, name, defaultFlags(), "PropertyInfo");
       }
     );
 
-    $.Method({Public: true , Static: false}, "GetMethod",
-      new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, "System.Reflection.BindingFlags"]),      
+    $.Method({Public: true , Static: false}, "GetProperty",
+      new JSIL.MethodSignature("System.Reflection.PropertyInfo", [$.String, "System.Reflection.BindingFlags"]),      
       function (name, flags) {
-        return getSingleFiltered(this, name, flags, "MethodInfo");
+        return getSingleFiltered(this, name, flags, "PropertyInfo");
       }
     );
 

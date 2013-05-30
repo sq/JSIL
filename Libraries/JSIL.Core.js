@@ -6846,7 +6846,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
     publicOnly = nonPublicOnly = false;
   // FIXME: Is this right?
   else if (!publicOnly && !nonPublicOnly)
-    publicOnly = true;
+    return result;
 
   var staticOnly = (flags & bindingFlags.Static) != 0;
   var instanceOnly = (flags & bindingFlags.Instance) != 0;
