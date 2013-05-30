@@ -161,6 +161,7 @@
     <None Include="PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs" />
     <None Include="SimpleTestCases\Issue194.cs" />
     <None Include="SimpleTestCases\AssignNewToOut.cs" />
+    <None Include="SimpleTestCases\ListForEach.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

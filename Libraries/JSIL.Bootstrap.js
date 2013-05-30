@@ -969,6 +969,17 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "ForEach", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Action`1", [T])], []), 
+    function ForEach (action) {
+      for (var i = 0, sz = this._size; i < sz; i++) {
+        var item = this._items[i];
+
+        action(item);
+      }
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Find", 
     new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Predicate`1", [T])], []),
     function List_Find (predicate) {
@@ -989,7 +1000,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       var result = JSIL.CreateInstanceOfType(thisType, null);
       result._items = [];
 
-      for (var i = 0; i < this._size; i++) {
+      for (var i = 0, sz = this._size; i < sz; i++) {
         var item = this._items[i];
 
         if (predicate(item))
