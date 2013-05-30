@@ -7861,4 +7861,34 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
 };
 
 JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
+  var l = methods.length;
+
+  for (var i = 0; i < l; i++) {
+    var remove = false;
+    var method = methods[i];
+
+    var parameterInfos = $jsilcore.$MethodGetParameters(method);
+
+    if (parameterInfos.length !== argumentTypes.length) {
+      remove = true;
+    } else {
+      for (var j = 0; j < argumentTypes.length; j++) {
+        var argumentType = argumentTypes[j];
+        var argumentTypeB = parameterInfos[j].get_ParameterType();
+
+        if (argumentType !== argumentTypeB) {
+          remove = true;
+          break;
+        }
+      }
+    }
+
+    if (remove) {
+      methods[i] = methods[l - 1];
+      l -= 1;
+      i -= 1;
+    }
+  }
+
+  methods.length = l;
 };
