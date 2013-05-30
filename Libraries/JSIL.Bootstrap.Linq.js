@@ -223,26 +223,48 @@ JSIL.ImplementExternals(
     function (TSource, enumerable) {
       var constructor = new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Collections.Generic.List`1", [TSource]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [TSource])]);
       return constructor.Construct(enumerable);
-    });  
+    });
+
+    var elementAtImpl = function (enumerable, index) {
+      var e = JSIL.GetEnumerator(enumerable);
+
+      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+
+      try {
+        while (moveNext.Call(e)) {
+          if (index === 0) {
+            return { success: true, value: getCurrent.Call(e) };
+          } else {
+            index -= 1;
+          }
+        }
+      } finally {
+        JSIL.Dispose(e);
+      }
+
+      return { success: false };
+    };
 
     $.Method({Static:true , Public:true }, "ElementAt", 
       new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $.Int32], ["TSource"]), 
       function ElementAt$b1 (TSource, source, index) {
-        // FIXME: Wasteful
-        var temp = JSIL.EnumerableToArray(source);
-        return temp[index];
+        var result = elementAtImpl(source, index);
+        if (!result.success)
+          throw new System.ArgumentOutOfRangeException("index");
+
+        return result.value;
       }
     );
 
     $.Method({Static:true , Public:true }, "ElementAtOrDefault", 
       new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $.Int32], ["TSource"]), 
       function ElementAtOrDefault$b1 (TSource, source, index) {
-        // FIXME: Wasteful
-        var temp = JSIL.EnumerableToArray(source);
-        if ((index >= 0) && (index <= temp.length))
-          return temp[index];
-        else
+        var result = elementAtImpl(source, index);
+        if (!result.success)
           return JSIL.DefaultValue(TSource);
+
+        return result.value;
       }
     );
 
