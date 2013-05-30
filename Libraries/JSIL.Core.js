@@ -2591,6 +2591,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
         switch (member.__MemberType__) {
           case "MethodInfo":
+          case "ConstructorInfo":
             var shortImpl = proto[shortName];
             var qualifiedImpl = proto[qualifiedName];
             break;
@@ -2638,6 +2639,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
           switch (member.__MemberType__) {
             case "MethodInfo":
+            case "ConstructorInfo":
               JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
               JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
               break;
@@ -3589,7 +3591,7 @@ JSIL.$CreateMethodMembranes = function (typeObject, publicInterface) {
 
   var bindingFlags = $jsilcore.BindingFlags.$Flags("NonPublic", "Public");
   var methods = JSIL.GetMembersInternal(
-    typeObject, bindingFlags, "MethodInfo", true
+    typeObject, bindingFlags, "$MethodOrConstructor"
   );
 
   // We need to ensure that all the mangled method names have membranes applied.
@@ -3646,15 +3648,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
   //  properties or methods - we need to access the data members directly.
 
   var instanceMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.$Flags("Instance", "Public", "NonPublic"), "MethodInfo", false
+    typeObject, $jsilcore.BindingFlags.$Flags("Instance", "Public", "NonPublic"), "MethodInfo"
   );
 
   var constructors = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic"), "MethodInfo", true
+    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic"), "ConstructorInfo"
   );
 
   var staticMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Static", "Public", "NonPublic"), "MethodInfo", true
+    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Static", "Public", "NonPublic"), "MethodInfo"
   );
 
   var methods = staticMethods.concat(instanceMethods).concat(constructors);
@@ -5659,13 +5661,17 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     JSIL.SetValueProperty(descriptor.Target, mangledName, newValue);
   }
 
+  var isConstructor = (descriptor.EscapedName === "_ctor");
+  var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
+
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("MethodInfo", descriptor, { 
+  this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
     genericSignature: null,
     mangledName: mangledName,
     isExternal: true,
-    isPlaceholder: isPlaceholder
+    isPlaceholder: isPlaceholder,
+    isConstructor: isConstructor
   }, memberBuilder, true);
 
   return memberBuilder;
@@ -5719,11 +5725,15 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
 
-  this.PushMember("MethodInfo", descriptor, { 
+  var isConstructor = (descriptor.EscapedName === "_ctor");
+  var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
+
+  this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
     genericSignature: null,
     mangledName: mangledName,
-    isExternal: false
+    isExternal: false,
+    isConstructor: isConstructor
   }, memberBuilder);
 
   return memberBuilder;
@@ -5757,12 +5767,17 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 
+  var isConstructor = (descriptor.EscapedName === "_ctor");
+  var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
+
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("MethodInfo", descriptor, {
+  this.PushMember(memberTypeName, descriptor, {
     signature: signature, 
     genericSignature: null,
     mangledName: mangledName,
-    isExternal: false
+    isExternal: false,
+    isConstructor: isConstructor,
+    isInherited: true
   }, memberBuilder);
 
   return memberBuilder;
@@ -6830,11 +6845,11 @@ JSIL.GetReflectionCache = function (typeObject) {
 // Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
 // If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
 // If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
-JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstructors, name) {
+JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
-  var constructorsOnly = (memberType === "ConstructorInfo");
+  var methodOrConstructor = (memberType === "$MethodOrConstructor");
 
   var allowInherited = ((flags & bindingFlags.DeclaredOnly) == 0) &&
     // FIXME: WTF is going on here?
@@ -6872,15 +6887,14 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
 
-    // Instance and static constructors are not enumerated like normal methods.
-    if (member._descriptor.SpecialName) {
-      if (allowConstructors) {
-      } else if (constructorsOnly === false) {
-        continue;
-      }
-    } else if (constructorsOnly === true) {
+    // HACK: Reflection never seems to enumerate static constructors. This is probably because
+    //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
+    if (
+      member._descriptor.Static && 
+      member._descriptor.SpecialName && 
+      member._descriptor.Name.indexOf("cctor") >= 0
+    )
       continue;
-    }
 
     if (publicOnly && !member._descriptor.Public)
       continue;
@@ -6892,7 +6906,14 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
     else if (instanceOnly && member._descriptor.Static)
       continue;
 
-    if ((typeof (memberType) === "string") && (memberType != member.__ThisType__.__ShortName__)) {
+    var currentMemberType = member.__ThisType__.__ShortName__;  
+    if (methodOrConstructor) {
+      if (
+        (currentMemberType != "MethodInfo") &&
+        (currentMemberType != "ConstructorInfo")
+      )
+        continue;
+    } else if ((typeof (memberType) === "string") && (memberType != currentMemberType)) {
       continue;
     }
 

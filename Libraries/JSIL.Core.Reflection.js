@@ -13,6 +13,8 @@ JSIL.ImplementExternals(
     var fieldArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.FieldInfo"]);
     var propertyArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.PropertyInfo"]);
     var methodArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MethodInfo"]);
+    var constructorArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.ConstructorInfo"]);
+    var typeArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Type"]);
 
     $.Method({Public: true , Static: true }, "GetType",
       new JSIL.MethodSignature($.Type, ["System.String"]),
@@ -174,7 +176,7 @@ JSIL.ImplementExternals(
 
     var getMethodImpl = function (type, name, flags) {
       var methods = JSIL.GetMembersInternal(
-        type, flags, "MethodInfo", false, name
+        type, flags, "MethodInfo", name
       );
 
       JSIL.$ApplyMemberHiding(type, methods, type.__PublicInterface__.prototype);
@@ -220,6 +222,47 @@ JSIL.ImplementExternals(
       function (flags) {
         return JSIL.GetMembersInternal(
           this, flags, "MethodInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetConstructor",
+      new JSIL.MethodSignature("System.Reflection.ConstructorInfo", [typeArray]),      
+      function (argumentTypes) {
+        var constructors = JSIL.GetMembersInternal(
+          type, flags, "ConstructorInfo"
+        );
+
+        JSIL.$ApplyMemberHiding(type, constructors, type.__PublicInterface__.prototype);
+
+        if (constructors.length > 1) {
+          throw new System.Exception("Multiple constructors were found.");
+        } else if (constructors.length < 1) {
+          return null;
+        }
+
+        return constructors[0];
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetConstructors",
+      new JSIL.MethodSignature(constructorArray, []),      
+      function () {
+        return JSIL.GetMembersInternal(
+          this, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public,
+          "ConstructorInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetConstructors",
+      new JSIL.MethodSignature(methodArray, ["System.Reflection.BindingFlags"]),      
+      function (flags) {
+        return JSIL.GetMembersInternal(
+          this, flags, "ConstructorInfo"
         );
       }
     );
@@ -521,32 +564,36 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   );
 });
 
+$jsilcore.$MethodGetParameters = function (method) {
+  var result = method._cachedParameters;
+
+  if (typeof (result) === "undefined") {
+    result = method._cachedParameters = [];
+
+    var argumentTypes = method._data.signature.argumentTypes;
+    var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
+
+    if (argumentTypes) {
+      for (var i = 0; i < argumentTypes.length; i++) {
+        var argumentType = JSIL.ResolveTypeReference(
+          argumentTypes[i], method._typeObject.__Context__
+        )[1];
+
+        // FIXME: Missing non-type information
+        var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
+        result.push(pi);
+      }
+    }
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static: false, Public: true }, "GetParameters", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
     function GetParameters () {
-      var result = this._cachedParameters;
-
-      if (typeof (result) === "undefined") {
-        result = this._cachedParameters = [];
-
-        var argumentTypes = this._data.signature.argumentTypes;
-        var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
-
-        if (argumentTypes) {
-          for (var i = 0; i < argumentTypes.length; i++) {
-            var argumentType = JSIL.ResolveTypeReference(
-              argumentTypes[i], this._typeObject.__Context__
-            )[1];
-
-            // FIXME: Missing non-type information
-            var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
-            result.push(pi);
-          }
-        }
-      }
-
-      return result;
+      return $jsilcore.$MethodGetParameters(this);
     }
   );
 
@@ -845,4 +892,13 @@ JSIL.MakeClass("System.Object", "System.Reflection.ParameterInfo", true, [], fun
     $.Property({Public: true , Static: false, Virtual: true }, "Name");
     $.Property({Public: true , Static: false, Virtual: true }, "ParameterType");
     $.Property({Public: true , Static: false, Virtual: true }, "Position");
+});
+
+JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
+  $.Method({Static: false, Public: true }, "GetParameters", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
+    function GetParameters () {
+      return $jsilcore.$MethodGetParameters(this);
+    }
+  );
 });
