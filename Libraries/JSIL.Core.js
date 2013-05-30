@@ -5080,7 +5080,7 @@ JSIL.IsSystemArray = function (value) {
   if (valueType)
     return valueType.__IsArray__;
   else
-    return JSIL.GetType(valueType).__IsArray__;
+    return JSIL.GetType(value).__IsArray__;
 };
 
 JSIL.GetBaseType = function (typeObject) {  
@@ -7858,4 +7858,7 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
   }
 
   return null;
+};
+
+JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
 };
