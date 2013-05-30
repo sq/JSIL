@@ -6715,6 +6715,8 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
 
     if (!constructor)
       throw new Error("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
+  } else if (typeof (constructorName) === "function") {
+    constructor = constructorName;
   } else if (constructorName === null) {
     return instance;
   } else {
@@ -7891,4 +7893,13 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
   }
 
   methods.length = l;
+};
+
+JSIL.$GetMethodImplementation = function (method) {
+  var isStatic = method._descriptor.Static;
+  var key = method._data.mangledName || method._descriptor.EscapedName;
+  var publicInterface = method._typeObject.__PublicInterface__;
+  var context = isStatic ? publicInterface : publicInterface.prototype;
+
+  return context[key] || null;
 };

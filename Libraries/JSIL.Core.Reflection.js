@@ -240,12 +240,12 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature("System.Reflection.ConstructorInfo", [typeArray]),      
       function (argumentTypes) {
         var constructors = JSIL.GetMembersInternal(
-          type, flags, "ConstructorInfo"
+          this, defaultFlags(), "ConstructorInfo"
         );
 
         JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
 
-        JSIL.$ApplyMemberHiding(type, constructors, type.__PublicInterface__.prototype);
+        JSIL.$ApplyMemberHiding(this, constructors, this.__PublicInterface__.prototype);
 
         if (constructors.length > 1) {
           throw new System.Exception("Multiple constructors were found.");
@@ -915,4 +915,16 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
       return $jsilcore.$MethodGetParameters(this);
     }
   );
+
+  $.Method({Static:false, Public:true }, "Invoke", 
+    new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Array", [$.Object])], []), 
+    function Invoke (parameters) {
+      var impl = JSIL.$GetMethodImplementation(this);
+
+      if (typeof (impl) !== "function")
+        throw new System.Exception("Failed to find constructor");
+
+      return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
+    }
+  )
 });

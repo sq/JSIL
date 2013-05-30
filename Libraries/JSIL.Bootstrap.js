@@ -376,15 +376,10 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
           $jsilcore.TypeRef("System.Reflection.MethodInfo")
         ], [])), 
     function CreateDelegate (delegateType, firstArgument, method) {
-      var isStatic = method._descriptor.Static;
-      var key = method._data.mangledName || method._descriptor.EscapedName;
-      var publicInterface = method._typeObject.__PublicInterface__;
-      var context = isStatic ? publicInterface : publicInterface.prototype;
-      var impl = context[key];
+      var impl = JSIL.$GetMethodImplementation(method);
 
-      if (typeof (impl) !== "function") {
-        JSIL.Host.abort(new Error("Failed to bind delegate: Method '" + key + "' not found in context"));
-      }
+      if (typeof (impl) !== "function")
+        throw new System.Exception("Failed to bind delegate");
 
       var delegatePublicInterface = delegateType.__PublicInterface__;
 
