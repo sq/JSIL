@@ -3656,7 +3656,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
   );
 
   var staticMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Static", "Public", "NonPublic"), "MethodInfo"
+    typeObject, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Static", "Public", "NonPublic"), "$AllMethods"
   );
 
   var methods = staticMethods.concat(instanceMethods).concat(constructors);
@@ -6849,7 +6849,8 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
-  var methodOrConstructor = (memberType === "$MethodOrConstructor");
+  var allMethodsIncludingSpecialNames = (memberType === "$AllMethods");
+  var methodOrConstructor = (memberType === "$MethodOrConstructor") || allMethodsIncludingSpecialNames;
 
   var allowInherited = ((flags & bindingFlags.DeclaredOnly) == 0) &&
     // FIXME: WTF is going on here?
@@ -6890,6 +6891,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
     // HACK: Reflection never seems to enumerate static constructors. This is probably because
     //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
     if (
+      !allMethodsIncludingSpecialNames &&
       member._descriptor.Static && 
       member._descriptor.SpecialName && 
       member._descriptor.Name.indexOf("cctor") >= 0
