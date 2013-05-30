@@ -307,6 +307,34 @@ JSIL.ImplementExternals(
         );
       }
     );
+
+    $.Method({Static:true , Public:true }, "Range", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$.Int32]), [$.Int32, $.Int32], []), 
+      function Range (start, count) {
+        var nextValue = start;
+        var left = count;
+
+        return new (JSIL.AbstractEnumerable.Of(System.Int32.__Type__))(
+          function getNext (result) {
+            if (left <= 0)
+              return false;
+
+            result.set(nextValue);
+
+            nextValue += 1;
+            left -= 1;
+
+            return true;
+          },
+          function reset () {
+            nextValue = start;
+            left = count;
+          },
+          function dispose () {
+          }
+        );
+      }
+    );
   }
 );
 
