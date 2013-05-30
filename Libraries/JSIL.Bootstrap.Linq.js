@@ -276,6 +276,37 @@ JSIL.ImplementExternals(
         );
       }
     );    
+
+    $.Method({Static:true , Public:true }, "Where", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", $.Boolean])], ["TSource"]), 
+      function Where$b1 (TSource, source, predicate) {
+        var state = {};
+
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = System.Collections.IEnumerator.get_Current;
+
+        return new (JSIL.AbstractEnumerable.Of(TSource))(
+          function getNext (result) {
+            while (moveNext.Call(state.enumerator)) {
+              var current = get_Current.Call(state.enumerator);
+
+              if (predicate(current)) {
+                result.set(current);
+                return true;
+              }
+            }
+
+            return false;
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(source);
+          },
+          function dispose () {
+            JSIL.Dispose(state.enumerator);
+          }
+        );
+      }
+    );
   }
 );
 
