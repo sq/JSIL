@@ -164,6 +164,7 @@
     <None Include="SimpleTestCases\ListForEach.cs" />
     <None Include="ReflectionTestCases\ListClassConstructors.cs" />
     <None Include="ReflectionTestCases\ListClassMethods.cs" />
+    <None Include="ReflectionTestCases\BindMethodAsDelegate.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

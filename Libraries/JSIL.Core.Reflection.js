@@ -174,10 +174,13 @@ JSIL.ImplementExternals(
       }
     );
 
-    var getMethodImpl = function (type, name, flags) {
+    var getMethodImpl = function (type, name, flags, argumentTypes) {
       var methods = JSIL.GetMembersInternal(
         type, flags, "MethodInfo", name
       );
+
+      if (argumentTypes)
+        JSIL.$FilterMethodsByArgumentTypes(methods, argumentTypes);
 
       JSIL.$ApplyMemberHiding(type, methods, type.__PublicInterface__.prototype);
 
@@ -193,14 +196,21 @@ JSIL.ImplementExternals(
     $.Method({Public: true , Static: false}, "GetMethod",
       new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String]),      
       function (name) {
-        return getMethodImpl(this, name, defaultFlags());
+        return getMethodImpl(this, name, defaultFlags(), null);
       }
     );
 
     $.Method({Public: true , Static: false}, "GetMethod",
       new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, "System.Reflection.BindingFlags"]),      
       function (name, flags) {
-        return getMethodImpl(this, name, flags);
+        return getMethodImpl(this, name, flags, null);
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMethod",
+      new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, typeArray]),      
+      function (name, argumentTypes) {
+        return getMethodImpl(this, name, defaultFlags(), argumentTypes);
       }
     );
 
@@ -232,6 +242,8 @@ JSIL.ImplementExternals(
         var constructors = JSIL.GetMembersInternal(
           type, flags, "ConstructorInfo"
         );
+
+        JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
 
         JSIL.$ApplyMemberHiding(type, constructors, type.__PublicInterface__.prototype);
 
@@ -461,18 +473,20 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getGetMethodImpl = function (nonPublic) {
     var methodName = "get_" + this.get_Name();
+    var bf = System.Reflection.BindingFlags;
     var bindingFlags = (nonPublic 
-      ? $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Instance", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
 
   var getSetMethodImpl = function (nonPublic) {
     var methodName = "set_" + this.get_Name();
+    var bf = System.Reflection.BindingFlags;
     var bindingFlags = (nonPublic 
-      ? $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "Public")
+      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Instance", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
