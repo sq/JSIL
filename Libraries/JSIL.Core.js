@@ -2345,11 +2345,13 @@ JSIL.RebindRawMethods = function (publicInterface, typeObject) {
         JSIL.SetValueProperty(publicInterface, methodName, boundMethod);
 
       } else {
+        /*
         var method = JSIL.$FindMethodBodyInTypeChain(typeObject, false, methodName, false);
         if (!method)
           throw new Error("Failed to rebind instance raw method");
 
         JSIL.SetValueProperty(publicInterface.prototype, methodName, method);
+        */
       }
     }
   }
@@ -2435,15 +2437,6 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
         if (trace)
           console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
-      } else {
-        var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName, false);
-        if (!methodReference)
-          throw new Error("Failed to find method");
-
-        JSIL.SetValueProperty(target, oldName, methodReference);
-
-        if (trace)
-          console.log(typeObject.__FullName__ + ": " + oldName + " -> " + oldName);
       }
     }
   }
