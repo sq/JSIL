@@ -2367,7 +2367,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
-  var trace = false;
+  var trace = true;
 
   var isInterface = typeObject.IsInterface;
 
@@ -2394,6 +2394,9 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
     if (isInterface) {
       var oldObject = publicInterface[unqualifiedName];
+      if (!oldObject)
+        throw new Error("Failed to find unrenamed generic interface method");
+
       var newObject = oldObject.Rebind(typeObject, signature);
       JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
 
@@ -2412,11 +2415,13 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
         var newName = signature.GetKey(descriptor.EscapedName);
 
-        var methodReference = target[oldName];
+        var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName);
+        if (!methodReference)
+          throw new Error("Failed to find unrenamed generic method");
 
         typeObject.__RenamedMethods__[oldName] = newName;
 
-        JSIL.SetValueProperty(target, oldName, null);
+        delete target[oldName];
         JSIL.SetValueProperty(target, newName, methodReference);
 
         if (trace)
@@ -3239,7 +3244,8 @@ JSIL.MethodSet.prototype.add = function (signature) {
   this.argumentSet.genericSet.count += 1;
 };
 
-JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
+JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
+  var typeName = typeObject.__FullName__;
   var methodFullName = typeName + "." + methodName;
 
   var makeDispatcher, makeGenericArgumentGroup;
@@ -3262,11 +3268,12 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
   var makeSingleMethodGroup = function (id, group, offset) {
     var singleMethod = group.list[0];
     var key = singleMethod.GetKey(methodEscapedName);
+    var unrenamedKey = key;
 
     if (typeof (renamedMethods[key]) === "string")
       key = renamedMethods[key];
 
-    var method = target[key];
+    var method = JSIL.$FindMethodBodyInTypeChain(typeObject, isStatic, key);
 
     if (typeof (method) !== "function") {
       JSIL.Host.warning(makeMethodMissingError(singleMethod));
@@ -3735,18 +3742,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     //  and reduces the amount of memory used for methods that are never invoked via
     //  dynamic dispatch.
     var makeMethodGroupGetter = function (
-      target, fullName, renamedMethods, methodName, methodEscapedName, entries
+      target, isStatic, renamedMethods, methodName, methodEscapedName, entries
     ) {
       var key = null;
 
       return function GetMethodGroup () {
         if (key === null) {
           key = JSIL.$MakeMethodGroup(
-            target, fullName, renamedMethods, methodName, methodEscapedName, entries
+            typeObject, isStatic, target, renamedMethods, methodName, methodEscapedName, entries
           );
-
-          if (trace)
-            console.log(fullName + "." + methodEscapedName + " -> " + key);
         }
 
         var methodGroupTarget = target[key];
@@ -3759,7 +3763,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
 
     if (active) {    
       var getter = makeMethodGroupGetter(
-        target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
+        target, isStatic, renamedMethods, methodName, methodEscapedName, entries
       );
 
       if (lazyMethodGroups) {
@@ -7953,4 +7957,30 @@ JSIL.$GetMethodImplementation = function (method) {
   var context = isStatic ? publicInterface : publicInterface.prototype;
 
   return context[key] || null;
+};
+
+JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key) {
+  var typeChain = [];
+  var currentType = typeObject;
+
+  while (currentType) {
+    if (currentType.__PublicInterface__)
+      typeChain.push(currentType.__PublicInterface__);
+
+    if (currentType.__OpenType__ && currentType.__OpenType__.__PublicInterface__)
+      typeChain.push(currentType.__OpenType__.__PublicInterface__);
+
+    currentType = currentType.__BaseType__;
+  }
+
+  for (var i = 0, l = typeChain.length; i < l; i++) {
+    currentType = typeChain[i];
+    var target = isStatic ? currentType : currentType.prototype;
+
+    var method = target[key];
+    if (typeof (method) === "function")
+      return method;
+  }
+
+  return null;
 };
