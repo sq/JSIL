@@ -1246,6 +1246,7 @@ JSIL.GenericParameter = function (name, context) {
     JSIL.SetValueProperty(this, "__TypeId__", JSIL.$GenericParameterTypeIds[key]);
   }
 
+  JSIL.SetValueProperty(this, "__ShortName__", name);
   JSIL.SetValueProperty(this, "__FullName__", this.name.humanReadable);
 };
 
@@ -1711,11 +1712,14 @@ JSIL.MakeIndirectProperty = function (target, key, source) {
 JSIL.TypeObjectPrototype = {};
 JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
-  return JSIL.GetTypeName(this);
+  return JSIL.GetTypeName(this, true);
 };
 
 JSIL.TypeObjectPrototype.get_Assembly = function() { 
   return this.__Context__.__Assembly__; 
+}
+JSIL.TypeObjectPrototype.get_BaseType = function() { 
+  return this.__BaseType__; 
 }
 JSIL.TypeObjectPrototype.get_Namespace = function() { 
   // FIXME: Probably wrong for nested types.
@@ -2089,7 +2093,9 @@ $jsilcore.$Of$NoInitialize = function () {
   ofCache[cacheKey] = result;
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
-    result.prototype = Object.create(staticClassObject.prototype);
+    var basePrototype = staticClassObject.prototype;
+    var resultPrototype = Object.create(basePrototype);
+    result.prototype = resultPrototype;
 
     var genericParametersToResolve = [];
     JSIL.FindGenericParameters(result.prototype, resultTypeObject, genericParametersToResolve);
@@ -2162,7 +2168,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   JSIL.SetValueProperty(resultTypeObject, "toString", 
     function GenericType_ToString () {
-      return this.__FullName__;
+      return JSIL.GetTypeName(this, true);
     }
   );
 
@@ -2290,7 +2296,7 @@ $jsilcore.$MakeOf = function (publicInterface) {
 
 JSIL.StaticClassPrototype = {};
 JSIL.StaticClassPrototype.toString = function () {
-  return JSIL.GetTypeName(JSIL.GetType(this));
+  return JSIL.GetTypeName(JSIL.GetType(this), true);
 };
 
 JSIL.$ResolveGenericMethodSignature = function (typeObject, signature, resolveContext) {
@@ -4676,7 +4682,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     });
 
     JSIL.SetValueProperty(typeObject, "toString", function Type_ToString () {
-      return this.__FullName__;
+      return JSIL.GetTypeName(this, true);
     });
 
     staticClassObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false, assembly);
@@ -4688,7 +4694,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
     } else {
-      typeObject.__IsClosed__ = !(baseType.__IsClosed__ === false);
+      typeObject.__IsClosed__ = (baseType.__IsClosed__ !== false);
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
@@ -4909,7 +4915,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__Names__ = [];
 
     JSIL.SetValueProperty(typeObject, "toString", function Type_ToString () {
-      return this.__FullName__;
+      return JSIL.GetTypeName(this, true);
     });
 
     JSIL.SetValueProperty(publicInterface, "toString", function Type_ToString () {
@@ -5129,25 +5135,57 @@ JSIL.GetType = function (value) {
   }
 };
 
-JSIL.GetTypeName = function (type) {
+// type may be a type name, a type object, or a type public interface.
+JSIL.GetTypeName = function (type, dotNetTypeToString) {
   if (type === null)
     return "System.Object";
 
   if (typeof (type) === "string")
     return type;
 
-  var result = type.__FullName__ || type.__FullName__;
+  var typeObject = null;
+  if (type.__PublicInterface__)
+    typeObject = type;
+  else if (type.__Type__)
+    typeObject = type.__Type__;
 
-  if ((typeof (result) === "undefined") && (typeof (type.prototype) !== "undefined"))
+  if (typeObject) {
+    var result = typeObject.__FullName__;
+
+    // Emulate the exact behavior of Type.ToString in .NET
+    if (dotNetTypeToString && !typeObject.__IsClosed__) {
+      result = typeObject.__FullNameWithoutArguments__ || typeObject.__FullName__;
+
+      result += "[";
+      var ga = typeObject.__GenericArguments__;
+      var gav = typeObject.__GenericArgumentValues__;
+
+      for (var i = 0, l = ga.length; i < l; i++) {
+        if (gav && gav[i]) {
+          result += gav[i].__ShortName__;
+        } else {
+          result += ga[i];
+        }
+
+        if (i < (l - 1))
+          result += ",";
+      }
+
+      result += "]";
+    }
+
+    return result;
+  }
+
+  var result;
+  if (typeof (type.prototype) !== "undefined")
     result = type.prototype.__FullName__;
 
-  if ((typeof (result) === "undefined") && (typeof (type.__Type__) === "object"))
-    return type.__Type__.__FullName__;
-
-  if (typeof (result) === "string")
-    return result;
-  else if (typeof (result) === "undefined")
+  if (typeof (result) === "undefined")
     result = typeof (type);
+
+  if (typeof (result) !== "string")
+    result = "unknown type";
 
   return result;
 };

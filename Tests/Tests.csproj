@@ -168,6 +168,8 @@
     <None Include="ReflectionTestCases\ConstructUsingSpecificConstructor.cs" />
     <None Include="SimpleTestCases\EnumerableWhere.cs" />
     <None Include="SimpleTestCases\EnumerableRange.cs" />
+    <None Include="SimpleTestCases\InvokeInheritedOverloadedMethod.cs" />
+    <None Include="ReflectionTestCases\GenericTypeBaseType.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

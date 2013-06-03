@@ -98,6 +98,11 @@ JSIL.ImplementExternals(
         return this.__ElementType__;
       }
     );
+    
+    $.Method({Public: true , Static: false}, "get_BaseType",
+      new JSIL.MethodSignature($.Type, []),
+      JSIL.TypeObjectPrototype.get_BaseType
+    );
 
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
