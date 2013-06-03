@@ -2330,19 +2330,27 @@ JSIL.$ResolveGenericMethodSignature = function (typeObject, signature, resolveCo
 //  of the type object.
 JSIL.RebindRawMethods = function (publicInterface, typeObject) {
   var rm = typeObject.__RawMethods__;
+  var isGeneric = typeObject.__OpenType__;
+
   if (JSIL.IsArray(rm)) {
     for (var i = 0; i < rm.length; i++) {
       var item = rm[i];
-
-      if (!item.isStatic)
-        continue;
-
       var methodName = item.name;
-      var method = publicInterface[methodName];
 
-      // FIXME: Stop using Function.bind here, it's slow
-      var boundMethod = method.bind(publicInterface);
-      JSIL.SetValueProperty(publicInterface, methodName, boundMethod);
+      if (item.isStatic) {
+        var method = publicInterface[methodName];
+
+        // FIXME: Stop using Function.bind here, it's slow
+        var boundMethod = method.bind(publicInterface);
+        JSIL.SetValueProperty(publicInterface, methodName, boundMethod);
+
+      } else {
+        var method = JSIL.$FindMethodBodyInTypeChain(typeObject, false, methodName, false);
+        if (!method)
+          throw new Error("Failed to rebind instance raw method");
+
+        JSIL.SetValueProperty(publicInterface.prototype, methodName, method);
+      }
     }
   }
 
@@ -2358,6 +2366,7 @@ JSIL.RebindRawMethods = function (publicInterface, typeObject) {
 // Any methods with generic parameters as their return type or argument type(s) must be renamed
 //  after the generic type is closed; otherwise overload resolution will fail to locate them because
 //  the method signature won't match.
+// We also need to copy any methods without generic parameters over from the open version of the type's prototype.
 JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var members = typeObject.__Members__;
   if (!JSIL.IsArray(members))
@@ -2367,7 +2376,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
 
   var rm = typeObject.__RenamedMethods__;
-  var trace = true;
+  var trace = false;
 
   var isInterface = typeObject.IsInterface;
 
@@ -2415,7 +2424,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
         var newName = signature.GetKey(descriptor.EscapedName);
 
-        var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName);
+        var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName, false);
         if (!methodReference)
           throw new Error("Failed to find unrenamed generic method");
 
@@ -2427,8 +2436,14 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
         if (trace)
           console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
       } else {
+        var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName, false);
+        if (!methodReference)
+          throw new Error("Failed to find method");
+
+        JSIL.SetValueProperty(target, oldName, methodReference);
+
         if (trace)
-          console.log(typeObject.__FullName__ + ": " + oldName + " -|");
+          console.log(typeObject.__FullName__ + ": " + oldName + " -> " + oldName);
       }
     }
   }
@@ -3181,6 +3196,9 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
 };
 
 JSIL.$MakeAnonymousMethod = function (target, body) {
+  if (typeof (body) !== "function")
+    throw new Error("body must be a function");
+
   var key = "$$" + (++JSIL.$NextDispatcherId).toString(16);
 
   Object.defineProperty(
@@ -3273,7 +3291,7 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
     if (typeof (renamedMethods[key]) === "string")
       key = renamedMethods[key];
 
-    var method = JSIL.$FindMethodBodyInTypeChain(typeObject, isStatic, key);
+    var method = JSIL.$FindMethodBodyInTypeChain(typeObject, isStatic, key, false);
 
     if (typeof (method) !== "function") {
       JSIL.Host.warning(makeMethodMissingError(singleMethod));
@@ -3287,7 +3305,7 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
       // So that overload dispatch can invoke it using 'this.x' syntax instead
       //  of using thisType['x']
       // return key;
-      return JSIL.$MakeAnonymousMethod(target, target[key]);
+      return JSIL.$MakeAnonymousMethod(target, method);
     }
   };
 
@@ -5152,7 +5170,7 @@ JSIL.GetType = function (value) {
   }
 };
 
-// type may be a type name, a type object, or a type public interface.
+// type may be a type name, a type object, a type public interface, or an instance of a type.
 JSIL.GetTypeName = function (type, dotNetTypeToString) {
   if (type === null)
     return "System.Object";
@@ -5165,6 +5183,8 @@ JSIL.GetTypeName = function (type, dotNetTypeToString) {
     typeObject = type;
   else if (type.__Type__)
     typeObject = type.__Type__;
+  else if (type.__ThisType__)
+    typeObject = type.__ThisType__;
 
   if (typeObject) {
     var result = typeObject.__FullName__;
@@ -7959,7 +7979,7 @@ JSIL.$GetMethodImplementation = function (method) {
   return context[key] || null;
 };
 
-JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key) {
+JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key, recursive) {
   var typeChain = [];
   var currentType = typeObject;
 
@@ -7970,7 +7990,10 @@ JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key) {
     if (currentType.__OpenType__ && currentType.__OpenType__.__PublicInterface__)
       typeChain.push(currentType.__OpenType__.__PublicInterface__);
 
-    currentType = currentType.__BaseType__;
+    if (recursive)
+      currentType = currentType.__BaseType__;
+    else
+      break;
   }
 
   for (var i = 0, l = typeChain.length; i < l; i++) {
