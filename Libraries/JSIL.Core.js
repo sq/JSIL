@@ -2062,11 +2062,19 @@ $jsilcore.$Of$NoInitialize = function () {
     for (var i = 0; i < ga.length; i++)
       gaNames[i] = new JSIL.Name(ga[i], typeObject.__FullName__);
   }
-  
+
+  var resolvedBaseType = typeObject.__BaseType__;  
   if (typeof (staticClassObject.prototype) !== "undefined") {
     var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
     for (var i = 0; i < resolvedArguments.length; i++) {
       gaNames[i].set(resolveContext, resolvedArguments[i]);
+    }
+
+    // We need to resolve any generic arguments contained in the base type so that the base type of a closed generic type is also closed.
+    // thus, given Derived<T> : Base<T> and Base<U> : Object, Derived<int>.BaseType must be Base<int>, not Base<U>.
+    resolvedBaseType = JSIL.$ResolveGenericTypeReferenceInternal(resolvedBaseType, resolveContext);
+    if (!resolvedBaseType) {
+      resolvedBaseType = typeObject.__BaseType__;
     }
 
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
@@ -2085,6 +2093,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   resultTypeObject.__PublicInterface__ = result = constructor;
   resultTypeObject.__OpenType__ = typeObject;
+  resultTypeObject.__BaseType__ = resolvedBaseType;
   result.__Type__ = resultTypeObject;
 
   resultTypeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__RenamedMethods__ || {});
@@ -2093,7 +2102,11 @@ $jsilcore.$Of$NoInitialize = function () {
   ofCache[cacheKey] = result;
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
-    var basePrototype = staticClassObject.prototype;
+    // Given Derived<T> : Base<T> and Base<U> : Object, the prototype of Derived<T> instances must have this chain:
+    // Derived<T> -> Base<T> -> Object, not:
+    // Derived<T> -> Derived -> Base<U> -> Object
+
+    var basePrototype = resolvedBaseType.__PublicInterface__.prototype;
     var resultPrototype = Object.create(basePrototype);
     result.prototype = resultPrototype;
 
