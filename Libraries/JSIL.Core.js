@@ -4909,6 +4909,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__IsEnum__ = true;
     typeObject.__IsValueType__ = true;
     typeObject.__IsReferenceType__ = false;
+    typeObject.__IsClosed__ = true;
 
     var typeId = JSIL.AssignTypeId(context, fullName);
     JSIL.SetValueProperty(typeObject, "__TypeId__", typeId); 
