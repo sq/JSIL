@@ -2110,6 +2110,8 @@ $jsilcore.$Of$NoInitialize = function () {
     var resultPrototype = Object.create(basePrototype);
     result.prototype = resultPrototype;
 
+    JSIL.$CopyMembersIndirect(resultPrototype, staticClassObject.prototype, JSIL.$IgnoredPrototypeMembers, false);
+
     var genericParametersToResolve = [];
     JSIL.FindGenericParameters(result.prototype, resultTypeObject, genericParametersToResolve);
 
@@ -2132,22 +2134,7 @@ $jsilcore.$Of$NoInitialize = function () {
     }
   }
 
-  var ignoredNames = [
-    "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
-    "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
-    "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
-    "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
-    "__FieldList__", "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
-    "__UnmarshalConstructor__", "__ElementReferenceConstructor__"
-  ];
-
-  // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
-  for (var k in staticClassObject) {
-    if (ignoredNames.indexOf(k) !== -1)
-      continue;
-
-    JSIL.MakeIndirectProperty(result, k, staticClassObject);
-  }
+  JSIL.$CopyMembersIndirect(result, staticClassObject, JSIL.$IgnoredPublicInterfaceMembers, true);
 
   var fullName = typeObject.__FullName__ + "[";
   for (var i = 0; i < resolvedArguments.length; i++) {
@@ -7999,4 +7986,32 @@ JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key, recursive
   }
 
   return null;
+};
+
+JSIL.$IgnoredPrototypeMembers = [
+];
+
+JSIL.$IgnoredPublicInterfaceMembers = [
+  "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
+  "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
+  "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
+  "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
+  "__FieldList__", "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
+  "__UnmarshalConstructor__", "__ElementReferenceConstructor__"
+];
+
+JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {
+  // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
+  for (var k in source) {
+    if (ignoredNames.indexOf(k) !== -1)
+      continue;
+
+    if (!recursive && !source.hasOwnProperty(k))
+      continue;
+
+    if (target.hasOwnProperty(k))
+      continue;
+
+    JSIL.MakeIndirectProperty(target, k, source);
+  }
 };
