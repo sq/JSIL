@@ -2796,7 +2796,7 @@ JSIL.GetObjectKeys = function (obj) {
 JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
   var strictPrefix = "\"use strict\";\r\n";
-  var uriPrefix = "//@ sourceURL=jsil://closure/" + name + "\r\n";
+  var uriPrefix = "//# sourceURL=jsil://closure/" + name + "\r\n";
 
   var escapedFunctionIdentifier = JSIL.EscapeJSIdentifier(name);
   var rawFunctionText = "function " + escapedFunctionIdentifier + "(" +
