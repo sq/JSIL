@@ -6,19 +6,33 @@
     <link rel="stylesheet" href="../Common/browser.css">
     <link rel="stylesheet" href="TouchThumbSticks.css">
     
+    <!-- <meta name="viewport" content="width=800, height=480, user-scalable=no"> -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
-  <body onload="onLoad()">
+  <body onload="scaleViewport(); onLoad()" onresize="scaleViewport();">
+    <script type="text/javascript">
+      // Mobile HTML5 sucks :(
+      function scaleViewport () {
+        var canvas = document.getElementById("canvas");
+        var scaleX = window.innerWidth / canvas.width;
+        var scaleY = window.innerHeight / canvas.height;
+        var scaleFactor = Math.min(scaleX, scaleY);
+        var scaleText = "scale(" + scaleFactor + ")";
+        canvas.style.mozTransform = scaleText;
+        canvas.style.webkitTransform = scaleText;
+        canvas.style.transform = scaleText;
+      }
+    </script>
     <script type="text/javascript">
       var jsilConfig = {
         xna: 4,
+        touch: true,
         manifests: [
           "TouchThumbSticks.exe",
           "Content/TouchThumbSticksContent.contentproj"
         ],
         
         showProgressBar: true,
-        showStats: true,
 
         scriptRoot: "",
         libraryRoot: "../Libraries/",
@@ -28,7 +42,7 @@
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
         
-    <canvas id="canvas" width="1024" height="768">
+    <canvas id="canvas" width="800" height="480">
     </canvas><br>
     <div id="log"></div>
     
@@ -41,6 +55,7 @@
         var asm = JSIL.GetAssembly("TouchThumbSticks, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
         var game = new asm.TouchThumbsticks.TouchThumbsticksGame();
         game.Run();
+        document.getElementById("log").style.display = "none";
       };
     </script>
     <script type="text/javascript">

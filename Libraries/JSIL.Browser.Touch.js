@@ -16,19 +16,25 @@ function initTouchEvents () {
   };
 
   window.addEventListener("touchstart", function (evt) {
+    if (jsilConfig.touch)
+      evt.preventDefault();
+
     setTouchInUse();
 
     JSIL.Host.currentNativeTouches = evt.touches;
   }, true);
-  
+
   window.addEventListener("touchmove", function (evt) {
-    if (!jsilConfig || !jsilConfig.suppressTouchMoveDefault)
+    if (jsilConfig.touch)
       evt.preventDefault();
 
     JSIL.Host.currentNativeTouches = evt.touches;
   }, true);
 
   window.addEventListener("touchend", function (evt) {
+    if (jsilConfig.touch)
+      evt.preventDefault();
+    
     setTouchInUse();
 
     JSIL.Host.currentNativeTouches = evt.touches;

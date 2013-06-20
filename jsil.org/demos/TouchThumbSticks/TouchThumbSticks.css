@@ -1,41 +1,33 @@
+body, html {
+	/* Without this the scaled canvas gets cropped to the arbitrary height of the document WTF */
+	/* WHY THE HELL IS THIS NECESSARY WHY IS CSS SO DUMB */
+	width: 4096px;
+	height: 4096px;
+	overflow: hidden;
+}
 #canvas {
-	left: 2px;
-	top: 2px;
-}
-#welcomeMessage {
-	width: 680px;
-	height: 320px;
-	left: 172px;
-	top: 130px;
-}
-#loadButton {
-	width: 200px;
-	height: 40px;
-	left: 412px;
-	top: 364px;
-}
-#quitButton {
-	width: 32px;
-	height: 32px;
-	left: 1026px;
-	top: 2px;
+	left: 0px;
+	top: 0px;
+	-moz-transform-origin: 0 0;
+	-webkit-transform-origin: 0 0;
+	transform-origin: 0 0;
 }
 #loadingProgress {
 	width: 400px;
 	height: 40px;
-	left: 312px;
-	top: 364px;
+	left: 200px;
+	top: 220px;
 }
 #progressBar {
 	height: 40px;
 }
 #log {
-	width: 1024px;
+	width: 800px;
 	height: 150px;
-	left: 2px;
-	top: 772px;
+	left: 0px;
+	top: 482px;
 }
 #stats {
-	left: 1026px;
+	left: 802px;
 	top: 50px;
 }

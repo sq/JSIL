@@ -865,11 +865,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchLocation", fun
   });
 
   $.RawMethod(false, "$fromNativeTouch", function (previousState, nativeTouch) {
-    var canvas = JSIL.Host.getCanvas();    
+    var canvas = JSIL.Host.getCanvas();
+
+    var mappedPosition = JSIL.Host.mapClientCoordinates(nativeTouch.clientX, nativeTouch.clientY);
 
     this.id = nativeTouch.identifier;
-    this.x = nativeTouch.clientX - canvas.offsetLeft;
-    this.y = nativeTouch.clientY - canvas.offsetTop;
+    this.x = mappedPosition[0];
+    this.y = mappedPosition[1];
     // FIXME
     this.state = Microsoft.Xna.Framework.Input.Touch.TouchLocationState.Pressed;
 

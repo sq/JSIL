@@ -550,25 +550,28 @@ function initBrowserHooks () {
     }, true
   );
 
-  var mapMouseCoords = function (evt) {
+  JSIL.Host.mapClientCoordinates = function (x, y) {
     var localCanvas = canvas || document.getElementById("canvas");
     if (!localCanvas)
-      return;
+      return [x, y];
 
-    var currentWidth = localCanvas.clientWidth;
-    var currentHeight = localCanvas.clientHeight;
+    // We have to use this to get actual post-CSS3-transform coordinates. HTML/CSS are dumb.
+    var canvasRect = localCanvas.getBoundingClientRect();
 
-    var x = (evt.clientX - localCanvas.offsetLeft) | 0;
-    var y = (evt.clientY - localCanvas.offsetTop) | 0;
+    var xScale = $jsilbrowserstate.nativeWidth / canvasRect.width;
+    var yScale = $jsilbrowserstate.nativeHeight / canvasRect.height;
 
-    var xScale = $jsilbrowserstate.nativeWidth / currentWidth;
-    var yScale = $jsilbrowserstate.nativeHeight / currentHeight;
+    var mapped_x = ((x - canvasRect.left) * xScale) | 0;
+    var mapped_y = ((y - canvasRect.top) * yScale) | 0;
 
-    x = (x * xScale) | 0;
-    y = (y * yScale) | 0;
+    return [mapped_x, mapped_y]
+  };
 
-    $jsilbrowserstate.mousePosition[0] = x;
-    $jsilbrowserstate.mousePosition[1] = y;
+  var mapMouseCoords = function (evt) {
+    var mapped = JSIL.Host.mapClientCoordinates(evt.clientX, evt.clientY);
+
+    $jsilbrowserstate.mousePosition[0] = mapped[0];
+    $jsilbrowserstate.mousePosition[1] = mapped[1];
   };
 
   if (canvas) {
