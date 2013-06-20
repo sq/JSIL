@@ -1,4 +1,6 @@
 @del /s/q jsil.org\demos\*.js
+@title Building TouchThumbSticks
+bin\JSILc "Examples\ThirdParty\TouchThumbSticks\TouchThumbSticks.sln" "jsil.org\demos\TouchThumbSticks\TouchThumbSticks.jsilconfig" --platform=x86 --configuration=Debug
 @title Building Game Type
 bin\JSILc "C:\Game Design\Game Type\CodeNew\GameType\GameType.sln" "jsil.org\demos\GameType\GameType.jsilconfig" --platform:x86 --configuration:Debug
 @title Building Bytown Lumberjack

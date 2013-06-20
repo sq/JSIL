@@ -50,6 +50,8 @@ Tests/*Cases/*.js
 /jsil.org/demos/WebGL_Vertex_Structs/*.js
 /jsil.org/demos/WebGL_Vertex_Structs/Page.cs
 /jsil.org/demos/WebGL_Vertex_Structs/Files/*
+/jsil.org/demos/TouchThumbSticks/*.js
+/jsil.org/demos/TouchThumbSticks/Content
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
 /Examples/obj
@@ -80,3 +82,8 @@ Corlib/*.js
 /Examples/WebGL/obj
 /Examples/WebGL_Vertex_Structs/bin
 /Examples/WebGL_Vertex_Structs/obj
+/Examples/ThirdParty/TouchThumbSticks/TouchThumbSticks/bin
+/Examples/ThirdParty/TouchThumbSticks/TouchThumbSticks/obj
+/Examples/ThirdParty/TouchThumbSticks/TouchThumbSticksContent/bin
+/Examples/ThirdParty/TouchThumbSticks/TouchThumbSticksContent/obj
+*.cachefile
