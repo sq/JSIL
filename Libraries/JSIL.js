@@ -87,9 +87,7 @@ var $jsilloaderstate = {
     this.loadScript(libraryRoot + "JSIL.Browser.js");
     this.loadScript(libraryRoot + "JSIL.Browser.Audio.js");
     this.loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
-
-    if (this.config.touch)
-      this.loadScript(libraryRoot + "JSIL.Browser.Touch.js");
+    this.loadScript(libraryRoot + "JSIL.Browser.Touch.js");
   };
 
 

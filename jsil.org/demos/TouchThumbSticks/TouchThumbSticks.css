@@ -1,0 +1,41 @@
+#canvas {
+	left: 2px;
+	top: 2px;
+}
+#welcomeMessage {
+	width: 680px;
+	height: 320px;
+	left: 172px;
+	top: 130px;
+}
+#loadButton {
+	width: 200px;
+	height: 40px;
+	left: 412px;
+	top: 364px;
+}
+#quitButton {
+	width: 32px;
+	height: 32px;
+	left: 1026px;
+	top: 2px;
+}
+#loadingProgress {
+	width: 400px;
+	height: 40px;
+	left: 312px;
+	top: 364px;
+}
+#progressBar {
+	height: 40px;
+}
+#log {
+	width: 1024px;
+	height: 150px;
+	left: 2px;
+	top: 772px;
+}
+#stats {
+	left: 1026px;
+	top: 50px;
+}

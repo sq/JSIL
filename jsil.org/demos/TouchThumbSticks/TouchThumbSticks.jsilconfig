@@ -1,0 +1,10 @@
+{
+  "OutputDirectory": "%configdirectory%",
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configdirectory%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+    }
+  }
+}
