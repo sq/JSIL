@@ -1,8 +1,4 @@
 body, html {
-	/* Without this the scaled canvas gets cropped to the arbitrary height of the document WTF */
-	/* WHY THE HELL IS THIS NECESSARY WHY IS CSS SO DUMB */
-	width: 4096px;
-	height: 4096px;
 	overflow: hidden;
 }
 #canvas {
@@ -13,13 +9,13 @@ body, html {
 	transform-origin: 0 0;
 }
 #loadingProgress {
-	width: 400px;
-	height: 40px;
-	left: 200px;
-	top: 220px;
+	width: 300px;
+	height: 30px;
+	left: 40px;
+	top: 40px;
 }
 #progressBar {
-	height: 40px;
+	height: 30px;
 }
 #log {
 	width: 800px;

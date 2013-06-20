@@ -6,18 +6,24 @@
     <link rel="stylesheet" href="../Common/browser.css">
     <link rel="stylesheet" href="TouchThumbSticks.css">
     
-    <!-- <meta name="viewport" content="width=800, height=480, user-scalable=no"> -->
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, target-densitydpi=device-dpi">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="scaleViewport(); onLoad()" onresize="scaleViewport();">
     <script type="text/javascript">
       // Mobile HTML5 sucks :(
       function scaleViewport () {
+        // Why is this even necessary? CSS transformed elements get clipped to the height of the document? WHAT?!
+        var body = document.getElementsByTagName("body")[0];
+        body.style.width = window.innerWidth + "px";
+        body.style.height = window.innerHeight + "px";
+        
         var canvas = document.getElementById("canvas");
         var scaleX = window.innerWidth / canvas.width;
         var scaleY = window.innerHeight / canvas.height;
         var scaleFactor = Math.min(scaleX, scaleY);
         var scaleText = "scale(" + scaleFactor + ")";
+        
         canvas.style.mozTransform = scaleText;
         canvas.style.webkitTransform = scaleText;
         canvas.style.transform = scaleText;
