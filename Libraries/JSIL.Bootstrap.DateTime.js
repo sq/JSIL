@@ -105,6 +105,13 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:true , Public:true }, "op_GreaterThanOrEqual", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_GreaterThanOrEqual (t1, t2) {
+        return $jsilcore.System.Int64.op_GreaterThanOrEqual(t1._ticks, t2._ticks);
+      }
+    );
+
     $.Method({Static:true , Public:true }, "op_Inequality", 
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_Inequality (t1, t2) {
@@ -116,6 +123,13 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
       function op_LessThan (t1, t2) {
         return $jsilcore.System.Int64.op_LessThan(t1._ticks, t2._ticks);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "op_LessThanOrEqual", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_LessThanOrEqual (t1, t2) {
+        return $jsilcore.System.Int64.op_LessThanOrEqual(t1._ticks, t2._ticks);
       }
     );
 
