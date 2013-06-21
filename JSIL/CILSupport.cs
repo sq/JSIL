@@ -183,10 +183,6 @@ namespace JSIL.Internal {
 
             DoResolve = (key, type) => {
                 var result = base.Resolve(type);
-
-                if ((result == null) && type.FullName.StartsWith("System."))
-                    Debugger.Break();
-
                 return result;
             };
         }
