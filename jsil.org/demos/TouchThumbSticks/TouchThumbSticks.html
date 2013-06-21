@@ -19,6 +19,9 @@
         body.style.height = window.innerHeight + "px";
         
         var canvas = document.getElementById("canvas");
+        if (!canvas)
+          return;
+        
         var scaleX = window.innerWidth / canvas.width;
         var scaleY = window.innerHeight / canvas.height;
         var scaleFactor = Math.min(scaleX, scaleY);
