@@ -89,6 +89,7 @@
     <None Include="AnalysisTestCases\AffectedFieldThroughRecursiveCall.cs" />
     <None Include="AnalysisTestCases\TemporaryFunctionCallPurity.cs" />
     <None Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
+    <None Include="AnalysisTestCases\StructAllocationHoisting.cs" />
     <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />

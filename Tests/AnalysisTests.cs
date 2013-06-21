@@ -596,5 +596,27 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void StructAllocationHoisting () {
+            var output = "0\r\n2000\r\n4000\r\n6000\r\n8000\r\n10000";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\StructAllocationHoisting.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.IsFalse(
+                generatedJs.Contains("PrintValue(new ($T"),
+                "A temporary instance is allocated per loop iteration"
+            );
+
+            Assert.IsTrue(
+                generatedJs.Contains("new ($T"),
+                "An instance was never allocated"
+            );
+        }
     }
 }

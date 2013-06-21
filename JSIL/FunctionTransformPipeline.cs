@@ -239,6 +239,8 @@ namespace JSIL.Internal {
             // If integer arithmetic hinting is enabled, we need to decompose mutation operators
             //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
             Enqueue(DecomposeMutationOperators);
+
+            Enqueue(HoistStructAllocations);
         }
 
 
@@ -452,6 +454,14 @@ namespace JSIL.Internal {
 
                 } while (eliminated[0]);
             }
+
+            return true;
+        }
+
+        private bool HoistStructAllocations () {
+            new HoistStructAllocations(
+                Identifier, FunctionSource, TypeSystem, MethodTypes
+            ).Visit(Function);
 
             return true;
         }
