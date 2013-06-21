@@ -79,15 +79,15 @@ namespace JSIL.Transforms {
 
             var doesValueEscape = true;
             if (isStruct && (parentInvocation != null)) {
+                var methodDef = parentInvocation.JSMethod.Reference.Resolve();
                 var secondPass = FunctionSource.GetSecondPass(parentInvocation.JSMethod, Function.Method.QualifiedIdentifier);
-                if (secondPass != null) {
+                if ((secondPass != null) && (methodDef != null)) {
                     // HACK
                     var argumentIndex = parentInvocation.Arguments.Select(
                         (a, i) => new { argument = a, index = i })
                         .FirstOrDefault((_) => _.argument.SelfAndChildrenRecursive.Contains(newexp));
 
                     if (argumentIndex != null) {
-                        var methodDef = parentInvocation.JSMethod.Reference.Resolve();
                         var argumentName = methodDef.Parameters[argumentIndex.index].Name;
 
                         doesValueEscape = secondPass.EscapingVariables.Contains(argumentName);
