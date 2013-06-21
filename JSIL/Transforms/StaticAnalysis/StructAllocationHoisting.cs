@@ -78,7 +78,12 @@ namespace JSIL.Transforms {
             var parentInvocation = ParentNode as JSInvocationExpression;
 
             var doesValueEscape = true;
-            if (isStruct && (parentInvocation != null)) {
+            if (
+                isStruct && 
+                (parentInvocation != null) && 
+                (parentInvocation.JSMethod != null) && 
+                (parentInvocation.JSMethod.Reference != null)
+            ) {
                 var methodDef = parentInvocation.JSMethod.Reference.Resolve();
                 var secondPass = FunctionSource.GetSecondPass(parentInvocation.JSMethod, Function.Method.QualifiedIdentifier);
                 if ((secondPass != null) && (methodDef != null)) {
