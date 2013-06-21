@@ -75,8 +75,31 @@ namespace JSIL.Transforms {
 
             var isStruct = TypeUtil.IsStruct(type);
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
+            var parentInvocation = ParentNode as JSInvocationExpression;
 
-            if (isStruct && isInsideLoop) {
+            var doesValueEscape = true;
+            if (isStruct && (parentInvocation != null)) {
+                var secondPass = FunctionSource.GetSecondPass(parentInvocation.JSMethod, Function.Method.QualifiedIdentifier);
+                if (secondPass != null) {
+                    // HACK
+                    var argumentIndex = parentInvocation.Arguments.Select(
+                        (a, i) => new { argument = a, index = i })
+                        .FirstOrDefault((_) => _.argument.SelfAndChildrenRecursive.Contains(newexp));
+
+                    if (argumentIndex != null) {
+                        var methodDef = parentInvocation.JSMethod.Reference.Resolve();
+                        var argumentName = methodDef.Parameters[argumentIndex.index].Name;
+
+                        doesValueEscape = secondPass.EscapingVariables.Contains(argumentName);
+                    }
+                }
+            }
+
+            if (isStruct && 
+                isInsideLoop && 
+                (parentInvocation != null) &&
+                !doesValueEscape
+            ) {
                 string id;
                 var hoistedVariable = MakeTemporaryVariable(type, out id);
                 var constructorInvocation = JSInvocationExpression.InvokeMethod(
