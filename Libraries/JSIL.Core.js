@@ -2842,17 +2842,6 @@ JSIL.FormatMemberAccess = function (targetExpression, memberName) {
   }
 };
 
-JSIL.ForceToDouble = function (value) {
-  // I really hate JS engines sometimes
-  try {
-    return +(+(value * 1.0).valueOf());
-    throw Error("spurious");
-  } catch (exc) {
-    return Math.E;
-  } finally {    
-  }
-};
-
 JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
   var fl = JSIL.GetFieldList(typeObject);
   if ((fl.length < 1) && returnNamedFunction)
@@ -2863,10 +2852,6 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
   
   var types = {};
   var defaults = {};
-
-  var defaultInt = 0;
-  var defaultFloat = JSIL.ForceToDouble(0);
-  var defaultBoolean = false;
 
   var targetArgName = returnNamedFunction ? "target" : "this";
 
@@ -2888,11 +2873,11 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
       //  an object's field slots should be.
       var defaultValueString;
       if (field.type.__FullName__ === "System.Boolean") {
-        defaultValueString = "defaultBoolean";
+        defaultValueString = "(false)";
       } else if (field.type.__IsIntegral__) {
-        defaultValueString = "defaultInt";
+        defaultValueString = "(0 | 0)";
       } else {
-        defaultValueString = "defaultFloat";
+        defaultValueString = "(+0.0)";
       }
       body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = " + defaultValueString + ";");
     } else {
@@ -2912,10 +2897,7 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
 
   var initializerClosure = { 
     types: types, 
-    defaults: defaults, 
-    defaultInt: defaultInt, 
-    defaultFloat: defaultFloat,
-    defaultBoolean: defaultBoolean
+    defaults: defaults
   };
 
   if (returnNamedFunction) {
