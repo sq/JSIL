@@ -459,9 +459,10 @@ namespace JSIL.Internal {
         }
 
         private bool HoistStructAllocations () {
-            new HoistStructAllocations(
-                Identifier, FunctionSource, TypeSystem, MethodTypes
-            ).Visit(Function);
+            if (Configuration.CodeGenerator.HoistStructAllocations.GetValueOrDefault(true))
+                new HoistStructAllocations(
+                    Identifier, FunctionSource, TypeSystem, MethodTypes
+                ).Visit(Function);
 
             return true;
         }

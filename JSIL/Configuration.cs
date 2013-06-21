@@ -36,6 +36,7 @@ namespace JSIL.Translator {
             public bool? EnableThreadedTransforms;
             public bool? FreezeImmutableObjects;
             public bool? EnableUnsafeCode;
+            public bool? HoistStructAllocations;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -66,6 +67,8 @@ namespace JSIL.Translator {
                     result.EnableUnsafeCode = EnableUnsafeCode;
                 if (EnableThreadedTransforms.HasValue)
                     result.EnableThreadedTransforms = EnableThreadedTransforms;
+                if (HoistStructAllocations.HasValue)
+                    result.HoistStructAllocations = HoistStructAllocations;
             }
         }
 
