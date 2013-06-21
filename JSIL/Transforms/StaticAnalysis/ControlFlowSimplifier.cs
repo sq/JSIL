@@ -347,8 +347,6 @@ namespace JSIL.Transforms {
                     if (exitLabel != newExitLabel) {
                         if (TraceLevel >= 1)
                             Console.WriteLine("// Cannot mark label '{0}' as exit label because this labelgroup already has one", onlyRecursiveExitTarget);
-                    } else {
-                        Debugger.Break();
                     }
                 } else {
                     if (TraceLevel >= 1)
