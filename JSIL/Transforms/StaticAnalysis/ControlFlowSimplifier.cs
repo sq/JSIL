@@ -227,6 +227,10 @@ namespace JSIL.Transforms {
                     else
                         return null;
                 } else {
+                    // Cycle detected
+                    if (recursiveExit == targetLabelData.DirectExitLabel)
+                        return null;
+
                     recursiveExit = targetLabelData.DirectExitLabel;
                 }
 

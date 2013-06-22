@@ -618,5 +618,12 @@ Shockwave.TryMove(Down, 384)";
                 "An instance was never allocated"
             );
         }
+
+        [Test]
+        public void Issue199 () {
+            var generatedJs = GetJavascript(@"SpecialTestCases\Issue199.fs");
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
