@@ -332,8 +332,9 @@ namespace JSIL.Transforms {
                 //  gets modified, we need to make a copy here, because the target is probably
                 //  being used as a back-up copy.
                 var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
+                var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
-                if (rightVarsModified || IsCopyNeededForAssignmentTarget(boe.Left)) {
+                if (rightVarsModified || IsCopyNeededForAssignmentTarget(boe.Left) || rightVarsAreReferences) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
@@ -342,6 +343,9 @@ namespace JSIL.Transforms {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
                 }
+            } else {
+                if (Tracing)
+                    Debug.WriteLine(String.Format("no copy needed for assignment rhs {0}", boe.Right));
             }
 
             VisitChildren(boe);
