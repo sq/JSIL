@@ -945,23 +945,6 @@ namespace JSIL {
                 }
             } else
                 Output.Identifier(variable.Identifier);
-
-            // Don't emit .value when initializing a reference in a declaration.
-            var boe = ParentNode as JSBinaryOperatorExpression;
-            if (
-                (boe != null) && 
-                (boe.Left == variable) && 
-                (Stack.Skip(2).FirstOrDefault() is JSVariableDeclarationStatement)
-            ) {
-                return;
-            }
-
-            if (
-                variable.IsReference && 
-                !PassByRefStack.Peek() && 
-                !Stack.OfType<JSVariableDeclarationStatement>().Any()
-            )
-                throw new InvalidDataException("Found a JSVariable instance pointing at a reference variable (" + variable.Identifier + ") in an incorrect context.");
         }
 
         public void VisitNode (JSPassByReferenceExpression byref) {
