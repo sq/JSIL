@@ -182,13 +182,13 @@ namespace JSIL.Internal {
         private void FillPipeline () {
             Enqueue(BuildLabelGroups);
 
+            Enqueue(IntroduceVariableDeclarationsAndReferences);
+
             Enqueue(EliminateTemporaries);
 
             Enqueue(EmulateInt64);
 
             Enqueue(EmulateStructAssignment);
-
-            Enqueue(IntroduceVariableDeclarationsAndReferences);
 
             Enqueue(SimplifyLoops);
 

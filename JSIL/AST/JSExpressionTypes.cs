@@ -491,6 +491,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public JSNullExpression ()
+            : base() {
+        }
+
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             return;
         }

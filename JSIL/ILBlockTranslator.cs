@@ -2634,7 +2634,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
-            var arguments = Translate(node.Arguments);
+            var arguments = Translate(node.Arguments, constructor.Parameters, false);
 
             if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
                 return Translate_Newobj_Delegate(node, constructor, arguments);
