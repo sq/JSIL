@@ -118,7 +118,8 @@ namespace JSIL.Transforms {
             if (
                 (value is JSLiteral) ||
                 (value is JSNewExpression) ||
-                (value is JSPassByReferenceExpression)
+                (value is JSPassByReferenceExpression) ||
+                (value is JSNewBoxedVariable)
             ) {
                 return false;
             }
@@ -349,6 +350,26 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+        }
+
+        public void VisitNode (JSNewBoxedVariable nbv) {
+            GenericParameter relevantParameter;
+
+            var initialValue = nbv.InitialValue;
+            var initialValueDerefed = initialValue;
+            while (initialValueDerefed is JSReferenceExpression)
+                initialValueDerefed = ((JSReferenceExpression)initialValueDerefed).Referent;
+            var initialValueType = initialValueDerefed.GetActualType(TypeSystem);
+
+            if (
+                IsCopyNeeded(nbv.InitialValue, out relevantParameter) &&
+                // We don't need to make a copy if the source value is a reference (like T& this)
+                !((initialValueType) != null && initialValueType.IsByReference)
+            ) {
+                nbv.ReplaceChild(nbv.InitialValue, new JSStructCopyExpression(nbv.InitialValue));
+            }
+
+            VisitChildren(nbv);
         }
 
         protected JSStructCopyExpression MakeCopyForExpression (JSExpression expression, GenericParameter relevantParameter) {

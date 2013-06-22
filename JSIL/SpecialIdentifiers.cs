@@ -134,12 +134,11 @@ namespace JSIL {
             );
         }
 
-        public JSNewExpression NewReference (JSExpression initialValue) {
-            var resultType = new ByReferenceType(initialValue.GetActualType(TypeSystem));
+        public JSNewBoxedVariable NewReference (JSExpression initialValue) {
+            var valueType = initialValue.GetActualType(TypeSystem);
 
-            return new JSNewExpression(
-                Dot("BoxedVariable", resultType),
-                null, null, initialValue
+            return new JSNewBoxedVariable(
+                initialValue, valueType
             );
         }
 

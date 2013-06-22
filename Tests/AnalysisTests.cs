@@ -65,11 +65,10 @@ namespace JSIL.Tests {
                 @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
             ));
 
-            // FIXME: Is this right?
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"f = new JSIL.BoxedVariable\(\$thisType.A\)"
-            ));
+                @"f = new JSIL.BoxedVariable\(\$thisType\.A\.MemberwiseClone\(\)\)"
+            ), "Struct values should be copied when creating a boxed variable from them");
         }
 
         [Test]

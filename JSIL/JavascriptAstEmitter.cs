@@ -1971,5 +1971,12 @@ namespace JSIL {
             Output.Dot();
             Output.Identifier(lcime.MemberName, EscapingMode.MemberIdentifier);
         }
+
+        public void VisitNode (JSNewBoxedVariable nbv) {
+            Output.WriteRaw("new JSIL.BoxedVariable");
+            Output.LPar();
+            Visit(nbv.InitialValue);
+            Output.RPar();
+        }
     }
 }

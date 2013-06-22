@@ -2649,4 +2649,23 @@ namespace JSIL.Ast {
             return TypeOfExpression;
         }
     }
+
+    public class JSNewBoxedVariable : JSExpression {
+        public readonly TypeReference ValueType;
+
+        public JSNewBoxedVariable (JSExpression initialValue, TypeReference valueType)
+            : base (initialValue) {
+            ValueType = valueType;
+        }
+
+        public JSExpression InitialValue {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return new ByReferenceType(ValueType);
+        }
+    }
 }
