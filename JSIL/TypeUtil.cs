@@ -168,6 +168,18 @@ namespace JSIL {
             return IsIntegral(type) || IsPointer(type);
         }
 
+        public static bool IsFloatingPoint (TypeReference type) {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType) {
+                case MetadataType.Single:
+                case MetadataType.Double:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public static bool IsNullable (TypeReference type) {
             int temp;
             type = FullyDereferenceType(type, out temp);

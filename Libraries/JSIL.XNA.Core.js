@@ -287,7 +287,7 @@ var vectorUtil = {
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
-      var line = "";
+      var line = "+(";
 
       if (leftScalar)
         line += "lhs ";
@@ -300,6 +300,8 @@ var vectorUtil = {
         line += " rhs";
       else
         line += " rhs." + dataMember + "";
+
+      line += ")";
 
       if (i < (dataMembers.length - 1))
         line += ",";
@@ -429,12 +431,12 @@ var vectorUtil = {
 
   makeDistanceFunction: function ($, name, isSquared, dataMembers, tVector) {
     var body = [];
-    body.push("var result = 0, current;");
+    body.push("var result = +0.0, current;");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
 
-      body.push("current = (rhs." + dataMember + " - lhs." + dataMember + ");");
+      body.push("current = +(rhs." + dataMember + " - lhs." + dataMember + ");");
       body.push("result += (current * current);");
     }
 
@@ -453,7 +455,7 @@ var vectorUtil = {
 
   makeNormalizer: function ($, dataMembers, tVector) {
     var body = [];
-    body.push("var factor = 1.0 / this.Length();");
+    body.push("var factor = +1.0 / this.Length();");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
@@ -607,14 +609,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single], []), function Vector2_ctor (x, y) {
-    this.X = x;
-    this.Y = y;
+    this.X = +x;
+    this.Y = +y;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector2_ctor (value) {
-    this.X = this.Y = value;
+    this.X = this.Y = +value;
   });
 });
 
@@ -643,23 +645,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single], []), function Vector3_ctor (x, y, z) {
-    this.X = x;
-    this.Y = y;
-    this.Z = z;
+    this.X = +x;
+    this.Y = +y;
+    this.Z = +z;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector3_ctor (value) {
-    this.X = this.Y = this.Z = value;
+    this.X = this.Y = this.Z = +value;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector3_ctor (xy, z) {
-    this.X = xy.X;
-    this.Y = xy.Y;
-    this.Z = z;
+    this.X = +xy.X;
+    this.Y = +xy.Y;
+    this.Z = +z;
   });
 
   $.Method({Static:true , Public:true }, "Transform", 
@@ -690,34 +692,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single, $.Single], []), function Vector4_ctor (x, y, z, w) {
-    this.X = x;
-    this.Y = y;
-    this.Z = z;
-    this.W = w;
+    this.X = +x;
+    this.Y = +y;
+    this.Z = +z;
+    this.W = +w;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xy, z, w) {
-    this.X = xy.X;
-    this.Y = xy.Y;
-    this.Z = z;
-    this.W = w;
+    this.X = +xy.X;
+    this.Y = +xy.Y;
+    this.Z = +z;
+    this.W = +w;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xyz, w) {
-    this.X = xyz.X;
-    this.Y = xyz.Y;
-    this.Z = xyz.Z;
-    this.W = w;
+    this.X = +xyz.X;
+    this.Y = +xyz.Y;
+    this.Z = +xyz.Z;
+    this.W = +w;
   });
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector4_ctor (value) {
-    this.X = this.Y = this.Z = this.W = value;
+    this.X = this.Y = this.Z = this.W = +value;
   });
 
   $.Method({Static:true , Public:true }, "Transform", 

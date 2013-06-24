@@ -1472,6 +1472,14 @@ namespace JSIL {
                 Output.NewLine();
             }
 
+            if (
+                Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
+                (bop.Operator is JSAssignmentOperator) &&
+                TypeUtil.IsFloatingPoint(resultType)
+            ) {
+                Output.WriteRaw("+");
+            }
+
             Visit(bop.Right);
 
             if (parens)
