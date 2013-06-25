@@ -63,8 +63,16 @@ function doXHR (uri, asBinary, onComplete) {
 
   needCORS = needCORS && !sameHost;
 
-  if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
-    req = new ActiveXObject("MSXML2.XMLHTTP");
+  if (location.protocol === "file:") {
+    var errorText = "Loading assets from file:// is not possible in modern web browsers. You must host your application/game on a web server.";
+
+    if (console && console.error) {
+      console.error(errorText + "\nFailed to load: " + uri);
+      onComplete(null, errorText);
+      return;
+    } else {
+      throw new Error(errorText);
+    }
   } else {
     req = new XMLHttpRequest();
 
