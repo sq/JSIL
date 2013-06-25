@@ -29,7 +29,7 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly Compile (
+        public static CompileResult Compile (
             IEnumerable<string> filenames, string assemblyName, string compilerOptions = ""
         ) {
             var extension = Path.GetExtension(filenames.First()).ToLower();
@@ -103,9 +103,10 @@ namespace JSIL.Tests {
             File.WriteAllText(manifestPath, jss.Serialize(manifest));
         }
 
-        private static Assembly Compile (
-            Func<CodeDomProvider> getProvider, IEnumerable<string> filenames, string assemblyName, string compilerOptions
+        private static CompileResult Compile (
+            Func<CodeDomProvider> getProvider, IEnumerable<string> _filenames, string assemblyName, string compilerOptions
         ) {
+            var filenames = _filenames.ToArray();
             var tempPath = Path.Combine(TempPath, assemblyName);
             Directory.CreateDirectory(tempPath);
 
@@ -118,24 +119,6 @@ namespace JSIL.Tests {
                 tempPath, "warnings.txt"
             );
 
-            if (
-                File.Exists(outputAssembly) &&
-                CheckCompileManifest(filenames, tempPath)
-            ) {
-                if (File.Exists(warningTextPath))
-                    Console.Error.WriteLine(File.ReadAllText(warningTextPath));
-
-                return Assembly.LoadFile(outputAssembly);
-            }
-
-            var files = Directory.GetFiles(tempPath);
-            foreach (var file in files) {
-                try {
-                    File.Delete(file);
-                } catch {
-                }
-            }
-
             var references = new List<string> {
                 "System.dll", 
                 "System.Core.dll", "System.Xml.dll", 
@@ -143,9 +126,12 @@ namespace JSIL.Tests {
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             };
 
+            var metacomments = new List<Metacomment>();
             foreach (var sourceFile in filenames) {
                 var sourceText = File.ReadAllText(sourceFile);
-                foreach (var metacomment in Metacomment.FromText(sourceText)) {
+
+                var localMetacomments = Metacomment.FromText(sourceText);
+                foreach (var metacomment in localMetacomments) {
                     switch (metacomment.Command.ToLower()) {
                         case "reference":
                             references.Add(metacomment.Arguments);
@@ -155,6 +141,28 @@ namespace JSIL.Tests {
                             compilerOptions += " " + metacomment.Arguments;
                             break;
                     }
+                }
+
+                metacomments.AddRange(localMetacomments);
+            }
+            if (
+                File.Exists(outputAssembly) &&
+                CheckCompileManifest(filenames, tempPath)
+            ) {
+                if (File.Exists(warningTextPath))
+                    Console.Error.WriteLine(File.ReadAllText(warningTextPath));
+
+                return new CompileResult(
+                    Assembly.LoadFile(outputAssembly),
+                    metacomments.ToArray()
+                );
+            }
+
+            var files = Directory.GetFiles(tempPath);
+            foreach (var file in files) {
+                try {
+                    File.Delete(file);
+                } catch {
                 }
             }
 
@@ -205,7 +213,20 @@ namespace JSIL.Tests {
 
             WriteCompileManifest(filenames, tempPath);
 
-            return results.CompiledAssembly;
+            return new CompileResult(
+                results.CompiledAssembly,
+                metacomments.ToArray()
+            );
+        }
+    }
+
+    public class CompileResult {
+        public readonly Assembly Assembly;
+        public readonly Metacomment[] Metacomments;
+
+        public CompileResult (Assembly assembly, Metacomment[] metacomments) {
+            Assembly = assembly;
+            Metacomments = metacomments;
         }
     }
 }

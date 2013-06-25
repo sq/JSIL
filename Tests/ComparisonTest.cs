@@ -48,6 +48,7 @@ namespace JSIL.Tests {
         public readonly string[] StubbedAssemblies;
         public readonly string OutputPath;
         public readonly Assembly Assembly;
+        public readonly CompileResult CompileResult;
         public readonly TimeSpan CompilationElapsed;
         public readonly EvaluatorPool EvaluatorPool;
 
@@ -139,7 +140,8 @@ namespace JSIL.Tests {
                     Assembly = Assembly.LoadFile(fns[0]);
                     break;
                 default:
-                    Assembly = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+                    CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+                    Assembly = CompileResult.Assembly;
                     break;
             }
 
@@ -235,6 +237,65 @@ namespace JSIL.Tests {
             };
         }
 
+        public static object MetacommentParseValue (string text, Type type) {
+            bool isNullable;
+            var tNullable = typeof(Nullable<>);
+            if (type.IsGenericType && (type.GetGenericTypeDefinition() == tNullable)) {
+                isNullable = true;
+                type = type.GetGenericArguments()[0];
+
+                if (text == "null")
+                    return null;
+            }
+
+            return Convert.ChangeType(text, type);
+        }
+
+        public Configuration ApplyMetacomments (Configuration configuration) {
+            var result = new Configuration();
+            configuration.MergeInto(result);
+
+            if (this.CompileResult != null)
+            foreach (var metacomment in this.CompileResult.Metacomments) {
+                if (metacomment.Command != "jsiloption")
+                    continue;
+
+                object target = result;
+                var parts = metacomment.Arguments.Split(new char[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                var key = parts[0].Split('.');
+                var flags = BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+                if ((key.Length == 0) || (key.Length == 1 && String.IsNullOrWhiteSpace(key[0])))
+                    throw new ArgumentException("key", "Key must specify a field/property name");
+
+                for (var i = 0; i < key.Length; i++) {
+                    var keyName = key[i];
+                    var field = target.GetType().GetField(keyName, flags);
+                    var property = target.GetType().GetProperty(keyName, flags);
+
+                    if (i == key.Length - 1) {
+                        if (field != null) {
+                            field.SetValue(target, MetacommentParseValue(parts[1], field.FieldType));
+                        } else if (property != null) {
+                            property.SetValue(target, MetacommentParseValue(parts[1], property.PropertyType), null);
+                        } else {
+                            throw new KeyNotFoundException(keyName);
+                        }
+                    } else {
+                        if (field != null) {
+                            target = field.GetValue(target);
+                        } else if (property != null) {
+                            target = property.GetValue(target, null);
+                        } else {
+                            throw new KeyNotFoundException(keyName);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public TOutput Translate<TOutput> (
             Func<TranslationResult, TOutput> processResult,
             Func<Configuration> makeConfiguration = null,
@@ -246,6 +307,8 @@ namespace JSIL.Tests {
                 configuration = makeConfiguration();
             else
                 configuration = MakeDefaultConfiguration();
+
+            configuration = ApplyMetacomments(configuration);
 
             if (StubbedAssemblies != null)
                 configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);

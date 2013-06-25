@@ -1,4 +1,6 @@
-﻿using System;
+﻿//@jsiloption codegenerator.eliminatetemporaries false
+
+using System;
 
 public interface I { }
 public struct A : I { }

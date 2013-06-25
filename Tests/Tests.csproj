@@ -205,7 +205,7 @@
     <None Include="SimpleTestCases\ListIndexOf.cs" />
     <None Include="SimpleTestCases\ListInsert.cs" />
     <None Include="TestCases\EnumAnonymousMethod.cs" />
-    <None Include="FailingTestCases\StructGenericParameter.cs" />
+    <None Include="SimpleTestCases\StructGenericParameterReferenceEquality.cs" />
     <None Include="SimpleTestCases\ArrayListIndexer.cs" />
     <None Include="SimpleTestCases\ListIList.cs" />
     <None Include="SimpleTestCases\MultiDimArrayClone.cs" />

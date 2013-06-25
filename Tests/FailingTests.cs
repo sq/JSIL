@@ -22,9 +22,10 @@ namespace JSIL.Tests {
             var testFilename = (string)parameters[0];
             var translationFailures = new List<Exception>();
             Exception thrown = null;
+            CompileResult compileResult = null;
 
             try {
-                RunSingleComparisonTestCase(
+                compileResult = RunSingleComparisonTestCase(
                     parameters, 
                     makeConfiguration: () => {
                         var cfg = MakeConfiguration();
@@ -45,33 +46,35 @@ namespace JSIL.Tests {
             foreach (var failure in translationFailures)
                 Console.WriteLine(failure.ToString());
 
-            var testFileText = File.ReadAllText(testFilename);
-            foreach (var metacomment in Metacomment.FromText(testFileText)) {
-                Console.WriteLine(metacomment);
+            if (compileResult != null) {
+                foreach (var metacomment in compileResult.Metacomments) {
+                    Console.WriteLine(metacomment);
 
-                switch (metacomment.Command.ToLower()) {
-                    case "assertfailurestring":
-                        Assert.IsTrue(
-                            translationFailures.Any(
-                                (f) => f.ToString().Contains(metacomment.Arguments)
-                            ),
-                            "Expected translation to generate a failure containing the string '" + metacomment.Arguments + "'"
-                        );
+                    switch (metacomment.Command.ToLower()) {
+                        case "assertfailurestring":
+                            Assert.IsTrue(
+                                translationFailures.Any(
+                                    (f) => f.ToString().Contains(metacomment.Arguments)
+                                ),
+                                "Expected translation to generate a failure containing the string '" + metacomment.Arguments + "'"
+                            );
 
-                        break;
+                            break;
 
-                    case "assertthrows":
-                        if ((thrown == null) || (thrown.GetType().Name.ToLower() != metacomment.Arguments.Trim().ToLower()))
-                            Assert.Fail("Expected test to throw an exception of type '" + metacomment.Arguments + "'");
+                        case "assertthrows":
+                            if ((thrown == null) || (thrown.GetType().Name.ToLower() != metacomment.Arguments.Trim().ToLower()))
+                                Assert.Fail("Expected test to throw an exception of type '" + metacomment.Arguments + "'");
 
-                        break;
+                            break;
 
-                    case "reference":
-                    case "compileroption":
-                        break;
+                        case "reference":
+                        case "compileroption":
+                        case "jsiloption":
+                            break;
 
-                    default:
-                        throw new NotImplementedException("Command type '" + metacomment.Command + "' not supported in metacomments");
+                        default:
+                            throw new NotImplementedException("Command type '" + metacomment.Command + "' not supported in metacomments");
+                    }
                 }
             }
 

@@ -90,7 +90,7 @@ namespace JSIL.Translator {
         public readonly AssemblyConfiguration Assemblies = new AssemblyConfiguration();
         public readonly CodeGeneratorConfiguration CodeGenerator = new CodeGeneratorConfiguration();
 
-        protected void MergeInto (Configuration result) {
+        public virtual void MergeInto (Configuration result) {
             if (ApplyDefaults.HasValue)
                 result.ApplyDefaults = ApplyDefaults;
             if (IncludeDependencies.HasValue)

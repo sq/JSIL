@@ -46,33 +46,37 @@ namespace JSIL.Compiler {
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
         public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
 
-        public void MergeInto (Configuration result) {
+        public override void MergeInto (JSIL.Translator.Configuration result) {
             base.MergeInto(result);
 
+            var cc = result as JSIL.Compiler.Configuration;
+            if (cc == null)
+                throw new ArgumentException("Result must be a Compiler.Configuration", "result");
+
             if (AutoLoadConfigFiles.HasValue)
-                result.AutoLoadConfigFiles = AutoLoadConfigFiles;
+                cc.AutoLoadConfigFiles = AutoLoadConfigFiles;
             if (UseLocalProxies.HasValue)
-                result.UseLocalProxies = UseLocalProxies;
+                cc.UseLocalProxies = UseLocalProxies;
             if (ReuseTypeInfoAcrossAssemblies.HasValue)
-                result.ReuseTypeInfoAcrossAssemblies = ReuseTypeInfoAcrossAssemblies;
+                cc.ReuseTypeInfoAcrossAssemblies = ReuseTypeInfoAcrossAssemblies;
             if (OutputDirectory != null)
-                result.OutputDirectory = OutputDirectory;
+                cc.OutputDirectory = OutputDirectory;
             if (FileOutputDirectory != null)
-                result.FileOutputDirectory = FileOutputDirectory;
+                cc.FileOutputDirectory = FileOutputDirectory;
             if (Profile != null)
-                result.Profile = Profile;
+                cc.Profile = Profile;
             if (Path != null)
-                result.Path = Path;
+                cc.Path = Path;
 
             foreach (var kvp in ProfileSettings)
-                result.ProfileSettings[kvp.Key] = kvp.Value;
+                cc.ProfileSettings[kvp.Key] = kvp.Value;
 
             foreach (var kvp in CustomVariables)
-                result.CustomVariables[kvp.Key] = kvp.Value;
+                cc.CustomVariables[kvp.Key] = kvp.Value;
 
-            SolutionBuilder.MergeInto(result.SolutionBuilder);
+            SolutionBuilder.MergeInto(cc.SolutionBuilder);
 
-            result.ContributingPaths = result.ContributingPaths.Concat(ContributingPaths).ToArray();
+            cc.ContributingPaths = cc.ContributingPaths.Concat(ContributingPaths).ToArray();
         }
 
         public Configuration Clone () {

@@ -201,12 +201,13 @@ namespace JSIL.Tests {
             );
         }
 
-        private void RunComparisonTest (
+        private CompileResult RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, bool shouldRunJs = true, AssemblyCache asmCache = null,
             Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null,
             string compilerOptions = ""
         ) {
+            CompileResult result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
             filename = Portability.NormalizeDirectorySeparators(filename);
 
@@ -225,6 +226,8 @@ namespace JSIL.Tests {
                     stubbedAssemblies, typeInfo, asmCache,
                     compilerOptions: compilerOptions
                 )) {
+                    result = test.CompileResult;
+
                     if (shouldRunJs) {
                         test.Run(makeConfiguration: makeConfiguration, onTranslationFailure: onTranslationFailure);
                     } else {
@@ -256,6 +259,8 @@ namespace JSIL.Tests {
                 } else
                     throw;
             }
+
+            return result;
         }
 
         protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true) {
@@ -343,7 +348,7 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected void RunSingleComparisonTestCase (
+        protected CompileResult RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
             Action<Exception> onTranslationFailure = null,
@@ -355,7 +360,7 @@ namespace JSIL.Tests {
             var provider = (TypeInfoProvider)parameters[1];
             var cache = (AssemblyCache)parameters[2];
             try {
-                RunComparisonTest(
+                return RunComparisonTest(
                     (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
                     makeConfiguration: makeConfiguration,
                     onTranslationFailure: onTranslationFailure,
