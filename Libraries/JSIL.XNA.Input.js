@@ -407,11 +407,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
   );
 
   var getButtonState = function (self, button) {
-    var s = self._buttons._state;
+    var flags = self._buttons._flags;
     var key = button.valueOf();
 
-    if (s && s[key])
-      return s[key].valueOf();
+    if ((flags & key) === key)
+      return pressed;
 
     var triggerDeadZone = 30 / 255;
 
@@ -464,12 +464,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
 
   var makeButtonGetter = function (buttonName) {
+    var buttonFlag = buttons[buttonName].valueOf();
+
     return function getButtonState () {
-      if (!this._state)
-        return released;
-      
-      var key = buttons[buttonName].valueOf();
-      return this._state[key] || released;
+      if ((this._flags & buttonFlag) === buttonFlag)
+        return pressed;
+
+      return released;
     };
   }
 
@@ -485,29 +486,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
     function _ctor (buttonState) {
-      this._state = {};
-
-      buttonState = buttonState.valueOf();
-
-      for (var i = 0; i < buttonNames.length; i++) {
-        var buttonName = buttonNames[i];
-        var buttonMask = buttons[buttonName].valueOf();
-
-        this._state[buttonMask] = (buttonState & buttonMask) ? pressed : released;
-      }
+      this._flags = buttonState;
     }
   );
 
   $.RawMethod(false, "__CopyMembers__", 
     function GamePadButtons_CopyMembers (source, target) {
-      target._state = {};
-
-      for (var k in source._state) {
-        if (!source._state.hasOwnProperty(k))
-          continue;
-
-        target._state[k] = source._state[k];
-      }
+      target._flags = source._flags;
     }
   );
 
