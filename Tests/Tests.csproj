@@ -174,6 +174,8 @@
     <None Include="ReflectionTestCases\GenericTypeBaseType.cs" />
     <None Include="SimpleTestCases\Issue198.fs" />
     <None Include="SimpleTestCases\Issue173.cs" />
+    <None Include="InterfaceTestCases\GenericMethodInsideNonGenericInterface.cs" />
+    <None Include="InterfaceTestCases\GenericMethodInsideGenericInterface.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

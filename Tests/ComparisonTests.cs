@@ -168,6 +168,8 @@ namespace JSIL.Tests {
                     @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
                     @"TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs",
                     @"TestCases\GenericStaticMethods2.cs",
+                    @"InterfaceTestCases\GenericMethodInsideGenericInterface.cs",
+                    @"InterfaceTestCases\GenericMethodInsideNonGenericInterface.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

@@ -5754,7 +5754,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
     JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
 
     if (!descriptor.Target[methodName])
-      JSIL.SetValueProperty(descriptor.Target, methodName, methodObject);
+      JSIL.SetValueProperty(descriptor.Target, descriptor.EscapedName, methodObject);
   } else {
     var fullName = this.namespace + "." + methodName;
 
