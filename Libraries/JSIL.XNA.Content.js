@@ -50,9 +50,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       try {
         result = asset.ReadAsset(T);
       } catch (exc) {
-        var signature = new JSIL.MethodSignature(null, ["System.String", "System.Exception"]);
+        var signature = new JSIL.ConstructorSignature(
+          Microsoft.Xna.Framework.Content.ContentLoadException.__Type__, 
+          ["System.String", "System.Exception"]
+        );
+
         throw signature.Construct(
-          Microsoft.Xna.Framework.Content.ContentLoadException.__Type__,
           "Failed to load asset '" + assetName + "' because an asset loader threw an exception.", exc
         );
       }
@@ -697,15 +700,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
       if (!this.typeReaders)
         throw this.makeError("Failed to construct type readers");
-    }
-  );
-
-  $.Method({Static: false, Public: true}, "ReadString", 
-    new JSIL.MethodSignature($.String, [], []), 
-    function () {
-      var length = this.Read7BitEncodedInt();
-      var chars = this.ReadBytes(length);
-      return JSIL.StringFromByteArray(chars);
     }
   );
 
