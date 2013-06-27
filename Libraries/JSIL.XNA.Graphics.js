@@ -347,12 +347,6 @@ $jsilxna.getImageTopLeftPixel = function (image) {
 };
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function ($) {
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice")], [])), 
-    function _ctor (device) {
-    }
-  );
-
   $.Method({Static:false, Public:true }, "set_Alpha", 
     (new JSIL.MethodSignature(null, [$.Single], [])), 
     function set_Alpha (value) {
@@ -465,17 +459,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_View", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [], [])), 
+    function get_View (value) {
+      return this.view;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "set_View", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function set_View (value) {
-      // FIXME
+      this.view = value.MemberwiseClone();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_World", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [], [])), 
+    function get_World (value) {
+      return this.world;
     }
   );
 
   $.Method({Static:false, Public:true }, "set_World", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function set_World (value) {
-      // FIXME
+      this.world = value.MemberwiseClone();
     }
   );
 });
