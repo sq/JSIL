@@ -324,11 +324,11 @@ namespace JSIL.Transforms {
         /// </summary>
         public void WriteInterfaceMemberToOutput (
             JavascriptFormatter output, JavascriptAstEmitter emitter, JSFunctionExpression enclosingFunction,
-            MethodReference methodReference, JSExpression method,
+            JSMethod jsMethod, JSExpression method,
             TypeReferenceContext referenceContext
         ) {
             int index;
-            var record = new CachedInterfaceMemberRecord(methodReference.DeclaringType, methodReference.Name);
+            var record = new CachedInterfaceMemberRecord(jsMethod.Reference.DeclaringType, jsMethod.Identifier);
 
             if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
                 var functionIdentifier = enclosingFunction.Method.Method.Identifier;
@@ -344,7 +344,7 @@ namespace JSIL.Transforms {
             }
 
             if (!Global.InterfaceMembers.TryGetValue(record, out index)) {
-                output.Identifier(methodReference.DeclaringType, referenceContext, false);
+                output.Identifier(jsMethod.Reference.DeclaringType, referenceContext, false);
                 output.Dot();
                 emitter.Visit(method);
             } else

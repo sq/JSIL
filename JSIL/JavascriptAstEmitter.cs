@@ -1784,7 +1784,7 @@ namespace JSIL {
                         //  This works because InterfaceMethod.toString returns the qualified name of the interface method.
                         SignatureCacher.WriteInterfaceMemberToOutput(
                             Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm.Reference, invocation.Method,
+                            jsm, invocation.Method,
                             ReferenceContext
                         );
 
@@ -1842,7 +1842,7 @@ namespace JSIL {
                     if ((method != null) && method.DeclaringType.IsInterface) {
                         SignatureCacher.WriteInterfaceMemberToOutput(
                             Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm.Reference, invocation.Method,
+                            jsm, invocation.Method,
                             ReferenceContext
                         );
 

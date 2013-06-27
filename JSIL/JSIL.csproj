@@ -96,7 +96,6 @@
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CacheSignatures.cs" />
     <Compile Include="Transforms\IntroducePackedArrays.cs" />
-    <Compile Include="Transforms\JSLocalCachedInterfaceMemberExpression.cs" />
     <Compile Include="Transforms\StaticAnalysis\StructAllocationHoisting.cs" />
     <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
     <Compile Include="Transforms\DecomposeMutationOperators.cs" />
