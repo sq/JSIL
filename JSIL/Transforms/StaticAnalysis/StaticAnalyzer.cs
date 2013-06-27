@@ -957,13 +957,16 @@ namespace JSIL.Transforms {
         {
             foreach (var arg in arguments) {
                 var value = arg.Value as T;
-                if (value != null)
-                    yield return value;
-
                 var enumerable = arg.Value as IEnumerable<CustomAttributeArgument>;
-                if (enumerable != null)
-                foreach (var subValue in GetAttributeArguments<T>(enumerable))
-                    yield return subValue;
+
+                if (value != null) {
+                    yield return value;
+                } else if (enumerable != null) {
+                    foreach (var subValue in GetAttributeArguments<T>(enumerable))
+                        yield return subValue;
+                } else {
+                    throw new Exception("Found an attribute argument I couldn't handle, of type " + arg.Type.Name + ": " + arg.Value);
+                }
             }
         }
 
