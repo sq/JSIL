@@ -3732,15 +3732,15 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
-      this._head = null;
-      this._tail = null;
-      this._count = 0;
+      this.Clear();
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
     function _ctor (collection) {
+      this.Clear();
+
       throw new Error('Not implemented');
     }
   );
@@ -3868,7 +3868,9 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Clear () {
-      throw new Error('Not implemented');
+      this._head = null;
+      this._tail = null;
+      this._count = 0;
     }
   );
 
@@ -3928,6 +3930,27 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
     }
   );
 
+  $.RawMethod(false, "$removeNode", function Remove_Node (node) {
+    if (node._list !== this)
+      throw new Error("Node is not a member of this list");
+
+    var previous = node._previous || null;
+    var next = node._next || null;
+
+    if (previous)
+      previous._next = next;
+    if (next)
+      next._previous = previous;
+
+    if (this._head === node)
+      this._head = next;
+    else if (this._tail === node)
+      this._tail = previous;
+
+    node._list = null;
+    node._count -= 1;
+  });
+
   $.Method({Static:false, Public:true }, "Remove", 
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")], [])), 
     function Remove (value) {
@@ -3938,21 +3961,21 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   $.Method({Static:false, Public:true }, "Remove", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.LinkedListNode`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.LinkedList`1")])], [])), 
     function Remove (node) {
-      throw new Error('Not implemented');
+      this.$removeNode(node);
     }
   );
 
   $.Method({Static:false, Public:true }, "RemoveFirst", 
     (new JSIL.MethodSignature(null, [], [])), 
     function RemoveFirst () {
-      throw new Error('Not implemented');
+      this.$removeNode(this._head);
     }
   );
 
   $.Method({Static:false, Public:true }, "RemoveLast", 
     (new JSIL.MethodSignature(null, [], [])), 
     function RemoveLast () {
-      throw new Error('Not implemented');
+      this.$removeNode(this._tail);
     }
   );
 });
