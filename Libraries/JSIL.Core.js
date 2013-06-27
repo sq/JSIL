@@ -2575,8 +2575,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     for (var j = 0; j < members.length; j++) {
       var member = members[j];
 
-      namePairs[0][0] = member._descriptor.Name;
-      namePairs[0][1] = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.Name;
+      namePairs[0][0] = member._descriptor.EscapedName;
+      namePairs[0][1] = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.EscapedName;
 
       if (member._data.signature) {
         var signature = member._data.signature;
@@ -2586,7 +2586,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         namePairs[0][1] = signature.GetKey(namePairs[0][1]);
 
         if (trace)
-          console.log(signature.toString(member._descriptor.Name), namePairs[1][1]);
+          console.log(signature.toString(member._descriptor.EscapedName), namePairs[1][1]);
       } else {
         namePairs[1][0] = null;
         namePairs[1][1] = null;
@@ -5749,7 +5749,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
   if (this.typeObject.IsInterface) {
-    var methodObject = new JSIL.InterfaceMethod(this.typeObject, methodName, signature);
+    var methodObject = new JSIL.InterfaceMethod(this.typeObject, descriptor.EscapedName, signature);
 
     JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
 
