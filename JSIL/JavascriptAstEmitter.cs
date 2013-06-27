@@ -1290,6 +1290,16 @@ namespace JSIL {
 
             if (ret.Value != null) {
                 Output.Space();
+
+                var resultType = ret.Value.GetActualType(TypeSystem);
+                if (
+                    Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
+                    TypeUtil.IsFloatingPoint(resultType) &&
+                    !(resultType is ByReferenceType)
+                ) {
+                    Output.WriteRaw("+");
+                }
+
                 Visit(ret.Value);
             }
         }
@@ -1475,7 +1485,8 @@ namespace JSIL {
             if (
                 Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
                 (bop.Operator is JSAssignmentOperator) &&
-                TypeUtil.IsFloatingPoint(resultType)
+                TypeUtil.IsFloatingPoint(resultType) &&
+                !(resultType is ByReferenceType)
             ) {
                 Output.WriteRaw("+");
             }

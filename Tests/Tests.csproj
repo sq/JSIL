@@ -177,6 +177,7 @@
     <None Include="InterfaceTestCases\GenericMethodInsideNonGenericInterface.cs" />
     <None Include="InterfaceTestCases\GenericMethodInsideGenericInterface.cs" />
     <None Include="SimpleTestCases\StructHoistingInComplexLoop.cs" />
+    <None Include="SimpleTestCases\RefDouble.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
