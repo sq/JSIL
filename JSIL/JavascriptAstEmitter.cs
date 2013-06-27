@@ -1754,6 +1754,15 @@ namespace JSIL {
             ReferenceContext.Push();
 
             try {
+                Action genericArgs = () => {
+                    if (hasGenericArguments) {
+                        Output.OpenBracket(false);
+                        Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
+                        Output.CloseBracket(false);
+                    } else
+                        Output.Identifier("null", EscapingMode.None);
+                };
+
                 if (isOverloaded) {
 
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
@@ -1766,15 +1775,6 @@ namespace JSIL {
                     Output.Dot();
 
                     ReferenceContext.InvokingMethod = jsm.Reference;
-
-                    Action genericArgs = () => {
-                        if (hasGenericArguments) {
-                            Output.OpenBracket(false);
-                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
-                            Output.CloseBracket(false);
-                        } else
-                            Output.Identifier("null", EscapingMode.None);
-                    };
 
                     if ((method != null) && method.DeclaringType.IsInterface) {
                         Output.Identifier("CallVirtual");
@@ -1851,6 +1851,9 @@ namespace JSIL {
 
                         Output.LPar();
                         Visit(invocation.ThisReference);
+                        Output.Comma();
+
+                        genericArgs();
 
                         if (hasArguments)
                             Output.Comma();

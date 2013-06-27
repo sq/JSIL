@@ -1204,7 +1204,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       var compare = tComparer.Compare;
 
       this._items.sort(function (lhs, rhs) {
-        return compare.Call(comparer, lhs, rhs);
+        return compare.Call(comparer, null, lhs, rhs);
       });
     }
   );

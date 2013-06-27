@@ -5965,9 +5965,10 @@ JSIL.MethodSignature.prototype.toString = function (name) {
 };
 
 JSIL.MethodSignature.$EmitInvocation = function (
-  body, callText, thisReferenceArg, prefix, argumentTypes, genericArgumentNames
+  body, callText, thisReferenceArg, prefix, argumentTypes, genericArgumentNames, isInterface
 ) {
   var comma;
+  var needsBindingForm = (isInterface) && (genericArgumentNames) && (genericArgumentNames.length);
 
   if (genericArgumentNames)
     comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
@@ -5984,6 +5985,9 @@ JSIL.MethodSignature.$EmitInvocation = function (
     comma = ((i < (l - 1)) || (argumentTypes.length > 0)) ? "," : "";
     body.push("  ga[" + i + "]" + comma);
   }
+
+  if (needsBindingForm)
+    body.push(")(");
 
   for (var i = 0, l = argumentTypes.length; i < l; i++) {
     comma = (i < (l - 1)) ? "," : "";
@@ -6034,7 +6038,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
     case "interface":
       suffix = "";
       thisReferenceArg = contextArg = "thisReference";
-      argumentNames = ["thisReference"];
+      argumentNames = ["thisReference", "ga"];
       break;
     default:
       throw new Error("Invalid callMethodType");
@@ -6067,7 +6071,8 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   JSIL.MethodSignature.$EmitInvocation(
     body, "method.call", thisReferenceArg, 
     (!!returnType) ? "return " : "", 
-    argumentTypes, genericArgumentNames
+    argumentTypes, genericArgumentNames,
+    (callMethodType === "interface")
   );
 
   var result = JSIL.CreateNamedFunction(
