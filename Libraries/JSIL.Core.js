@@ -339,7 +339,7 @@ $jsilcore.FunctionNull = function () { };
 
 JSIL.Memoize = function Memoize (value) {
   if (typeof (value) === "undefined")
-    throw new Error("Referenced type is undefined");
+    throw new Error("Memoized value is undefined");
 
   return function MemoizedValue () { 
     return value;

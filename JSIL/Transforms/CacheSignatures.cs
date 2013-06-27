@@ -258,7 +258,7 @@ namespace JSIL.Transforms {
                 isOverloaded = false;
 
             if ((method != null) && method.DeclaringType.IsInterface)
-                CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Reference.Name);
+                CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
 
             if ((jsm != null) && (method != null) && isOverloaded)
                 CacheSignature(jsm.Reference, method.Signature, false);
