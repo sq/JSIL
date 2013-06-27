@@ -926,12 +926,7 @@ namespace JSIL.Transforms {
 
             var parms = method.Metadata.GetAttributeParameters("JSIL.Meta.JSMutatedArguments");
             if (parms != null) {
-                ModifiedVariables = new HashSet<string>();
-                foreach (var p in parms) {
-                    var s = p.Value as string;
-                    if (s != null)
-                        ModifiedVariables.Add(s);
-                }
+                ModifiedVariables = new HashSet<string>(GetAttributeArguments<string>(parms));
             } else if (!_IsPure) {
                 ModifiedVariables = new HashSet<string>(from p in method.Parameters select p.Name);
             } else {
@@ -940,12 +935,7 @@ namespace JSIL.Transforms {
 
             parms = method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");
             if (parms != null) {
-                EscapingVariables = new HashSet<string>();
-                foreach (var p in parms) {
-                    var s = p.Value as string;
-                    if (s != null)
-                        EscapingVariables.Add(s);
-                }
+                EscapingVariables = new HashSet<string>(GetAttributeArguments<string>(parms));
             } else if (!_IsPure) {
                 EscapingVariables = new HashSet<string>(from p in method.Parameters select p.Name);
             } else {
@@ -960,6 +950,21 @@ namespace JSIL.Transforms {
             MutatedFields = null;
 
             Trace(method.Member.FullName);
+        }
+
+        private static IEnumerable<T> GetAttributeArguments<T> (IEnumerable<CustomAttributeArgument> arguments) 
+            where T : class
+        {
+            foreach (var arg in arguments) {
+                var value = arg.Value as T;
+                if (value != null)
+                    yield return value;
+
+                var enumerable = arg.Value as IEnumerable<CustomAttributeArgument>;
+                if (enumerable != null)
+                foreach (var subValue in GetAttributeArguments<T>(enumerable))
+                    yield return subValue;
+            }
         }
 
         private static string GetMethodName (JSMethod method) {
