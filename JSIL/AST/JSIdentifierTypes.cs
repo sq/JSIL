@@ -277,10 +277,14 @@ namespace JSIL.Ast {
         }
 
         internal void SetCachedGenericArguments (IEnumerable<JSCachedType> cachedTypes) {
-            if (CachedGenericArguments != null)
-                throw new InvalidOperationException("Cached generic arguments already set");
+            var newCachedGenericArguments = cachedTypes.ToArray();
 
-            CachedGenericArguments = cachedTypes.ToArray();
+            if (CachedGenericArguments != null) {
+                if (!CachedGenericArguments.SequenceEqual(newCachedGenericArguments))
+                    throw new InvalidOperationException("Cached generic arguments already set and new set of cached types is different");
+            }
+
+            CachedGenericArguments = newCachedGenericArguments;
         }
     }
 
