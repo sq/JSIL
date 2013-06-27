@@ -658,7 +658,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector3_ctor (xy, z) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $.Single], []), function Vector3_ctor (xy, z) {
     this.X = +xy.X;
     this.Y = +xy.Y;
     this.Z = +z;
@@ -700,7 +700,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xy, z, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $.Single, $.Single], []), function Vector4_ctor (xy, z, w) {
     this.X = +xy.X;
     this.Y = +xy.Y;
     this.Z = +z;
@@ -709,7 +709,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xyz, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $.Single], []), function Vector4_ctor (xyz, w) {
     this.X = +xyz.X;
     this.Y = +xyz.Y;
     this.Z = +xyz.Z;
