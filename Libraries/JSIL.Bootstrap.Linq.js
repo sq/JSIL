@@ -426,6 +426,28 @@ JSIL.ImplementExternals("System.Linq.Expressions.Expression", function ($) {
       return new ( System.Linq.Expressions.Expression$b1.Of(TDelegate) )(body, name, tailCall, parameters);
     }
   );
+
+  $.Method({Static:true , Public:true }, "Parameter", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression"), [$jsilcore.TypeRef("System.Type")], []), 
+    function Parameter (type) {
+      return System.Linq.Expressions.ParameterExpression.Make(type, null, type.IsByRef);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Parameter", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression"), [$jsilcore.TypeRef("System.Type"), $.String], []), 
+    function Parameter (type, name) {
+      return System.Linq.Expressions.ParameterExpression.Make(type, name, type.IsByRef);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Equal", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.BinaryExpression"), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Linq.Expressions.Expression")], []), 
+    function Equal (left, right) {
+      // FIXME
+      return null;
+    }
+  )
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ConstantExpression", true, [], function ($) {
@@ -466,4 +488,18 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.LambdaExpression"), "S
 });
 
 JSIL.ImplementExternals("System.Linq.Expressions.Expression`1", function ($) {
+});
+
+
+JSIL.ImplementExternals("System.Linq.Expressions.ParameterExpression", function ($) {
+  $.Method({Static:true , Public:false}, "Make", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression"), [
+        $jsilcore.TypeRef("System.Type"), $.String, 
+        $.Boolean
+      ], []), 
+    function Make (type, name, isByRef) {
+      // FIXME
+      return new System.Linq.Expressions.ParameterExpression(name);
+    }
+  );
 });

@@ -373,6 +373,7 @@ namespace JSIL {
             context.Settings.LockStatement = false;
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
             context.Settings.ForEachStatement = false;
+            context.Settings.ExpressionTrees = false;
 
             return context;
         }
