@@ -52,9 +52,12 @@ Tests/*Cases/*.js
 /jsil.org/demos/WebGL_Vertex_Structs/Files/*
 /jsil.org/demos/TouchThumbSticks/*.js
 /jsil.org/demos/TouchThumbSticks/Content
+/jsil.org/demos/ProceduralTextures/*.js
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
 /Examples/obj
+/Examples/ProceduralTextures/obj
+/Examples/ProceduralTextures/bin
 /Upstream/dxtc.cpp
 /Upstream/LAME/*.exe
 /Upstream/LAME/*.dll

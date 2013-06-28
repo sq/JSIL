@@ -24,6 +24,8 @@ namespace ProceduralTextures {
             Graphics.PreferredBackBufferWidth = 1024;
             Graphics.PreferredBackBufferHeight = 768;
 
+            IsFixedTimeStep = false;
+
             Content.RootDirectory = "Content";
         }
 

@@ -2749,8 +2749,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     switch (T.toString()) {
       case "System.Byte":
-        bytes = data;
+        if (JSIL.IsPackedArray(data)) {
+          bytes = data.bytes;
+        } else {
+          bytes = data;
+        }
+
         break;
+
       case "Microsoft.Xna.Framework.Color":
       case "Microsoft.Xna.Framework.Graphics.Color":
         bytes = $jsilxna.UnpackColorsToColorBytesRGBA(data, startIndex, elementCount);
@@ -2758,6 +2764,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         elementCount = bytes.length;
         swapRedAndBlue = true;
         break;
+        
       default:
         throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
     }
@@ -3281,33 +3288,26 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedA
 };
 
 $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
-  var result = JSIL.Array.New(System.Byte, colors.length * 4);
-
-  var getElement;
-  var item;
-
   if (JSIL.IsPackedArray(colors)) {
-    // HACK to populate the contents of item directly from the array.
-    item = new Microsoft.Xna.Framework.Color();
-    var itemRef = new JSIL.BoxedVariable(item);
+    var offsetBytes = (startIndex * 4) | 0;
+    var countBytes = (elementCount * 4) | 0;
 
-    getElement = function (index) {
-      colors.GetItemInto(index, itemRef);
-    };
+    // We need to make a copy because a mutable copy is always expected by the SetData routine (in case it needs to swap the r/b channels)
+    var resultBuffer = colors.bytes.buffer.slice(offsetBytes, offsetBytes + countBytes);
+    var resultArray = new Uint8Array(resultBuffer);
+    return resultArray;
   } else {
-    getElement = function (index) {
-      item = colors[index];
-    };
-  }
+    var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
-  for (var i = 0, l = elementCount | 0; i < l; i = (i + 1) | 0) {
-    getElement((startIndex + i) | 0);
+    for (var i = 0, l = elementCount | 0; i < l; i = (i + 1) | 0) {
+      var item = colors[(startIndex + i) | 0];
 
-    var p = i * 4;
-    result[p + 0] = item.r & 0xFF;
-    result[p + 1] = item.g & 0xFF;
-    result[p + 2] = item.b & 0xFF;
-    result[p + 3] = item.a & 0xFF;
+      var p = i * 4;
+      result[p + 0] = item.r & 0xFF;
+      result[p + 1] = item.g & 0xFF;
+      result[p + 2] = item.b & 0xFF;
+      result[p + 3] = item.a & 0xFF;
+    }
   }
 
   return result;
