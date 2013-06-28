@@ -18,7 +18,8 @@ namespace JSIL.Runtime {
             [JSResultIsNew]
             [JSIsPure]
             get;
-            [JSEscapingArguments("value")]
+            // HACK: value technically escapes, but since the packed array stores its raw values instead of its reference, we don't want it to be copied.
+            [JSEscapingArguments()]
             [JSMutatedArguments()]
             set;
         }
