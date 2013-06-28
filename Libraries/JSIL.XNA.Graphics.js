@@ -2743,7 +2743,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }    
   });
 
-  $.RawMethod(false, "$setDataInternal", function (T, rect, data, startIndex, elementCount) {
+  $.RawMethod(false, "$setDataInternal", function $setDataInternal (T, rect, data, startIndex, elementCount) {
     var bytes = null;
     var swapRedAndBlue = false;
 
@@ -2792,7 +2792,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       ctx.putImageData(imageData, 0, 0);
   });
 
-  $.RawMethod(false, "$makeImageDataForBytes", function (
+  var getScratchImageData = function getScratchImageData (ctx, width, height) {
+    var result = ctx.$scratch;
+
+    // FIXME: This is sort of a leak. Maybe free this after ~1000ms if not reused?
+    if (!result || (result.width !== width) || (result.height !== height)) {
+      result = ctx.$scratch = ctx.createImageData(width, height);
+    }
+
+    return result;
+  };
+
+  $.RawMethod(false, "$makeImageDataForBytes", function $makeImageDataForBytes (
     width, height,
     bytes, startIndex, elementCount, 
     unpremultiply, swapRedAndBlue
@@ -2806,7 +2817,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       elementCount = bytes.length;
     }
 
-    var imageData = ctx.createImageData(width, height);
+    var imageData = getScratchImageData(ctx, width, height);
 
     // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
     //  to reverse the premultiplication.
