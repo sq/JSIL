@@ -2732,12 +2732,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     switch (T.toString()) {
       case "System.Byte":
-        fastArrayCopy(data, startIndex, imageData.data, 0, elementCount);
+        var target = JSIL.IsPackedArray(data) ? data.bytes : data;
+        fastArrayCopy(target, startIndex, imageData.data, 0, elementCount);
         break;
+
       case "Microsoft.Xna.Framework.Color":
       case "Microsoft.Xna.Framework.Graphics.Color":
         $jsilxna.PackColorsFromColorBytesRGBA(data, startIndex, imageData.data, 0, elementCount, true);
         break;
+
       default:
         throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
     }    
@@ -3329,13 +3332,23 @@ $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCou
 };
 
 $jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceArray, sourceOffset, count) {
-  for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s+=4) {
-    // Destination array already has plenty of color instances for us to use.
-    var color = destArray[d];
-    color.r = sourceArray[s];
-    color.g = sourceArray[(s + 1) | 0];
-    color.b = sourceArray[(s + 2) | 0];
-    color.a = sourceArray[(s + 3) | 0];
+  if (JSIL.IsPackedArray(destArray)) {
+    var rawArray = destArray.bytes;
+    var offsetBytes = (destOffset * 4) | 0;
+    var countBytes = (count * 4) | 0;
+
+    for (var i = 0; i < countBytes; i++) {
+      rawArray[(i + offsetBytes) | 0] = sourceArray[(i + sourceOffset) | 0];
+    }
+  } else {
+    for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s+=4) {
+      // Destination array already has plenty of color instances for us to use.
+      var color = destArray[d];
+      color.r = sourceArray[s];
+      color.g = sourceArray[(s + 1) | 0];
+      color.b = sourceArray[(s + 2) | 0];
+      color.a = sourceArray[(s + 3) | 0];
+    }
   }
 };
 

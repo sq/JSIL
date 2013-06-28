@@ -17,7 +17,7 @@ namespace ProceduralTextures {
 
         [JSPackedArray]
         public Color[] GradientPixels;
-        public Texture2D GradientTexture;
+        public Texture2D GradientTexture1, GradientTexture2;
 
         public Game () {
             Graphics = new GraphicsDeviceManager(this);
@@ -36,11 +36,15 @@ namespace ProceduralTextures {
         protected override void LoadContent () {
             SpriteBatch = new SpriteBatch(GraphicsDevice);
 
-            GradientTexture = new Texture2D(GraphicsDevice, 256, 256, false, SurfaceFormat.Color);
-            GradientPixels = new Color[GradientTexture.Width * GradientTexture.Height];
+            GradientTexture1 = new Texture2D(GraphicsDevice, 256, 256, false, SurfaceFormat.Color);
+            GradientTexture2 = new Texture2D(GraphicsDevice, 256, 256, false, SurfaceFormat.Color);
+            GradientPixels = new Color[GradientTexture1.Width * GradientTexture1.Height];
         }
 
         protected override void Update (GameTime gameTime) {
+            GradientTexture1.GetData(GradientPixels);
+            GradientTexture2.SetData(GradientPixels);
+
             var seconds = gameTime.TotalGameTime.TotalSeconds;
 
             var color1 = new Color(
@@ -51,7 +55,7 @@ namespace ProceduralTextures {
             );
             var color2 = Color.Black;
 
-            for (int y = 0, w = GradientTexture.Width, h = GradientTexture.Height; y < h; y++) {
+            for (int y = 0, w = GradientTexture1.Width, h = GradientTexture1.Height; y < h; y++) {
                 var rowOffset = y * w;
                 var rowColor = Color.Lerp(color1, color2, (y / (float)h));
 
@@ -59,7 +63,7 @@ namespace ProceduralTextures {
                     GradientPixels[rowOffset + x] = rowColor;
             }
 
-            GradientTexture.SetData(GradientPixels);
+            GradientTexture1.SetData(GradientPixels);
 
             base.Update(gameTime);
         }
@@ -68,7 +72,8 @@ namespace ProceduralTextures {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             SpriteBatch.Begin();
-            SpriteBatch.Draw(GradientTexture, new Vector2(4, 4), Color.White);
+            SpriteBatch.Draw(GradientTexture1, new Vector2(4, 4), Color.White);
+            SpriteBatch.Draw(GradientTexture2, new Vector2(256 + 8, 4), Color.White);
             SpriteBatch.End();
 
             GraphicsDevice.Textures[0] = null;
