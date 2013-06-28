@@ -2748,7 +2748,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
   $.RawMethod(false, "$setDataInternal", function $setDataInternal (T, rect, data, startIndex, elementCount) {
     var bytes = null;
-    var swapRedAndBlue = false;
 
     switch (T.toString()) {
       case "System.Byte":
@@ -2765,7 +2764,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         bytes = $jsilxna.UnpackColorsToColorBytesRGBA(data, startIndex, elementCount);
         startIndex = 0;
         elementCount = bytes.length;
-        swapRedAndBlue = true;
         break;
 
       default:
@@ -2783,7 +2781,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     var imageData = this.$makeImageDataForBytes(
       width, height, 
       bytes, startIndex, elementCount, 
-      shouldUnpremultiply, swapRedAndBlue
+      shouldUnpremultiply, false
     );
 
     var ctx = $jsilxna.get2DContext(this.image, false);
@@ -3282,25 +3280,6 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   return result;
 };
 
-$jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedAndBlue) {
-  var result = JSIL.Array.New(System.Byte, count);
-
-  if (swapRedAndBlue) {
-    for (var i = 0, l = count; i < l; i += 4) {
-      result[i + 0] = bytes[offset + i + 2];
-      result[i + 1] = bytes[offset + i + 1];
-      result[i + 2] = bytes[offset + i + 0];
-      result[i + 3] = bytes[offset + i + 3];
-    }
-  } else {
-    for (var i = 0, l = count; i < l; i++) {
-      result[i] = bytes[offset + i];
-    }
-  }
-
-  return result;
-};
-
 $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
   if (JSIL.IsPackedArray(colors)) {
     var offsetBytes = (startIndex * 4) | 0;
@@ -3337,8 +3316,12 @@ $jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceA
     var offsetBytes = (destOffset * 4) | 0;
     var countBytes = (count * 4) | 0;
 
-    for (var i = 0; i < countBytes; i++) {
-      rawArray[(i + offsetBytes) | 0] = sourceArray[(i + sourceOffset) | 0];
+    if ((countBytes === sourceArray.length) && (sourceOffset === 0)) {
+      rawArray.set(sourceArray, destOffset);
+    } else {
+      for (var i = 0; i < countBytes; i++) {
+        rawArray[(i + offsetBytes) | 0] = sourceArray[(i + sourceOffset) | 0];
+      }
     }
   } else {
     for (var i = 0, d = destOffset, s = sourceOffset; i < count; i++, d++, s+=4) {
@@ -3353,7 +3336,7 @@ $jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceA
 };
 
 $jsilxna.ImageFormats = {
-  "Color": $jsilxna.ColorToCanvas,
+  "Color": null,
   "Dxt1": $jsilxna.DecodeDxt1,
   "Dxt2": $jsilxna.DecodeDxt3,
   "Dxt3": $jsilxna.DecodeDxt3,
