@@ -488,5 +488,22 @@ namespace JSIL.Tests {
                 "DerivedClass()\r\nTwiceDerivedClass"
             );
         }
+
+        [Test]
+        public void ProxiesCanAddNewFields () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\AddNewField.cs",
+                "1",
+                "1"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("Field2"), "Field2 was not added");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

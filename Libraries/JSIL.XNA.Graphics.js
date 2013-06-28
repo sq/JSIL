@@ -3283,8 +3283,25 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedA
 $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
   var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
-  for (var i = 0, l = elementCount; i < l; i++) {
-    var item = colors[startIndex + i];
+  var getElement;
+  var item;
+
+  if (JSIL.IsPackedArray(colors)) {
+    // HACK to populate the contents of item directly from the array.
+    item = new Microsoft.Xna.Framework.Color();
+    var itemRef = new JSIL.BoxedVariable(item);
+
+    getElement = function (index) {
+      colors.GetItemInto(index, itemRef);
+    };
+  } else {
+    getElement = function (index) {
+      item = colors[index];
+    };
+  }
+
+  for (var i = 0, l = elementCount | 0; i < l; i = (i + 1) | 0) {
+    getElement((startIndex + i) | 0);
 
     var p = i * 4;
     result[p + 0] = item.r & 0xFF;

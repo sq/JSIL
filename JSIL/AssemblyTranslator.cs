@@ -2053,21 +2053,31 @@ namespace JSIL {
             //  by the cctor.
             // Everything else is emitted inline.
 
+            Action<FieldDefinition> doTranslateField =
+                (fd) => {
+                    var expr = TranslateField(fd, fieldDefaults, false, dollar, fieldSelfIdentifier);
+                    if (expr != null) {
+                        output.NewLine();
+                        astEmitter.Visit(expr);
+
+                        TranslateCustomAttributes(context, typedef, fd, astEmitter, output);
+
+                        output.Semicolon(false);
+                    }
+                };
+
             foreach (var f in typedef.Fields) {
                 var fi = _TypeInfoProvider.GetField(f);
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
 
-                var expr = TranslateField(f, fieldDefaults, false, dollar, fieldSelfIdentifier);
+                doTranslateField(f);
+            }
+            
+            // Added fields from proxies come after original fields, in their precise order.
 
-                if (expr != null) {
-                    output.NewLine();
-                    astEmitter.Visit(expr);
-
-                    TranslateCustomAttributes(context, typedef, f, astEmitter, output);
-
-                    output.Semicolon(false);
-                }
+            foreach (var af in typeInfo.AddedFieldsFromProxies) {
+                doTranslateField(af.Member);
             }
 
             int temp = 0;

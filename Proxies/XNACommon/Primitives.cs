@@ -482,6 +482,11 @@ namespace JSIL.Proxies {
         JSProxyInterfacePolicy.ReplaceDeclared
     )]
     public abstract class ColorProxy {
+        [JSIgnore]
+        private uint packedValue;
+
+        public byte r, g, b, a;
+
         [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, 255)")]
         public ColorProxy (int r, int g, int b) {
         }

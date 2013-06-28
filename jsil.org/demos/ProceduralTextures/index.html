@@ -1,0 +1,46 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>Procedural Textures</title>
+
+    <link rel="stylesheet" href="../Common/browser.css">
+    <link rel="stylesheet" href="index.css">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  </head>
+  <body onload="onLoad()">
+    <script type="text/javascript">
+      var jsilConfig = {
+        xna: 4,
+        manifests: [
+          "ProceduralTextures.exe",
+        ],
+        
+        showProgressBar: true,
+        showStats: true,
+
+        scriptRoot: "",
+        libraryRoot: "../Libraries/",
+        fileRoot: "",
+        contentRoot: "Content/"
+      };
+    </script>
+    <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
+        
+    <canvas id="canvas" width="1024" height="768">
+    </canvas><br>
+    <div id="log"></div>
+    
+    <script type="text/javascript">      
+      var assetsToLoad = [
+      ];
+            
+      function runMain () {
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("ProceduralTextures, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.ProceduralTextures.Game();
+        game.Run();
+      };
+    </script>
+  </body>
+</html>

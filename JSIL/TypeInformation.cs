@@ -398,6 +398,7 @@ namespace JSIL.Internal {
         public readonly ConcurrentDictionary<long, EnumMemberInfo> ValueToEnumMember;
         public readonly ConcurrentDictionary<string, EnumMemberInfo> EnumMembers;
         public readonly ConcurrentDictionary<MemberIdentifier, IMemberInfo> Members;
+        public readonly List<FieldInfo> AddedFieldsFromProxies = new List<FieldInfo>();
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
         public readonly bool IsInterface;
@@ -883,7 +884,10 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, field, out result))
                 return result;
 
-            return AddMember(field, proxy);
+            var fi = AddMember(field, proxy);
+
+            AddedFieldsFromProxies.Add(fi);
+            return fi;
         }
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, PropertyDefinition property) {

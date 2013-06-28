@@ -191,6 +191,9 @@ namespace JSIL.Meta {
     public class JSPackedArrayReturnValueAttribute : Attribute {
     }
 
+    /// <summary>
+    /// Specifies that the function can accept arguments that are packed arrays but does not require them.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class JSAllowPackedArrayArgumentsAttribute : Attribute {
     }

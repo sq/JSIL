@@ -55,6 +55,7 @@
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="GraphicsDevice.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Texture2D.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Meta\Meta.csproj">

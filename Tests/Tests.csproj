@@ -180,6 +180,7 @@
     <None Include="SimpleTestCases\RefDouble.cs" />
     <None Include="SimpleTestCases\Issue205.cs" />
     <None Include="InterfaceTestCases\OverloadedGenericMethodInsideNonGenericInterface.cs" />
+    <None Include="SpecialTestCases\AddNewField.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

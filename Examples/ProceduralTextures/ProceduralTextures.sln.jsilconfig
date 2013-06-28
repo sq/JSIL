@@ -1,0 +1,14 @@
+{
+  "FrameworkVersion": 4.0,
+  "OutputDirectory": "%configdirectory%/../../jsil.org/demos/ProceduralTextures",
+  "Assemblies": {
+    "Ignored": [
+      "System.Dynamic,",
+      "System.Core,",
+      "System.Configuration,",
+      "System.Numerics,",
+      "Microsoft.CSharp,",
+      "System.Xml,"
+    ]
+  }
+}

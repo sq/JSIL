@@ -604,7 +604,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
       this.nativeSize = this.T.__NativeSize__;
       this.elementReferenceConstructor = JSIL.$GetStructElementReferenceConstructor(this.T);
       this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(this.T);
-      // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
+      this.unmarshaller = JSIL.$GetStructUnmarshaller(this.T);
       this.marshaller = JSIL.$GetStructMarshaller(this.T);
       this.length = (buffer.byteLength / this.nativeSize) | 0;
     }
@@ -625,6 +625,15 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
     function PackedStructArray_GetReference (index) {
       var offsetInBytes = (index * this.nativeSize) | 0;
       return new this.elementReferenceConstructor(this.bytes, offsetInBytes);
+    }
+  );
+
+  $.Method(
+    {}, "GetItemInto", 
+    new JSIL.MethodSignature(null, [$.Int32, TRef], []),
+    function PackedStructArray_GetItemInto (index, output) {
+      var offsetInBytes = (index * this.nativeSize) | 0;
+      this.unmarshaller(output.get(), this.bytes, offsetInBytes);
     }
   );
 
