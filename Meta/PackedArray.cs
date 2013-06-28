@@ -15,10 +15,12 @@ namespace JSIL.Runtime {
 
     public unsafe interface IPackedArray<T> {
         T this[int index] {
+            [JSRuntimeDispatch]
             [JSResultIsNew]
             [JSIsPure]
             get;
             // HACK: value technically escapes, but since the packed array stores its raw values instead of its reference, we don't want it to be copied.
+            [JSRuntimeDispatch]
             [JSEscapingArguments()]
             [JSMutatedArguments()]
             set;
