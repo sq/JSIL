@@ -1,6 +1,7 @@
 ﻿using System;
 using JSIL.Meta;
 using JSIL.Proxy;
+using Microsoft.Xna.Framework;
 
 namespace JSIL.Proxies {
     [JSProxy(
@@ -489,18 +490,29 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, 255)")]
         public ColorProxy (int r, int g, int b) {
+            throw new NotImplementedException();
         }
 
         [JSReplacement("$$jsilxna.ColorFromPremultipliedInts($this, $r, $g, $b, $a)")]
         public ColorProxy (int r, int g, int b, int a) {
+            throw new NotImplementedException();
         }
 
         [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, 1.0)")]
         public ColorProxy (float r, float g, float b) {
+            throw new NotImplementedException();
         }
 
         [JSReplacement("$$jsilxna.ColorFromPremultipliedFloats($this, $r, $g, $b, $a)")]
         public ColorProxy (float r, float g, float b, float a) {
+            throw new NotImplementedException();
+        }
+
+        [JSResultIsNew]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
+        public static Color Lerp (Color value1, Color value2, float amount) {
+            throw new NotImplementedException();
         }
     }
 }
