@@ -5753,7 +5753,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
     JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
 
-    if (!descriptor.Target[methodName])
+    if (!descriptor.Target[descriptor.EscapedName])
       JSIL.SetValueProperty(descriptor.Target, descriptor.EscapedName, methodObject);
   } else {
     var fullName = this.namespace + "." + methodName;
