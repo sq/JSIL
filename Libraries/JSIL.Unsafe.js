@@ -1073,8 +1073,13 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       closure[byteViewKey] = clampedByteView;
 
       if (marshal) {
-        body.push(nativeViewKey + "[0] = " + structArgName + "." + field.name + ";");
-        body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
+        // HACK: Fast path for single byte fields.
+        if (nativeView.BYTES_PER_ELEMENT === 1) {
+          body.push("bytes[(offset + " + offset + ") | 0] = " + structArgName + "." + field.name + ";");
+        } else {
+          body.push(nativeViewKey + "[0] = " + structArgName + "." + field.name + ";");
+          body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
+        }
       } else {
         // Really, really awful
         var setLocalOffset = "localOffset = (offset + " + offset + ") | 0;";

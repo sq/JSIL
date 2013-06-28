@@ -2764,7 +2764,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         elementCount = bytes.length;
         swapRedAndBlue = true;
         break;
-        
+
       default:
         throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
     }
@@ -3292,10 +3292,14 @@ $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCou
     var offsetBytes = (startIndex * 4) | 0;
     var countBytes = (elementCount * 4) | 0;
 
-    // We need to make a copy because a mutable copy is always expected by the SetData routine (in case it needs to swap the r/b channels)
-    var resultBuffer = colors.bytes.buffer.slice(offsetBytes, offsetBytes + countBytes);
-    var resultArray = new Uint8Array(resultBuffer);
-    return resultArray;
+    if ((offsetBytes === 0) && (countBytes === colors.bytes.length)) {
+      // We can safely return the input array if the size and offset match.
+      return colors.bytes;
+    } else {
+      var resultBuffer = colors.bytes.buffer.slice(offsetBytes, offsetBytes + countBytes);
+      var resultArray = new Uint8Array(resultBuffer);
+      return resultArray;
+    }
   } else {
     var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
