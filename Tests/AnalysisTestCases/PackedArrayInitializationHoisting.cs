@@ -4,7 +4,7 @@ using JSIL.Runtime;
 
 public static class Program {
     public static void Main (string[] args) {
-        var structs = InitSomeStructs(16);
+        var structs = InitSomeStructs(8);
 
         foreach (var s in structs)
             Console.WriteLine(s);
@@ -26,5 +26,9 @@ public struct TestStruct {
 
     public TestStruct (int value) {
         Value = value;
+    }
+
+    public override string ToString () {
+        return Value.ToString();
     }
 }

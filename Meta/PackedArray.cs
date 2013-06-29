@@ -34,6 +34,7 @@ namespace JSIL.Runtime {
         void GetItemInto (int index, out T result);
 
         [JSIsPure]
+        [JSRuntimeDispatch]
         int Length { get; }
     }
 

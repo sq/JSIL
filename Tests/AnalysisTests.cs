@@ -629,7 +629,7 @@ Shockwave.TryMove(Down, 384)";
 
         [Test]
         public void PackedArrayInitializationHoisting () {
-            var output = "0\r\n2000\r\n4000\r\n6000\r\n8000\r\n10000";
+            var output = "0\r\n1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\PackedArrayInitializationHoisting.cs",
@@ -639,12 +639,12 @@ Shockwave.TryMove(Down, 384)";
             Console.WriteLine(generatedJs);
 
             Assert.IsFalse(
-                generatedJs.Contains("PrintValue(new ($T"),
+                generatedJs.Contains("result.set_Item(i, new ("),
                 "A temporary instance is allocated per loop iteration"
             );
 
             Assert.IsTrue(
-                generatedJs.Contains("new ($T"),
+                generatedJs.Contains("new ("),
                 "An instance was never allocated"
             );
         }
