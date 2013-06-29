@@ -1007,8 +1007,13 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   body.push("if (!isAligned) throw new Error('Unaligned marshal');");
   */
 
-  for (var i = 0, l = fields.length; i < l; i++) {
-    var field = fields[i];
+  var sortedFields = Array.prototype.slice.call(fields);
+  sortedFields.sort(function (lhs, rhs) {
+    return lhs.offsetBytes - rhs.offsetBytes;
+  });
+
+  for (var i = 0, l = sortedFields.length; i < l; i++) {
+    var field = sortedFields[i];
     var offset = field.offsetBytes;
     var size = field.sizeBytes;
 
@@ -1073,8 +1078,8 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       closure[byteViewKey] = clampedByteView;
 
       if (marshal) {
-        // HACK: Fast path for single byte fields.
         if (nativeView.BYTES_PER_ELEMENT === 1) {
+          // HACK: Fast path for single byte fields.
           body.push("bytes[(offset + " + offset + ") | 0] = " + structArgName + "." + field.name + ";");
         } else {
           body.push(nativeViewKey + "[0] = " + structArgName + "." + field.name + ";");
@@ -1089,8 +1094,13 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         }
 
         body.push(setLocalOffset);
-        JSIL.$EmitMemcpyIntrinsic(body, byteViewKey, "bytes", "localOffset", size, viewBytes);
-        body.push(structArgName + "." + field.name + " = " + nativeViewKey + "[0];");
+        if (nativeView.BYTES_PER_ELEMENT === 1) {
+          // HACK: Fast path for single byte fields.
+          body.push(structArgName + "." + field.name + " = " + "bytes[localOffset];");
+        } else {
+          JSIL.$EmitMemcpyIntrinsic(body, byteViewKey, "bytes", "localOffset", size, viewBytes);
+          body.push(structArgName + "." + field.name + " = " + nativeViewKey + "[0];");
+        }
       }
     }
   }
