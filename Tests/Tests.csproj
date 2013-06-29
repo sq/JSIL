@@ -430,6 +430,7 @@
     <None Include="UnsafeTestCases\ModifyPackedStructArrayElement.cs" />
     <None Include="UnsafeTestCases\FillPackedStructArray.cs" />
     <None Include="UnsafeTestCases\PackedStructArrayArgument.cs" />
+    <None Include="UnsafeTestCases\PackedStructArrayNew.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

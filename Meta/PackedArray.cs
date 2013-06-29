@@ -37,6 +37,16 @@ namespace JSIL.Runtime {
         int Length { get; }
     }
 
+    public static class PackedArray {
+        [JSReplacement("JSIL.PackedArray.New($T, $size)")]
+        [JSPackedArrayReturnValue]
+        public static T[] New<T> (int size) 
+            where T : struct
+        {
+            return new T[size];
+        }
+    }
+
     public static class TypedArrayExtensionMethods {
         /// <summary>
         /// If the specified array is backed by a typed array, returns its backing array buffer.

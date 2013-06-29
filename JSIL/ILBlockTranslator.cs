@@ -394,7 +394,7 @@ namespace JSIL {
             return result;
         }
 
-        protected JSVerbatimLiteral HandleJSReplacement (
+        protected JSExpression HandleJSReplacement (
             MethodReference method, Internal.MethodInfo methodInfo, 
             JSExpression thisExpression, JSExpression[] arguments,
             TypeReference resultType
@@ -410,15 +410,24 @@ namespace JSIL {
                         argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
                     }
 
+                    var genericMethod = method as GenericInstanceMethod;
+                    if (genericMethod != null) {
+                        foreach (var kvp in methodInfo.GenericParameterNames.Zip(genericMethod.GenericArguments, (n, p) => new { Name = n, Value = p })) {
+                            argsDict.Add(kvp.Name, new JSTypeOfExpression(kvp.Value));
+                        }
+                    }
+
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
                     }
 
                     var isConstantIfArgumentsAre = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSIsPure");
 
-                    return new JSVerbatimLiteral(
+                    var result = new JSVerbatimLiteral(
                         method, (string)parms[0].Value, argsDict, resultType, isConstantIfArgumentsAre
                     );
+
+                    return PackedArrayUtil.FilterInvocationResult(methodInfo, result, TypeSystem);
                 }
             }
 

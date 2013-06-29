@@ -16,8 +16,17 @@ namespace JSIL.Internal {
             var at = arrayType as ArrayType;
             if (at == null)
                 throw new InvalidOperationException("Cannot apply JSPackedArray to a non-array type");
+
+            var elementType = at.ElementType;
+            var elementTypeGp = elementType as GenericParameter;
+
+            if ((elementTypeGp != null) && elementTypeGp.Name.StartsWith("!!")) {
+                // Convert the positional reference into an actual generic parameter with constraints so we can check to see if it's a struct.
+                var ownerMethod = ((MethodReference)elementTypeGp.Owner).Resolve();
+                elementType = ownerMethod.GenericParameters[elementTypeGp.Position];
+            }
             
-            if (!TypeUtil.IsStruct(at.ElementType))
+            if (!TypeUtil.IsStruct(elementType))
                 throw new InvalidOperationException("Cannot apply JSPackedArray to a non-struct array");
 
             var attributeTypeDefinition = attributeType.Resolve();
