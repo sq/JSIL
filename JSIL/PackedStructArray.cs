@@ -107,11 +107,15 @@ namespace JSIL.Internal {
                 return result;
 
             var resultType = result.GetActualType(typeSystem);
-            resultType = JSExpression.SubstituteTypeArgs(typeInfo, resultType, methodReference);
             var resultIsPackedArray = PackedArrayUtil.IsPackedArrayType(resultType);
             var returnValueAttribute = method.Metadata.GetAttribute("JSIL.Meta.JSPackedArrayReturnValueAttribute");
 
             if (returnValueAttribute != null) {
+                if (TypeUtil.IsOpenType(resultType)) {
+                    // FIXME: We need to restrict substitution to when the result type is a generic parameter owned by the invocation...
+                    resultType = JSExpression.SubstituteTypeArgs(typeInfo, resultType, methodReference);
+                }
+
                 if (!resultIsPackedArray)
                     return JSChangeTypeExpression.New(result, PackedArrayUtil.MakePackedArrayType(resultType, returnValueAttribute.Entries.First().Type), typeSystem);
             }
