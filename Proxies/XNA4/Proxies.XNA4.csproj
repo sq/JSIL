@@ -52,6 +52,7 @@
     <Compile Include="..\XNACommon\Content.cs" />
     <Compile Include="..\XNACommon\Game.cs" />
     <Compile Include="..\XNACommon\SpriteFont.cs" />
+    <Compile Include="Buffers.cs" />
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="GraphicsDevice.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
