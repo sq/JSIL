@@ -1870,13 +1870,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       }
 
       break;
+    
     default:
       var ptype = primitiveType.toString();
       if (warnedTypes[ptype])
         return;
 
       warnedTypes[ptype] = true;
-      JSIL.Host.abort(new Error("The primitive type " + ptype + " is not implemented."));
+      JSIL.Host.warning("The primitive type " + ptype + " is not implemented.");
       return;
     }
   });
@@ -2819,6 +2820,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
 
     var imageData = getScratchImageData(ctx, width, height);
+    var dataBytes = imageData.data;
 
     // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
     //  to reverse the premultiplication.
@@ -2832,21 +2834,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         if (a <= 0) {
           continue;
         } else if (a > 254) {
-          imageData.data[p] = bytes[p];
-          imageData.data[(p + 1) | 0] = bytes[(p + 1) | 0];
-          imageData.data[(p + 2) | 0] = bytes[(p + 2) | 0];
-          imageData.data[(p + 3) | 0] = a;
+          dataBytes[p] = bytes[p];
+          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0];
+          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0];
+          dataBytes[(p + 3) | 0] = a;
         } else {
           var m = 255 / a;
 
-          imageData.data[p] = bytes[p] * m;
-          imageData.data[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
-          imageData.data[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
-          imageData.data[(p + 3) | 0] = a;
+          dataBytes[p] = bytes[p] * m;
+          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
+          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
+          dataBytes[(p + 3) | 0] = a;
         }
       }
     } else {
-      fastArrayCopy(imageData.data, 0, bytes, startIndex, elementCount);
+      fastArrayCopy(dataBytes, 0, bytes, startIndex, elementCount);
     }
 
     return imageData;
