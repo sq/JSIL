@@ -427,7 +427,11 @@ namespace JSIL {
                         method, (string)parms[0].Value, argsDict, resultType, isConstantIfArgumentsAre
                     );
 
-                    return PackedArrayUtil.FilterInvocationResult(methodInfo, result, TypeSystem);
+                    return PackedArrayUtil.FilterInvocationResult(
+                        method, methodInfo, 
+                        result,                         
+                        TypeInfo, TypeSystem
+                    );
                 }
             }
 
@@ -600,7 +604,11 @@ namespace JSIL {
                     result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
             }
 
-            result = PackedArrayUtil.FilterInvocationResult(method.Method, result, TypeSystem);
+            result = PackedArrayUtil.FilterInvocationResult(
+                method.Reference, method.Method, 
+                result, 
+                TypeInfo, TypeSystem
+            );
 
             return result;
         }

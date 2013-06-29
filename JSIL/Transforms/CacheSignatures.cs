@@ -183,6 +183,10 @@ namespace JSIL.Transforms {
             if (TypeUtil.IsOpenType(declaringType))
                 cacheLocally = true;
 
+            var unexpandedType = declaringType;
+            if (!TypeUtil.ExpandPositionalGenericParameters(unexpandedType, out declaringType))
+                declaringType = unexpandedType;
+
             var set = GetCacheSet(cacheLocally);
             var record = new CachedInterfaceMemberRecord(declaringType, memberName);
 

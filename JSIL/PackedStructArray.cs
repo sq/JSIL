@@ -18,13 +18,8 @@ namespace JSIL.Internal {
                 throw new InvalidOperationException("Cannot apply JSPackedArray to a non-array type");
 
             var elementType = at.ElementType;
-            var elementTypeGp = elementType as GenericParameter;
-
-            if ((elementTypeGp != null) && elementTypeGp.Name.StartsWith("!!")) {
-                // Convert the positional reference into an actual generic parameter with constraints so we can check to see if it's a struct.
-                var ownerMethod = ((MethodReference)elementTypeGp.Owner).Resolve();
-                elementType = ownerMethod.GenericParameters[elementTypeGp.Position];
-            }
+            if (!TypeUtil.ExpandPositionalGenericParameters(elementType, out elementType))
+                elementType = at.ElementType;
             
             if (!TypeUtil.IsStruct(elementType))
                 throw new InvalidOperationException("Cannot apply JSPackedArray to a non-struct array");
@@ -103,11 +98,16 @@ namespace JSIL.Internal {
             return null;
         }
 
-        public static JSExpression FilterInvocationResult (MethodInfo method, JSExpression result, TypeSystem typeSystem) {
+        public static JSExpression FilterInvocationResult (
+            MethodReference methodReference, MethodInfo method, 
+            JSExpression result, 
+            ITypeInfoSource typeInfo, TypeSystem typeSystem
+        ) {
             if (method == null)
                 return result;
 
             var resultType = result.GetActualType(typeSystem);
+            resultType = JSExpression.SubstituteTypeArgs(typeInfo, resultType, methodReference);
             var resultIsPackedArray = PackedArrayUtil.IsPackedArrayType(resultType);
             var returnValueAttribute = method.Metadata.GetAttribute("JSIL.Meta.JSPackedArrayReturnValueAttribute");
 
