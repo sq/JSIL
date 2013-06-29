@@ -89,7 +89,7 @@ JSIL.XML.ReaderFromStream = function (stream) {
   // FIXME: Won't work if the stream is written to while being read from.
 
   var streamLength = stream.Length.ToInt32();
-  var bytes = new Array(streamLength);
+  var bytes = JSIL.Array.New(System.Byte, streamLength);
   stream.Read(bytes, 0, streamLength);
 
   var xml;

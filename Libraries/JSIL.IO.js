@@ -950,9 +950,7 @@ $jsilio.ReadCharFromStream = function ReadCharFromStream (stream, encoding) {
   var minCharLength = encoding.minimumCharLength || 1;
   var maxCharLength = encoding.maximumCharLength || 4;
 
-  var bytes = new Array(maxCharLength);
-  for (var i = 0; i < maxCharLength; i++)
-    bytes[i] = false;
+  var bytes = JSIL.Array.New(System.Byte, maxCharLength);
 
   for (var i = minCharLength; i <= maxCharLength; i++) {
     stream.Position = oldPosition;
@@ -1285,7 +1283,7 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
 
       if (detectEncoding) {
         var originalPosition = this.stream.get_Position();
-        var buf = new Array(4);
+        var buf = JSIL.Array.New(System.Byte, 4);
         var bytesRead = this.stream.Read(buf, 0, buf.length);
         var bytesToSkip = 0;
 

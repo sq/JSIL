@@ -726,10 +726,10 @@ $jsilcore.charCodeAt = function fixedCharCodeAt (str, idx) {
 };
 
 $jsilcore.makeByteReader = function (bytes, index, count) {
-  var position = index || 0;
+  var position = (typeof(index) === "number") ? index : 0;
   var endpoint;
 
-  if (count)
+  if (typeof (count) === "number")
     endpoint = (position + count);
   else
     endpoint = (bytes.length - position);
