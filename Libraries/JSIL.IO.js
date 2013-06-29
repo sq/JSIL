@@ -440,14 +440,18 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
 });
 
 JSIL.ImplementExternals("System.IO.Stream", function ($) {
+  var readByteBuffer = null;
+
   $.Method({Static:false, Public:true }, "ReadByte", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ReadByte () {
-      var buffer = [];
-      var count = this.Read(buffer, 0, 1);
+      if (!readByteBuffer)
+        readByteBuffer = JSIL.Array.New(System.Byte, 1);
+
+      var count = this.Read(readByteBuffer, 0, 1);
 
       if (count >= 1)
-        return buffer[0];
+        return readByteBuffer[0];
       else
         return -1;
     }
@@ -499,8 +503,19 @@ var $bytestream = function ($) {
       offset = (offset | 0);
       count = (count | 0);
 
+      var sourceBuffer = this._buffer;
       for (var i = 0; i < count; i = (i + 1) | 0) {
-        buffer[(offset + i) | 0] = this._buffer[(startPos + i) | 0];
+        var destIndex = (offset + i) | 0;
+        var sourceIndex = (startPos + i) | 0;
+
+        /*
+        if ((destIndex < 0) || (destIndex >= buffer.length))
+          throw new Error("Destination index out of range: " + destIndex);
+        if ((sourceIndex < 0) || (sourceIndex >= sourceBuffer.length))
+          throw new Error("Source index out of range: " + sourceIndex);
+        */
+
+        buffer[destIndex] = sourceBuffer[sourceIndex];
       }
 
       this._pos += count;
@@ -1027,23 +1042,29 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   );
 
   $.RawMethod(false, "$readBytesTemp", function (count) {
-    if (!this.m_tempBuffer)
-      this.m_tempBuffer = new Array();
+    if (!this.m_tempBuffer || (this.m_tempBuffer.length < count))
+      this.m_tempBuffer = JSIL.Array.New(System.Byte, count);
 
     var bytesRead = this.m_stream.Read(this.m_tempBuffer, 0, count);
     if (bytesRead < count)
       throw new System.IO.EndOfStreamException();
 
-    this.m_tempBuffer.length = bytesRead;
     return this.m_tempBuffer;
   });
 
   $.Method({Static:false, Public:true }, "ReadBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Int32], [])), 
     function ReadBytes (count) {
-      var result = new Array(count);
+      var result = JSIL.Array.New(System.Byte, count);
       var bytesRead = this.m_stream.Read(result, 0, count);
-      return result.slice(0, bytesRead);
+
+      if (bytesRead < count) {
+        var oldArray = result;
+        result = JSIL.Array.New(System.Byte, bytesRead);
+        JSIL.Array.CopyTo(oldArray, result, 0);
+      }
+
+      return result;
     }
   );
 
