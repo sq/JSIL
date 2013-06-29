@@ -5,6 +5,8 @@ bin\JSILc "Examples\ThirdParty\TouchThumbSticks\TouchThumbSticks.sln" "jsil.org\
 bin\JSILc "C:\Game Design\Game Type\CodeNew\GameType\GameType.sln" "jsil.org\demos\GameType\GameType.jsilconfig" --platform:x86 --configuration:Debug
 @title Building Bytown Lumberjack
 bin\JSILc "C:\Users\Kevin\Documents\Projects\lumberjack\LumberjackPC.sln" "C:\Users\Kevin\Documents\Projects\lumberjack\Lumberjack\Lumberjack\bin\x86\Debug\Lumberjack.XmlSerializers.dll" "jsil.org\demos\Lumberjack\Lumberjack.jsilconfig" --platform:x86 --configuration:Debug
+@title Building Procedural Textures
+bin\JSILc "Examples\ProceduralTextures\ProceduralTextures.sln"
 @title Building Raytracer
 bin\JSILc "Examples\SimpleRaytracer.sln"
 @title Building Pathtracer
