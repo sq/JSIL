@@ -2077,6 +2077,9 @@ namespace JSIL {
             // Added fields from proxies come after original fields, in their precise order.
 
             foreach (var af in typeInfo.AddedFieldsFromProxies) {
+                if (af.Member.IsCompilerGeneratedOrIsInCompilerGeneratedClass())
+                    continue;
+
                 doTranslateField(af.Member);
             }
 
