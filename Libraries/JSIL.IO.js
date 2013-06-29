@@ -485,8 +485,8 @@ var $bytestream = function ($) {
           $.Int32
         ], [])), 
     function Read (buffer, offset, count) {
-      var startPos = this._pos;
-      var endPos = this._pos + count;
+      var startPos = this._pos | 0;
+      var endPos = (this._pos + count) | 0;
 
       if (endPos >= this._length) {
         endPos = this._length - 1;
@@ -496,8 +496,11 @@ var $bytestream = function ($) {
       if ((startPos < 0) || (startPos >= this._length))
         return 0;
 
-      for (var i = 0; i < count; i++) {
-        buffer[i] = this._buffer[startPos + i];
+      offset = (offset | 0);
+      count = (count | 0);
+
+      for (var i = 0; i < count; i = (i + 1) | 0) {
+        buffer[(offset + i) | 0] = this._buffer[(startPos + i) | 0];
       }
 
       this._pos += count;
