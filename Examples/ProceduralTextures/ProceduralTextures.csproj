@@ -107,6 +107,7 @@
   <!-- Don't edit this build event by hand! The condition ensures that when VS kicks off a JSILc build, JSILc won't then kick off another JSILc build recursively, forever... -->
   <PropertyGroup Condition="$(JSIL) != 'building'">
     <PostBuildEvent>
+      copy $(SolutionDir)Game.cs $(SolutionDir)..\..\jsil.org\demos\ProceduralTextures\Game.cs
       del $(SolutionDir)..\..\jsil.org\demos\ProceduralTextures\*.js
       $(SolutionDir)..\..\bin\JSILc.exe $(SolutionPath)
     </PostBuildEvent>
