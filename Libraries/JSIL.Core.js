@@ -6192,7 +6192,7 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
 
     JSIL.MethodSignature.$EmitInvocation(
       body, "this['" + ctorKey + "']", null, 
-      "return ", argumentNames
+      "", argumentNames
     );
   }
 

@@ -3905,7 +3905,7 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   $.Method({Static:false, Public:true }, "get_Count", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Count () {
-      return _count;
+      return this._count;
     }
   );
 

@@ -347,6 +347,29 @@ $jsilxna.getImageTopLeftPixel = function (image) {
 };
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function ($) {
+  $.RawMethod(false, "$coreCtor", function () {
+    this.light0 = new Microsoft.Xna.Framework.Graphics.DirectionalLight();
+    this.light1 = new Microsoft.Xna.Framework.Graphics.DirectionalLight();
+    this.light2 = new Microsoft.Xna.Framework.Graphics.DirectionalLight();
+    this.world = Microsoft.Xna.Framework.Matrix._identity;
+    this.view = Microsoft.Xna.Framework.Matrix._identity;
+    this.projection = Microsoft.Xna.Framework.Matrix._identity;
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice")], []), 
+    function _ctor (device) {
+      this.$coreCtor();
+    }
+  );
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.BasicEffect")], []), 
+    function _ctor (cloneSource) {
+      this.$coreCtor();
+    }
+  );
+
   $.Method({Static:false, Public:true }, "set_Alpha", 
     (new JSIL.MethodSignature(null, [$.Single], [])), 
     function set_Alpha (value) {
@@ -417,13 +440,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
     }
   );
 
-  $.Method({Static:false, Public:true }, "set_Projection", 
-    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
-    function set_Projection (value) {
-      // FIXME
-    }
-  );
-
   $.Method({Static:false, Public:true }, "set_SpecularColor", 
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3")], [])), 
     function set_SpecularColor (value) {
@@ -484,6 +500,41 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
     (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function set_World (value) {
       this.world = value.MemberwiseClone();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Projection", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix"), [], [])), 
+    function get_Projection (value) {
+      return this.projection;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Projection", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
+    function set_Projection (value) {
+      this.projection = value.MemberwiseClone();
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_DirectionalLight0", 
+    new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DirectionalLight"), [], []), 
+    function get_DirectionalLight0 () {
+      return this.light0;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_DirectionalLight1", 
+    new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DirectionalLight"), [], []), 
+    function get_DirectionalLight1 () {
+      return this.light1;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_DirectionalLight2", 
+    new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DirectionalLight"), [], []), 
+    function get_DirectionalLight2 () {
+      return this.light2;
     }
   );
 });
