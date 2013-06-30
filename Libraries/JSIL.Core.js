@@ -4531,7 +4531,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   if (typeObject.__IsStruct__) {
     ctorBody.push("  return;");
   } else {
-    ctorBody.push("  this._ctor();");
+    ctorBody.push("  return this._ctor();");
   }
 
   for (var i = 1; i < 9; i++)
@@ -4540,7 +4540,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   for (var i = 1; i < 9; i++) {
     ctorBody.push("else if (argc === " + i + ")");
 
-    var line = "  this._ctor(";
+    var line = "  return this._ctor(";
     for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
       line += argumentNames[j];
       if (j == jMax - 1)
@@ -4552,7 +4552,7 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   }
 
   ctorBody.push("else");
-  ctorBody.push("  this._ctor.apply(this, arguments);");
+  ctorBody.push("  return this._ctor.apply(this, arguments);");
 
   var result = JSIL.CreateNamedFunction(
     typeObject.__FullName__, argumentNames,
@@ -6192,7 +6192,7 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
 
     JSIL.MethodSignature.$EmitInvocation(
       body, "this['" + ctorKey + "']", null, 
-      "", argumentNames
+      "return ", argumentNames
     );
   }
 
