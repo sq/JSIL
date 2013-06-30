@@ -16,17 +16,27 @@ namespace JSIL.Transforms {
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
         public readonly TypeSystem TypeSystem;
+        public readonly MethodTypeFactory MethodTypes;
         public readonly bool OptimizeCopies;
 
         private FunctionAnalysis2ndPass SecondPass = null;
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
-        public EmulateStructAssignment (QualifiedMemberIdentifier member, IFunctionSource functionSource, TypeSystem typeSystem, TypeInfoProvider typeInfo, CLRSpecialIdentifiers clr, bool optimizeCopies)
+        public EmulateStructAssignment (
+            QualifiedMemberIdentifier member, 
+            IFunctionSource functionSource, 
+            TypeSystem typeSystem, 
+            TypeInfoProvider typeInfo, 
+            CLRSpecialIdentifiers clr, 
+            MethodTypeFactory methodTypes,
+            bool optimizeCopies
+        )
             : base (member, functionSource) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
             CLR = clr;
+            MethodTypes = methodTypes;
             OptimizeCopies = optimizeCopies;
         }
 
@@ -246,33 +256,25 @@ namespace JSIL.Transforms {
             return modified || (escapes && !isResult);
         }
 
+        public void VisitNode (JSNewExpression newexp) {
+            FunctionAnalysis2ndPass sa = null;
+
+            if (newexp.Constructor != null)
+                // HACK
+                sa = GetSecondPass(new JSMethod(newexp.ConstructorReference, newexp.Constructor, MethodTypes));
+
+            CloneArgumentsIfNecessary(newexp.Parameters, newexp.Arguments, sa);
+
+            VisitChildren(newexp);
+        }
+
         public void VisitNode (JSInvocationExpression invocation) {
             FunctionAnalysis2ndPass sa = null;
 
             if (invocation.JSMethod != null)
                 sa = GetSecondPass(invocation.JSMethod);
 
-            var parms = invocation.Parameters.ToArray();
-
-            for (int i = 0, c = parms.Length; i < c; i++) {
-                var pd = parms[i].Key;
-                var argument = parms[i].Value;
-
-                string parameterName = null;
-                if (pd != null)
-                    parameterName = pd.Name;
-
-                GenericParameter relevantParameter;
-                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter)) {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
-
-                    invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
-                } else {
-                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
-                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
-                }
-            }
+            CloneArgumentsIfNecessary(invocation.Parameters, invocation.Arguments, sa);
 
             var thisReference = invocation.ThisReference;
             if (
@@ -300,6 +302,38 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(invocation);
+        }
+
+        private void CloneArgumentsIfNecessary(
+            IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters,
+            IList<JSExpression> argumentValues,
+            FunctionAnalysis2ndPass sa
+        ) {
+            var parms = parameters.ToArray();
+
+            for (int i = 0, c = parms.Length; i < c; i++)
+            {
+                var pd = parms[i].Key;
+                var argument = parms[i].Value;
+
+                string parameterName = null;
+                if (pd != null)
+                    parameterName = pd.Name;
+
+                GenericParameter relevantParameter;
+                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter))
+                {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
+
+                    argumentValues[i] = MakeCopyForExpression(argument, relevantParameter);
+                }
+                else
+                {
+                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
+                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
+                }
+            }
         }
 
         public void VisitNode (JSDelegateInvocationExpression invocation) {

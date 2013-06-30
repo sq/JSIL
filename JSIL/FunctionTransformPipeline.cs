@@ -419,6 +419,7 @@ namespace JSIL.Internal {
                     TypeSystem,
                     TypeInfoProvider,
                     SpecialIdentifiers.CLR,
+                    MethodTypes,
                     Configuration.CodeGenerator.EliminateStructCopies.GetValueOrDefault(true)
                 )
             );

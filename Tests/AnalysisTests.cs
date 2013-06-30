@@ -648,5 +648,17 @@ Shockwave.TryMove(Down, 384)";
                 "An instance was never allocated"
             );
         }
+
+        [Test]
+        public void CopyForTemporaryStructInLoop () {
+            string output = "0, 0 w=64 h=64\r\n64, 0 w=64 h=64\r\n128, 0 w=64 h=64";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\CopyForTemporaryStructInLoop.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

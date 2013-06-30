@@ -91,6 +91,7 @@
     <None Include="AnalysisTestCases\VerbatimVariableMutation.cs" />
     <None Include="AnalysisTestCases\StructAllocationHoisting.cs" />
     <None Include="AnalysisTestCases\PackedArrayInitializationHoisting.cs" />
+    <None Include="AnalysisTestCases\CopyForTemporaryStructInLoop.cs" />
     <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
