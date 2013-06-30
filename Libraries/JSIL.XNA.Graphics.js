@@ -2843,6 +2843,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       ctx.putImageData(imageData, rect.X, rect.Y);
     else
       ctx.putImageData(imageData, 0, 0);
+
+    /*
+    var trace = false;
+    if (trace) {
+      var traceCanvas = document.createElement("canvas");
+      traceCanvas.width = width;
+      traceCanvas.height = height;
+      var traceCtx = traceCanvas.getContext("2d");
+      traceCtx.globalCompositeOperation = "copy";
+      traceCtx.putImageData(imageData, 0, 0);
+
+      var traceContainer = document.getElementById("traceContainer");
+      if (!traceContainer) {
+        traceContainer = document.createElement("div");
+        traceContainer.id = "traceContainer";
+        traceContainer.style.cssText = "width: 1920px; overflow: scroll;position:  absolute;top:  0px;top:  0px;left:  0px;background-color: rgb(32,96,128);height: 1080px;";
+
+        document.getElementsByTagName("body")[0].appendChild(traceContainer);
+      }
+
+      if ((!this.traced) && ((width != this.width) || (height != this.height))) {
+        this.traced = true;
+        traceContainer.appendChild(this.image);
+      }
+
+      traceContainer.appendChild(traceCanvas);
+    }
+    */
   });
 
   var getScratchImageData = function getScratchImageData (ctx, width, height) {

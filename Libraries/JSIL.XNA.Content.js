@@ -819,8 +819,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", fu
     function _ctor () {
       var assembly = $xnaasms.xna;
 
-      var tKey = this.TKey = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Key.get(this);
-      var tValue = this.TValue = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2.Value.get(this);
+      var tThis = assembly.Microsoft.Xna.Framework.Content.DictionaryReader$b2;
+      var tKey = this.TKey = tThis.Key.get(this);
+      var tValue = this.TValue = tThis.Value.get(this);
       var tDictionary = this.TDictionary = $jsilcore.System.Collections.Generic.Dictionary$b2.Of(tKey, tValue).__Type__;
 
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
