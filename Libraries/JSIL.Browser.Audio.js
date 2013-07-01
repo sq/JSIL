@@ -153,7 +153,7 @@ JSIL.Audio.HTML5Instance = function (audioInfo, node, loop) {
 
   this.$bindEvents();
 };
-JSIL.Audio.HTML5Instance.prototype = Object.create(JSIL.Audio.InstancePrototype);
+JSIL.Audio.HTML5Instance.prototype = JSIL.CreatePrototypeObject(JSIL.Audio.InstancePrototype);
 
 JSIL.Audio.HTML5Instance.prototype.$bindEvents = function () {
   this.$onEndedListener = JSIL.Browser.RegisterOneShotEventListener(this.node, "ended", true, this.on_ended.bind(this));
@@ -277,7 +277,7 @@ JSIL.Audio.WebKitInstance = function (audioInfo, buffer, loop) {
   this._pan = 0;
   this._pitch = 0;
 };
-JSIL.Audio.WebKitInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
+JSIL.Audio.WebKitInstance.prototype = JSIL.CreatePrototypeObject(JSIL.Audio.InstancePrototype);
 
 JSIL.Audio.WebKitInstance.prototype.$play = function () {
   this.$createBufferSource();
@@ -360,7 +360,7 @@ JSIL.Audio.NullInstance = function (audioInfo, loop) {
   this._pan = 0;
   this._pitch = 0;
 };
-JSIL.Audio.NullInstance.prototype = Object.create(JSIL.Audio.InstancePrototype);
+JSIL.Audio.NullInstance.prototype = JSIL.CreatePrototypeObject(JSIL.Audio.InstancePrototype);
 
 
 function finishLoadingSound (filename, createInstance) {
@@ -534,7 +534,7 @@ function loadSoundGeneric (audioInfo, filename, data, onError, onDoneLoading) {
 function initSoundLoader () {
   var audioContextCtor = window.webkitAudioContext || window.mozAudioContext || window.AudioContext;
 
-  var audioInfo = Object.create($blobBuilderInfo);
+  var audioInfo = JSIL.CreateDictionaryObject($blobBuilderInfo);
 
   audioInfo.hasAudioContext = typeof (audioContextCtor) === "function";
   audioInfo.audioContext = null;

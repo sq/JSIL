@@ -44,8 +44,8 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
     if (typeof (compositePublicInterface) === "undefined") {
       var typeName = "ref " + elementName;
 
-      var compositeTypeObject = JSIL.CloneObject($.Type);
-      compositePublicInterface = JSIL.CloneObject(JSIL.Reference);
+      var compositeTypeObject = JSIL.CreateDictionaryObject($.Type);
+      compositePublicInterface = JSIL.CreateDictionaryObject(JSIL.Reference);
 
       compositePublicInterface.__Type__ = compositeTypeObject;
       compositeTypeObject.__PublicInterface__ = compositePublicInterface;

@@ -24,6 +24,29 @@ JSIL.PrivateNamespaces = {};
 JSIL.AssemblyShortNames = {};
 var $private = null;
 
+
+JSIL.CreateDictionaryObject = function (prototype) {
+  if (!prototype && (prototype !== null))
+    throw new Error("Prototype not specified");
+
+  return Object.create(prototype);
+};
+
+JSIL.CreatePrototypeObject = function (prototype) {
+  if (!prototype && (prototype !== null))
+    throw new Error("Prototype not specified");
+
+  return Object.create(prototype);
+};
+
+JSIL.CreateInstanceObject = function (prototype) {
+  if (!prototype && (prototype !== null))
+    throw new Error("Prototype not specified");
+
+  return Object.create(prototype);
+};
+
+
 JSIL.HasOwnPropertyRecursive = function (target, name) {
   while (!target.hasOwnProperty(name)) {
     target = Object.getPrototypeOf(target);
@@ -288,7 +311,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta)
     template = $jsilcore;
 
-  var result = Object.create(template);
+  var result = JSIL.CreateDictionaryObject(template);
 
   var assemblyId;
 
@@ -1493,13 +1516,6 @@ JSIL.TypeRef.prototype.get = function (allowPartiallyConstructed) {
   return this.cachedReference;
 };
 
-JSIL.CloneObject = function (obj) {
-  if ((typeof (obj) === "undefined") || (obj === null))
-    throw new Error("Cloning a non-object");
-
-  return Object.create(obj);
-};
-
 JSIL.AllRegisteredNames = [];
 JSIL.AllImplementedExternals = {};
 JSIL.ExternalsQueue = {};
@@ -1508,7 +1524,7 @@ JSIL.ExternalsQueue = {};
 $jsilcore.SuppressRecursiveConstructionErrors = 0;
 
 // HACK: So we can allow a class's base class to include itself as a generic argument. :/
-$jsilcore.InFlightObjectConstructions = Object.create(null);
+$jsilcore.InFlightObjectConstructions = JSIL.CreateDictionaryObject(null);
 
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, true);
@@ -1631,7 +1647,7 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
   var baseTypePublicInterface = _[0];
   var baseTypeObject = _[1];
 
-  var prototype = JSIL.CloneObject(baseTypePublicInterface.prototype);
+  var prototype = JSIL.CreatePrototypeObject(baseTypePublicInterface.prototype);
   JSIL.SetValueProperty(prototype, "__ThisType__", typeObject);
   JSIL.SetValueProperty(prototype, "__ThisTypeId__", typeObject.__TypeId__);
   prototype.__BaseType__ = baseTypeObject;
@@ -2074,7 +2090,7 @@ $jsilcore.$Of$NoInitialize = function () {
   var resolvedBaseType = unresolvedBaseType;
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
-    var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
+    var resolveContext = JSIL.CreatePrototypeObject(staticClassObject.prototype);
     for (var i = 0; i < resolvedArguments.length; i++) {
       gaNames[i].set(resolveContext, resolvedArguments[i]);
     }
@@ -2089,7 +2105,7 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
   }
 
-  var resultTypeObject = JSIL.CloneObject(typeObject);
+  var resultTypeObject = JSIL.CreateDictionaryObject(typeObject);
 
   var constructor;
 
@@ -2105,7 +2121,7 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__BaseType__ = resolvedBaseType;
   result.__Type__ = resultTypeObject;
 
-  resultTypeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__RenamedMethods__ || {});
+  resultTypeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__RenamedMethods__ || null);
 
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
@@ -2116,7 +2132,7 @@ $jsilcore.$Of$NoInitialize = function () {
     // Derived<T> -> Derived -> Base<U> -> Object
 
     var basePrototype = resolvedBaseType.__PublicInterface__.prototype;
-    var resultPrototype = Object.create(basePrototype);
+    var resultPrototype = JSIL.CreatePrototypeObject(basePrototype);
     result.prototype = resultPrototype;
 
     JSIL.$CopyMembersIndirect(resultPrototype, staticClassObject.prototype, JSIL.$IgnoredPrototypeMembers, false);
@@ -2467,7 +2483,7 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
     else
       resolvedFieldType = fieldType;
 
-    var newData = Object.create(data);
+    var newData = JSIL.CreateDictionaryObject(data);
     newData.fieldType = resolvedFieldType;
 
     members[i] = new JSIL.MemberRecord(member.type, member.descriptor, newData, member.attributes, member.overrides);
@@ -2749,7 +2765,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 };
 
 ( function () {
-  var runtimeType = Object.create(JSIL.TypeObjectPrototype);
+  var runtimeType = JSIL.CreateInstanceObject(JSIL.TypeObjectPrototype);
   runtimeType.__IsReferenceType__ = true;
   runtimeType.IsInterface = false;
   runtimeType.__IsEnum__ = false;
@@ -3895,7 +3911,7 @@ JSIL.$InvokeStaticConstructor = function (staticConstructor, typeObject, classOb
     staticConstructor.call(classObject);
   } catch (e) {
     typeObject.__StaticConstructorError__ = e;
-    
+
     if (JSIL.ThrowOnStaticCctorError) {
       JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
     } else {
@@ -4146,7 +4162,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var creator = function CreateStaticClassObject () {
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    typeObject = JSIL.CloneObject(runtimeType);
+    typeObject = JSIL.CreateDictionaryObject(runtimeType);
     typeObject.__FullName__ = fullName;
 
     typeObject.__CallStack__ = callStack;
@@ -4170,7 +4186,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     typeObject.IsInterface = false;
 
-    staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
+    staticClassObject = JSIL.CreateDictionaryObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
@@ -4617,7 +4633,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     // We need to make the type object we're constructing available early on, in order for
     //  recursive generic base classes to work.
-    typeObject = JSIL.CloneObject(runtimeType);
+    typeObject = JSIL.CreateDictionaryObject(runtimeType);
 
     // Needed for basic bookkeeping to function correctly.
     typeObject.__Context__ = assembly;
@@ -4679,10 +4695,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__Attributes__ = memberBuilder.attributes;
     typeObject.__RanCctors__ = false;
 
-    if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
-      typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
-    else
-      typeObject.__RenamedMethods__ = {};
+    typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__BaseType__.__RenamedMethods__ || null);
 
     typeObject.__RawMethods__ = [];
 
@@ -4796,7 +4809,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     };
 
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    var typeObject = JSIL.CloneObject(runtimeType);
+    var typeObject = JSIL.CreateDictionaryObject(runtimeType);
 
     publicInterface.prototype = {};
     publicInterface.__Type__ = typeObject;
@@ -4849,7 +4862,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
 JSIL.EnumValue = function (m) {
   throw new Error("Cannot create an abstract instance of an enum");
 };
-JSIL.EnumValue.prototype = Object.create(null);
+JSIL.EnumValue.prototype = JSIL.CreatePrototypeObject(null);
 JSIL.EnumValue.prototype.isFlags = false;
 JSIL.EnumValue.prototype.stringified = null;
 JSIL.EnumValue.prototype.value = 0;
@@ -4912,7 +4925,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     };
 
     var runtimeType = $jsilcore.$GetRuntimeType(context, fullName);
-    var typeObject = JSIL.CloneObject(runtimeType);
+    var typeObject = JSIL.CreateDictionaryObject(runtimeType);
 
     publicInterface.prototype = {};
     publicInterface.__Type__ = typeObject;
@@ -4992,7 +5005,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       "this.value = value;\r\n" +
       "this.stringified = this.name = name;\r\n"
     );
-    var valueProto = valueType.prototype = Object.create(JSIL.EnumValue.prototype);
+    var valueProto = valueType.prototype = JSIL.CreatePrototypeObject(JSIL.EnumValue.prototype);
 
     JSIL.SetValueProperty(
       valueProto, "isFlags", isFlagsEnum
@@ -5032,7 +5045,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       throw new Error("mscorlib not found!");
 
     var enumType = JSIL.GetTypeFromAssembly(asm, "System.Enum");
-    var prototype = JSIL.CloneObject(enumType.__PublicInterface__.prototype);
+    var prototype = JSIL.CreatePrototypeObject(enumType.__PublicInterface__.prototype);
     prototype.__BaseType__ = enumType;
     prototype.__ShortName__ = localName;
     prototype.__FullName__ = fullName;
@@ -5398,7 +5411,7 @@ JSIL.InterfaceBuilder.prototype.SetValue = function (key, value) {
 };
 
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, signature) {
-  var result = Object.create(this.memberDescriptorPrototype);
+  var result = JSIL.CreateDictionaryObject(this.memberDescriptorPrototype);
 
   var escapedName = JSIL.EscapeName(name);
 
@@ -5438,7 +5451,7 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   // Simplify usage of member records by not requiring a null check on data
   if (!data)
-    data = Object.create(null);
+    data = JSIL.CreateDictionaryObject(null);
 
   // Throw if two members with identical signatures and names are added
   if (data.signature) {
@@ -5930,7 +5943,7 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   this.openSignature = openSignature || null;
 };
 
-JSIL.MethodSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
+JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
 
 JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "Call", function () { return this.$MakeCallMethod("direct"); }, true);
 
@@ -6031,7 +6044,7 @@ JSIL.MethodSignature.$EmitInvocation = function (
   body.push(");");
 };
 
-JSIL.MethodSignature.$CallMethodCache = Object.create(null);
+JSIL.MethodSignature.$CallMethodCache = JSIL.CreateDictionaryObject(null);
 
 JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   // TODO: Investigate caching these closures keyed off (callMethodType, (returnType ? 1 : 0), genericArgumentNames.length, argumentTypes.length)
@@ -6182,7 +6195,7 @@ JSIL.ConstructorSignature = function (type, argumentTypes, context) {
   var self = this;
 };
 
-JSIL.ConstructorSignature.prototype = JSIL.CloneObject(JSIL.SignatureBase.prototype);
+JSIL.ConstructorSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
 
 JSIL.SetLazyValueProperty(JSIL.ConstructorSignature.prototype, "Construct", function () { return this.$MakeConstructMethod(); }, true);
 
@@ -6323,7 +6336,7 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
   this.methodName = methodName;
   this.signature = signature;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
-  this.variantInvocationCandidateCache = Object.create(null);
+  this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
   this.fallbackMethod = JSIL.$PickFallbackMethodForInterfaceMethod(typeObject, methodName, signature);
 };
 
@@ -6782,7 +6795,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   }
 
   var publicInterface = type.__PublicInterface__;
-  var instance = JSIL.CloneObject(publicInterface.prototype);
+  var instance = JSIL.CreateInstanceObject(publicInterface.prototype);
   var constructor = $jsilcore.FunctionNotInitialized;
 
   JSIL.RunStaticConstructors(publicInterface, type);
@@ -7210,7 +7223,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore);
     }
 
-    var typeObject = Object.create(JSIL.TypeObjectPrototype);
+    var typeObject = JSIL.CreateDictionaryObject(JSIL.TypeObjectPrototype);
 
     typeObject.__Context__ = assembly;
     typeObject.__BaseType__ = delegateType;
@@ -7224,7 +7237,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
-    var staticClassObject = typeObject.__PublicInterface__ = Object.create(JSIL.StaticClassPrototype);
+    var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateDictionaryObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
     var toStringImpl = function DelegateType_ToString () {
@@ -7608,7 +7621,7 @@ JSIL.ResolveGenericMemberSignatures = function (publicInterface, typeObject) {
     if (!resolvedSignature)
       continue;
 
-    var newData = Object.create(data);
+    var newData = JSIL.CreateDictionaryObject(data);
 
     if (!newData.genericSignature)
       newData.genericSignature = signature;
@@ -7824,7 +7837,7 @@ JSIL.$FindVariantGenericArguments = function (typeObject) {
     var variance = argumentVariances[i];
 
     if (variance.in || variance.out) {
-      var vp = Object.create(variance);
+      var vp = JSIL.CreateDictionaryObject(variance);
       vp.name = typeObject.__GenericArguments__[i];
       vp.index = i;
       result.push(vp);

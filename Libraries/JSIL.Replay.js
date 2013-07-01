@@ -641,7 +641,7 @@ JSIL.Replay.Playback.TickSchedulerProxy.prototype.schedule = function (callback,
 
 
 JSIL.Replay.Playback.MockLocalStorageService = function (initialData) {
-  this.data = Object.create(initialData);
+  this.data = JSIL.CreateDictionaryObject(initialData);
 };
 
 JSIL.Replay.Playback.MockLocalStorageService.prototype.getItem = function (key) {

@@ -125,7 +125,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function MemoryRange_ctor (buffer) {
       this.buffer = buffer;
-      this.viewCache = Object.create(null);
+      this.viewCache = JSIL.CreateDictionaryObject(null);
     }
   );
 

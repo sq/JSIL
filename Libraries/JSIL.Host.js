@@ -18,7 +18,7 @@ JSIL.Host.runInitCallbacks = function () {
 };
 
 
-JSIL.Host.services = Object.create(null);
+JSIL.Host.services = JSIL.CreateDictionaryObject(null);
 
 JSIL.Host.getService = function (key, noThrow) {
   var svc = JSIL.Host.services[key];

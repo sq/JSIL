@@ -313,11 +313,11 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     if (typeof (compositePublicInterface) === "undefined") {
       var typeName = elementTypeObject.__FullName__ + "[]";
 
-      var compositeTypeObject = JSIL.CloneObject(typeObject);
+      var compositeTypeObject = JSIL.CreateDictionaryObject(typeObject);
       compositePublicInterface = function (size) {
         throw new Error("Invalid use of Array constructor. Use JSIL.Array.New.");
       };
-      compositePublicInterface.prototype = JSIL.CloneObject(publicInterface.prototype);
+      compositePublicInterface.prototype = JSIL.CreatePrototypeObject(publicInterface.prototype);
 
       compositePublicInterface.__Type__ = compositeTypeObject;
       JSIL.SetTypeId(
