@@ -412,6 +412,18 @@ namespace JSIL.Ast {
             Depth = depth;
         }
 
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if ((oldChild is JSInvocationExpressionBase) && !(newChild is JSInvocationExpressionBase)) {
+                if (newChild is JSStructCopyExpression)
+                    // HACK: This is okay since we handle it.
+                    ;
+                else
+                    throw new InvalidOperationException("Replacing an invocation expression inside a result reference with a non invocation expression");
+            }
+
+            base.ReplaceChild(oldChild, newChild);
+        }
+
         new public JSInvocationExpressionBase Referent {
             get {
                 var sce = base.Referent as JSStructCopyExpression;

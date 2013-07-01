@@ -15,6 +15,8 @@ namespace JSIL.Transforms {
         public readonly JSSpecialIdentifiers JS;
         public readonly MethodReference Method;
 
+        private JSTernaryOperatorExpression _ResultReferenceReplacement = null;
+
         public ReplaceMethodCalls (
             MethodReference method, JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem
         ) {
@@ -150,8 +152,14 @@ namespace JSIL.Transforms {
                                 );
                             }
 
-                            ParentNode.ReplaceChild(ie, ternary);
-                            VisitReplacement(ternary);
+                            if (ParentNode is JSResultReferenceExpression) {
+                                // HACK: Replacing the invocation inside a result reference is incorrect, so we need to walk up the stack
+                                //  and replace the result reference with the ternary instead.
+                                _ResultReferenceReplacement = ternary;
+                            } else {
+                                ParentNode.ReplaceChild(ie, ternary);
+                                VisitReplacement(ternary);
+                            }
 
                             break;
                         case "Equals":
@@ -390,6 +398,18 @@ namespace JSIL.Transforms {
                 }
             } else {
                 VisitChildren(ne);
+            }
+        }
+
+        public void VisitNode (JSResultReferenceExpression rre) {
+            VisitChildren(rre);
+
+            if (_ResultReferenceReplacement != null) {
+                var replacement = _ResultReferenceReplacement;
+                _ResultReferenceReplacement = null;
+
+                ParentNode.ReplaceChild(rre, replacement);
+                VisitReplacement(replacement);
             }
         }
     }
