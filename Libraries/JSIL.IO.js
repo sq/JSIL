@@ -976,8 +976,6 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])), 
     function _ctor (input) {
-      System.Object.prototype._ctor.call(this);
-
       if (typeof (input) !== "object")
         throw new Error("Invalid stream");
 
@@ -989,8 +987,6 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])), 
     function _ctor (input, encoding) {
-      System.Object.prototype._ctor.call(this);
-
       if (typeof (input) !== "object")
         throw new Error("Invalid stream");
 

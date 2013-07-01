@@ -1534,7 +1534,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   };
   JSIL.AllRegisteredNames.push(state);
 
-  var getter = function (unseal) {
+  var getter = function RegisterName_getter (unseal) {
     var result;
 
     try {
@@ -2063,7 +2063,16 @@ $jsilcore.$Of$NoInitialize = function () {
       gaNames[i] = new JSIL.Name(ga[i], typeObject.__FullName__);
   }
 
-  var resolvedBaseType = typeObject.__BaseType__;  
+  var unresolvedBaseType;
+
+  if (typeObject.IsInterface)
+    // HACK
+    unresolvedBaseType = $jsilcore.System.Object.__Type__;
+  else
+    unresolvedBaseType = typeObject.__BaseType__;
+
+  var resolvedBaseType = unresolvedBaseType;
+
   if (typeof (staticClassObject.prototype) !== "undefined") {
     var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
     for (var i = 0; i < resolvedArguments.length; i++) {
@@ -2074,7 +2083,7 @@ $jsilcore.$Of$NoInitialize = function () {
     // thus, given Derived<T> : Base<T> and Base<U> : Object, Derived<int>.BaseType must be Base<int>, not Base<U>.
     resolvedBaseType = JSIL.$ResolveGenericTypeReferenceInternal(resolvedBaseType, resolveContext);
     if (!resolvedBaseType) {
-      resolvedBaseType = typeObject.__BaseType__;
+      resolvedBaseType = unresolvedBaseType;
     }
 
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
@@ -3885,6 +3894,8 @@ JSIL.$InvokeStaticConstructor = function (staticConstructor, typeObject, classOb
   try {
     staticConstructor.call(classObject);
   } catch (e) {
+    typeObject.__StaticConstructorError__ = e;
+    
     if (JSIL.ThrowOnStaticCctorError) {
       JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
     } else {
@@ -4506,6 +4517,29 @@ JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
       }
     }
   );
+
+  if (sourceAssembly.__AssemblyId__ === context.__AssemblyId__) {
+    // HACK: This is a recursive type alias, so don't define the name alias.
+    // We still want to leave the typesByName logic above intact since the two aliases have separate assembly
+    //  objects, and thus separate typesByName lists, despite sharing an assembly id.
+    return;
+  }
+
+  var privateName = JSIL.ResolveName(context, fullName, true);
+  var sourcePrivateName = null;
+
+  var getter = function TypeAlias_getter () {
+    if (!sourcePrivateName)
+      sourcePrivateName = JSIL.ResolveName(sourceAssembly, fullName, true);
+
+    var result = sourcePrivateName.get();
+    if (!result)
+      throw new Error("Type alias for '" + fullName + "' points to a nonexistent type");
+
+    return result;
+  };
+
+  privateName.setLazy(getter);
 };
 
 JSIL.MakeTypeConstructor = function (typeObject) {
