@@ -25,6 +25,18 @@ JSIL.AssemblyShortNames = {};
 var $private = null;
 
 
+JSIL.$CreateCrockfordObject = function (prototype) {
+  if (!prototype && (prototype !== null))
+    throw new Error("Prototype not specified");
+
+  // FIXME: Generate this with a better name?
+  function crockfordobject () {
+  };
+
+  crockfordobject.prototype = prototype || null;
+  return new crockfordobject();
+};
+
 JSIL.CreateDictionaryObject = function (prototype) {
   if (!prototype && (prototype !== null))
     throw new Error("Prototype not specified");
@@ -32,11 +44,12 @@ JSIL.CreateDictionaryObject = function (prototype) {
   return Object.create(prototype);
 };
 
-JSIL.CreatePrototypeObject = function (prototype) {
-  if (!prototype && (prototype !== null))
-    throw new Error("Prototype not specified");
+JSIL.CreateSingletonObject = function (prototype) {
+  return JSIL.$CreateCrockfordObject(prototype);
+};
 
-  return Object.create(prototype);
+JSIL.CreatePrototypeObject = function (prototype) {
+  return JSIL.$CreateCrockfordObject(prototype);
 };
 
 JSIL.CreateInstanceObject = function (prototype) {
@@ -311,7 +324,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta)
     template = $jsilcore;
 
-  var result = JSIL.CreateDictionaryObject(template);
+  var result = JSIL.CreateSingletonObject(template);
 
   var assemblyId;
 
@@ -2105,7 +2118,7 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
   }
 
-  var resultTypeObject = JSIL.CreateDictionaryObject(typeObject);
+  var resultTypeObject = JSIL.CreateSingletonObject(typeObject);
 
   var constructor;
 
@@ -4162,7 +4175,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var creator = function CreateStaticClassObject () {
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    typeObject = JSIL.CreateDictionaryObject(runtimeType);
+    typeObject = JSIL.CreateSingletonObject(runtimeType);
     typeObject.__FullName__ = fullName;
 
     typeObject.__CallStack__ = callStack;
@@ -4186,7 +4199,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     typeObject.IsInterface = false;
 
-    staticClassObject = JSIL.CreateDictionaryObject(JSIL.StaticClassPrototype);
+    staticClassObject = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
@@ -4633,7 +4646,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     // We need to make the type object we're constructing available early on, in order for
     //  recursive generic base classes to work.
-    typeObject = JSIL.CreateDictionaryObject(runtimeType);
+    typeObject = JSIL.CreateSingletonObject(runtimeType);
 
     // Needed for basic bookkeeping to function correctly.
     typeObject.__Context__ = assembly;
@@ -4809,7 +4822,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     };
 
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    var typeObject = JSIL.CreateDictionaryObject(runtimeType);
+    var typeObject = JSIL.CreateSingletonObject(runtimeType);
 
     publicInterface.prototype = {};
     publicInterface.__Type__ = typeObject;
@@ -4925,7 +4938,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     };
 
     var runtimeType = $jsilcore.$GetRuntimeType(context, fullName);
-    var typeObject = JSIL.CreateDictionaryObject(runtimeType);
+    var typeObject = JSIL.CreateSingletonObject(runtimeType);
 
     publicInterface.prototype = {};
     publicInterface.__Type__ = typeObject;
@@ -7223,7 +7236,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore);
     }
 
-    var typeObject = JSIL.CreateDictionaryObject(JSIL.TypeObjectPrototype);
+    var typeObject = JSIL.CreateSingletonObject(JSIL.TypeObjectPrototype);
 
     typeObject.__Context__ = assembly;
     typeObject.__BaseType__ = delegateType;
@@ -7237,7 +7250,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
-    var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateDictionaryObject(JSIL.StaticClassPrototype);
+    var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
     var toStringImpl = function DelegateType_ToString () {

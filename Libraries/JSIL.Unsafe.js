@@ -1166,7 +1166,7 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
 };
 
 JSIL.$MakeElementReferenceConstructor = function (typeObject) {
-  var elementReferencePrototype = Object.create(typeObject.__PublicInterface__.prototype);
+  var elementReferencePrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
