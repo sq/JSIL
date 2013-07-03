@@ -241,6 +241,16 @@ namespace JSIL.Ast {
             var rre = reference as JSResultReferenceExpression;
             var refe = reference as JSReferenceExpression;
             var boe = reference as JSBinaryOperatorExpression;
+            var aer = reference as JSNewArrayElementReference;
+
+            if (aer != null) {
+                if (reference is JSNewPackedArrayElementReference) {
+                    throw new NotImplementedException("Access packed array element through reference");
+                } else {
+                    referent = new JSIndexerExpression(aer.Array, aer.Index, aer.ReferenceType.GetElementType());
+                    return true;
+                }
+            }
 
             var expressionType = reference.GetActualType(jsil.TypeSystem);
             if (TypeUtil.IsIgnoredType(expressionType)) {
