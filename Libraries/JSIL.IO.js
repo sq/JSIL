@@ -544,6 +544,13 @@ var $bytestream = function ($) {
     }
   );
   
+  $.Method({Static:false, Public:true }, "get_CanRead", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanRead () {
+      return true;
+    }
+  );
+  
   $.Method({Static:false, Public:true }, "Seek", 
     (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
     function Seek (offset, origin) {
