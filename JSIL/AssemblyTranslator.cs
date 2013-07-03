@@ -750,7 +750,7 @@ namespace JSIL {
             context.CurrentModule = module;
 
             var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
-            var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, js);
+            var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, this._TypeInfoProvider, js);
 
             var astEmitter = new JavascriptAstEmitter(
                 output, jsil, 

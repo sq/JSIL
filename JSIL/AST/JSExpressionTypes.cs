@@ -245,7 +245,11 @@ namespace JSIL.Ast {
 
             if (aer != null) {
                 if (reference is JSNewPackedArrayElementReference) {
-                    throw new NotImplementedException("Access packed array element through reference");
+                    var targetType = aer.Array.GetActualType(jsil.TypeSystem);
+                    var targetTypeInfo = jsil.TypeInfo.Get(targetType);
+                    // FIXME: Don't use proxies in scenarios where we can prove they aren't needed.
+                    referent = PackedArrayUtil.GetItem(targetType, targetTypeInfo, aer.Array, aer.Index, jsil.MethodTypes, proxy: true);
+                    return true;
                 } else {
                     referent = new JSIndexerExpression(aer.Array, aer.Index, aer.ReferenceType.GetElementType());
                     return true;

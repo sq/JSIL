@@ -7,7 +7,7 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class HoistStructAllocations : StaticAnalysisJSAstVisitor {
+    public class HoistAllocations : StaticAnalysisJSAstVisitor {
         private struct Identifier {
             public readonly string Text;
             public readonly JSRawOutputIdentifier Object;
@@ -42,7 +42,7 @@ namespace JSIL.Transforms {
 
         private JSFunctionExpression Function;
 
-        public HoistStructAllocations (
+        public HoistAllocations (
             QualifiedMemberIdentifier member, 
             IFunctionSource functionSource, 
             TypeSystem typeSystem,
@@ -121,12 +121,19 @@ namespace JSIL.Transforms {
             return true;
         }
 
-        public void VisitNode (JSInvocationExpression invocation) {
-            var jsm = invocation.JSMethod;
-            if (jsm != null) {
+        public void VisitNode (JSNewArrayElementReference naer) {
+            var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
+            var parentInvocation = ParentNode as JSInvocationExpression;
+            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, naer);
+
+            if (
+                isInsideLoop &&
+                (parentInvocation != null) &&
+                !doesValueEscape
+            ) {
             }
 
-            VisitChildren(invocation);
+            VisitChildren(naer);
         }
 
         public void VisitNode (JSNewExpression newexp) {

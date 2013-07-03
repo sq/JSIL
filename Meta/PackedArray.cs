@@ -30,6 +30,10 @@ namespace JSIL.Runtime {
         [JSResultIsNew]
         void* GetReference (int index);
 
+        [JSRuntimeDispatch]
+        [JSResultIsNew]
+        T GetItemProxy (int index);
+
         [JSEscapingArguments()]
         [JSMutatedArguments("result")]
         [JSRuntimeDispatch]

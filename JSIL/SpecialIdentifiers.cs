@@ -55,14 +55,21 @@ namespace JSIL {
     [JSAstIgnoreInheritedMembers]
     public class JSILIdentifier : JSIdentifier {
         public readonly TypeSystem TypeSystem;
+        public readonly ITypeInfoSource TypeInfo;
         public readonly MethodTypeFactory MethodTypes;
         public readonly JSSpecialIdentifiers JS;
 
         [JSAstIgnore]
         public readonly JSDotExpressionBase GlobalNamespace, CopyMembers;
 
-        public JSILIdentifier (MethodTypeFactory methodTypes, TypeSystem typeSystem, JSSpecialIdentifiers js) {
+        public JSILIdentifier (
+            MethodTypeFactory methodTypes, 
+            TypeSystem typeSystem, 
+            ITypeInfoSource typeInfo,
+            JSSpecialIdentifiers js
+        ) {
             TypeSystem = typeSystem;
+            TypeInfo = typeInfo;
             MethodTypes = methodTypes;
             JS = js;
 
@@ -252,11 +259,11 @@ namespace JSIL {
         public readonly CLRSpecialIdentifiers CLR;
         public readonly JSILIdentifier JSIL;
 
-        public SpecialIdentifiers (MethodTypeFactory methodTypes, TypeSystem typeSystem) {
+        public SpecialIdentifiers (MethodTypeFactory methodTypes, TypeSystem typeSystem, ITypeInfoSource typeInfo) {
             TypeSystem = typeSystem;
             JS = new JSSpecialIdentifiers(methodTypes, typeSystem);
             CLR = new CLRSpecialIdentifiers(typeSystem);
-            JSIL = new JSILIdentifier(methodTypes, typeSystem, JS);
+            JSIL = new JSILIdentifier(methodTypes, typeSystem, typeInfo, JS);
         }
     }
 }

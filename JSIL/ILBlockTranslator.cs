@@ -82,7 +82,7 @@ namespace JSIL {
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
 
-            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem);
+            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem, TypeInfo);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -2214,24 +2214,7 @@ namespace JSIL {
             if (getReference) {
                 result = JSIL.NewElementReference(target, index);
             } else if (PackedArrayUtil.IsPackedArrayType(targetType)) {
-                var targetGit = (GenericInstanceType)targetType;
-                var targetTypeInfo = TypeInfo.Get(targetType);
-                var getMethodName = "get_Item";
-                var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
-                    (kvp) => kvp.Key.Name == getMethodName
-                ).Value;
-
-                // We have to construct a custom reference to the method in order for ILSpy's
-                //  SubstituteTypeArgs method not to explode later on
-                var getMethodReference = CecilUtil.RebindMethod(getMethod.Member, targetGit, targetGit.GenericArguments[0]);
-
-                result = JSInvocationExpression.InvokeMethod(
-                    new JSMethod(getMethodReference, getMethod, MethodTypes),
-                    target,
-                    new JSExpression[] {
-                        index
-                    }
-                );
+                result = PackedArrayUtil.GetItem(targetType, TypeInfo.Get(targetType), target, index, MethodTypes);
             } else {
                 result = new JSIndexerExpression(
                     target, index,

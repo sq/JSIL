@@ -240,7 +240,7 @@ namespace JSIL.Internal {
             //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
             Enqueue(DecomposeMutationOperators);
 
-            Enqueue(HoistStructAllocations);
+            Enqueue(HoistAllocations);
         }
 
 
@@ -459,9 +459,9 @@ namespace JSIL.Internal {
             return true;
         }
 
-        private bool HoistStructAllocations () {
-            if (Configuration.CodeGenerator.HoistStructAllocations.GetValueOrDefault(true))
-                new HoistStructAllocations(
+        private bool HoistAllocations () {
+            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true))
+                new HoistAllocations(
                     Identifier, FunctionSource, TypeSystem, MethodTypes
                 ).Visit(Function);
 

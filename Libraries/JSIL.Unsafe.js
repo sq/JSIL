@@ -647,6 +647,15 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   );
 
   $.Method(
+    {}, "GetItemProxy", 
+    new JSIL.MethodSignature(T, [$.Int32], []),
+    function PackedStructArray_GetItemProxy (index) {
+      var offsetInBytes = (index * this.nativeSize) | 0;
+      return new this.elementReferenceConstructor(this.bytes, offsetInBytes);
+    }
+  );
+
+  $.Method(
     {}, "GetReference", 
     new JSIL.MethodSignature(TRef, [$.Int32], []),
     function PackedStructArray_GetReference (index) {
