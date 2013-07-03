@@ -132,6 +132,18 @@ namespace JSIL.Tests {
                 Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
+
+        [Test]
+        public void RectangleIntersects () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\RectangleIntersects.cs"
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
+            }
+        }
     }
 
     [TestFixture]

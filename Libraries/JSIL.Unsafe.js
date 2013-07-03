@@ -591,6 +591,28 @@ JSIL.MakeInterface(
   }, []
 );
 
+JSIL.MakeClass("JSIL.Reference", "JSIL.PackedStructArrayElementReference", true, [], function ($) {
+  $.RawMethod(false, ".ctor",
+    function PackedStructArrayElementReference_ctor (array, index) {
+      this.array = array;
+      this.index = index;
+    }
+  );
+
+  $.RawMethod(false, "get",
+    function PackedStructArrayElementReference_Get () {
+      return this.array.get_Item(this.index);
+    }
+  );
+
+  $.RawMethod(false, "set",
+    function PackedStructArrayElementReference_Set (value) {
+      this.array.set_Item(this.index, value);
+      return value;
+    }
+  );
+});
+
 JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function ($) {
   var T = new JSIL.GenericParameter("T", "JSIL.PackedStructArray");
   var TRef = JSIL.Reference.Of(T);
@@ -623,8 +645,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
     {}, "GetReference", 
     new JSIL.MethodSignature(TRef, [$.Int32], []),
     function PackedStructArray_GetReference (index) {
-      var offsetInBytes = (index * this.nativeSize) | 0;
-      return new this.elementReferenceConstructor(this.bytes, offsetInBytes);
+      return new JSIL.PackedStructArrayElementReference(this, index);
     }
   );
 

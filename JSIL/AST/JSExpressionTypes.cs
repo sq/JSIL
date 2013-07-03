@@ -318,6 +318,9 @@ namespace JSIL.Ast {
                             ), invocation.ThisReference, invocation.Arguments.ToArray(), true
                         );
                         return true;
+                    } else if (PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                        materialized = iref.Referent;
+                        return true;
                     }
                 }
             }
