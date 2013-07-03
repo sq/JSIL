@@ -4696,7 +4696,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__Marshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Unmarshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__UnmarshalConstructor__ = $jsilcore.FunctionNotInitialized;
-    typeObject.__ElementReferenceConstructor__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__ElementProxyConstructor__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -8049,7 +8049,7 @@ JSIL.$IgnoredPublicInterfaceMembers = [
   "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
   "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
   "__FieldList__", "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
-  "__UnmarshalConstructor__", "__ElementReferenceConstructor__"
+  "__UnmarshalConstructor__", "__ElementProxyConstructor__"
 ];
 
 JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {

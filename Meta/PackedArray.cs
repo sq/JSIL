@@ -26,14 +26,23 @@ namespace JSIL.Runtime {
             set;
         }
 
+        /// <summary>
+        /// Returns a reference to an element of the packed array.
+        /// </summary>
         [JSRuntimeDispatch]
         [JSResultIsNew]
         void* GetReference (int index);
 
+        /// <summary>
+        /// Returns a proxy for the particular element of the packed array. You can use the proxy's members to manipulate the packed element directly.
+        /// </summary>
         [JSRuntimeDispatch]
         [JSResultIsNew]
         T GetItemProxy (int index);
 
+        /// <summary>
+        /// Reads an element out of the packed array, into result.
+        /// </summary>
         [JSEscapingArguments()]
         [JSMutatedArguments("result")]
         [JSRuntimeDispatch]

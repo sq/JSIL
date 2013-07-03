@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using JSIL.Meta;
 
 public static class Program {
-    const int AxisSize = 24;
+    const int AxisSize = 20;
     const int BufferSize = (AxisSize * AxisSize);
     const int IterationCount = 8192;
 

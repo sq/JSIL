@@ -629,7 +629,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
       this.memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
       this.bytes = this.memoryRange.getView($jsilcore.System.Byte.__Type__);
       this.nativeSize = this.T.__NativeSize__;
-      this.elementReferenceConstructor = JSIL.$GetStructElementReferenceConstructor(this.T);
+      this.elementProxyConstructor = JSIL.$GetStructElementProxyConstructor(this.T);
       this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(this.T);
       this.unmarshaller = JSIL.$GetStructUnmarshaller(this.T);
       this.marshaller = JSIL.$GetStructMarshaller(this.T);
@@ -651,7 +651,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
     new JSIL.MethodSignature(T, [$.Int32], []),
     function PackedStructArray_GetItemProxy (index) {
       var offsetInBytes = (index * this.nativeSize) | 0;
-      return new this.elementReferenceConstructor(this.bytes, offsetInBytes);
+      return new this.elementProxyConstructor(this.bytes, offsetInBytes);
     }
   );
 
@@ -876,12 +876,12 @@ JSIL.$GetStructUnmarshalConstructor = function (typeObject) {
   return unmarshalConstructor;
 };
 
-JSIL.$GetStructElementReferenceConstructor = function (typeObject) {
-  var elementReferenceConstructor = typeObject.__ElementReferenceConstructor__;
-  if (elementReferenceConstructor === $jsilcore.FunctionNotInitialized)
-    elementReferenceConstructor = typeObject.__ElementReferenceConstructor__ = JSIL.$MakeElementReferenceConstructor(typeObject);
+JSIL.$GetStructElementProxyConstructor = function (typeObject) {
+  var elementProxyConstructor = typeObject.__ElementProxyConstructor__;
+  if (elementProxyConstructor === $jsilcore.FunctionNotInitialized)
+    elementProxyConstructor = typeObject.__ElementProxyConstructor__ = JSIL.$MakeElementProxyConstructor(typeObject);
 
-  return elementReferenceConstructor;
+  return elementProxyConstructor;
 };
 
 JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
@@ -1200,8 +1200,8 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
   }
 };
 
-JSIL.$MakeElementReferenceConstructor = function (typeObject) {
-  var elementReferencePrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);
+JSIL.$MakeElementProxyConstructor = function (typeObject) {
+  var elementProxyPrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
@@ -1225,7 +1225,7 @@ JSIL.$MakeElementReferenceConstructor = function (typeObject) {
 
     // FIXME: The use of get/set functions here will really degrade performance in some JS engines
     Object.defineProperty(
-      elementReferencePrototype, field.name,
+      elementProxyPrototype, field.name,
       {
         get: getter,
         set: setter,
@@ -1235,12 +1235,12 @@ JSIL.$MakeElementReferenceConstructor = function (typeObject) {
     );
   }      
 
-  var constructor = function ElementReference (bytes, offset) {
+  var constructor = function ElementProxy (bytes, offset) {
     this.$bytes = bytes;
     this.$offset = offset;
   };
 
-  constructor.prototype = elementReferencePrototype;
+  constructor.prototype = elementProxyPrototype;
 
   return constructor;
 };
