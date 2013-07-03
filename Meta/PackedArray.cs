@@ -31,6 +31,7 @@ namespace JSIL.Runtime {
         /// </summary>
         [JSRuntimeDispatch]
         [JSResultIsNew]
+        [JSIsPure]
         void* GetReference (int index);
 
         /// <summary>
@@ -38,6 +39,7 @@ namespace JSIL.Runtime {
         /// </summary>
         [JSRuntimeDispatch]
         [JSResultIsNew]
+        [JSIsPure]
         T GetItemProxy (int index);
 
         /// <summary>

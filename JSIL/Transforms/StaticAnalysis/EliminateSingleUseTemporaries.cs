@@ -283,6 +283,7 @@ namespace JSIL.Transforms {
                 var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
                 var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
+                var unsafeInvocations = FilterInvocations(invocations);
                 var isPassedByReference = FirstPass.VariablesPassedByRef.Contains(v.Name);
 
                 if (assignments.FirstOrDefault() == null) {
@@ -316,9 +317,9 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                if (invocations.Length > 1) {
+                if (unsafeInvocations.Length > 1) {
                     if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it multiple times.", v));
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it multiple times that are not provably safe.", v));
 
                     continue;
                 }
@@ -460,6 +461,22 @@ namespace JSIL.Transforms {
                     break;
                 }
             }
+        }
+
+        // Filters out invocations that are provably safe to ignore, based on proxy attributes/type info
+        private FunctionAnalysis1stPass.Invocation[] FilterInvocations (FunctionAnalysis1stPass.Invocation[] invocations) {
+            return invocations.Where(
+                (invocation) => {
+                    if (invocation.Method == null)
+                        return true;
+
+                    var secondPass = GetSecondPass(invocation.Method);
+                    if (secondPass == null)
+                        return true;
+
+                    return (!secondPass.IsPure);
+                }
+            ).ToArray();
         }
     }
 

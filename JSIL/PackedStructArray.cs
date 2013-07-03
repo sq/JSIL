@@ -164,7 +164,8 @@ namespace JSIL.Internal {
             return JSInvocationExpression.InvokeMethod(
                 new JSMethod(getMethodReference, getMethod, methodTypes),
                 target,
-                new JSExpression[] { index }
+                new JSExpression[] { index },
+                constantIfArgumentsAre: proxy
             );
         }
     }
