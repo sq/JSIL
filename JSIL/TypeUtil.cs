@@ -24,6 +24,8 @@ namespace JSIL {
         }
 
         public static bool IsArray (TypeReference type) {
+            type = StripModifiers(type);
+
             var at = type as ArrayType;
             if (at != null)
                 return true;
@@ -38,6 +40,8 @@ namespace JSIL {
         }
 
         public static bool IsReferenceType (TypeReference type) {
+            type = StripModifiers(type);
+
             if (IsStruct(type))
                 return false;
             else if (IsIntegralOrEnum(type))
@@ -288,6 +292,26 @@ namespace JSIL {
             return false;
         }
 
+        public static TypeReference StripModifiers (TypeReference reference) {
+            bool unwrapped = false;
+            do {
+                var rmt = reference as RequiredModifierType;
+                var omt = reference as OptionalModifierType;
+
+                if (rmt != null) {
+                    reference = rmt.ElementType;
+                    unwrapped = true;
+                } else if (omt != null) {
+                    reference = omt.ElementType;
+                    unwrapped = true;
+                } else {
+                    unwrapped = false;
+                }
+            } while (unwrapped);
+
+            return reference;
+        }
+
         public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool mapAllArraysToSystemArray = true) {
             if (typeRef == null)
                 return null;
@@ -295,21 +319,7 @@ namespace JSIL {
             var ts = typeRef.Module.TypeSystem;
             typeRef = DereferenceType(typeRef);
 
-            bool unwrapped = false;
-            do {
-                var rmt = typeRef as RequiredModifierType;
-                var omt = typeRef as OptionalModifierType;
-
-                if (rmt != null) {
-                    typeRef = rmt.ElementType;
-                    unwrapped = true;
-                } else if (omt != null) {
-                    typeRef = omt.ElementType;
-                    unwrapped = true;
-                } else {
-                    unwrapped = false;
-                }
-            } while (unwrapped);
+            typeRef = StripModifiers(typeRef);
 
             var at = typeRef as ArrayType;
             if (at != null) {

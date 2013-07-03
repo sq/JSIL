@@ -129,7 +129,7 @@ namespace JSIL {
                 resultType = new ByReferenceType(
                     PackedArrayUtil.GetElementType(arrayType)
                 );
-            } else if (arrayType is ArrayType) {
+            } else if (TypeUtil.IsArray(TypeUtil.DereferenceType(arrayType))) {
                 resultType = new ByReferenceType(
                     arrayType.GetElementType()
                 );
