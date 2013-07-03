@@ -595,7 +595,7 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.PackedStructArrayElementReference", true,
   $.RawMethod(false, ".ctor",
     function PackedStructArrayElementReference_ctor (array, index) {
       this.array = array;
-      this.index = index;
+      this.index = index | 0;
     }
   );
 
@@ -607,8 +607,13 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.PackedStructArrayElementReference", true,
 
   $.RawMethod(false, "set",
     function PackedStructArrayElementReference_Set (value) {
-      this.array.set_Item(this.index, value);
-      return value;
+      return this.array.set_Item(this.index, value);
+    }
+  );
+
+  $.RawMethod(false, "setIndex",
+    function PackedStructArrayElementReference_SetIndex (index) {
+      this.index = index | 0;
     }
   );
 });

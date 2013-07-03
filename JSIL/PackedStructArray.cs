@@ -12,6 +12,11 @@ namespace JSIL.Internal {
             return type.FullName.StartsWith("JSIL.Runtime.IPackedArray");
         }
 
+        public static TypeReference GetElementType (TypeReference arrayType) {
+            var git = (GenericInstanceType)arrayType;
+            return git.GenericArguments[0];
+        }
+
         public static TypeReference MakePackedArrayType (TypeReference arrayType, TypeReference attributeType) {
             var at = arrayType as ArrayType;
             if (at == null)

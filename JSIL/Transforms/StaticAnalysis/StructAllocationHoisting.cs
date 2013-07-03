@@ -92,39 +92,50 @@ namespace JSIL.Transforms {
             return result.Object;
         }
 
+        bool DoesValueEscapeFromInvocation (JSInvocationExpression invocation, JSExpression argumentExpression) {
+            if (
+                (invocation != null) &&
+                (invocation.JSMethod != null) &&
+                (invocation.JSMethod.Reference != null)
+            ) {
+                var methodDef = invocation.JSMethod.Reference.Resolve();
+                var secondPass = FunctionSource.GetSecondPass(invocation.JSMethod, Function.Method.QualifiedIdentifier);
+                if ((secondPass != null) && (methodDef != null)) {
+                    // HACK
+                    var argumentIndex = invocation.Arguments.Select(
+                        (a, i) => new { argument = a, index = i })
+                        .FirstOrDefault((_) => _.argument.SelfAndChildrenRecursive.Contains(argumentExpression));
+
+                    if (argumentIndex != null) {
+                        var argumentName = methodDef.Parameters[argumentIndex.index].Name;
+
+                        return secondPass.EscapingVariables.Contains(argumentName);
+                    }
+                } else if (secondPass != null) {
+                    // HACK for methods that do not have resolvable references. In this case, if NONE of their arguments escape, we're probably still okay.
+                    if (secondPass.EscapingVariables.Count == 0)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void VisitNode (JSInvocationExpression invocation) {
+            var jsm = invocation.JSMethod;
+            if (jsm != null) {
+            }
+
+            VisitChildren(invocation);
+        }
+
         public void VisitNode (JSNewExpression newexp) {
             var type = newexp.GetActualType(TypeSystem);
 
             var isStruct = TypeUtil.IsStruct(type);
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
             var parentInvocation = ParentNode as JSInvocationExpression;
-
-            var doesValueEscape = true;
-            if (
-                isStruct && 
-                (parentInvocation != null) && 
-                (parentInvocation.JSMethod != null) && 
-                (parentInvocation.JSMethod.Reference != null)
-            ) {
-                var methodDef = parentInvocation.JSMethod.Reference.Resolve();
-                var secondPass = FunctionSource.GetSecondPass(parentInvocation.JSMethod, Function.Method.QualifiedIdentifier);
-                if ((secondPass != null) && (methodDef != null)) {
-                    // HACK
-                    var argumentIndex = parentInvocation.Arguments.Select(
-                        (a, i) => new { argument = a, index = i })
-                        .FirstOrDefault((_) => _.argument.SelfAndChildrenRecursive.Contains(newexp));
-
-                    if (argumentIndex != null) {
-                        var argumentName = methodDef.Parameters[argumentIndex.index].Name;
-
-                        doesValueEscape = secondPass.EscapingVariables.Contains(argumentName);
-                    }
-                } else if (secondPass != null) {
-                    // HACK for methods that do not have resolvable references. In this case, if NONE of their arguments escape, we're probably still okay.
-                    if (secondPass.EscapingVariables.Count == 0)
-                        doesValueEscape = false;
-                }
-            }
+            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, newexp);
 
             if (isStruct && 
                 isInsideLoop && 

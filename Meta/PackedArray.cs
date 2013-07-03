@@ -26,11 +26,13 @@ namespace JSIL.Runtime {
             set;
         }
 
+        [JSRuntimeDispatch]
         [JSResultIsNew]
         void* GetReference (int index);
 
         [JSEscapingArguments()]
         [JSMutatedArguments("result")]
+        [JSRuntimeDispatch]
         void GetItemInto (int index, out T result);
 
         [JSIsPure]

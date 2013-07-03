@@ -114,15 +114,26 @@ namespace JSIL {
             );
         }
 
-        public JSNewExpression NewElementReference (JSExpression target, JSExpression index) {
-            var resultType = new ByReferenceType(
-                target.GetActualType(TypeSystem).GetElementType()
-            );
+        public JSNewArrayElementReference NewElementReference (JSExpression target, JSExpression index) {
+            var arrayType = target.GetActualType(TypeSystem);
+            TypeReference resultType;
 
-            return new JSNewExpression(
-                Dot("ArrayElementReference", resultType),
-                null, null, target, index
-            );
+            if (PackedArrayUtil.IsPackedArrayType(arrayType)) {
+                resultType = new ByReferenceType(
+                    PackedArrayUtil.GetElementType(arrayType)
+                );
+            } else if (arrayType is ArrayType) {
+                resultType = new ByReferenceType(
+                    arrayType.GetElementType()
+                );
+            } else {
+                throw new ArgumentException("Cannot create a reference to an element of a value of type '" + arrayType.FullName + "'", target.ToString());
+            }
+
+            if (PackedArrayUtil.IsPackedArrayType(target.GetActualType(TypeSystem)))
+                return new JSNewPackedArrayElementReference(resultType, target, index);
+            else
+                return new JSNewArrayElementReference(resultType, target, index);
         }
 
         public JSNewExpression NewMemberReference (JSExpression target, JSLiteral member) {

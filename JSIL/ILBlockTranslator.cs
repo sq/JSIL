@@ -2211,10 +2211,12 @@ namespace JSIL {
 
             JSExpression result;
 
-            if (PackedArrayUtil.IsPackedArrayType(targetType)) {
+            if (getReference) {
+                result = JSIL.NewElementReference(target, index);
+            } else if (PackedArrayUtil.IsPackedArrayType(targetType)) {
                 var targetGit = (GenericInstanceType)targetType;
                 var targetTypeInfo = TypeInfo.Get(targetType);
-                var getMethodName = getReference ? "GetReference" : "get_Item";
+                var getMethodName = "get_Item";
                 var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                     (kvp) => kvp.Key.Name == getMethodName
                 ).Value;
@@ -2237,7 +2239,7 @@ namespace JSIL {
                 );
             }
 
-            if (CopyOnReturn(expectedType) || getReference)
+            if (CopyOnReturn(expectedType) && !getReference)
                 result = JSReferenceExpression.New(result);
 
             return result;

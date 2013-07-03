@@ -1996,5 +1996,18 @@ namespace JSIL {
             Visit(nbv.InitialValue);
             Output.RPar();
         }
+
+        public void VisitNode (JSNewArrayElementReference naer) {
+            Output.WriteRaw(
+                (naer is JSNewPackedArrayElementReference) 
+                ? "new JSIL.PackedStructArrayElementReference"
+                : "new JSIL.ArrayElementReference"
+            );
+            Output.LPar();
+            Visit(naer.Array);
+            Output.Comma();
+            Visit(naer.Index);
+            Output.RPar();
+        }
     }
 }

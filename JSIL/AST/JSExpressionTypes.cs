@@ -318,9 +318,6 @@ namespace JSIL.Ast {
                             ), invocation.ThisReference, invocation.Arguments.ToArray(), true
                         );
                         return true;
-                    } else if (PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
-                        materialized = iref.Referent;
-                        return true;
                     }
                 }
             }
@@ -338,6 +335,12 @@ namespace JSIL.Ast {
                     );
                     return true;
                 }
+            }
+
+            var newref = reference as JSNewReference;
+            if (newref != null) {
+                materialized = newref;
+                return true;
             }
 
             JSIndexerExpression indexer = null;
@@ -2681,6 +2684,43 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return new ByReferenceType(ValueType);
+        }
+    }
+
+    public abstract class JSNewReference : JSExpression {
+        public readonly TypeReference ReferenceType;
+
+        public JSNewReference (TypeReference referenceType, params JSExpression[] values)
+            : base(values) {
+            ReferenceType = referenceType;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ReferenceType;
+        }
+    }
+
+    public class JSNewArrayElementReference : JSNewReference {
+        public JSNewArrayElementReference (TypeReference referenceType, JSExpression array, JSExpression index)
+            : base(referenceType, array, index) {
+        }
+
+        public JSExpression Array {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Index {
+            get {
+                return Values[1];
+            }
+        }
+    }
+
+    public class JSNewPackedArrayElementReference : JSNewArrayElementReference {
+        public JSNewPackedArrayElementReference (TypeReference referenceType, JSExpression array, JSExpression index)
+            : base(referenceType, array, index) {
         }
     }
 }

@@ -140,7 +140,7 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.ArrayElementReference", true, [], functio
   $.RawMethod(false, ".ctor",
     function ArrayElementReference_ctor (array, index) {
       this.array = array;
-      this.index = index;
+      this.index = index | 0;
     }
   );
 
@@ -153,6 +153,12 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.ArrayElementReference", true, [], functio
   $.RawMethod(false, "set",
     function ArrayElementReference_Set (value) {
       return this.array[this.index] = value;
+    }
+  );
+
+  $.RawMethod(false, "setIndex",
+    function ArrayElementReference_SetIndex (index) {
+      this.index = index | 0;
     }
   );
 });
