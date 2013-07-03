@@ -1201,7 +1201,9 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
 };
 
 JSIL.$MakeElementProxyConstructor = function (typeObject) {
-  var elementProxyPrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);
+  // var elementProxyPrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);  
+  // HACK: This makes a big difference
+  var elementProxyPrototype = JSIL.$CreateCrockfordObject(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
