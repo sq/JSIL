@@ -22,11 +22,13 @@ namespace JSIL.Transforms {
             public readonly string Name;
             public readonly TypeReference Type;
             public readonly JSExpression Expression;
+            public readonly JSExpression DefaultValue;
 
-            public PendingDeclaration (string name, TypeReference type, JSExpression expression) {
+            public PendingDeclaration (string name, TypeReference type, JSExpression expression, JSExpression defaultValue) {
                 Name = name;
                 Type = type;
                 Expression = expression;
+                DefaultValue = defaultValue;
             }
         }
 
@@ -66,7 +68,7 @@ namespace JSIL.Transforms {
                     var es = new JSExpressionStatement(
                         new JSBinaryOperatorExpression(
                             JSOperator.Assignment, pd.Expression,
-                            new JSDefaultValueLiteral(pd.Type),
+                            pd.DefaultValue ?? new JSDefaultValueLiteral(pd.Type),
                             pd.Type
                     ));
 
@@ -75,7 +77,7 @@ namespace JSIL.Transforms {
             }
         }
 
-        private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type, out string id) {
+        private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
             Identifier result;
 
             if (!TemporaryVariables.TryGetValue(type, out result)) {
@@ -83,7 +85,7 @@ namespace JSIL.Transforms {
                 result = new Identifier(_id, new JSRawOutputIdentifier(
                     (jsf) => jsf.WriteRaw(_id), type
                 ));
-                ToDeclare.Add(new PendingDeclaration(id, type, result.Object));
+                ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));
                 TemporaryVariables.Add(type, result);
             } else {
                 id = result.Text;
@@ -123,14 +125,27 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSNewArrayElementReference naer) {
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
-            var parentInvocation = ParentNode as JSInvocationExpression;
+            var parentPassByRef = ParentNode as JSPassByReferenceExpression;
+            var parentInvocation = Stack.OfType<JSInvocationExpression>().FirstOrDefault();
             var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, naer);
 
             if (
                 isInsideLoop &&
+                (parentPassByRef != null) &&
                 (parentInvocation != null) &&
                 !doesValueEscape
             ) {
+                var replacement = CreateHoistedVariable(
+                    (hoistedVariable) => JSInvocationExpression.InvokeMethod(                        
+                        new JSFakeMethod("retarget", hoistedVariable.GetActualType(TypeSystem), new TypeReference[] { TypeSystem.Object, TypeSystem.Int32 }, MethodTypes), 
+                        hoistedVariable, new JSExpression[] { naer.Array, naer.Index }
+                    ), 
+                    naer.GetActualType(TypeSystem),
+                    naer.MakeUntargeted()
+                );
+
+                ParentNode.ReplaceChild(naer, replacement);
+                VisitReplacement(replacement);
             }
 
             VisitChildren(naer);
@@ -149,13 +164,15 @@ namespace JSIL.Transforms {
                 (parentInvocation != null) &&
                 !doesValueEscape
             ) {
-                string id;
-                var hoistedVariable = MakeTemporaryVariable(type, out id);
-                var constructorInvocation = JSInvocationExpression.InvokeMethod(
-                    type, new JSMethod(newexp.ConstructorReference, newexp.Constructor, MethodTypes, null), hoistedVariable, newexp.Arguments.ToArray(), false
-                );
-                var replacement = new JSCommaExpression(
-                    constructorInvocation, hoistedVariable
+                var replacement = CreateHoistedVariable(
+                    (hoistedVariable) => new JSCommaExpression(
+                        JSInvocationExpression.InvokeMethod(
+                            type, new JSMethod(newexp.ConstructorReference, newexp.Constructor, MethodTypes, null), hoistedVariable,
+                            newexp.Arguments.ToArray(), false
+                        ), 
+                        hoistedVariable
+                    ),
+                    type
                 );
 
                 ParentNode.ReplaceChild(newexp, replacement);
@@ -163,6 +180,17 @@ namespace JSIL.Transforms {
             } else {
                 VisitChildren(newexp);
             }
+        }
+
+        private JSExpression CreateHoistedVariable(
+            Func<JSRawOutputIdentifier, JSExpression> update, 
+            TypeReference type,
+            JSExpression defaultValue = null
+        ) {
+            string id;
+            var hoistedVariable = MakeTemporaryVariable(type, out id, defaultValue);
+            var replacement = update(hoistedVariable);
+            return replacement;
         }
     }
 }

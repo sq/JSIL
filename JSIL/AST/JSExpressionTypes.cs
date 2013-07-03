@@ -386,6 +386,10 @@ namespace JSIL.Ast {
                 return true;
             } else if (nestedReference != null) {
                 return TryMaterialize(jsil, nestedReference, out materialized);
+            } else if (reference.GetActualType(jsil.TypeSystem) is ByReferenceType) {
+                // FIXME: Is this right? Allocation hoisting for element references relies on it.
+                materialized = reference; 
+                return true;
             }
 
             materialized = null;
@@ -2715,11 +2719,27 @@ namespace JSIL.Ast {
                 return Values[1];
             }
         }
+
+        public virtual JSNewArrayElementReference MakeUntargeted () {
+            return new JSNewArrayElementReference(
+                ReferenceType, 
+                new JSNullLiteral(ReferenceType.Module.TypeSystem.Object), 
+                new JSIntegerLiteral(-1, typeof(Int32))
+            );
+        }
     }
 
     public class JSNewPackedArrayElementReference : JSNewArrayElementReference {
         public JSNewPackedArrayElementReference (TypeReference referenceType, JSExpression array, JSExpression index)
             : base(referenceType, array, index) {
+        }
+
+        public override JSNewArrayElementReference MakeUntargeted () {
+            return new JSNewPackedArrayElementReference(
+                ReferenceType,
+                new JSNullLiteral(ReferenceType.Module.TypeSystem.Object),
+                new JSIntegerLiteral(-1, typeof(Int32))
+            );
         }
     }
 }

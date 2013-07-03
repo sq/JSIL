@@ -2170,6 +2170,9 @@ namespace JSIL.Internal {
         public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
             TypeReference result;
 
+            if (returnType == null)
+                returnType = typeSystem.Void;
+
             var args = new MakeReferenceArgs {
                 ReturnType = returnType,
                 ParameterTypes = parameterTypes.ToArray(),
