@@ -445,6 +445,10 @@ function beginCompile () {
   setStatus("Compiling...");
 
   $.ajax({
+    // jQuery is so stupid
+    processData: false,
+    contentType: "text/plain; charset=UTF-8",
+    
     type: 'POST',
     url: "http://jsil.org/try/compile.aspx",
     data: sourceCode,
@@ -452,6 +456,7 @@ function beginCompile () {
     error: function (xhr, status, moreStatus) {
       compileComplete(false, status + ": " + moreStatus);
     },
+    cache: false,
     dataType: "json"
   });
 };
