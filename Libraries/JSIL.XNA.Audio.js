@@ -10,7 +10,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function _ctor (settingsFile) {
-      this.categories = Object.create(null);
+      this.categories = JSIL.CreateDictionaryObject(null);
     }
   );
 
@@ -20,7 +20,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
           $.String
         ], [])), 
     function _ctor (settingsFile, lookAheadTime, rendererId) {
-      this.categories = Object.create(null);
+      this.categories = JSIL.CreateDictionaryObject(null);
     }
   );
 
@@ -110,7 +110,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     return this._name;
   });
 
-  var warnedAboutVariables = Object.create(null);
+  var warnedAboutVariables = JSIL.CreateDictionaryObject(null);
 
   $.Method({Static:false, Public:true }, "SetVariable", 
     (new JSIL.MethodSignature(null, [$.String, $.Single], [])), 
@@ -285,9 +285,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundBank", function ($) 
       this.name = json.Name;
       this.audioEngine = audioEngine;
 
-      this.cues = Object.create(null);
-      this.sounds = Object.create(null);
-      this.waves = Object.create(null);
+      this.cues = JSIL.CreateDictionaryObject(null);
+      this.sounds = JSIL.CreateDictionaryObject(null);
+      this.waves = JSIL.CreateDictionaryObject(null);
       
       var categories = audioEngine.categories;
 

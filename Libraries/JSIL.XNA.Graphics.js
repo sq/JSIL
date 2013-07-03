@@ -2146,7 +2146,7 @@ $jsilxna.CachedText = function (canvas, id) {
   this.sizeBytes = canvas.sizeBytes = (canvas.width * canvas.height * 4) | 0;
 };
 
-$jsilxna.CachedText.prototype = Object.create(null);
+$jsilxna.CachedText.prototype = JSIL.CreatePrototypeObject(null);
 
 $jsilxna.CachedText.prototype.get_Width = function () {
   return this.width;
@@ -2517,7 +2517,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         textures.appendChild(this.image);
     } else {
       // Headless mode
-      this.image = Object.create(null);
+      this.image = JSIL.CreateDictionaryObject(null);
       this.image.id = this.id;
     }
   });

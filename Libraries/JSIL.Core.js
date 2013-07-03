@@ -25,6 +25,7 @@ JSIL.AssemblyShortNames = {};
 var $private = null;
 
 
+// FIXME: Why does this slightly deopt global performance vs. Object.create? Object.create should be worse.
 JSIL.$CreateCrockfordObject = function (prototype) {
   if (!prototype && (prototype !== null))
     throw new Error("Prototype not specified");
@@ -45,11 +46,14 @@ JSIL.CreateDictionaryObject = function (prototype) {
 };
 
 JSIL.CreateSingletonObject = function (prototype) {
-  return JSIL.$CreateCrockfordObject(prototype);
+  return JSIL.CreateDictionaryObject(prototype);
 };
 
 JSIL.CreatePrototypeObject = function (prototype) {
-  return JSIL.$CreateCrockfordObject(prototype);
+  // HACK: Nesting may protect type information
+  // return JSIL.CreateDictionaryObject(JSIL.CreateDictionaryObject(prototype));
+  // Not faster though. Probably because of the longer prototype chain.
+  return JSIL.CreateDictionaryObject(prototype);
 };
 
 JSIL.CreateInstanceObject = function (prototype) {

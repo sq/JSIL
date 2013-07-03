@@ -316,7 +316,7 @@ JSIL.ImplementExternals("System.Windows.Forms.Screen", function ($) {
   $.Method({Static:true , Public:true }, "get_PrimaryScreen", 
     (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.Screen"), [], [])), 
     function get_PrimaryScreen () {
-      return Object.create(System.Windows.Forms.Screen.prototype);
+      return JSIL.CreateInstanceObject(System.Windows.Forms.Screen.prototype);
     }
   );
 

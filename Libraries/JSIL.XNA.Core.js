@@ -591,7 +591,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
-      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector2.prototype);
       result.X = (position.X * matrix.xScale) + matrix.xTranslation;
       result.Y = (position.Y * matrix.yScale) + matrix.yTranslation;
       return result;
@@ -667,7 +667,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
-      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector3.prototype);
       result.X = (position.X * matrix.xScale) + matrix.xTranslation;
       result.Y = (position.Y * matrix.yScale) + matrix.yTranslation;
       result.Z = (position.Z * matrix.zScale) + matrix.zTranslation;
@@ -725,7 +725,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
-      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector4.prototype);
       result.X = (position.X * matrix.xScale) + matrix.xTranslation;
       result.Y = (position.Y * matrix.yScale) + matrix.yTranslation;
       result.Z = (position.Z * matrix.zScale) + matrix.zTranslation;
@@ -2027,7 +2027,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
 });
 
 $jsilxna.makeColor = function (proto, r, g, b, a) {
-  var result = Object.create(proto);
+  var result = JSIL.CreateInstanceObject(proto);
   result.r = r;
   result.g = g;
   result.b = b;

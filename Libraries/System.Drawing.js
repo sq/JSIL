@@ -123,7 +123,7 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
 
   var makeColor = function (a, r, g, b, name) {
     var prototype = systemDrawing.System.Drawing.Color.prototype;
-    var result = Object.create(prototype);
+    var result = JSIL.CreateInstanceObject(prototype);
 
     result.a = a;
     result.r = r;
