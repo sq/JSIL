@@ -185,6 +185,7 @@
     <None Include="SpecialTestCases\AddNewField.cs" />
     <None Include="SimpleTestCases\NullableStructRef.cs" />
     <None Include="PerformanceTestCases\RectangleIntersects.cs" />
+    <None Include="SimpleTestCases\EnumBaseType.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

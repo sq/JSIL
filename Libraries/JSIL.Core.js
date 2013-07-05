@@ -4948,6 +4948,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     publicInterface.__Type__ = typeObject;
 
     typeObject.__PublicInterface__ = publicInterface;
+    typeObject.__BaseType__ = $jsilcore.System.Enum.__Type__;
     typeObject.__Context__ = context;
     typeObject.__CallStack__ = callStack;
     typeObject.__FullName__ = fullName; 
