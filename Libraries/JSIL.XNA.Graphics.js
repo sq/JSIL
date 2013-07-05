@@ -689,6 +689,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
       this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
       game.graphicsDeviceService = this;
       game.graphicsDeviceManager = this;
+      game.Services.AddService(Microsoft.Xna.Framework.IGraphicsDeviceManager.__Type__, this);
+      game.Services.AddService(Microsoft.Xna.Framework.Graphics.IGraphicsDeviceService.__Type__, this);
     }
   );
 

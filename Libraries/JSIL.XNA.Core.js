@@ -1053,13 +1053,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
   );
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {});
-});
-
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GameComponentCollection", function ($) {
   $.RawMethod(false, "$internalCtor", function (game) {
     this._game = game;
@@ -2968,7 +2961,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.Guide", function 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function ($) {
-
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
