@@ -19,13 +19,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms.corlib.TypeRef("System.IServiceProvider")], []), function (serviceProvider) {});
+  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms.corlib.TypeRef("System.IServiceProvider")], []), function (serviceProvider) {
+    this._serviceProvider = serviceProvider;  
+    this._rootDirectory = "";
+  });
+  
   $.Method({
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms.corlib.TypeRef("System.IServiceProvider"), $.String], []), function (serviceProvider, rootDirectory) {
+    this._serviceProvider = serviceProvider;
     this._rootDirectory = rootDirectory;
   });
+
   $.Method({
     Static: false,
     Public: true
@@ -75,12 +81,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
     else
       throw new Microsoft.Xna.Framework.Content.ContentLoadException("Asset '" + assetName + "' is not an instance of HTML5Asset.");
   }),
+
   $.Method({
     Static: false,
     Public: true
   }, "Unload", new JSIL.MethodSignature(null, [], []), function () {
     // Unnecessary since we rely on the host to preload our assets.
   });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "get_ServiceProvider", new JSIL.MethodSignature($xnaasms.corlib.TypeRef("System.IServiceProvider"), [], []), function () {
+    return this._serviceProvider;
+  });
+
   $.Method({
     Static: false,
     Public: true
