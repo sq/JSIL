@@ -357,6 +357,81 @@ JSIL.ImplementExternals(
         );
       }
     );
+    
+    $.Method({Static: true , Public: true }, "Sum",
+      new JSIL.MethodSignature(
+       $.Int32,
+       [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$.Int32])],
+       []
+    ),
+    function Sum_Int32 (enumerable) {
+      var result = 0;
+
+      var e = JSIL.GetEnumerator(enumerable);
+
+      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Int32).get_Current;
+
+      try {
+        while (moveNext.Call(e)) {
+          result = (result + getCurrent.Call(e)) | 0;
+        }
+      } finally {
+        JSIL.Dispose(e);
+      }
+
+      return result;
+    });
+    
+    $.Method({Static: true , Public: true }, "Sum",
+      new JSIL.MethodSignature(
+       $.Single,
+       [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$.Single])],
+       []
+    ),
+    function Sum_Single (enumerable) {
+      var result = +0;
+
+      var e = JSIL.GetEnumerator(enumerable);
+
+      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Single).get_Current;
+
+      try {
+        while (moveNext.Call(e)) {
+          result = +(result + getCurrent.Call(e));
+        }
+      } finally {
+        JSIL.Dispose(e);
+      }
+
+      return result;
+    });
+    
+    $.Method({Static: true , Public: true }, "Sum",
+      new JSIL.MethodSignature(
+       $.Double,
+       [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$.Double])],
+       []
+    ),
+    function Sum_Double (enumerable) {
+      var result = +0;
+
+      var e = JSIL.GetEnumerator(enumerable);
+
+      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Double).get_Current;
+
+      try {
+        while (moveNext.Call(e)) {
+          result = +(result + getCurrent.Call(e));
+        }
+      } finally {
+        JSIL.Dispose(e);
+      }
+
+      return result;
+    });
   }
 );
 

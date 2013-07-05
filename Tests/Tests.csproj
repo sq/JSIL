@@ -186,6 +186,7 @@
     <None Include="SimpleTestCases\NullableStructRef.cs" />
     <None Include="PerformanceTestCases\RectangleIntersects.cs" />
     <None Include="SimpleTestCases\EnumBaseType.cs" />
+    <None Include="SimpleTestCases\EnumerableSum.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
