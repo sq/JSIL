@@ -12,8 +12,8 @@ function displayCommits (username, reponame, branch, result) {
     
     var commit = item.commit;
     
-    var gravatar_url = item.author.avatar_url;
-    var author_url = "http://www.github.com/" + item.author.login;
+    var gravatar_url = item.author ? item.author.avatar_url : "about:blank";
+    var author_url = item.author ? "http://www.github.com/" + item.author.login : "about:blank";
     var commit_url = "http://www.github.com/" + username + "/" + reponame + "/commit/" + item.sha;
     var commitDate = new Date(commit.author.date);
     
