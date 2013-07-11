@@ -111,10 +111,11 @@ namespace JSIL.Utilities {
                         }
 
                         var sourcePath = Path.Combine(projectFileDirectory, item.EvaluatedInclude);
-                        if (outputDirectorySourcePaths.Contains(sourcePath.ToLower())) {
-                            var fileInfo = new FileInfo(sourcePath);
+                        var fileInfo = new FileInfo(sourcePath);
+                        var collapsedSourcePath = fileInfo.FullName.ToLower();
 
-                            CopyFile(sourcePath, outputPath, true);
+                        if (outputDirectorySourcePaths.Contains(collapsedSourcePath)) {
+                            CopyFile(collapsedSourcePath, outputPath, true);
 
                             manifestWriter.Add("File", item.EvaluatedInclude, new Dictionary<string, object>() {
                                 {"sizeBytes", fileInfo.Length}
