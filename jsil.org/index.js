@@ -64,7 +64,7 @@ function displayBranches (activeBranch, result) {
 };
 
 function loadChangelog (branch) {
-  var username = "kevingadd";
+  var username = "sq";
   var reponame = "JSIL";
   
   if (typeof (branch) === "undefined")
