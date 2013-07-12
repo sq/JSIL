@@ -12,6 +12,14 @@ using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
     public class AssemblyCache : ConcurrentCache<string, AssemblyDefinition> {
+        public bool RegisterAssembly (AssemblyDefinition assembly) {
+            if (assembly == null)
+                throw new ArgumentNullException("assembly");
+
+            var name = assembly.Name.FullName;
+
+            return TryCreate(name, (fullName) => assembly);
+        }
     }
 
     public class AssemblyResolver : BaseAssemblyResolver, IDisposable {
@@ -71,15 +79,6 @@ namespace JSIL.Internal {
             var result = Cache.GetOrCreate(actualName.FullName, (fullName) => base.Resolve(actualName, parameters));
 
             return result;
-        }
-
-        protected void RegisterAssembly (AssemblyDefinition assembly) {
-            if (assembly == null)
-                throw new ArgumentNullException("assembly");
-
-            var name = assembly.Name.FullName;
-
-            Cache.TryCreate(name, (fullName) => assembly);
         }
     }
 

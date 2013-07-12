@@ -77,9 +77,76 @@ namespace JSIL.Compiler {
             return result;
         }
 
+        static string[] PurgeDuplicateFilesFromBuildGroup (
+            string[] buildGroupFiles,
+            AssemblyCache assemblyCache
+        ) {
+            var result = new List<string>();
+
+            var topLevelAssemblies = 
+                (from fn in buildGroupFiles 
+                 select new { 
+                     Filename = fn, 
+                     Assembly = AssemblyDefinition.ReadAssembly(fn) 
+                 }).ToArray();
+
+            var executables =
+                (from kvp in topLevelAssemblies
+                 where kvp.Filename.EndsWith(".exe")
+                 select new {
+                     Filename = kvp.Filename,
+                     Assembly = kvp.Assembly,
+                     AllReferencesRecursive = new List<AssemblyNameReference>()
+                 }).ToArray();
+
+            foreach (var executable in executables) {
+                var assembliesToScan = new Stack<AssemblyDefinition>();
+                assembliesToScan.Push(executable.Assembly);
+
+                while (assembliesToScan.Count > 0) {
+                    var assembly = assembliesToScan.Pop();
+                    foreach (var module in assembly.Modules) {
+                        foreach (var anr in module.AssemblyReferences) {
+                            executable.AllReferencesRecursive.Add(anr);
+
+                            var matchingAssembly = topLevelAssemblies.FirstOrDefault(
+                                (tla) => tla.Assembly.FullName == anr.FullName
+                            );
+                            if (matchingAssembly != null)
+                                assembliesToScan.Push(matchingAssembly.Assembly);
+                        }
+                    }
+                }
+            }
+
+            foreach (var kvpOuter in topLevelAssemblies) {
+                foreach (var kvpInner in executables) {
+                    if (kvpInner.Filename == kvpOuter.Filename)
+                        continue;
+
+                    // If an executable references a DLL, we can be sure the DLL is going to get built anyway.
+                    foreach (var anr in kvpInner.AllReferencesRecursive) {
+                        if (anr.FullName == kvpOuter.Assembly.FullName) {
+                            Debug.WriteLine("Pruning '" + kvpOuter.Filename + "' from build list because '" + kvpInner.Filename + "' references it.");
+                            goto skip;
+                        }
+                    }
+
+                }
+
+                result.Add(kvpOuter.Filename);
+
+            skip:
+                ;
+            }
+
+            return result.ToArray();
+        }
+
         static Configuration ParseCommandLine (
             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
-            Dictionary<string, IProfile> profiles
+            Dictionary<string, IProfile> profiles,
+            AssemblyCache assemblyCache
         ) {
             var baseConfig = new Configuration();
             var commandLineConfig = new Configuration();
@@ -332,7 +399,7 @@ namespace JSIL.Compiler {
                     buildGroups.Add(new BuildGroup {
                         BaseConfiguration = mergedSolutionConfig,
                         BaseVariables = localVariables,
-                        FilesToBuild = outputFiles,
+                        FilesToBuild = PurgeDuplicateFilesFromBuildGroup(outputFiles, assemblyCache),
                         Profile = profile,
                     });
                 }
@@ -466,7 +533,7 @@ namespace JSIL.Compiler {
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
 
-            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, assemblyCache);
 
             if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
