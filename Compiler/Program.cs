@@ -127,7 +127,7 @@ namespace JSIL.Compiler {
                     // If an executable references a DLL, we can be sure the DLL is going to get built anyway.
                     foreach (var anr in kvpInner.AllReferencesRecursive) {
                         if (anr.FullName == kvpOuter.Assembly.FullName) {
-                            Debug.WriteLine("Pruning '" + kvpOuter.Filename + "' from build list because '" + kvpInner.Filename + "' references it.");
+                            Console.Error.WriteLine("// Not translating '{0}' directly because '{1}' references it.", Path.GetFileName(kvpOuter.Filename), Path.GetFileName(kvpInner.Filename));
                             goto skip;
                         }
                     }
@@ -553,10 +553,22 @@ namespace JSIL.Compiler {
                         continue;
                     }
 
-                    var fileConfigPath = Path.Combine(
-                        Path.GetDirectoryName(filename),
-                        String.Format("{0}.jsilconfig", Path.GetFileName(filename))
-                    );
+                    string fileConfigPath = null;
+                    var fileConfigSearchDir = Path.GetDirectoryName(filename);
+                    var separators = new char[] { '/', '\\' };
+
+                    do {
+                        fileConfigPath = Path.Combine(
+                            fileConfigSearchDir,
+                            String.Format("{0}.jsilconfig", Path.GetFileName(filename))
+                        );
+
+                        if (!File.Exists(fileConfigPath))
+                            fileConfigSearchDir = Path.GetFullPath(Path.Combine(fileConfigSearchDir, ".."));
+                        else
+                            break;
+                    } while (fileConfigSearchDir.IndexOfAny(separators, 3) > 0);
+
                     var fileConfig = File.Exists(fileConfigPath)
                         ? new Configuration[] { LoadConfiguration(fileConfigPath), commandLineConfiguration }
                         : new Configuration[] { commandLineConfiguration };
