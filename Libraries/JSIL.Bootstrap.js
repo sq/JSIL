@@ -4167,3 +4167,48 @@ JSIL.MakeInterface(
     $.Property({}, "AsyncState");
     $.Property({}, "CompletedSynchronously");
   }, []);
+
+JSIL.ImplementExternals("System.Array", function ($) {
+  var copyImpl = function (sourceArray, sourceIndex, destinationArray, destinationIndex, length) {
+    if (length < 0)
+      throw new System.ArgumentException("length");
+    if (sourceIndex < 0)
+      throw new System.ArgumentException("sourceIndex");
+    if (destinationIndex < 0)
+      throw new System.ArgumentException("destinationIndex");
+
+    var maxLength = Math.min(
+      (sourceArray.length - sourceIndex) | 0, 
+      (destinationArray.length - destinationIndex) | 0
+    );
+    if (length > maxLength)
+      throw new System.ArgumentException("length");
+
+    length = length | 0;
+
+    for (var i = 0; i < length; i = (i + 1) | 0) {
+      destinationArray[i + destinationIndex] = sourceArray[i + sourceIndex];
+    }
+  };
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array"), $jsilcore.TypeRef("System.Array"), 
+        $.Int32
+      ], []), 
+    function Copy (sourceArray, destinationArray, length) {
+      copyImpl(sourceArray, 0, destinationArray, 0, length);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $.Int32
+      ], []), 
+    function Copy (sourceArray, sourceIndex, destinationArray, destinationIndex, length) {
+      copyImpl(sourceArray, sourceIndex, destinationArray, destinationIndex, length);
+    }
+  );
+});
