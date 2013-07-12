@@ -636,16 +636,18 @@ JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
     var text = "";
-    if (arguments.length > 0)
+    if ((arguments.length > 0) && (arguments[0] !== null)) {
       text = System.String.Format.apply(System.String, arguments);
+    }
 
     JSIL.Host.logWriteLine(text);
   });
 
   $.RawMethod(true, "Write", function () {
     var text = "";
-    if (arguments.length > 0)
+    if ((arguments.length > 0) && (arguments[0] !== null)) {
       text = System.String.Format.apply(System.String, arguments);
+    }
 
     JSIL.Host.logWrite(text);
   });
