@@ -4832,6 +4832,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     publicInterface.__Type__ = typeObject;
 
     typeObject.__PublicInterface__ = publicInterface;
+    typeObject.__BaseType__ = null;
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
