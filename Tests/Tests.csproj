@@ -184,6 +184,7 @@
     <None Include="InterfaceTestCases\OverloadedGenericMethodInsideNonGenericInterface.cs" />
     <None Include="SpecialTestCases\AddNewField.cs" />
     <None Include="SimpleTestCases\NullableStructRef.cs" />
+    <None Include="SimpleTestCases\ConvertObject.cs" />
     <None Include="PerformanceTestCases\RectangleIntersects.cs" />
     <None Include="SimpleTestCases\EnumBaseType.cs" />
     <None Include="SimpleTestCases\EnumerableSum.cs" />
