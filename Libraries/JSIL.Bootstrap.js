@@ -3015,9 +3015,9 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     (new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
     function ChangeType (value, conversionType) {
       // FIXME: Actually compatible?
-      if (value && value.IConvertible_ToType) {
+      if (value && $jsilcore.System.IConvertible.$Is(value)) {
         // FIXME: provider
-        return value.IConvertible_ToType(conversionType, null);
+        return $jsilcore.System.IConvertible.ToType.Call(value, null, conversionType, null);
       } else {
         return conversionType.__PublicInterface__.$As(value);
       }
@@ -3058,16 +3058,20 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     var descriptor = {Static:true , Public: true };
     var tFormatProvider = $jsilcore.TypeRef("System.IFormatProvider");
 
+    var toType = JSIL.ResolveTypeReference(to)[0];
+    
     var makeSignature = function (argType, formatProvider) {
       if (formatProvider)
         return new JSIL.MethodSignature(to, [argType, tFormatProvider], []);
       else
         return new JSIL.MethodSignature(to, [argType], []);
     };
+    
+    if (from.boolean) {
+      $.Method(descriptor, methodName, makeSignature($.Boolean), from.boolean);
 
-    $.Method(descriptor, methodName, makeSignature($.Boolean), from.boolean);
-
-    $.Method(descriptor, methodName, makeSignature($.Boolean, true), from.boolean);
+      $.Method(descriptor, methodName, makeSignature($.Boolean, true), from.boolean);
+    }
 
     $.Method(descriptor, methodName, makeSignature($.SByte), from.int);
     $.Method(descriptor, methodName, makeSignature($.Int16), from.int);
@@ -3103,11 +3107,33 @@ JSIL.ImplementExternals("System.Convert", function ($) {
       $.Method(descriptor, methodName, makeSignature($.Double, true), from.float);
     }
 
-    $.Method(descriptor, methodName, makeSignature($.String), from.string);
+    if (from.string) {
+      $.Method(descriptor, methodName, makeSignature($.String), from.string);
 
-    $.Method(descriptor, methodName, makeSignature($.String, true), from.string);
+      $.Method(descriptor, methodName, makeSignature($.String, true), from.string);
+    }
 
     var fromObject = function Convert_FromObject (value) {
+      if (value === null) {
+        if (to === $.String) {
+          return $jsilcore.System.String.Empty;
+        }
+        
+        return JSIL.DefaultValue(toType);
+      }
+      
+      if ($jsilcore.System.IConvertible.$Is(value)) {
+        var conversionMethod = $jsilcore.System.IConvertible["To" + typeName];
+        
+        if (conversionMethod) {
+          return conversionMethod.Call(value);
+        }
+      }
+      
+      if (to === $.String) {
+        return value.toString();
+      }
+      
       if ($jsilcore.System.String.$Is(value))
         return from.string(value);
       else if (from.int64 && $jsilcore.System.Int64.$Is(value))
@@ -3267,6 +3293,13 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     string: makeAdapter($jsilcore.$ParseFloat)
   });
 
+  makeConvertMethods("Char", $.Char, {
+    uint: returnSame,
+    int: returnSame,
+    int64: returnValueOf,
+    uint64: returnValueOf
+  });
+  
   makeConvertMethods("String", $.String, {
     boolean: boolToString,
     uint: makeAdapter(String),
@@ -4212,3 +4245,25 @@ JSIL.ImplementExternals("System.Array", function ($) {
     }
   );
 });
+
+JSIL.MakeInterface(
+  "System.IConvertible", true, [], function ($) {
+    $.Method({}, "GetTypeCode", new JSIL.MethodSignature($jsilcore.TypeRef("System.TypeCode"), [], []));
+    $.Method({}, "ToBoolean", new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToChar", new JSIL.MethodSignature($.Char, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToSByte", new JSIL.MethodSignature($.SByte, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToByte", new JSIL.MethodSignature($.Byte, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToInt16", new JSIL.MethodSignature($.Int16, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToUInt16", new JSIL.MethodSignature($.UInt16, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToInt32", new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToUInt32", new JSIL.MethodSignature($.UInt32, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToInt64", new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToUInt64", new JSIL.MethodSignature($.UInt64, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToSingle", new JSIL.MethodSignature($.Single, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToDouble", new JSIL.MethodSignature($.Double, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToDecimal", new JSIL.MethodSignature($jsilcore.TypeRef("System.Decimal"), [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToDateTime", new JSIL.MethodSignature($jsilcore.TypeRef("System.DateTime"), [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToString", new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+    $.Method({}, "ToType", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.IFormatProvider")], []));
+  }, []);
+  
