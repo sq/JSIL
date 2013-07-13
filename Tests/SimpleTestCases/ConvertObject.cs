@@ -83,7 +83,10 @@ class Program {
     private static void TestConversion (object o) {
         Console.WriteLine(Convert.ToBoolean(o) ? "true" : "false");
         Console.WriteLine((int) Convert.ToChar(o));
+        // This works differently in v8 and spidermonkey because of how they handle printing '\0'
+        // Console.WriteLine(Convert.ToChar(o));
         Console.WriteLine(Convert.ToString(o));
+        Console.WriteLine(Convert.ToString(o).Length);
         Console.WriteLine(Convert.ToByte(o));
         Console.WriteLine(Convert.ToSByte(o));
         Console.WriteLine(Convert.ToUInt16(o));
@@ -103,5 +106,7 @@ class Program {
 
         TestConversion(null);
         TestConversion(new Convertible());
+
+        Console.WriteLine(Convert.ToChar(65));
     }
 }

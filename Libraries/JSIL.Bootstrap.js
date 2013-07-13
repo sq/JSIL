@@ -3266,6 +3266,14 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     return $jsilcore.System.Int64.Parse(text);
   };
 
+  var intToChar = function (i) {
+    return String.fromCharCode(i | 0);
+  };
+
+  var valueOfToChar = function (obj) {
+    return String.fromCharCode(obj.valueOf() | 0);
+  };
+
   makeConvertMethods("Int64", $.Int64, {
     boolean: boolToInt64,
     uint: uintToInt64,
@@ -3294,10 +3302,10 @@ JSIL.ImplementExternals("System.Convert", function ($) {
   });
 
   makeConvertMethods("Char", $.Char, {
-    uint: returnSame,
-    int: returnSame,
-    int64: returnValueOf,
-    uint64: returnValueOf
+    uint: intToChar,
+    int: intToChar,
+    int64: valueOfToChar,
+    uint64: valueOfToChar
   });
   
   makeConvertMethods("String", $.String, {
