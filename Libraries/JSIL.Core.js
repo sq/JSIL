@@ -4881,12 +4881,6 @@ JSIL.EnumValue = function (m) {
   throw new Error("Cannot create an abstract instance of an enum");
 };
 JSIL.EnumValue.prototype = JSIL.CreatePrototypeObject(null);
-JSIL.EnumValue.prototype.isFlags = false;
-JSIL.EnumValue.prototype.stringified = null;
-JSIL.EnumValue.prototype.value = 0;
-JSIL.EnumValue.prototype.name = null;
-JSIL.EnumValue.prototype.__ThisType__ = null;
-JSIL.EnumValue.prototype.__ThisTypeId__ = -1;
 JSIL.EnumValue.prototype.GetType = function () {
   return this.__ThisType__;
 };
@@ -4945,7 +4939,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     var runtimeType = $jsilcore.$GetRuntimeType(context, fullName);
     var typeObject = JSIL.CreateSingletonObject(runtimeType);
 
-    publicInterface.prototype = {};
+    publicInterface.prototype = JSIL.CreatePrototypeObject($jsilcore.System.Enum.prototype);
     publicInterface.__Type__ = typeObject;
 
     typeObject.__PublicInterface__ = publicInterface;
@@ -5024,7 +5018,12 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       "this.value = value;\r\n" +
       "this.stringified = this.name = name;\r\n"
     );
-    var valueProto = valueType.prototype = JSIL.CreatePrototypeObject(JSIL.EnumValue.prototype);
+    var valueProto = valueType.prototype = publicInterface.prototype;
+
+    // Copy members from EnumValue.prototype since we have to derive from System.Enum
+    for (var k in JSIL.EnumValue.prototype) {
+      JSIL.MakeIndirectProperty(valueProto, k, JSIL.EnumValue.prototype);
+    }
 
     JSIL.SetValueProperty(
       valueProto, "isFlags", isFlagsEnum
