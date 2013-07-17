@@ -172,7 +172,7 @@ namespace JSIL.Internal {
         protected void WriteToken (AssemblyManifest.Token token) {
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                 int id = int.Parse(token.IDString.Replace("$asm", ""), NumberStyles.HexNumber);
-                WriteRaw("$asms[{0}]", id);
+                WriteRaw("${1}[{0}]", id, Configuration.AssemblyCollectionName ?? "asms");
             } else {
                 WriteRaw(token.IDString);
             }
@@ -1039,7 +1039,7 @@ namespace JSIL.Internal {
 
         public void DeclareAssembly () {
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
-                WriteRaw("var $asms = new JSIL.AssemblyCollection");
+                WriteRaw("var ${0} = new JSIL.AssemblyCollection", Configuration.AssemblyCollectionName ?? "asms");
                 LPar();
                 OpenBrace();
 

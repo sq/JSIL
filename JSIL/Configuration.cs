@@ -84,6 +84,7 @@ namespace JSIL.Translator {
         public bool? GenerateContentManifest;
         public bool? RunBugChecks;
         public string FilenameEscapeRegex;
+        public string AssemblyCollectionName;
 
         public double? FrameworkVersion;
 
@@ -113,6 +114,8 @@ namespace JSIL.Translator {
 
             if (FilenameEscapeRegex != null)
                 result.FilenameEscapeRegex = FilenameEscapeRegex;
+            if (AssemblyCollectionName != null)
+                result.AssemblyCollectionName = AssemblyCollectionName;
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);
