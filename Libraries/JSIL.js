@@ -211,7 +211,7 @@ var $jsilloaderstate = {
   for (var i = 0, l = manifests.length; i < l; i++)
     environment.loadScript(manifestRoot + manifests[i] + ".manifest.js");
 
-  if (config.winForms) {
+  if (config.winForms || config.monogame) {
     contentManifest["JSIL"].push(["Library", "System.Drawing.js"]);
     contentManifest["JSIL"].push(["Library", "System.Windows.js"]);
   }
