@@ -348,7 +348,7 @@ JSIL.$GetSpecialType = function (name) {
   runtimeType.__ShortName__ = "RuntimeType";
 
   var assemblyPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.Assembly", systemObjectPrototype);
-  dict = JSIL.$MakeSpecialType("System.RuntimeAssembly", JSIL.TypeObjectPrototype, assemblyPrototype);
+  dict = JSIL.$MakeSpecialType("System.Reflection.RuntimeAssembly", JSIL.TypeObjectPrototype, assemblyPrototype);
 
   var runtimeAssembly = dict.typeObject;
   runtimeAssembly.__IsReferenceType__ = true;
@@ -461,8 +461,10 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   var makeReflectionAssembly = function () {
     var proto = JSIL.$GetSpecialType("System.Reflection.RuntimeAssembly").prototype;
-    var result = Object.create(proto);
-    return result;
+    var reflectionAssembly = Object.create(proto);
+    reflectionAssembly.__PublicInterface__ = result;
+    reflectionAssembly.__FullName__ = assemblyName;
+    return reflectionAssembly;
   };
 
   JSIL.SetValueProperty(result, "__Declared__", false);
@@ -1383,6 +1385,10 @@ JSIL.Initialize = function () {
   var arn = JSIL.AllRegisteredNames;
   for (var i = 0, l = arn.length; i < l; i++)
     arn[i].sealed = true;
+
+  // Necessary because we can't rely on membranes for these types.
+  JSIL.InitializeType($jsilcore.System.RuntimeType);
+  JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -4890,6 +4896,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
     typeObject.__FullName__ = fullName;
+    typeObject.__TypeInitialized__ = false;
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
@@ -5002,6 +5009,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__IsValueType__ = true;
     typeObject.__IsReferenceType__ = false;
     typeObject.__IsClosed__ = true;
+    typeObject.__TypeInitialized__ = false;
 
     var typeId = JSIL.AssignTypeId(context, fullName);
     JSIL.SetValueProperty(typeObject, "__TypeId__", typeId); 
@@ -7326,6 +7334,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.__IsEnum__ = false;
+    typeObject.__TypeInitialized__ = false;
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
