@@ -7,6 +7,9 @@ if (!$jsilcore)
   throw new Error("JSIL.Core is required");
 
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.IConvertible")
+  );
 });
 
 JSIL.ImplementExternals("System.Object", function ($) {
