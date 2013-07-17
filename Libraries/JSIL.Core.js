@@ -350,7 +350,6 @@ JSIL.$GetSpecialType = function (name) {
   runtimeType.IsInterface = false;
   runtimeType.__IsEnum__ = false;
   runtimeType.__ThisType__ = runtimeType;
-  runtimeType.__ThisTypeId__ = runtimeType.__TypeId__;
   runtimeType.__TypeInitialized__ = false;
   runtimeType.__LockCount__ = 0;
   runtimeType.__FullName__ = "System.RuntimeType";
@@ -387,7 +386,8 @@ JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
 }
 
 JSIL.AssignTypeId = function (assembly, typeName) {
-  var typeName = JSIL.EscapeName(typeName);
+  if (JSIL.EscapeName)
+    typeName = JSIL.EscapeName(typeName);
 
   if (typeof (assembly.__AssemblyId__) === "undefined")
     throw new Error("Invalid assembly context");
@@ -500,6 +500,13 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+
+(function () {
+  JSIL.$SpecialTypePrototypes["System.RuntimeType"].__ThisTypeId__ = 
+    JSIL.$SpecialTypeObjects["System.RuntimeType"].__TypeId__ = 
+      JSIL.AssignTypeId($jsilcore, "System.RuntimeType");
+})();
+
 
 // Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
 //  type inference engine.

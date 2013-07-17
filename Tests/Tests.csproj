@@ -195,6 +195,7 @@
     <None Include="SimpleTestCases\EnumIConvertible.cs" />
     <None Include="SpecialTestCases\SpuriousIntegerHints.cs" />
     <None Include="SimpleTestCases\GetEntryAssembly.cs" />
+    <None Include="SimpleTestCases\CastEnumTypeToRuntimeType.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
