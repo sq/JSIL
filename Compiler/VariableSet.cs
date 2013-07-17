@@ -106,6 +106,13 @@ namespace JSIL.Compiler {
         public VariableSet Clone () {
             return new VariableSet(this);
         }
+
+        internal void SetAssemblyPath (string filename) {
+            var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
+            this["AssemblyDirectory"] = () => assemblyPath;
+            this["AssemblyName"] = () => Path.GetFileName(filename);
+            this["AssemblyNameWithoutExtension"] = () => Path.GetFileNameWithoutExtension(filename);
+        }
     }
 
     public class VariableExpansionException : Exception {

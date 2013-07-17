@@ -357,6 +357,15 @@ namespace JSIL.Compiler {
                 var localVariables = config.ApplyTo(new VariableSet());
                 localVariables["SolutionDirectory"] = () => solutionDir;
 
+                // HACK to let you use assemblyname/etc when copying output files.
+                var buildResultAssembly =
+                    buildResult.OutputFiles.FirstOrDefault((fn) => Path.GetExtension(fn) == ".exe") ??
+                    buildResult.OutputFiles.FirstOrDefault((fn) => Path.GetExtension(fn) == ".dll");
+
+                if (buildResultAssembly != null) {
+                    localVariables.SetAssemblyPath(buildResultAssembly);
+                }
+
                 var processStarted = DateTime.UtcNow.Ticks;
                 profile.ProcessBuildResult(
                     localVariables,
@@ -588,8 +597,7 @@ namespace JSIL.Compiler {
                     localConfig = localProfile.GetConfiguration(localConfig);
                     var localVariables = localConfig.ApplyTo(variables);
 
-                    var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
-                    localVariables["AssemblyDirectory"] = () => assemblyPath;
+                    localVariables.SetAssemblyPath(filename);
 
                     var newProxies = (from p in localConfig.Assemblies.Proxies
                                       let newP = MapPath(p, localVariables, true, true)

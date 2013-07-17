@@ -102,7 +102,10 @@ namespace JSIL.Utilities {
                                 continue;
                         }
 
-                        var outputPath = Path.Combine(fileOutputDir, item.EvaluatedInclude);
+                        var outputLocalPath = item.EvaluatedInclude;
+                        // Ensure that the output path is always inside Files/
+                        outputLocalPath = outputLocalPath.Replace("../", "").Replace("..\\", "");
+                        var outputPath = Path.Combine(fileOutputDir, outputLocalPath);
                         EnsureDirectoryExists(Path.GetDirectoryName(outputPath));
 
                         if (!copiedAny) {
