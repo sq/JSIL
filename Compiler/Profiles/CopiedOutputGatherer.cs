@@ -120,7 +120,7 @@ namespace JSIL.Utilities {
                         if (outputDirectorySourcePaths.Contains(collapsedSourcePath)) {
                             CopyFile(collapsedSourcePath, outputPath, true);
 
-                            manifestWriter.Add("File", item.EvaluatedInclude, new Dictionary<string, object>() {
+                            manifestWriter.Add("File", outputLocalPath, new Dictionary<string, object>() {
                                 {"sizeBytes", fileInfo.Length}
                             });
                         }
