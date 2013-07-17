@@ -243,6 +243,124 @@ JSIL.$GenericParameterTypeIds = {};
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
 
+
+JSIL.$SpecialTypeObjects = {};
+JSIL.$SpecialTypePrototypes = {};
+
+JSIL.$MakeSpecialType = function (name, typeObjectBase, prototypeBase) {
+  var typeObject = Object.create(typeObjectBase);
+  JSIL.$SpecialTypeObjects[name] = typeObject;
+
+  var prototype = JSIL.$MakeSpecialPrototype(name, prototypeBase);
+
+  return {
+    typeObject: typeObject, 
+    prototype: prototype
+  };
+};
+
+JSIL.$MakeSpecialPrototype = function (name, prototypeBase) {
+  var prototype = Object.create(prototypeBase);
+  JSIL.$SpecialTypePrototypes[name] = prototype;
+
+  return prototype;
+};
+
+JSIL.$GetSpecialType = function (name) {
+  return {
+    typeObject: JSIL.$SpecialTypeObjects[name] || null, 
+    prototype: JSIL.$SpecialTypePrototypes[name] || null
+  };
+};
+
+
+JSIL.TypeObjectPrototype = {};
+JSIL.TypeObjectPrototype.__GenericArguments__ = [];
+JSIL.TypeObjectPrototype.toString = function () {
+  return JSIL.GetTypeName(this, true);
+};
+
+JSIL.TypeObjectPrototype.get_Assembly = function() { 
+  return this.__Context__.__Assembly__; 
+};
+JSIL.TypeObjectPrototype.get_BaseType = function() { 
+  return this.__BaseType__; 
+};
+JSIL.TypeObjectPrototype.get_Namespace = function() { 
+  // FIXME: Probably wrong for nested types.
+  return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+};
+JSIL.TypeObjectPrototype.get_Name = function() { 
+  return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+};
+JSIL.TypeObjectPrototype.get_FullName = function() {
+  if (this.get_IsGenericType() && !this.get_IsGenericTypeDefinition()) {
+    var result = this.__FullNameWithoutArguments__;    
+    result += "[";
+
+    var ga = this.__GenericArgumentValues__;
+    for (var i = 0, l = ga.length; i < l; i++) {
+      var type = ga[i];
+      result += "[" + type.get_AssemblyQualifiedName() + "]";
+    }
+
+    result += "]";
+    return result;
+  } else {
+    return this.__FullName__;
+  }
+};
+JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { 
+  return this.get_FullName() + ", " + this.get_Assembly().toString(); 
+};
+JSIL.TypeObjectPrototype.get_IsEnum = function() { 
+  return this.__IsEnum__; 
+};
+JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
+  return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
+};
+JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
+  return this.__IsClosed__ === false; 
+};
+JSIL.TypeObjectPrototype.get_IsValueType = function() { 
+  return this.__IsValueType__; 
+};
+JSIL.TypeObjectPrototype.get_IsArray = function() { 
+  return this.__IsArray__; 
+};
+
+
+( function () {
+  var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
+  var dict = JSIL.$MakeSpecialType("System.RuntimeType", JSIL.TypeObjectPrototype, systemObjectPrototype);
+
+  var runtimeType = dict.typeObject;
+  runtimeType.__IsReferenceType__ = true;
+  runtimeType.IsInterface = false;
+  runtimeType.__IsEnum__ = false;
+  runtimeType.__ThisType__ = runtimeType;
+  runtimeType.__ThisTypeId__ = runtimeType.__TypeId__;
+  runtimeType.__TypeInitialized__ = false;
+  runtimeType.__LockCount__ = 0;
+  runtimeType.__FullName__ = "System.RuntimeType";
+  runtimeType.__ShortName__ = "RuntimeType";
+
+  var assemblyPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.Assembly", systemObjectPrototype);
+  dict = JSIL.$MakeSpecialType("System.RuntimeAssembly", JSIL.TypeObjectPrototype, assemblyPrototype);
+
+  var runtimeAssembly = dict.typeObject;
+  runtimeAssembly.__IsReferenceType__ = true;
+  runtimeAssembly.IsInterface = false;
+  runtimeAssembly.__IsEnum__ = false;
+  runtimeAssembly.__ThisType__ = runtimeType;
+  runtimeAssembly.__ThisTypeId__ = runtimeType.__TypeId__;
+  runtimeAssembly.__TypeInitialized__ = false;
+  runtimeAssembly.__LockCount__ = 0;
+  runtimeAssembly.__FullName__ = "System.Reflection.RuntimeAssembly";
+  runtimeAssembly.__ShortName__ = "RuntimeAssembly";
+} )();
+
+
 JSIL.SetTypeId = function (typeObject, publicInterface, prototype, value) {
   if (!value)
     value = prototype;
@@ -340,7 +458,9 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   }
 
   var makeReflectionAssembly = function () {
-    return new $jsilcore.System.Reflection.RuntimeAssembly(result, assemblyName);
+    var proto = JSIL.$GetSpecialType("System.Reflection.RuntimeAssembly").prototype;
+    var result = Object.create(proto);
+    return result;
   };
 
   JSIL.SetValueProperty(result, "__Declared__", false);
@@ -1664,7 +1784,10 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
   var baseTypePublicInterface = _[0];
   var baseTypeObject = _[1];
 
-  var prototype = JSIL.CreatePrototypeObject(baseTypePublicInterface.prototype);
+  var prototype = JSIL.$GetSpecialType(typeName).prototype;
+  if (!prototype)
+    prototype = JSIL.CreatePrototypeObject(baseTypePublicInterface.prototype);
+
   JSIL.SetValueProperty(prototype, "__ThisType__", typeObject);
   JSIL.SetValueProperty(prototype, "__ThisTypeId__", typeObject.__TypeId__);
   prototype.__BaseType__ = baseTypeObject;
@@ -1741,61 +1864,6 @@ JSIL.MakeIndirectProperty = function (target, key, source) {
     set: setter
   });
 };
-
-JSIL.TypeObjectPrototype = {};
-JSIL.TypeObjectPrototype.__GenericArguments__ = [];
-JSIL.TypeObjectPrototype.toString = function () {
-  return JSIL.GetTypeName(this, true);
-};
-
-JSIL.TypeObjectPrototype.get_Assembly = function() { 
-  return this.__Context__.__Assembly__; 
-}
-JSIL.TypeObjectPrototype.get_BaseType = function() { 
-  return this.__BaseType__; 
-}
-JSIL.TypeObjectPrototype.get_Namespace = function() { 
-  // FIXME: Probably wrong for nested types.
-  return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); 
-}
-JSIL.TypeObjectPrototype.get_Name = function() { 
-  return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); 
-}
-JSIL.TypeObjectPrototype.get_FullName = function() {
-  if (this.get_IsGenericType() && !this.get_IsGenericTypeDefinition()) {
-    var result = this.__FullNameWithoutArguments__;    
-    result += "[";
-
-    var ga = this.__GenericArgumentValues__;
-    for (var i = 0, l = ga.length; i < l; i++) {
-      var type = ga[i];
-      result += "[" + type.get_AssemblyQualifiedName() + "]";
-    }
-
-    result += "]";
-    return result;
-  } else {
-    return this.__FullName__;
-  }
-}
-JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { 
-  return this.get_FullName() + ", " + this.get_Assembly().toString(); 
-}
-JSIL.TypeObjectPrototype.get_IsEnum = function() { 
-  return this.__IsEnum__; 
-}
-JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
-  return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
-}
-JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
-  return this.__IsClosed__ === false; 
-}
-JSIL.TypeObjectPrototype.get_IsValueType = function() { 
-  return this.__IsValueType__; 
-}
-JSIL.TypeObjectPrototype.get_IsArray = function() { 
-  return this.__IsArray__; 
-}
 
 
 // FIXME: The $...Internal version returns null if no resolution was necessary,
@@ -2785,21 +2853,6 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): " + missingMembers.join(", "));
   }
 };
-
-( function () {
-  var runtimeType = JSIL.CreateInstanceObject(JSIL.TypeObjectPrototype);
-  runtimeType.__IsReferenceType__ = true;
-  runtimeType.IsInterface = false;
-  runtimeType.__IsEnum__ = false;
-  runtimeType.__ThisType__ = runtimeType;
-  runtimeType.__ThisTypeId__ = runtimeType.__TypeId__;
-  runtimeType.__TypeInitialized__ = false;
-  runtimeType.__LockCount__ = 0;
-  runtimeType.__FullName__ = "System.RuntimeType";
-  runtimeType.__ShortName__ = "RuntimeType";
-
-  $jsilcore.RuntimeType = runtimeType;
-} )();
 
 JSIL.GetFieldList = function (typeObject) {
   var fl = typeObject.__FieldList__;
@@ -4154,7 +4207,7 @@ $jsilcore.$GetRuntimeType = function (context, forTypeName) {
     ) {
 
     if (!$jsilcore.SystemObjectInitialized || !$jsilcore.RuntimeTypeInitialized)
-      return $jsilcore.RuntimeType;
+      return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
   }
 
   var runtimeType = JSIL.ResolveName($jsilcore, "System.RuntimeType", true);
@@ -4163,7 +4216,7 @@ $jsilcore.$GetRuntimeType = function (context, forTypeName) {
     JSIL.InitializeType(runtimeTypeObj);
     return runtimeTypeObj.prototype;
   } else {
-    return $jsilcore.RuntimeType;
+    return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
   }
 };
 
@@ -4655,7 +4708,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     // We need to make the type object we're constructing available early on, in order for
     //  recursive generic base classes to work.
-    typeObject = JSIL.CreateSingletonObject(runtimeType);
+    typeObject = JSIL.$GetSpecialType(fullName).typeObject;
+    if (!typeObject)
+      typeObject = JSIL.CreateSingletonObject(runtimeType);
 
     // Needed for basic bookkeeping to function correctly.
     typeObject.__Context__ = assembly;

@@ -815,6 +815,22 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
       return JSIL.GetTypesFromAssembly(this.__PublicInterface__);
     }
   );
+
+  $.Method({Static: true, Public: true}, "GetEntryAssembly",
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function GetEntryAssembly () {
+      // FIXME
+      return null;
+    }
+  );
+
+  $.Method({Static: true, Public: true}, "GetExecutingAssembly",
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function GetExecutingAssembly () {
+      // FIXME
+      return null;
+    }
+  );
 });
 
 JSIL.MakeClass("System.Reflection.Assembly", "System.Reflection.RuntimeAssembly", true, [], function ($) {
