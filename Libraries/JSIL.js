@@ -217,24 +217,24 @@ var $jsilloaderstate = {
   }
 
   if (config.xna) {
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Core.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/XNA4.js"]);
 
     switch (Number(config.xna)) {
-      case 3:
-        contentManifest["JSIL"].push(["Library", "JSIL.XNA3.js"]);
-        break;
       case 4:
-        contentManifest["JSIL"].push(["Library", "JSIL.XNA4.js"]);
         break;
       default:
         throw new Error("Unsupported XNA version");
     }
 
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Content.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Graphics.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Input.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Audio.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.XNA.Storage.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/Content.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/Graphics.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/Input.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/Audio.js"]);
+    contentManifest["JSIL"].push(["Library", "XNA/Storage.js"]);
+  }
+
+  if (config.monogame) {
+    contentManifest["JSIL"].push(["Library", "MonoGame/OpenTK.js"]);
   }
 
   if (config.readOnlyStorage)

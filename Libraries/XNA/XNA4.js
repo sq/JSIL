@@ -3097,3 +3097,7 @@ JSIL.MakeClass("System.Object", "JSIL.FakeWaitHandle", true, [], function ($inte
     /* 0 */ $jsilcore.TypeRef("System.IDisposable")
   );
 });
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Color", $jsilxna.Color
+);
