@@ -5850,6 +5850,27 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   return memberBuilder;
 };
 
+JSIL.InterfaceBuilder.prototype.MakeEventAccessors = function (_descriptor, name, type) {
+  var signature = new JSIL.MethodSignature(
+    null, [type], []
+  );
+
+  function adder (value) {
+    var existingValue = this[name] || null;
+    var newValue = $jsilcore.$CombineDelegates(existingValue, value);
+    return this[name] = newValue;
+  };
+
+  function remover (value) {
+    var existingValue = this[name] || null;
+    var newValue = $jsilcore.$RemoveDelegate(existingValue, value);
+    return this[name] = newValue;
+  };
+
+  this.Method(_descriptor, "add_" + name, signature, adder);
+  this.Method(_descriptor, "remove_" + name, signature, remover);
+};
+
 JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
   var signature = new JSIL.MethodSignature(null, [], []);
   var descriptor = this.ParseDescriptor({Public: true, Static: false}, name, signature);

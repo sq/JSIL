@@ -111,32 +111,24 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
     }
   );
 
-  $.Method({Static:false, Public:true , Virtual:true }, "add_Load", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])], []), 
-    function add_Load (value) {
-      throw new Error('Not implemented');
-    }
+  $.MakeEventAccessors(
+    {Static:false, Public:true , Virtual:true }, "Load", 
+    $mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])
   );
 
-  $.Method({Static:false, Public:true , Virtual:true }, "add_RenderFrame", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])], []), 
-    function add_RenderFrame (value) {
-      throw new Error('Not implemented');
-    }
+  $.MakeEventAccessors(
+    {Static:false, Public:true , Virtual:true }, "Unload", 
+    $mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])
   );
 
-  $.Method({Static:false, Public:true , Virtual:true }, "add_Unload", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])], []), 
-    function add_Unload (value) {
-      throw new Error('Not implemented');
-    }
+  $.MakeEventAccessors(
+    {Static:false, Public:true , Virtual:true }, "RenderFrame", 
+    $mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])
   );
 
-  $.Method({Static:false, Public:true , Virtual:true }, "add_UpdateFrame", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])], []), 
-    function add_UpdateFrame (value) {
-      throw new Error('Not implemented');
-    }
+  $.MakeEventAccessors(
+    {Static:false, Public:true , Virtual:true }, "UpdateFrame", 
+    $mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
@@ -275,34 +267,6 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true , Virtual:true }, "MakeCurrent", 
     new JSIL.MethodSignature(null, [], []), 
     function MakeCurrent () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true , Virtual:true }, "remove_Load", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])], []), 
-    function remove_Load (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true , Virtual:true }, "remove_RenderFrame", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])], []), 
-    function remove_RenderFrame (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true , Virtual:true }, "remove_Unload", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[2].TypeRef("System.EventArgs")])], []), 
-    function remove_Unload (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true , Virtual:true }, "remove_UpdateFrame", 
-    new JSIL.MethodSignature(null, [$mgasms[2].TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.FrameEventArgs")])], []), 
-    function remove_UpdateFrame (value) {
       throw new Error('Not implemented');
     }
   );
