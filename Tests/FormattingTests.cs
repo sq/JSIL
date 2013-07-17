@@ -851,5 +851,25 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void SpuriousIntegerHints () {
+            var output = "0F0F\r\n7773";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\SpuriousIntegerHints.cs",
+                output
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains(" & 15) | 0)"),
+                    "A | 0 type hint surrounds a bitwise operator"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

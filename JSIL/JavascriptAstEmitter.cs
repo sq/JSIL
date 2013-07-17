@@ -1445,6 +1445,7 @@ namespace JSIL {
 
             if (
                 !(bop.Operator is JSAssignmentOperator) &&
+                !(bop.Operator is JSBitwiseOperator) &&
                 Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
                 // Truncation needs to happen after overflow checks, not before, because... yeah.
                 !OverflowCheckStack.Peek()

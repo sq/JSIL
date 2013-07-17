@@ -60,13 +60,13 @@ namespace JSIL.Ast {
         public static readonly JSArithmeticOperator Divide = new JSArithmeticOperator("/");
         public static readonly JSArithmeticOperator Remainder = new JSArithmeticOperator("%");
 
-        public static readonly JSBinaryOperator ShiftLeft = new JSBinaryOperator("<<");
-        public static readonly JSBinaryOperator ShiftRight = new JSBinaryOperator(">>");
-        public static readonly JSBinaryOperator ShiftRightUnsigned = new JSBinaryOperator(">>>");
+        public static readonly JSBitwiseOperator ShiftLeft = new JSBitwiseOperator("<<");
+        public static readonly JSBitwiseOperator ShiftRight = new JSBitwiseOperator(">>");
+        public static readonly JSBitwiseOperator ShiftRightUnsigned = new JSBitwiseOperator(">>>");
 
-        public static readonly JSBinaryOperator BitwiseAnd = new JSBinaryOperator("&");
-        public static readonly JSBinaryOperator BitwiseOr = new JSBinaryOperator("|");
-        public static readonly JSBinaryOperator BitwiseXor = new JSBinaryOperator("^");
+        public static readonly JSBitwiseOperator BitwiseAnd = new JSBitwiseOperator("&");
+        public static readonly JSBitwiseOperator BitwiseOr = new JSBitwiseOperator("|");
+        public static readonly JSBitwiseOperator BitwiseXor = new JSBitwiseOperator("^");
 
         public static readonly JSLogicalOperator LogicalAnd = new JSLogicalOperator("&&");
         public static readonly JSLogicalOperator LogicalOr = new JSLogicalOperator("||");
@@ -113,6 +113,12 @@ namespace JSIL.Ast {
 
     public class JSArithmeticOperator : JSBinaryOperator {
         public JSArithmeticOperator (string token)
+            : base(token) {
+        }
+    }
+
+    public class JSBitwiseOperator : JSBinaryOperator {
+        public JSBitwiseOperator (string token)
             : base(token) {
         }
     }
