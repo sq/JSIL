@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
+using JSIL.Translator;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Mdb;
@@ -33,10 +35,13 @@ namespace JSIL.Internal {
             25, 52, 224, 137
         };
 
+        protected readonly Configuration Configuration;
         protected readonly AssemblyCache Cache = new AssemblyCache();
         protected readonly bool OwnsCache;
 
-        public AssemblyResolver (IEnumerable<string> dirs, AssemblyCache cache = null) {
+        public AssemblyResolver (IEnumerable<string> dirs, Configuration configuration, AssemblyCache cache = null) {
+            Configuration = configuration;
+
             OwnsCache = (cache == null);
             if (cache != null)
                 Cache = cache;
@@ -70,13 +75,33 @@ namespace JSIL.Internal {
             return bclName;
         }
 
+        public AssemblyNameReference FilterRedirectedReferences (AssemblyNameReference name, out string redirectedFrom) {
+            redirectedFrom = null;
+
+            foreach (var kvp in Configuration.Assemblies.Redirects) {
+                if (Regex.IsMatch(name.FullName, kvp.Key)) {
+                    redirectedFrom = name.FullName;
+                    return new AssemblyNameReference(kvp.Value, null);
+                }
+            }
+
+            return name;
+        }
+
         public override AssemblyDefinition Resolve (AssemblyNameReference name, ReaderParameters parameters) {
             if (name == null)
                 throw new ArgumentNullException("name");
 
             var actualName = FilterPortableClassLibraryReferences(name);
+            string redirectedFrom;
+            actualName = FilterRedirectedReferences(name, out redirectedFrom);
 
-            var result = Cache.GetOrCreate(actualName.FullName, (fullName) => base.Resolve(actualName, parameters));
+            var result = Cache.GetOrCreate(actualName.FullName, (fullName) => {
+                if (redirectedFrom != null)
+                    Console.Error.WriteLine("// Redirected '{0}' to '{1}'", redirectedFrom, actualName.FullName);
+
+                return base.Resolve(actualName, parameters);
+            });
 
             return result;
         }

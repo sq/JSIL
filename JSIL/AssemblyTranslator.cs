@@ -184,7 +184,8 @@ namespace JSIL {
                 readerParameters.AssemblyResolver = new AssemblyResolver(new string[] { 
                     Path.GetDirectoryName(mainAssemblyPath),
                     Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())) 
-                }, AssemblyCache);
+                }, Configuration, AssemblyCache);
+
                 readerParameters.MetadataResolver = new CachingMetadataResolver(readerParameters.AssemblyResolver);
             }
 
@@ -220,26 +221,26 @@ namespace JSIL {
 
         protected AssemblyDefinition AssemblyLoadErrorWrapper<T> (
             Func<T, ReaderParameters, AssemblyDefinition> loader,
-            T arg1, ReaderParameters readerParameters, 
+            T assemblyName, ReaderParameters readerParameters, 
             bool useSymbols, string mainAssemblyPath
         ) {
-            AssemblyDefinition result = null;
+            AssemblyDefinition result = null;            
 
             try {
-                result = loader(arg1, readerParameters);
+                result = loader(assemblyName, readerParameters);
             } catch (Exception ex) {
                 if (useSymbols) {
                     try {
-                        result = loader(arg1, GetReaderParameters(false, mainAssemblyPath));
+                        result = loader(assemblyName, GetReaderParameters(false, mainAssemblyPath));
                         if (CouldNotLoadSymbols != null)
-                            CouldNotLoadSymbols(arg1.ToString(), ex);
+                            CouldNotLoadSymbols(assemblyName.ToString(), ex);
                     } catch (Exception ex2) {
                         if (CouldNotResolveAssembly != null)
-                            CouldNotResolveAssembly(arg1.ToString(), ex2);
+                            CouldNotResolveAssembly(assemblyName.ToString(), ex2);
                     }
                 } else {
                     if (CouldNotResolveAssembly != null)
-                        CouldNotResolveAssembly(arg1.ToString(), ex);
+                        CouldNotResolveAssembly(assemblyName.ToString(), ex);
                 }
             }
 

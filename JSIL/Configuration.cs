@@ -13,10 +13,15 @@ namespace JSIL.Translator {
 
             public readonly List<string> Proxies = new List<string>();
 
+            public readonly Dictionary<string, string> Redirects = new Dictionary<string, string>();
+
             public void MergeInto (AssemblyConfiguration result) {
                 result.Ignored.AddRange(Ignored);
                 result.Stubbed.AddRange(Stubbed);
                 result.Proxies.AddRange(Proxies);
+
+                foreach (var kvp in Redirects)
+                    result.Redirects[kvp.Key] = kvp.Value;
             }
         }
 
