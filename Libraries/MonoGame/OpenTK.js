@@ -985,3 +985,125 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
 });
+
+//
+// DisplayDevice
+//
+
+JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [], []), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ChangeResolution", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.DisplayResolution")], []), 
+    function ChangeResolution (resolution) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ChangeResolution", 
+    new JSIL.MethodSignature(null, [
+        $.Int32, $.Int32, 
+        $.Int32, $.Single
+      ], []), 
+    function ChangeResolution (width, height, bitsPerPixel, refreshRate) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_AvailableDisplays", 
+    new JSIL.MethodSignature($mgasms[2].TypeRef("System.Collections.Generic.IList`1", [$mgasms[3].TypeRef("OpenTK.DisplayDevice")]), [], []), 
+    function get_AvailableDisplays () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_AvailableResolutions", 
+    new JSIL.MethodSignature($mgasms[2].TypeRef("System.Collections.Generic.IList`1", [$mgasms[3].TypeRef("OpenTK.DisplayResolution")]), [], []), 
+    function get_AvailableResolutions () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_BitsPerPixel", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_BitsPerPixel () {
+      // FIXME
+      return 32;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Bounds", 
+    new JSIL.MethodSignature($mgasms[5].TypeRef("System.Drawing.Rectangle"), [], []), 
+    function get_Bounds () {
+      return System.Windows.Forms.Screen.PrimaryScreen.Bounds;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_Default", 
+    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.DisplayDevice"), [], []), 
+    function get_Default () {
+      // FIXME
+      return new OpenTK.DisplayDevice();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_Height () {
+      return System.Windows.Forms.Screen.PrimaryScreen.Bounds.get_Height();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsPrimary", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function get_IsPrimary () {
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_RefreshRate", 
+    new JSIL.MethodSignature($.Single, [], []), 
+    function get_RefreshRate () {
+      // FIXME
+      return 60;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_Width () {
+      return System.Windows.Forms.Screen.PrimaryScreen.Bounds.get_Width();
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDisplay", 
+    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.DisplayDevice"), [$mgasms[3].TypeRef("OpenTK.DisplayIndex")], []), 
+    function GetDisplay (index) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RestoreResolution", 
+    new JSIL.MethodSignature(null, [], []), 
+    function RestoreResolution () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SelectResolution", 
+    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.DisplayResolution"), [
+        $.Int32, $.Int32, 
+        $.Int32, $.Single
+      ], []), 
+    function SelectResolution (width, height, bitsPerPixel, refreshRate) {
+      throw new Error('Not implemented');
+    }
+  );
+
+});
