@@ -1345,27 +1345,44 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
 
   var mscorlib = JSIL.GetCorlib();
 
-  var listCtor = function (list) {
+  var IListCtor = function (list) {
     this._list = list;
 
-    Object.defineProperty(this, "_items", {
-      get: function () {
-        return list._items;
-      }
-    });
+    if (JSIL.IsArray(list._array)) {
+      Object.defineProperty(this, "_items", {
+        get: function () {
+          return list._array;
+        }
+      });
 
-    Object.defineProperty(this, "_size", {
-      get: function () {
-        return list._size;
-      }
-    });
+      Object.defineProperty(this, "_size", {
+        get: function () {
+          return list._array.length;
+        }
+      });
+    } else {
+      if (!list._items || (typeof(list._size) !== "number"))
+        throw new Error("argument must be a list");
+
+      Object.defineProperty(this, "_items", {
+        get: function () {
+          return list._items;
+        }
+      });
+
+      Object.defineProperty(this, "_size", {
+        get: function () {
+          return list._size;
+        }
+      });
+    }
   };
 
-  $.RawMethod(false, "$listCtor", listCtor);
+  $.RawMethod(false, "$listCtor", IListCtor);
 
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
-    listCtor
+    IListCtor
   );
 
   $.SetValue("Add", null);
