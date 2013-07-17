@@ -193,6 +193,7 @@
     <None Include="SimpleTestCases\ArrayCopyEnum.cs" />
     <None Include="SimpleTestCases\StringGetHashCode.cs" />
     <None Include="SimpleTestCases\EnumIConvertible.cs" />
+    <None Include="SimpleTestCases\ConvertEnum.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
