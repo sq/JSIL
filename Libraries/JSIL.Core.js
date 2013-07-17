@@ -252,7 +252,9 @@ JSIL.$MakeSpecialType = function (name, typeObjectBase, prototypeBase) {
 
   JSIL.$SpecialTypeObjects[name] = typeObject;
 
-  var prototype = JSIL.$MakeSpecialPrototype(name, prototypeBase);
+  var prototype = null;
+  if (prototypeBase)
+    prototype = JSIL.$MakeSpecialPrototype(name, prototypeBase);
 
   return {
     typeObject: typeObject, 
@@ -276,10 +278,8 @@ JSIL.$GetSpecialType = function (name) {
 };
 
 ( function () {
-  var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
+  JSIL.TypeObjectPrototype = Object.create(null);
 
-  JSIL.TypeObjectPrototype = Object.create(systemObjectPrototype);
-  JSIL.TypeObjectPrototype.__GenericArguments__ = [];
   JSIL.TypeObjectPrototype.toString = function () {
     return JSIL.GetTypeName(this, true);
   };
@@ -333,10 +333,19 @@ JSIL.$GetSpecialType = function (name) {
     return this.__IsArray__; 
   };
 
-  var systemTypePrototype = JSIL.$MakeSpecialPrototype("System.Type", systemObjectPrototype);
-  var dict = JSIL.$MakeSpecialType("System.RuntimeType", JSIL.TypeObjectPrototype, systemTypePrototype);
+  var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
+  var memberInfoPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.MemberInfo", systemObjectPrototype);
+  var systemTypePrototype = JSIL.$MakeSpecialPrototype("System.Type", memberInfoPrototype);
+  var typeInfoPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.TypeInfo", systemTypePrototype);
+  var runtimeTypePrototype = JSIL.$MakeSpecialPrototype("System.RuntimeType", typeInfoPrototype);
+
+  var dict = JSIL.$MakeSpecialType("System.RuntimeType", runtimeTypePrototype, null);
 
   var runtimeType = dict.typeObject;
+
+  for (var k in JSIL.TypeObjectPrototype)
+    runtimeType[k] = JSIL.TypeObjectPrototype[k];
+
   runtimeType.__IsReferenceType__ = true;
   runtimeType.IsInterface = false;
   runtimeType.__IsEnum__ = false;
@@ -348,7 +357,7 @@ JSIL.$GetSpecialType = function (name) {
   runtimeType.__ShortName__ = "RuntimeType";
 
   var assemblyPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.Assembly", systemObjectPrototype);
-  dict = JSIL.$MakeSpecialType("System.Reflection.RuntimeAssembly", JSIL.TypeObjectPrototype, assemblyPrototype);
+  dict = JSIL.$MakeSpecialType("System.Reflection.RuntimeAssembly", runtimeTypePrototype, assemblyPrototype);
 
   var runtimeAssembly = dict.typeObject;
   runtimeAssembly.__IsReferenceType__ = true;
@@ -1389,6 +1398,7 @@ JSIL.Initialize = function () {
   // Necessary because we can't rely on membranes for these types.
   JSIL.InitializeType($jsilcore.System.RuntimeType);
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
+  JSIL.InitializeType($jsilcore.System.Object);
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -1895,10 +1905,10 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
       (typeof (result) === "undefined") ||
       (result === null)
     ) {
-      var errorText = "Failed to resolve generic parameter " + obj.toString() + " in context " + context;
-      
-      if (JSIL.WarnAboutGenericResolveFailures)
+      if (JSIL.WarnAboutGenericResolveFailures) {
+        var errorText = "Failed to resolve generic parameter " + String(obj);
         JSIL.Host.warning(errorText);
+      }
 
       return null;
     }
@@ -3954,6 +3964,7 @@ JSIL.InitializeType = function (type) {
     }
 
     if (
+      classObject.prototype &&
       (typeof (classObject.prototype) === "object") && 
       // HACK: We need to use a special implementation for System.Object.MemberwiseClone,
       //  since when called explicitly it acts 'virtually' (conforms to the instance type)
@@ -4205,11 +4216,16 @@ JSIL.GetCorlib = function () {
   return JSIL.GetAssembly("mscorlib", true) || $jsilcore;
 };
 
-$jsilcore.$GetRuntimeType = function (context, forTypeName) {
+$jsilcore.$GetRuntimeType = function () {
   // Initializing System.Object forms a cyclical dependency through RuntimeType.
-  // To deal with this, we use a stub for RuntimeType until System.Object has been fully initialized.
-
   return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
+};
+
+JSIL.$MakeTypeObject = function (fullName) {
+  var runtimeType = $jsilcore.$GetRuntimeType();
+  var result = Object.create(runtimeType.__PublicInterface__.prototype);
+
+  return result;
 };
 
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
@@ -4228,9 +4244,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   var typeObject, staticClassObject;
 
   var creator = function CreateStaticClassObject () {
-    var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-
-    typeObject = JSIL.CreateSingletonObject(runtimeType);
+    typeObject = JSIL.$MakeTypeObject(fullName);
 
     typeObject.__FullName__ = fullName;
     typeObject.__ReflectionCache__ = null;
@@ -4877,14 +4891,14 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     callStack = printStackTrace();
 
   var creator = function CreateInterface () {
-    var publicInterface = function Interface__ctor () {
-      throw new Error("Cannot construct an instance of an interface");
-    };
+    var publicInterface = new Object();
+    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString () {
+      return "<" + fullName + " Public Interface>";
+    });
 
-    var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-    var typeObject = JSIL.CreateSingletonObject(runtimeType);
+    var typeObject = JSIL.$MakeTypeObject(fullName);
 
-    publicInterface.prototype = {};
+    publicInterface.prototype = null;
     publicInterface.__Type__ = typeObject;
 
     typeObject.__PublicInterface__ = publicInterface;
@@ -4892,11 +4906,15 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
+    typeObject.__Members__ = [];
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
     typeObject.__FullName__ = fullName;
     typeObject.__TypeInitialized__ = false;
+
+    if (interfaces && interfaces.length)
+      JSIL.$CopyInterfaceMethods(interfaces, publicInterface);
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
@@ -4907,10 +4925,6 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
 
     var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface);
     initializer(interfaceBuilder);
-
-    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString() {
-      return "<" + fullName + " Public Interface>";
-    });
 
     if (typeObject.__GenericArguments__.length > 0) {
       publicInterface.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(publicInterface);
@@ -4993,8 +5007,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       throw new Error("Cannot construct an instance of an enum");
     };
 
-    var runtimeType = $jsilcore.$GetRuntimeType(context, fullName);
-    var typeObject = JSIL.CreateSingletonObject(runtimeType);
+    var typeObject = JSIL.$MakeTypeObject(fullName);
 
     publicInterface.prototype = JSIL.CreatePrototypeObject($jsilcore.System.Enum.prototype);
     publicInterface.__Type__ = typeObject;
@@ -6994,16 +7007,16 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   var makeTypeInstance = function (type) {
     // Construct the appropriate subclass of MemberInfo
-    /*
     var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
     var info = JSIL.CreateInstanceOfType(infoType, null);
-    */
 
+    /*
     // Don't trigger type initialization machinery
     // FIXME: This will break if any of the memberinfo types rely on static constructors.
     var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
     var info = Object.create(infoType.prototype);
+    */
 
     // HACK: Makes it possible to tell what type a member is trivially
     JSIL.SetValueProperty(info, "__MemberType__", type);
@@ -7323,7 +7336,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore);
     }
 
-    var typeObject = JSIL.CreateSingletonObject(JSIL.TypeObjectPrototype);
+    var typeObject = JSIL.$MakeTypeObject(fullName);
 
     typeObject.__Context__ = assembly;
     typeObject.__BaseType__ = delegateType;
@@ -8149,5 +8162,27 @@ JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {
       continue;
 
     JSIL.MakeIndirectProperty(target, k, source);
+  }
+};
+
+JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
+  var imProto = JSIL.InterfaceMethod.prototype;
+
+  for (var i = 0, l = interfaceList.length; i < l; i++) {
+    var ifaceRef = interfaceList[i];
+    var iface = JSIL.ResolveTypeReference(ifaceRef)[0];
+
+    for (var k in iface) {
+      var im = iface[k];
+
+      if (
+        !im || 
+        (typeof(im) !== "object") ||
+        (Object.getPrototypeOf(im) !== imProto)
+      )
+        continue;
+
+      target[k] = iface[k];
+    }
   }
 };
