@@ -698,6 +698,13 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
     return uri;
   });
+  
+  $.Method({Static:false, Public:true }, "get_Name", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Name () {
+      return this._fileName;
+    }
+  );
 });
 
 JSIL.ImplementExternals(
