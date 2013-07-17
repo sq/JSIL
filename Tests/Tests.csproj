@@ -191,6 +191,7 @@
     <None Include="SimpleTestCases\Issue213.cs" />
     <None Include="SimpleTestCases\InterfaceBaseType.cs" />
     <None Include="SimpleTestCases\ArrayCopyEnum.cs" />
+    <None Include="SimpleTestCases\StringGetHashCode.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
