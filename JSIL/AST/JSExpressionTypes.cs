@@ -1958,6 +1958,9 @@ namespace JSIL.Ast {
                 if (TypeUtil.IsPointer(currentType)) {
                     return new JSPointerCastExpression(inner, newType);
                 } else {
+                    var originalInner = inner;
+                    var originalInnerType = originalInner.GetActualType(typeSystem);
+
                     while (inner is JSReferenceExpression)
                         inner = ((JSReferenceExpression)inner).Referent;
 
@@ -1968,6 +1971,13 @@ namespace JSIL.Ast {
                         return new JSPinExpression(indexer.Target, indexer.Index, newType);
                     } else if (elementRef != null) {
                         return new JSPinExpression(elementRef.Array, elementRef.Index, newType);
+                    } else if ((originalInnerType is ByReferenceType) &&
+                        TypeUtil.IsNumeric(innerType) &&
+                        (newType is PointerType) &&
+                        TypeUtil.IsNumeric(newType.GetElementType())
+                    ) {
+                        // Handle cast of primitive& to primitive* (reinterpret single value as an array of some other fundamental type)
+                        return new JSPinValueExpression(inner, newType);
                     } else if (TypeUtil.IsArray(innerType)) {
                         return new JSPinExpression(inner, null, newType);
                     } else if (TypeUtil.IsIntegral(innerType)) {
@@ -2740,6 +2750,26 @@ namespace JSIL.Ast {
                 new JSNullLiteral(ReferenceType.Module.TypeSystem.Object),
                 new JSIntegerLiteral(-1, typeof(Int32))
             );
+        }
+    }
+
+    public class JSPinValueExpression : JSExpression {
+        public readonly TypeReference PointerType;
+
+        public JSPinValueExpression (JSExpression value, TypeReference pointerType)
+            : base(value) {
+
+            PointerType = pointerType;
+        }
+
+        public JSExpression Value {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return PointerType;
         }
     }
 }

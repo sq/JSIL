@@ -1277,4 +1277,13 @@ JSIL.GetArrayBuffer = function (array) {
   }
 };
 
+// Note that this does not let you mutate valueToPin by modifying the pinned pointer! This is read-only.
+JSIL.PinValueAndGetPointer = function (valueToPin, sourceType, targetType) {
+  var temporaryArray = new (JSIL.GetTypedArrayConstructorForElementType(sourceType))(1);
+  temporaryArray[0] = valueToPin;
+
+  var resultArray = new (JSIL.GetTypedArrayConstructorForElementType(targetType))(temporaryArray.buffer, 0, temporaryArray.buffer.byteLength);
+  return JSIL.PinAndGetPointer(resultArray);
+};
+
 // FIXME: Implement unpin operation? Probably not needed yet.

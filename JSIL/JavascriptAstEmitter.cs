@@ -547,6 +547,19 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSPinValueExpression pinValue) {
+            Output.Comment("WARNING: Mutating the result pointer will not mutate the input value.");
+            Output.WriteRaw("JSIL.PinValueAndGetPointer");
+            Output.LPar();
+            Visit(pinValue.Value);
+            Output.Comma();
+            var valueType = pinValue.Value.GetActualType(TypeSystem);
+            Output.Identifier(valueType, ReferenceContext);
+            Output.Comma();
+            Output.Identifier(pinValue.PointerType, ReferenceContext);
+            Output.RPar();
+        }
+
         private void WriteTruncationForType (TypeReference type) {
             switch (type.FullName) {
                 case "System.UInt32":
