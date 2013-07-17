@@ -249,6 +249,7 @@ JSIL.$SpecialTypePrototypes = {};
 
 JSIL.$MakeSpecialType = function (name, typeObjectBase, prototypeBase) {
   var typeObject = Object.create(typeObjectBase);
+
   JSIL.$SpecialTypeObjects[name] = typeObject;
 
   var prototype = JSIL.$MakeSpecialPrototype(name, prototypeBase);
@@ -261,6 +262,7 @@ JSIL.$MakeSpecialType = function (name, typeObjectBase, prototypeBase) {
 
 JSIL.$MakeSpecialPrototype = function (name, prototypeBase) {
   var prototype = Object.create(prototypeBase);
+
   JSIL.$SpecialTypePrototypes[name] = prototype;
 
   return prototype;
@@ -273,66 +275,66 @@ JSIL.$GetSpecialType = function (name) {
   };
 };
 
-
-JSIL.TypeObjectPrototype = {};
-JSIL.TypeObjectPrototype.__GenericArguments__ = [];
-JSIL.TypeObjectPrototype.toString = function () {
-  return JSIL.GetTypeName(this, true);
-};
-
-JSIL.TypeObjectPrototype.get_Assembly = function() { 
-  return this.__Context__.__Assembly__; 
-};
-JSIL.TypeObjectPrototype.get_BaseType = function() { 
-  return this.__BaseType__; 
-};
-JSIL.TypeObjectPrototype.get_Namespace = function() { 
-  // FIXME: Probably wrong for nested types.
-  return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); 
-};
-JSIL.TypeObjectPrototype.get_Name = function() { 
-  return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); 
-};
-JSIL.TypeObjectPrototype.get_FullName = function() {
-  if (this.get_IsGenericType() && !this.get_IsGenericTypeDefinition()) {
-    var result = this.__FullNameWithoutArguments__;    
-    result += "[";
-
-    var ga = this.__GenericArgumentValues__;
-    for (var i = 0, l = ga.length; i < l; i++) {
-      var type = ga[i];
-      result += "[" + type.get_AssemblyQualifiedName() + "]";
-    }
-
-    result += "]";
-    return result;
-  } else {
-    return this.__FullName__;
-  }
-};
-JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { 
-  return this.get_FullName() + ", " + this.get_Assembly().toString(); 
-};
-JSIL.TypeObjectPrototype.get_IsEnum = function() { 
-  return this.__IsEnum__; 
-};
-JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
-  return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
-};
-JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
-  return this.__IsClosed__ === false; 
-};
-JSIL.TypeObjectPrototype.get_IsValueType = function() { 
-  return this.__IsValueType__; 
-};
-JSIL.TypeObjectPrototype.get_IsArray = function() { 
-  return this.__IsArray__; 
-};
-
-
 ( function () {
   var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
-  var dict = JSIL.$MakeSpecialType("System.RuntimeType", JSIL.TypeObjectPrototype, systemObjectPrototype);
+
+  JSIL.TypeObjectPrototype = Object.create(systemObjectPrototype);
+  JSIL.TypeObjectPrototype.__GenericArguments__ = [];
+  JSIL.TypeObjectPrototype.toString = function () {
+    return JSIL.GetTypeName(this, true);
+  };
+
+  JSIL.TypeObjectPrototype.get_Assembly = function() { 
+    return this.__Context__.__Assembly__; 
+  };
+  JSIL.TypeObjectPrototype.get_BaseType = function() { 
+    return this.__BaseType__; 
+  };
+  JSIL.TypeObjectPrototype.get_Namespace = function() { 
+    // FIXME: Probably wrong for nested types.
+    return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+  };
+  JSIL.TypeObjectPrototype.get_Name = function() { 
+    return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); 
+  };
+  JSIL.TypeObjectPrototype.get_FullName = function() {
+    if (this.get_IsGenericType() && !this.get_IsGenericTypeDefinition()) {
+      var result = this.__FullNameWithoutArguments__;    
+      result += "[";
+
+      var ga = this.__GenericArgumentValues__;
+      for (var i = 0, l = ga.length; i < l; i++) {
+        var type = ga[i];
+        result += "[" + type.get_AssemblyQualifiedName() + "]";
+      }
+
+      result += "]";
+      return result;
+    } else {
+      return this.__FullName__;
+    }
+  };
+  JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { 
+    return this.get_FullName() + ", " + this.get_Assembly().toString(); 
+  };
+  JSIL.TypeObjectPrototype.get_IsEnum = function() { 
+    return this.__IsEnum__; 
+  };
+  JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
+    return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
+  };
+  JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
+    return this.__IsClosed__ === false; 
+  };
+  JSIL.TypeObjectPrototype.get_IsValueType = function() { 
+    return this.__IsValueType__; 
+  };
+  JSIL.TypeObjectPrototype.get_IsArray = function() { 
+    return this.__IsArray__; 
+  };
+
+  var systemTypePrototype = JSIL.$MakeSpecialPrototype("System.Type", systemObjectPrototype);
+  var dict = JSIL.$MakeSpecialType("System.RuntimeType", JSIL.TypeObjectPrototype, systemTypePrototype);
 
   var runtimeType = dict.typeObject;
   runtimeType.__IsReferenceType__ = true;
@@ -2935,6 +2937,9 @@ JSIL.FormatMemberAccess = function (targetExpression, memberName) {
   // Can't reuse a global instance because .test mutates the RegExp. JavaScript is stupid.
   var shortMemberRegex = /^[_a-zA-Z][a-zA-Z_0-9]*$/g;
 
+  if (typeof (memberName) !== "string")
+    throw new Error("Member name must be a string");
+
   if (shortMemberRegex.test(memberName)) {
     return targetExpression + "." + memberName;
   } else {
@@ -3217,7 +3222,7 @@ JSIL.$BuildFieldList = function (typeObject) {
     }
 
     var fieldRecord = {
-      name: field.Name,
+      name: field._descriptor.Name,
       type: fieldType,
       isStruct: isStruct,
       defaultValueExpression: field._data.defaultValueExpression,
@@ -4198,26 +4203,7 @@ $jsilcore.$GetRuntimeType = function (context, forTypeName) {
   // Initializing System.Object forms a cyclical dependency through RuntimeType.
   // To deal with this, we use a stub for RuntimeType until System.Object has been fully initialized.
 
-  // If we're currently initializing RuntimeType, Type or MemberInfo, we also need to use the stub.
-  if (
-      (forTypeName == "System.RuntimeType") || 
-      (forTypeName == "System.Type") || 
-      (forTypeName == "System.Reflection.MemberInfo") || 
-      (forTypeName == "System.Object")
-    ) {
-
-    if (!$jsilcore.SystemObjectInitialized || !$jsilcore.RuntimeTypeInitialized)
-      return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
-  }
-
-  var runtimeType = JSIL.ResolveName($jsilcore, "System.RuntimeType", true);
-  if (runtimeType.exists()) {
-    var runtimeTypeObj = runtimeType.get();
-    JSIL.InitializeType(runtimeTypeObj);
-    return runtimeTypeObj.prototype;
-  } else {
-    return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
-  }
+  return JSIL.$GetSpecialType("System.RuntimeType").typeObject;
 };
 
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
@@ -4237,8 +4223,11 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var creator = function CreateStaticClassObject () {
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
+
     typeObject = JSIL.CreateSingletonObject(runtimeType);
+
     typeObject.__FullName__ = fullName;
+    typeObject.__ReflectionCache__ = null;
 
     typeObject.__CallStack__ = callStack;
     typeObject.__Context__ = assembly;
@@ -4716,6 +4705,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__Context__ = assembly;
     typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
+    typeObject.__ReflectionCache__ = null;
     // Without this, the generated constructor won't behave correctly for 0-argument construction
     typeObject.__IsStruct__ = !isReferenceType;
 
@@ -6996,16 +6986,16 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   var makeTypeInstance = function (type) {
     // Construct the appropriate subclass of MemberInfo
+    /*
     var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
     var info = JSIL.CreateInstanceOfType(infoType, null);
+    */
 
-    /*
     // Don't trigger type initialization machinery
     // FIXME: This will break if any of the memberinfo types rely on static constructors.
     var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
     var info = Object.create(infoType.prototype);
-    */
 
     // HACK: Makes it possible to tell what type a member is trivially
     JSIL.SetValueProperty(info, "__MemberType__", type);
