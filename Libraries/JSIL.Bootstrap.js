@@ -3136,7 +3136,7 @@ JSIL.ImplementExternals("System.Convert", function ($) {
         var conversionMethod = $jsilcore.System.IConvertible["To" + typeName];
         
         if (conversionMethod) {
-          return conversionMethod.Call(value);
+          return conversionMethod.Call(value, null, null);
         }
       }
       
