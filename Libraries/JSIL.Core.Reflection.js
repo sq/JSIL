@@ -819,15 +819,12 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
   $.Method({Static: true, Public: true}, "GetEntryAssembly",
     (new JSIL.MethodSignature($.Type, [], [])),
     function GetEntryAssembly () {
-      // FIXME
-      return null;
-    }
-  );
+      // FIXME: Won't work if multiple loaded assemblies contain entry points.
+      for (var k in JSIL.$EntryPoints) {
+        var ep = JSIL.$EntryPoints[k];
+        return ep[0].__Assembly__;
+      }
 
-  $.Method({Static: true, Public: true}, "GetExecutingAssembly",
-    (new JSIL.MethodSignature($.Type, [], [])),
-    function GetExecutingAssembly () {
-      // FIXME
       return null;
     }
   );

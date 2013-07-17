@@ -8196,22 +8196,22 @@ JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
 };
 
 JSIL.SetEntryPoint = function (assembly, typeRef, methodName, methodSignature) {
-  if (JSIL.$EntryPoints[assembly])
+  if (JSIL.$EntryPoints[assembly.__AssemblyId__])
     throw new Error("Assembly already has an entry point");
 
-  JSIL.$EntryPoints[assembly] = 
-    [typeRef, methodName, methodSignature];
+  JSIL.$EntryPoints[assembly.__AssemblyId__] = 
+    [assembly, typeRef, methodName, methodSignature];
 };
 
 JSIL.GetEntryPoint = function (assembly) {
-  var entryPoint = JSIL.$EntryPoints[assembly];
+  var entryPoint = JSIL.$EntryPoints[assembly.__AssemblyId__];
 
   if (!entryPoint)
     return null;
 
-  var entryTypePublicInterface = JSIL.ResolveTypeReference(entryPoint[0])[0];
-  var methodName = entryPoint[1];
-  var methodSignature = entryPoint[2];
+  var entryTypePublicInterface = JSIL.ResolveTypeReference(entryPoint[1])[0];
+  var methodName = entryPoint[2];
+  var methodSignature = entryPoint[3];
 
   return {
     thisReference: entryTypePublicInterface,
