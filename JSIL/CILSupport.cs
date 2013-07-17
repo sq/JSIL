@@ -79,7 +79,7 @@ namespace JSIL.Internal {
             redirectedFrom = null;
 
             foreach (var kvp in Configuration.Assemblies.Redirects) {
-                if (Regex.IsMatch(name.FullName, kvp.Key)) {
+                if (Regex.IsMatch(name.FullName, kvp.Key, RegexOptions.IgnoreCase)) {
                     redirectedFrom = name.FullName;
                     return new AssemblyNameReference(kvp.Value, null);
                 }

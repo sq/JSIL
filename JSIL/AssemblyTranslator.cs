@@ -264,6 +264,15 @@ namespace JSIL {
             return false;
         }
 
+        protected bool IsRedirected (string assemblyName) {
+            foreach (var ra in Configuration.Assemblies.Redirects.Keys) {
+                if (Regex.IsMatch(assemblyName, ra, RegexOptions.IgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
         public string ClassifyAssembly (AssemblyDefinition asm) {
             if (IsIgnored(asm.FullName))
                 return "ignored";
@@ -433,8 +442,13 @@ namespace JSIL {
                 Writing(pr);
 
             // Assign a unique identifier for all participating assemblies up front
-            foreach (var assembly in assemblies)
+            foreach (var assembly in assemblies) {
+                if (IsRedirected(assembly.FullName))
+                    continue;
+
                 Manifest.GetPrivateToken(assembly);
+            }
+
             Manifest.AssignIdentifiers();
 
             Action<int> writeAssembly = (i) => {
