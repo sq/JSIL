@@ -865,6 +865,11 @@ namespace JSIL.Tests {
                     generatedJs.Contains(" & 15) | 0)"),
                     "A | 0 type hint surrounds a bitwise operator"
                 );
+
+                Assert.IsFalse(
+                    generatedJs.Contains(")) | 0"),
+                    "Double right paren before a truncation"
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 

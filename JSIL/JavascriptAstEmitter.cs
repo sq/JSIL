@@ -1408,6 +1408,8 @@ namespace JSIL {
                 return false;
             else if (ParentNode is JSCommaExpression)
                 return false;
+            else if (ParentNode is JSTruncateExpression)
+                return false;
 
             return true;
         }
