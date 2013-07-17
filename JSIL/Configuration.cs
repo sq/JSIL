@@ -43,6 +43,7 @@ namespace JSIL.Translator {
             public bool? EnableUnsafeCode;
             public bool? HoistAllocations;
             public bool? HintDoubleArithmetic;
+            public bool? AutoGenerateEventAccessorsInSkeletons;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -77,6 +78,8 @@ namespace JSIL.Translator {
                     result.HoistAllocations = HoistAllocations;
                 if (HintDoubleArithmetic.HasValue)
                     result.HintDoubleArithmetic = HintDoubleArithmetic;
+                if (AutoGenerateEventAccessorsInSkeletons.HasValue)
+                    result.AutoGenerateEventAccessorsInSkeletons = AutoGenerateEventAccessorsInSkeletons;
             }
         }
 

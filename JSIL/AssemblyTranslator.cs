@@ -2445,6 +2445,37 @@ namespace JSIL {
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
+            if (
+                makeSkeleton &&
+                method.IsPrivate &&
+                method.IsCompilerGenerated()
+            )
+                return;
+
+            if (
+                makeSkeleton &&
+                (methodInfo.DeclaringEvent != null) &&
+                Configuration.CodeGenerator.AutoGenerateEventAccessorsInSkeletons.GetValueOrDefault(true)
+            ) {
+                if (method.Name.StartsWith("add_")) {
+                    output.WriteRaw("$.MakeEventAccessors");
+                    output.LPar();
+                    output.NewLine();
+                    output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
+                    output.Comma();
+                    output.Value(methodInfo.DeclaringEvent.Name);
+                    output.Comma();
+                    output.NewLine();
+                    output.TypeReference(methodInfo.DeclaringEvent.ReturnType, astEmitter.ReferenceContext);
+                    output.NewLine();
+                    output.RPar();
+                    output.Semicolon();
+                    output.NewLine();
+                }
+
+                return;
+            }
+
             JSFunctionExpression function;
             try {
                 function = GetFunctionBodyForMethod(
