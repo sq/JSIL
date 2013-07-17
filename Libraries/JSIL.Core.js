@@ -2634,6 +2634,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         namePairs[1][1] = null;
       }
 
+      var isMissing = false;
+
       namePairs.forEach(function (namePair) {
         var shortName = namePair[0];
         var qualifiedName = namePair[1];
@@ -2690,7 +2692,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         }
 
         if (!hasShortRecursive && !hasQualifiedRecursive) {
-          missingMembers.push(qualifiedName);
+          isMissing = true;
           return;
         }
 
@@ -2714,6 +2716,9 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             console.log("Skipping " + qualifiedName);
         }
       });
+
+      if (isMissing)
+        missingMembers.push(namePairs[0][1]);
 
     }
 
@@ -4958,7 +4963,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     JSIL.SetValueProperty(publicInterface, "__TypeId__", typeId); 
 
     typeObject.__IsFlagsEnum__ = isFlagsEnum;
-    typeObject.__Interfaces__ = null;
+    // HACK to ensure that enum types implement the interfaces System.Enum does.
+    typeObject.__Interfaces__ = typeObject.__BaseType__.__Interfaces__;
 
     var enumTypeId = JSIL.AssignTypeId($jsilcore, "System.Enum");
 
@@ -5085,6 +5091,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       $.__Type__.__ValueToName__[value] = key;
       $[key] = $.$MakeValue(value, key);
     }
+
+    JSIL.FixupInterfaces(enumType.__PublicInterface__, enumType);
 
     JSIL.MakeCastMethods($, $.__Type__, "enum");
   };

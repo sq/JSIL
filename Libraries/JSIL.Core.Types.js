@@ -8,7 +8,7 @@ if (!$jsilcore)
 
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
   $.ImplementInterfaces(
-    $jsilcore.TypeRef("System.IConvertible")
+    /* 0 */ $jsilcore.TypeRef("System.IConvertible")
   );
 });
 
@@ -507,6 +507,20 @@ JSIL.ImplementExternals("System.Enum", function ($) {
     (new JSIL.MethodSignature($.Object, ["System.Type", $.Int32], [])),
     function ToObject (enumType, value) {
       return enumType[enumType.__ValueToName__[value]];
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "ToInt32",
+    new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.IFormatProvider")], []),
+    function (provider) {
+      return $jsilcore.System.Convert.ToInt32(this.value, provider);
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "ToInt64",
+    new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.IFormatProvider")], []),
+    function (provider) {
+      return $jsilcore.System.Convert.ToInt64(this.value, provider);
     }
   );
 });

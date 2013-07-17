@@ -4285,3 +4285,7 @@ JSIL.MakeInterface(
     $.Method({}, "ToType", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.IFormatProvider")], []));
   }, []);
   
+JSIL.MakeInterface(
+  "System.IFormatProvider", true, [], function ($) {
+    $.Method({}, "GetFormat", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], []));
+  }, []);
