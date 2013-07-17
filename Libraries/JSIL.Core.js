@@ -242,6 +242,7 @@ JSIL.$AssignedTypeIds = {};
 JSIL.$GenericParameterTypeIds = {};
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
+JSIL.$EntryPoints = {};
 
 
 JSIL.$SpecialTypeObjects = {};
@@ -8192,4 +8193,39 @@ JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
       target[k] = iface[k];
     }
   }
+};
+
+JSIL.SetEntryPoint = function (assembly, typeRef, methodName, methodSignature) {
+  if (JSIL.$EntryPoints[assembly])
+    throw new Error("Assembly already has an entry point");
+
+  JSIL.$EntryPoints[assembly] = 
+    [typeRef, methodName, methodSignature];
+};
+
+JSIL.GetEntryPoint = function (assembly) {
+  var entryPoint = JSIL.$EntryPoints[assembly];
+
+  if (!entryPoint)
+    return null;
+
+  var entryTypePublicInterface = JSIL.ResolveTypeReference(entryPoint[0])[0];
+  var methodName = entryPoint[1];
+  var methodSignature = entryPoint[2];
+
+  return {
+    thisReference: entryTypePublicInterface,
+    method: methodSignature.LookupMethod(entryTypePublicInterface, methodName)
+  };
+};
+
+JSIL.InvokeEntryPoint = function (assembly, args) {
+  var dict = JSIL.GetEntryPoint(assembly);
+  if (!dict)
+    throw new Error("Assembly has no entry point");
+
+  if (!args)
+    args = [];
+
+  return dict.method.apply(dict.thisReference, args);
 };

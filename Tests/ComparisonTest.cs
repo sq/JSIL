@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -197,34 +198,90 @@ namespace JSIL.Tests {
             return entryPoint;
         }
 
-        public string RunCSharp (string[] args, out long elapsed) {
-            TextWriter oldStdout = null;
+        private int RunCSharpExecutable (string[] args, out string stdout, out string stderr) {
+            var psi = new ProcessStartInfo(Assembly.Location, string.Join(" ", args)) {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
 
-            using (var sw = new StringWriter()) {
-                oldStdout = Console.Out;
-                try {
-                    oldStdout.Flush();
-                    Console.SetOut(sw);
+            string _stdout = null, _stderr = null;
+            ManualResetEventSlim stdoutSignal, stderrSignal;
+            stdoutSignal = new ManualResetEventSlim(false);
+            stderrSignal = new ManualResetEventSlim(false);
 
-                    var testMethod = GetTestMethod();
-                    long startedCs = DateTime.UtcNow.Ticks;
-
-                    if (MainAcceptsArguments.Value) {
-                        testMethod.Invoke(null, new object[] { args });
-                    } else {
-                        if ((args != null) && (args.Length > 0))
-                            throw new ArgumentException("Test case does not accept arguments");
-
-                        testMethod.Invoke(null, new object[] { });
+            using (var process = Process.Start(psi)) {
+                ThreadPool.QueueUserWorkItem((_) => {
+                    try {
+                        _stdout = process.StandardOutput.ReadToEnd();
+                    } catch {
                     }
+                    stdoutSignal.Set();
+                });
+                ThreadPool.QueueUserWorkItem((_) => {
+                    try {
+                        _stderr = process.StandardError.ReadToEnd();
+                    } catch {
+                    }
+                    stderrSignal.Set();
+                });
 
-                    long endedCs = DateTime.UtcNow.Ticks;
+                stdoutSignal.Wait();
+                stderrSignal.Wait();
+                stderrSignal.Dispose();
+                stderrSignal.Dispose();
 
-                    elapsed = endedCs - startedCs;
-                    sw.Flush();
-                    return sw.ToString();
-                } finally {
-                    Console.SetOut(oldStdout);
+                stdout = _stdout;
+                stderr = _stderr;
+
+                return process.ExitCode;
+            }
+        }
+
+        public string RunCSharp (string[] args, out long elapsed) {
+
+            if (Assembly.Location.EndsWith(".exe")) {
+                long startedCs = DateTime.UtcNow.Ticks;
+
+                string stdout, stderr;
+                int exitCode = RunCSharpExecutable(args, out stdout, out stderr);
+
+                long endedCs = DateTime.UtcNow.Ticks;
+
+                elapsed = endedCs - startedCs;
+                if (exitCode != 0)
+                    return String.Format("Process exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr);
+                return stdout + stderr;
+            } else {
+                TextWriter oldStdout = null;
+                using (var sw = new StringWriter()) {
+                    oldStdout = Console.Out;
+                    try {
+                        oldStdout.Flush();
+                        Console.SetOut(sw);
+
+                        var testMethod = GetTestMethod();
+                        long startedCs = DateTime.UtcNow.Ticks;
+
+                        if (MainAcceptsArguments.Value) {
+                            testMethod.Invoke(null, new object[] { args });
+                        } else {
+                            if ((args != null) && (args.Length > 0))
+                                throw new ArgumentException("Test case does not accept arguments");
+
+                            testMethod.Invoke(null, new object[] { });
+                        }
+
+                        long endedCs = DateTime.UtcNow.Ticks;
+
+                        elapsed = endedCs - startedCs;
+                        sw.Flush();
+                        return sw.ToString();
+                    } finally {
+                        Console.SetOut(oldStdout);
+                    }
                 }
             }
         }

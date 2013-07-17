@@ -725,6 +725,10 @@ namespace JSIL {
             formatter.DeclareAssembly();
             formatter.NewLine();
 
+            if (assembly.EntryPoint != null) {
+                TranslateEntryPoint(assembly, formatter);
+            }
+
             var sealedTypes = new HashSet<TypeDefinition>();
             var declaredTypes = new HashSet<TypeDefinition>();
 
@@ -738,6 +742,45 @@ namespace JSIL {
             }
 
             tw.Flush();
+        }
+
+        protected void TranslateEntryPoint (
+            AssemblyDefinition assembly,
+            JavascriptFormatter output
+        ) {
+            var entryMethod = assembly.EntryPoint;
+
+            output.WriteRaw("JSIL.SetEntryPoint");
+            output.LPar();
+
+            output.AssemblyReference(assembly);
+
+            output.Comma();
+
+            var context = new TypeReferenceContext();
+            output.TypeReference(entryMethod.DeclaringType, context);
+
+            output.Comma();
+
+            output.Value(entryMethod.Name);
+
+            output.Comma();
+
+            output.MethodSignature(
+                entryMethod, 
+                new MethodSignature(
+                    _TypeInfoProvider, 
+                    entryMethod.ReturnType, 
+                    (from p in entryMethod.Parameters select p.ParameterType).ToArray(), 
+                    null
+                ), 
+                context
+            );
+
+            output.RPar();
+            output.Semicolon(true);
+
+            output.NewLine();
         }
 
         protected void TranslateModule (

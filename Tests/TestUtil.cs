@@ -53,7 +53,7 @@ namespace JSIL.Tests {
 
     public class Metacomment {
         public static Regex Regex = new Regex(
-            @"//@(?'command'[A-Za-z_0-9]+) (?'arguments'[^\n\r]*)",
+            @"//@(?'command'[A-Za-z_0-9]+)( (?'arguments'[^\n\r]*))?",
             RegexOptions.ExplicitCapture
         );
 

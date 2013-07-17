@@ -110,11 +110,6 @@ namespace JSIL.Tests {
             var tempPath = Path.Combine(TempPath, assemblyName);
             Directory.CreateDirectory(tempPath);
 
-            var outputAssembly = Path.Combine(
-                tempPath,
-                Path.GetFileNameWithoutExtension(assemblyName) + ".dll"
-            );
-
             var warningTextPath = Path.Combine(
                 tempPath, "warnings.txt"
             );
@@ -125,6 +120,8 @@ namespace JSIL.Tests {
                 "Microsoft.CSharp.dll",
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             };
+
+            bool generateExecutable = false;
 
             var metacomments = new List<Metacomment>();
             foreach (var sourceFile in filenames) {
@@ -140,11 +137,22 @@ namespace JSIL.Tests {
                         case "compileroption":
                             compilerOptions += " " + metacomment.Arguments;
                             break;
+
+                        case "generateexecutable":
+                            generateExecutable = true;
+                            break;
                     }
                 }
 
                 metacomments.AddRange(localMetacomments);
             }
+
+            var outputAssembly = Path.Combine(
+                tempPath,
+                Path.GetFileNameWithoutExtension(assemblyName) + 
+                (generateExecutable ? ".exe" : ".dll")
+            );
+
             if (
                 File.Exists(outputAssembly) &&
                 CheckCompileManifest(filenames, tempPath)
@@ -168,7 +176,7 @@ namespace JSIL.Tests {
 
             var parameters = new CompilerParameters(references.ToArray()) {
                 CompilerOptions = compilerOptions,
-                GenerateExecutable = false,
+                GenerateExecutable = generateExecutable,
                 GenerateInMemory = false,
                 IncludeDebugInformation = true,
                 TempFiles = new TempFileCollection(tempPath, true),

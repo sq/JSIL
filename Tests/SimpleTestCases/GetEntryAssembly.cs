@@ -1,4 +1,6 @@
-﻿using System;
+﻿//@generateExecutable
+
+using System;
 using System.Reflection;
 
 public static class Program {
