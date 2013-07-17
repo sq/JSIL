@@ -35,8 +35,6 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
-        private readonly Dictionary<TypeReference, Identifier> TemporaryVariables = new 
-            Dictionary<TypeReference, Identifier>();
         private readonly List<PendingDeclaration> ToDeclare = new
             List<PendingDeclaration>();
 
@@ -80,16 +78,11 @@ namespace JSIL.Transforms {
         private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
             Identifier result;
 
-            if (!TemporaryVariables.TryGetValue(type, out result)) {
-                string _id = id = String.Format("$temp{0:X2}", Function.TemporaryVariableCount++);
-                result = new Identifier(_id, new JSRawOutputIdentifier(
-                    (jsf) => jsf.WriteRaw(_id), type
-                ));
-                ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));
-                TemporaryVariables.Add(type, result);
-            } else {
-                id = result.Text;
-            }
+            string _id = id = String.Format("$temp{0:X2}", Function.TemporaryVariableCount++);
+            result = new Identifier(_id, new JSRawOutputIdentifier(
+                (jsf) => jsf.WriteRaw(_id), type
+            ));
+            ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));
 
             return result.Object;
         }
