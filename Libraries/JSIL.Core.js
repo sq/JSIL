@@ -2603,6 +2603,7 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
 
 JSIL.InstantiateProperties = function (publicInterface, typeObject) {
   var originalTypeObject = typeObject;
+  var recursed = false;
 
   while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
     var currentPublicInterface = typeObject.__PublicInterface__;
@@ -2620,13 +2621,14 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
         var methodSource = publicInterface;
 
         if (isStatic)
-          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface, methodSource);
+          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface, methodSource, recursed);
         else
-          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface.prototype, methodSource.prototype);
+          JSIL.InterfaceBuilder.MakeProperty(typeShortName, name, publicInterface.prototype, methodSource.prototype, recursed);
       }
     }
 
     typeObject = typeObject.__BaseType__;
+    recursed = true;
   }
 };
 
@@ -5621,7 +5623,7 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   return memberBuilder;
 };
 
-JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource) {
+JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, methodSource, recursed) {
   var prop = {
     configurable: true,
     enumerable: true
@@ -5664,12 +5666,17 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeShortName, name, target, meth
 
   Object.defineProperty(target, escapedName, prop);
 
-  var typeQualifiedName = JSIL.EscapeName(typeShortName + "$" + interfacePrefix + localName);
-  Object.defineProperty(target, typeQualifiedName, prop);
+  // HACK: Ensure that we do not override BaseType$Foo with a derived implementation of $Foo.
+  if (!recursed) {
+    var typeQualifiedName = JSIL.EscapeName(typeShortName + "$" + interfacePrefix + localName);
+    Object.defineProperty(target, typeQualifiedName, prop);
+  }
 
   if ((getter && getter.__IsMembrane__) || (setter && setter.__IsMembrane__)) {
     JSIL.RebindPropertyAfterPreInit(target, escapedName);
-    JSIL.RebindPropertyAfterPreInit(target, typeQualifiedName);
+
+    if (!recursed)
+      JSIL.RebindPropertyAfterPreInit(target, typeQualifiedName);
   }
 };
 

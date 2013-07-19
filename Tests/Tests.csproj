@@ -197,6 +197,8 @@
     <None Include="SpecialTestCases\SpuriousIntegerHints.cs" />
     <None Include="SimpleTestCases\GetEntryAssembly.cs" />
     <None Include="SimpleTestCases\CastEnumTypeToRuntimeType.cs" />
+    <None Include="SpecialTestCases\PropertyRecursion.cs" />
+    <None Include="PerformanceTestCases\PropertyVsField.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

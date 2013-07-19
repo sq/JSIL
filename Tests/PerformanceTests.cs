@@ -144,6 +144,25 @@ namespace JSIL.Tests {
                 Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
+
+        [Test]
+        public void PropertyVsField () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\PropertyVsField.cs"                
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(
+                    null,
+                    makeConfiguration: () => {
+                        var cfg = MakeConfiguration();
+                        cfg.CodeGenerator.PreferAccessorMethods = true;
+                        return cfg;
+                    }
+                ));
+            }
+        }
     }
 
     [TestFixture]

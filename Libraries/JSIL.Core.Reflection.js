@@ -828,6 +828,10 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
       return null;
     }
   );
+
+  $.Property({Static: false, Public: true}, "CodeBase");
+  $.Property({Static: false, Public: true}, "Location");
+  $.Property({Static: false, Public: true}, "FullName");
 });
 
 JSIL.MakeClass("System.Reflection.Assembly", "System.Reflection.RuntimeAssembly", true, [], function ($) {

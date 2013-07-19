@@ -54,6 +54,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void PropertyRecursionWithAccessorOptimizationOff () {
+            using (var test = MakeTest(@"SpecialTestCases\PropertyRecursion.cs"))
+                test.Run(
+                    makeConfiguration: () => {
+                        var cfg = MakeConfiguration();
+                        cfg.CodeGenerator.PreferAccessorMethods = false;
+                        return cfg;
+                    }
+                );
+        }
+
+        [Test]
         public void MonoInheritedInterfacesExplicit () {
             using (var test = MakeTest(@"BinaryTestCases\InheritedInterfacesExplicit.dll"))
                 test.Run();
