@@ -359,7 +359,7 @@ namespace JSIL.Tests {
         public void UntranslatableGotos () {
             var generatedJs = GetJavascript(
                 @"TestCases\UntranslatableGotoOutParameters.cs",
-                ": null"
+                ":"
             );
 
             try {
