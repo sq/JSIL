@@ -3012,6 +3012,8 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
       var defaultValueString;
       if (field.type.__FullName__ === "System.Boolean") {
         defaultValueString = "(false)";
+      } else if (field.type.__FullName__ === "System.Char") {
+        defaultValueString = "('\\0')";
       } else if (field.type.__IsIntegral__) {
         defaultValueString = "(0 | 0)";
       } else {
@@ -6938,7 +6940,11 @@ JSIL.GetTypesFromAssembly = function (assembly) {
 
 JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
   if (type.__IsNumeric__) {
-    return 0;
+    // HACK: This System.Char nonsense is getting out of hand.
+    if (type.__FullName__ === "System.Char")
+      return "\0";
+    else
+      return 0;
   }
 
   var publicInterface = type.__PublicInterface__;
