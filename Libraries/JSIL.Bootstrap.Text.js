@@ -485,6 +485,8 @@ JSIL.ImplementExternals(
                 return "True";
               else
                 return "False";
+            } else if (value === null) {
+              return "";
             } else {
               return String(value);
             }
@@ -644,7 +646,10 @@ JSIL.EscapeJSRegex = function (regexText) {
   return regexText.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
 
-JSIL.SplitString = function (str, separators) {
+JSIL.SplitString = function (str, separators, options) {
+  if (options && options.value)
+    throw new Error("StringSplitOptions other than None are not implemented");
+
   if (!separators) {
     // Whitespace characters from Unicode 6.0
     separators = [
@@ -1830,6 +1835,13 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
       var re = makeRegex(pattern, options);
 
       return input.replace(re, replacement);
+    }
+  );
+
+  $.Method({Static:false , Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function Replace (input, replacement) {
+      return input.replace(this._regex, replacement);
     }
   );
 

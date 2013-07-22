@@ -405,6 +405,8 @@ namespace JSIL {
                 if (parms != null) {
                     var argsDict = new Dictionary<string, JSExpression>();
 
+                    argsDict["assemblyof(executing)"] = new JSReflectionAssembly(ThisMethod.DeclaringType.Module.Assembly);
+
                     if (thisExpression != null) {
                         argsDict["this"] = thisExpression;
                         argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));

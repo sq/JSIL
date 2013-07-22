@@ -298,25 +298,6 @@ namespace JSIL.Transforms {
 
                             return;
                         }
-                        case "GetType": {
-                            switch (method.Method.Parameters.Length) {
-                                case 1:
-                                case 2:
-                                    JSExpression throwOnFail = new JSBooleanLiteral(false);
-                                    if (method.Method.Parameters.Length == 2)
-                                        throwOnFail = ie.Arguments[1];
-
-                                    var invocation = JSIL.GetTypeFromAssembly(
-                                        ie.ThisReference, ie.Arguments[0], throwOnFail
-                                    );
-                                    ParentNode.ReplaceChild(ie, invocation);
-                                    VisitReplacement(invocation);
-
-                                    return;
-                            }
-
-                            break;
-                        }
                     }
                 } else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&

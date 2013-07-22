@@ -203,6 +203,8 @@
     <None Include="SimpleTestCases\CastOtherEnumToEnumConstant.cs" />
     <None Include="SimpleTestCases\ArrayClear.cs" />
     <None Include="SpecialTestCases\DepthStencilStateSwitchGoto.cs" />
+    <None Include="ReflectionTestCases\GetPrivateTypeUnqualified.cs" />
+    <None Include="ReflectionTestCases\AssemblyGetType.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

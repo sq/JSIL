@@ -118,6 +118,51 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   );
 });
 
+JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) {
+  $.RawMethod(false, "$internalCtor", function (obj) {
+    this._pointer = JSIL.PinAndGetPointer(obj, 0);
+  });
+
+  $.Method({Static:false, Public:true }, "AddrOfPinnedObject", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], []), 
+    function AddrOfPinnedObject () {
+      // FIXME
+      return this._pointer;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Alloc", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Runtime.InteropServices.GCHandle"), [$.Object], []), 
+    function Alloc (value) {
+      return JSIL.CreateInstanceOfType(
+        System.Runtime.InteropServices.GCHandle.__Type__,
+        "$internalCtor",
+        [value]
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Alloc", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Runtime.InteropServices.GCHandle"), [$.Object, $jsilcore.TypeRef("System.Runtime.InteropServices.GCHandleType")], []), 
+    function Alloc (value, type) {
+      // FIXME: type
+
+      return JSIL.CreateInstanceOfType(
+        System.Runtime.InteropServices.GCHandle.__Type__,
+        "$internalCtor",
+        [value]
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Free", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Free () {
+      // FIXME: Unpin?
+    }
+  );
+});
+
 JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {
 });
 

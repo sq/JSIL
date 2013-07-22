@@ -80,6 +80,10 @@ namespace JSIL.Proxies {
         public abstract string[] Split (AnyType[] dividers);
 
         [JSIsPure]
+        [JSReplacement("JSIL.SplitString($this, $dividers, $options)")]
+        public abstract string[] Split (AnyType[] dividers, StringSplitOptions options);
+
+        [JSIsPure]
         [JSReplacement("JSIL.JoinStrings($separator, $value)")]
         public abstract string Join (string separator, params string[] value);
 

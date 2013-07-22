@@ -6,6 +6,26 @@ if (typeof (JSIL) === "undefined")
 if (!$jsilcore)  
   throw new Error("JSIL.Core is required");
 
+JSIL.ReflectionGetTypeInternal = function (thisAssembly, name, throwOnFail, ignoreCase) {
+  var parsed = JSIL.ParseTypeName(name);
+
+  var result = JSIL.GetTypeInternal(parsed, thisAssembly, false);
+
+  // HACK: Emulate fallback to global namespace search.
+  if (!result) {
+    result = JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, false);
+  }
+
+  if (!result) {
+    if (throwOnFail)
+      throw new System.TypeLoadException("The type '" + name + "' could not be found in the assembly '" + thisAssembly.toString() + "' or in the global namespace.");
+    else
+      return null;
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals(
   "System.Type", function ($) {
     var typeReference = $jsilcore.TypeRef("System.Type");
@@ -15,14 +35,6 @@ JSIL.ImplementExternals(
     var methodArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MethodInfo"]);
     var constructorArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.ConstructorInfo"]);
     var typeArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Type"]);
-
-    $.Method({Public: true , Static: true }, "GetType",
-      new JSIL.MethodSignature($.Type, ["System.String"]),
-      function Type_GetType (name) {
-        var parsed = JSIL.ParseTypeName(name);
-        return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, false);
-      }
-    );
 
     $.Method({Public: true , Static: true }, "op_Equality",
       new JSIL.MethodSignature("System.Boolean", [$.Type, $.Type]),
@@ -241,24 +253,49 @@ JSIL.ImplementExternals(
       }
     );
 
+    var getConstructorImpl = function (self, flags, argumentTypes) {
+      var constructors = JSIL.GetMembersInternal(
+        self, flags, "ConstructorInfo"
+      );
+
+      JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
+
+      JSIL.$ApplyMemberHiding(self, constructors, self.__PublicInterface__.prototype);
+
+      if (constructors.length > 1) {
+        throw new System.Exception("Multiple constructors were found.");
+      } else if (constructors.length < 1) {
+        return null;
+      }
+
+      return constructors[0];
+    };
+
     $.Method({Public: true , Static: false}, "GetConstructor",
       new JSIL.MethodSignature("System.Reflection.ConstructorInfo", [typeArray]),      
       function (argumentTypes) {
-        var constructors = JSIL.GetMembersInternal(
-          this, defaultFlags(), "ConstructorInfo"
-        );
+        return getConstructorImpl(this, defaultFlags(), argumentTypes);
+      }
+    );
 
-        JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
+    $.Method({Static:false, Public:true , Virtual:true }, "GetConstructor", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ConstructorInfo"), [
+          $jsilcore.TypeRef("System.Reflection.BindingFlags"), $jsilcore.TypeRef("System.Reflection.Binder"), 
+          $jsilcore.TypeRef("System.Reflection.CallingConventions"), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), 
+          $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
+        ], []), 
+      function GetConstructor (bindingAttr, binder, callConvention, types, modifiers) {
+        return getConstructorImpl(this, bindingAttr, types);
+      }
+    );
 
-        JSIL.$ApplyMemberHiding(this, constructors, this.__PublicInterface__.prototype);
-
-        if (constructors.length > 1) {
-          throw new System.Exception("Multiple constructors were found.");
-        } else if (constructors.length < 1) {
-          return null;
-        }
-
-        return constructors[0];
+    $.Method({Static:false, Public:true , Virtual:true }, "GetConstructor", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ConstructorInfo"), [
+          $jsilcore.TypeRef("System.Reflection.BindingFlags"), $jsilcore.TypeRef("System.Reflection.Binder"), 
+          $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
+        ], []), 
+      function GetConstructor (bindingAttr, binder, types, modifiers) {
+        return getConstructorImpl(this, bindingAttr, types);
       }
     );
 
@@ -785,7 +822,7 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
   $.Method({Static:false, Public:true }, "GetType", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$.String], [])), 
     function GetType (name) {
-      return JSIL.GetTypeFromAssembly(this, name, null, true);
+      return JSIL.GetTypeFromAssembly(this, name, null, false);
     }
   );
 
