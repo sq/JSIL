@@ -1849,8 +1849,15 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
       $.SetValue("__TypedArray__", null);
     }
 
+    var castSpecialType =
+      (typeName === "System.Char")
+        ? "char"
+        : isIntegral 
+          ? "integer" 
+          : "number";
+
     JSIL.MakeCastMethods(
-      $.publicInterface, $.typeObject, isIntegral ? "integer" : "number"
+      $.publicInterface, $.typeObject, castSpecialType
     );
 
     $.RawMethod(
@@ -4508,9 +4515,15 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     case "array":
       break;
 
+    case "char":
+      customCheckOnly = true;
+      asFunction = throwInvalidAsError;
+      
+      break;
+
     case "integer":
       customCheckOnly = true;    
-      asFunction = throwCastError;
+      asFunction = throwInvalidAsError;
 
       castFunction = function Cast_Integer (expression) {
         return Math.floor(numericCastFunction(expression));

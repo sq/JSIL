@@ -35,7 +35,10 @@ namespace JSIL.Transforms {
                 ParentNode.ReplaceChild(ce, replacement);
                 VisitReplacement(replacement);
                 return;
-            } else if (targetType.MetadataType == MetadataType.Char) {
+            } else if (
+                TypeUtil.IsIntegralOrEnum(currentType) &&
+                (targetType.MetadataType == MetadataType.Char)
+            ) {
                 newExpression = JSInvocationExpression.InvokeStatic(
                     JS.fromCharCode, new[] { ce.Expression }, true
                 );
