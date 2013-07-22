@@ -103,8 +103,13 @@ namespace JSIL.Utilities {
                         }
 
                         var outputLocalPath = item.EvaluatedInclude;
+                        var link = item.GetMetadata("Link");
+                        if (link != null)
+                            outputLocalPath = link.EvaluatedValue;
+
                         // Ensure that the output path is always inside Files/
                         outputLocalPath = outputLocalPath.Replace("../", "").Replace("..\\", "");
+
                         var outputPath = Path.Combine(fileOutputDir, outputLocalPath);
                         EnsureDirectoryExists(Path.GetDirectoryName(outputPath));
 
