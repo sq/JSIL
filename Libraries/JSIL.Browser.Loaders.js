@@ -420,7 +420,6 @@ var assetLoaders = {
   "ManifestResource": function loadManifestResourceStream (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(jsilConfig.scriptRoot + filename, function (result, error) {
       if ((result !== null) && (!error)) {
-        $jsilbrowserstate.allFileNames.push(filename);
         var dict = allManifestResources[data.assembly];
         if (!dict)
           dict = allManifestResources[data.assembly] = Object.create(null);
