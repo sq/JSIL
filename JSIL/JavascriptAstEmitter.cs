@@ -664,7 +664,7 @@ namespace JSIL {
             bool parens =
                 (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
 
-            var regex = new Regex(@"(\$\$|\$(?'name'(typeof\(this\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+            var regex = new Regex(@"(\$\$|\$(?'name'((etypeof|typeof)\([a-zA-Z_]([a-zA-Z0-9_]*)\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
             if (parens)
                 Output.LPar();
@@ -687,8 +687,10 @@ namespace JSIL {
 
                         if (verbatim.Variables.ContainsKey(key))
                             Visit(verbatim.Variables[key]);
-                        else
+                        else {
+                            Output.Comment("Expansion '{0}' not found", key);
                             Output.WriteRaw("null");
+                        }
                     } else {
                         if (m.Value == "$$")
                             Output.WriteRaw("$");

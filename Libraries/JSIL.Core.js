@@ -7233,7 +7233,8 @@ JSIL.Array.GetElements = function (array) {
     throw new Error("Argument is not an array");
 };
 
-JSIL.Array.Erase = function Array_Erase (array, elementType) {
+// startIndex and length are optional
+JSIL.Array.Erase = function Array_Erase (array, elementType, startIndex, length) {
   var elementTypeObject, elementTypePublicInterface;
 
   if (typeof (elementType.__Type__) === "object") {
@@ -7245,16 +7246,23 @@ JSIL.Array.Erase = function Array_Erase (array, elementType) {
   }
 
   var elements = JSIL.Array.GetElements(array);
-  var size = elements.length;
+
+  if (typeof (startIndex) !== "number")
+    startIndex = 0;
+  startIndex = startIndex | 0;
+
+  if (typeof (length) !== "number")
+    length = elements.length - startIndex;
+  length = length | 0;
 
   if (elementTypeObject.__IsStruct__) {
-    for (var i = 0; i < size; i++)
-      elements[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+    for (var i = 0; i < length; i = (i + 1) | 0)
+      elements[(i + startIndex) | 0] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
   } else {
     var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
 
-    for (var i = 0; i < size; i++)
-      elements[i] = defaultValue;
+    for (var i = 0; i < length; i = (i + 1) | 0)
+      elements[(i + startIndex) | 0] = defaultValue;
   }
 };
 

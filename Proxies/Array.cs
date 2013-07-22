@@ -80,6 +80,9 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("JSIL.Array.Erase($array, $etypeof(array), $index, $length)")]
+        public static extern void Clear (Array array, int index, int length);
+
         [JSReplacement("JSIL.Array.CopyTo($this, $array, $destinationIndex)")]
         public void CopyTo (Array array, int destinationIndex) {
             throw new InvalidOperationException();

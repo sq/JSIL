@@ -201,6 +201,7 @@
     <None Include="PerformanceTestCases\PropertyVsField.cs" />
     <None Include="SimpleTestCases\CastIntegerConstantToEnum.cs" />
     <None Include="SimpleTestCases\CastOtherEnumToEnumConstant.cs" />
+    <None Include="SimpleTestCases\ArrayClear.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

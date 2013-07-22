@@ -408,6 +408,7 @@ namespace JSIL {
                     if (thisExpression != null) {
                         argsDict["this"] = thisExpression;
                         argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
+                        argsDict["etypeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem).GetElementType());
                     }
 
                     var genericMethod = method as GenericInstanceMethod;
@@ -419,6 +420,8 @@ namespace JSIL {
 
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
+                        argsDict["typeof(" + kvp.Name + ")"] = Translate_TypeOf(kvp.Value.GetActualType(TypeSystem));
+                        argsDict["etypeof(" + kvp.Name + ")"] = Translate_TypeOf(kvp.Value.GetActualType(TypeSystem).GetElementType());
                     }
 
                     var isConstantIfArgumentsAre = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSIsPure");
