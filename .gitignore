@@ -92,3 +92,4 @@ Corlib/*.js
 *.cachefile
 /Upstream/OpenTKBindingGenerator
 /Upstream/OpenTKHeaderParser
+*.RuntimeProfile

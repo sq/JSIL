@@ -5288,13 +5288,13 @@ JSIL.GetType = function (value) {
   }
 };
 
-// type may be a type name, a type object, a type public interface, or an instance of a type.
+// type may be a a type object, a type public interface, or an instance of a type.
 JSIL.GetTypeName = function (type, dotNetTypeToString) {
   if (type === null)
     return "System.Object";
 
   if (typeof (type) === "string")
-    return type;
+    return "System.String";
 
   var typeObject = null;
   if (type.__PublicInterface__)
