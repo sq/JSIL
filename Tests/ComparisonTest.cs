@@ -644,17 +644,31 @@ namespace JSIL.Tests {
                     TimeSpan.FromTicks(elapsed[2]).TotalMilliseconds
                 );
             } catch (Exception ex) {
+                var jsex = ex as JavaScriptEvaluatorException;
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
 
+                const int truncateThreshold = 4096;
+
+                if ((outputs[1] == null) && (jsex != null))
+                    outputs[1] = jsex.Output;
+
                 if (outputs[0] != null) {
                     Console.WriteLine("// C# output begins //");
-                    Console.WriteLine(outputs[0]);
+                    if (outputs[0].Length > truncateThreshold) {
+                        Console.WriteLine(outputs[0].Substring(0, truncateThreshold));
+                        Console.WriteLine("(truncated)");
+                    } else
+                        Console.WriteLine(outputs[0]);
                 }
                 if (outputs[1] != null) {
                     Console.WriteLine("// JavaScript output begins //");
-                    Console.WriteLine(outputs[1]);
+                    if (outputs[1].Length > truncateThreshold) {
+                        Console.WriteLine(outputs[1].Substring(0, truncateThreshold));
+                        Console.WriteLine("(truncated)");
+                    } else
+                        Console.WriteLine(outputs[1]);
                 }
 
                 if (dumpJsOnFailure && (generatedJs[0] != null)) {

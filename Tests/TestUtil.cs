@@ -17,7 +17,10 @@ namespace JSIL.Tests {
         public readonly JavaScriptException[] Exceptions;
 
         public JavaScriptEvaluatorException (int exitCode, string stdout, string stderr, JavaScriptException[] exceptions)
-            : base(String.Format("JavaScript interpreter exited with code {0} after throwing {3} exception(s):\r\n{1}\r\n{2}", exitCode, stdout, stderr, exceptions.Length)) 
+            : base(String.Format(
+                "JavaScript interpreter exited with code {0} after throwing {1} exception(s).", 
+                exitCode, exceptions.Length
+            )) 
         {
             ExitCode = exitCode;
             ErrorText = stderr;
