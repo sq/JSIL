@@ -1092,7 +1092,7 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true }, "RestoreResolution", 
     new JSIL.MethodSignature(null, [], []), 
     function RestoreResolution () {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 

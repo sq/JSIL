@@ -90,3 +90,5 @@ Corlib/*.js
 /Examples/ThirdParty/TouchThumbSticks/TouchThumbSticksContent/bin
 /Examples/ThirdParty/TouchThumbSticks/TouchThumbSticksContent/obj
 *.cachefile
+/Upstream/OpenTKBindingGenerator
+/Upstream/OpenTKHeaderParser
