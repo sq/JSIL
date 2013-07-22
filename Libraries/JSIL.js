@@ -236,6 +236,7 @@ var $jsilloaderstate = {
   if (config.monogame) {
     contentManifest["JSIL"].push(["Library", "MonoGame/OpenTK.js"]);
     contentManifest["JSIL"].push(["Library", "MonoGame/OpenTK.GL.js"]);
+    contentManifest["JSIL"].push(["Library", "MonoGame/OpenTK.Service.js"]);
   }
 
   if (config.readOnlyStorage)

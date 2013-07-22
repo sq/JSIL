@@ -275,7 +275,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true , Virtual:true }, "MakeCurrent", 
     new JSIL.MethodSignature(null, [], []), 
     function MakeCurrent () {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 
@@ -331,21 +331,21 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true }, "set_VSync", 
     new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.VSyncMode")], []), 
     function set_VSync (value) {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "set_WindowState", 
     new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.WindowState")], []), 
     function set_WindowState (value) {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "SwapBuffers", 
     new JSIL.MethodSignature(null, [], []), 
     function SwapBuffers () {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 });
@@ -512,14 +512,14 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true , Virtual:true }, "get_Exists", 
     new JSIL.MethodSignature($.Boolean, [], []), 
     function get_Exists () {
-      throw new Error('Not implemented');
+      return true;
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "get_Focused", 
     new JSIL.MethodSignature($.Boolean, [], []), 
     function get_Focused () {
-      throw new Error('Not implemented');
+      return JSIL.Host.isPageVisible();
     }
   );
 
