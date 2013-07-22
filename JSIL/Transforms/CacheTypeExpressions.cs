@@ -36,6 +36,9 @@ namespace JSIL.Transforms {
 
             bool mapArraysToSystemArray = false;
 
+            while (type is ByReferenceType)
+                type = ((ByReferenceType)type).ElementType;
+
             var resolved = TypeUtil.GetTypeDefinition(type, mapArraysToSystemArray);
             if (resolved == null)
                 return null;

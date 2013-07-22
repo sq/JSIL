@@ -45,7 +45,9 @@ namespace JSIL.Transforms {
                             newOperator,
                             new JSPropertyAccess(
                                 pa.ThisReference, pa.Property, false,
-                                pa.TypeQualified, pa.OriginalMethod, pa.IsVirtualCall
+                                pa.TypeQualified, 
+                                pa.OriginalType, pa.OriginalMethod, 
+                                pa.IsVirtualCall
                             ), 
                             boe.Right, boe.GetActualType(TypeSystem)
                         ), type
@@ -54,7 +56,9 @@ namespace JSIL.Transforms {
                         JSOperator.Assignment, 
                         new JSPropertyAccess(
                             pa.ThisReference, pa.Property, true, 
-                            pa.TypeQualified, pa.OriginalMethod, pa.IsVirtualCall
+                            pa.TypeQualified,
+                            pa.OriginalType, pa.OriginalMethod, 
+                            pa.IsVirtualCall
                         ), tempVariable, type
                     ),
                     tempVariable

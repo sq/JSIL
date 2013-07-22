@@ -102,7 +102,7 @@ namespace JSIL.Transforms {
                 );
             else
                 invocation = JSInvocationExpression.InvokeMethod(
-                    actualMethod, pa.ThisReference, arguments
+                    pa.OriginalType, actualMethod, pa.ThisReference, arguments
                 );
 
             JSExpression replacement;

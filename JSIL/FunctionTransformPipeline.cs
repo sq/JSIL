@@ -241,6 +241,9 @@ namespace JSIL.Internal {
             Enqueue(DecomposeMutationOperators);
 
             Enqueue(HoistAllocations);
+
+            // HACK: Something about nullables is broken so we have to do this twice. WTF?
+            Enqueue(ReplaceMethodCalls);
         }
 
 

@@ -15,7 +15,7 @@ namespace JSIL.Transforms {
         public readonly JSSpecialIdentifiers JS;
         public readonly MethodReference Method;
 
-        private JSTernaryOperatorExpression _ResultReferenceReplacement = null;
+        private JSExpression _ResultReferenceReplacement = null;
 
         public ReplaceMethodCalls (
             MethodReference method, JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem
@@ -159,6 +159,28 @@ namespace JSIL.Transforms {
                             } else {
                                 ParentNode.ReplaceChild(ie, ternary);
                                 VisitReplacement(ternary);
+                            }
+
+                            break;
+                        case "get_HasValue": {
+                            var replacement = new JSBinaryOperatorExpression(
+                                JSOperator.NotEqual, ie.ThisReference, @null, TypeSystem.Boolean
+                            );
+                            if (ParentNode is JSResultReferenceExpression) {
+                                _ResultReferenceReplacement = replacement;
+                            } else {
+                                ParentNode.ReplaceChild(ie, replacement);
+                                VisitReplacement(replacement);
+                            }
+
+                            break;
+                        }
+                        case "get_Value":
+                            if (ParentNode is JSResultReferenceExpression) {
+                                _ResultReferenceReplacement = ie.ThisReference;
+                            } else {
+                                ParentNode.ReplaceChild(ie, ie.ThisReference);
+                                VisitReplacement(ie.ThisReference);
                             }
 
                             break;

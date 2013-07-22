@@ -873,11 +873,13 @@ namespace JSIL.Ast {
         public readonly bool IsVirtualCall;
         public readonly bool TypeQualified;
 
+        public readonly JSType OriginalType;
         public readonly JSMethod OriginalMethod;
 
         public JSPropertyAccess (
             JSExpression thisReference, JSProperty property, 
-            bool isWrite, bool typeQualified, JSMethod originalMethod,
+            bool isWrite, bool typeQualified, 
+            JSType originalType, JSMethod originalMethod,
             bool isVirtualCall
         )
             : base(thisReference, property) {
@@ -885,6 +887,8 @@ namespace JSIL.Ast {
             IsWrite = isWrite;
             IsVirtualCall = isVirtualCall;
             TypeQualified = typeQualified;
+
+            OriginalType = originalType;
             OriginalMethod = originalMethod;
         }
 
@@ -1100,6 +1104,9 @@ namespace JSIL.Ast {
         }
 
         public static JSInvocationExpression InvokeMethod (JSExpression method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            if (method is JSMethod)
+                throw new InvalidOperationException("Invoking a method without passing in a type");
+
             return new JSInvocationExpression(
                 new JSNullExpression(), method, thisReference, arguments, false, constantIfArgumentsAre
             );

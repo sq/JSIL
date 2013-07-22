@@ -162,6 +162,7 @@ namespace JSIL.Internal {
             var getMethodReference = CecilUtil.RebindMethod(getMethod.Member, targetGit, targetGit.GenericArguments[0]);
 
             return JSInvocationExpression.InvokeMethod(
+                new JSType(targetType),
                 new JSMethod(getMethodReference, getMethod, methodTypes),
                 target,
                 new JSExpression[] { index },
