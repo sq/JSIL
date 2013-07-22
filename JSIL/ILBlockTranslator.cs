@@ -2157,7 +2157,8 @@ namespace JSIL {
                             node
                         ));
 
-                    return result;
+                    var resultCast = JSCastExpression.New(result, expressionType, TypeSystem, true, true);
+                    return resultCast;
                 }
             } else if (typeName == "System.Boolean") {
                 return JSLiteral.New(value != 0);

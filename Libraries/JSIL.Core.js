@@ -4348,6 +4348,10 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + typeName + "'.");
   };
 
+  var throwInvalidAsError = function (value) {
+    throw new System.InvalidCastException("It is invalid to use 'as' to cast values to this type.");
+  };
+
   var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
   var isIList = typeName.indexOf(".IList") >= 0;
 
@@ -4469,7 +4473,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   switch (specialType) {
     case "enum":
       customCheckOnly = true;    
-      asFunction = throwCastError;
+      asFunction = throwInvalidAsError;
 
       castFunction = function Cast_Enum (expression) {
         var n = expression.valueOf();

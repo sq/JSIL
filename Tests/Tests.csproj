@@ -199,6 +199,8 @@
     <None Include="SimpleTestCases\CastEnumTypeToRuntimeType.cs" />
     <None Include="SpecialTestCases\PropertyRecursion.cs" />
     <None Include="PerformanceTestCases\PropertyVsField.cs" />
+    <None Include="SimpleTestCases\CastIntegerConstantToEnum.cs" />
+    <None Include="SimpleTestCases\CastOtherEnumToEnumConstant.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
