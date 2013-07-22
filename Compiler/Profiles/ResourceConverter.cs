@@ -179,7 +179,7 @@ namespace JSIL.Utilities {
 
                 foreach (var kvp in manifestResources) {
                     Console.WriteLine(kvp.Key);
-                    var key = Path.Combine("ManifestResources", kvp.Key);
+                    var key = kvp.Key;
 
                     if (result.Files.ContainsKey(key)) {
                         if (result.Files[key].Size != kvp.Value.Length)

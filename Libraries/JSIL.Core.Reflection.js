@@ -829,6 +829,29 @@ JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function
     }
   );
 
+  $.Method({Static:false, Public:true , Virtual:true }, "GetManifestResourceStream", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.Stream"), [$.String], []), 
+    function GetManifestResourceStream (name) {
+      var assemblyKey = this.__FullName__;
+      var firstComma = assemblyKey.indexOf(",");
+      if (firstComma)
+        assemblyKey = assemblyKey.substr(0, firstComma);
+
+      var files = allManifestResources[assemblyKey];
+      if (!files)
+        throw new Error("Assembly '" + assemblyKey + "' has no manifest resources");
+
+      var fileKey = name.toLowerCase();
+
+      var bytes = files[fileKey];
+      if (!bytes)
+        throw new Error("No stream named '" + name + "'");
+
+      var result = new System.IO.MemoryStream(bytes, false);
+      return result;
+    }
+  );
+
   $.Property({Static: false, Public: true}, "CodeBase");
   $.Property({Static: false, Public: true}, "Location");
   $.Property({Static: false, Public: true}, "FullName");

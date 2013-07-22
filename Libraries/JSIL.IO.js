@@ -477,6 +477,17 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "CopyTo", 
+    (new JSIL.MethodSignature(null, [$.Type], [])), 
+    function CopyTo (stream) {
+      if (this._buffer) {
+        stream.Write(this._buffer, 0, this._length);
+      } else {
+        throw new Error("Copying not implemented for this stream type");
+      }
+    }
+  );
+
   $.RawMethod(false, "$GetURI", function () {
     return null;
   });
@@ -631,6 +642,8 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
       this._pos = 0;
       this._length = 0;
+      this._canRead = false;
+      this._canWrite = false;
     }
   );
 
@@ -746,6 +759,13 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [], [])), 
     function GetBuffer () {
       return this._buffer;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToArray", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [], [])), 
+    function ToArray () {
+      return JSIL.Array.Clone(this._buffer);
     }
   );
 });

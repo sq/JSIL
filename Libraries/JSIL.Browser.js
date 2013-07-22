@@ -454,6 +454,7 @@ var $logFps = false;
 
 var allFiles = {};
 var allAssets = {};
+var allManifestResources = {};
 
 // Handle mismatches between dom key codes and XNA key codes
 var keyMappings = {

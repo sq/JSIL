@@ -5232,6 +5232,8 @@ JSIL.IsTypedArray = function (value) {
 JSIL.IsSystemArray = function (value) {
   if (JSIL.IsArray(value))
     return true;
+  if (!value)
+    return false;
 
   var valueType = value.__ThisType__;
   if (valueType)
