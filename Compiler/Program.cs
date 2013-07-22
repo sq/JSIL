@@ -79,7 +79,8 @@ namespace JSIL.Compiler {
 
         static string[] PurgeDuplicateFilesFromBuildGroup (
             string[] buildGroupFiles,
-            AssemblyCache assemblyCache
+            AssemblyCache assemblyCache,
+            HashSet<string> skippedAssemblies
         ) {
             var result = new List<string>();
 
@@ -128,6 +129,7 @@ namespace JSIL.Compiler {
                     foreach (var anr in kvpInner.AllReferencesRecursive) {
                         if (anr.FullName == kvpOuter.Assembly.FullName) {
                             Console.Error.WriteLine("// Not translating '{0}' directly because '{1}' references it.", Path.GetFileName(kvpOuter.Filename), Path.GetFileName(kvpInner.Filename));
+                            skippedAssemblies.Add(kvpOuter.Filename);
                             goto skip;
                         }
                     }
@@ -405,12 +407,17 @@ namespace JSIL.Compiler {
                 ).ToArray();
 
                 if (outputFiles.Length > 0) {
-                    buildGroups.Add(new BuildGroup {
+                    var sa = new HashSet<string>();
+
+                    var group = new BuildGroup {
                         BaseConfiguration = mergedSolutionConfig,
                         BaseVariables = localVariables,
-                        FilesToBuild = PurgeDuplicateFilesFromBuildGroup(outputFiles, assemblyCache),
+                        FilesToBuild = PurgeDuplicateFilesFromBuildGroup(outputFiles, assemblyCache, sa),
                         Profile = profile,
-                    });
+                    };
+                    group.SkippedAssemblies = sa.ToArray();
+
+                    buildGroups.Add(group);
                 }
             }
 
@@ -541,6 +548,7 @@ namespace JSIL.Compiler {
             var profiles = new Dictionary<string, IProfile>();
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
+            var processedAssemblies = new HashSet<string>();
 
             var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, assemblyCache);
 
@@ -615,6 +623,20 @@ namespace JSIL.Compiler {
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)
                             throw new Exception("No output directory was specified!");
+
+                        if (buildGroup.SkippedAssemblies != null) {
+                            foreach (var sa in buildGroup.SkippedAssemblies) {
+                                if (processedAssemblies.Contains(sa))
+                                    continue;
+
+                                Console.Error.WriteLine("// Processing '{0}'", Path.GetFileName(sa));
+                                processedAssemblies.Add(sa);
+
+                                buildGroup.Profile.ProcessSkippedAssembly(
+                                    localConfig, sa, outputs
+                                );
+                            }
+                        }
 
                         var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
                         CopiedOutputGatherer.EnsureDirectoryExists(outputDir);

@@ -17,6 +17,9 @@ namespace JSIL.Compiler.Extensibility {
             VariableSet variables, AssemblyTranslator translator, 
             Configuration configuration, string assemblyPath, bool scanForProxies
         );
+        void ProcessSkippedAssembly (
+            Configuration configuration, string assemblyPath, TranslationResult result
+        );
         void WriteOutputs (
             VariableSet variables, TranslationResult result, string path, string manifestPrefix
         );

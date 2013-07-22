@@ -164,5 +164,37 @@ namespace JSIL.Utilities {
 
             return result;
         }
+    
+        public static void ExtractFromAssembly (Configuration configuration, string assemblyPath, TranslationResult result) {
+            using (var domain = new TemporaryAppDomain("ExtractFromAssembly")) {
+                var resourceExtractor = domain.CreateInstanceAndUnwrap<
+                    ManifestResourceExtractor, IManifestResourceExtractor
+                >();
+
+                var manifestResources = resourceExtractor.GetManifestResources(
+                    assemblyPath, (fn) => !fn.EndsWith(".resources")
+                );
+
+                var encoding = new UTF8Encoding(false);
+
+                foreach (var kvp in manifestResources) {
+                    Console.WriteLine(kvp.Key);
+                    var key = Path.Combine("ManifestResources", kvp.Key);
+
+                    if (result.Files.ContainsKey(key)) {
+                        if (result.Files[key].Size != kvp.Value.Length)
+                            throw new InvalidOperationException("Found two conflicting manifest resources named '" + key + "'");
+                    } else {
+                        result.AddFile(
+                            "ManifestResource", key,
+                            new ArraySegment<byte>(kvp.Value),
+                            properties: new Dictionary<string, object> {
+                                {"assembly", Path.GetFileNameWithoutExtension(assemblyPath)}
+                            }
+                        );
+                    }
+                }
+            }
+        }
     }
 }

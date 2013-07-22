@@ -13,7 +13,11 @@ namespace JSIL {
             public string Filename;
             public long Size;
             public ArraySegment<byte> Contents;
+            public Dictionary<string, object> Properties;
         }
+
+        public readonly string AssemblyPath;
+        public readonly AssemblyManifest AssemblyManifest;
 
         public readonly Configuration Configuration;
         public readonly List<AssemblyDefinition> Assemblies = new List<AssemblyDefinition>();
@@ -23,8 +27,12 @@ namespace JSIL {
         public TimeSpan Elapsed;
         public ArraySegment<byte> Manifest;
 
-        internal TranslationResult (Configuration configuration) {
+        internal TranslationResult (
+            Configuration configuration, string assemblyPath, AssemblyManifest assemblyManifest
+        ) {
             Configuration = configuration;
+            AssemblyPath = assemblyPath;
+            AssemblyManifest = assemblyManifest;
         }
 
         public IEnumerable<ResultFile> OrderedFiles {
@@ -34,7 +42,13 @@ namespace JSIL {
             }
         }
 
-        public void AddFile (string type, string filename, ArraySegment<byte> bytes, int? position = null) {
+        public void AddFile (
+            string type, 
+            string filename, 
+            ArraySegment<byte> bytes, 
+            int? position = null,
+            Dictionary<string, object> properties = null
+        ) {
             lock (Files) {
                 if (position.HasValue)
                     FileOrder.Insert(position.Value, filename);
@@ -45,7 +59,8 @@ namespace JSIL {
                     Type = type,
                     Filename = filename,
                     Contents = bytes,
-                    Size = bytes.Count
+                    Size = bytes.Count,
+                    Properties = properties
                 });
             }
         }
@@ -83,18 +98,24 @@ namespace JSIL {
             var filePath = Path.Combine(folder, name);
             var fileMode = File.Exists(filePath) ? FileMode.Truncate : FileMode.CreateNew;
 
+            EnsureDirectoryExists(Path.GetDirectoryName(filePath));
+
             using (var fs = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read)) {
                 fs.Write(bytes.Array, bytes.Offset, bytes.Count);
                 fs.Flush();
             }
         }
 
+        public static void EnsureDirectoryExists (string directoryName) {
+            if (!Directory.Exists(directoryName))
+                Directory.CreateDirectory(directoryName);
+        }
+
         public void WriteToDirectory (string path, string manifestPrefix = "") {
             if (Manifest.Array == null)
                 throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
 
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            EnsureDirectoryExists(path);
 
             WriteBytesToFile(path, manifestPrefix + "manifest.js", Manifest);
 

@@ -406,7 +406,7 @@ namespace JSIL {
             else
                 Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
 
-            var result = new TranslationResult(this.Configuration);
+            var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
 
@@ -521,7 +521,7 @@ namespace JSIL {
                     tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
                     foreach (var fe in result.OrderedFiles) {
-                        var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
+                        var propertiesObject = FormatFileProperties(fe);
 
                         tw.WriteLine(String.Format(
                             "    [{0}, {1}, {2}],",
@@ -540,6 +540,26 @@ namespace JSIL {
                     ms.GetBuffer(), 0, (int)ms.Length
                 );
             }
+        }
+
+        private static string FormatFileProperties (TranslationResult.ResultFile fe) {
+            var result = "{ ";
+            result += "\"sizeBytes\": ";
+            result += fe.Size;
+
+            if (fe.Properties != null)
+            foreach (var kvp in fe.Properties) {
+                result += ", \"" + kvp.Key + "\": ";
+
+                if (kvp.Value is string)
+                    result += Util.EscapeString((string)kvp.Value, forJson: true);
+                else
+                    throw new NotImplementedException("File property of type '" + kvp.Value.GetType().Name);
+            }
+
+            result += " }";
+
+            return result;
         }
 
         private void AnalyzeFunctions (

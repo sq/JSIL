@@ -19,12 +19,17 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
-
             return result;
         }
 
+        public virtual void ProcessSkippedAssembly (
+            Configuration configuration, string assemblyPath, TranslationResult result
+        ) {
+        }
+
         public virtual void WriteOutputs (VariableSet variables, TranslationResult result, string path, string manifestPrefix) {
+            AssemblyTranslator.GenerateManifest(result.AssemblyManifest, result.AssemblyPath, result);
+
             Console.WriteLine(manifestPrefix + "manifest.js");
 
             foreach (var fe in result.OrderedFiles)

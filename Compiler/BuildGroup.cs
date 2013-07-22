@@ -9,6 +9,7 @@ namespace JSIL.Compiler {
         public IProfile Profile;
         public Configuration BaseConfiguration;
         public VariableSet BaseVariables;
-        public string[] FilesToBuild; 
+        public string[] FilesToBuild;
+        public string[] SkippedAssemblies;
     }
 }

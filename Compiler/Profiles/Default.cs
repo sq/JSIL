@@ -13,14 +13,24 @@ namespace JSIL.Compiler.Profiles {
             return false;
         }
 
-        public virtual TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
+        public virtual TranslationResult Translate (
+            AssemblyTranslator translator, 
+            Configuration configuration, 
+            string assemblyPath, 
+            bool scanForProxies
+        ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
-
-            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
+            ProcessSkippedAssembly(configuration, assemblyPath, result);
 
             return result;
+        }
+
+        public override void ProcessSkippedAssembly (
+            Configuration configuration, string assemblyPath, TranslationResult result
+        ) {
+            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
+            ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
         }
 
         public override SolutionBuilder.BuildResult ProcessBuildResult (VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult) {

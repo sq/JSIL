@@ -35,15 +35,20 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
+            ProcessSkippedAssembly(configuration, assemblyPath, result);
 
             result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()
             )), 0);
 
-            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
-
             return result;
+        }
+
+        public override void ProcessSkippedAssembly (
+            Configuration configuration, string assemblyPath, TranslationResult result
+        ) {
+            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
+            ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
         }
 
         public override SolutionBuilder.BuildResult ProcessBuildResult (
