@@ -25,7 +25,7 @@ namespace JSIL.Tests {
             }
         }
 
-        public float JavascriptExecutionTimeout = 30.0f;
+        public float JavascriptExecutionTimeout = 10.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
             @"// elapsed: (?'elapsed'[0-9]+(\.[0-9]*)?)",
@@ -653,6 +653,12 @@ namespace JSIL.Tests {
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;
+
+                if ((jsex != null) && (jsex.Exceptions.Length > 0)) {
+                    Console.WriteLine("// JS exceptions begin //");
+                    foreach (var exc in jsex.Exceptions)
+                        Console.WriteLine(exc);
+                }
 
                 if (outputs[0] != null) {
                     Console.WriteLine("// C# output begins //");

@@ -1039,10 +1039,10 @@ namespace JSIL {
                 jsBlock.Statements.Add(new JSExpressionStatement(new JSGotoExpression(exitLabelName)));
 
                 epilogue = jsBlock;
-                return new JSSwitchCase(values, standinBlock);
+                return new JSSwitchCase(values, standinBlock, block.IsDefault);
             } else {
                 return new JSSwitchCase(
-                    values, jsBlock
+                    values, jsBlock, block.IsDefault
                 );
             }
         }

@@ -332,7 +332,8 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\Goto.cs",
                     @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs",
-                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs"
+                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs",
+                    @"SpecialTestCases\DepthStencilStateSwitchGoto.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

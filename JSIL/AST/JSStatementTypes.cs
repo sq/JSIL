@@ -305,13 +305,15 @@ namespace JSIL.Ast {
         public readonly JSExpression[] Values;
         [JSAstTraverse(1)]
         public readonly JSBlockStatement Body;
+        public readonly bool IsDefault;
         
-        public JSSwitchCase (JSExpression[] values, JSBlockStatement body) {
+        public JSSwitchCase (JSExpression[] values, JSBlockStatement body, bool isDefault) {
             if ((values != null) && (values.Length == 0))
                 values = null;
 
             Values = values;
             Body = body;
+            IsDefault = isDefault;
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {

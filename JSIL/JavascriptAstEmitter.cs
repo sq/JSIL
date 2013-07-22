@@ -1112,6 +1112,11 @@ namespace JSIL {
             Output.OpenBrace();
 
             foreach (var c in swtch.Cases) {
+                if (c.IsDefault) {
+                    Output.WriteRaw("default: ");
+                    Output.NewLine();
+                }
+
                 if (c.Values != null) {
                     foreach (var value in c.Values) {
                         Output.WriteRaw("case ");
@@ -1119,9 +1124,6 @@ namespace JSIL {
                         Output.WriteRaw(": ");
                         Output.NewLine();
                     }
-                } else {
-                    Output.WriteRaw("default: ");
-                    Output.NewLine();
                 }
 
                 Output.Indent();

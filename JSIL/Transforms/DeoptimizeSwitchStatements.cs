@@ -242,7 +242,7 @@ namespace JSIL.Transforms {
                     }
 
                     switchCases.Add(new JSSwitchCase(
-                        values, body
+                        values, body, cse.IsDefault
                     ));
                 }
 
