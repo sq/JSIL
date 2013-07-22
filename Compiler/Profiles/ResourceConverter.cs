@@ -47,8 +47,10 @@ namespace JSIL.Utilities {
         }
 
         public static void ConvertSatelliteResources (Configuration configuration, string assemblyPath, TranslationResult result) {
+            var filterKey = Path.GetFileNameWithoutExtension(assemblyPath) + ".resources.dll";
+
             var satelliteResourceAssemblies = Directory.GetFiles(
-                Path.GetDirectoryName(assemblyPath), "*.resources.dll", SearchOption.AllDirectories
+                Path.GetDirectoryName(assemblyPath), filterKey, SearchOption.AllDirectories
             );
 
             foreach (var satelliteResourceAssembly in satelliteResourceAssemblies) {
