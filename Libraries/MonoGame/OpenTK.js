@@ -594,14 +594,15 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
       return null;
     }
   );
+  */
 
   $.Method({Static:false, Public:true , Virtual:true }, "get_WindowState", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.WindowState"), [], []), 
     function get_WindowState () {
       // FIXME
+      return OpenTK.WindowState.Normal;
     }
   );
-  */
 
   $.Method({Static:false, Public:true , Virtual:true }, "get_X", 
     new JSIL.MethodSignature($.Int32, [], []), 
