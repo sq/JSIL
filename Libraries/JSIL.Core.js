@@ -5030,13 +5030,14 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     callStack = printStackTrace();
 
   var context = $private;
+  var typeObject, publicInterface;
 
   var creator = function CreateEnum () {
-    var publicInterface = function Enum__ctor () {
+    publicInterface = function Enum__ctor () {
       throw new Error("Cannot construct an instance of an enum");
     };
 
-    var typeObject = JSIL.$MakeTypeObject(fullName);
+    typeObject = JSIL.$MakeTypeObject(fullName);
 
     publicInterface.prototype = JSIL.CreatePrototypeObject($jsilcore.System.Enum.prototype);
     publicInterface.__Type__ = typeObject;
@@ -5172,6 +5173,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     $.__BaseType__ = enumType;
     $.prototype = prototype;
 
+    var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
+
     for (var key in members) {
       if (!members.hasOwnProperty(key))
         continue;
@@ -5185,6 +5188,15 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       $.__Type__.__Names__.push(key);
       $.__Type__.__ValueToName__[value] = key;
       $[key] = $.$MakeValue(value, key);
+
+      var descriptor = ib.ParseDescriptor({Public: true, Static: true}, key);
+      var mb = new JSIL.MemberBuilder(context);
+      var data = { 
+        fieldType: $.__Type__,
+        constant: value
+      };
+
+      ib.PushMember("FieldInfo", descriptor, data, mb);
     }
 
     JSIL.FixupInterfaces(enumType.__PublicInterface__, enumType);
@@ -5292,7 +5304,10 @@ JSIL.GetType = function (value) {
     return System.String.__Type__;
 
   } else if (type === "number") {
-    return System.Double.__Type__;
+    if (value === (value | 0))
+      return System.Int32.__Type__;
+    else
+      return System.Double.__Type__;
 
   } else if (type === "boolean") {
     return System.Boolean.__Type__;

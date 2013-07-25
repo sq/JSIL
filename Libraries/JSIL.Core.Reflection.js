@@ -717,6 +717,13 @@ JSIL.ImplementExternals(
         return this._descriptor.IsReadOnly;
       }
     );
+
+    $.Method({Static:false, Public:true , Virtual:true }, "GetRawConstantValue", 
+      new JSIL.MethodSignature($.Object, [], []), 
+      function GetRawConstantValue () {
+        return this._data.constant;
+      }
+    );
   }
 );
 
