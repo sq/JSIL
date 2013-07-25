@@ -285,6 +285,17 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     }
   );
 
+  $.Method({Static:true , Public:true }, "Scissor", 
+    new JSIL.MethodSignature(null, [
+        $.Int32, $.Int32, 
+        $.Int32, $.Int32
+      ], []),
+    function Scissor (x, y, width, height) {
+      var ctx = JSIL.GL.getContext();
+      ctx.scissor(x, y, width, height);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "Flush", 
     new JSIL.MethodSignature(null, [], []), 
     function Flush () {
@@ -348,6 +359,16 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       var ctx = JSIL.GL.getContext();
       ctx.drawElements(mode.value, count, type.value, 0);
     }
-  )
+  );
 
+  $.Method({Static:true , Public:true }, "GenTextures", 
+    new JSIL.MethodSignature(null, [$.Int32, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], []),
+    function GenTextures (count, /* ref */ result) {
+      if (count !== 1)
+        throw new Error("Cannot create more than one texture");
+
+      var ctx = JSIL.GL.getContext();
+      result.set(ctx.createTexture());
+    }
+  );
 });
