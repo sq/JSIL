@@ -10,8 +10,15 @@ JSIL.DeclareNamespace("JSIL.Runtime");
 JSIL.DeclareNamespace("JSIL.PackedArray");
 
 JSIL.ImplementExternals("System.IntPtr", function ($) {
+  var tIntPtr = $jsilcore.TypeRef("System.IntPtr");
+
   $.RawMethod(false, "$fromPinnedPointer", function (pinnedPointer) {
     this.pinnedPointer = pinnedPointer;
+    this.value = null;
+  });
+
+  $.RawMethod(true, ".cctor", function () {
+    System.IntPtr.Zero = new System.IntPtr(0);
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -27,6 +34,44 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     function _ctor (value) {
       this.pinnedPointer = null;
       this.value = value;
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__", 
+    function IntPtr_CopyMembers (source, target) {
+      target.value = source.value;
+      target.pinnedPointer = source.pinnedPointer;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
+    function op_Equality (lhs, rhs) {
+      if (lhs.pinnedPointer !== null) {
+        if (!rhs.pinnedPointer)
+          return false;
+
+        return rhs.pinnedPointer.equals(lhs.pinnedPointer);
+      } else {
+        return System.Int64.op_Equality(lhs.value, rhs.value);
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Addition", 
+    (new JSIL.MethodSignature(tIntPtr, [tIntPtr, $.Int32], [])), 
+    function op_Addition (lhs, rhs) {
+      if (lhs.pinnedPointer !== null) {
+        var newPointer = lhs.pinnedPointer.add(rhs, false);
+
+        return JSIL.CreateInstanceOfType(
+          System.IntPtr.__Type__,
+          "$fromPinnedPointer",
+          [newPointer]
+        );
+      } else {
+        throw new Error("Not implemented");
+      }
     }
   );
 
@@ -49,6 +94,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
       return this.value;
     }
   );
+
+  $.Field({Static:true, Public:true }, "Zero", tIntPtr);
 });
 
 JSIL.ImplementExternals("System.UIntPtr", function ($) {
@@ -81,10 +128,13 @@ JSIL.ImplementExternals("System.UIntPtr", function ($) {
   );
 });
 
-JSIL.MakeStruct("System.ValueType", "System.IntPtr", true, []);
-JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, []);
+JSIL.MakeStruct("System.ValueType", "System.IntPtr", true, [], function ($) {
+});
+JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, [], function ($) {
+});
 
-JSIL.MakeStruct("System.ValueType", "System.Void", true, []);
+JSIL.MakeStruct("System.ValueType", "System.Void", true, [], function ($) {
+});
 
 JSIL.DeclareNamespace("System.Runtime.InteropServices");
 
@@ -135,13 +185,19 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
     this._pointer = JSIL.PinAndGetPointer(obj, 0);
   });
 
+  $.RawMethod(false, "__CopyMembers__", 
+    function GCHandle_CopyMembers (source, target) {
+      target._pointer = source._pointer;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "AddrOfPinnedObject", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], []), 
     function AddrOfPinnedObject () {
       return JSIL.CreateInstanceOfType(
         System.IntPtr.__Type__,
         "$fromPinnedPointer",
-        this._pointer
+        [this._pointer]
       );
     }
   );

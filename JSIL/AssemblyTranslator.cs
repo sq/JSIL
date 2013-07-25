@@ -86,7 +86,8 @@ namespace JSIL {
             "System.Single", "System.Double", 
             "System.Boolean", "System.Char",
             "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
-            "System.Attribute", "System.Decimal"
+            "System.Attribute", "System.Decimal",
+            "System.IntPtr", "System.UIntPtr"
         }; 
 
         public AssemblyTranslator (
@@ -1325,7 +1326,6 @@ namespace JSIL {
                 output.Semicolon(true);
             });
 
-            setValue("__IsNativeType__", true);
             setValue("__IsIntegral__", isIntegral);
             setValue("__IsNumeric__", isNumeric);
         }

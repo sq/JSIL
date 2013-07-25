@@ -7002,8 +7002,14 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
     return constructor.apply(constructor, constructorArguments);
   }
 
-  if (!JSIL.IsArray(constructorArguments))
+  if (
+    (typeof (constructorArguments) === "undefined") ||
+    (constructorArguments === null)
+  ) {
     constructorArguments = [];
+  } else if (!JSIL.IsArray(constructorArguments)) {
+    throw new Error("Constructor arguments must be an array");
+  }
 
   if (type.__IsStruct__ && (constructorArguments.length === 0))
     return instance;
@@ -8218,7 +8224,7 @@ JSIL.$IgnoredPublicInterfaceMembers = [
   "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
   "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
   "__FieldList__", "__Comparer__", "__Marshaller__", "__Unmarshaller__", 
-  "__UnmarshalConstructor__", "__ElementProxyConstructor__"
+  "__UnmarshalConstructor__", "__ElementProxyConstructor__", "__IsNativeType__"
 ];
 
 JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {

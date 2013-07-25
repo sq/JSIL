@@ -626,8 +626,6 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
-  $.__IsNativeType__ = true;
-
   $.Field({Static: true , Public: true }, "Empty", $.String, "");
 });
 
