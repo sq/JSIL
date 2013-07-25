@@ -4455,14 +4455,28 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       throwCastError(expression);
   };
 
-  var numericCastFunction = function Cast_Number (expression) {
-    if (expression === false)
+  var integerCastFunction = function Cast_Integer (expression) {
+    if (typeof (expression) === "number") {
+      var max = publicInterface.MaxValue | 0;
+      var result = (expression | 0) & max;
+
+      return result;
+    } else if (expression === false) {
       return 0;
-    else if (expression === true)
+    } else if (expression === true) {
       return 1;
-    else if (typeof (expression) === "number")
+    } else
+      throwCastError(expression);
+  };
+
+  var numericCastFunction = function Cast_Number (expression) {
+    if (typeof (expression) === "number") {
       return expression;
-    else
+    } else if (expression === false) {
+      return 0;
+    } else if (expression === true) {
+      return 1;
+    } else
       throwCastError(expression);
   };
 
@@ -4526,10 +4540,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     case "integer":
       customCheckOnly = true;    
       asFunction = throwInvalidAsError;
-
-      castFunction = function Cast_Integer (expression) {
-        return Math.floor(numericCastFunction(expression));
-      };
+      castFunction = integerCastFunction;
 
       break;
 
@@ -7539,43 +7550,39 @@ var $hashCodeWeakMap = null;
 if (typeof (WeakMap) !== "undefined") {
   $hashCodeWeakMap = new WeakMap();
 
-  JSIL.ObjectHashCode = function (obj) {
-    var type = typeof obj;
-
-    if (type === "object") {
-      if (obj.GetHashCode)
-        return (obj.GetHashCode() | 0);
-
-      var hc = $hashCodeWeakMap.get(obj);
-      if (!hc) {
-        hc = (++$nextHashCode) | 0;
-        $hashCodeWeakMap.set(obj, hc);
-      }
-
-      return hc;
-    } else {
-      return String(obj);
+  JSIL.HashCodeInternal = function (obj) {
+    var hc = $hashCodeWeakMap.get(obj);
+    if (!hc) {
+      hc = (++$nextHashCode) | 0;
+      $hashCodeWeakMap.set(obj, hc);
     }
+
+    return hc;
   };
 } else {
 
-  JSIL.ObjectHashCode = function (obj) {
-    var type = typeof obj;
+  JSIL.HashCodeInternal = function (obj) {
+    var hc = obj.__HashCode__;
+    if (!hc)
+      hc = obj.__HashCode__ = (++$nextHashCode) | 0;
 
-    if (type === "object") {
-      if (obj.GetHashCode)
-        return (obj.GetHashCode() | 0);
-
-      var hc = obj.__HashCode__;
-      if (!hc)
-        hc = obj.__HashCode__ = (++$nextHashCode) | 0;
-
-      return hc;
-    } else {
-      return String(obj);
-    }
+    return hc;
   };
 }
+
+JSIL.ObjectHashCode = function (obj) {
+  var type = typeof obj;
+
+  if (type === "object") {
+    if (obj.GetHashCode)
+      return (obj.GetHashCode() | 0);
+
+    return JSIL.HashCodeInternal(obj);
+  } else {
+    // FIXME: Not an integer. Gross.
+    return String(obj);
+  }
+};
 
 // MemberwiseClone if parameter is struct, otherwise do nothing.
 JSIL.CloneParameter = function (parameterType, value) {

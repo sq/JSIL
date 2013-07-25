@@ -69,6 +69,13 @@ JSIL.ImplementExternals("System.Object", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "GetHashCode", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function Object_GetHashCode () {
+      return JSIL.HashCodeInternal(this);
+    }
+  );
+
   // HACK: Prevent infinite recursion
   var currentMemberwiseCloneInvocation = null;
 

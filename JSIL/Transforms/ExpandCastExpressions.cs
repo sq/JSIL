@@ -176,7 +176,9 @@ namespace JSIL.Transforms {
                     TypeUtil.IsIntegral(currentType) ||
                     !TypeUtil.IsIntegral(targetType))
                 {
-                    newExpression = ce.Expression;
+                    // Ensure that we don't eliminate casts that reduce the size of a value
+                    if (TypeUtil.SizeOfType(currentType) < TypeUtil.SizeOfType(targetType))
+                        newExpression = ce.Expression;
                 }
                 else
                 {

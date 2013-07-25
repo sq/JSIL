@@ -156,6 +156,45 @@ namespace JSIL {
             }
         }
 
+        public static int SizeOfType (TypeReference type) {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType) {
+                case MetadataType.Boolean:
+                    return 1;
+
+                case MetadataType.Byte:
+                case MetadataType.SByte:
+                    return 1;
+
+                case MetadataType.UInt16:
+                case MetadataType.Int16:
+                    return 2;
+
+                case MetadataType.UInt32:
+                case MetadataType.Int32:
+                    return 4;
+
+                case MetadataType.UInt64:
+                case MetadataType.Int64:
+                    return 8;
+
+                case MetadataType.Single:
+                    return 4;
+
+                case MetadataType.Double:
+                    return 8;
+
+                // Blech
+                case MetadataType.UIntPtr:
+                case MetadataType.IntPtr:
+                    return 8;
+            }
+
+            throw new ArgumentException("Type must be numeric");
+        }
+
+
         public static bool IsIntPtr (TypeReference type) {
             return (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
         }
