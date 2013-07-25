@@ -10,9 +10,14 @@ JSIL.DeclareNamespace("JSIL.Runtime");
 JSIL.DeclareNamespace("JSIL.PackedArray");
 
 JSIL.ImplementExternals("System.IntPtr", function ($) {
+  $.RawMethod(false, "$fromPinnedPointer", function (pinnedPointer) {
+    this.pinnedPointer = pinnedPointer;
+  });
+
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (value) {
+      this.pinnedPointer = null;
       this.value = $jsilcore.System.Int64.FromInt32(value);
     }
   );
@@ -20,6 +25,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int64], [])), 
     function _ctor (value) {
+      this.pinnedPointer = null;
       this.value = value;
     }
   );
@@ -27,6 +33,9 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, "ToInt32", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ToInt32 () {
+      if (this.pinnedPointer !== null)
+        throw new Error("Attempting to call ToInt32() on a pinned object pointer");
+
       return this.value.ToInt32();
     }
   );
@@ -34,6 +43,9 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, "ToInt64", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ToInt64 () {
+      if (this.pinnedPointer !== null)
+        throw new Error("Attempting to call ToInt64() on a pinned object pointer");
+
       return this.value;
     }
   );
@@ -126,8 +138,11 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   $.Method({Static:false, Public:true }, "AddrOfPinnedObject", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], []), 
     function AddrOfPinnedObject () {
-      // FIXME
-      return this._pointer;
+      return JSIL.CreateInstanceOfType(
+        System.IntPtr.__Type__,
+        "$fromPinnedPointer",
+        this._pointer
+      );
     }
   );
 
@@ -177,7 +192,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, "storeExistingView",
     function (view) {
       var arrayCtor = Object.getPrototypeOf(view);
-      var ctorKey = String(arrayCtor.constructor);
+      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
 
       if (
         this.viewCache[ctorKey] && 
@@ -195,7 +210,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (!arrayCtor)
         return null;
 
-      var ctorKey = String(arrayCtor.constructor);
+      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
 
       var result = this.viewCache[ctorKey];
       if (!result)
