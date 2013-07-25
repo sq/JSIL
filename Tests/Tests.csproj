@@ -208,6 +208,7 @@
     <None Include="SimpleTestCases\GenericCastCharToChar.cs" />
     <None Include="SimpleTestCases\GenericCastCharToChar2.cs" />
     <None Include="ReflectionTestCases\EnumFields.cs" />
+    <None Include="SimpleTestCases\EnumToBooleanWithoutZeroValue.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

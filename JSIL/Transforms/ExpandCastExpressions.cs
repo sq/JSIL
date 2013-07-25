@@ -67,23 +67,12 @@ namespace JSIL.Transforms {
                     throw new InvalidOperationException("Unable to extract enum type from typereference " + currentType);
 
                 if (targetType.MetadataType == MetadataType.Boolean) {
-                    EnumMemberInfo enumMember;
-                    if (enumInfo.ValueToEnumMember.TryGetValue(0, out enumMember)) {
-                        newExpression = new JSBinaryOperatorExpression(
-                            JSOperator.NotEqual, ce.Expression,
-                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
-                        );
-                    } else if (enumInfo.ValueToEnumMember.TryGetValue(1, out enumMember)) {
-                        newExpression = new JSBinaryOperatorExpression(
-                            JSOperator.Equal, ce.Expression,
-                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
-                        );
-                    } else {
-                        newExpression = new JSUntranslatableExpression(String.Format(
-                            "Could not cast enum of type '{0}' to boolean because it has no zero value or one value",
-                            currentType.FullName
-                        ));
-                    }
+                    newExpression = new JSBinaryOperatorExpression(
+                        JSOperator.NotEqual,
+                        JSCastExpression.New(ce.Expression, TypeSystem.Int32, TypeSystem, true, true),
+                        new JSIntegerLiteral(0, typeof(Int32)),
+                        TypeSystem.Boolean
+                    );
                 } else if (TypeUtil.IsNumeric(targetType)) {
                     if (isNullable) {
                         newExpression = JSIL.ValueOfNullable(
