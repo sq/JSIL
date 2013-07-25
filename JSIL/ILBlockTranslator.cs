@@ -1627,7 +1627,7 @@ namespace JSIL {
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(left),
                 TranslateNode(right),
-                expectedType ?? inferredType
+                inferredType
             );
         }
 
@@ -2413,8 +2413,16 @@ namespace JSIL {
 
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType, bool throwOnOverflow = false, bool fromUnsignedInputs = false) {
             var value = TranslateNode(node.Arguments[0]);
+            var valueType = value.GetActualType(TypeSystem);
 
-            if (!TypeUtil.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
+            if (
+                !TypeUtil.TypesAreAssignable(TypeInfo, targetType, valueType) ||
+                // HACK: Compensate for char not being assignable to int
+                (
+                    (targetType.FullName == "System.Char") ||
+                    (valueType.FullName == "System.Char")
+                )
+            )
                 value = Translate_Conv(value, targetType);
 
             if (throwOnOverflow)
