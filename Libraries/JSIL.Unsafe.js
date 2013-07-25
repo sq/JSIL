@@ -177,14 +177,15 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, "storeExistingView",
     function (view) {
       var arrayCtor = Object.getPrototypeOf(view);
+      var ctorKey = arrayCtor.constructor.name || arrayCtor.toString();
 
       if (
-        this.viewCache[arrayCtor] && 
-        (this.viewCache[arrayCtor] !== view)
+        this.viewCache[ctorKey] && 
+        (this.viewCache[ctorKey] !== view)
       )
         throw new Error("A different view is already stored for this element type");
 
-      this.viewCache[arrayCtor] = view;
+      this.viewCache[ctorKey] = view;
     }
   );
 
@@ -194,9 +195,11 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (!arrayCtor)
         return null;
 
-      var result = this.viewCache[arrayCtor];
+      var ctorKey = arrayCtor.constructor.name || arrayCtor.toString();
+
+      var result = this.viewCache[ctorKey];
       if (!result)
-        result = this.viewCache[arrayCtor] = new arrayCtor(this.buffer);
+        result = this.viewCache[ctorKey] = new arrayCtor(this.buffer);
 
       return result;
     }

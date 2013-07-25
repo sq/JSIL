@@ -5199,6 +5199,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       ib.PushMember("FieldInfo", descriptor, data, mb);
     }
 
+    // FIXME: This is doing FixupInterfaces on Enum every time instead of on the specific enum type.
+    // Should be harmless, but...?
     JSIL.FixupInterfaces(enumType.__PublicInterface__, enumType);
 
     JSIL.MakeCastMethods($, $.__Type__, "enum");
