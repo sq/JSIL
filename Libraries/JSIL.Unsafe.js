@@ -177,7 +177,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, "storeExistingView",
     function (view) {
       var arrayCtor = Object.getPrototypeOf(view);
-      var ctorKey = arrayCtor.constructor.name || arrayCtor.toString();
+      var ctorKey = String(arrayCtor.constructor);
 
       if (
         this.viewCache[ctorKey] && 
@@ -195,7 +195,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (!arrayCtor)
         return null;
 
-      var ctorKey = arrayCtor.constructor.name || arrayCtor.toString();
+      var ctorKey = String(arrayCtor.constructor);
 
       var result = this.viewCache[ctorKey];
       if (!result)
