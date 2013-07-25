@@ -37,6 +37,7 @@
     <Compile Include="Array.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="Collections.cs" />
+    <Compile Include="Unsafe.cs" />
     <Compile Include="DateTime.cs" />
     <Compile Include="IO.cs" />
     <Compile Include="Forms.cs" />
