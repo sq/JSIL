@@ -452,12 +452,15 @@ JSIL.ImplementExternals(
       }
     );
 
-    var formatRegex = new RegExp("{([0-9]*)(?::([^}]*))?}|{{|}}", "g");
+    var formatRegex = new RegExp("{([0-9]*)(?::([^}]*))?}|{{|}}|{|}", "g");
 
     $.Method({Static:true , Public:true }, "Format", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
       function (format) {
         format = String(format);
+
+        if (arguments.length === 1)
+          return format;
 
         var match = null;
         var values = Array.prototype.slice.call(arguments, 1);
@@ -470,6 +473,8 @@ JSIL.ImplementExternals(
             return "{";
           else if (match === "}}")
             return "}";
+          else if ((match === "{") || (match === "}"))
+            throw new System.FormatException("Input string was not in a correct format.");
 
           index = parseInt(index);
 
