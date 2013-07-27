@@ -371,4 +371,182 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       result.set(ctx.createTexture());
     }
   );
+
+  $.Method({Static:true , Public:true }, "BindFramebuffer", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.FramebufferTarget"), $.Int32], []), 
+    function BindFramebuffer (target, framebuffer) {
+      var ctx = JSIL.GL.getContext();
+      ctx.bindFramebuffer(target.value, (framebuffer === 0) ? null : framebuffer);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Disable", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.EnableCap")], []), 
+    function Disable (cap) {
+      var ctx = JSIL.GL.getContext();
+      ctx.disable(cap.value);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Disable", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.IndexedEnableCap"), $.Int32], []), 
+    function Disable (target, index) {
+      var ctx = JSIL.GL.getContext();
+      ctx.disable(target.value, index);      
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Enable", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.EnableCap")], []), 
+    function Enable (cap) {
+      var ctx = JSIL.GL.getContext();
+      ctx.enable(cap.value);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Enable", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.IndexedEnableCap"), $.Int32], []), 
+    function Enable (target, index) {
+      var ctx = JSIL.GL.getContext();
+      ctx.enable(target.value, index);      
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ActiveTexture", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureUnit")], []), 
+    function ActiveTexture (texture) {
+      var ctx = JSIL.GL.getContext();
+      ctx.activeTexture(texture.value);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "TexParameter", 
+    new JSIL.MethodSignature(null, [
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureParameterName"), 
+        $.Int32
+      ], []), 
+    function TexParameter (target, pname, param) {
+      var ctx = JSIL.GL.getContext();
+      ctx.texParameteri(target.value, pname.value, param | 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "TexParameter", 
+    new JSIL.MethodSignature(null, [
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureParameterName"), 
+        $.Single
+      ], []), 
+    function TexParameter (target, pname, param) {
+      var ctx = JSIL.GL.getContext();
+      ctx.texParameterf(target.value, pname.value, param);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "BindTexture", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $.Int32], []), 
+    function BindTexture (target, texture) {
+      var ctx = JSIL.GL.getContext();
+      ctx.bindTexture(target.value, (texture === 0) ? null : texture);
+    }
+  );
+
+  var warnedAboutTexImage = false;
+
+  $.Method({Static:true , Public:false}, "TexImage2D", 
+    new JSIL.MethodSignature(null, [
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $.Int32, 
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.PixelInternalFormat"), $.Int32, 
+        $.Int32, $.Int32, 
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.PixelFormat"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.PixelType"), 
+        $mgasms[2].TypeRef("System.IntPtr")
+      ], []), 
+    function TexImage2D (target, level, internalformat, width, height, border, format, type, pixels) {
+      var nullPixels = (pixels === System.IntPtr.Zero);
+      if (!pixels.pinnedPointer && !nullPixels)
+        throw new Error("pixels must be provided in the form of a pinned pointer");
+
+      if (!nullPixels && !warnedAboutTexImage) {
+        JSIL.Host.warning("TexImage2D not implemented");
+        warnedAboutTexImage = true;      
+      }
+
+      var ctx = JSIL.GL.getContext();
+      ctx.texImage2D(
+        target.value, level, internalformat.value, 
+        width, height, border, 
+        format.value, type.value,
+        null
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetAttribLocation", 
+    new JSIL.MethodSignature($.Int32, [$.Int32, $.String], []), 
+    function GetAttribLocation (program, name) {
+      var ctx = JSIL.GL.getContext();
+      return ctx.getAttribLocation(program, name);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetUniformLocation", 
+    new JSIL.MethodSignature($.Int32, [$.Int32, $.String], []), 
+    function GetUniformLocation (program, name) {
+      var ctx = JSIL.GL.getContext();
+      return ctx.getUniformLocation(program, name);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Uniform1", 
+    new JSIL.MethodSignature(null, [$.Int32, $.Int32], []), 
+    function Uniform1 (location, x) {
+      var ctx = JSIL.GL.getContext();
+      ctx.uniform1i(location, x);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Uniform1", 
+    new JSIL.MethodSignature(null, [$.Int32, $.Single], []), 
+    function Uniform1 (location, x) {
+      var ctx = JSIL.GL.getContext();
+      ctx.uniform1f(location, x);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Uniform4", 
+    new JSIL.MethodSignature(null, [
+        $.Int32, $.Int32, 
+        $jsilcore.TypeRef("System.Array", [$.Single])
+      ], []), 
+    function Uniform4 (location, count, v) {
+      var expectedCount = ((v.length / 4) | 0);
+      count = count | 0;
+
+      if (count !== expectedCount)
+        throw new Error("count must be (v.length / 4)");
+
+      var ctx = JSIL.GL.getContext();
+      ctx.uniform4fv(location, v);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Uniform4", 
+    new JSIL.MethodSignature(null, [
+        $.Int32, $.Int32, 
+        $jsilcore.TypeRef("JSIL.Pointer", [$.Single])
+      ], []), 
+    function Uniform4 (location, count, pointer) {
+      var ctx = JSIL.GL.getContext();
+      var narrowView = pointer.asView($jsilcore.System.Single, (count | 0) * 4 * 4);
+      ctx.uniform4fv(location, narrowView);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "EnableVertexAttribArray", 
+    new JSIL.MethodSignature(null, [$.Int32], []), 
+    function EnableVertexAttribArray (index) {
+      var ctx = JSIL.GL.getContext();
+      ctx.enableVertexAttribArray(index);
+    }
+  );
+
 });
