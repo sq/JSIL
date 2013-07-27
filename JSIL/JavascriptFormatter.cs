@@ -601,6 +601,22 @@ namespace JSIL.Internal {
             RPar();
         }
 
+        protected void TypeReferenceInternal (PointerType pt, TypeReferenceContext context) {
+            WriteRaw("$jsilcore");
+            Dot();
+            WriteRaw("TypeRef");
+            LPar();
+
+            Value("JSIL.Pointer");
+            Comma();
+            OpenBracket(false);
+
+            TypeReference(pt.ElementType, context);
+
+            CloseBracket(false);
+            RPar();
+        }
+
         protected void TypeReferenceInternal (TypeReference tr, TypeReferenceContext context) {
             var type = TypeUtil.DereferenceType(tr);
             var typeDef = TypeUtil.GetTypeDefinition(type, false);
@@ -685,6 +701,7 @@ namespace JSIL.Internal {
             var byref = type as ByReferenceType;
             var gp = type as GenericParameter;
             var at = type as ArrayType;
+            var pt = type as PointerType;
 
             if (byref != null)
                 TypeReferenceInternal(byref, context);
@@ -692,6 +709,8 @@ namespace JSIL.Internal {
                 TypeReferenceInternal(gp, context);
             else if (at != null)
                 TypeReferenceInternal(at, context);
+            else if (pt != null)
+                TypeReferenceInternal(pt, context);
             else
                 TypeReferenceInternal(type, context);
         }

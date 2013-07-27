@@ -212,6 +212,7 @@
     <None Include="SimpleTestCases\CastToByteTruncation.cs" />
     <None Include="SimpleTestCases\CharArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCurlies.cs" />
+    <None Include="SpecialTestCases\PointerSignature.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

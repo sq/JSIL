@@ -350,6 +350,23 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "asView",
+    function Pointer_asView (elementType, sizeInBytes) {
+      var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType.__Type__, true);
+      var offsetInElements = (this.offsetBytes / arrayCtor.BYTES_PER_ELEMENT) | 0;
+      var sizeInElements = ((sizeInBytes | 0) / arrayCtor.BYTES_PER_ELEMENT) | 0;
+
+      if ((this.offsetInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
+        throw new Error("Pointer must be element-aligned");
+      if ((sizeInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
+        throw new Error("Size must be an integral multiple of element size");
+
+      var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
+
+      return view;
+    }
+  );
+
   $.RawMethod(false, "add",
     function Pointer_Add (offsetInBytes, modifyInPlace) {
       if (modifyInPlace === true) {

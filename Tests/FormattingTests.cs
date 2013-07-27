@@ -876,5 +876,31 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void PointerTypesInSignatures () {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\PointerSignature.cs",
+                output,
+                makeConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.CodeGenerator.EnableUnsafeCode = true;
+                    return cfg;
+                }
+            );
+
+            try {
+                Assert.IsTrue(
+                    generatedJs.Contains("TypeRef(\"JSIL.Pointer\""),
+                    "Pointer types not emitted in method signatures"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+
+        }
     }
 }
