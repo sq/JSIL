@@ -832,126 +832,103 @@ JSIL.Name.prototype.toString = function () {
 JSIL.SplitRegex = /[\.]/g;
 JSIL.UnderscoreRegex = /[\.\/\+]/g;
 JSIL.AngleGroupRegex = /\<([^<>]*)\>/g;
+JSIL.EscapedNameCharacterRegex = /[\.\/\+\`\~\:\<\>\(\)\{\}\[\]\@\-\=\?\!\*\ \&\,\|\']/g;
 
 JSIL.EscapeName = function (name) {
+  // FIXME: It sucks that this has to manually duplicate the C# escape logic.
+
   name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
     return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
   });
 
-  // FIXME: It sucks that this has to manually duplicate the C# escape logic.
-
-  var result = "";
-  for (var i = 0, l = name.length; i < l; i++) {
-    var ch = name[i];
-    var chIndex = ch.charCodeAt(0);
-
-    if ((chIndex < 32) || (chIndex >= 127)) {
-      // FIXME: Padding?
-      result += "$" + ch.toString(16);
-      continue;
-    }
+  // HACK: Using a regex here to try to avoid generating huge rope strings in v8
+  name = name.replace(JSIL.EscapedNameCharacterRegex, function (match) {
+    var ch = match[0];
 
     switch (ch) {
       case ".":
       case "/":
       case "+":
-        result += "_";
-        continue;
+        return "_";
 
       case "`":
-        result += "$b";
-        continue;
+        return "$b";
 
       case "~":
-        result += "$t";
-        continue;
+        return "$t";
 
       case ":":
-        result += "$co";
-        continue;
+        return "$co";
 
       case "<":
-        result += "$l";
-        continue;
+        return "$l";
 
       case ">":
-        result += "$g";
-        continue;
+        return "$g";
 
       case "(":
-        result += "$lp";
-        continue;
+        return "$lp";
 
       case ")":
-        result += "$rp";
-        continue;
+        return "$rp";
 
       case "{":
-        result += "$lc";
-        continue;
+        return "$lc";
 
       case "}":
-        result += "$rc";
-        continue;
+        return "$rc";
 
       case "[":
-        result += "$lb";
-        continue;
+        return "$lb";
 
       case "]":
-        result += "$rb";
-        continue;
+        return "$rb";
 
       case "@":
-        result += "$at";
-        continue;
+        return "$at";
 
       case "-":
-        result += "$da";
-        continue;
+        return "$da";
 
       case "=":
-        result += "$eq";
-        continue;
-
+        return "$eq";
+        
       case " ":
-        result += "$sp";
-        continue;
+        return "$sp";
 
       case "?":
-        result += "$qu";
-        continue;
+        return "$qu";
 
       case "!":
-        result += "$ex";
-        continue;
+        return "$ex";        
 
       case "*":
-        result += "$as";
-        continue;
-
+        return "$as";
+        
       case "&":
-        result += "$am";
-        continue;
+        return "$am";        
 
       case ",":
-        result += "$cm";
-        continue;
+        return "$cm";        
 
       case "|":
-        result += "$vb";
-        continue;
-
+        return "$vb";
+        
       case "'":
-        result += "$q";
-        continue;
-
+        return "$q";
+        
     }
 
-    result += ch;
-  }
+    var chIndex = ch.charCodeAt(0);
+    if ((chIndex < 32) || (chIndex >= 127)) {
+      // FIXME: Padding?
+      return "$" + ch.toString(16);
+    }
 
-  return result;
+    return ch;
+  });
+
+  return name;
 };
 
 JSIL.GetParentName = function (name) {
