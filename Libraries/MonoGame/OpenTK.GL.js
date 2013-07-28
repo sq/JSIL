@@ -53,7 +53,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
 
   if (!state.temporaryVertexBuffer)
     state.temporaryVertexBuffer = ctx.createBuffer();
-  
+
   ctx.bindBuffer(ctx.ARRAY_BUFFER, state.temporaryVertexBuffer);
 
   // FIXME: Limit length of view
@@ -671,4 +671,65 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ctx.frontFace(mode.value);
     }
   );
+
+  $.Method({Static:true , Public:true }, "ColorMask", 
+    new JSIL.MethodSignature(null, [
+        $.Boolean, $.Boolean, 
+        $.Boolean, $.Boolean
+      ], []), 
+    function ColorMask (red, green, blue, alpha) {
+      var ctx = JSIL.GL.getContext();
+      ctx.colorMask(red, green, blue, alpha);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "BlendColor", 
+    new JSIL.MethodSignature(null, [
+        $.Single, $.Single, 
+        $.Single, $.Single
+      ], []), 
+    function BlendColor (red, green, blue, alpha) {
+      var ctx = JSIL.GL.getContext();
+      ctx.blendColor(red, green, blue, alpha);
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "BlendEquationSeparate", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendEquationMode"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendEquationMode")], []), 
+    function BlendEquationSeparate (modeRGB, modeAlpha) {
+      var ctx = JSIL.GL.getContext();
+      ctx.blendEquationSeparate(modeRGB.value, modeAlpha.value);
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "BlendFuncSeparate", 
+    new JSIL.MethodSignature(null, [
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendingFactorSrc"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendingFactorDest"), 
+        $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendingFactorSrc"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BlendingFactorDest")
+      ], []), 
+    function BlendFuncSeparate (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha) {
+      var ctx = JSIL.GL.getContext();
+      ctx.blendFuncSeparate(
+        sfactorRGB.value, dfactorRGB.value,
+        sfactorAlpha.value, dfactorAlpha.value
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "PixelStore", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.PixelStoreParameter"), $.Int32], []), 
+    function PixelStore (pname, param) {
+      var ctx = JSIL.GL.getContext();
+      ctx.pixelStorei(pname.value, param);
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "Finish", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Finish () {
+      var ctx = JSIL.GL.getContext();
+      ctx.finish();
+    }
+  );
+  
 });

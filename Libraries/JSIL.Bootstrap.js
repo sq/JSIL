@@ -891,16 +891,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   var addImpl = function (item) {
-    if (this._size >= this._items.length) {
-      this._items.push(item);
-    } else {
-      this._items[this._size] = item;
-    }
-    this._size += 1;
-
-    if (typeof (this.$OnItemAdded) === "function")
-      this.$OnItemAdded(item);
-
+    this.InsertItem(this._size, item);
     return this._size;
   };
 
@@ -950,7 +941,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Clear", 
     new JSIL.MethodSignature(null, [], []),
     function () {
-      this._size = 0;
+      this.ClearItems();
     }
   );
 
@@ -1056,7 +1047,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
     function (index, value) {
       if (rangeCheckImpl(index, this._size))
-        this._items[index]=value;
+        this.SetItem(index, value);
       else
         throw new System.ArgumentOutOfRangeException("index");
     }
@@ -1104,8 +1095,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Insert", 
     (new JSIL.MethodSignature(null, [$.Int32, T], [])), 
     function Insert (index, item) {
-      this._items.splice(index, 0, item);
-      this._size += 1;
+      this.InsertItem(index, item);
     }
   );
 
@@ -1147,9 +1137,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
         var item = this._items[i];
 
         if (predicate(item)) {
-          this._items.splice(i, 1);
+          this.RemoveItem(i);
           i -= 1;
-          this._size -= 1;
           result += 1;
         }
       }
@@ -1164,8 +1153,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       if (!rangeCheckImpl(index, this._size))
         throw new System.ArgumentOutOfRangeException("index");
 
-      this._items.splice(index, 1);
-      this._size -= 1;
+      this.RemoveItem(index);
     }
   );
 
@@ -1278,6 +1266,51 @@ $jsilcore.$ListExternals = function ($, T, type) {
       return true;
     }
   );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "ClearItems", 
+    new JSIL.MethodSignature(null, [], []), 
+    function ClearItems () {
+      // Necessary to clear any element values.
+      var oldLength = this._items.length;
+      this._items.length = 0;
+      this._items.length = oldLength;
+
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "InsertItem", 
+    new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1")], []), 
+    function InsertItem (index, item) {
+      if (index >= this._items.length) {
+        this._items.push(item);
+      } else if (index >= this._size) {
+        this._items[index] = item;
+      } else {
+        this._items.splice(index, 0, item);
+      }
+
+      this._size += 1;
+
+      if (typeof (this.$OnItemAdded) === "function")
+        this.$OnItemAdded(item);
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "RemoveItem", 
+    new JSIL.MethodSignature(null, [$.Int32], []), 
+    function RemoveItem (index) {
+      this._items.splice(index, 1);
+      this._size -= 1;
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "SetItem", 
+    new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1")], []), 
+    function SetItem (index, item) {
+      this._items[index] = item;
+    }
+  );
 };
 
 JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
@@ -1333,6 +1366,13 @@ $jsilcore.$CollectionExternals = function ($) {
     function (list) {
       this._items = JSIL.EnumerableToArray(list);
       this._capacity = this._size = this._items.length;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "CopyTo", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1")]), $.Int32], []), 
+    function CopyTo (array, index) {
+      JSIL.Array.CopyTo(this._items, array, index);
     }
   );
 };
