@@ -234,6 +234,43 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   );
 });
 
+JSIL.ImplementExternals("System.Buffer", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:true , Public:true }, "BlockCopy", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $.Int32
+      ], []), 
+    function BlockCopy (src, srcOffset, dst, dstOffset, count) {
+      var srcBuffer = JSIL.GetArrayBuffer(src);
+      var dstBuffer = JSIL.GetArrayBuffer(dst);
+      var srcView = new Uint8Array(srcBuffer, srcOffset, count);
+      var dstView = new Uint8Array(dstBuffer, dstOffset, count);
+      dstView.set(srcView);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ByteLength", 
+    new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array")], []), 
+    function ByteLength (array) {
+      var buffer = JSIL.GetArrayBuffer(array);
+      return buffer.byteLength;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetByte", 
+    new JSIL.MethodSignature($.Byte, [$jsilcore.TypeRef("System.Array"), $.Int32], []), 
+    function GetByte (array, index) {
+      var buffer = JSIL.GetArrayBuffer(array);
+      var view = new Uint8Array(buffer, index, 1);
+      return view[0];
+    }
+  );
+
+});
+
 JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], function ($) {
 });
 
@@ -352,6 +389,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "asView",
     function Pointer_asView (elementType, sizeInBytes) {
+      if (typeof (sizeInBytes) !== "number")
+        sizeInBytes = (this.memoryRange.buffer.byteLength - this.offsetInBytes) | 0;
+
       var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType.__Type__, true);
       var offsetInElements = (this.offsetBytes / arrayCtor.BYTES_PER_ELEMENT) | 0;
       var sizeInElements = ((sizeInBytes | 0) / arrayCtor.BYTES_PER_ELEMENT) | 0;

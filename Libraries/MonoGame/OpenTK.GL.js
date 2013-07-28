@@ -10,6 +10,10 @@ JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.GL");
 
 JSIL.GL.$context = null;
+JSIL.GL.$state = {
+  temporaryIndexBuffer: null,
+  temporaryVertexBuffer: null
+};
 
 JSIL.GL.getContext = function () {
   if (!JSIL.GL.$context) {
@@ -19,6 +23,67 @@ JSIL.GL.getContext = function () {
   }
 
   return JSIL.GL.$context;
+};
+
+JSIL.GL.getState = function () {
+  return JSIL.GL.$state;
+};
+
+JSIL.GL.fillTemporaryIndexBuffer = function (ctx, mode, count, type, indices) {
+  var state = JSIL.GL.getState();
+
+  var buffer = state.temporaryIndexBuffer;
+  if (!buffer)
+    buffer = state.temporaryIndexBuffer = ctx.createBuffer();
+
+  // FIXME: Limit length of view
+  var view = indices.pinnedPointer.asView($jsilcore.System.Byte);
+  ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, buffer);
+  ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
+
+  return buffer;
+};
+
+OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride, elements) {
+  var ctx = JSIL.GL.getContext();
+  var state = JSIL.GL.getState();
+
+  if (!vertices.pinnedPointer)
+    throw new Error("vertices must be a pinned pointer");
+
+  if (!state.temporaryVertexBuffer)
+    state.temporaryVertexBuffer = ctx.createBuffer();
+  
+  ctx.bindBuffer(ctx.ARRAY_BUFFER, state.temporaryVertexBuffer);
+
+  // FIXME: Limit length of view
+  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte);
+  ctx.bufferData(ctx.ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
+
+  for (var i = 0, l = elements.get_Count(); i < l; i++) {
+    var element = elements.get_Item(i);
+
+    ctx.vertexAttribPointer(
+      element.AttributeLocation,
+      element.NumberOfElements,
+      element.VertexAttribPointerType.value,
+      element.Normalized,
+      vertexStride,
+      element.Offset
+    );
+  }
+
+  ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
+};
+
+JSIL.GL.prepareToDraw = function (ctx, indexBuffer) {
+  if (indexBuffer)
+    ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+};
+
+JSIL.GL.afterDraw = function (ctx, indexBuffer) {
+  if (indexBuffer)
+    ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
 };
 
 JSIL.GL.initializeContext = function (ctx) {
@@ -39,6 +104,48 @@ JSIL.DeclareNamespace("OpenTK.Graphics.OpenGL");
 
 JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
+
+
+  function VertexAttribPointerRecord (index, size, type, normalized, stride, pointer) {
+    this.index = index;
+    this.size = size;
+    this.type = type.value;
+    this.normalized = normalized;
+    this.stride = stride;
+    this.pointer = pointer;
+    this.cachedView = null;
+  };
+
+  VertexAttribPointerRecord.prototype.getView = function () {
+    if (!this.cachedView) {
+      var elementType = null;
+      switch (this.type.value) {
+        case vapt.Float:
+          elementType = $jsilcore.System.Single;
+          break;
+
+        case vapt.UnsignedByte:
+          elementType = $jsilcore.System.Byte;
+          break;
+
+        case vapt.Short:
+          elementType = $jsilcore.System.Int16;
+          break;
+
+        default:
+          throw new Error("Vertex attrib pointer type '" + this.type + "' not implemented");
+      }
+
+      this.cachedView = this.pointer.asView(elementType, this.size);
+    }
+
+    return this.cachedView;
+  };
+
+
+  function TemporaryIndexBuffer () {
+  };
+
 
   $.Method({Static:true , Public:true }, "GetError", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.ErrorCode"), [], []), 
@@ -70,7 +177,6 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
         return ctx.getSupportedExtensions().join(" ");
       } else {
         var result = ctx.getParameter(name.value);
-        System.Console.WriteLine("getParameter({0}) === {1} (for name {2})", name.value, result, name.name);
         return result;
       }
     }
@@ -82,7 +188,6 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       var ctx = JSIL.GL.getContext();
 
       var result = ctx.getParameter(pname.value);
-      System.Console.WriteLine("getParameter({0}) === {1} (for pname {2})", pname.value, result, pname.name);
       params.set(result);
     }
   );
@@ -93,7 +198,6 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       var ctx = JSIL.GL.getContext();
 
       var result = ctx.getParameter(pname.value);
-      System.Console.WriteLine("getParameter({0}) === {1} (for pname {2})", pname.value, result, pname.name);
       params.set(result);
     }
   );
@@ -339,8 +443,6 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     }
   );
 
-  var warnedAboutIndices = false;
-
   $.Method({Static:true , Public:true }, "DrawElements", 
     new JSIL.MethodSignature(null, [
         $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BeginMode"), $.Int32, 
@@ -350,14 +452,12 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       if (!indices.pinnedPointer)
         throw new Error("indices must be provided in the form of a pinned pointer");
 
-      // FIXME: Allocate a temporary index buffer and fill it with the indices.
-      if (!warnedAboutIndices) {
-        JSIL.Host.warning("DrawElements overloads accepting index pointer not implemented");
-        warnedAboutIndices = true;      
-      }
-
       var ctx = JSIL.GL.getContext();
+      var tib = JSIL.GL.fillTemporaryIndexBuffer(ctx, mode, count, type, indices);
+
+      JSIL.GL.prepareToDraw(ctx, tib);
       ctx.drawElements(mode.value, count, type.value, 0);
+      JSIL.GL.afterDraw(ctx, tib);
     }
   );
 
@@ -450,8 +550,6 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     }
   );
 
-  var warnedAboutTexImage = false;
-
   $.Method({Static:true , Public:false}, "TexImage2D", 
     new JSIL.MethodSignature(null, [
         $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $.Int32, 
@@ -465,17 +563,19 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       if (!pixels.pinnedPointer && !nullPixels)
         throw new Error("pixels must be provided in the form of a pinned pointer");
 
-      if (!nullPixels && !warnedAboutTexImage) {
-        JSIL.Host.warning("TexImage2D not implemented");
-        warnedAboutTexImage = true;      
+      var ctx = JSIL.GL.getContext();
+      var pixelView = null;
+
+      if (!nullPixels) {
+        // FIXME: Do we have to compute exact size here and limit the view?
+        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte);
       }
 
-      var ctx = JSIL.GL.getContext();
       ctx.texImage2D(
         target.value, level, internalformat.value, 
         width, height, border, 
         format.value, type.value,
-        null
+        pixelView
       );
     }
   );
@@ -549,4 +649,26 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     }
   );
 
+  $.Method({Static:true , Public:false}, "CullFace", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.CullFaceMode")], []), 
+    function CullFace (mode) {
+      var ctx = JSIL.GL.getContext();
+      ctx.cullFace(mode.value);
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "PolygonMode", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.MaterialFace"), $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.PolygonMode")], []), 
+    function PolygonMode (face, mode) {
+      // FIXME: Not available in WebGL
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "FrontFace", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.FrontFaceDirection")], []), 
+    function FrontFace (mode) {
+      var ctx = JSIL.GL.getContext();
+      ctx.frontFace(mode.value);
+    }
+  );
 });
