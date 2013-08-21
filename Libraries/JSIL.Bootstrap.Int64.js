@@ -611,8 +611,25 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function UInt64_ToNumber () {
-        return 0x1000000 * (0x1000000 * this.c + this.b) + this.a;
+    function UInt64_ToNumber(maxValue, signed) {
+        if (arguments.length === 0 || maxValue == -1)
+            return 0x1000000 * (0x1000000 * this.c + this.b) + this.a;
+        
+        var truncated = me()
+          .op_BitwiseAnd(this, me().FromNumber(maxValue))
+          .ToNumber();
+
+        if (signed) {
+          var maxPlusOne = maxValue + 1;
+          var signedMaxValue = maxValue >>> 1;
+          if (truncated > signedMaxValue)
+            return truncated - signedMaxValue;
+          else
+            return truncated;
+        }
+        else { 
+          return truncated;
+        }
     });
 });
 
@@ -758,10 +775,7 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         } else {
             var unsignedShift = mscorlib.System.UInt64.op_RightShift(a, n);
 
-            if (!me().op_GreaterThanOrEqual(
-                a,
-                zero()
-              )) {
+            if (isNegative(a)) {
                 var outshift = mscorlib.System.UInt64.op_RightShift(mscorlib.System.UInt64.Create(16777215, 16777215, 65535), n);
                 var inshift = mscorlib.System.UInt64.op_LeftShift(outshift, 64 - n);
                 var uresult = mscorlib.System.UInt64.op_BitwiseOr(unsignedShift, inshift);
@@ -899,15 +913,34 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function Int64_ToNumber () {
-        var neg = isNegative(this);
-        var n = neg ? me().op_UnaryNegation(this) : this;
-        var r = 0x1000000 * (0x1000000 * n.c + n.b) + n.a;
+    function Int64_ToNumber (maxValue, signed) {
+        if (arguments.length === 0 || maxValue == -1) {
+          var neg = isNegative(this);
+          var n = neg ? me().op_UnaryNegation(this) : this;
+          var r = 0x1000000 * (0x1000000 * n.c + n.b) + n.a;
 
-        if (neg)
+          if (neg)
             return -r;
-        else
+          else
             return r;
+        }
+
+      
+        var truncated = me()
+          .op_BitwiseAnd(this, me().FromNumber(maxValue))
+          .ToNumber();
+
+        if (signed) {
+          var maxPlusOne = maxValue + 1;
+          var signedMaxValue = maxValue >>> 1;
+          if (truncated > signedMaxValue)
+            return truncated - signedMaxValue;
+          else
+            return truncated;
+        }
+        else { 
+          return truncated;
+        }
     });
 });
 
