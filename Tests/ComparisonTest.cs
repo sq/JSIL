@@ -552,7 +552,7 @@ namespace JSIL.Tests {
                     var m = ElapsedRegex.Match(stdout);
                     if (m.Success) {
                         elapsedJs = TimeSpan.FromMilliseconds(
-                            double.Parse(m.Groups["elapsed"].Value)
+                            double.Parse(m.Groups["elapsed"].Value, CultureInfo.InvariantCulture)
                         ).Ticks;
                         stdout = stdout.Replace(m.Value, "");
                     }
