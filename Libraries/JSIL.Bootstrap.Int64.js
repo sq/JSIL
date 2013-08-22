@@ -165,14 +165,13 @@ JSIL.Make64BitInt = function ($, _me) {
           if (!result)
             result = ctor(0, 0, 0);
 
-          if (n < 0) {
-            return me().op_RightShift(a, -n, result);
-          }
+          n = n & 0x3f;
 
-          if (n > 24) {
-            return me().op_LeftShift(me().op_LeftShift(a, 24, tempLS()), n - 24, result);
+          var maxShift = 8;
+          if (n > 8) {
+            return me().op_LeftShift(me().op_LeftShift(a, maxShift, tempLS()), n - maxShift, result);
           }
-
+          
           var bat = a.a << n;
           var ba = bat & 0xffffff;
           var ra = (bat >>> 24) & 0xffffff;
@@ -408,10 +407,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     $.Method({ Static: true, Public: true }, "op_RightShift",
       (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
       function UInt64_op_RightShift (a, n, result) {
-          if (n < 0) {
-              return me().op_LeftShift(a, -n, result);
-          }
-
+          
           n = n & 0x3f;
 
           if (n > 24) {
@@ -615,8 +611,25 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function UInt64_ToNumber () {
-        return 0x1000000 * (0x1000000 * this.c + this.b) + this.a;
+    function UInt64_ToNumber(maxValue, signed) {
+        if (arguments.length === 0 || maxValue == -1)
+            return 0x1000000 * (0x1000000 * this.c + this.b) + this.a;
+        
+        var truncated = me()
+          .op_BitwiseAnd(this, me().FromNumber(maxValue))
+          .ToNumber();
+
+        if (signed) {
+          var maxPlusOne = maxValue + 1;
+          var signedMaxValue = maxValue >>> 1;
+          if (truncated > signedMaxValue)
+            return truncated - signedMaxValue;
+          else
+            return truncated;
+        }
+        else { 
+          return truncated;
+        }
     });
 });
 
@@ -668,7 +681,11 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         return ctor(0xFFFFFF, 0xFFFFFF, 0xFFFF);
     });
 
-    var tempRS = mktemp(); 
+    var tempRS = mktemp();
+    var tempRS1 = mktemp();
+    var tempRS2 = mktemp();
+    var tempRS3 = mktemp();
+
     var tempTS = mktemp();
     var tempDiv = mktemp();
     var tempDiv2 = mktemp();
@@ -751,15 +768,23 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         if (!result)
           result = ctor(0, 0, 0);
 
-        if (n < 0) {
-            return me().op_LeftShift(a, -n, result);
-        }
-
-        if (isNegative(a)) {
-            return me().op_UnaryNegation(mscorlib.System.UInt64.op_RightShift(a, n, tempRS()), result);
+        if (n === 0) {
+            var result2 = a;
+        } else if (n > 32) {
+            result2 = me().op_RightShift(me().op_RightShift(a, 32), n - 32);
         } else {
-            return mscorlib.System.UInt64.op_RightShift(a, n, result);
+            var unsignedShift = mscorlib.System.UInt64.op_RightShift(a, n);
+
+            if (isNegative(a)) {
+                var outshift = mscorlib.System.UInt64.op_RightShift(mscorlib.System.UInt64.Create(16777215, 16777215, 65535), n);
+                var inshift = mscorlib.System.UInt64.op_LeftShift(outshift, 64 - n);
+                var uresult = mscorlib.System.UInt64.op_BitwiseOr(unsignedShift, inshift);
+            } else {
+                uresult = unsignedShift;
+            }
+            result2 = (uresult).ToInt64();
         }
+        return result2;
     });
 
     // Not present in mscorlib
@@ -888,15 +913,34 @@ JSIL.ImplementExternals("System.Int64", function ($) {
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToNumber",
     (new JSIL.MethodSignature($.Double, [], [])),
-    function Int64_ToNumber () {
-        var neg = isNegative(this);
-        var n = neg ? me().op_UnaryNegation(this) : this;
-        var r = 0x1000000 * (0x1000000 * n.c + n.b) + n.a;
+    function Int64_ToNumber (maxValue, signed) {
+        if (arguments.length === 0 || maxValue == -1) {
+          var neg = isNegative(this);
+          var n = neg ? me().op_UnaryNegation(this) : this;
+          var r = 0x1000000 * (0x1000000 * n.c + n.b) + n.a;
 
-        if (neg)
+          if (neg)
             return -r;
-        else
+          else
             return r;
+        }
+
+      
+        var truncated = me()
+          .op_BitwiseAnd(this, me().FromNumber(maxValue))
+          .ToNumber();
+
+        if (signed) {
+          var maxPlusOne = maxValue + 1;
+          var signedMaxValue = maxValue >>> 1;
+          if (truncated > signedMaxValue)
+            return truncated - signedMaxValue;
+          else
+            return truncated;
+        }
+        else { 
+          return truncated;
+        }
     });
 });
 
