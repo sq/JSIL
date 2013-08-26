@@ -251,6 +251,13 @@ namespace JSIL {
                 }
             );
         }
+
+        public JSInvocationExpression ThrowNullReferenceException () {
+            return JSInvocationExpression.InvokeStatic(
+                Dot(new JSFakeMethod("ThrowNullReferenceException", TypeSystem.Void, new TypeReference[0], MethodTypes)),
+                new JSExpression[0]
+            );
+        }
     }
 
     public class SpecialIdentifiers {

@@ -8288,3 +8288,7 @@ JSIL.InvokeEntryPoint = function (assembly, args) {
 
   return dict.method.apply(dict.thisReference, args);
 };
+
+JSIL.ThrowNullReferenceException = function () {
+  throw new System.NullReferenceException();
+};

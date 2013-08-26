@@ -88,7 +88,18 @@ namespace JSIL.Transforms {
 
                             var thisType = JSExpression.DeReferenceType(thisExpression.GetActualType(TypeSystem), false);
                             if ((thisType is GenericInstanceType) && thisType.FullName.StartsWith("System.Nullable")) {
-                                replacement = new JSType(thisType);
+                                var git = (GenericInstanceType)thisType;
+
+                                replacement = new JSTernaryOperatorExpression(
+                                    new JSBinaryOperatorExpression(
+                                        JSBinaryOperator.NotEqual,
+                                        thisExpression, new JSNullLiteral(thisType),
+                                        TypeSystem.Boolean
+                                    ),
+                                    new JSTypeOfExpression(git.GenericArguments[0]),
+                                    JSIL.ThrowNullReferenceException(),
+                                    new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope, false)
+                                );
                             } else {
                                 replacement = JSIL.GetTypeOf(thisExpression);
                             }

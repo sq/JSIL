@@ -640,6 +640,8 @@ JSIL.MakeClass("System.SystemException", "System.IOException", true);
 JSIL.MakeClass("System.IOException", "System.IO.FileNotFoundException", true);
 JSIL.MakeClass("System.IOException", "System.IO.EndOfStreamException", true);
 
+JSIL.MakeClass("System.SystemException", "System.NullReferenceException", true);
+
 JSIL.MakeClass("System.SystemException", "System.ArithmeticException", true);
 JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
 
