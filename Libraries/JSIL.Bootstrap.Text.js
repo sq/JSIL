@@ -684,11 +684,16 @@ JSIL.JoinStrings = function (separator, strings) {
 };
 
 JSIL.ConcatString = function (/* ...values */) {
-  var result = String(arguments[0]);
+  var result = "";
+
+  if (arguments[0] !== null)
+    result = String(arguments[0]);
 
   for (var i = 1, l = arguments.length; i < l; i++) {
     var arg = arguments[i];
-    if (typeof (arg) === "string")
+    if (arg === null)
+      ;
+    else if (typeof (arg) === "string")
       result += arg;
     else
       result += String(arg);

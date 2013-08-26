@@ -219,35 +219,43 @@ namespace JSIL.Transforms {
                             VisitReplacement(boe);
                         }
                     } else if (
-                        ie.Arguments.Count == 2
+                        // HACK: Fix for #239, only convert concat call into + if both sides are non-null literals
+                        (ie.Arguments.Count == 2)
                     ) {
                         var lhs = ie.Arguments[0];
+                        var rhs = ie.Arguments[1];
+
+                        var isAddOk = (lhs is JSStringLiteral) && (rhs is JSStringLiteral);
+
                         var lhsType = TypeUtil.DereferenceType(lhs.GetActualType(TypeSystem));
                         if (!(
                             TypeUtil.TypesAreEqual(TypeSystem.String, lhsType) ||
                             TypeUtil.TypesAreEqual(TypeSystem.Char, lhsType)
                         )) {
                             lhs = JSInvocationExpression.InvokeMethod(lhsType, JS.toString, lhs, null);
+                            isAddOk = true;
                         }
 
-                        var rhs = ie.Arguments[1];
                         var rhsType = TypeUtil.DereferenceType(rhs.GetActualType(TypeSystem));
                         if (!(
                             TypeUtil.TypesAreEqual(TypeSystem.String, rhsType) ||
                             TypeUtil.TypesAreEqual(TypeSystem.Char, rhsType)
                         )) {
                             rhs = JSInvocationExpression.InvokeMethod(rhsType, JS.toString, rhs, null);
+                            isAddOk = true;
                         }
 
-                        var boe = new JSBinaryOperatorExpression(
-                            JSOperator.Add, lhs, rhs, TypeSystem.String
-                        );
+                        if (isAddOk) {
+                            var boe = new JSBinaryOperatorExpression(
+                                JSOperator.Add, lhs, rhs, TypeSystem.String
+                            );
 
-                        ParentNode.ReplaceChild(
-                            ie, boe
-                        );
+                            ParentNode.ReplaceChild(
+                                ie, boe
+                            );
 
-                        VisitReplacement(boe);
+                            VisitReplacement(boe);
+                        }
                     } else if (
                         TypeUtil.GetTypeDefinition(ie.Arguments[0].GetActualType(TypeSystem)).FullName == "System.Array"
                     ) {

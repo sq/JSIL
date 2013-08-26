@@ -39,7 +39,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("($a + $b)")]
+        [JSReplacement("JSIL.ConcatString($a, $b)")]
         [JSIsPure]
         public static string Concat (string a, string b) {
             throw new InvalidOperationException();
