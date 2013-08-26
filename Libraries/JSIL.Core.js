@@ -3195,6 +3195,9 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
 };
 
 JSIL.$BuildFieldList = function (typeObject) {
+  if (!typeObject.__IsClosed__)
+    return;
+
   var bindingFlags = $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public");
   var fields = JSIL.GetMembersInternal(
     typeObject, bindingFlags, "FieldInfo"
