@@ -97,14 +97,7 @@ namespace JSIL {
             }
 
             foreach (var variable in allVariables) {
-                var v = JSVariable.New(variable, methodReference);
-                if (Variables.ContainsKey(v.Identifier)) {
-                    v = new JSVariable(variable.OriginalVariable.Name, variable.Type, methodReference);
-                    RenamedVariables[variable] = v;
-                    Variables.Add(v.Identifier, v);
-                } else {
-                    Variables.Add(v.Identifier, v);
-                }
+                DeclareVariable(variable, methodReference);
             }
 
             var methodInfo = TypeInfo.Get(methodReference) as Internal.MethodInfo;
@@ -289,7 +282,12 @@ namespace JSIL {
         }
 
         protected JSVariable DeclareVariable (ILVariable variable, MethodReference function) {
-            return DeclareVariable(JSVariable.New(variable, function));
+            if (variable.Name.StartsWith("<>c__")) {
+                return DeclareVariable(JSClosureVariable.New(variable, function));
+            }
+
+            var result = JSVariable.New(variable, function, Variables.ContainsKey(variable.Name));
+            return DeclareVariable(result);
         }
 
         protected JSVariable DeclareVariable (JSVariable variable) {

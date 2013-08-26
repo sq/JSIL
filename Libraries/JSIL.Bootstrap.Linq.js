@@ -154,6 +154,55 @@ JSIL.ImplementExternals(
         );
       }
     );
+
+    $.Method({Static:true , Public:true }, "SelectMany", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!1"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!1"])])], ["TSource", "TResult"]), 
+      function SelectMany$b2 (TSource, TResult, source, selector) {
+        var state = {
+          enumerator: null,
+          currentSubsequence: null
+        };
+
+        var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
+        var tIEnumeratorResult = System.Collections.Generic.IEnumerator$b1.Of(TResult);
+        var moveNext = System.Collections.IEnumerator.MoveNext;
+        var get_Current = tIEnumerator.get_Current;
+        var get_CurrentResult = tIEnumeratorResult.get_Current;
+
+        return new (JSIL.AbstractEnumerable.Of(TResult))(
+          function getNext (result) {
+            while (true) {
+              if (state.currentSubsequence !== null) {
+                var ok = moveNext.Call(state.currentSubsequence);
+                if (ok) {
+                  result.set(get_CurrentResult.Call(state.currentSubsequence));
+                  return ok;
+                } else {
+                  state.currentSubsequence = null;
+                  JSIL.Dispose(state.currentSubsequence);
+                }
+              }
+
+              var ok = moveNext.Call(state.enumerator);
+              if (ok) {
+                var enumerable = selector(get_Current.Call(state.enumerator));
+                state.currentSubsequence = JSIL.GetEnumerator(enumerable);
+              } else {
+                return ok;
+              }
+            }
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(source);
+            state.currentSubsequence = null;
+          },
+          function dispose () {
+            JSIL.Dispose(state.enumerator);
+            JSIL.Dispose(state.currentSubsequence);
+          }
+        );
+      }
+    );
     
     $.Method({Static:true , Public:true }, "ToArray", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
@@ -213,7 +262,25 @@ JSIL.ImplementExternals(
         }
       );
      });
-    
+
+    $.Method({Static: true , Public: true }, "Empty",
+      new JSIL.MethodSignature(
+        $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]),
+        [],
+        ["TResult"]
+      ),
+     function (TResult) {
+      return new (JSIL.AbstractEnumerable.Of(TResult))(
+        function getNext (result) {
+          return false;
+        },
+        function reset () {
+        },
+        function dispose () {
+        }
+      );
+     });
+
     $.Method({Static: true , Public: true }, "ToList",
       new JSIL.MethodSignature(
        $jsilcore.TypeRef("System.Collections.Generic.List`1", ["!!0"]),

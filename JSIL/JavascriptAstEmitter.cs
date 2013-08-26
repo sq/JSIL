@@ -33,6 +33,7 @@ namespace JSIL {
         // FIXME: Eliminate this by using ast node replacement like type caching does.
         public SignatureCacher SignatureCacher = null;
 
+        protected readonly Dictionary<JSClosureVariable, string> AssignedClosureVariableNames = new Dictionary<JSClosureVariable, string>();
         protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
@@ -962,6 +963,18 @@ namespace JSIL {
                 Output.Identifier(variable.Identifier);
         }
 
+        public void VisitNode (JSIndirectVariable iv) {
+            Visit(iv.ActualVariable, CurrentName);
+        }
+
+        public void VisitNode (JSClosureVariable cv) {
+            string assignedName;
+            if (!AssignedClosureVariableNames.TryGetValue(cv, out assignedName))
+                AssignedClosureVariableNames.Add(cv, assignedName = String.Format("$closure{0}", AssignedClosureVariableNames.Count));
+
+            Output.Identifier(assignedName);
+        }
+
         public void VisitNode (JSPassByReferenceExpression byref) {
             JSExpression referent;
 
@@ -1092,6 +1105,9 @@ namespace JSIL {
             }
 
             Visit(function.Body);
+
+            if (Stack.OfType<JSFunctionExpression>().Count() <= 1)
+                AssignedClosureVariableNames.Clear();
 
             Output.CloseBrace(false);
             Output.CurrentMethod = oldCurrentMethod;

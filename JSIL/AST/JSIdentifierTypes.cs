@@ -397,8 +397,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (ILVariable variable, MethodReference function) {
-            return new JSVariable(variable.Name, variable.Type, function);
+        public static JSVariable New (ILVariable variable, MethodReference function, bool useOriginalName = false) {
+            return new JSVariable(useOriginalName ? variable.OriginalVariable.Name : variable.Name, variable.Type, function);
         }
 
         public static JSVariable New (ParameterReference parameter, MethodReference function) {
@@ -472,6 +472,17 @@ namespace JSIL.Ast {
 
             if (DefaultValue == oldChild)
                 DefaultValue = (JSExpression)newChild;
+        }
+    }
+
+    [JSAstIgnoreInheritedMembers]
+    public class JSClosureVariable : JSVariable {
+        internal JSClosureVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null) 
+            : base (name, type, function, defaultValue) {
+        }
+
+        public static JSClosureVariable New (ILVariable variable, MethodReference function) {
+            return new JSClosureVariable(variable.Name, variable.Type, function);
         }
     }
 
@@ -674,6 +685,14 @@ namespace JSIL.Ast {
             CheckForMissingVariable();
 
             return Variables[Identifier].Reference();
+        }
+
+        public JSVariable ActualVariable {
+            get {
+                CheckForMissingVariable();
+
+                return Variables[Identifier];
+            }
         }
 
         public override bool Equals (object obj) {

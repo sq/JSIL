@@ -2351,8 +2351,10 @@ JSIL.MakeArrayEnumerator = function (array, elementType) {
 };
 
 JSIL.Dispose = function (disposable) {
-  if ((typeof (disposable) === "undefined") || (disposable === null))
-    throw new Error("Disposable is null or undefined");
+  if (typeof (disposable) === "undefined")
+    throw new Error("Disposable is undefined");
+  else if (disposable === null)
+    return false;
 
   var tIDisposable = $jsilcore.System.IDisposable;
 
@@ -2360,6 +2362,10 @@ JSIL.Dispose = function (disposable) {
     tIDisposable.Dispose.Call(disposable);
   else if (typeof (disposable.Dispose) === "function")
     disposable.Dispose();
+  else
+    return false;
+
+  return true;
 };
 
 JSIL.GetEnumerator = function (enumerable, elementType) {
