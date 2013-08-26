@@ -131,15 +131,16 @@ namespace JSIL.Transforms {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
-                                new JSFakeMethod("ToUInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                new JSFakeMethod("ToUInt64", TypeSystem.UInt64, new TypeReference[] { }, MethodTypeFactory),
                                 ce.Expression);
                     }
                     else {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
-                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
-                                ce.Expression);
+                                new JSFakeMethod("ToNumber", targetType, new TypeReference[] { TypeSystem.Double, TypeSystem.Boolean }, MethodTypeFactory),
+                                ce.Expression,
+                                GetInt64ConversionArgs(targetType));
                     }
                 }
                 else if (currentType.MetadataType == MetadataType.UInt64) { 
@@ -147,15 +148,16 @@ namespace JSIL.Transforms {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
-                                new JSFakeMethod("ToInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                new JSFakeMethod("ToInt64", TypeSystem.Int64, new TypeReference[] { }, MethodTypeFactory),
                                 ce.Expression);
                     }
                     else {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
-                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
-                                ce.Expression);
+                                new JSFakeMethod("ToNumber", targetType, new TypeReference[] { TypeSystem.Double, TypeSystem.Boolean }, MethodTypeFactory),
+                                ce.Expression,
+                                GetInt64ConversionArgs(targetType));
                     }
                 }
                 else if (targetType.MetadataType == MetadataType.Int64) {
@@ -195,6 +197,30 @@ namespace JSIL.Transforms {
                 // Debugger.Break();
                 VisitChildren(ce);
             }
+        }
+
+        private JSExpression[] GetInt64ConversionArgs(TypeReference targetType)
+        {
+            double? mask = null;
+            
+            if (targetType == TypeSystem.Byte || targetType == TypeSystem.SByte)
+                mask = 0xff;
+
+            if (targetType == TypeSystem.Int16 || targetType == TypeSystem.UInt16)
+                mask = 0xffff;
+
+            if (targetType == TypeSystem.Int32 || targetType == TypeSystem.UInt32)
+                mask = 0xffffffff;
+
+            var signed = 
+                targetType == TypeSystem.SByte || 
+                targetType == TypeSystem.Int16 || 
+                targetType == TypeSystem.Int32;
+
+            return new[] {
+                new JSNumberLiteral(mask ?? -1, typeof(double)) as JSExpression,
+                new JSBooleanLiteral(signed) as JSExpression
+            };
         }
     }
 }
