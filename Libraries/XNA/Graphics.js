@@ -686,7 +686,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
     (new JSIL.MethodSignature(null, [$xnaasms.xnaGame.TypeRef("Microsoft.Xna.Framework.Game")], [])), 
     function _ctor (game) {
       this.game = game;
-      this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+      this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice(this);
       game.graphicsDeviceService = this;
       game.graphicsDeviceManager = this;
       game.Services.AddService(Microsoft.Xna.Framework.IGraphicsDeviceManager.__Type__, this);
@@ -735,8 +735,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
     var oc = this.device.originalCanvas;
 
-    $jsilbrowserstate.nativeWidth = this.device.originalWidth = oc.width = this._width;
-    $jsilbrowserstate.nativeHeight = this.device.originalHeight = oc.height = this._height;
+    $jsilbrowserstate.nativeWidth = this.device.originalWidth = this._width;
+    $jsilbrowserstate.nativeHeight = this.device.originalHeight = this._height;
+
+    var svc = JSIL.Host.getService("canvas");
+    svc.applySize(oc, this._width, this._height, true);
   });
 });
 
@@ -1731,8 +1734,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {
-    this.originalCanvas = this.canvas = JSIL.Host.getCanvas();
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Object], []), function (gdm) {
+    var preferredWidth = gdm.get_PreferredBackBufferWidth();
+    var preferredHeight = gdm.get_PreferredBackBufferHeight();
+
+    this.originalCanvas = this.canvas = JSIL.Host.getCanvas(preferredWidth, preferredHeight);
     this.renderTarget = null;
 
     this.originalWidth = this.canvas.actualWidth || this.canvas.width;
