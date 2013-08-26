@@ -1990,6 +1990,8 @@ namespace JSIL {
         public void VisitNode (JSNestedObjectInitializerExpression noie) {
             Output.WriteRaw("new JSIL.ObjectInitializer");
             Output.LPar();
+            Visit(noie.NewInstance);
+            Output.Comma();
             Visit(noie.Initializer);
             Output.RPar();
         }

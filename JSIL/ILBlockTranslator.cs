@@ -2800,8 +2800,20 @@ namespace JSIL {
                         continue;
                     }
 
+                    var key = targetDot.Member;
+                    JSExpression newInstance = new JSNullLiteral(key.GetActualType(TypeSystem));
+
+                    var newInstanceInitializer = initializers.FirstOrDefault(
+                        (pair) =>
+                            pair.Key.Equals(key)
+                    );
+                    if (newInstanceInitializer != null) {
+                        initializers.Remove(newInstanceInitializer);
+                        newInstance = newInstanceInitializer.Value;
+                    }
+
                     initializers.Add(new JSPairExpression(
-                        targetDot.Member, new JSNestedObjectInitializerExpression(iae.Initializer)
+                        key, new JSNestedObjectInitializerExpression(newInstance, iae.Initializer)
                     ));
                 } else {
                     WarningFormatFunction("Object initializer element not implemented: {0}", translated);

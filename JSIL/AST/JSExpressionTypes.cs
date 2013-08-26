@@ -1406,24 +1406,30 @@ namespace JSIL.Ast {
     }
 
     public class JSNestedObjectInitializerExpression : JSExpression {
-        public JSNestedObjectInitializerExpression (JSExpression initializer)
-            : base(initializer) {
+        public JSNestedObjectInitializerExpression (JSExpression newInstance, JSExpression initializer)
+            : base(newInstance, initializer) {
         }
 
-        public JSExpression Initializer {
+        public JSExpression NewInstance {
             get {
                 return Values[0];
             }
         }
 
+        public JSExpression Initializer {
+            get {
+                return Values[1];
+            }
+        }
+
         public override bool IsConstant {
             get {
-                return Initializer.IsConstant;
+                return NewInstance.IsConstant && Initializer.IsConstant;
             }
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Initializer.GetActualType(typeSystem);
+            return NewInstance.GetActualType(typeSystem);
         }
     }
 
