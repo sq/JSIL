@@ -724,6 +724,25 @@ JSIL.ImplementExternals(
         return this._data.constant;
       }
     );
+    
+    $.Method({Static:false, Public:true, Virtual:true }, "GetValue",
+      (new JSIL.MethodSignature($.Object, [$.Object], [])),
+      function GetValue (obj) {
+        if (this.IsStatic) {
+          return this.DeclaringType.__PublicInterface__[this._descriptor.Name];
+        }
+
+        if (obj === null) {
+          throw new System.Exception("Non-static field requires a target.");
+        }
+
+        if (!this.DeclaringType.IsAssignableFrom(obj.__ThisType__)) {
+          throw new System.Exception("Field is not defined on the target object.");
+        }
+
+        return obj[this._descriptor.Name];
+      }
+    );
   }
 );
 

@@ -215,6 +215,7 @@
     <None Include="SpecialTestCases\PointerSignature.cs" />
     <None Include="Int64TestCases\Issue162.cs" />
     <None Include="Int64TestCases\Issue246.cs" />
+    <None Include="ReflectionTestCases\FieldGetValue.cs" />    
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
