@@ -1733,6 +1733,10 @@ namespace JSIL {
         public static bool CanUseFastOverloadDispatch (MethodInfo method) {
             MethodSignatureSet mss;
 
+            // HACK: Fix for #248: Fast dispatch does not work for interface method objects. CallVirtual is always necessary.
+            if (method.DeclaringType.IsInterface)
+                return false;
+
             if (method.DeclaringType.MethodSignatures.TryGet(method.NamedSignature.Name, out mss)) {
                 int overloadCount = 0;
 
