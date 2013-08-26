@@ -146,7 +146,16 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var getter = function LazyDefaultProperty_Get () {
     initIfNeeded(this);
 
-    return defaultValue;
+    // HACK: We could return defaultValue here, but that would ignore cases where the initializer overwrote the default.
+    // The cctor for a static array field containing values is an example of this (issue #234)
+    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    if (currentDescriptor.value)
+      return currentDescriptor.value;
+    else if (currentDescriptor.get !== descriptor.get)
+      return this[key];
+    else
+      return defaultValue;
   };
 
   var setter = function LazyDefaultProperty_Set (value) {
