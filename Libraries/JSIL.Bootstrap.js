@@ -2217,7 +2217,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
               var current = this._state.current;
               current.key = bucket[valueIndex].key;
               current.value = bucket[valueIndex].value;
-              result.set(current);
+              result.set(current.MemberwiseClone());
               return true;
             } else {
               bucketIndex = ++(this._state.bucketIndex);
