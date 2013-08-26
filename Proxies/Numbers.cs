@@ -26,6 +26,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSIsPure]
+        [JSReplacement("($this === $rhs)")]
+        public bool Equals (AnyType rhs) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("JSIL.CompareValues($this, $rhs)")]
         public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
@@ -56,6 +62,12 @@ namespace JSIL.Proxies {
 
         [JSReplacement("isNaN($value)")]
         public static bool IsNaN (NumberProxy value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        [JSReplacement("($this === $rhs)")]
+        public bool Equals (AnyType rhs) {
             throw new InvalidOperationException();
         }
 
