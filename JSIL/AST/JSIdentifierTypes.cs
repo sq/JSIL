@@ -397,8 +397,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (ILVariable variable, MethodReference function, bool useOriginalName = false) {
-            return new JSVariable(useOriginalName ? variable.OriginalVariable.Name : variable.Name, variable.Type, function);
+        public static JSVariable New (string name, TypeReference type, MethodReference function) {
+            return new JSVariable(name, type, function);
         }
 
         public static JSVariable New (ParameterReference parameter, MethodReference function) {

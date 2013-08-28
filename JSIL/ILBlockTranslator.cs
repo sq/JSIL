@@ -30,6 +30,7 @@ namespace JSIL {
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
         public int TemporaryVariableCount = 0;
+        protected int RenamedVariableCount = 0;
         protected int UnlabelledBlockCount = 0;
         protected int NextSwitchId = 0;
 
@@ -281,16 +282,37 @@ namespace JSIL {
             ).ToArray();
         }
 
-        protected JSVariable DeclareVariable (ILVariable variable, MethodReference function) {
-            if (variable.Name.StartsWith("<>c__")) {
-                return DeclareVariable(JSClosureVariable.New(variable, function));
-            }
+        protected bool NeedToRenameVariable (string name, TypeReference type) {
+            if (String.IsNullOrWhiteSpace(name))
+                return true;
 
-            var result = JSVariable.New(variable, function, Variables.ContainsKey(variable.Name));
-            return DeclareVariable(result);
+            if (!Variables.ContainsKey(name))
+                return false;
+
+            if (!TypeUtil.TypesAreEqual(Variables[name].IdentifierType, type))
+                return true;
+
+            return false;
         }
 
-        protected JSVariable DeclareVariable (JSVariable variable) {
+        protected JSVariable DeclareVariable (ILVariable variable, MethodReference function) {
+            if (variable.Name.StartsWith("<>c__")) {
+                return DeclareVariableInternal(JSClosureVariable.New(variable, function));
+            }
+
+            var name = variable.Name;
+            if (NeedToRenameVariable(name, variable.Type)) {
+                if (!NeedToRenameVariable(variable.OriginalVariable.Name, variable.Type))
+                    name = variable.OriginalVariable.Name;
+                else
+                    name = String.Format("{0}${1}", name, RenamedVariableCount++);
+            }
+
+            var result = JSVariable.New(name, variable.Type, function);
+            return DeclareVariableInternal(result);
+        }
+
+        protected JSVariable DeclareVariableInternal (JSVariable variable) {
             JSVariable existing;
             if (Variables.TryGetValue(variable.Identifier, out existing)) {
                 if (!TypeUtil.TypesAreEqual(variable.IdentifierType, existing.IdentifierType)) {
@@ -1098,7 +1120,7 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem, ThisMethodReference));
+                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethodReference));
 
                 bool foundUniversalCatch = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -1169,7 +1191,7 @@ namespace JSIL {
                 if (catchBlock != null)
                     throw new Exception("A try block cannot have both a catch block and a fault block");
 
-                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem, ThisMethodReference));
+                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethodReference));
                 catchBlock = new JSBlockStatement(TranslateBlock(tcb.FaultBlock.Body));
 
                 catchBlock.Statements.Add(new JSExpressionStatement(new JSThrowExpression(catchVariable)));
