@@ -945,8 +945,22 @@ public static class Common {
 
                     if (matchingBuiltPaths.Length == 0) {
                     } else if (matchingBuiltPaths.Length > 1) {
-                        throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
-                    } else {
+
+                        // There is more than one match, remove matches that would be silly to use, such as matches that do not exist, or that are already located in the item output directory.
+
+                        matchingBuiltPaths = (from mbp in matchingBuiltPaths
+                                              where 
+                                                  File.Exists(mbp) &&
+                                                  System.IO.Path.GetDirectoryName(mbp) != System.IO.Path.GetDirectoryName(itemOutputDirectory + "\\")
+                                              select mbp).ToArray();
+
+                        // Throw the exception if the match is still ambiguous.
+                        if (matchingBuiltPaths.Length > 1) {
+                            throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
+                        }
+                    } 
+
+                    if (matchingBuiltPaths.Length == 1) {
                         xnbPath = matchingBuiltPaths[0];
                         if (!File.Exists(xnbPath))
                             throw new FileNotFoundException("Asset " + xnbPath + " not found.");
