@@ -289,10 +289,19 @@ namespace JSIL.Compiler {
                 }
             }
 
+            var commandLineConfigFilenames =
+                (from fn in filenames
+                where Path.GetExtension(fn) == ".jsilconfig"
+                select fn).ToArray();
+
+            // Fail early on nonexistent configuration files
+            foreach (var filename in commandLineConfigFilenames)
+                if (!File.Exists(filename))
+                    throw new FileNotFoundException(filename);
+
             commandLineConfig = MergeConfigurations(
                 commandLineConfig,
-                (from fn in filenames
-                 where Path.GetExtension(fn) == ".jsilconfig"
+                (from fn in commandLineConfigFilenames
                  select LoadConfiguration(fn)).ToArray()
             );
 
@@ -317,6 +326,10 @@ namespace JSIL.Compiler {
                     Console.Error.WriteLine("// Can't process solution '{0}' - path seems malformed", solution);
                     continue;
                 }
+
+                // Fail early if a solution file is missing
+                if (!File.Exists(solutionFullPath))
+                    throw new FileNotFoundException(solutionFullPath);
 
                 var solutionConfigPath = Path.Combine(
                     solutionDir,
@@ -449,6 +462,12 @@ namespace JSIL.Compiler {
 
             if (mainGroup.Length > 0) {
                 var variables = commandLineConfig.ApplyTo(new VariableSet());
+
+                // Fail early if any assemblies are missing
+                foreach (var filename in mainGroup) {
+                    if (!File.Exists(filename))
+                        throw new FileNotFoundException(filename);
+                }
 
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = baseConfig,
