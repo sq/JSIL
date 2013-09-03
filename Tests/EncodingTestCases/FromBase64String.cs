@@ -27,5 +27,9 @@ public static class Program {
         Test("Z");
 
         Test("....");
+
+        Test("ZS4=\r\n\t ");
+        Test("\r\n\t ZQ==");
+        Test("\r\n\t ");
     }
 }

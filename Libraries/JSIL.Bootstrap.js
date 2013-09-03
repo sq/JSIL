@@ -3411,6 +3411,10 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     string: returnSame
   });
 
+  var base64IgnoredCodepoints = [
+    9, 10, 13, 32
+  ];
+
   var base64Table = [
     'A', 'B', 'C', 'D',
     'E', 'F', 'G', 'H',
@@ -3535,12 +3539,15 @@ JSIL.ImplementExternals("System.Convert", function ($) {
 
       while (true) {
         ch0 = reader.read();
+        if (ch0 === false)
+          break;
+        if (base64IgnoredCodepoints.indexOf(ch0) >= 0)
+          continue;
+
         ch1 = reader.read();
         ch2 = reader.read();
         ch3 = reader.read();
 
-        if (ch0 === false)
-          break;
         if ((ch1 === false) || (ch2 === false) || (ch3 === false))
           throw new System.FormatException(lengthErrorMessage);
 
