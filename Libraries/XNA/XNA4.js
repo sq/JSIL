@@ -2494,6 +2494,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.MathHelper", function ($) {
       return degrees * (Math.PI / 180);
     }
   );
+
+  $.Method({Static:true , Public:true }, "WrapAngle", 
+    (new JSIL.MethodSignature($.Single, [$.Single], [])), 
+    function WrapAngle (angle) {
+      var pi2 = Math.PI * 2;
+      
+      angle = System.Math.IEEERemainder(angle, pi2);
+
+      if (angle <= -Math.PI)
+        angle += pi2;
+      else if (angle > Math.PI)
+        angle -= pi2;
+
+      return angle;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.TitleContainer", function ($) {
