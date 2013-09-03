@@ -16,12 +16,12 @@ namespace JSIL.Proxies {
             return base.ToString();
         }
 
-        [JSReplacement("JSIL.NumberToFormattedString($this, $format)")]
+        [JSReplacement("JSIL.NumberToFormattedString($this, null, $format)")]
         public string ToString (string format) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.NumberToFormattedString($this, $format, $formatProvider)")]
+        [JSReplacement("JSIL.NumberToFormattedString($this, null, $format, $formatProvider)")]
         public string ToString (string format, IFormatProvider formatProvider) {
             throw new InvalidOperationException();
         }
@@ -50,12 +50,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.NumberToFormattedString($this, $format)")]
+        [JSReplacement("JSIL.NumberToFormattedString($this, null, $format)")]
         public string ToString (string format) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.NumberToFormattedString($this, $format, $formatProvider)")]
+        [JSReplacement("JSIL.NumberToFormattedString($this, null, $format, $formatProvider)")]
         public string ToString (string format, IFormatProvider formatProvider) {
             throw new InvalidOperationException();
         }
