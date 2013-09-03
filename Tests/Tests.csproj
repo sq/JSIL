@@ -228,6 +228,7 @@
     <None Include="SimpleTestCases\NullableGetType.cs" />
     <None Include="SimpleTestCases\IEEERemainder.cs" />
     <None Include="SimpleTestCases\StringFormatAlignment.cs" />
+    <None Include="SimpleTestCases\EnumerableFirst.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
