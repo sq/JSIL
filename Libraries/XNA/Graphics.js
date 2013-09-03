@@ -691,6 +691,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
       game.graphicsDeviceManager = this;
       game.Services.AddService(Microsoft.Xna.Framework.IGraphicsDeviceManager.__Type__, this);
       game.Services.AddService(Microsoft.Xna.Framework.Graphics.IGraphicsDeviceService.__Type__, this);
+
+      var oc = this.device.originalCanvas;
+      this._width = oc.width;
+      this._height = oc.height;
     }
   );
 
@@ -699,6 +703,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
     Public: true
   }, "get_GraphicsDevice", new JSIL.MethodSignature($jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), [], []), function () {
     return this.device;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "get_PreferredBackBufferWidth", new JSIL.MethodSignature($.Int32, [], []), function () {
+    return this._width;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "get_PreferredBackBufferHeight", new JSIL.MethodSignature($.Int32, [], []), function () {
+    return this._height;
   });
 
   $.Method({
