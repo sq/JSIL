@@ -1792,6 +1792,24 @@ JSIL.ImplementExternals("System.Math", function ($) {
     (new JSIL.MethodSignature($.Int32, [$.Double], [])), 
     JSIL.$MathSign
   );
+
+  $.Method({Static:true , Public:true }, "IEEERemainder", 
+    (new JSIL.MethodSignature($.Double, [$.Double, $.Double], [])), 
+    function IEEERemainder (x, y) {
+      if (y === 0.0)
+        return NaN;
+
+      var result = x - y * Math.round(x / y);
+      if (result !== 0.0)
+        return result;
+
+      if (x <= 0.0)
+        // FIXME: -0?
+        return 0;
+      else
+        return 0;
+    }
+  );
 });
 
 JSIL.MakeStaticClass("System.Math", true, [], function ($) {
