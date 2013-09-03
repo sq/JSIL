@@ -481,6 +481,7 @@ namespace JSIL.Ast {
         public static readonly JSNullStatement Null = new JSNullStatement();
 
         public string Label = null;
+        public string OriginalLabel = null;
 
         protected virtual string PrependLabel (string text) {
             if (Label == null)

@@ -466,10 +466,16 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format(
-                "if ({0}) {{\r\n{1}\r\n}} else {{\r\n{2}\r\n}}",
-                _Condition, Util.Indent(_TrueClause), Util.Indent(_FalseClause)
-            );
+            if ((_FalseClause != null) && !_FalseClause.IsNull)
+                return String.Format(
+                    "if ({0}) {{\r\n{1}\r\n}} else {{\r\n{2}\r\n}}",
+                    _Condition, Util.Indent(_TrueClause), Util.Indent(_FalseClause)
+                );
+            else
+                return String.Format(
+                    "if ({0}) {{\r\n{1}\r\n}}",
+                    _Condition, Util.Indent(_TrueClause)
+                );
         }
     }
 
