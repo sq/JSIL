@@ -951,7 +951,7 @@ public static class Common {
                         matchingBuiltPaths = (from mbp in matchingBuiltPaths
                                               where 
                                                   File.Exists(mbp) &&
-                                                  System.IO.Path.GetDirectoryName(mbp) != System.IO.Path.GetDirectoryName(itemOutputDirectory + "\\")
+                                                  System.IO.Path.GetDirectoryName(mbp) != System.IO.Path.GetDirectoryName(itemOutputDirectory + Path.DirectorySeparatorChar)
                                               select mbp).ToArray();
 
                         // Throw the exception if the match is still ambiguous.
