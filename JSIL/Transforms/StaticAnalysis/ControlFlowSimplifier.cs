@@ -167,6 +167,11 @@ namespace JSIL.Transforms {
             if (PreviousLabelledStatement == null)
                 return;
 
+            if (PreviousLabelledStatement.Label == null) {
+                PreviousLabelledStatement = null;
+                return;
+            }
+
             var lastChildStatement = PreviousLabelledStatement.AllChildrenRecursive
                 .OfType<JSStatement>()
                 .Where((s) => !s.IsNull)
