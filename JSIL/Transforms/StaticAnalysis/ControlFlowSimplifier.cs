@@ -25,11 +25,16 @@ namespace JSIL.Transforms {
 
         private static int TraceLevel = 0;
 
+        private int TotalUntargettedExits = 0;
+
         private readonly Stack<JSBlockStatement> BlockStack = new Stack<JSBlockStatement>();
         private readonly List<int> AbsoluteJumpsSeenStack = new List<int>();
         private readonly Stack<JSSwitchCase> SwitchCaseStack = new Stack<JSSwitchCase>();
         private readonly Stack<LabelGroupData> LabelGroupStack = new Stack<LabelGroupData>();
         private readonly Stack<int> LoopIndexStack = new Stack<int>();
+
+        private JSStatement PreviousLabelledStatement = null;
+        private JSStatement CurrentLabelledStatement = null;
 
         private JSSwitchCase LastSwitchCase = null;
 
@@ -40,6 +45,8 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSSwitchStatement ss) {
+            CheckForFallthrough(ss);
+
             AbsoluteJumpsSeenStack.Add(0);
 
             VisitChildren(ss);
@@ -51,7 +58,7 @@ namespace JSIL.Transforms {
             SwitchCaseStack.Push(sc);
             AbsoluteJumpsSeenStack.Add(0);
 
-            if (TraceLevel >= 2) {
+            if (TraceLevel >= 3) {
                 if (sc.Values != null)
                     Console.WriteLine("// Entering case {0}", sc.Values.FirstOrDefault());
                 else
@@ -60,7 +67,7 @@ namespace JSIL.Transforms {
 
             VisitChildren(sc);
 
-            if (TraceLevel >= 2)
+            if (TraceLevel >= 3)
                 Console.WriteLine("// Exiting case");
 
             AbsoluteJumpsSeenStack.RemoveAt(AbsoluteJumpsSeenStack.Count - 1);
@@ -68,6 +75,8 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBlockStatement bs) {
+            CheckForFallthrough(bs);
+
             var lastSwitchCase = LastSwitchCase;
             var thisSwitchCase = ParentSwitchCase;
             LastSwitchCase = thisSwitchCase;
@@ -77,11 +86,11 @@ namespace JSIL.Transforms {
                 (thisSwitchCase != lastSwitchCase) || 
                 (parentLabelGroup != null);
 
-            if (TraceLevel >= 2)
+            if (TraceLevel >= 3)
                 Console.WriteLine("// Entering block {0}", bs.Label ?? bs.GetType().Name);
 
             if (isControlFlow) {
-                if (TraceLevel >= 2)
+                if (TraceLevel >= 3)
                     Console.WriteLine("// Count reset");
 
                 AbsoluteJumpsSeenStack.Add(0);
@@ -93,7 +102,7 @@ namespace JSIL.Transforms {
 
             BlockStack.Pop();
 
-            if (TraceLevel >= 2)
+            if (TraceLevel >= 3)
                 Console.WriteLine("// Exiting block");
 
             if (isControlFlow)
@@ -138,7 +147,7 @@ namespace JSIL.Transforms {
                     MadeChanges = true;
                     return;
                 } else {
-                    if (TraceLevel >= 3)
+                    if (TraceLevel >= 4)
                         Console.WriteLine("// Not eliminating {0}", node);
                 }
             }
@@ -146,7 +155,59 @@ namespace JSIL.Transforms {
             VisitChildren(node);
         }
 
+        private void CheckForFallthrough (JSStatement statement) {
+            if (String.IsNullOrWhiteSpace(statement.Label))
+                return;
+
+            bool failed = true;
+
+            PreviousLabelledStatement = CurrentLabelledStatement;
+            CurrentLabelledStatement = statement;
+
+            if (PreviousLabelledStatement == null)
+                return;
+
+            var lastChildStatement = PreviousLabelledStatement.AllChildrenRecursive
+                .OfType<JSStatement>()
+                .Where((s) => !s.IsNull)
+                .LastOrDefault();
+
+            var lastEs = lastChildStatement as JSExpressionStatement;
+            if ((lastEs != null) &&
+                (
+                    (lastEs.Expression is JSGotoExpression) ||
+                    (lastEs.Expression is JSBreakExpression) ||
+                    (lastEs.Expression is JSContinueExpression)
+                )
+               ) {
+                if (TraceLevel >= 3)
+                    Console.WriteLine("// Not recording fallthrough from {0} to {1} because {0} ends with control flow ({2})", PreviousLabelledStatement.Label, CurrentLabelledStatement.Label, lastEs.Expression);
+
+                return;
+            }
+
+            if (LabelGroupStack.Count > 0) {
+                foreach (var lg in LabelGroupStack) {
+                    LabelGroupLabelData labelData;
+
+                    if (lg.TryGetValue(PreviousLabelledStatement.Label, out labelData)) {
+                        failed = false;
+
+                        if (TraceLevel >= 2)
+                            Console.WriteLine("// Recording fallthrough from {0} to {1}", PreviousLabelledStatement.Label, CurrentLabelledStatement.Label);
+
+                        labelData.ExitTargetLabels.Add(CurrentLabelledStatement.Label);
+                    }
+                }
+            }
+
+            if ((TraceLevel >= 2) && failed)
+                Console.WriteLine("// Failed to record fallthrough from {0} to {1}", PreviousLabelledStatement.Label, CurrentLabelledStatement.Label);
+        }
+
         private void RecordUntargettedExit () {
+            TotalUntargettedExits += 1;
+
             if (LabelGroupStack.Count > 0) {
                 var enclosingLabelledStatement = Stack.OfType<JSStatement>().LastOrDefault((n) => n.Label != null);
 
@@ -285,6 +346,8 @@ namespace JSIL.Transforms {
                     exitLabel
                 );
 
+                exitLabel.OriginalLabel = originalLabelName;
+
                 // Extract the exit label so it directly follows the label group
                 ParentNode.ReplaceChild(lgs, replacement);
 
@@ -300,6 +363,8 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSLabelGroupStatement lgs) {
+            CheckForFallthrough(lgs);
+
             var data = new LabelGroupData();
             LabelGroupStack.Push(data);
 
@@ -368,6 +433,8 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSLoopStatement ls) {
+            CheckForFallthrough(ls);
+
             LoopIndexStack.Push(ls.Index.GetValueOrDefault(-1));
 
             VisitChildren(ls);
@@ -408,6 +475,12 @@ namespace JSIL.Transforms {
             VisitChildren(wl);
 
             LoopIndexStack.Pop();
+        }
+
+        public void VisitNode (JSStatement jss) {
+            CheckForFallthrough(jss);
+
+            VisitChildren(jss);
         }
     }
 }

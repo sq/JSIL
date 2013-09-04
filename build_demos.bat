@@ -1,3 +1,6 @@
+@rem This batch file is here to show you how I compile the official JSIL demos!
+@rem Most of these build invocations will fail, because I cannot legally distribute the source to the demo in question.
+
 @del /s/q jsil.org\demos\*.js
 @title Building TouchThumbSticks
 bin\JSILc "Examples\ThirdParty\TouchThumbSticks\TouchThumbSticks.sln" "jsil.org\demos\TouchThumbSticks\TouchThumbSticks.jsilconfig" --platform=x86 --configuration=Debug

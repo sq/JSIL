@@ -235,10 +235,13 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
   return formatter;
 };
 
-JSIL.NumberToFormattedString = function (value, valueFormat, formatProvider) {
+JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatProvider) {
   // FIXME: formatProvider
 
-  if (!valueFormat)
+  if (
+    (arguments.length === 1) || 
+    ((typeof (alignment) === "undefined") && (typeof (valueFormat) === "undefined")) 
+  )
     return value.toString();
 
   var formatInteger = function (value, radix, digits) {
@@ -282,37 +285,70 @@ JSIL.NumberToFormattedString = function (value, valueFormat, formatProvider) {
     return pieces.join(".");
   };
 
-  var parsedCustomFormat = JSIL.ParseCustomNumberFormat(valueFormat);
+  var parsedCustomFormat = null;
+  var result;
+
+  if (valueFormat)
+    parsedCustomFormat = JSIL.ParseCustomNumberFormat(valueFormat);
 
   if (parsedCustomFormat) {
-    return parsedCustomFormat(value);
+    result = parsedCustomFormat(value);
 
-  } else {
+  } else if (valueFormat) {
     switch (valueFormat[0]) {
       case 'd':
       case 'D':
-        return formatInteger(value, 10, valueFormat.substr(1));
+        result = formatInteger(value, 10, valueFormat.substr(1));
+        break;
 
       case 'x':
-        return formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+        result = formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+        break;
 
       case 'X':
-        return formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+        result = formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+        break;
 
       case 'f':
       case 'F':
-        return formatFloat(value, valueFormat.substr(1));
+        result = formatFloat(value, valueFormat.substr(1));
+        break;
 
       case 'n':
       case 'N':
-        var result = formatFloat(value, valueFormat.substr(1));
-        return insertPlaceSeparators(result);
+        result = formatFloat(value, valueFormat.substr(1));
+        result = insertPlaceSeparators(result);
+        break;
 
       default:
         throw new Error("Unsupported format string: " + valueFormat);
 
     }
+
+  } else {
+    result = String(value);
   }
+
+  if (typeof (alignment) === "string")
+    alignment = parseInt(alignment);
+
+  if (typeof (alignment) === "number") {
+    var absAlignment = Math.abs(alignment);
+    if (result.length >= absAlignment)
+      return result;
+
+    var paddingSize = absAlignment - result.length;
+    var padding = "";
+    for (var i = 0; i < paddingSize; i++)
+      padding += " ";
+
+    if (alignment > 0)
+      return padding + result;
+    else
+      return result + padding;
+  }
+
+  return result;
 };
 
 JSIL.StringFromByteArray = function (bytes, startIndex, length) {
@@ -452,7 +488,8 @@ JSIL.ImplementExternals(
       }
     );
 
-    var formatRegex = new RegExp("{([0-9]*)(?::([^}]*))?}|{{|}}|{|}", "g");
+    //                             index   alignment      valueFormat    escape
+    var formatRegex = new RegExp("{([0-9]*)(?:,([-0-9]*))?(?::([^}]*))?}|{{|}}|{|}", "g");
 
     $.Method({Static:true , Public:true }, "Format", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
@@ -468,7 +505,7 @@ JSIL.ImplementExternals(
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
-        var matcher = function (match, index, valueFormat, offset, str) {
+        var matcher = function (match, index, alignment, valueFormat, offset, str) {
           if (match === "{{")
             return "{";
           else if (match === "}}")
@@ -480,8 +517,8 @@ JSIL.ImplementExternals(
 
           var value = values[index];
 
-          if (valueFormat) {
-            return JSIL.NumberToFormattedString(value, valueFormat);
+          if (alignment || valueFormat) {
+            return JSIL.NumberToFormattedString(value, alignment, valueFormat);
 
           } else {
 

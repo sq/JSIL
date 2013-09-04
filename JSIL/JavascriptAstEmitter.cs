@@ -95,6 +95,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSBlockStatement block, bool includeBraces) {
+            // Write the original label/label
+            if (!(ParentNode is JSLabelGroupStatement))
+                WriteLabel(block);
+
             if (includeBraces)
                 Output.OpenBrace();
 
@@ -1160,6 +1164,11 @@ namespace JSIL {
         protected void WriteLabel (JSStatement stmt) {
             if (!String.IsNullOrWhiteSpace(stmt.Label))
                 Output.Label(stmt.Label);
+
+            if (!String.IsNullOrWhiteSpace(stmt.OriginalLabel)) {
+                Output.Comment("Original label {0}", stmt.OriginalLabel);
+                Output.NewLine();
+            }
         }
 
         public void VisitNode (JSIfStatement ifs) {
