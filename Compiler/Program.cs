@@ -88,7 +88,7 @@ namespace JSIL.Compiler {
             {
                 return AssemblyDefinition.ReadAssembly(fileName);
             }
-            catch(Exception ex)
+            catch(BadImageFormatException ex)
             {
                 Console.Error.WriteLine("// Invalid .NET Assembly: \"" + fileName + "\".  It will not be loaded.");
                 Console.Error.WriteLine("//     Reason: " + (ex.Message ?? "").Trim().Replace(Environment.NewLine, Environment.NewLine + "// "));
