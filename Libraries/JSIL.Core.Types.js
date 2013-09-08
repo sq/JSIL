@@ -538,6 +538,17 @@ JSIL.ImplementExternals("System.Enum", function ($) {
       return $jsilcore.System.Convert.ToInt64(this.value, provider);
     }
   );
+
+  $.Method({Static: false, Public: true}, "Object.Equals",
+    new JSIL.MethodSignature(System.Boolean, [System.Object]),
+    function (rhs) {
+      if (rhs === null)
+        return false;
+      
+      return (this.__ThisType__ === rhs.__ThisType__) &&
+        (this.value === rhs.value);
+    }
+  );
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Attribute", true, [], function ($) {
