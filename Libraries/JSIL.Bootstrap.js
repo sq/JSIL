@@ -88,7 +88,7 @@ JSIL.ImplementExternals(
     $jsilcore.$MakeParseExternals($, $.Boolean, $jsilcore.$ParseBoolean, $jsilcore.$TryParseBoolean);
   }
 );
-JSIL.MakeNumericType(Boolean, "System.Boolean", true);
+JSIL.MakeNumericType(Boolean, "System.Boolean", true, "Uint8Array");
 
 JSIL.ImplementExternals(
   "System.Char", function ($) {
