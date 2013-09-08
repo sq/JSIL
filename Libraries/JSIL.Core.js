@@ -7277,6 +7277,28 @@ JSIL.Array.GetElements = function (array) {
     throw new Error("Argument is not an array");
 };
 
+JSIL.Array.Erase$Struct = function (elements, startIndex, length, elementTypeObject, elementTypePublicInterface) {
+  length = length | 0;
+  startIndex = startIndex | 0;
+
+  if (length > elements.length)
+    throw new Error("Length out of range");
+
+  for (var i = 0; i < length; i = (i + 1) | 0)
+    elements[(i + startIndex) | 0] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+};
+
+JSIL.Array.Erase$Primitive = function (elements, startIndex, length, value) {
+  length = length | 0;
+  startIndex = startIndex | 0;
+  
+  if (length > elements.length)
+    throw new Error("Length out of range");
+
+  for (var i = 0; i < length; i = (i + 1) | 0)
+    elements[(i + startIndex) | 0] = value;
+};
+
 // startIndex and length are optional
 JSIL.Array.Erase = function Array_Erase (array, elementType, startIndex, length) {
   var elementTypeObject, elementTypePublicInterface;
@@ -7300,13 +7322,11 @@ JSIL.Array.Erase = function Array_Erase (array, elementType, startIndex, length)
   length = length | 0;
 
   if (elementTypeObject.__IsStruct__) {
-    for (var i = 0; i < length; i = (i + 1) | 0)
-      elements[(i + startIndex) | 0] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+    JSIL.Array.Erase$Struct(elements, startIndex, length, elementTypeObject, elementTypePublicInterface);
   } else {
     var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
 
-    for (var i = 0; i < length; i = (i + 1) | 0)
-      elements[(i + startIndex) | 0] = defaultValue;
+    JSIL.Array.Erase$Primitive(elements, startIndex, length, defaultValue);
   }
 };
 

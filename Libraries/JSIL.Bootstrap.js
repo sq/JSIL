@@ -1284,6 +1284,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:false, Virtual:true }, "InsertItem", 
     new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1")], []), 
     function InsertItem (index, item) {
+      index = index | 0;
+
       if (index >= this._items.length) {
         this._items.push(item);
       } else if (index >= this._size) {
@@ -1294,7 +1296,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
       this._size += 1;
 
-      if (typeof (this.$OnItemAdded) === "function")
+      if (this.$OnItemAdded)
         this.$OnItemAdded(item);
     }
   );
