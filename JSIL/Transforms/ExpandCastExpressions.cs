@@ -116,23 +116,11 @@ namespace JSIL.Transforms {
                 //  In this case we want to leave it as-is.
                 (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
-                if (
-                    TypeUtil.IsIntegral(currentType) ||
-                    (currentType.FullName == "System.Boolean")
-                ) {
-                    newExpression = new JSBinaryOperatorExpression(
-                        JSBinaryOperator.NotEqual,
-                        new JSTruncateExpression(ce.Expression),
-                        new JSIntegerLiteral(0, typeof(int)),
-                        TypeSystem.Boolean
-                    );
-                } else {
-                    newExpression = new JSBinaryOperatorExpression(
-                        JSBinaryOperator.NotEqual,
-                        ce.Expression, new JSDefaultValueLiteral(currentType),
-                        TypeSystem.Boolean
-                    );
-                }
+                newExpression = new JSBinaryOperatorExpression(
+                    JSBinaryOperator.NotEqual,
+                    ce.Expression, new JSDefaultValueLiteral(currentType),
+                    TypeSystem.Boolean
+                );
             } else if (
                 TypeUtil.IsNumeric(targetType) &&
                 TypeUtil.IsNumeric(currentType) &&

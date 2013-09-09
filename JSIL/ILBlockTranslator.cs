@@ -2246,15 +2246,10 @@ namespace JSIL {
             } else if (PackedArrayUtil.IsPackedArrayType(targetType)) {
                 result = PackedArrayUtil.GetItem(targetType, TypeInfo.Get(targetType), target, index, MethodTypes);
             } else {
-                var isBool = expectedType.FullName == "System.Boolean";
-
                 result = new JSIndexerExpression(
                     target, index,
-                    isBool ? TypeSystem.Byte : expectedType
+                    expectedType
                 );
-
-                if (isBool)
-                    result = JSCastExpression.New(result, TypeSystem.Boolean, TypeSystem, true, true);
             }
 
             if (CopyOnReturn(expectedType) && !getReference)
@@ -2306,21 +2301,12 @@ namespace JSIL {
                     }
                 );
             } else {
-                var indexer = new JSIndexerExpression(
-                    target, index,
-                    expectedType
-                );
-
-                // FIXME: Do we need this? Browsers seem to coerce Boolean to byte automatically.
-                /*
-                if (targetType.FullName.StartsWith("System.Boolean[")) {
-                    rhs = HandleBooleanAsInteger.CastToInteger(rhs, TypeSystem);
-                }
-                 */
-
                 return new JSBinaryOperatorExpression(
                     JSOperator.Assignment,
-                    indexer,
+                    new JSIndexerExpression(
+                        target, index,
+                        expectedType
+                    ),
                     rhs, elementType ?? rhs.GetActualType(TypeSystem)
                 );
             }
