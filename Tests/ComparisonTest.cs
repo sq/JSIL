@@ -25,7 +25,7 @@ namespace JSIL.Tests {
             }
         }
 
-        public float JavascriptExecutionTimeout = 10.0f;
+        public float JavascriptExecutionTimeout = 15.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
             @"// elapsed: (?'elapsed'[0-9]+(\.[0-9]*)?)",

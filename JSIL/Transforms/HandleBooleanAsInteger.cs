@@ -18,11 +18,8 @@ namespace JSIL.Transforms {
             JS = js;
         }
 
-        protected JSInvocationExpression CastToInteger (JSExpression booleanExpression) {
-            return JSInvocationExpression.InvokeMethod(
-                JS.valueOf(TypeSystem.SByte), 
-                booleanExpression, null, true
-            );
+        public static JSExpression CastToInteger (JSExpression booleanExpression, TypeSystem typeSystem) {
+            return new JSTernaryOperatorExpression(booleanExpression, new JSIntegerLiteral(1, typeof(byte)), new JSIntegerLiteral(0, typeof(byte)), typeSystem.Byte);
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
@@ -44,11 +41,11 @@ namespace JSIL.Transforms {
 
                 if (leftIsBool)
                     replacement = new JSBinaryOperatorExpression(
-                        boe.Operator, CastToInteger(boe.Left), boe.Right, boe.ActualType
+                        boe.Operator, CastToInteger(boe.Left, TypeSystem), boe.Right, boe.ActualType
                     );
                 else
                     replacement = new JSBinaryOperatorExpression(
-                        boe.Operator, boe.Left, CastToInteger(boe.Right), boe.ActualType
+                        boe.Operator, boe.Left, CastToInteger(boe.Right, TypeSystem), boe.ActualType
                     );
 
                 ParentNode.ReplaceChild(boe, replacement);

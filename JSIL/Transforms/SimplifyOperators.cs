@@ -70,11 +70,29 @@ namespace JSIL.Transforms {
                         (nestedUoe.Operator == JSOperator.LogicalNot)
                     ) {
                         var nestedExpression = nestedUoe.Expression;
+                        var nestedUoe2 = nestedExpression as JSUnaryOperatorExpression;
 
-                        ParentNode.ReplaceChild(uoe, nestedExpression);
-                        VisitReplacement(nestedExpression);
+                        if (
+                            (nestedUoe2 != null) &&
+                            (nestedUoe2.Operator == JSOperator.LogicalNot)
+                        ) {
+                            // It's okay to fold '!!!x' into '!x'
+                            ParentNode.ReplaceChild(uoe, nestedUoe2);
+                            VisitReplacement(nestedUoe2);
+                            return;
+                        } else {
+                            // Important not to eliminate '!!x' since it can be used for int-to-bool conversion,
+                            //  unless the value is already a boolean
+                            var nestedExpressionType = nestedExpression.GetActualType(TypeSystem);
 
-                        return;
+                            if (nestedExpressionType.FullName == "System.Boolean") {
+                                ParentNode.ReplaceChild(uoe, nestedExpression);
+                                VisitReplacement(nestedExpression);
+                            } else {
+                                VisitChildren(uoe);
+                            }
+                            return;
+                        }
                     }
                 }
             }
