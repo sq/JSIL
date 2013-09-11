@@ -718,11 +718,9 @@ namespace JSIL {
         }
 
         protected bool IsStubbed (AssemblyDefinition assembly) {
-            bool stubbed = false;
             foreach (var sa in Configuration.Assemblies.Stubbed) {
                 if (Regex.IsMatch(assembly.FullName, sa, RegexOptions.IgnoreCase)) {
                     return true;
-                    break;
                 }
             }
 
@@ -2057,6 +2055,7 @@ namespace JSIL {
 
                                 var newArray = defaultValue as JSNewArrayExpression;
 
+#pragma warning disable 0642
                                 if (
                                     (newArray != null) && (
                                         (newArray.SizeOrArrayInitializer == null) ||
@@ -2066,6 +2065,8 @@ namespace JSIL {
                                     ;
                                 else if (!defaultValue.IsConstant)
                                     continue;
+#pragma warning restore 0642
+
                             } catch (Exception ex) {
                                 // This may fail because we didn't do a full translation.
                                 WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
@@ -2251,7 +2252,7 @@ namespace JSIL {
             } else {
                 try {
                     return JSLiteral.New(ca.Value as dynamic);
-                } catch (Exception exc) {
+                } catch (Exception) {
                     throw new NotImplementedException(String.Format("Attribute arguments of type '{0}' are not implemented.", ca.Type.FullName));
                 }
             }
@@ -2407,13 +2408,9 @@ namespace JSIL {
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
             JSFunctionExpression function;
-            try {
-                function = GetFunctionBodyForMethod(
-                    isExternal, methodInfo
-                );
-            } catch (KeyNotFoundException knf) {
-                throw;
-            }
+            function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             // FIXME
             astEmitter.SignatureCacher = signatureCacher;
@@ -2511,13 +2508,9 @@ namespace JSIL {
             }
 
             JSFunctionExpression function;
-            try {
-                function = GetFunctionBodyForMethod(
-                    isExternal, methodInfo
-                );
-            } catch (KeyNotFoundException knf) {
-                throw;
-            }
+            function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;

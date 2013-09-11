@@ -865,8 +865,6 @@ public static class Common {
 
                     Console.WriteLine(localPath);
 
-                    string propertiesObject;
-
                     if (properties == null) {
                         properties = new Dictionary<string, object> {
                             { "sizeBytes", fileInfo.Length }

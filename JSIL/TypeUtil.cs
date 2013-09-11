@@ -803,15 +803,11 @@ namespace JSIL {
                 }
             }
 
-            if (at != null) {
-                if (ExpandPositionalGenericParameters(at.ElementType, out _expanded))
-                    ;
-            }
+            if (at != null)
+                ExpandPositionalGenericParameters(at.ElementType, out _expanded);
 
-            if (byref != null) {
-                if (ExpandPositionalGenericParameters(byref.ElementType, out _expanded))
-                    ;
-            }
+            if (byref != null)
+                ExpandPositionalGenericParameters(byref.ElementType, out _expanded);
 
             expanded = type;
             return false;

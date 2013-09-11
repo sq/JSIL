@@ -26,7 +26,7 @@ namespace JSIL.Utilities {
                         Console.Error.WriteLine();
 
                     break;
-                } catch (IOException ioe) {
+                } catch (IOException) {
                     if (!wroteFailureMessage) {
                         Console.Error.Write("// Copy failed for '{0}' -> '{1}'! Retrying ", sourcePath, destinationPath);
                         wroteFailureMessage = true;

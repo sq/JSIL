@@ -1370,7 +1370,6 @@ namespace JSIL {
                     break;
                 default:
                     throw new NotImplementedException("Break statement found outside of switch statement or loop");
-                    break;
             }
         }
 
@@ -1777,8 +1776,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
-            TypeReference typeOfThisReference = null;
-
             var jsm = invocation.JSMethod;
             MethodInfo method = null;
             if (jsm != null)

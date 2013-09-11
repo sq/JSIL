@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0420
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -264,10 +266,8 @@ namespace JSIL.Internal {
             lock (Sets) {
                 MethodSignatureSet result;
 
-                if (!Sets.TryGetValue(methodName, out result)) {
-                    methodName = methodName;
+                if (!Sets.TryGetValue(methodName, out result))
                     Sets[methodName] = result = new MethodSignatureSet(this, methodName);
-                }
 
                 return result;
             }

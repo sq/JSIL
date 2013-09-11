@@ -167,9 +167,6 @@ namespace JSIL.Transforms {
             else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
                 cacheLocally = true;
 
-            Dictionary<CachedSignatureRecord, int> signatureSet;
-            int index;
-
             var set = GetCacheSet(cacheLocally);
             var record = new CachedSignatureRecord(method, signature, isConstructor);
 

@@ -1,4 +1,7 @@
-﻿using System;
+﻿#pragma warning disable 0162
+#pragma warning restore 0429
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;

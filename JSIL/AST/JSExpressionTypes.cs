@@ -437,6 +437,7 @@ namespace JSIL.Ast {
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+#pragma warning disable 0642
             if ((oldChild is JSInvocationExpressionBase) && !(newChild is JSInvocationExpressionBase)) {
                 if (newChild is JSStructCopyExpression)
                     // HACK: This is okay since we handle it.
@@ -446,6 +447,7 @@ namespace JSIL.Ast {
             }
 
             base.ReplaceChild(oldChild, newChild);
+#pragma warning restore 0642
         }
 
         new public JSInvocationExpressionBase Referent {

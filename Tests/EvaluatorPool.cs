@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0420
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -198,10 +200,12 @@ namespace JSIL.Tests {
             if (InputClosed != 0)
                 throw new InvalidOperationException("Input stream already closed");
 
+#pragma warning disable 0162
             if (TraceInput) {
                 foreach (var line in text.Split(new [] { Environment.NewLine }, StringSplitOptions.None))
                     Debug.WriteLine("{0:X2} in : {1}", Id, line);
             }
+#pragma warning restore 0162
 
             // HACK: Workaround for NUnit/StreamWriter bug on Mono
             var bytes = System.Text.Encoding.UTF8.GetBytes(text);
@@ -239,6 +243,7 @@ namespace JSIL.Tests {
             Process.WaitForExit();
             _ExitCode = Process.ExitCode;
 
+#pragma warning disable 0162
             if (TraceOutput) {
                 Debug.WriteLine("{0:X2} exit {1}", Id, _ExitCode);
 
@@ -248,6 +253,7 @@ namespace JSIL.Tests {
                 foreach (var line in _StdErr.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
                     Debug.WriteLine("{0:X2} err: {1}", Id, line);
             }
+#pragma warning restore 0162
         }
 
         public void Dispose () {

@@ -112,7 +112,7 @@ namespace SmokeTests {
                 );
                  */
 
-            } catch (Exception exc2) {
+            } catch (Exception) {
                 Dispose();
                 throw;
             }
@@ -140,8 +140,6 @@ namespace SmokeTests {
                 completedSignal.Wait(2500);
 
                 if (!completedSignal.IsSet) {
-                    Exception inner = null;
-
                     try {
                         wc.CancelAsync();
                     } catch (Exception exc) {
@@ -215,7 +213,7 @@ namespace SmokeTests {
             try {
                 result = fn();
                 Console.WriteLine(passText);
-            } catch (Exception exc) {
+            } catch (Exception) {
                 Console.WriteLine(failText);
                 throw;
             }

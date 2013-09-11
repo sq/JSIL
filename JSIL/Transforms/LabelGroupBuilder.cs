@@ -63,6 +63,7 @@ namespace JSIL.Transforms {
                             } else if (populatingEntryBlock) {
                                 entryBlock.Statements.Add(s);
                             } else if (populatingExitBlock) {
+#pragma warning disable 0642
                                 if (s.Label == null)
                                     exitBlock.Statements.Add(s);
                                 // HACK: The synthesized switch exit labels generated when hoisting a block out of
@@ -72,6 +73,8 @@ namespace JSIL.Transforms {
                                     ;
                                 else
                                     populatingExitBlock = false;
+#pragma warning restore 0642
+
                             }
                         }
 

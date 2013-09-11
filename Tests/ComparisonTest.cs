@@ -295,10 +295,8 @@ namespace JSIL.Tests {
         }
 
         public static object MetacommentParseValue (string text, Type type) {
-            bool isNullable;
             var tNullable = typeof(Nullable<>);
             if (type.IsGenericType && (type.GetGenericTypeDefinition() == tNullable)) {
-                isNullable = true;
                 type = type.GetGenericArguments()[0];
 
                 if (text == "null")

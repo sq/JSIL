@@ -1871,7 +1871,6 @@ namespace JSIL.Internal {
                 if (base.IsIgnored)
                     return true;
 
-                bool parametersIgnored;
                 if (_ParametersIgnored.HasValue)
                     return _ParametersIgnored.Value;
                 else {
@@ -2168,8 +2167,6 @@ namespace JSIL.Internal {
         }
 
         public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
-            TypeReference result;
-
             if (returnType == null)
                 returnType = typeSystem.Void;
 

@@ -219,7 +219,7 @@ namespace JSIL.Tests {
                     AssertIsSingleton(data, "pBuffer.setElement");
                     // FIXME: Fails. Something about this function makes SpiderMonkey unhappy :-(
                     AssertIsSingleton(data, "Program.TestInlineAccess");
-                } catch (Exception exc) {
+                } catch (Exception) {
                     data.Dump(Console.Out);
                     throw;
                 }

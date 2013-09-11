@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0114
+
+using System;
 using JSIL.Meta;
 using JSIL.Proxy;
 

@@ -242,7 +242,7 @@ namespace JSIL.Tests {
                             if (errorCheckPredicate != null) {
                                 errorCheckPredicate(csOutput, js);
                             }
-                        } catch (Exception _exc) {
+                        } catch (Exception) {
                             Console.WriteLine("error");
                             throw;
                         }

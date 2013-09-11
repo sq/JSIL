@@ -1,4 +1,8 @@
-﻿using System;
+﻿#pragma warning disable 0169
+#pragma warning disable 0660
+#pragma warning disable 0661
+
+using System;
 using JSIL.Meta;
 using JSIL.Proxy;
 using Microsoft.Xna.Framework;

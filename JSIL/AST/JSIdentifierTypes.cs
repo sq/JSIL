@@ -44,7 +44,7 @@ namespace JSIL.Ast {
     }
 
     public class JSAssembly : JSIdentifier {
-        new public readonly AssemblyDefinition Assembly;
+        public readonly AssemblyDefinition Assembly;
 
         public JSAssembly (AssemblyDefinition assembly) {
             if (assembly == null)
@@ -77,7 +77,7 @@ namespace JSIL.Ast {
     }
 
     public class JSType : JSIdentifier {
-        new public readonly TypeReference Type;
+        public readonly TypeReference Type;
 
         public JSType (TypeReference type) {
             if (type == null)

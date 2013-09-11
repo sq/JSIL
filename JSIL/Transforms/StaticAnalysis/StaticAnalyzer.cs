@@ -140,7 +140,6 @@ namespace JSIL.Transforms {
             using (var eNodes = (IEnumerator<JSNode>)Stack.GetEnumerator())
             using (var eNames = (IEnumerator<string>)NameStack.GetEnumerator())
             while (eNodes.MoveNext() && eNames.MoveNext()) {
-                iterationStart:
                 var value = eNodes.Current as T;
                 var name = eNames.Current;
 

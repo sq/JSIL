@@ -572,8 +572,6 @@ namespace JSIL.Internal {
                         "Unimplemented form of generic method parameter: '{0}'.",
                         gp
                     ));
-
-                    return;
                 }
             } else {
                 throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");
