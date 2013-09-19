@@ -2,6 +2,7 @@
 #pragma warning disable 0661
 
 using System;
+using System.Collections.Generic;
 using JSIL.Meta;
 using JSIL.Proxy;
 
@@ -87,8 +88,12 @@ namespace JSIL.Proxies {
         public abstract string[] Split (AnyType[] dividers, StringSplitOptions options);
 
         [JSIsPure]
-        [JSReplacement("JSIL.JoinStrings($separator, $value)")]
-        public abstract string Join (string separator, params string[] value);
+        [JSReplacement("JSIL.JoinEnumerable($separator, $values)")]
+        public abstract string Join<T> (string separator, IEnumerable<T> values);
+
+        [JSIsPure]
+        [JSReplacement("JSIL.JoinStrings($separator, $values)")]
+        public abstract string Join (string separator, params string[] values);
 
         [JSChangeName("length")]
         [JSAlwaysAccessAsProperty]
