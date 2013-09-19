@@ -4351,12 +4351,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   };
 
   var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
+  var isICollection = typeName.indexOf(".ICollection") >= 0;
   var isIList = typeName.indexOf(".IList") >= 0;
 
   var isInterface = typeObject.IsInterface || false;
 
   // HACK: Handle casting arrays to IEnumerable by creating an overlay.
-  if (isIEnumerable || isIList) {
+  if (isIEnumerable || isICollection || isIList) {
     checkMethod = function Check_ArrayInterface (value) {
       // FIXME: IEnumerable<int>.Is(float[]) will return true.
       if (JSIL.IsArray(value))
@@ -4560,7 +4561,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     };
   }
 
-  if (isIEnumerable || isIList) {
+  if (isIEnumerable || isICollection || isIList) {
     var innerAsFunction = asFunction;
     var innerCastFunction = castFunction;
 
