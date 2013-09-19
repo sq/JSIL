@@ -774,6 +774,13 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
   
   // FIXME: Implement actual members of IList.
   
+  $.Method({Static:false, Public:true }, "CopyTo",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [T]), $.Int32], []),
+    function CopyTo (array, arrayIndex) {
+      JSIL.Array.CopyTo(this._array, array, arrayIndex);
+    }
+  );
+  
   $.Method({Static:false, Public:true }, "get_Count", 
     new JSIL.MethodSignature($.Int32, [], []),
     function get_Count () {
