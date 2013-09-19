@@ -720,6 +720,10 @@ JSIL.JoinStrings = function (separator, strings) {
   return strings.join(separator);
 };
 
+JSIL.JoinEnumerable = function (separator, values) {
+  return JSIL.JoinStrings(separator, JSIL.EnumerableToArray(values));
+};
+
 JSIL.ConcatString = function (/* ...values */) {
   var result = "";
 

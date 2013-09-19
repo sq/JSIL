@@ -232,6 +232,8 @@
     <None Include="SimpleTestCases\Issue245.cs" />
     <None Include="PerformanceTestCases\Sieve.cs" />
     <None Include="SimpleTestCases\ListIndexOfEnum.cs" />
+    <None Include="SimpleTestCases\ArrayICollection.cs" />
+    <None Include="SimpleTestCases\StringJoinEnumerable.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
