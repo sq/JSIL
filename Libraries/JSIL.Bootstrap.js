@@ -773,12 +773,21 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
     .Overrides(1, "GetEnumerator");
   
   // FIXME: Implement actual members of IList.
+  
+  $.Method({Static:false, Public:true }, "get_Count", 
+    new JSIL.MethodSignature($.Int32, [], []),
+    function get_Count () {
+      return this._array.length;
+    }
+  );
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"),
     /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [T]),
-    /* 2 */ $jsilcore.TypeRef("System.Collections.IList"),
-    /* 3 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [T])
+    /* 2 */ $jsilcore.TypeRef("System.Collections.ICollection"),
+    /* 3 */ $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [T]),
+    /* 4 */ $jsilcore.TypeRef("System.Collections.IList"),
+    /* 5 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [T])
   );
 });
 
