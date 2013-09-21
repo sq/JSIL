@@ -1066,7 +1066,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLambda lambda) {
-            if (!lambda.UseBind)
+            var replaceThis = !lambda.UseBind;
+
+            if (
+                (lambda.This == null) ||
+                lambda.This.IsNull ||
+                (lambda.This is JSNullLiteral)
+            )
+                replaceThis = false;
+
+            if (replaceThis)
                 ThisReplacementStack.Push(lambda.This);
 
             Visit(lambda.Value);
@@ -1078,7 +1087,8 @@ namespace JSIL {
                 Visit(lambda.This);
                 Output.RPar();
             } else {
-                ThisReplacementStack.Pop();
+                if (replaceThis)
+                    ThisReplacementStack.Pop();
             }
         }
 
