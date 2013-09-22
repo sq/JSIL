@@ -97,6 +97,7 @@ namespace JSIL.Transforms {
                 return false;
 
             var valueType = value.GetActualType(TypeSystem);
+            var valueTypeDerefed = TypeUtil.DereferenceType(valueType) ?? valueType;
             var cte = value as JSChangeTypeExpression;
             var cast = value as JSCastExpression;
 
@@ -114,15 +115,15 @@ namespace JSIL.Transforms {
             if (originalType != null) {
                 originalType = TypeUtil.FullyDereferenceType(originalType, out temp);
 
-                if (!IsStructOrGenericParameter(valueType) && !IsStructOrGenericParameter(originalType))
+                if (!IsStructOrGenericParameter(valueTypeDerefed) && !IsStructOrGenericParameter(originalType))
                     return false;
 
-                relevantParameter = (originalType as GenericParameter) ?? (valueType as GenericParameter);
+                relevantParameter = (originalType as GenericParameter) ?? (valueTypeDerefed as GenericParameter);
             } else {
-                if (!IsStructOrGenericParameter(valueType))
+                if (!IsStructOrGenericParameter(valueTypeDerefed))
                     return false;
 
-                relevantParameter = (valueType as GenericParameter);
+                relevantParameter = (valueTypeDerefed as GenericParameter);
             }
 
             if (IsTypeExcludedFromCopies(valueType)) 
