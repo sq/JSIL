@@ -280,7 +280,7 @@ namespace simpleray {
             }
             
             int chunkSize = 32;
-            JSIL.Verbatim.Expression("canvas.flushInterval = chunkSize");
+            JSIL.Verbatim.Expression("canvas.flushInterval = $0", chunkSize);
             
             stopwatch.Restart();
             int x1 = x, x2 = Math.Min(x + chunkSize, CANVAS_WIDTH);
@@ -298,8 +298,7 @@ namespace simpleray {
             
             ReportSpeed(msPerPixel);
             
-            bool useSetTimeout = false;
-            JSIL.Verbatim.Expression("useSetTimeout = true");
+            bool useSetTimeout = JSIL.Builtins.IsJavascript;
             
             Func<object> next = () => 
                   RenderRowChunk(canvas, dotPeriod, x2, y);
