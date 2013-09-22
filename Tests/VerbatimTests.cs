@@ -54,5 +54,21 @@ namespace JSIL.Tests {
                 "3"
             );
         }
+
+        [Test]
+        public void VerbatimVariables () {
+            var js = GetJavascript(
+                @"SpecialTestCases\VerbatimVariables.cs",
+                "hello\r\n7"
+            );
+        }
+
+        [Test]
+        public void VerbatimVariablesExistingArray () {
+            var js = GetJavascript(
+                @"SpecialTestCases\VerbatimVariablesExistingArray.cs",
+                "hello\r\n7"
+            );
+        }
     }
 }

@@ -669,7 +669,7 @@ namespace JSIL {
             bool parens =
                 (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
 
-            var regex = new Regex(@"(\$\$|\$(?'name'((etypeof|typeof|assemblyof)\([a-zA-Z_]([a-zA-Z0-9_]*)\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+            var regex = new Regex(@"(\$\$|\$(?'name'((etypeof|typeof|assemblyof)\([a-zA-Z0-9_]([a-zA-Z0-9_]*)\))|([a-zA-Z0-9_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
             if (parens)
                 Output.LPar();

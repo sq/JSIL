@@ -551,14 +551,57 @@ namespace JSIL {
                 case "System.Boolean JSIL.Builtins::IsFalsy(System.Object)":
                     return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
 
-                case "System.Object JSIL.Verbatim::Expression(System.String)": {
+                case "System.Object JSIL.Verbatim::Expression(System.String)":
+                case "System.Object JSIL.Verbatim::Expression(System.String,System.Object[])": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
-                    return new JSVerbatimLiteral(
-                        method.Reference, expression.Value, null, null
+                    JSExpression commaFirstClause = null;
+                    IDictionary<string, JSExpression> argumentsDict = null;
+
+                    if (arguments.Length > 1) {
+                        var argumentsExpression = arguments[1];
+                        var argumentsArray = argumentsExpression as JSNewArrayExpression;
+
+                        // The array is static so we need to pull elements out of it after assigning it a name.
+                        // FIXME: Only handles up to 40 elements.
+                        if (argumentsArray == null) {
+                            var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
+                            var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
+                            var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
+
+                            commaFirstClause = temporaryAssignment;
+
+                            argumentsDict = new Dictionary<string, JSExpression>();
+
+                            for (var i = 0; i < 40; i++)
+                                argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSIntegerLiteral.New(i)));
+                        } else {
+                            var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
+
+                            if (argumentsArrayExpression == null)
+                                throw new NotImplementedException("Literal array must have values");
+
+                            argumentsDict = new Dictionary<string, JSExpression>();
+
+                            int i = 0;
+                            foreach (var value in argumentsArrayExpression.Values) {
+                                argumentsDict.Add(String.Format("{0}", i), value);
+
+                                i += 1;
+                            }
+                        }
+                    }
+
+                    var verbatimLiteral = new JSVerbatimLiteral(
+                        method.Reference, expression.Value, argumentsDict
                     );
+
+                    if (commaFirstClause != null)
+                        return new JSCommaExpression(commaFirstClause, verbatimLiteral);
+                    else
+                        return verbatimLiteral;
                 }
 
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
