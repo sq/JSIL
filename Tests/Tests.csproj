@@ -213,6 +213,7 @@
     <None Include="SimpleTestCases\CharArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCurlies.cs" />
     <None Include="SpecialTestCases\PointerSignature.cs" />
+    <None Include="SimpleTestCases\CharIs.cs" />
     <None Include="Int64TestCases\Issue162.cs" />
     <None Include="Int64TestCases\Issue246.cs" />
     <None Include="ReflectionTestCases\FieldGetValue.cs" />
