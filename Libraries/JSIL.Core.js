@@ -4958,7 +4958,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces || [];
 
-    var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface);
+    var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface, "interface");
     initializer(interfaceBuilder);
 
     if (typeObject.__GenericArguments__.length > 0) {
@@ -5476,7 +5476,7 @@ JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndex, interfaceMemb
 };
 
 
-JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
+JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderMode) {
   this.context = context;
   this.typeObject = typeObject;
   this.publicInterface = publicInterface;
@@ -5484,6 +5484,7 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.externals = JSIL.AllImplementedExternals[this.namespace];
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
+  this.builderMode = builderMode || "class";
 
   var selfRef = typeObject;
   var gaNames = typeObject.__GenericArguments__;
@@ -5585,6 +5586,12 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   result.Public = descriptor.Public || false;
   result.Virtual = descriptor.Virtual || false;
   result.ReadOnly = descriptor.ReadOnly || false;
+
+  if (this.builderMode === "interface") {
+    // HACK: Interfaces have different default visibility than classes, so enforce that.
+    result.Public = descriptor.Public = true;
+    result.Static = descriptor.Static = false;
+  }
 
   result.Name = name;
   result.EscapedName = escapedName;
