@@ -1267,7 +1267,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "ToArray", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [T]), [], []),
     function () {
-      return Array.prototype.slice.call(this._items, 0, this._size);
+      var result = JSIL.Array.New(this.T, this._size);
+
+      for (var i = 0, l = this._size, items = this._items; i < l; i++) {
+        result[i] = items[i];
+      }
+
+      return result;
     }
   );
 
@@ -1367,7 +1373,7 @@ $jsilcore.$ArrayListExternals = function ($) {
   };
 
   $.Method({Static:false, Public:true }, "ToArray", 
-    new JSIL.MethodSignature(mscorlib.TypeRef("System.Array"), [mscorlib.TypeRef("System.Type")], []),
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Array"), [$.Object], []),
     toArrayImpl
   );
 };

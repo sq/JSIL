@@ -796,6 +796,7 @@ JSIL.RebindPropertyAfterPreInit = function (target, propertyName) {
 
 $jsilcore.SystemObjectInitialized = false;
 $jsilcore.RuntimeTypeInitialized = false;
+$jsilcore.TypedArrayToType = {};
 
 JSIL.AssemblyCollection = function (obj) {
   var makeGetter = function (assemblyName) {
@@ -1826,9 +1827,13 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
       } catch (exc) {
       }
 
-      if (typedArrayCtorExists)
+      if (typedArrayCtorExists) {
         $.SetValue("__TypedArray__", getFn());
-      else
+
+        var ctor = getFn();
+        var key = ctor.name || String(ctor);
+        $jsilcore.TypedArrayToType[key] = typeName;
+      } else
         $.SetValue("__TypedArray__", null);
 
     } else {
@@ -5298,6 +5303,8 @@ JSIL.GetType = function (value) {
       return tt;
     else if (value.GetType)
       return value.GetType();
+    else if (JSIL.IsTypedArray(value))
+      return JSIL.$GetTypeForTypedArray(value);
     else if (JSIL.IsArray(value))
       return System.Array.__Type__;
     else
@@ -5319,6 +5326,24 @@ JSIL.GetType = function (value) {
     return System.Object.__Type__;
 
   }
+};
+
+JSIL.$GetTypeForTypedArray = function (value) {
+  var proto = Object.getPrototypeOf(value);
+  var typeName = proto.constructor.name || String(proto.constructor);
+
+  var typeKey = $jsilcore.TypedArrayToType[typeName];
+
+  if (typeKey) {
+    // HACK: Construct an array type given the element type we know about for this typed array constructor.
+    var parsedTypeName = JSIL.ParseTypeName(typeKey);
+    var elementType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
+    var arrayType = System.Array.Of(elementType).__Type__;
+    return arrayType;
+  }
+
+  // Who knows what happened, just return System.Array.
+  return System.Array.__Type__;
 };
 
 // type may be a a type object, a type public interface, or an instance of a type.
