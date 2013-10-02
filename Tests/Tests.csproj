@@ -240,6 +240,7 @@
     <None Include="SpecialTestCases\VerbatimVariablesExistingArray.cs" />
     <None Include="SimpleTestCases\Issue271.cs" />
     <None Include="ReflectionTestCases\Issue274_1.cs" />
+    <None Include="ReflectionTestCases\Issue274_2.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

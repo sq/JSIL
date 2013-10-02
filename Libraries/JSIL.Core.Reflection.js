@@ -694,6 +694,29 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true , Virtual:true }, "Invoke", 
+    new JSIL.MethodSignature($.Object, [
+        $.Object, $jsilcore.TypeRef("System.Reflection.BindingFlags"), 
+        $jsilcore.TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
+        $jsilcore.TypeRef("System.Globalization.CultureInfo")
+      ], []), 
+    function Invoke (obj, invokeAttr, binder, parameters, culture) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "Invoke", 
+    new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Array", [$.Object])], []), 
+    function Invoke (obj, parameters) {
+      var impl = JSIL.$GetMethodImplementation(this);
+
+      if (typeof (impl) !== "function")
+        throw new System.Exception("Failed to find constructor");
+
+      return impl.apply(obj, parameters);
+    }
+  );
+
 });
 
 JSIL.ImplementExternals(
@@ -1036,5 +1059,5 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
 
       return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
     }
-  )
+  );
 });
