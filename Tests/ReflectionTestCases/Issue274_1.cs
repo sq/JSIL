@@ -1,8 +1,11 @@
 ﻿using System;
 
+public struct MyType {
+}
+
 public static class Program {
     public interface IMyInterface {
-        int GetValue ();
+        MyType GetValue ();
     }
 
     public static void Main () {

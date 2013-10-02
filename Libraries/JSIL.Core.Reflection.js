@@ -506,6 +506,8 @@ JSIL.ImplementExternals(
     $.Method({Static: false, Public: true}, "toString",
       new JSIL.MethodSignature($.String, [], []),
       function () {
+        // FIXME: Types are encoded as long names, not short names, which is incompatible with .NET
+        // i.e. 'System.Int32 Foo()' instead of 'Int32 Foo()'
         return this._data.signature.toString(this.Name);
       }
     );
