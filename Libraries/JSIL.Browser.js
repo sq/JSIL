@@ -340,6 +340,35 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
 };
 
 
+JSIL.Browser.TraceService = function (console) {
+  this.console = console;
+};
+
+JSIL.Browser.TraceService.prototype.write = function (text, category) {
+  if (this.console) {
+    if (arguments.length === 2)
+      this.console.log(category + ": " + text);
+    else if (arguments.length === 1)
+      this.console.log(text);
+  }
+};
+
+JSIL.Browser.TraceService.prototype.information = function (text) {
+  if (this.console)
+    this.console.log(text);
+};
+
+JSIL.Browser.TraceService.prototype.warning = function (text) {
+  if (this.console)
+    this.console.warn(text);
+};
+
+JSIL.Browser.TraceService.prototype.error = function (text) {
+  if (this.console)
+    this.console.error(text);
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -353,7 +382,8 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
     stderr: new JSIL.Browser.WarningService(logSvc),
     tickScheduler: new JSIL.Browser.TickSchedulerService(),
     window: new JSIL.Browser.WindowService(window),
-    history: new JSIL.Browser.HistoryService(window.history)
+    history: new JSIL.Browser.HistoryService(window.history),
+    trace: new JSIL.Browser.TraceService(window.console)
   });
 
   if (typeof (localStorage) !== "undefined")
