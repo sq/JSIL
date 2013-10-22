@@ -6099,6 +6099,9 @@ JSIL.SignatureBase.prototype.ResolveTypeReference = function (typeReference) {
 };
 
 JSIL.SignatureBase.prototype.LookupMethod = function (context, name) {
+  if (!context)
+    throw new Error("Attempting to invoke method named '" + name + "' on null/undefined object");
+
   var key = this.GetKey(name);
 
   var method = context[key];
@@ -6563,6 +6566,9 @@ JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisRe
 };
 
 JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
+  if (!thisReference)
+    throw new Error("Attempting to invoke interface method named '" + this.methodName + "' on null/undefined object");
+
   var result = thisReference[this.methodKey];
   var variantInvocationCandidates = null;
 
