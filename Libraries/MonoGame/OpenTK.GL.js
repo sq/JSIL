@@ -18,8 +18,21 @@ JSIL.GL.$state = {
 JSIL.GL.getContext = function () {
   if (!JSIL.GL.$context) {
     var canvas = JSIL.Host.getCanvas();
-    JSIL.GL.$context = canvas.getContext("webgl");
-    JSIL.GL.initializeContext(JSIL.GL.$context);
+    var context = canvas.getContext("webgl") || null;
+    
+    if (!context) {
+      context = canvas.getContext("experimental-webgl") || null;
+
+      if (context) {
+        JSIL.Host.warning("Your browser's WebGL support is marked as experimental. You may encounter problems.");
+      } else {
+        JSIL.Host.warning("An attempt was made to activate WebGL, but your browser does not support it.");
+        return null;
+      }
+    }
+
+    JSIL.GL.$context = context;
+    JSIL.GL.initializeContext(context);
   }
 
   return JSIL.GL.$context;
@@ -150,6 +163,9 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   $.Method({Static:true , Public:true }, "GetError", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.ErrorCode"), [], []), 
     function GetError () {
+      if (jsilConfig.suppressGLErrors === true)
+        return OpenTK.Graphics.OpenGL.ErrorCode.NoError;
+
       var ctx = JSIL.GL.getContext();
       if (!ctx)
         return OpenTK.Graphics.OpenGL.ErrorCode.InvalidOperation;
