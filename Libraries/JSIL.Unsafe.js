@@ -58,6 +58,20 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
+    function op_Inequality (lhs, rhs) {
+      if (lhs.pinnedPointer !== null) {
+        if (!rhs.pinnedPointer)
+          return true;
+
+        return !rhs.pinnedPointer.equals(lhs.pinnedPointer);
+      } else {
+        return System.Int64.op_Inequality(lhs.value, rhs.value);
+      }
+    }
+  );
+
   $.Method({Static:true , Public:true }, "op_Addition", 
     (new JSIL.MethodSignature(tIntPtr, [tIntPtr, $.Int32], [])), 
     function op_Addition (lhs, rhs) {
