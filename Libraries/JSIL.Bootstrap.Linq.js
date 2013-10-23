@@ -565,6 +565,13 @@ JSIL.ImplementExternals(
 
       return result;
     });
+
+    $.Method({Static:true , Public:true }, "AsEnumerable", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]), 
+      function AsEnumerable$b1 (TSource, source) {
+        return source;
+      }
+    );
   }
 );
 
