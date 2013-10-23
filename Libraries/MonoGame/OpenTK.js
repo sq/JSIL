@@ -24,14 +24,44 @@ JSIL.DeclareNamespace("OpenTK.Graphics");
 
 
 OpenTK.Service = function () {
+  this.keyboardDevices = [];
+  this.mouseDevices = [];
+};
+
+OpenTK.Service.prototype.UpdateDevices = function () {
+  var keyboardService = JSIL.Host.getService("keyboard");
+  var mouseService = JSIL.Host.getService("mouse");
+
+  for (var i = 0, l = this.keyboardDevices.length; i < l; i++) {
+    var device = this.keyboardDevices[i];
+
+    device.PriorState = device.CurrentState;
+    device.CurrentState = keyboardService.getHeldKeys();
+
+    device.PriorState.forEach(function (keyCode) {
+      if (device.CurrentState.indexOf(keyCode) < 0)
+        device.fireKeyEvent(keyCode, false);      
+    });
+
+    device.CurrentState.forEach(function (keyCode) {
+      if (device.PriorState.indexOf(keyCode) < 0)
+        device.fireKeyEvent(keyCode, true);      
+    });
+  }
+
+  for (var i = 0, l = this.mouseDevices.length; i < l; i++) {
+    var device = this.mouseDevices[i];
+  }
 };
 
 OpenTK.Service.prototype.StartRunLoop = function (platform) {
   var gameWindow = platform._window.window;
   var eventArgs = new OpenTK.FrameEventArgs();
 
-  var dispatcher = function () {
+  var dispatcher = (function () {
     try {
+      this.UpdateDevices();
+
       gameWindow.UpdateFrame(platform, eventArgs);
       gameWindow.RenderFrame(platform, eventArgs);
       
@@ -39,7 +69,7 @@ OpenTK.Service.prototype.StartRunLoop = function (platform) {
     } finally {
       platform.RaiseAsyncRunLoopEnded();
     }
-  };
+  }).bind(this);
 
   JSIL.Host.scheduleTick(dispatcher);
 };
@@ -1132,5 +1162,157 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
       throw new Error('Not implemented');
     }
   );
+
+});
+
+// 
+// KeyboardKeyEventArgs
+//
+
+JSIL.ImplementExternals("OpenTK.Input.KeyboardKeyEventArgs", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")], []), 
+    function _ctor (value) {
+      this.key = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Key", 
+    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Input.Key"), [], []), 
+    function get_Key () {
+      return this.key;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "set_Key", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Input.Key")], []), 
+    function set_Key (value) {
+      this.key = value;
+    }
+  );
+});
+
+//
+// KeyboardDevice
+//
+
+JSIL.ImplementExternals("OpenTK.Input.KeyboardDevice", function ($) {
+    var keyMap = Object.create(null);
+
+    // Define a mapping from browser keycode -> OpenTK Key enumeration.
+    // FIXME: Missing some keys.
+    // FIXME: Right ctrl/shift/alt not implemented.
+    $.RawMethod(true, ".cctor2", function () {
+      var Key = $mgasms[3].OpenTK.Input.Key;
+
+      keyMap[27] = Key.Escape;
+
+      for (var i = 0; i < 24; i++) {
+        keyMap[112 + i] = Key.$Cast(Key.F1.value + i);
+      }
+
+      for (var j = 0; j <= 9; j++) {
+        keyMap[48 + j] = Key.$Cast(Key.Number0.value + j);
+      }
+
+      for (var k = 0; k < 26; k++) {
+        keyMap[65 + k] = Key.$Cast(Key.A.value + k);
+      }
+
+      keyMap[9] = Key.Tab;
+      keyMap[20] = Key.CapsLock;
+      keyMap[17] = Key.ControlLeft;
+      keyMap[16] = Key.ShiftLeft;
+      keyMap[91] = Key.WinLeft;
+      keyMap[18] = Key.AltLeft;
+      keyMap[32] = Key.Space;
+      // keyMap[VirtualKeys.RMENU] = Key.AltRight;
+      keyMap[92] = Key.WinRight;
+      keyMap[93] = Key.Menu;
+      // keyMap[VirtualKeys.RCONTROL] = Key.ControlRight;
+      // keyMap[VirtualKeys.RSHIFT] = Key.ShiftRight;
+      keyMap[13] = Key.Enter;
+      keyMap[8] = Key.BackSpace;
+      keyMap[59] = Key.Semicolon;
+      keyMap[186] = Key.Semicolon;
+      keyMap[191] = Key.Slash;
+      keyMap[192] = Key.Tilde;
+      keyMap[219] = Key.BracketLeft;
+      keyMap[220] = Key.BackSlash;
+      keyMap[221] = Key.BracketRight;
+      keyMap[222] = Key.Quote;
+      keyMap[61] = Key.Plus;
+      keyMap[187] = Key.Plus;
+      keyMap[188] = Key.Comma;
+      keyMap[109] = Key.Minus;
+      keyMap[189] = Key.Minus;
+      keyMap[190] = Key.Period;
+      keyMap[36] = Key.Home;
+      keyMap[35] = Key.End;
+      keyMap[46] = Key.Delete;
+      keyMap[33] = Key.PageUp;
+      keyMap[34] = Key.PageDown;
+      keyMap[144] = Key.NumLock;
+      keyMap[45] = Key.Insert;
+
+      for (var l = 0; l <= 9; l++) {
+        keyMap[96 + l] = Key.$Cast(Key.Keypad0.value + l);
+      }
+
+      keyMap[46] = Key.KeypadDecimal;
+      keyMap[110] = Key.KeypadDecimal;
+      keyMap[107] = Key.KeypadAdd;
+      keyMap[109] = Key.KeypadSubtract;
+      keyMap[111] = Key.KeypadDivide;
+      keyMap[106] = Key.KeypadMultiply;
+      keyMap[38] = Key.Up;
+      keyMap[40] = Key.Down;
+      keyMap[37] = Key.Left;
+      keyMap[39] = Key.Right;
+    });
+
+    $.Method({Static:false, Public:false}, ".ctor", 
+      new JSIL.MethodSignature(null, [], []),
+      function ctor () {
+        this.PriorState = [];
+        this.CurrentState = [];
+
+        this.KeyDown = null;
+        this.KeyUp = null;
+
+        var svc = JSIL.Host.getService("opentk");
+        svc.keyboardDevices.push(this);
+      }
+    );
+
+    $.RawMethod(false, "fireKeyEvent",
+      function fireKeyEvent (nativeKeyCode, isDown) {
+        var mappedKeyCode = keyMap[nativeKeyCode] || null;
+
+        // FIXME: Produce a warning?
+        if (mappedKeyCode === null)
+          return;
+
+        var args = new OpenTK.Input.KeyboardKeyEventArgs(mappedKeyCode);
+
+        if (isDown && this.KeyDown)
+          this.KeyDown(this, args);
+        else if (!isDown && this.KeyUp)
+          this.KeyUp(this, args);          
+      }
+    );
+
+    $.MakeEventAccessors(
+      {Static: false, Public: true }, "KeyDown", 
+      $jsilcore.TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")])
+    );
+
+    $.MakeEventAccessors(
+      {Static: false, Public: true }, "KeyUp", 
+      $jsilcore.TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")])
+    );
+
 
 });
