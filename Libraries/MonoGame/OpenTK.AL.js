@@ -197,6 +197,7 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.Alc", function ($) {
         err: 0,
         src: [],
         buf: [],
+        originalBitCounts: [],
         interval: setInterval(
           function() { JSIL.AL.updateSources(context); }, JSIL.AL.QUEUE_INTERVAL
         )
@@ -255,59 +256,11 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.Alc", function ($) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "GetEnumValue", 
-    new JSIL.MethodSignature($.Int32, [$mgasms[2].TypeRef("System.IntPtr"), $.String], []), 
-    function GetEnumValue (device, enumname) {
-      throw new Error('Not implemented');
-    }
-  );
-
   $.Method({Static:true , Public:true }, "GetError", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.AlcError"), [$mgasms[2].TypeRef("System.IntPtr")], []), 
     function GetError (device) {
       // FIXME
       return OpenTK.Audio.OpenAL.AlcError.NoError;
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetInteger", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[2].TypeRef("System.IntPtr"), $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.AlcGetInteger"), 
-        $.Int32, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])
-      ], []), 
-    function GetInteger (device, param, size, /* ref */ data) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetInteger", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[2].TypeRef("System.IntPtr"), $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.AlcGetInteger"), 
-        $.Int32, $jsilcore.TypeRef("System.Array", [$.Int32])
-      ], []), 
-    function GetInteger (device, param, size, data) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetString", 
-    new JSIL.MethodSignature($.String, [$mgasms[2].TypeRef("System.IntPtr"), $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.AlcGetString")], []), 
-    function GetString (device, param) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetString", 
-    new JSIL.MethodSignature($mgasms[2].TypeRef("System.Collections.Generic.IList`1", [$.String]), [$mgasms[2].TypeRef("System.IntPtr"), $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.AlcGetStringList")], []), 
-    function GetString (device, param) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsExtensionPresent", 
-    new JSIL.MethodSignature($.Boolean, [$mgasms[2].TypeRef("System.IntPtr"), $.String], []), 
-    function IsExtensionPresent (device, extname) {
-      throw new Error('Not implemented');
     }
   );
 
@@ -335,20 +288,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.Alc", function ($) {
       return JSIL.AL.getDeviceToken();
     }
   );
-
-  $.Method({Static:true , Public:true }, "ProcessContext", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.ContextHandle")], []), 
-    function ProcessContext (context) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "SuspendContext", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.ContextHandle")], []), 
-    function SuspendContext (context) {
-      throw new Error('Not implemented');
-    }
-  );
 });
 
 //
@@ -357,20 +296,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.Alc", function ($) {
 
 JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
-
-  $.Method({Static:true , Public:true }, "BindBufferToSource", 
-    new JSIL.MethodSignature(null, [$.UInt32, $.UInt32], []), 
-    function BindBufferToSource (source, buffer) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "BindBufferToSource", 
-    new JSIL.MethodSignature(null, [$.Int32, $.Int32], []), 
-    function BindBufferToSource (source, buffer) {
-      throw new Error('Not implemented');
-    }
-  );
 
   var bufferData = function (buffer, format, data, size, freq) {
     var channels, bytes;
@@ -409,6 +334,8 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
       buf[i] = JSIL.AL.currentContext.buf[buffer - 1].getChannelData(i);
     }
 
+    JSIL.AL.currentContext.originalBitCounts[buffer - 1] = bytes * 8;
+
     var memoryRange = JSIL.GetMemoryRangeForBuffer(data.buffer);
     var nativeView = null;
 
@@ -436,28 +363,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
       }
     }
   };
-
-  $.Method({Static:true , Public:true }, "BufferData", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALFormat"), 
-        $mgasms[2].TypeRef("System.IntPtr"), $.Int32, 
-        $.Int32
-      ], []), 
-    function BufferData (bid, format, buffer, size, freq) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "BufferData", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALFormat"), 
-        $mgasms[2].TypeRef("System.IntPtr"), $.Int32, 
-        $.Int32
-      ], []), 
-    function BufferData (bid, format, buffer, size, freq) {
-      throw new Error('Not implemented');
-    }
-  );
 
   $.Method({Static:true , Public:true }, "BufferData", 
     new JSIL.MethodSignature(null, [
@@ -575,47 +480,10 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "Disable", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALCapability")], []), 
-    function Disable (capability) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  // FIXME
-  /*
-  $.Method({Static:true , Public:true }, "DistanceModel", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALDistanceModel")], []), 
-    function DistanceModel (distancemodel) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "DopplerFactor", 
-    new JSIL.MethodSignature(null, [$.Single], []), 
-    function DopplerFactor (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "DopplerVelocity", 
-    new JSIL.MethodSignature(null, [$.Single], []), 
-    function DopplerVelocity (value) {
-      throw new Error('Not implemented');
-    }
-  );
-  */
-
-  $.Method({Static:true , Public:true }, "Enable", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALCapability")], []), 
-    function Enable (capability) {
-      throw new Error('Not implemented');
-    }
-  );
-
   var genBuffers = function (count, result) {
     for (var i = 0; i < count; ++i) {
       JSIL.AL.currentContext.buf.push(null);
+      JSIL.AL.currentContext.originalBitCounts.push(0);
 
       result[i] = JSIL.AL.currentContext.buf.length;
     }
@@ -813,6 +681,15 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
 
     // FIXME: Handle AL_ enumerants
     switch (param.value) {
+      // bits
+      case 8194:
+        // HACK
+        return JSIL.AL.currentContext.originalBitCounts[buffer - 1] || 16;
+
+      // channels
+      case 8195:
+        return buffer.numberOfChannels;
+
       default:
         JSIL.Host.warning("alGetBuffer not implemented for param " + param.toString());
         return 0;
@@ -839,20 +716,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "GetDistanceModel", 
-    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALDistanceModel"), [], []), 
-    function GetDistanceModel () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetEnumValue", 
-    new JSIL.MethodSignature($.Int32, [$.String], []), 
-    function GetEnumValue (ename) {
-      throw new Error('Not implemented');
-    }
-  );
-
   $.Method({Static:true , Public:true }, "GetError", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALError"), [], []), 
     function GetError () {
@@ -863,156 +726,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
   $.Method({Static:true , Public:true }, "GetErrorString", 
     new JSIL.MethodSignature($.String, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALError")], []), 
     function GetErrorString (param) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetListener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerf"), $jsilcore.TypeRef("JSIL.Reference", [$.Single])], []), 
-    function GetListener (param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetListener", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListener3f"), $jsilcore.TypeRef("JSIL.Reference", [$.Single]), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single]), $jsilcore.TypeRef("JSIL.Reference", [$.Single])
-      ], []), 
-    function GetListener (param, /* ref */ value1, /* ref */ value2, /* ref */ value3) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetListener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListener3f"), $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])], []), 
-    function GetListener (param, /* ref */ values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetListener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerfv"), $jsilcore.TypeRef("JSIL.Pointer", [$.Single])], []), 
-    function GetListener (param, values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetListener", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerfv"), $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")]), 
-        $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])
-      ], []), 
-    function GetListener (param, /* ref */ at, /* ref */ up) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetProcAddress", 
-    new JSIL.MethodSignature($mgasms[2].TypeRef("System.IntPtr"), [$.String], []), 
-    function GetProcAddress (fname) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourcef"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourcef"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSource3f"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single]), $jsilcore.TypeRef("JSIL.Reference", [$.Single]), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value1, /* ref */ value2, /* ref */ value3) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSource3f"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single]), $jsilcore.TypeRef("JSIL.Reference", [$.Single]), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Single])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value1, /* ref */ value2, /* ref */ value3) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSource3f"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])
-      ], []), 
-    function GetSource (sid, param, /* ref */ values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSource3f"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])
-      ], []), 
-    function GetSource (sid, param, /* ref */ values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALGetSourcei"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Int32])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALGetSourcei"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Int32])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.UInt32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourceb"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSource", 
-    new JSIL.MethodSignature(null, [
-        $.Int32, $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourceb"), 
-        $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])
-      ], []), 
-    function GetSource (sid, param, /* ref */ value) {
       throw new Error('Not implemented');
     }
   );
@@ -1034,117 +747,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourceState"), [$.Int32], []), 
     function GetSourceState (sid) {
       return getSourceState(sid);
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSourceType", 
-    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourceType"), [$.UInt32], []), 
-    function GetSourceType (sid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "GetSourceType", 
-    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALSourceType"), [$.Int32], []), 
-    function GetSourceType (sid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "GetStringPrivate", 
-    new JSIL.MethodSignature($mgasms[2].TypeRef("System.IntPtr"), [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALGetString")], []), 
-    function GetStringPrivate (param) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsBuffer", 
-    new JSIL.MethodSignature($.Boolean, [$.UInt32], []), 
-    function IsBuffer (bid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsBuffer", 
-    new JSIL.MethodSignature($.Boolean, [$.Int32], []), 
-    function IsBuffer (bid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsEnabled", 
-    new JSIL.MethodSignature($.Boolean, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALCapability")], []), 
-    function IsEnabled (capability) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsExtensionPresent", 
-    new JSIL.MethodSignature($.Boolean, [$.String], []), 
-    function IsExtensionPresent (extname) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsSource", 
-    new JSIL.MethodSignature($.Boolean, [$.UInt32], []), 
-    function IsSource (sid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "IsSource", 
-    new JSIL.MethodSignature($.Boolean, [$.Int32], []), 
-    function IsSource (sid) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Listener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerf"), $.Single], []), 
-    function Listener (param, value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Listener", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListener3f"), $.Single, 
-        $.Single, $.Single
-      ], []), 
-    function Listener (param, value1, value2, value3) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Listener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListener3f"), $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])], []), 
-    function Listener (param, /* ref */ values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Listener", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerfv"), $jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Array", [$.Single])])], []), 
-    function Listener (param, /* ref */ values) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Listener", 
-    new JSIL.MethodSignature(null, [
-        $mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerfv"), $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")]), 
-        $jsilcore.TypeRef("JSIL.Reference", [$mgasms[3].TypeRef("OpenTK.Vector3")])
-      ], []), 
-    function Listener (param, /* ref */ at, /* ref */ up) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "ListenerPrivate", 
-    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Audio.OpenAL.ALListenerfv"), $jsilcore.TypeRef("JSIL.Pointer", [$.Single])], []), 
-    function ListenerPrivate (param, values) {
-      throw new Error('Not implemented');
     }
   );
 
@@ -1668,13 +1270,6 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
   $.Method({Static:true , Public:true }, "SourceUnqueueBuffers", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Int32]), [$.Int32, $.Int32], []), 
     function SourceUnqueueBuffers (sid, numEntries) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "SpeedOfSound", 
-    new JSIL.MethodSignature(null, [$.Single], []), 
-    function SpeedOfSound (value) {
       throw new Error('Not implemented');
     }
   );

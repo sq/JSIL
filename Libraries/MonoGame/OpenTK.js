@@ -28,7 +28,7 @@ OpenTK.Service = function () {
   this.mouseDevices = [];
 };
 
-OpenTK.Service.prototype.UpdateDevices = function () {
+OpenTK.Service.prototype.UpdateDevices = function OpenTK_UpdateDevices () {
   var keyboardService = JSIL.Host.getService("keyboard");
   var mouseService = JSIL.Host.getService("mouse");
 
@@ -58,7 +58,7 @@ OpenTK.Service.prototype.StartRunLoop = function (platform) {
   var gameWindow = platform._window.window;
   var eventArgs = new OpenTK.FrameEventArgs();
 
-  var dispatcher = (function () {
+  var dispatcher = (function OpenTK_Tick () {
     try {
       this.UpdateDevices();
 
