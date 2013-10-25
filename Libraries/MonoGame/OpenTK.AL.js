@@ -78,6 +78,14 @@ JSIL.AL.updateSource = function (src) {
   var currentTime = JSIL.AL.currentContext.ctx.currentTime;
   var startTime = src.bufferPosition;
 
+  // Apply any changes to the AL_PITCH parameter;
+  for (var i = 0; i < src.queue.length; i++) {
+    var entry = src.queue[i];
+
+    if (entry && entry.src)
+      entry.src.playbackRate.value = src.pitch;
+  }
+
   for (var i = src.buffersPlayed; i < src.queue.length; i++) {
     var entry = src.queue[i];
 
@@ -106,6 +114,7 @@ JSIL.AL.updateSource = function (src) {
 
       entry.src = JSIL.AL.currentContext.ctx.createBufferSource();
       entry.src.buffer = entry.buffer;
+      entry.src.playbackRate.value = src.pitch;
       entry.src.connect(src.gain);
       entry.src.start(startTime, offset);
     }
@@ -590,7 +599,8 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
         gain: gain,
         panner: null,
         buffersPlayed: 0,
-        bufferPosition: 0
+        bufferPosition: 0,
+        pitch: 1
       });
 
       result[i] = JSIL.AL.currentContext.src.length;
@@ -820,7 +830,7 @@ JSIL.ImplementExternals("OpenTK.Audio.OpenAL.AL", function ($interfaceBuilder) {
 
     switch (param.value) {
     case 0x1003 /* AL_PITCH */:
-      JSIL.Host.warning("alSourcef was called with 0x1003 /* AL_PITCH */, but Web Audio does not support static pitch changes");
+      src.pitch = value;
       break;
     case 0x100A /* AL_GAIN */:
       src.gain.gain.value = value;
