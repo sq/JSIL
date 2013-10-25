@@ -6,17 +6,17 @@ if (typeof (JSIL) === "undefined")
 var $jsilopentk = JSIL.DeclareAssembly("JSIL.OpenTK");
 
 var $mgasms = new JSIL.AssemblyCollection({
-    0: "Lidgren.Network, Version=2011.3.12.0, Culture=neutral, PublicKeyToken=null", 
-    1: "MonoGame.Framework, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null", 
-    2: "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    3: "OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4", 
-    4: "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    5: "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", 
-    6: "System.Runtime.Serialization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    7: "System.ServiceModel.Internals, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35", 
-    8: "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    9: "Tao.Sdl, Version=1.2.13.0, Culture=neutral, PublicKeyToken=9c7a200e36c0094e"
-  });
+  0: "Lidgren.Network, Version=2011.3.12.0, Culture=neutral, PublicKeyToken=null", 
+  1: "MonoGame.Framework, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null", 
+  2: "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  3: "OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4", 
+  4: "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  5: "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", 
+  6: "System.Runtime.Serialization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  7: "System.ServiceModel.Internals, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35", 
+  8: "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  9: "Tao.Sdl, Version=1.2.13.0, Culture=neutral, PublicKeyToken=9c7a200e36c0094e"
+});
 
 
 JSIL.DeclareNamespace("OpenTK");

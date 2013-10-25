@@ -340,6 +340,30 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
 };
 
 
+JSIL.Browser.NativeGamepadService = function (navigator) {
+  if (navigator.webkitGamepads || navigator.mozGamepads || navigator.gamepads) {
+    // use attribute
+
+    this.getter = function () {
+      return navigator.webkitGetGamepads || navigator.mozGetGamepads || navigator.getGamepads;
+    };
+  } else {
+    // use getter function
+
+    this.getter = navigator.webkitGetGamepads || navigator.mozGetGamepads || navigator.getGamepads || null;
+    if (this.getter)
+      this.getter = this.getter.bind(navigator);
+  }
+};
+
+JSIL.Browser.NativeGamepadService.prototype.getState = function () {
+  if (this.getter === null)
+    return null;
+
+  return this.getter();
+};
+
+
 JSIL.Browser.TraceService = function (console) {
   this.console = console;
 };
@@ -392,6 +416,7 @@ JSIL.Browser.TraceService.prototype.error = function (text) {
   if ((typeof (Gamepad) !== "undefined") && Gamepad.supported)
     JSIL.Host.registerService("gamepad", new JSIL.Browser.GamepadService(Gamepad));
 
+  JSIL.Host.registerService("nativeGamepad", new JSIL.Browser.NativeGamepadService(navigator));
 })();
 
 
