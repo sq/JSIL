@@ -2412,7 +2412,7 @@ JSIL.Dispose = function (disposable) {
   return true;
 };
 
-JSIL.GetEnumerator = function (enumerable, elementType) {
+JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
@@ -2429,11 +2429,11 @@ JSIL.GetEnumerator = function (enumerable, elementType) {
     result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else if (typeof (enumerable) === "string")
     result = JSIL.MakeArrayEnumerator(enumerable, elementType);
-  else if (tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
+  else if ((fallbackMethodInvoke !== true) && tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
     result = tIEnumerable$b1.GetEnumerator.Call(enumerable);
-  else if (tIEnumerable.$Is(enumerable))
+  else if ((fallbackMethodInvoke !== true) && tIEnumerable.$Is(enumerable))
     result = tIEnumerable.GetEnumerator.Call(enumerable);
-  else if (typeof (enumerable.GetEnumerator) === "function")
+  else if ((fallbackMethodInvoke !== true) && (typeof (enumerable.GetEnumerator) === "function"))
     // HACK: This is gross.
     result = enumerable.GetEnumerator();
   else
@@ -3090,6 +3090,47 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")], [])), 
     function Remove (item) {
       return this.$removeByKey(item);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.HashSet`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")]), [], []), 
+    function GetEnumerator () {
+      var dict = this._dict;
+
+      return new (JSIL.AbstractEnumerator.Of(this.T)) (
+        function getNext (result) {
+          var keys = this._state.keys;
+          var valueIndex = ++(this._state.valueIndex);
+          var bucketIndex = this._state.bucketIndex;
+
+          while ((bucketIndex >= 0) && (bucketIndex < keys.length)) {
+            var bucketKey = keys[this._state.bucketIndex];
+            var bucket = dict[bucketKey];
+
+            if ((valueIndex >= 0) && (valueIndex < bucket.length)) {
+              result.set(bucket[valueIndex].key);
+              return true;
+            } else {
+              bucketIndex = ++(this._state.bucketIndex);
+              valueIndex = 0;
+            }
+          }
+
+          return false;
+        },
+        function reset () {
+          this._state = {
+            current: JSIL.DefaultValue(this.T),
+            keys: Object.keys(dict),
+            bucketIndex: 0,
+            valueIndex: -1
+          };
+        },
+        function dispose () {
+          this._state = null;
+        }
+      );
     }
   );
 });

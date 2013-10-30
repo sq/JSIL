@@ -8170,10 +8170,12 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
 
 JSIL.$GetEnumeratorFallback = function () {
   if (typeof (this) === "string")
-    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__);
-  else
+    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
+  else if (JSIL.IsArray(this))
     // HACK: Too hard to detect the correct element type here.
-    return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__);
+    return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__, true);
+  else
+    throw new Error("Object of type '" + JSIL.GetType(this) + "' has no implementation of GetEnumerator");
 };
 
 // FIXME: This can probably be replaced with compiler and/or runtime intelligence 
