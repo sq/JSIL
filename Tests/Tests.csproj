@@ -243,6 +243,7 @@
     <None Include="ReflectionTestCases\Issue274_2.cs" />
     <None Include="SimpleTestCases\DiagnosticsTrace.cs" />
     <None Include="SimpleTestCases\HashSetToArray.cs" />
+    <None Include="SimpleTestCases\BitConverter.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

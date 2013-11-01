@@ -5981,6 +5981,9 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
     if (!descriptor.Target[descriptor.EscapedName])
       JSIL.SetValueProperty(descriptor.Target, descriptor.EscapedName, methodObject);
   } else {
+    if (typeof (fn) !== "function")
+      throw new Error("Method expected a function as 4th argument when defining '" + methodName + "'");
+
     var fullName = this.namespace + "." + methodName;
 
     JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
