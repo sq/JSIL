@@ -588,6 +588,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
     $, ["X", "Y"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2")
   );
 
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + "}";
+  });
+
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
@@ -640,6 +644,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   vectorUtil.makeOperators(
     $, ["X", "Y", "Z"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3")
   );
+
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Z:" + this.Z + "}";
+  });
 
   $.Method({
     Static: false,
@@ -1852,6 +1860,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
       this.Height = height | 0;
     }
   );
+
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Width:" + this.Width + " Height:" + this.Height + "}";
+  });
 
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
