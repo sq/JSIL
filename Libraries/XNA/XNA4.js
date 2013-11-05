@@ -696,6 +696,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
     $, ["X", "Y", "Z", "W"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4")
   );
 
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Z:" + this.Z + " W: " + this.W + "}";
+  });
+
   $.Method({
     Static: false,
     Public: true
