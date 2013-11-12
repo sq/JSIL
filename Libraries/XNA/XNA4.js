@@ -588,6 +588,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
     $, ["X", "Y"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2")
   );
 
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + "}";
+  });
+
+  $.Method({Static:true , Public:true }, "Clamp", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"),
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2")
+        ], [])), 
+    function Clamp (value, min, max) {
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = Microsoft.Xna.Framework.MathHelper.Clamp(value.X, min.X, max.X);
+      result.Y = Microsoft.Xna.Framework.MathHelper.Clamp(value.Y, min.Y, max.Y);
+      return result;
+    }
+  );
+
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
     function Transform (position, matrix) {
@@ -641,6 +659,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     $, ["X", "Y", "Z"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3")
   );
 
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Z:" + this.Z + "}";
+  });
+
   $.Method({
     Static: false,
     Public: true
@@ -663,6 +685,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     this.Y = +xy.Y;
     this.Z = +z;
   });
+
+  $.Method({Static:true , Public:true }, "Clamp", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"),
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), 
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3")
+        ], [])), 
+    function Clamp (value, min, max) {
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = Microsoft.Xna.Framework.MathHelper.Clamp(value.X, min.X, max.X);
+      result.Y = Microsoft.Xna.Framework.MathHelper.Clamp(value.Y, min.Y, max.Y);
+      result.Z = Microsoft.Xna.Framework.MathHelper.Clamp(value.Z, min.Z, max.Z);
+      return result;
+    }
+  );
 
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
@@ -687,6 +724,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   vectorUtil.makeOperators(
     $, ["X", "Y", "Z", "W"], $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4")
   );
+
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Z:" + this.Z + " W: " + this.W + "}";
+  });
 
   $.Method({
     Static: false,
@@ -721,6 +762,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector4_ctor (value) {
     this.X = this.Y = this.Z = this.W = +value;
   });
+
+  $.Method({Static:true , Public:true }, "Clamp", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"),
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), 
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4")
+        ], [])), 
+    function Clamp (value, min, max) {
+      var result = JSIL.CreateInstanceObject(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = Microsoft.Xna.Framework.MathHelper.Clamp(value.X, min.X, max.X);
+      result.Y = Microsoft.Xna.Framework.MathHelper.Clamp(value.Y, min.Y, max.Y);
+      result.Z = Microsoft.Xna.Framework.MathHelper.Clamp(value.Z, min.Z, max.Z);
+      result.W = Microsoft.Xna.Framework.MathHelper.Clamp(value.W, min.W, max.W);
+      return result;
+    }
+  );
 
   $.Method({Static:true , Public:true }, "Transform", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector4"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Matrix")], [])), 
@@ -1852,6 +1909,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
       this.Height = height | 0;
     }
   );
+
+  $.RawMethod(false, "toString", function () {
+     return "{X:" + this.X + " Y:" + this.Y + " Width:" + this.Width + " Height:" + this.Height + "}";
+  });
 
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
