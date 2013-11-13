@@ -8,6 +8,27 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class HoistAllocations : StaticAnalysisJSAstVisitor {
+        private struct VariableCacheKey {
+            public readonly JSExpression Array;
+            public readonly JSExpression Index;
+
+            public VariableCacheKey (JSExpression array, JSExpression index) {
+                Array = array;
+                Index = index;
+            }
+
+            public override int GetHashCode () {
+                return Array.GetHashCode() ^ Index.GetHashCode();
+            }
+
+            public override bool Equals (object obj) {                if (obj is VariableCacheKey)                    return Equals((VariableCacheKey)obj);                else                    return false;            }
+
+            public bool Equals (VariableCacheKey obj) {
+                return Object.Equals(Array, obj.Array) &&
+                    Object.Equals(Index, obj.Index);
+            }
+        }
+
         private struct Identifier {
             public readonly string Text;
             public readonly JSRawOutputIdentifier Object;
@@ -35,8 +56,11 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
-        private readonly List<PendingDeclaration> ToDeclare = new
-            List<PendingDeclaration>();
+        private readonly List<PendingDeclaration> ToDeclare = 
+            new List<PendingDeclaration>();
+
+        private readonly Dictionary<VariableCacheKey, JSRawOutputIdentifier> CachedHoistedVariables =
+            new Dictionary<VariableCacheKey, JSRawOutputIdentifier>();
 
         private FunctionAnalysis1stPass FirstPass = null;
 
@@ -162,6 +186,8 @@ namespace JSIL.Transforms {
                         hoistedVariable, new JSExpression[] { npaep.Array, npaep.Index }
                     ),
                     npaep.GetActualType(TypeSystem),
+                    npaep.Array,
+                    npaep.Index,
                     npaep.MakeUntargeted()
                 );
 
@@ -210,6 +236,26 @@ namespace JSIL.Transforms {
         ) {
             string id;
             var hoistedVariable = MakeTemporaryVariable(type, out id, defaultValue);
+            var replacement = update(hoistedVariable);
+            return replacement;
+        }
+
+        private JSExpression CreateHoistedVariable (
+            Func<JSRawOutputIdentifier, JSExpression> update,
+            TypeReference type,
+            JSExpression array,
+            JSExpression index,
+            JSExpression defaultValue = null
+        ) {
+            var key = new VariableCacheKey(array, index);
+            JSRawOutputIdentifier hoistedVariable;
+
+            if (!CachedHoistedVariables.TryGetValue(key, out hoistedVariable)) {
+                string id;
+                hoistedVariable = MakeTemporaryVariable(type, out id, defaultValue);
+                CachedHoistedVariables[key] = hoistedVariable;
+            }
+
             var replacement = update(hoistedVariable);
             return replacement;
         }

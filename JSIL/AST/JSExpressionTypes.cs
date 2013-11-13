@@ -2821,5 +2821,17 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return ElementType;
         }
+
+        public override bool IsConstant {
+            get {
+                return (
+                    (Array == null) ||
+                    Array.IsConstant
+                ) && (
+                    (Index == null) ||
+                    Index.IsConstant
+                );
+            }
+        }
     }
 }

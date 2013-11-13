@@ -1429,14 +1429,14 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
     );
   }      
 
-  var constructor = function ElementProxy (bytes, offset) {
+  var constructor = function ElementProxy (bytes, offsetInBytes) {
     this.$bytes = bytes;
-    this.$offset = offset | 0;
+    this.$offset = offsetInBytes | 0;
   };
 
-  elementProxyPrototype.retarget = function (array, offset) {
+  elementProxyPrototype.retarget = function (array, offsetInElements) {
     this.$bytes = array.bytes;
-    this.$offset = offset | 0;
+    this.$offset = ((offsetInElements | 0) * array.nativeSize) | 0;
     return this;
   };
 
