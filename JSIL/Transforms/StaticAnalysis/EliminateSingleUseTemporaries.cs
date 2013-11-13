@@ -91,8 +91,16 @@ namespace JSIL.Transforms {
                     (de != null) &&
                     IsEffectivelyConstant(target, de.Target) &&
                     IsEffectivelyConstant(target, de.Member)
-                )
+                ) {
+                    var pa = source as JSPropertyAccess;
+                    if (pa != null) {
+                        // Property accesses must not be treated as constant since they call functions
+                        // TODO: Use static analysis information to figure out whether the accessor is pure/has state dependencies
+                        return false;
+                    }
+
                     return true;
+                }
             }
 
             {
@@ -383,6 +391,7 @@ namespace JSIL.Transforms {
                 var affectedFields = new HashSet<FieldInfo>((from jsf in _affectedFields select jsf.Field));
                 _affectedFields = null;
 
+                if ((affectedFields.Count > 0) || (replacementField != null))
                 {
                     var firstAssignment = assignments.FirstOrDefault();
                     var lastAccess = accesses.LastOrDefault();
