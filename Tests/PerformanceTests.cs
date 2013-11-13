@@ -74,6 +74,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void FuseePackedVertices () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\FuseePackedVertices.cs"
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null, makeConfiguration: MakeUnsafeConfiguration));
+            }
+        }
+
+        [Test]
         public void OverloadedMethodCalls () {
             using (var test = MakeTest(
                 @"PerformanceTestCases\OverloadedMethodCalls.cs"

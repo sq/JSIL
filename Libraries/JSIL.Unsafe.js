@@ -1431,12 +1431,26 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
 
   var constructor = function ElementProxy (bytes, offset) {
     this.$bytes = bytes;
-    this.$offset = offset;
+    this.$offset = offset | 0;
+  };
+
+  elementProxyPrototype.retarget = function (array, offset) {
+    this.$bytes = array.bytes;
+    this.$offset = offset | 0;
+    return this;
   };
 
   constructor.prototype = elementProxyPrototype;
 
   return constructor;
+};
+
+JSIL.MakeElementProxy = function (typeObject) {
+  var constructor = JSIL.$GetStructElementProxyConstructor(typeObject);
+  if (!constructor)
+    throw new Error("No element proxy constructor available for type '" + typeObject.__FullName__ + "'");
+
+  return new constructor(null, -1);
 };
 
 JSIL.GetBackingTypedArray = function (array) {

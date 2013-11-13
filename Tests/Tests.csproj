@@ -245,6 +245,7 @@
     <None Include="SimpleTestCases\HashSetToArray.cs" />
     <None Include="SimpleTestCases\BitConverter.cs" />
     <None Include="SimpleTestCases\ArrayCopy5Arg.cs" />
+    <None Include="PerformanceTestCases\FuseePackedVertices.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

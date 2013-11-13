@@ -2787,4 +2787,39 @@ namespace JSIL.Ast {
             return PointerType;
         }
     }
+
+    public class JSNewPackedArrayElementProxy : JSExpression {
+        public readonly TypeReference ElementType;
+
+        public JSNewPackedArrayElementProxy (JSExpression array, JSExpression index, TypeReference elementType)
+            : base(array, index) {
+
+            ElementType = elementType;
+        }
+
+        public JSNewPackedArrayElementProxy (TypeReference elementType)
+            : base(null, null) {
+            ElementType = elementType;
+        }
+
+        public JSExpression Array {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Index {
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSNewPackedArrayElementProxy MakeUntargeted () {
+            return new JSNewPackedArrayElementProxy(ElementType);
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ElementType;
+        }
+    }
 }

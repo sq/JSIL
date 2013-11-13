@@ -150,24 +150,31 @@ namespace JSIL.Internal {
             }
         }
 
-        public static JSInvocationExpression GetItem (TypeReference targetType, TypeInfo targetTypeInfo, JSExpression target, JSExpression index, MethodTypeFactory methodTypes, bool proxy = false) {
+        public static JSExpression GetItem (TypeReference targetType, TypeInfo targetTypeInfo, JSExpression target, JSExpression index, MethodTypeFactory methodTypes, bool proxy = false) {
             var targetGit = (GenericInstanceType)targetType;
-            var getMethodName = proxy ? "GetItemProxy" : "get_Item";
+            var getMethodName = "get_Item";
             var getMethod = (JSIL.Internal.MethodInfo)targetTypeInfo.Members.First(
                 (kvp) => kvp.Key.Name == getMethodName
             ).Value;
+
+            if (proxy)
+                return new JSNewPackedArrayElementProxy(
+                    target, index, targetGit.GenericArguments[0]
+                );
 
             // We have to construct a custom reference to the method in order for ILSpy's
             //  SubstituteTypeArgs method not to explode later on
             var getMethodReference = CecilUtil.RebindMethod(getMethod.Member, targetGit, targetGit.GenericArguments[0]);
 
-            return JSInvocationExpression.InvokeMethod(
+            var result = JSInvocationExpression.InvokeMethod(
                 new JSType(targetType),
                 new JSMethod(getMethodReference, getMethod, methodTypes),
                 target,
                 new JSExpression[] { index },
                 constantIfArgumentsAre: proxy
             );
+
+            return result;
         }
     }
 }

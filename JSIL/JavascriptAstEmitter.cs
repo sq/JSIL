@@ -2067,5 +2067,21 @@ namespace JSIL {
             Visit(naer.Index);
             Output.RPar();
         }
+
+        public void VisitNode (JSNewPackedArrayElementProxy npaep) {
+            if (npaep.Array == null) {
+                Output.WriteRaw("JSIL.MakeElementProxy");
+                Output.LPar();
+                Output.Identifier(npaep.ElementType, ReferenceContext, false);
+                Output.WriteRaw(".__Type__");
+                Output.RPar();
+            } else {
+                Visit(npaep.Array);
+                Output.WriteRaw(".GetItemProxy");
+                Output.LPar();
+                Visit(npaep.Index);
+                Output.RPar();
+            }
+        }
     }
 }

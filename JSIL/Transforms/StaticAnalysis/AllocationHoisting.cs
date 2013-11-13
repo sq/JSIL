@@ -144,6 +144,34 @@ namespace JSIL.Transforms {
             VisitChildren(naer);
         }
 
+        public void VisitNode (JSNewPackedArrayElementProxy npaep) {
+            var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
+            var parentInvocation = Stack.OfType<JSInvocationExpression>().FirstOrDefault();
+            var doesValueEscape = (parentInvocation != null) && DoesValueEscapeFromInvocation(parentInvocation, npaep);
+
+            if (
+                isInsideLoop &&
+                (
+                    (parentInvocation == null) ||
+                    !doesValueEscape
+                )
+            ) {
+                var replacement = CreateHoistedVariable(
+                    (hoistedVariable) => JSInvocationExpression.InvokeMethod(
+                        new JSFakeMethod("retarget", hoistedVariable.GetActualType(TypeSystem), new TypeReference[] { TypeSystem.Object, TypeSystem.Int32 }, MethodTypes),
+                        hoistedVariable, new JSExpression[] { npaep.Array, npaep.Index }
+                    ),
+                    npaep.GetActualType(TypeSystem),
+                    npaep.MakeUntargeted()
+                );
+
+                ParentNode.ReplaceChild(npaep, replacement);
+                VisitReplacement(replacement);
+            }
+
+            VisitChildren(npaep);
+        }
+
         public void VisitNode (JSNewExpression newexp) {
             var type = newexp.GetActualType(TypeSystem);
 
