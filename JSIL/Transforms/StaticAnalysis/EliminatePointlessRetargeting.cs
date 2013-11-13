@@ -37,6 +37,9 @@ namespace JSIL.Transforms {
             }
         }
 
+        private readonly Stack<int> ScopeNodeIndices = new Stack<int>();
+        private readonly Stack<HashSet<RetargetKey>> SeenRetargetsInScope = new Stack<HashSet<RetargetKey>>();
+
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
@@ -53,6 +56,9 @@ namespace JSIL.Transforms {
             : base (member, functionSource) {
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
+
+            SeenRetargetsInScope.Push(new HashSet<RetargetKey>());
+            ScopeNodeIndices.Push(-1);
         }
 
         public void VisitNode (JSFunctionExpression fn) {
@@ -62,15 +68,49 @@ namespace JSIL.Transforms {
             VisitChildren(fn);
         }
 
+        public void VisitNode (JSBlockStatement block) {
+            SeenRetargetsInScope.Push(new HashSet<RetargetKey>());
+            ScopeNodeIndices.Push(NodeIndex);
+
+            VisitChildren(block);
+
+            SeenRetargetsInScope.Pop();
+            ScopeNodeIndices.Pop();
+        }
+
         public void VisitNode (JSRetargetPackedArrayElementProxy rpaep) {
-            Console.WriteLine("Is " + rpaep.ElementProxy + " constant in scope? " + IsEffectivelyConstantInScope(rpaep.ElementProxy, Stack.OfType<JSBlockStatement>().First()));
+            var key = new RetargetKey(
+                rpaep.ElementProxy, rpaep.Array, rpaep.Index
+            );
+            var sris = SeenRetargetsInScope.Peek();
+
+            if (!sris.Contains(key)) {
+                sris.Add(key);
+                VisitChildren(rpaep);
+                return;
+            }
+
+            var arrayIsConstant = IsConstantInCurrentScope(rpaep.Array);
+            var indexIsConstant = IsConstantInCurrentScope(rpaep.Index);
+
+            Console.WriteLine("Constant: array={0}, index={1}", arrayIsConstant, indexIsConstant);
 
             VisitChildren(rpaep);
         }
 
-        protected bool IsEffectivelyConstantInScope (JSExpression variable, JSBlockStatement scope) {
-            if (variable.IsConstant)
+        protected bool IsConstantInCurrentScope (JSExpression expression) {
+            if (expression.IsConstant)
                 return true;
+
+            var variable = expression as JSVariable;
+            if (variable != null) {
+                var scopeNodeIndices = NodeIndexStack.ToArray();
+                var relevantAssignments = FirstPass.Assignments
+                    .Where((a) => a.Target.Identifier == variable.Identifier)
+                    .ToArray();
+
+                Debugger.Break();
+            }
 
             return false;
         }

@@ -21,7 +21,12 @@ namespace JSIL.Transforms {
                 return Array.GetHashCode() ^ Index.GetHashCode();
             }
 
-            public override bool Equals (object obj) {                if (obj is VariableCacheKey)                    return Equals((VariableCacheKey)obj);                else                    return false;            }
+            public override bool Equals (object obj) {
+                if (obj is VariableCacheKey)
+                    return Equals((VariableCacheKey)obj);
+                else
+                    return false;
+            }
 
             public bool Equals (VariableCacheKey obj) {
                 return Object.Equals(Array, obj.Array) &&
@@ -96,6 +101,8 @@ namespace JSIL.Transforms {
 
                     fn.Body.Statements.Insert(i++, es);
                 }
+
+                InvalidateFirstPass();
             }
         }
 

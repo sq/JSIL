@@ -244,6 +244,8 @@ namespace JSIL.Internal {
 
             Enqueue(HoistAllocations);
 
+            Enqueue(EliminatePointlessRetargeting);
+
             // HACK: Something about nullables is broken so we have to do this twice. WTF?
             Enqueue(ReplaceMethodCalls);
         }
@@ -307,6 +309,7 @@ namespace JSIL.Internal {
 
         private bool SimplifyControlFlow () {
             if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true)) {
+                bool shouldInvalidate = false;
                 bool shouldCollapse = false;
                 bool shouldRun = true;
 
@@ -315,12 +318,16 @@ namespace JSIL.Internal {
                     cfs.Visit(Function);
                     shouldRun = cfs.MadeChanges;
                     shouldCollapse |= cfs.MadeChanges;
+                    shouldInvalidate |= cfs.MadeChanges;
                 }
 
                 // HACK: Control flow simplification probably generated lots of nulls, so let's collapse them.
                 // This makes it possible for loop simplification to work right later on.
                 if (shouldCollapse)
                     CollapseNulls();
+
+                if (shouldInvalidate)
+                    FunctionSource.InvalidateFirstPass(Identifier);
             }
 
             return true;
@@ -469,13 +476,18 @@ namespace JSIL.Internal {
                 new HoistAllocations(
                     Identifier, FunctionSource, TypeSystem, MethodTypes
                 ).Visit(Function);
-
-                new EliminatePointlessRetargeting(
-                    Identifier, FunctionSource, TypeSystem, MethodTypes
-                ).Visit(Function);
             }
 
             return true;
+        }
+
+        private bool EliminatePointlessRetargeting () {
+            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true))
+                return RunStaticAnalysisDependentTransform(new EliminatePointlessRetargeting(
+                    Identifier, FunctionSource, TypeSystem, MethodTypes
+                ));
+            else
+                return true;
         }
     }
 

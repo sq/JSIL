@@ -30,5 +30,9 @@ namespace JSIL.Ast {
         protected FunctionAnalysis2ndPass GetSecondPass (JSMethod method) {
             return FunctionSource.GetSecondPass(method, Member);
         }
+
+        protected void InvalidateFirstPass () {
+            FunctionSource.InvalidateFirstPass(Member);
+        }
     }
 }

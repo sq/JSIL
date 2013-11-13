@@ -32,7 +32,7 @@ namespace JSIL.Transforms {
 
             if (EnumeratorsToKill.Count > 0) {
                 // Rerun the static analyzer since we made major changes
-                FunctionSource.InvalidateFirstPass(Function.Method.QualifiedIdentifier);
+                InvalidateFirstPass();
                 FirstPass = GetFirstPass(Function.Method.QualifiedIdentifier);
 
                 // Scan to see if any of the enumerators we eliminated uses of are now
