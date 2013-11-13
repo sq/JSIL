@@ -344,7 +344,7 @@ namespace JSIL.Ast {
 
         public override bool IsConstant {
             get {
-                return true;
+                return false;
             }
         }
 

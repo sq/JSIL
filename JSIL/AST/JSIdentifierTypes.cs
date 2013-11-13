@@ -18,6 +18,12 @@ namespace JSIL.Ast {
         public override string Identifier {
             get { return Text; }
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSRawOutputIdentifier : JSIdentifier {
@@ -55,6 +61,12 @@ namespace JSIL.Ast {
         public JSNamespace (string name)
             : base(name) {
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSAssembly : JSIdentifier {
@@ -78,6 +90,12 @@ namespace JSIL.Ast {
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Assembly);
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSReflectionAssembly : JSAssembly {
@@ -87,6 +105,12 @@ namespace JSIL.Ast {
 
         public override JSLiteral ToLiteral () {
             throw new InvalidOperationException();
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
         }
     }
 
@@ -174,6 +198,13 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Field.ReturnType;
         }
+
+        // FIXME: Is this right?
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSProperty : JSIdentifier {
@@ -207,9 +238,10 @@ namespace JSIL.Ast {
                 return Property.ReturnType;
         }
 
+        // FIXME: Is this right?
         public override bool IsConstant {
             get {
-                return false;
+                return true;
             }
         }
     }
@@ -300,6 +332,12 @@ namespace JSIL.Ast {
 
             CachedGenericArguments = newCachedGenericArguments;
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     [JSAstIgnoreInheritedMembers]
@@ -350,6 +388,12 @@ namespace JSIL.Ast {
             return MethodTypes.Get(
                 ReturnType, ParameterTypes, typeSystem
             );
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
         }
     }
 

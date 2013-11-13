@@ -905,6 +905,12 @@ namespace JSIL.Ast {
                 return (JSProperty)Values[1];
             }
         }
+
+        public override bool IsConstant {
+            get {
+                return false;
+            }
+        }
     }
 
     public class JSIndexerExpression : JSExpression {
