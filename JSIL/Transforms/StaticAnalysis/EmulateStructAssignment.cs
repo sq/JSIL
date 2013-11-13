@@ -92,6 +92,8 @@ namespace JSIL.Transforms {
 
             var targetDot = target as JSDotExpressionBase;
 
+            // The assignment is performing a write into an element proxy, so a copy is unnecessary
+            //  because the element proxy immediately unpacks the value into the array.
             if ((targetDot != null) && PackedArrayUtil.IsElementProxy(targetDot.Target))
                 return true;
 
@@ -159,6 +161,13 @@ namespace JSIL.Transforms {
             if (IsImmutable(value)) {
                 return false;
             }
+
+            var valueDot = value as JSDotExpressionBase;
+
+            // The value is being read out of an element proxy, so no copy is necessary - the read unpacks the value
+            //  on demand from the packed array.
+            if ((valueDot != null) && PackedArrayUtil.IsElementProxy(valueDot.Target))
+                return false;
 
             var valueTypeInfo = TypeInfo.GetExisting(valueType);
             if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable)

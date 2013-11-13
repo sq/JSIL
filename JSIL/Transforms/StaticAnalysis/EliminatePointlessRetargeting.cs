@@ -8,7 +8,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminatePointlessRetargeting : StaticAnalysisJSAstVisitor {
-        public const bool Trace = true;
+        public const bool Trace = false;
 
         private struct RetargetKey {
             public readonly JSExpression Variable;
