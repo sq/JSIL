@@ -1162,12 +1162,12 @@ namespace JSIL {
                     output.CloseBracket();
 
                 } else {
-                    if (typedef.IsValueType)
-                        output.Identifier("JSIL.MakeStruct", EscapingMode.None);
-                    else
-                        output.Identifier("JSIL.MakeClass", EscapingMode.None);
+                    output.Identifier("JSIL.MakeType", EscapingMode.None);
 
                     output.LPar();
+                    output.OpenBrace();
+
+                    output.WriteRaw("BaseType: ");
 
                     if (baseClass == null) {
                         if (typedef.FullName != "System.Object") {
@@ -1195,17 +1195,46 @@ namespace JSIL {
                     }
 
                     output.Comma();
+                    output.NewLine();
 
+                    output.WriteRaw("Name: ");
                     output.Value(typeInfo.FullName);
                     output.Comma();
+                    output.NewLine();
+
+                    output.WriteRaw("IsPublic: ");
                     output.Value(typedef.IsPublic);
-
                     output.Comma();
-                    output.OpenBracket();
-                    if (typedef.HasGenericParameters)
-                        WriteGenericParameterNames(output, typedef.GenericParameters);
-                    output.CloseBracket();
+                    output.NewLine();
 
+                    output.WriteRaw("IsReferenceType: ");
+                    output.Value(!typedef.IsValueType);
+                    output.Comma();
+                    output.NewLine();
+
+                    if (typedef.HasGenericParameters) {
+                        output.WriteRaw("GenericParameters: ");
+                        output.OpenBracket();
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
+                        output.CloseBracket();
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    var constructors = typedef.Methods.Where((m) => m.IsConstructor).ToArray();
+                    if ((constructors.Length != 0) || typedef.IsValueType) {
+                        output.WriteRaw("MaximumConstructorArguments: ");
+
+                        if (typedef.IsValueType && (constructors.Length == 0))
+                            output.Value(0);
+                        else
+                            output.Value(constructors.Max((m) => m.Parameters.Count));
+
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    output.CloseBrace(false);
                 }
 
                 astEmitter.ReferenceContext.Push();

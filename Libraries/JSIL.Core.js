@@ -1813,7 +1813,16 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
 };
 
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName) {
-  JSIL.MakeType(baseType, typeName, false, true, [], function ($) {
+  var typeArgs = {
+    BaseType: baseType,
+    Name: typeName,
+    GenericArguments: [],
+    IsReferenceType: false,
+    IsPublic: true,
+    ConstructorAcceptsManyArguments: false
+  };
+
+  JSIL.MakeType(typeArgs, function ($) {
     $.SetValue("__IsNumeric__", true);
     $.SetValue("__IsIntegral__", isIntegral);
     $.SetValue("__IsNativeType__", true);
@@ -2223,7 +2232,7 @@ $jsilcore.$Of$NoInitialize = function () {
       throw new Error("Cannot construct an instance of an interface");
     };
   else
-    constructor = JSIL.MakeTypeConstructor(resultTypeObject);
+    constructor = JSIL.MakeTypeConstructor(resultTypeObject, typeObject.__MaxConstructorArguments__);
 
   resultTypeObject.__PublicInterface__ = result = constructor;
   resultTypeObject.__OpenType__ = typeObject;
@@ -4677,7 +4686,7 @@ JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
   privateName.setLazy(getter);
 };
 
-JSIL.MakeTypeConstructor = function (typeObject) {
+JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   var ctorClosure = {
     typeObject: typeObject,
     fieldInitializer: $jsilcore.FunctionNotInitialized,
@@ -4703,10 +4712,15 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     ctorBody.push("  return this._ctor();");
   }
 
-  for (var i = 1; i < 9; i++)
+  var numPositionalArguments = 8;
+
+  if (typeof (maxConstructorArguments) === "number")
+    numPositionalArguments = maxConstructorArguments | 0;
+
+  for (var i = 1; i < (numPositionalArguments + 1); i++)
     argumentNames.push("arg" + (i - 1));
 
-  for (var i = 1; i < 9; i++) {
+  for (var i = 1; i < (numPositionalArguments + 1); i++) {
     ctorBody.push("else if (argc === " + i + ")");
 
     var line = "  return this._ctor(";
@@ -4720,8 +4734,13 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     ctorBody.push(line);
   }
 
-  ctorBody.push("else");
-  ctorBody.push("  return this._ctor.apply(this, arguments);");
+  if (typeof (maxConstructorArguments) === "number") {
+    ctorBody.push("else");
+    ctorBody.push("  throw new Error('Too many arguments passed to constructor; expected 0 - " + maxConstructorArguments + ", got ' + arguments.length);");
+  } else {
+    ctorBody.push("else");
+    ctorBody.push("  return this._ctor.apply(this, arguments);");
+  }
 
   var result = JSIL.CreateNamedFunction(
     typeObject.__FullName__, argumentNames,
@@ -4732,7 +4751,14 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   return result;
 };
 
-JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
+JSIL.MakeType = function (typeArgs, initializer) {
+  var baseType = typeArgs.BaseType || null;
+  var fullName = typeArgs.Name || null;
+  var isReferenceType = Boolean(typeArgs.IsReferenceType);
+  var isPublic = Boolean(typeArgs.IsPublic);
+  var genericArguments = typeArgs.GenericParameters || [];
+  var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
+
   if (typeof (isPublic) === "undefined")
     JSIL.Host.abort(new Error("Must specify isPublic"));
 
@@ -4769,8 +4795,10 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
         throw new Error("Cannot create an instance of open generic type '" + fullName + "'");
       };
     } else {
-      staticClassObject = JSIL.MakeTypeConstructor(typeObject);
+      staticClassObject = JSIL.MakeTypeConstructor(typeObject, maxConstructorArguments);
     }
+
+    typeObject.__MaxConstructorArguments__ = maxConstructorArguments;
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
     JSIL.SetTypeId(typeObject, staticClassObject, typeId);
@@ -4906,11 +4934,29 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 };
 
 JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initializer) {
-  return JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments, initializer);
+  var typeArgs = {
+    BaseType: baseType,
+    Name: fullName,
+    GenericParameters: genericArguments,
+    IsReferenceType: true,
+    IsPublic: isPublic,
+    ConstructorAcceptsManyArguments: true
+  };
+
+  return JSIL.MakeType(typeArgs, initializer);
 };
 
 JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, initializer) {
-  return JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
+  var typeArgs = {
+    BaseType: baseType,
+    Name: fullName,
+    GenericParameters: genericArguments,
+    IsReferenceType: false,
+    IsPublic: isPublic,
+    ConstructorAcceptsManyArguments: true
+  };
+
+  return JSIL.MakeType(typeArgs, initializer);
 };
 
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer, interfaces) {
