@@ -254,6 +254,16 @@ namespace JSIL.Transforms {
             JSExpression index,
             JSExpression defaultValue = null
         ) {
+            Func<JSNode, bool> filter = (e) =>
+                    (e is JSUnaryOperatorExpression) ||
+                    (e is JSInvocationExpression);
+
+            // If the array or index expressions are not simple, don't attempt to cache.
+            if (index.AllChildrenRecursive.Any(filter) || array.AllChildrenRecursive.Any(filter))
+                return CreateHoistedVariable(
+                    update, type, defaultValue
+                );
+
             var key = new VariableCacheKey(array, index);
             JSRawOutputIdentifier hoistedVariable;
 

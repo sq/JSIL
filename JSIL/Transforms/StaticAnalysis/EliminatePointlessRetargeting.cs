@@ -8,6 +8,8 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminatePointlessRetargeting : StaticAnalysisJSAstVisitor {
+        public const bool Trace = true;
+
         private struct RetargetKey {
             public readonly JSExpression Variable;
             public readonly JSExpression Array;
@@ -38,7 +40,7 @@ namespace JSIL.Transforms {
         }
 
         private readonly Stack<int> ScopeNodeIndices = new Stack<int>();
-        private readonly Stack<HashSet<RetargetKey>> SeenRetargetsInScope = new Stack<HashSet<RetargetKey>>();
+        private readonly Stack<Dictionary<RetargetKey, int>> SeenRetargetsInScope = new Stack<Dictionary<RetargetKey, int>>();
 
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
@@ -57,7 +59,7 @@ namespace JSIL.Transforms {
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
 
-            SeenRetargetsInScope.Push(new HashSet<RetargetKey>());
+            SeenRetargetsInScope.Push(new Dictionary<RetargetKey, int>());
             ScopeNodeIndices.Push(-1);
         }
 
@@ -69,7 +71,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBlockStatement block) {
-            SeenRetargetsInScope.Push(new HashSet<RetargetKey>());
+            SeenRetargetsInScope.Push(new Dictionary<RetargetKey, int>());
             ScopeNodeIndices.Push(NodeIndex);
 
             VisitChildren(block);
@@ -83,33 +85,47 @@ namespace JSIL.Transforms {
                 rpaep.ElementProxy, rpaep.Array, rpaep.Index
             );
             var sris = SeenRetargetsInScope.Peek();
+            int cacheLastInitializedNodeIndex;
 
-            if (!sris.Contains(key)) {
-                sris.Add(key);
+            if (!sris.TryGetValue(key, out cacheLastInitializedNodeIndex)) {
+                sris.Add(key, NodeIndex);
                 VisitChildren(rpaep);
                 return;
             }
 
-            var arrayIsConstant = IsConstantInCurrentScope(rpaep.Array);
-            var indexIsConstant = IsConstantInCurrentScope(rpaep.Index);
+            var arrayIsConstant = IsCachedValueValidForGivenCacheKey(rpaep.Array, cacheLastInitializedNodeIndex);
+            var indexIsConstant = IsCachedValueValidForGivenCacheKey(rpaep.Index, cacheLastInitializedNodeIndex);
 
-            Console.WriteLine("Constant: array={0}, index={1}", arrayIsConstant, indexIsConstant);
+            if (arrayIsConstant && indexIsConstant) {
+                if (Trace)
+                    Console.WriteLine("Eliminating retarget for " + rpaep.ElementProxy + " because array and index are constant");
+
+                ParentNode.ReplaceChild(rpaep, rpaep.ElementProxy);
+                VisitReplacement(rpaep.ElementProxy);
+                return;
+            }
 
             VisitChildren(rpaep);
         }
 
-        protected bool IsConstantInCurrentScope (JSExpression expression) {
-            if (expression.IsConstant)
+        protected bool IsCachedValueValidForGivenCacheKey (JSExpression cacheKey, int cachedValueLastInitializationNodeIndex) {
+            if (cacheKey.IsConstant)
                 return true;
 
-            var variable = expression as JSVariable;
+            var variable = cacheKey as JSVariable;
             if (variable != null) {
-                var scopeNodeIndices = NodeIndexStack.ToArray();
+                var scopeNodeIndex = ScopeNodeIndices.Peek();
                 var relevantAssignments = FirstPass.Assignments
                     .Where((a) => a.Target.Identifier == variable.Identifier)
+                    .Where((a) => a.ParentNodeIndices.Contains(scopeNodeIndex))
                     .ToArray();
 
-                Debugger.Break();
+                // If the variable is never assigned to inside this scope, we can treat it as constant.
+                if (relevantAssignments.Length == 0)
+                    return true;
+                
+                // TODO: Take an input index (point of original creation) and determine whether
+                //  the variable has changed since the creation point, thus invalidating the cached value
             }
 
             return false;
