@@ -4680,6 +4680,14 @@ JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
 };
 
 JSIL.$MakeOptimizedNumericSwitch = function (output, variableName, cases, defaultCase) {
+  // TODO: For large numbers of cases, do a divide-and-conquer search to reduce number of comparisons, like:
+  // if (x > b) {
+  //   if (x === c) /* case c */ else if (x === d) /* case d */
+  // } else {
+  //   if (x === a) /* case a */ else if (x === b) /* case b */
+  // }
+  // /* default case */
+
   for (var i = 0, l = cases.length; i < l; i++) {
     var caseDesc = cases[i];
 

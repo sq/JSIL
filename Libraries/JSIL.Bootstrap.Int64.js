@@ -109,9 +109,9 @@ JSIL.Make64BitInt = function ($, _me) {
   });
 
   $.RawMethod(false, ".ctor", function xInt64__ctor (a, b, c) {
-    this.a = a;
-    this.b = b;
-    this.c = c;
+    this.a = a | 0;
+    this.b = b | 0;
+    this.c = c | 0;
   });
 
   $.Method({ Static: true, Public: true }, "Parse",
@@ -139,19 +139,19 @@ JSIL.Make64BitInt = function ($, _me) {
   $.Method({ Static: true, Public: true }, "op_Subtraction",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
         function xInt64_op_Subtraction (a, b, result) {
-          var ca = a.a - b.a;
+          var ca = (a.a - b.a) | 0;
           var ra = 0;
           if (ca < 0) {
             ca = 0x1000000 + ca;
             ra = -1;
           }
-          var cb = ra + a.b - b.b;
+          var cb = (ra + ((a.b - b.b) | 0)) | 0;
           var rb = 0;
           if (cb < 0) {
             cb = 0x1000000 + cb;
             rb = -1;
           }
-          var cc = rb + a.c - b.c;
+          var cc = (rb + ((a.c - b.c) | 0)) | 0;
           if (cc < 0) {
             cc = 0x10000 + cc;
           }
@@ -342,7 +342,12 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     $.Method({ Static: true, Public: true }, "op_Division",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function UInt64_op_Division (n, d, result) {
-      if (me().op_Equality(d, minValue()))
+      var equality = me().op_Equality,
+        greaterThanOrEqual = me().op_GreaterThanOrEqual,
+        subtraction = me().op_Subtraction,
+        leftShift = me().op_LeftShift;
+
+      if (equality(d, minValue()))
           throw new Error("System.DivideByZeroException");
       
       var q = result;
@@ -355,7 +360,7 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
       r.a = r.b = r.c = 0;
 
       for (var i = 63; i >= 0; i--) {
-          r = me().op_LeftShift(r, 1, r);
+          r = leftShift(r, 1, r);
 
           var li = i < 24 ? 0 :
                     i < 48 ? 1 : 2;
@@ -365,8 +370,8 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
 
           r.a |= (n[lk] & (1 << s)) >>> s;
 
-          if (me().op_GreaterThanOrEqual(r, d)) {
-              r = me().op_Subtraction(r, d, r);
+          if (greaterThanOrEqual(r, d)) {
+              r = subtraction(r, d, r);
               q[lk] |= 1 << s;
           }
       }
@@ -378,14 +383,19 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     $.Method({ Static: true, Public: true }, "op_Modulus",
     (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
     function UInt64_op_Modulus (n, d, result) {
-        if (me().op_Equality(d, minValue()))
+        var equality = me().op_Equality,
+          greaterThanOrEqual = me().op_GreaterThanOrEqual,
+          subtraction = me().op_Subtraction,
+          leftShift = me().op_LeftShift;
+
+        if (equality(d, minValue()))
             throw new Error("System.DivideByZeroException");
 
         var r = result || ctor(0, 0, 0);
         r.a = r.b = r.c = 0;
 
         for (var i = 63; i >= 0; i--) {
-            r = me().op_LeftShift(r, 1, r);
+            r = leftShift(r, 1, r);
 
             var li = i < 24 ? 0 :
                       i < 48 ? 1 : 2;
@@ -395,8 +405,8 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
 
             r.a |= (n[lk] & (1 << s)) >>> s;
 
-            if (me().op_Equality(r, d) || me().op_GreaterThan(r, d)) {
-                r = me().op_Subtraction(r, d, r);
+            if (greaterThanOrEqual(r, d)) {
+                r = subtraction(r, d, r);
             }
         }
 
