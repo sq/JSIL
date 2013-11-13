@@ -116,7 +116,7 @@ $jsilxna.textCache = new $jsilxna.ImageCache(
 );
 
 
-$jsilxna.get2DContext = function (canvas, enableWebGL) {
+$jsilxna.get2DContext = function get2DContext (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
@@ -2794,10 +2794,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       destArray[d] = sourceArray[s];
   };
 
-  $.RawMethod(false, "$getDataInternal", function (T, rect, data, startIndex, elementCount) {
+  $.RawMethod(false, "$getDataInternal", function $getDataInternal (T, rect, data, startIndex, elementCount) {
     this.$makeMutable();
 
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
+
     var imageData;
 
     if (rect) {
@@ -2808,7 +2811,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     // FIXME: Need to repremultiply the image bytes... yuck.
 
-    switch (T.toString()) {
+    switch (T.__FullName__) {
       case "System.Byte":
         var target = JSIL.IsPackedArray(data) ? data.bytes : data;
         fastArrayCopy(target, startIndex, imageData.data, 0, elementCount);
@@ -2820,14 +2823,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
 
       default:
-        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+        throw new System.Exception("Pixel format '" + T.__FullName__ + "' not implemented");
     }    
   });
 
   $.RawMethod(false, "$setDataInternal", function $setDataInternal (T, rect, data, startIndex, elementCount) {
     var bytes = null;
 
-    switch (T.toString()) {
+    switch (T.__FullName__) {
       case "System.Byte":
         if (JSIL.IsPackedArray(data)) {
           bytes = data.bytes;
@@ -2845,7 +2848,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
 
       default:
-        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+        throw new System.Exception("Pixel format '" + T.__FullName__ + "' not implemented");
     }
 
     this.$makeMutable();
@@ -2862,7 +2865,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       shouldUnpremultiply, false
     );
 
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
+
     ctx.globalCompositeOperation = "copy";
 
     if (rect)
@@ -2915,7 +2921,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     bytes, startIndex, elementCount, 
     unpremultiply, swapRedAndBlue
   ) {
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
 
     var decoder = $jsilxna.ImageFormats[this.format.name];
     if (decoder !== null) {
@@ -3387,7 +3395,7 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   return result;
 };
 
-$jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
+$jsilxna.UnpackColorsToColorBytesRGBA = function UnpackColorsToColorBytesRGBA (colors, startIndex, elementCount) {
   if (JSIL.IsPackedArray(colors)) {
     var offsetBytes = (startIndex * 4) | 0;
     var countBytes = (elementCount * 4) | 0;
@@ -3417,7 +3425,7 @@ $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCou
   return result;
 };
 
-$jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceArray, sourceOffset, count) {
+$jsilxna.PackColorsFromColorBytesRGBA = function PackColorsFromColorBytesRGBA (destArray, destOffset, sourceArray, sourceOffset, count) {
   if (JSIL.IsPackedArray(destArray)) {
     var rawArray = destArray.bytes;
     var offsetBytes = (destOffset * 4) | 0;
