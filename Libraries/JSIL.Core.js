@@ -3527,24 +3527,17 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
     var body = [];
     var maxArgumentCount = 0;
 
-    body.push("  var argc = arguments.length;");
+    body.push("  var argc = arguments.length | 0;");
 
-    var isFirst = true;
     var methodKey = null;
 
     var gProto = Object.getPrototypeOf(g);
 
+    var cases = [];
+
     for (var k in g.dict) {
       if (!g.dict.hasOwnProperty(k))
         continue;
-
-      var line = "";
-
-      if (isFirst) {
-        line += "  if (argc === ";
-      } else {
-        line += "  } else if (argc === ";
-      }
 
       var argumentCount = parseInt(k) + offset;
       if (isNaN(argumentCount))
@@ -3552,9 +3545,9 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
 
       maxArgumentCount = Math.max(maxArgumentCount, argumentCount);
 
-      line += (argumentCount) + ") {";
-
-      body.push(line);
+      var caseDesc = {
+        key: argumentCount
+      };
 
       var group = g.dict[k];
 
@@ -3579,14 +3572,14 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
 
       invocation += ");";
 
-      body.push(invocation);
-
-      isFirst = false;
+      caseDesc.code = invocation;
+      cases.push(caseDesc);
     }
 
-    body.push("  }");
-    body.push("  ");
-    body.push("  throw new Error('No overload of ' + name + ' can accept ' + (argc - offset) + ' argument(s).')");
+    JSIL.$MakeOptimizedNumericSwitch(
+      body, "argc", cases,
+      "  throw new Error('No overload of ' + name + ' can accept ' + (argc - offset) + ' argument(s).')"
+    );
 
     var bodyText = body.join("\r\n");
 
@@ -4686,6 +4679,26 @@ JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
   privateName.setLazy(getter);
 };
 
+JSIL.$MakeOptimizedNumericSwitch = function (output, variableName, cases, defaultCase) {
+  for (var i = 0, l = cases.length; i < l; i++) {
+    var caseDesc = cases[i];
+
+    if (i === 0)
+      output.push("if (" + variableName + " === " + caseDesc.key + ") {");
+    else
+      output.push("} else if (" + variableName + " === " + caseDesc.key + ") {");
+
+    output.push("  " + caseDesc.code);
+  }
+
+  if (defaultCase) {
+    output.push("} else {");
+    output.push("  " + defaultCase);
+  }
+
+  output.push("}");
+};
+
 JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   var ctorClosure = {
     typeObject: typeObject,
@@ -4700,46 +4713,50 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   ctorBody.push("  fieldInitializer = JSIL.GetFieldInitializer(typeObject);");
   ctorBody.push("  isTypeInitialized = true;");
   ctorBody.push("}");
+  ctorBody.push("");
 
   ctorBody.push("fieldInitializer(this);");
+  ctorBody.push("");
 
-  ctorBody.push("var argc = arguments.length;");
-  ctorBody.push("if (argc === 0)");
-
-  if (typeObject.__IsStruct__) {
-    ctorBody.push("  return;");
-  } else {
-    ctorBody.push("  return this._ctor();");
-  }
-
-  var numPositionalArguments = 8;
-
-  if (typeof (maxConstructorArguments) === "number")
-    numPositionalArguments = maxConstructorArguments | 0;
-
-  for (var i = 1; i < (numPositionalArguments + 1); i++)
-    argumentNames.push("arg" + (i - 1));
-
-  for (var i = 1; i < (numPositionalArguments + 1); i++) {
-    ctorBody.push("else if (argc === " + i + ")");
-
-    var line = "  return this._ctor(";
-    for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
-      line += argumentNames[j];
-      if (j == jMax - 1)
-        line += ");";
-      else
-        line += ", ";
-    }
-    ctorBody.push(line);
-  }
-
+  // Only generate specialized dispatch if we know the number of arguments.
   if (typeof (maxConstructorArguments) === "number") {
-    ctorBody.push("else");
-    ctorBody.push("  throw new Error('Too many arguments passed to constructor; expected 0 - " + maxConstructorArguments + ", got ' + arguments.length);");
-  } else {
+    var numPositionalArguments = maxConstructorArguments | 0;
+
+    ctorBody.push("var argc = arguments.length | 0;");
+
+    var cases = [
+      { key: 0, code: (typeObject.__IsStruct__ ? "return;" : "return this._ctor();") }
+    ];
+
+    for (var i = 1; i < (numPositionalArguments + 1); i++)
+      argumentNames.push("arg" + (i - 1));
+
+    for (var i = 1; i < (numPositionalArguments + 1); i++) {
+      var line = "return this._ctor(";
+      for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
+        line += argumentNames[j];
+        if (j == jMax - 1)
+          line += ");";
+        else
+          line += ", ";
+      }
+      
+      cases.push({ key: i, code: line });
+    }
+
+    JSIL.$MakeOptimizedNumericSwitch(
+      ctorBody, "argc", cases,
+      "throw new Error('Too many arguments passed to constructor; expected 0 - " + maxConstructorArguments + ", got ' + arguments.length);"      
+    );
+
+  } else if (typeObject.__IsStruct__) {
+    ctorBody.push("if (arguments.length === 0)");
+    ctorBody.push("  return;");
     ctorBody.push("else");
     ctorBody.push("  return this._ctor.apply(this, arguments);");
+
+  } else {
+    ctorBody.push("return this._ctor.apply(this, arguments);");
   }
 
   var result = JSIL.CreateNamedFunction(
