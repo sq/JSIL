@@ -21,19 +21,33 @@ namespace JSIL.Ast {
     }
 
     public class JSRawOutputIdentifier : JSIdentifier {
-        public readonly Action<JavascriptFormatter> Emitter;
+        public readonly string Format;
+        public readonly object[] Arguments;
 
-        public JSRawOutputIdentifier (Action<JavascriptFormatter> emitter, TypeReference type)
+        public JSRawOutputIdentifier (TypeReference type, string format, params object[] arguments)
             : base(type) {
 
             if (type == null)
                 throw new ArgumentNullException("type");
 
-            Emitter = emitter;
+            Format = format;
+            Arguments = arguments;
         }
 
         public override string Identifier {
-            get { return Emitter.ToString(); }
+            get {
+                if ((Arguments != null) && (Arguments.Length > 0))
+                    return String.Format(Format, Arguments);
+                else
+                    return Format;
+            }
+        }
+
+        public void WriteTo (JavascriptFormatter output) {
+            if ((Arguments != null) && (Arguments.Length > 0))
+                output.WriteRaw(Format, Arguments);
+            else
+                output.WriteRaw(Format);
         }
     }
 

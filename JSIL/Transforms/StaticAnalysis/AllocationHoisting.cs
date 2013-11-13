@@ -104,7 +104,7 @@ namespace JSIL.Transforms {
 
             string _id = id = String.Format("$temp{0:X2}", Function.TemporaryVariableCount++);
             result = new Identifier(_id, new JSRawOutputIdentifier(
-                (jsf) => jsf.WriteRaw(_id), type
+                type, _id
             ));
             ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));
 
@@ -181,10 +181,10 @@ namespace JSIL.Transforms {
                 )
             ) {
                 var replacement = CreateHoistedVariable(
-                    (hoistedVariable) => JSInvocationExpression.InvokeMethod(
-                        new JSFakeMethod("retarget", hoistedVariable.GetActualType(TypeSystem), new TypeReference[] { TypeSystem.Object, TypeSystem.Int32 }, MethodTypes),
-                        hoistedVariable, new JSExpression[] { npaep.Array, npaep.Index }
-                    ),
+                    (hoistedVariable) => 
+                        new JSRetargetPackedArrayElementProxy(
+                            hoistedVariable, npaep.Array, npaep.Index
+                        ),
                     npaep.GetActualType(TypeSystem),
                     npaep.Array,
                     npaep.Index,

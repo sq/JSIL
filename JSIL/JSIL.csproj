@@ -97,6 +97,7 @@
     <Compile Include="Transforms\CacheSignatures.cs" />
     <Compile Include="Transforms\IntroducePackedArrays.cs" />
     <Compile Include="Transforms\StaticAnalysis\AllocationHoisting.cs" />
+    <Compile Include="Transforms\StaticAnalysis\EliminatePointlessRetargeting.cs" />
     <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
     <Compile Include="Transforms\DecomposeMutationOperators.cs" />
     <Compile Include="Transforms\FixupStructConstructorInvocations.cs" />

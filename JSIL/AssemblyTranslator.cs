@@ -1130,7 +1130,7 @@ namespace JSIL {
                     output.NewLine();
                 }
 
-                Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
+                JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
                 var cachers = EmitTypeMethodExpressions(
                     context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
@@ -1279,7 +1279,7 @@ namespace JSIL {
 
         protected void TranslatePrimitiveDefinition (
             DecompilerContext context, JavascriptFormatter output,
-            TypeDefinition typedef, bool stubbed, Action<JavascriptFormatter> dollar
+            TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
         ) {
             bool isIntegral = false;
             bool isNumeric = false;
@@ -1313,7 +1313,7 @@ namespace JSIL {
             }
 
             var setValue = (Action<string, bool>)((name, value) => {
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 output.Identifier("SetValue", EscapingMode.None);
                 output.LPar();
@@ -1331,7 +1331,7 @@ namespace JSIL {
         protected Tuple<TypeExpressionCacher, SignatureCacher> EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
-            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
+            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
             var typeCacher = new TypeExpressionCacher(typedef);
@@ -1436,7 +1436,7 @@ namespace JSIL {
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
+            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
             if (typeCacher == null)
@@ -1509,7 +1509,7 @@ namespace JSIL {
             if (!makingSkeletons && (interfaces.Length > 0)) {
                 output.NewLine();
 
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
@@ -1805,13 +1805,13 @@ namespace JSIL {
 
         protected JSExpression TranslateField (
             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
-            bool cctorContext, Action<JavascriptFormatter> dollar, JSStringIdentifier fieldSelfIdentifier
+            bool cctorContext, JSRawOutputIdentifier dollar, JSStringIdentifier fieldSelfIdentifier
         ) {
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
 
-            var dollarIdentifier = new JSRawOutputIdentifier(dollar, field.DeclaringType);
+            var dollarIdentifier = new JSRawOutputIdentifier(field.DeclaringType, dollar.Format, dollar.Arguments);
             var descriptor = new JSMemberDescriptor(
                 field.IsPublic, field.IsStatic, isReadonly: field.IsInitOnly
             );
@@ -1936,7 +1936,7 @@ namespace JSIL {
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar,
+            MethodDefinition cctor, bool stubbed, JSRawOutputIdentifier dollar,
             TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
         ) {
             if (typeCacher == null)
@@ -2368,7 +2368,7 @@ namespace JSIL {
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher,
+            JSRawOutputIdentifier dollar, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher,
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
@@ -2461,7 +2461,7 @@ namespace JSIL {
         protected void DefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null
+            JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -2521,7 +2521,7 @@ namespace JSIL {
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
             try {
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
                     output.Identifier("ExternalMethod", EscapingMode.None);
@@ -2626,7 +2626,7 @@ namespace JSIL {
         protected void TranslateProperty (
             DecompilerContext context, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
-            PropertyDefinition property, Action<JavascriptFormatter> dollar
+            PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
             var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored)
@@ -2636,7 +2636,7 @@ namespace JSIL {
 
             output.NewLine();
 
-            dollar(output);
+            dollar.WriteTo(output);
             output.Dot();
 
             if (propertyInfo.IsExternal)

@@ -465,10 +465,15 @@ namespace JSIL.Internal {
         }
 
         private bool HoistAllocations () {
-            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true))
+            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true)) {
                 new HoistAllocations(
                     Identifier, FunctionSource, TypeSystem, MethodTypes
                 ).Visit(Function);
+
+                new EliminatePointlessRetargeting(
+                    Identifier, FunctionSource, TypeSystem, MethodTypes
+                ).Visit(Function);
+            }
 
             return true;
         }

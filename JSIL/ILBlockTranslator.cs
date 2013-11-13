@@ -638,7 +638,7 @@ namespace JSIL {
                     var shouldThrow = arguments[1];
 
                     return JSInvocationExpression.InvokeStatic(
-                        new JSRawOutputIdentifier((f) => f.WriteRaw("JSIL.Host.getService"), TypeSystem.Object),
+                        new JSRawOutputIdentifier(TypeSystem.Object, "JSIL.Host.getService"),
                         new[] { 
                             serviceName, 
                             new JSUnaryOperatorExpression(JSOperator.LogicalNot, shouldThrow, TypeSystem.Boolean) 
@@ -1599,9 +1599,9 @@ namespace JSIL {
         }
 
         private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type) {
-            var id = String.Format("$temp{0:X2}", TemporaryVariableCount++);
             return new JSRawOutputIdentifier(
-                (jsf) => jsf.WriteRaw(id), type
+                type,
+                "$temp{0:X2}", TemporaryVariableCount++
             );
         }
 

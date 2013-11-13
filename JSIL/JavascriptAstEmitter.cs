@@ -654,7 +654,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSRawOutputIdentifier identifier) {
-            identifier.Emitter(Output);
+            identifier.WriteTo(Output);
         }
 
         public void VisitNode (JSCharLiteral ch) {
@@ -2082,6 +2082,16 @@ namespace JSIL {
                 Visit(npaep.Index);
                 Output.RPar();
             }
+        }
+
+        public void VisitNode (JSRetargetPackedArrayElementProxy rpaep) {
+            Visit(rpaep.ElementProxy);
+            Output.WriteRaw(".retarget");
+            Output.LPar();
+            Visit(rpaep.Array);
+            Output.Comma();
+            Visit(rpaep.Index);
+            Output.RPar();
         }
     }
 }

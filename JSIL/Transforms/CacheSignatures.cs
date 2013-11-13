@@ -194,13 +194,13 @@ namespace JSIL.Transforms {
         private JSRawOutputIdentifier MakeRawOutputIdentifierForIndex (TypeReference type, int index, bool isSignature) {
             if (isSignature)
                 return new JSRawOutputIdentifier(
-                    (f) => f.WriteRaw("$s{0:X2}", index),
-                    type
+                    type,
+                    "$s{0:X2}", index
                 );
             else
                 return new JSRawOutputIdentifier(
-                    (f) => f.WriteRaw("$im{0:X2}", index),
-                    type
+                    type,
+                    "$im{0:X2}", index
                 );
         }
 

@@ -2834,4 +2834,29 @@ namespace JSIL.Ast {
             }
         }
     }
+
+    public class JSRetargetPackedArrayElementProxy : JSExpression {
+        public JSRetargetPackedArrayElementProxy (
+            JSExpression elementProxy, JSExpression array, JSExpression index
+        ) : base(elementProxy, array, index) {
+        }
+
+        public JSExpression ElementProxy {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Array {
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSExpression Index {
+            get {
+                return Values[2];
+            }
+        }
+    }
 }
