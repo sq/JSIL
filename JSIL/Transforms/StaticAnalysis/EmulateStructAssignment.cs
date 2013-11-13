@@ -76,11 +76,26 @@ namespace JSIL.Transforms {
             if (IsImmutable(target))
                 return false;
 
+            while (target is JSReferenceExpression)
+                target = ((JSReferenceExpression)target).Referent;
+
             var variable = target as JSVariable;
             if (variable != null)
                 return SecondPass.ModifiedVariables.Contains(variable.Name);
 
             return true;
+        }
+
+        protected bool IsCopyAlwaysUnnecessaryForAssignmentTarget (JSExpression target) {
+            while (target is JSReferenceExpression)
+                target = ((JSReferenceExpression)target).Referent;
+
+            var targetDot = target as JSDotExpressionBase;
+
+            if ((targetDot != null) && PackedArrayUtil.IsElementProxy(targetDot.Target))
+                return true;
+
+            return false;
         }
 
         protected bool IsCopyNeeded (JSExpression value, out GenericParameter relevantParameter) {
@@ -373,7 +388,12 @@ namespace JSIL.Transforms {
                 var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
-                if (rightVarsModified || IsCopyNeededForAssignmentTarget(boe.Left) || rightVarsAreReferences) {
+                if (
+                    (rightVarsModified || 
+                    IsCopyNeededForAssignmentTarget(boe.Left) || 
+                    rightVarsAreReferences) &&
+                    !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
+                ) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 

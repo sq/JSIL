@@ -176,5 +176,10 @@ namespace JSIL.Internal {
 
             return result;
         }
+
+        public static bool IsElementProxy (JSExpression expression) {
+            return expression.SelfAndChildrenRecursive.OfType<JSNewPackedArrayElementProxy>().Any() ||
+                expression.SelfAndChildrenRecursive.OfType<JSRetargetPackedArrayElementProxy>().Any();
+        }
     }
 }
