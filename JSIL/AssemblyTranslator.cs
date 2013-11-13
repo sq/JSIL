@@ -1099,12 +1099,24 @@ namespace JSIL {
                     output.NewLine();
                     return;
                 } else if (typedef.IsInterface) {
+                    output.Comment("interface {0}", typedef.FullName);
+                    output.NewLine();
+                    output.NewLine();
+
                     TranslateInterface(context, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
+                    output.Comment("enum {0}", typedef.FullName);
+                    output.NewLine();
+                    output.NewLine();
+
                     TranslateEnum(context, output, typedef);
                     return;
                 } else if (typeInfo.IsDelegate) {
+                    output.Comment("delegate {0}", typedef.FullName);
+                    output.NewLine();
+                    output.NewLine();
+
                     TranslateDelegate(context, output, typedef, typeInfo);
                     return;
                 }
@@ -1125,6 +1137,10 @@ namespace JSIL {
                 }
 
                 if (!makingSkeletons) {
+                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", typedef.FullName);
+                    output.NewLine();
+                    output.NewLine();
+
                     output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
                     output.Indent();
                     output.NewLine();

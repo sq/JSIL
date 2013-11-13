@@ -258,8 +258,8 @@ namespace JSIL.Tests {
                 "A B RenamedEnum"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MyEnum"));
-            Assert.IsTrue(generatedJs.Contains("RenamedEnum"));
+            Assert.IsFalse(generatedJs.Contains("\"MyEnum\""));
+            Assert.IsTrue(generatedJs.Contains("\"RenamedEnum\""));
         }
 
         [Test]
