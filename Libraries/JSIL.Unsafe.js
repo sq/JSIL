@@ -1214,8 +1214,13 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
 };
 
 JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeToken) {
-  body.push("for (var i = 0; i < " + sizeToken + "; ++i)");
-  body.push("  " + destToken + "[i] = " + sourceToken + "[(" + sourceOffsetToken + " + i) | 0];");
+  if (false) {
+    // This is what you're SUPPOSED to do, but it's incredibly slow in both V8 and SpiderMonkey. Blah.
+    body.push(destToken + ".set(new Uint8Array(" + sourceToken + ".buffer, " + sourceOffsetToken + ", " + sizeToken + "), 0);");
+  } else {
+    body.push("for (var sourceEnd = (" + sourceOffsetToken + " + " + sizeToken + ") | 0, i = " + sourceOffsetToken + ", j = 0; i < sourceEnd; i++, j++)");
+    body.push("  " + destToken + "[j] = " + sourceToken + "[i];");
+  }
 };
 
 JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
@@ -1239,6 +1244,9 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     return lhs.offsetBytes - rhs.offsetBytes;
   });
 
+  body.push("offset = offset | 0;");
+
+  // FIXME: For structs only containing other structs, this is hopelessly wasteful
   if (!marshal)
     JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", "offset", nativeSize);
 
@@ -1254,12 +1262,12 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
     if (fieldConstructor) {
       var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
-      closure["scratch" + field.name] = fieldArray;
+      closure["scratch_" + field.name] = fieldArray;
 
       if (marshal) {
-        body.push("scratch" + field.name + "[0] = " + structArgName + "." + field.name + ";");
+        body.push("scratch_" + field.name + "[0] = " + structArgName + "." + field.name + ";");
       } else {
-        body.push(structArgName + "." + field.name + " = scratch" + field.name + "[0];");
+        body.push(structArgName + "." + field.name + " = scratch_" + field.name + "[0];");
       }
     } else if (field.type.__IsStruct__) {
       // Try to marshal the struct
@@ -1304,13 +1312,13 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
   // FIXME: Should this be creating named closures for better performance? I'm not sure.
   if (nativeView) {
     var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
-    var fieldOffset = field.offsetBytes;
-    var fieldSize = field.sizeBytes;
+    var fieldOffset = field.offsetBytes | 0;
+    var fieldSize = field.sizeBytes | 0;
 
     if (makeSetter) {
       return function FieldSetter (value) {
         var bytes = this.$bytes;
-        var offset = (this.$offset + fieldOffset) | 0;
+        var offset = ((this.$offset | 0) + fieldOffset) | 0;
 
         nativeView[0] = value;
         bytes.set(clampedByteView, offset);
@@ -1318,9 +1326,9 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
     } else {
       return function FieldGetter () {
         var bytes = this.$bytes;
-        var offset = (this.$offset + fieldOffset) | 0;
+        var offset = ((this.$offset | 0) + fieldOffset) | 0;
 
-        for (var i = 0; i < fieldSize; i++)
+        for (var i = 0; i < fieldSize; i = (i + 1) | 0)
           clampedByteView[i] = bytes[(offset + i) | 0];
 
         return nativeView[0];
@@ -1333,7 +1341,7 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
 
       return function StructFieldSetter (value) {
         var bytes = this.$bytes;
-        var offset = (this.$offset + fieldOffset) | 0;
+        var offset = ((this.$offset | 0) + fieldOffset) | 0;
 
         marshaller(value, bytes, offset);
       };
@@ -1342,7 +1350,7 @@ JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) 
 
       return function StructFieldGetter () {
         var bytes = this.$bytes;
-        var offset = (this.$offset + fieldOffset) | 0;
+        var offset = ((this.$offset | 0) + fieldOffset) | 0;
 
         return new unmarshalConstructor(bytes, offset);
       };
