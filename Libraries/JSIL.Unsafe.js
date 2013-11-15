@@ -1213,7 +1213,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   );
 };
 
-JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeToken, someRandomTypedArray) {
+JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeToken) {
   body.push("for (var i = 0; i < " + sizeToken + "; ++i)");
   body.push("  " + destToken + "[i] = " + sourceToken + "[(" + sourceOffsetToken + " + i) | 0];");
 };
@@ -1222,11 +1222,11 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject);
   var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject);
-  var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
-  var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
-  var clampedByteView = null;
+  var scratchBuffer = new ArrayBuffer(nativeSize);
+  var scratchRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
 
-  var localOffsetDeclared = false;
+  closure.scratchBytes = new Uint8Array(scratchBuffer, 0, nativeSize);
+
   var structArgName = isConstructor ? "this" : "struct";
 
   /*
@@ -1239,6 +1239,9 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     return lhs.offsetBytes - rhs.offsetBytes;
   });
 
+  if (!marshal)
+    JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", "offset", nativeSize);
+
   for (var i = 0, l = sortedFields.length; i < l; i++) {
     var field = sortedFields[i];
     var offset = field.offsetBytes;
@@ -1247,90 +1250,48 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     if (size <= 0)
       throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
 
-    var nativeView = marshallingScratchBuffer.getView(field.type, false);
-    var nativeViewKey, byteViewKey;
+    var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
 
-    if (nativeView) {
-      // Attempt to reuse existing views so the closure contains less references
-      var foundExistingViews = false;
-      for (var j = 0; j < i; j++) {
-        nativeViewKey = "nativebuf" + j;
-        byteViewKey = "bytebuf" + j;
-
-        if (closure[nativeViewKey] === nativeView) {
-          foundExistingViews = true;
-          break;
-        }
-      }
-
-      if (!foundExistingViews) {
-        nativeViewKey = "nativebuf" + i;
-        byteViewKey = "bytebuf" + i;
-      }
-    }
-
-    if (!nativeView) {
-      if (field.type.__IsStruct__) {
-        // Try to marshal the struct
-
-        var funcKey = "struct" + i;
-
-        if (marshal)
-          closure[funcKey] = JSIL.$GetStructMarshaller(field.type);
-        else {
-          if (isConstructor)
-            closure[funcKey] = JSIL.$GetStructUnmarshalConstructor(field.type);
-          else
-            closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
-        }
-
-        if (!marshal && isConstructor)
-          body.push(
-            structArgName + "." + field.name + " = new " + funcKey + "(bytes, (offset + " + offset + ") | 0);"
-          );
-        else
-          body.push(
-            funcKey + "(" + structArgName + "." + field.name + ", bytes, (offset + " + offset + ") | 0);"
-          );
-      } else {
-        throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
-      }
-    } else {
-      // Marshal native types
-
-      // The typed array spec is awful
-      var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
-
-      closure[nativeViewKey] = nativeView;
-      closure[byteViewKey] = clampedByteView;
+    if (fieldConstructor) {
+      var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
+      closure["scratch" + field.name] = fieldArray;
 
       if (marshal) {
-        if (nativeView.BYTES_PER_ELEMENT === 1) {
-          // HACK: Fast path for single byte fields.
-          body.push("bytes[(offset + " + offset + ") | 0] = " + structArgName + "." + field.name + ";");
-        } else {
-          body.push(nativeViewKey + "[0] = " + structArgName + "." + field.name + ";");
-          body.push("bytes.set(" + byteViewKey + ", (offset + " + offset + ") | 0);");
-        }
+        body.push("scratch" + field.name + "[0] = " + structArgName + "." + field.name + ";");
       } else {
-        // Really, really awful
-        var setLocalOffset = "localOffset = (offset + " + offset + ") | 0;";
-        if (!localOffsetDeclared) {
-          localOffsetDeclared = true;
-          setLocalOffset = "var " + setLocalOffset;
-        }
-
-        body.push(setLocalOffset);
-        if (nativeView.BYTES_PER_ELEMENT === 1) {
-          // HACK: Fast path for single byte fields.
-          body.push(structArgName + "." + field.name + " = " + "bytes[localOffset];");
-        } else {
-          JSIL.$EmitMemcpyIntrinsic(body, byteViewKey, "bytes", "localOffset", size, viewBytes);
-          body.push(structArgName + "." + field.name + " = " + nativeViewKey + "[0];");
-        }
+        body.push(structArgName + "." + field.name + " = scratch" + field.name + "[0];");
       }
+    } else if (field.type.__IsStruct__) {
+      // Try to marshal the struct
+
+      var funcKey = "struct" + i;
+
+      if (marshal)
+        closure[funcKey] = JSIL.$GetStructMarshaller(field.type);
+      else {
+        if (isConstructor)
+          closure[funcKey] = JSIL.$GetStructUnmarshalConstructor(field.type);
+        else
+          closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
+      }
+
+      if (!marshal && isConstructor)
+        body.push(
+          structArgName + "." + field.name + " = new " + funcKey + "(scratchBytes, " + offset + ");"
+        );
+      else
+        body.push(
+          funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
+        );
+    } else {
+      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
     }
   }
+
+  if (marshal)
+    body.push(
+      "bytes.set(scratchBytes, offset);"
+    );
 };
 
 JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
