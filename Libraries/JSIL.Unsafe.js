@@ -1349,52 +1349,65 @@ JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
   };
 };
 
-JSIL.$MakeFieldMarshaller = function (field, viewBytes, nativeView, makeSetter) {
-  // FIXME: Should this be creating named closures for better performance? I'm not sure.
+JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, makeSetter) {
   if (nativeView) {
     var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
     var fieldOffset = field.offsetBytes | 0;
     var fieldSize = field.sizeBytes | 0;
 
+    var adapterSource = [
+      "var bytes = this.$bytes;",
+      "var offset = ((this.$offset | 0) + " + fieldOffset + ") | 0;"
+    ];
+
     if (makeSetter) {
-      return function FieldSetter (value) {
-        var bytes = this.$bytes;
-        var offset = ((this.$offset | 0) + fieldOffset) | 0;
+      adapterSource.push("nativeView[0] = value;");
+      adapterSource.push("bytes.set(clampedByteView, offset);");
 
-        nativeView[0] = value;
-        bytes.set(clampedByteView, offset);
-      };
+      return JSIL.CreateNamedFunction(
+        typeObject.__FullName__ + ".Proxy.set_" + field.name, ["value"],
+        adapterSource.join("\n"),
+        { nativeView: nativeView, clampedByteView: clampedByteView }
+      );
     } else {
-      return function FieldGetter () {
-        var bytes = this.$bytes;
-        var offset = ((this.$offset | 0) + fieldOffset) | 0;
+      JSIL.$EmitMemcpyIntrinsic(
+        adapterSource, "clampedByteView", "bytes", "offset", fieldSize
+      );
 
-        for (var i = 0; i < fieldSize; i = (i + 1) | 0)
-          clampedByteView[i] = bytes[(offset + i) | 0];
+      adapterSource.push("return nativeView[0];");
 
-        return nativeView[0];
-      };
+      return JSIL.CreateNamedFunction(
+        typeObject.__FullName__ + ".Proxy.get_" + field.name, ["value"],
+        adapterSource.join("\n"),
+        { nativeView: nativeView, clampedByteView: clampedByteView }
+      );
     }
 
   } else if (field.type.__IsStruct__) {  
+    var adapterSource = [
+      "var offset = ((this.$offset | 0) + " + fieldOffset + ") | 0;"
+    ];
+
     if (makeSetter) {
       var marshaller = JSIL.$GetStructMarshaller(field.type);
 
-      return function StructFieldSetter (value) {
-        var bytes = this.$bytes;
-        var offset = ((this.$offset | 0) + fieldOffset) | 0;
+      adapterSource.push("marshaller(value, this.$bytes, offset);");
 
-        marshaller(value, bytes, offset);
-      };
+      return JSIL.CreateNamedFunction(
+        typeObject.__FullName__ + ".Proxy.set_" + field.name, ["value"],
+        adapterSource.join("\n"),
+        { marshaller: marshaller }
+      );
     } else {
       var unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(field.type);
 
-      return function StructFieldGetter () {
-        var bytes = this.$bytes;
-        var offset = ((this.$offset | 0) + fieldOffset) | 0;
+      adapterSource.push("return new unmarshalConstructor(this.$bytes, offset);");
 
-        return new unmarshalConstructor(bytes, offset);
-      };
+      return JSIL.CreateNamedFunction(
+        typeObject.__FullName__ + ".Proxy.get_" + field.name, ["value"],
+        adapterSource.join("\n"),
+        { unmarshalConstructor: unmarshalConstructor }
+      );
     }
     
   } else {
@@ -1423,8 +1436,8 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
       getter = setter = JSIL.$MakeUnmarshallableFieldAccessor(field.name);
     } else {
       var nativeView = marshallingScratchBuffer.getView(field.type, false);
-      getter = JSIL.$MakeFieldMarshaller(field, viewBytes, nativeView, false);
-      setter = JSIL.$MakeFieldMarshaller(field, viewBytes, nativeView, true);
+      getter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, false);
+      setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true);
     }
 
     // FIXME: The use of get/set functions here will really degrade performance in some JS engines
