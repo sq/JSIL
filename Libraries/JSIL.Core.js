@@ -3144,11 +3144,25 @@ JSIL.$MakeCopierCore = function (typeObject, context, body, resultVar) {
       var field = fields[i];
       var isStruct = field.isStruct;
 
-      var line = "  " + JSIL.FormatMemberAccess(resultVar, field.name) + " = " + JSIL.FormatMemberAccess("source", field.name);
+      // Type-hint the assignments
+      var isInteger = field.type.__IsNumeric__ && field.type.__IsIntegral__;
+      var isFloat = field.type.__IsNumeric__ && !field.type.__IsIntegral__;
+
+      var line = "  " + JSIL.FormatMemberAccess(resultVar, field.name) + " = ";
+
+      if (isFloat)
+        line += "+(";
+
+      line += JSIL.FormatMemberAccess("source", field.name);
+
       if (isStruct)
         line += ".MemberwiseClone();"
+      else if (isInteger)
+        line += " | 0;";
+      else if (isFloat)
+        line += ");";
       else
-        line += ";";
+        line += ";"
 
       body.push(line);
     }

@@ -1232,6 +1232,8 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
   closure.scratchBytes = new Uint8Array(scratchBuffer, 0, nativeSize);
 
+  var numMarshallers = 0;
+
   var structArgName = isConstructor ? "this" : "struct";
 
   /*
@@ -1244,9 +1246,58 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     return lhs.offsetBytes - rhs.offsetBytes;
   });
 
+  // Where possible, reuse the same closure variable for marshaller functions.
+  function makeStructMarshallerAndGetKey (type) {
+    var funcValue = null;
+
+    if (marshal)
+      funcValue = JSIL.$GetStructMarshaller(field.type);
+    else if (isConstructor)
+      funcValue = JSIL.$GetStructUnmarshalConstructor(field.type);
+    else
+      funcValue = JSIL.$GetStructUnmarshaller(field.type);
+
+    if (!funcValue)
+      return null;
+
+    for (var k in closure)
+      if (closure[k] === funcValue)
+        return k;
+
+    var funcKey = "struct" + (numMarshallers++);
+    closure[funcKey] = funcValue;
+    return funcKey;
+  }
+
   body.push("offset = offset | 0;");
 
-  // FIXME: For structs only containing other structs, this is hopelessly wasteful
+  // For structs only containing other structs we can generate a specialized marshalling function
+  //  that avoids some extra work
+  if (sortedFields.every(function (field) {
+    return field.type.__IsStruct__;
+  })) {
+    // FIXME: duplication
+
+    for (var i = 0, l = sortedFields.length; i < l; i++) {
+      var field = sortedFields[i];
+      var offset = field.offsetBytes;
+
+      // Try to marshal the struct
+      var funcKey = makeStructMarshallerAndGetKey(field.type);
+
+      if (!marshal && isConstructor)
+        body.push(
+          structArgName + "." + field.name + " = new " + funcKey + "(bytes, (offset + " + offset + ") | 0);"
+        );
+      else
+        body.push(
+          funcKey + "(" + structArgName + "." + field.name + ", bytes, (offset + " + offset + ") | 0);"
+        );
+    }
+    
+    return;
+  }
+
   if (!marshal)
     JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", "offset", nativeSize);
 
@@ -1271,17 +1322,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       }
     } else if (field.type.__IsStruct__) {
       // Try to marshal the struct
-
-      var funcKey = "struct" + i;
-
-      if (marshal)
-        closure[funcKey] = JSIL.$GetStructMarshaller(field.type);
-      else {
-        if (isConstructor)
-          closure[funcKey] = JSIL.$GetStructUnmarshalConstructor(field.type);
-        else
-          closure[funcKey] = JSIL.$GetStructUnmarshaller(field.type);
-      }
+      var funcKey = makeStructMarshallerAndGetKey(field.type);
 
       if (!marshal && isConstructor)
         body.push(
