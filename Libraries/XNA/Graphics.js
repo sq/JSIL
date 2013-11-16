@@ -1028,7 +1028,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device.$UpdateViewport();
 
       if (this.saveCount !== this.restoreCount)
-        throw new Error("Unbalanced canvas save/restore");
+        JSIL.RuntimeError("Unbalanced canvas save/restore");
     }
   );
 

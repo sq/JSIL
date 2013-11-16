@@ -1524,7 +1524,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
     if (frameDelay <= 0)
-      throw new Error("Game frame duration must be a positive, nonzero number!");
+      JSIL.RuntimeError("Game frame duration must be a positive, nonzero number!");
 
     if (this._lastFrame === 0) {
       var elapsed = frameDelay;

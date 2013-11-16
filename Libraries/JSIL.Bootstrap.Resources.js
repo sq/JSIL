@@ -145,7 +145,7 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
 
   $.RawMethod(false, "$get", function (key, ignoreCase) {
     if (ignoreCase)
-      throw new Error("Case insensitive resource fetches not implemented");
+      JSIL.RuntimeError("Case insensitive resource fetches not implemented");
 
     var result = this._resources[key];
     if (!result)

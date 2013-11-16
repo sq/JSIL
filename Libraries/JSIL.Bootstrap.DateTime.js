@@ -169,7 +169,7 @@ JSIL.ImplementExternals(
     $.RawMethod(false, "$fromTicks", 
       function fromTicks (ticks) {
         if (typeof (ticks) === "number")
-          throw new Error("Argument must be an Int64");
+          JSIL.RuntimeError("Argument must be an Int64");
 
         this._ticks = ticks.MemberwiseClone();
       }
@@ -179,7 +179,7 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature(null, [$.Int64], [])), 
       function _ctor (ticks) {
         if (typeof (ticks) === "number")
-          throw new Error("Argument must be an Int64");
+          JSIL.RuntimeError("Argument must be an Int64");
         
         this._ticks = ticks.MemberwiseClone();
       }

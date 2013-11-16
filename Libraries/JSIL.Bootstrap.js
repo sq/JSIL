@@ -703,7 +703,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
       this._array = array;
       this._length = array.length;
       if (typeof (startPosition) !== "number")
-        throw new Error("ArrayEnumerator ctor second argument must be number");
+        JSIL.RuntimeError("ArrayEnumerator ctor second argument must be number");
 
       this._index = startPosition;
     }
@@ -713,7 +713,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
     new JSIL.MethodSignature(null, []),
     function () {
       if (this._array === null)
-        throw new Error("Enumerator is disposed or not initialized");
+        JSIL.RuntimeError("Enumerator is disposed or not initialized");
 
       this._index = -1;
     }
@@ -851,7 +851,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   var mscorlib = JSIL.GetCorlib();
 
   if (typeof (T) === "undefined")
-    throw new Error("Invalid use of $ListExternals");
+    JSIL.RuntimeError("Invalid use of $ListExternals");
 
   var getT;
 
@@ -1348,7 +1348,7 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [T]), $.Int32], []),
     function (array, arrayindex) {
       if (arrayindex != 0) {
-          throw new Error("List<T>.CopyTo not supported for non-zero indexes");
+          JSIL.RuntimeError("List<T>.CopyTo not supported for non-zero indexes");
       }
 
       JSIL.Array.ShallowCopy(array, this._items);
@@ -1428,7 +1428,7 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
       });
     } else {
       if (!list._items || (typeof(list._size) !== "number"))
-        throw new Error("argument must be a list");
+        JSIL.RuntimeError("argument must be a list");
 
       Object.defineProperty(this, "_items", {
         get: function () {
@@ -2396,7 +2396,7 @@ JSIL.MakeArrayEnumerator = function (array, elementType) {
 
 JSIL.Dispose = function (disposable) {
   if (typeof (disposable) === "undefined")
-    throw new Error("Disposable is undefined");
+    JSIL.RuntimeError("Disposable is undefined");
   else if (disposable === null)
     return false;
 
@@ -2414,7 +2414,7 @@ JSIL.Dispose = function (disposable) {
 
 JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
-    throw new Error("Enumerable is null or undefined");
+    JSIL.RuntimeError("Enumerable is null or undefined");
 
   var tIEnumerable = $jsilcore.System.Collections.IEnumerable;
   var tIEnumerable$b1 = null;
@@ -2437,10 +2437,10 @@ JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
     // HACK: This is gross.
     result = enumerable.GetEnumerator();
   else
-    throw new Error("Value is not enumerable");
+    JSIL.RuntimeError("Value is not enumerable");
 
   if (!result)
-    throw new Error("Value's GetEnumerator method did not return an enumerable.");
+    JSIL.RuntimeError("Value's GetEnumerator method did not return an enumerable.");
 
   return result;
 };
@@ -3192,7 +3192,7 @@ JSIL.ImplementExternals("System.Convert", function ($) {
 
   var makeAdapter = function (adapter) {
     if (!adapter)
-      throw new Error("No adapter provided");
+      JSIL.RuntimeError("No adapter provided");
 
     return function (value) {
       return adapter(value);
@@ -3507,7 +3507,7 @@ JSIL.ImplementExternals("System.Convert", function ($) {
 
   var toBase64StringImpl = function ToBase64String (inArray, offset, length, options) {
     if (options)
-      throw new Error("Base64FormattingOptions not implemented");
+      JSIL.RuntimeError("Base64FormattingOptions not implemented");
 
     var reader = $jsilcore.makeByteReader(inArray, offset, length);
     var result = "";
@@ -3964,18 +3964,18 @@ JSIL.MakeStaticClass("System.BitConverter", true, [], function ($) {
 JSIL.ParseDataURL = function (dataUrl) {
   var colonIndex = dataUrl.indexOf(":");
   if ((colonIndex != 4) || (dataUrl.substr(0, 5) !== "data:"))
-    throw new Error("Invalid Data URL header");
+    JSIL.RuntimeError("Invalid Data URL header");
 
   var semicolonIndex = dataUrl.indexOf(";");
   var mimeType = dataUrl.substr(colonIndex + 1, semicolonIndex - colonIndex - 1);
 
   var commaIndex = dataUrl.indexOf(",");
   if (commaIndex <= semicolonIndex)
-    throw new Error("Invalid Data URL header");
+    JSIL.RuntimeError("Invalid Data URL header");
 
   var encodingType = dataUrl.substr(semicolonIndex + 1, commaIndex - semicolonIndex - 1);
   if (encodingType.toLowerCase() !== "base64")
-    throw new Error("Invalid Data URL encoding type: " + encodingType);
+    JSIL.RuntimeError("Invalid Data URL encoding type: " + encodingType);
 
   var base64 = dataUrl.substr(commaIndex + 1);
   var bytes = System.Convert.FromBase64String(base64);
@@ -4188,7 +4188,7 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
 
   $.RawMethod(false, "$removeNode", function Remove_Node (node) {
     if (node._list !== this)
-      throw new Error("Node is not a member of this list");
+      JSIL.RuntimeError("Node is not a member of this list");
 
     var previous = node._previous || null;
     var next = node._next || null;

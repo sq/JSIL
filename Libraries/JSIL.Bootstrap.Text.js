@@ -117,7 +117,7 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
 
       case '.':
         if (containsDecimal)
-          throw new Error("Multiple decimal places in format string");
+          JSIL.RuntimeError("Multiple decimal places in format string");
         else
           containsDecimal = true;
 
@@ -321,7 +321,7 @@ JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatPr
         break;
 
       default:
-        throw new Error("Unsupported format string: " + valueFormat);
+        JSIL.RuntimeError("Unsupported format string: " + valueFormat);
 
     }
 
@@ -688,7 +688,7 @@ JSIL.EscapeJSRegex = function (regexText) {
 
 JSIL.SplitString = function (str, separators, options) {
   if (options && options.value)
-    throw new Error("StringSplitOptions other than None are not implemented");
+    JSIL.RuntimeError("StringSplitOptions other than None are not implemented");
 
   if (!separators) {
     // Whitespace characters from Unicode 6.0
@@ -765,7 +765,7 @@ $jsilcore.charCodeAt = function fixedCharCodeAt (str, idx) {
     hi = code;
     low = str.charCodeAt(idx+1);  
     if (isNaN(low))
-      throw new Error("High surrogate not followed by low surrogate");
+      JSIL.RuntimeError("High surrogate not followed by low surrogate");
 
     return ((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;  
   }
@@ -850,7 +850,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
       return {
         write: function (byte) {
           if (i >= outputBytes.length)
-            throw new Error("End of buffer");
+            JSIL.RuntimeError("End of buffer");
 
           outputBytes[i] = byte;
           i++;
@@ -1292,7 +1292,7 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
 
       if (hasError || (characters === false)) {
         if (this.throwOnInvalid)
-          throw new Error("Invalid character in UTF8 text");
+          JSIL.RuntimeError("Invalid character in UTF8 text");
         else
           result += this.fallbackCharacter;
       } else
@@ -1441,7 +1441,7 @@ JSIL.ImplementExternals("System.Text.UnicodeEncoding", function ($) {
 
       if (hasError) {
         if (this.throwOnInvalid)
-          throw new Error("Invalid character in UTF16 text");
+          JSIL.RuntimeError("Invalid character in UTF16 text");
         else
           result += this.fallbackCharacter;
       }
@@ -1803,7 +1803,7 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
   var makeRegex = function (pattern, options) {
     var tRegexOptions = system.System.Text.RegularExpressions.RegexOptions;
     if ((options & tRegexOptions.ECMAScript) === 0) {
-      throw new Error("Non-ECMAScript regexes are not currently supported.");
+      JSIL.RuntimeError("Non-ECMAScript regexes are not currently supported.");
     }
 
     var flags = "g";

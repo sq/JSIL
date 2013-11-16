@@ -62,7 +62,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   var state = JSIL.GL.getState();
 
   if (!vertices.pinnedPointer)
-    throw new Error("vertices must be a pinned pointer");
+    JSIL.RuntimeError("vertices must be a pinned pointer");
 
   if (!state.temporaryVertexBuffer)
     state.temporaryVertexBuffer = ctx.createBuffer();
@@ -146,7 +146,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
           break;
 
         default:
-          throw new Error("Vertex attrib pointer type '" + this.type + "' not implemented");
+          JSIL.RuntimeError("Vertex attrib pointer type '" + this.type + "' not implemented");
       }
 
       this.cachedView = this.pointer.asView(elementType, this.size);
@@ -466,7 +466,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ], []), 
     function DrawElements (mode, count, type, indices) {
       if (!indices.pinnedPointer)
-        throw new Error("indices must be provided in the form of a pinned pointer");
+        JSIL.RuntimeError("indices must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
       var tib = JSIL.GL.fillTemporaryIndexBuffer(ctx, mode, count, type, indices);
@@ -481,7 +481,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], []),
     function GenTextures (count, /* ref */ result) {
       if (count !== 1)
-        throw new Error("Cannot create more than one texture");
+        JSIL.RuntimeError("Cannot create more than one texture");
 
       var ctx = JSIL.GL.getContext();
       result.set(ctx.createTexture());
@@ -577,7 +577,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     function TexImage2D (target, level, internalformat, width, height, border, format, type, pixels) {
       var nullPixels = (pixels === System.IntPtr.Zero);
       if (!pixels.pinnedPointer && !nullPixels)
-        throw new Error("pixels must be provided in the form of a pinned pointer");
+        JSIL.RuntimeError("pixels must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
       var pixelView = null;
@@ -638,7 +638,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       count = count | 0;
 
       if (count !== expectedCount)
-        throw new Error("count must be (v.length / 4)");
+        JSIL.RuntimeError("count must be (v.length / 4)");
 
       var ctx = JSIL.GL.getContext();
       ctx.uniform4fv(location, v);

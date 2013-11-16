@@ -34,7 +34,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 
   var of = function Reference_Of (type) {
     if (typeof (type) === "undefined")
-      throw new Error("Undefined reference type");
+      JSIL.RuntimeError("Undefined reference type");
 
     var typeObject = JSIL.ResolveTypeReference(type)[1];
     
@@ -82,13 +82,13 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 
   $.RawMethod(false, "get_value",
     function Reference_GetValue () {
-      throw new Error("Use of old-style reference.value");
+      JSIL.RuntimeError("Use of old-style reference.value");
     }
   );
 
   $.RawMethod(false, "set_value",
     function Reference_SetValue (value) {
-      throw new Error("Use of old-style reference.value = x");
+      JSIL.RuntimeError("Use of old-style reference.value = x");
     }
   );
 

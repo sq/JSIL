@@ -84,7 +84,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
           [newPointer]
         );
       } else {
-        throw new Error("Not implemented");
+        JSIL.RuntimeError("Not implemented");
       }
     }
   );
@@ -93,7 +93,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ToInt32 () {
       if (this.pinnedPointer !== null)
-        throw new Error("Attempting to call ToInt32() on a pinned object pointer");
+        JSIL.RuntimeError("Attempting to call ToInt32() on a pinned object pointer");
 
       return this.value.ToInt32();
     }
@@ -103,7 +103,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ToInt64 () {
       if (this.pinnedPointer !== null)
-        throw new Error("Attempting to call ToInt64() on a pinned object pointer");
+        JSIL.RuntimeError("Attempting to call ToInt64() on a pinned object pointer");
 
       return this.value;
     }
@@ -305,7 +305,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
         this.viewCache[ctorKey] && 
         (this.viewCache[ctorKey] !== view)
       )
-        throw new Error("A different view is already stored for this element type");
+        JSIL.RuntimeError("A different view is already stored for this element type");
 
       this.viewCache[ctorKey] = view;
     }
@@ -411,9 +411,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       var sizeInElements = ((sizeInBytes | 0) / arrayCtor.BYTES_PER_ELEMENT) | 0;
 
       if ((this.offsetInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
-        throw new Error("Pointer must be element-aligned");
+        JSIL.RuntimeError("Pointer must be element-aligned");
       if ((sizeInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
-        throw new Error("Size must be an integral multiple of element size");
+        JSIL.RuntimeError("Size must be an integral multiple of element size");
 
       var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
 
@@ -452,7 +452,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
   $.RawMethod(false, "deltaBytes",
     function Pointer_DeltaBytes (otherPointer) {
       if (otherPointer.memoryRange.buffer !== this.memoryRange.buffer)
-        throw new Error("Cannot subtract two pointers from different pinned buffers");
+        JSIL.RuntimeError("Cannot subtract two pointers from different pinned buffers");
 
       return (this.offsetInBytes - otherPointer.offsetInBytes) | 0;
     }
@@ -990,16 +990,16 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   var isPackedArray = JSIL.IsPackedArray(objectToPin);
 
   if (!JSIL.IsArray(objectToPin) && !isPackedArray) {
-    throw new Error("Object being pinned must be an array");
+    JSIL.RuntimeError("Object being pinned must be an array");
   }
 
   var buffer = objectToPin.buffer;
   if (!buffer)
-    throw new Error("Object being pinned must have an underlying memory buffer");
+    JSIL.RuntimeError("Object being pinned must have an underlying memory buffer");
 
   offsetInElements = (offsetInElements || 0) | 0;
   if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length))
-    throw new Error("offsetInElements outside the array");
+    JSIL.RuntimeError("offsetInElements outside the array");
 
   var offsetInBytes;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
@@ -1031,7 +1031,7 @@ JSIL.StackAlloc = function (sizeInBytes, elementType) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   var view = memoryRange.getView(elementType, false);
   if (!view)
-    throw new Error("Unable to stack-allocate arrays of type '" + elementType.__FullName__ + "'");
+    JSIL.RuntimeError("Unable to stack-allocate arrays of type '" + elementType.__FullName__ + "'");
 
   return new JSIL.Pointer(memoryRange, view, 0);
 };
@@ -1330,7 +1330,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     var size = field.sizeBytes;
 
     if (size <= 0)
-      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+      JSIL.RuntimeError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
 
     var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
 
@@ -1356,7 +1356,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
           funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
         );
     } else {
-      throw new Error("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+      JSIL.RuntimeError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
     }
   }
 
@@ -1368,7 +1368,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
 JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
   return function UnmarshallableField () {
-    throw new Error("Field '" + fieldName + "' cannot be marshaled");
+    JSIL.RuntimeError("Field '" + fieldName + "' cannot be marshaled");
   };
 };
 
@@ -1500,7 +1500,7 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
 JSIL.MakeElementProxy = function (typeObject) {
   var constructor = JSIL.$GetStructElementProxyConstructor(typeObject);
   if (!constructor)
-    throw new Error("No element proxy constructor available for type '" + typeObject.__FullName__ + "'");
+    JSIL.RuntimeError("No element proxy constructor available for type '" + typeObject.__FullName__ + "'");
 
   return new constructor(null, -1);
 };
@@ -1509,7 +1509,7 @@ JSIL.GetBackingTypedArray = function (array) {
   var isPackedArray = JSIL.IsPackedArray(array);
 
   if (!JSIL.IsTypedArray(array) && !isPackedArray) {
-    throw new Error("Object has no backing typed array");
+    JSIL.RuntimeError("Object has no backing typed array");
   }
 
   if (isPackedArray) {
@@ -1523,7 +1523,7 @@ JSIL.GetArrayBuffer = function (array) {
   var isPackedArray = JSIL.IsPackedArray(array);
 
   if (!JSIL.IsTypedArray(array) && !isPackedArray) {
-    throw new Error("Object has no array buffer");
+    JSIL.RuntimeError("Object has no array buffer");
   }
 
   if (isPackedArray) {

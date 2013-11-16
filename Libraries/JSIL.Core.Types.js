@@ -316,7 +316,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
   var of = function Array_Of (elementType) {
     if (typeof (elementType) === "undefined")
-      throw new Error("Attempting to create an array of an undefined type");
+      JSIL.RuntimeError("Attempting to create an array of an undefined type");
 
     var _ = JSIL.ResolveTypeReference(elementType);
     var elementTypePublicInterface = _[0];
@@ -324,7 +324,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
     var elementTypeId = elementTypeObject.__TypeId__;
     if (typeof (elementTypeId) === "undefined")
-      throw new Error("Element type missing type ID");
+      JSIL.RuntimeError("Element type missing type ID");
 
     var compositePublicInterface = types[elementTypeObject.__TypeId__];
 
@@ -333,7 +333,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
       var compositeTypeObject = JSIL.CreateDictionaryObject(typeObject);
       compositePublicInterface = function (size) {
-        throw new Error("Invalid use of Array constructor. Use JSIL.Array.New.");
+        JSIL.RuntimeError("Invalid use of Array constructor. Use JSIL.Array.New.");
       };
       compositePublicInterface.prototype = JSIL.CreatePrototypeObject(publicInterface.prototype);
 
