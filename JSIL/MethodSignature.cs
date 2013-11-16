@@ -110,6 +110,20 @@ namespace JSIL.Internal {
             return hash;
         }
 
+        public static TypeReference ResolveGenericParameter (GenericParameter genericParameter, TypeReference typeDeclaringMethod) {
+            var git = typeDeclaringMethod as GenericInstanceType;
+
+            if (git != null) {
+                for (var i = 0; i < git.ElementType.GenericParameters.Count; i++) {
+                    var _ = git.ElementType.GenericParameters[i];
+                    if ((_.Name == genericParameter.Name) || (_.Position == genericParameter.Position))
+                        return git.GenericArguments[i];
+                }
+            }
+
+            return null;
+        }
+
         public override string ToString () {
             if (GenericParameterCount > 0) {
                 return String.Format(

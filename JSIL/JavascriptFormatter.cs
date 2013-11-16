@@ -463,24 +463,7 @@ namespace JSIL.Internal {
             if (context != null) {
                 if (ownerType != null) {
                     if (TypeUtil.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
-                        TypeReference resolved = null;
-
-                        var git = (context.SignatureMethodType as GenericInstanceType);
-                        if (git != null) {
-                            for (var i = 0; i < git.ElementType.GenericParameters.Count; i++) {
-                                var _ = git.ElementType.GenericParameters[i];
-                                if ((_.Name == gp.Name) || (_.Position == gp.Position)) {
-                                    resolved = git.GenericArguments[i];
-                                    break;
-                                }
-                            }
-
-                            if (resolved == null)
-                                throw new NotImplementedException(String.Format(
-                                    "Could not find generic parameter '{0}' in type {1}",
-                                    gp, context.SignatureMethodType
-                                ));
-                        }
+                        var resolved = JSIL.Internal.MethodSignature.ResolveGenericParameter(gp, context.SignatureMethodType);
 
                         if (resolved != null) {
                             if (resolved != gp) {

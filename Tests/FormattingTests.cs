@@ -923,5 +923,30 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void ClosedGenericSignatures () {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\ClosedGenericSignatures.cs",
+                output,
+                makeConfiguration: () => {
+                    var cfg = MakeConfiguration();
+                    cfg.UseThreads = false;
+                    return cfg;
+                }
+            );
+
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("var $s00 = new JSIL.MethodSignature"),
+                    "DrawBatch function has a locally cached method signature"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
