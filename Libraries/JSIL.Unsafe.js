@@ -666,6 +666,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(structType);
       // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
       this.marshaller = JSIL.$GetStructMarshaller(structType);
+      this.proxy = null;
     }
   );
 
@@ -679,6 +680,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       target.unmarshalConstructor = source.unmarshalConstructor;
       // target.unmarshaller = source.unmarshaller;
       target.marshaller = source.marshaller;
+      target.proxy = null;
     }
   );
 
@@ -715,11 +717,11 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "getProxy",
     function StructPointer_GetProxy () {
-      if (!this.$proxy)
-        this.$proxy = JSIL.MakeElementProxy(this.structType);
+      if (this.proxy === null)
+        this.proxy = JSIL.MakeElementProxy(this.structType);
 
-      this.$proxy.retargetBytes(this.view, this.offsetInBytes);
-      return this.$proxy;
+      this.proxy.retargetBytes(this.view, this.offsetInBytes);
+      return this.proxy;
     }
   );
 
@@ -1223,13 +1225,24 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   );
 };
 
-JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeToken) {
+JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeOrSizeToken) {
+  var unrollThreshold = 16;
+
   if (false) {
     // This is what you're SUPPOSED to do, but it's incredibly slow in both V8 and SpiderMonkey. Blah.
-    body.push(destToken + ".set(new Uint8Array(" + sourceToken + ".buffer, " + sourceOffsetToken + ", " + sizeToken + "), 0);");
+    body.push(destToken + ".set(new Uint8Array(" + sourceToken + ".buffer, " + sourceOffsetToken + ", " + sizeOrSizeToken + "), 0);");
   } else {
-    body.push("for (var sourceEnd = (" + sourceOffsetToken + " + " + sizeToken + ") | 0, i = " + sourceOffsetToken + ", j = 0; i < sourceEnd; i++, j++)");
-    body.push("  " + destToken + "[j] = " + sourceToken + "[i];");
+    // Unroll small copies when size is known
+    if ((typeof (sizeOrSizeToken) === "number") && (sizeOrSizeToken <= unrollThreshold)) {
+      for (var i = 0; i < sizeOrSizeToken; i++) {
+        body.push("  " + destToken + "[" + i + "] = " + sourceToken + "[(" + sourceOffsetToken + " + " + i + ") | 0];");
+      }
+      body.push("");
+    } else {
+      body.push("for (var sourceEnd = (" + sourceOffsetToken + " + " + sizeOrSizeToken + ") | 0, i = " + sourceOffsetToken + ", j = 0; i < sourceEnd; i++, j++)");
+      body.push("  " + destToken + "[j] = " + sourceToken + "[i];");
+      body.push("");
+    }
   }
 };
 
