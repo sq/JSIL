@@ -1026,15 +1026,22 @@ namespace JSIL {
         }
 
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
+            string methodName;
+
+            if (rtpe.OffsetInElements != null)
+                methodName = "getElement";
+            else if (rtpe.OffsetInBytes != null)
+                methodName = "getOffset";
+            else if ((ParentNode is JSInvocationExpression) && TypeUtil.IsStruct(rtpe.ElementType)) {
+                // Like with packed array elements, if we're passing the result of a pointer dereference directly to a function, pass a proxy instead.
+                // If the pointer has been hoisted the proxy will be reused, which reduces GC pressure and allows unpacking to happen on demand.
+                methodName = "getProxy";
+            } else
+                methodName = "get";
+
             Visit(rtpe.Pointer);
             Output.Dot();
-            Output.Identifier(
-                rtpe.OffsetInElements != null
-                    ? "getElement"
-                    : rtpe.OffsetInBytes != null 
-                        ? "getOffset" 
-                        : "get"
-            );
+            Output.Identifier(methodName);
             Output.LPar();
             if (rtpe.OffsetInElements != null)
                 Visit(rtpe.OffsetInElements);

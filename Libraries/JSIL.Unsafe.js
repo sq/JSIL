@@ -713,6 +713,16 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
     }
   );
 
+  $.RawMethod(false, "getProxy",
+    function StructPointer_GetProxy () {
+      if (!this.$proxy)
+        this.$proxy = JSIL.MakeElementProxy(this.structType);
+
+      this.$proxy.retargetBytes(this.view, this.offsetInBytes);
+      return this.$proxy;
+    }
+  );
+
   $.RawMethod(false, "set",
     function StructPointer_Set (value) {
       this.marshaller(value, this.view, this.offsetInBytes);
@@ -1421,7 +1431,7 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
   var elementProxyPrototype = JSIL.$CreateCrockfordObject(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
-  var nativeSize = JSIL.GetNativeSizeOf(typeObject);
+  var nativeSize = JSIL.GetNativeSizeOf(typeObject) | 0;
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
 
@@ -1459,7 +1469,13 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
 
   elementProxyPrototype.retarget = function (array, offsetInElements) {
     this.$bytes = array.bytes;
-    this.$offset = ((offsetInElements | 0) * array.nativeSize) | 0;
+    this.$offset = ((offsetInElements | 0) * nativeSize) | 0;
+    return this;
+  };
+
+  elementProxyPrototype.retargetBytes = function (bytes, offsetInBytes) {
+    this.$bytes = bytes;
+    this.$offset = offsetInBytes | 0;
     return this;
   };
 
