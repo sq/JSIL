@@ -18,6 +18,32 @@ namespace JSIL.Transforms {
             MethodTypes = methodTypes;
         }
 
+        public void VisitNode (JSResultReferenceExpression rre) {
+            var invocation = (rre.Referent as JSInvocationExpression);
+
+            // When passing a packed array element directly to a function, use a proxy instead.
+            // This allows hoisting to operate when the call is inside a loop, and it reduces GC pressure (since we basically make the struct unpack occur on-demand).
+            if (
+                (ParentNode is JSInvocationExpression) &&
+                (invocation != null) &&
+                (invocation.JSMethod != null) &&
+                invocation.JSMethod.Reference.FullName.Contains("JSIL.Runtime.IPackedArray") &&
+                invocation.JSMethod.Reference.FullName.Contains("get_Item(")
+            ) {
+                var elementType = invocation.GetActualType(TypeSystem);
+                var replacement = new JSNewPackedArrayElementProxy(
+                    invocation.ThisReference, invocation.Arguments.First(),
+                    elementType
+                );
+
+                ParentNode.ReplaceChild(rre, replacement);
+                VisitReplacement(replacement);
+                return;
+            }
+
+            VisitChildren(rre);
+        }
+
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
             JSExpression newPointer, offset;
 
