@@ -297,7 +297,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   );
 
   $.RawMethod(false, "storeExistingView",
-    function (view) {
+    function MemoryRange_storeExistingView (view) {
       var arrayCtor = Object.getPrototypeOf(view);
       var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
 
@@ -312,7 +312,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   );
 
   $.RawMethod(false, "getView",
-    function (elementTypeObject, byteFallback) {
+    function MemoryRange_getView (elementTypeObject, byteFallback) {
       var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject, byteFallback);
       if (!arrayCtor)
         return null;

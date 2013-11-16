@@ -7074,6 +7074,53 @@ JSIL.GetTypesFromAssembly = function (assembly) {
   return result;
 };
 
+JSIL.$CreateInstanceOfTypeTable = {
+};
+
+JSIL.CreateInstanceOfTypeRecordSet = function (type) {
+  this.records = {};
+};
+
+JSIL.CreateInstanceOfTypeRecord = function (type, constructorName, constructor, publicInterface) {
+  JSIL.RunStaticConstructors(publicInterface, type);
+
+  var closure = {};
+  var constructorBody = [];
+
+  this.type = type;
+  this.constructorName = constructorName;
+  this.constructor = constructor;
+
+  // FIXME: I think this runs the field initializer twice? :(
+  var fi = JSIL.GetFieldInitializer(type);
+  if (fi) {
+    closure.fieldInitializer = fi;
+    constructorBody.push("fieldInitializer(this);");
+  }
+
+  if ((constructorName === null) && (constructor === null)) {
+  } else {
+    if (type.__IsStruct__)
+      constructorBody.push("if (argv && argv.length === 0) return;");
+
+    constructorBody.push("if ((typeof (argv) === 'undefined') || (argv === null)) argv = [];");
+
+    if (constructor) {
+      closure.actualConstructor = constructor;
+      constructorBody.push("return actualConstructor.apply(this, argv);");
+    }
+  }
+
+  this.instanceConstructor = JSIL.CreateNamedFunction(
+    type.__FullName__ + ".CreateInstanceOfType",
+    ["argv"],
+    constructorBody.join("\r\n"),
+    closure
+  );
+
+  this.instanceConstructor.prototype = publicInterface.prototype;
+};
+
 JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
   if (type.__IsNumeric__) {
     // HACK: This System.Char nonsense is getting out of hand.
@@ -7083,59 +7130,40 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
       return 0;
   }
 
-  var publicInterface = type.__PublicInterface__;
-  var instance = JSIL.CreateInstanceObject(publicInterface.prototype);
-  var constructor = $jsilcore.FunctionNotInitialized;
+  var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__];
+  if (!recordSet)
+    recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = new JSIL.CreateInstanceOfTypeRecordSet(type);
 
-  JSIL.RunStaticConstructors(publicInterface, type);
-  JSIL.InitializeInstanceFields(instance, type);
-  if (typeof (constructorName) === "string") {
-    constructor = publicInterface.prototype[constructorName];
-
-    if (!constructor)
-      JSIL.RuntimeError("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
-  } else if (typeof (constructorName) === "function") {
-    constructor = constructorName;
-  } else if (constructorName === null) {
-    return instance;
-  } else {
-    constructor = publicInterface.prototype["_ctor"];
-
+  if (JSIL.IsArray(constructorName)) {
     constructorArguments = constructorName;
-    constructorName = null;
+    constructorName = "_ctor";
+  }
+
+  var record = recordSet.records[constructorName];
+  if (!record) {
+    var publicInterface = type.__PublicInterface__;
+    var constructor = null;
+
+    if (typeof (constructorName) === "string") {
+      constructor = publicInterface.prototype[constructorName];
+
+      if (!constructor)
+        JSIL.RuntimeError("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
+    } else if (typeof (constructorName) === "function") {
+      constructor = constructorName;
+    }
+
+    record = recordSet.records[constructorName] = new JSIL.CreateInstanceOfTypeRecord(
+      type, constructorName, constructor, publicInterface
+    );
   }
 
   if (type.__IsNativeType__) {
     // Native types need to be constructed differently.
-    return constructor.apply(constructor, constructorArguments);
+    return record.constructor.apply(record.constructor, constructorArguments);
+  } else {
+    return new (record.instanceConstructor)(constructorArguments);
   }
-
-  if (
-    (typeof (constructorArguments) === "undefined") ||
-    (constructorArguments === null)
-  ) {
-    constructorArguments = [];
-  } else if (!JSIL.IsArray(constructorArguments)) {
-    JSIL.RuntimeError("Constructor arguments must be an array");
-  }
-
-  if (type.__IsStruct__ && (constructorArguments.length === 0))
-    return instance;
-
-  if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__)) {
-    JSIL.Host.warning("Type '" + type.__FullName__ + "' has no default constructor!");
-    return instance;
-  }
-
-  if (typeof (constructor) !== "function") {
-    if (typeof(constructorName) === "string")
-      JSIL.RuntimeError("Type '" + String(type) + "' has no constructor named '" + constructorName + "'.");
-    else
-      JSIL.RuntimeError("Type '" + String(type) + "' has no constructor.");
-  }
-
-  constructor.apply(instance, constructorArguments);
-  return instance;
 };
 
 $jsilcore.BindingFlags = {
