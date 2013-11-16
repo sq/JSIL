@@ -3145,8 +3145,8 @@ JSIL.$MakeCopierCore = function (typeObject, context, body, resultVar) {
       var isStruct = field.isStruct;
 
       // Type-hint the assignments
-      var isInteger = field.type.__IsNumeric__ && field.type.__IsIntegral__;
-      var isFloat = field.type.__IsNumeric__ && !field.type.__IsIntegral__;
+      var isInteger = field.type.__IsNumeric__ && field.type.__IsIntegral__ && field.type.__FullName__ !== "System.Char";
+      var isFloat = field.type.__IsNumeric__ && !field.type.__IsIntegral__ && field.type.__FullName__ !== "System.Char";
 
       var line = "  " + JSIL.FormatMemberAccess(resultVar, field.name) + " = ";
 

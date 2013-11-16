@@ -6,7 +6,6 @@ using JSIL.Meta;
 public static class Program {
     const int BufferSize = 1024;
 
-    public static Vertex[] VerticesN;
     [JSPackedArray]
     public static Vertex[] VerticesP;
 
@@ -20,7 +19,6 @@ public static class Program {
                 UVs = new float2(i * 8f, i * 16f)
             };
 
-            VerticesN[i] = vertex;
             VerticesP[i] = vertex;
         }
     }
