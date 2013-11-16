@@ -1032,7 +1032,11 @@ namespace JSIL {
                 methodName = "getElement";
             else if (rtpe.OffsetInBytes != null)
                 methodName = "getOffset";
-            else if ((ParentNode is JSInvocationExpression) && TypeUtil.IsStruct(rtpe.ElementType)) {
+            else if (
+                (ParentNode is JSInvocationExpression) && 
+                TypeUtil.IsStruct(rtpe.ElementType) &&
+                Configuration.CodeGenerator.AggressivelyUseElementProxies.GetValueOrDefault(false)
+            ) {
                 // Like with packed array elements, if we're passing the result of a pointer dereference directly to a function, pass a proxy instead.
                 // If the pointer has been hoisted the proxy will be reused, which reduces GC pressure and allows unpacking to happen on demand.
                 methodName = "getProxy";

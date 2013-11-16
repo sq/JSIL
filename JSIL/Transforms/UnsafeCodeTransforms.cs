@@ -6,14 +6,21 @@ using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class UnsafeCodeTransforms : JSAstVisitor {
+        public readonly Configuration Configuration;
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
-        public UnsafeCodeTransforms (TypeSystem typeSystem, MethodTypeFactory methodTypes) {
+        public UnsafeCodeTransforms (
+            Configuration configuration,
+            TypeSystem typeSystem, 
+            MethodTypeFactory methodTypes
+        ) {
+            Configuration = configuration;
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
         }
@@ -28,7 +35,8 @@ namespace JSIL.Transforms {
                 (invocation != null) &&
                 (invocation.JSMethod != null) &&
                 invocation.JSMethod.Reference.FullName.Contains("JSIL.Runtime.IPackedArray") &&
-                invocation.JSMethod.Reference.FullName.Contains("get_Item(")
+                invocation.JSMethod.Reference.FullName.Contains("get_Item(") &&
+                Configuration.CodeGenerator.AggressivelyUseElementProxies.GetValueOrDefault(false)
             ) {
                 var elementType = invocation.GetActualType(TypeSystem);
                 var replacement = new JSNewPackedArrayElementProxy(

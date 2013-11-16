@@ -44,6 +44,7 @@ namespace JSIL.Translator {
             public bool? HoistAllocations;
             public bool? HintDoubleArithmetic;
             public bool? AutoGenerateEventAccessorsInSkeletons;
+            public bool? AggressivelyUseElementProxies;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -80,6 +81,8 @@ namespace JSIL.Translator {
                     result.HintDoubleArithmetic = HintDoubleArithmetic;
                 if (AutoGenerateEventAccessorsInSkeletons.HasValue)
                     result.AutoGenerateEventAccessorsInSkeletons = AutoGenerateEventAccessorsInSkeletons;
+                if (AggressivelyUseElementProxies.HasValue)
+                    result.AggressivelyUseElementProxies = AggressivelyUseElementProxies;
             }
         }
 
