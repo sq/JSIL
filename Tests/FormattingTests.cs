@@ -902,5 +902,26 @@ namespace JSIL.Tests {
             }
 
         }
+
+        [Test]
+        public void InitializeStructClone () {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\InitializeStructClone.cs",
+                output
+            );
+
+            try {
+                Assert.AreEqual(
+                    generatedJs.IndexOf(".MemberwiseClone("),
+                    generatedJs.LastIndexOf(".MemberwiseClone("),
+                    "A struct was cloned more than once"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
