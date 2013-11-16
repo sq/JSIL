@@ -1400,7 +1400,7 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
       adapterSource.push("return nativeView[0];");
 
       return JSIL.CreateNamedFunction(
-        typeObject.__FullName__ + ".Proxy.get_" + field.name, ["value"],
+        typeObject.__FullName__ + ".Proxy.get_" + field.name, [],
         adapterSource.join("\n"),
         { nativeView: nativeView, clampedByteView: clampedByteView }
       );
@@ -1427,7 +1427,7 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
       adapterSource.push("return new unmarshalConstructor(this.$bytes, offset);");
 
       return JSIL.CreateNamedFunction(
-        typeObject.__FullName__ + ".Proxy.get_" + field.name, ["value"],
+        typeObject.__FullName__ + ".Proxy.get_" + field.name, [],
         adapterSource.join("\n"),
         { unmarshalConstructor: unmarshalConstructor }
       );
