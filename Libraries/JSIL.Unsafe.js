@@ -329,13 +329,18 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
+  var shiftTable = [];
+  for (var i = 0; i < 256; i++) {
+    shiftTable[i] = (Math.log(i) / Math.LN2) | 0;
+  }
+
   function Pointer_ctor (memoryRange, view, offsetInBytes) {
     this.memoryRange = memoryRange;
     this.view = view;
     this.offsetInBytes = offsetInBytes | 0;
 
     if (this.view) {
-      this.shift = (Math.log(this.view.BYTES_PER_ELEMENT) / Math.LN2) | 0;
+      this.shift = shiftTable[this.view.BYTES_PER_ELEMENT] | 0;
     } else {
       this.shift = 0;
     }
