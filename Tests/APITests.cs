@@ -219,5 +219,29 @@ namespace JSIL.Tests {
             Assert.AreEqual(2, na.Children.ToArray().Length, "Child count");
             Assert.AreEqual(4, na.AllChildrenRecursive.ToArray().Length, "Recursive child count");
         }
+
+        [Test]
+        public void ResolveGenericParameter () {
+            var gt1 = new TypeReference("namespace", "Type1", TestModule, MetadataScope);
+            var gt2 = new TypeReference("namespace", "Type2", TestModule, MetadataScope);
+
+            var gp1 = new GenericParameter("GP", gt1);
+            var gp2 = new GenericParameter("GP", gt2);
+
+            gt1.GenericParameters.Add(gp1);
+            gt2.GenericParameters.Add(gp2);
+
+            var git1 = new GenericInstanceType(gt1);
+            git1.GenericArguments.Add(T2);
+            var git2 = new GenericInstanceType(gt2);
+            git2.GenericArguments.Add(T2);
+
+            Assert.AreEqual(T2, MethodSignature.ResolveGenericParameter(gp1, git1));
+            Assert.AreEqual(T2, MethodSignature.ResolveGenericParameter(gp2, git2));
+
+            // Generic parameters with same name but different owners.
+            Assert.AreEqual(null, MethodSignature.ResolveGenericParameter(gp2, git1));
+            Assert.AreEqual(null, MethodSignature.ResolveGenericParameter(gp1, git2));
+        }
     }
 }

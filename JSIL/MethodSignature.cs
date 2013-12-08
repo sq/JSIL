@@ -111,11 +111,20 @@ namespace JSIL.Internal {
         }
 
         public static TypeReference ResolveGenericParameter (GenericParameter genericParameter, TypeReference typeDeclaringMethod) {
+            var gpOwner = genericParameter.Owner as TypeReference;
             var git = typeDeclaringMethod as GenericInstanceType;
 
             if (git != null) {
                 for (var i = 0; i < git.ElementType.GenericParameters.Count; i++) {
                     var _ = git.ElementType.GenericParameters[i];
+                    var owner = _.Owner as TypeReference;
+
+                    if (gpOwner != null) {
+                        // Reject generic parameters with different owners than the type declaring the method.
+                        if (!TypeUtil.TypesAreEqual(gpOwner, owner, false))
+                            continue;
+                    }
+
                     if ((_.Name == genericParameter.Name) || (_.Position == genericParameter.Position))
                         return git.GenericArguments[i];
                 }

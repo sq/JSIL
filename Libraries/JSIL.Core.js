@@ -4003,6 +4003,8 @@ JSIL.InitializeType = function (type) {
       classObject.__PreInitMembrane__.maybeInit();
     if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
       classObject.prototype.__PreInitMembrane__.maybeInit();
+  } else {
+    // console.log("Type '" + typeObject.__FullName__ + "' is open so not initializing");
   }
 
   // Any closed forms of the type, if it's an open type, should be initialized too.
@@ -6574,6 +6576,15 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
   var publicInterface = typeObject.__PublicInterface__;
   var argumentTypes = this.argumentTypes;
 
+  if (!typeObject.__IsClosed__)
+    return function () {
+      throw new Error("Cannot create an instance of an open type");
+    };
+  else if (typeObject.__IsInterface__)
+    return function () {
+      throw new Error("Cannot create an instance of an interface");
+    };
+
   var closure = {
     typeObject: typeObject,
     publicInterface: publicInterface
@@ -7185,6 +7196,11 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
     } else if (typeof (constructorName) === "function") {
       constructor = constructorName;
     }
+
+    if (!type.__IsClosed__)
+      throw new Error("Cannot create an instance of an open type");
+    else if (type.__IsInterface__)
+      throw new Error("Cannot create an instance of an interface");
 
     record = recordSet.records[constructorName] = new JSIL.CreateInstanceOfTypeRecord(
       type, constructorName, constructor, publicInterface
