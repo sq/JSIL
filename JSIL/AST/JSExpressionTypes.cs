@@ -824,10 +824,12 @@ namespace JSIL.Ast {
     // Represents a reference to a method of a type.
     public class JSMethodAccess : JSDotExpressionBase {
         public readonly bool IsStatic;
+        public readonly bool IsVirtual;
 
-        public JSMethodAccess (JSExpression type, JSMethod method, bool isStatic)
+        public JSMethodAccess (JSExpression type, JSMethod method, bool isStatic, bool isVirtual)
             : base(type, method) {
             IsStatic = isStatic;
+            IsVirtual = isVirtual;
         }
 
         public JSExpression Type {

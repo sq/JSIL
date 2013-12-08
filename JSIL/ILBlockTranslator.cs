@@ -2145,7 +2145,8 @@ namespace JSIL {
             return new JSMethodAccess(
                 new JSType(method.DeclaringType),
                 new JSMethod(method, methodInfo, MethodTypes),
-                !method.HasThis
+                !method.HasThis,
+                false
             );
         }
 
@@ -2157,7 +2158,8 @@ namespace JSIL {
             return new JSMethodAccess(
                 new JSType(method.DeclaringType),
                 new JSMethod(method, methodInfo, MethodTypes),
-                false
+                false,
+                true
             );
         }
 
@@ -2702,13 +2704,18 @@ namespace JSIL {
                         );
                     }
                 }
-            }
 
-            if (methodMember != null) {
-                if (methodMember.Method.IsStatic)
-                    thisArg = new JSType(methodMember.Reference.DeclaringType);
-                else if (methodMember.Method.DeclaringType.IsInterface)
-                    methodRef = new JSDotExpression(thisArg, methodMember);
+                var ma = methodDot as JSMethodAccess;
+
+                if (ma != null) {
+                    if (ma.IsStatic) {
+                        if (methodMember == null)
+                            throw new InvalidDataException("Static invocation without a method");
+
+                        thisArg = new JSType(methodMember.Reference.DeclaringType);
+                    } else if (ma.IsVirtual)
+                        methodRef = new JSDotExpression(thisArg, methodMember);
+                }
             }
 
             return JSIL.NewDelegate(
