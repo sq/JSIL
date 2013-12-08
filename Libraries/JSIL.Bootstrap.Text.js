@@ -302,11 +302,11 @@ JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatPr
         break;
 
       case 'x':
-        result = formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+        result = formatInteger(value >>> 0, 16, valueFormat.substr(1)).toLowerCase();
         break;
 
       case 'X':
-        result = formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+        result = formatInteger(value >>> 0, 16, valueFormat.substr(1)).toUpperCase();
         break;
 
       case 'f':
