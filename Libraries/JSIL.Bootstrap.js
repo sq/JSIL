@@ -798,6 +798,20 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
       return this._array.length;
     }
   );
+  
+  $.Method({Static:false, Public:true }, "get_Item", 
+    new JSIL.MethodSignature(T, [$.Int32], []),
+    function get_Item (index) {
+      return this._array[index];
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "set_Item", 
+    new JSIL.MethodSignature(null, [$.Int32, T], []),
+    function set_Item (index, value) {
+      this._array[index] = value;
+    }
+  );
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"),
