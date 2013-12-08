@@ -7178,7 +7178,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   if (!recordSet)
     recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = new JSIL.CreateInstanceOfTypeRecordSet(type);
 
-  if (JSIL.IsArray(constructorName)) {
+  if (JSIL.IsArray(constructorName) || (typeof (constructorName) === "undefined")) {
     constructorArguments = constructorName;
     constructorName = "_ctor";
   }
