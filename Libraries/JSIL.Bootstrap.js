@@ -756,6 +756,17 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
     }
   );
 
+  $.RawMethod(false, "$overlayToArray",
+    function (T) {
+      // We don't want to allow conversion to an unrelated array type.
+      // FIXME: Covariance? Contravariance?
+      if (T.__IsArray__ && (T.__ElementType__ === this.T))
+        return this._array;
+      else
+        return null;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
     function () {

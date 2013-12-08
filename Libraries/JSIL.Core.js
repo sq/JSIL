@@ -4532,6 +4532,39 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       break;
 
     case "array":
+      // Allow casting array interface overlays back to appropriate array types
+      var _isFunction = isFunction;
+      isFunction = function Is_Array (expression) {
+        return _isFunction(expression) || (
+          expression &&
+          expression.$overlayToArray && 
+          expression.$overlayToArray(typeObject)
+        );
+      };
+
+      var _asFunction = asFunction;
+      asFunction = function As_Array (expression) {
+        var result = _asFunction(expression);
+
+        if ((result === null) && (expression && expression.$overlayToArray))
+          result = expression.$overlayToArray(typeObject);
+
+        return result;
+      };
+
+      castFunction = function CastArray (expression) {
+        if (_isFunction(expression))
+          return expression;
+
+        if (expression && expression.$overlayToArray) {
+          var overlayArray = expression.$overlayToArray(typeObject);
+          if (overlayArray)
+            return overlayArray;
+        }
+
+        throwCastError(expression);
+      };
+
       break;
 
     case "char":
