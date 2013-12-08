@@ -812,6 +812,20 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
       this._array[index] = value;
     }
   );
+  
+  $.Method({Static:false, Public:true }, "Contains", 
+    new JSIL.MethodSignature($.Boolean, [T], []),
+    function Contains (value) {
+      return (this._array.indexOf(value) >= 0);
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "IndexOf", 
+    new JSIL.MethodSignature($.Int32, [T], []),
+    function IndexOf (value) {
+      return this._array.indexOf(value);
+    }
+  );
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"),
