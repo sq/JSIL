@@ -1230,7 +1230,7 @@ JSIL.$MakeStructMarshalFunctionCore = function (typeObject, marshal) {
   );
 };
 
-JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffsetToken, sizeOrSizeToken) {
+JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetToken, sourceOffsetToken, sizeOrSizeToken) {
   var unrollThreshold = 16;
 
   if (false) {
@@ -1240,11 +1240,11 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, sourceOffset
     // Unroll small copies when size is known
     if ((typeof (sizeOrSizeToken) === "number") && (sizeOrSizeToken <= unrollThreshold)) {
       for (var i = 0; i < sizeOrSizeToken; i++) {
-        body.push("  " + destToken + "[" + i + "] = " + sourceToken + "[(" + sourceOffsetToken + " + " + i + ") | 0];");
+        body.push("  " + destToken + "[(" + destOffsetToken + " + " + i + ") | 0] = " + sourceToken + "[(" + sourceOffsetToken + " + " + i + ") | 0];");
       }
       body.push("");
     } else {
-      body.push("for (var sourceEnd = (" + sourceOffsetToken + " + " + sizeOrSizeToken + ") | 0, i = " + sourceOffsetToken + ", j = 0; i < sourceEnd; i++, j++)");
+      body.push("for (var sourceEnd = (" + sourceOffsetToken + " + " + sizeOrSizeToken + ") | 0, i = " + sourceOffsetToken + ", j = " + destOffsetToken + "; i < sourceEnd; i++, j++)");
       body.push("  " + destToken + "[j] = " + sourceToken + "[i];");
       body.push("");
     }
@@ -1327,7 +1327,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   }
 
   if (!marshal)
-    JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", "offset", nativeSize);
+    JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", 0, "offset", nativeSize);
 
   for (var i = 0, l = sortedFields.length; i < l; i++) {
     var field = sortedFields[i];
@@ -1366,9 +1366,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   }
 
   if (marshal)
-    body.push(
-      "bytes.set(scratchBytes, offset);"
-    );
+    JSIL.$EmitMemcpyIntrinsic(body, "bytes", "scratchBytes", "offset", 0, nativeSize);
 };
 
 JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
@@ -1399,7 +1397,7 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
       );
     } else {
       JSIL.$EmitMemcpyIntrinsic(
-        adapterSource, "clampedByteView", "bytes", "offset", fieldSize
+        adapterSource, "clampedByteView", "bytes", 0, "offset", fieldSize
       );
 
       adapterSource.push("return nativeView[0];");
