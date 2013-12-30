@@ -5890,6 +5890,24 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, p
   return memberBuilder;
 };
 
+JSIL.InterfaceBuilder.prototype.Event = function (_descriptor, name, eventType) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+  this.PushMember("EventInfo", descriptor, null, memberBuilder);
+
+  return memberBuilder;
+};
+
+JSIL.InterfaceBuilder.prototype.GenericEvent = function (_descriptor, name, eventType) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+  this.PushMember("EventInfo", descriptor, null, memberBuilder);
+
+  return memberBuilder;
+};
+
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
@@ -6063,6 +6081,19 @@ JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propert
   );
 
   return this.Property(descriptor, propertyName, propertyType);
+};
+
+JSIL.InterfaceBuilder.prototype.ExternalEvent = function (descriptor, eventName, eventType) {
+  this.ExternalMethod(
+    descriptor, "add_" + eventName,
+    new JSIL.MethodSignature(eventType, [], [])
+  );
+  this.ExternalMethod(
+    descriptor, "remove_" + eventName,
+    new JSIL.MethodSignature(null, [eventType], [])
+  );
+
+  return this.Event(descriptor, eventName, eventType);
 };
 
 JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) {

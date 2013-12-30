@@ -1522,6 +1522,11 @@ namespace JSIL {
                     TranslateProperty(context, astEmitter, output, property, dollar);
             };
 
+            Action translateEvents = () => {
+                foreach (var @event in typedef.Events)
+                    TranslateEvent(context, astEmitter, output, @event, dollar);
+            };
+
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
                 var interfaceInfo = _TypeInfoProvider.GetTypeInformation(i);
                 if (interfaceInfo != null)
@@ -1548,6 +1553,10 @@ namespace JSIL {
 
             if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
                 translateProperties();
+            }
+
+            if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Events.Count) > 0)) {
+                translateEvents();
             }
 
             var interfaces = typeInfo.AllInterfacesRecursive;
@@ -2705,6 +2714,47 @@ namespace JSIL {
             output.RPar();
 
             TranslateCustomAttributes(context, property.DeclaringType, property, astEmitter, output);
+
+            output.Semicolon();
+        }
+
+        protected void TranslateEvent (
+            DecompilerContext context,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
+            EventDefinition @event, JSRawOutputIdentifier dollar
+        ) {
+            var eventInfo = _TypeInfoProvider.GetMemberInformation<Internal.EventInfo>(@event);
+            if ((eventInfo == null) || eventInfo.IsIgnored)
+                return;
+
+            var isStatic = (@event.AddMethod ?? @event.RemoveMethod).IsStatic;
+
+            output.NewLine();
+
+            dollar.WriteTo(output);
+            output.Dot();
+
+            if (eventInfo.IsExternal)
+                output.Identifier("ExternalEvent", EscapingMode.None);
+            else if (@event.DeclaringType.HasGenericParameters && isStatic)
+                output.Identifier("GenericEvent", EscapingMode.None);
+            else
+                output.Identifier("Event", EscapingMode.None);
+
+            output.LPar();
+
+            output.MemberDescriptor(eventInfo.IsPublic, eventInfo.IsStatic, eventInfo.IsVirtual);
+
+            output.Comma();
+
+            output.Value(Util.EscapeIdentifier(eventInfo.Name, EscapingMode.String));
+
+            output.Comma();
+            output.TypeReference(@event.EventType, astEmitter.ReferenceContext);
+
+            output.RPar();
+
+            TranslateCustomAttributes(context, @event.DeclaringType, @event, astEmitter, output);
 
             output.Semicolon();
         }

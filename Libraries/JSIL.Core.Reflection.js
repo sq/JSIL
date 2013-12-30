@@ -34,6 +34,7 @@ JSIL.ImplementExternals(
     var propertyArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.PropertyInfo"]);
     var methodArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MethodInfo"]);
     var constructorArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.ConstructorInfo"]);
+    var eventArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.EventInfo"]);
     var typeArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Type"]);
 
     $.Method({Public: true , Static: true }, "op_Equality",
@@ -249,6 +250,28 @@ JSIL.ImplementExternals(
       function (flags) {
         return JSIL.GetMembersInternal(
           this, flags, "MethodInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetEvents",
+      new JSIL.MethodSignature(eventArray, []),      
+      function () {
+        return JSIL.GetMembersInternal(
+          this, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public,
+          "EventInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetEvents",
+      new JSIL.MethodSignature(eventArray, ["System.Reflection.BindingFlags"]),      
+      function (flags) {
+        return JSIL.GetMembersInternal(
+          this, flags, "EventInfo"
         );
       }
     );
@@ -1058,6 +1081,94 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
         throw new System.Exception("Failed to find constructor");
 
       return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Reflection.EventInfo", function ($) {
+  var getAddMethodImpl = function (nonPublic) {
+    var methodName = "add_" + this.get_Name();
+    var bf = System.Reflection.BindingFlags;
+    var bindingFlags = (nonPublic 
+      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Instance", "Public")
+    );
+    return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
+  };
+
+  var getRemoveMethodImpl = function (nonPublic) {
+    var methodName = "remove_" + this.get_Name();
+    var bf = System.Reflection.BindingFlags;
+    var bindingFlags = (nonPublic 
+      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Instance", "Public")
+    );
+    return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
+  };
+
+  $.Method({Static: false, Public: true }, "GetAddMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    getAddMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetAddMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.Boolean], [])),
+    getAddMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetRemoveMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    getRemoveMethodImpl
+  );
+
+  $.Method({Static: false, Public: true }, "GetRemoveMethod", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.Boolean], [])),
+    getRemoveMethodImpl
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "AddEventHandler", 
+    new JSIL.MethodSignature(null, [$.Object, $jsilcore.TypeRef("System.Delegate")], []), 
+    function AddEventHandler (target, handler) {
+      var method = this.GetAddMethod();
+      method.Invoke(target, [handler]);
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "RemoveEventHandler", 
+    new JSIL.MethodSignature(null, [$.Object, $jsilcore.TypeRef("System.Delegate")], []), 
+    function RemoveEventHandler (target, handler) {
+      var method = this.GetRemoveMethod();
+      method.Invoke(target, [handler]);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_EventType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
+    function get_EventType () {
+      var result = this._cachedEventType;
+
+      if (!result) {
+        var method = this.GetAddMethod() || this.GetRemoveMethod();
+
+        if (method) {
+          var argumentTypes = method._data.signature.argumentTypes;
+          var argumentType = argumentTypes[0];
+          result = JSIL.ResolveTypeReference(argumentType, this._typeObject.__Context__)[1];
+
+          this._cachedEventType = result;
+        }
+      }
+
+      return result;
+    }
+  );
+
+  $.Method({Static: false, Public: true}, "toString",
+    new JSIL.MethodSignature($.String, [], []),
+    function () {
+      // FIXME: Types are encoded as long names, not short names, which is incompatible with .NET
+      // i.e. 'System.Int32 Foo()' instead of 'Int32 Foo()'
+      return this.get_EventType().toString() + " " + this.Name;
     }
   );
 });
