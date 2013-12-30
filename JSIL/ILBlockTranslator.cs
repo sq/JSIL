@@ -2957,7 +2957,9 @@ namespace JSIL {
             if (isInterfaceMethod)
                 return false;
 
-            if (methodInfo.IsSealed)
+            // HACK: A virtual method can be marked as sealed, in which case you *do* need to be explicit about calling it
+            // FIXME: In #314, Cecil insists that List`1.Add is virtual, but it is clearly not. What the heck?
+            if (methodInfo.IsSealed && !methodInfo.IsVirtual)
                 return false;
 
             if (methodInfo.IsVirtual) {
