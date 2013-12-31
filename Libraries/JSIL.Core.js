@@ -2665,7 +2665,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
-  var trace = true;
+  var trace = false;
 
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
@@ -2681,11 +2681,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
   var typeName = typeObject.__FullName__;
   var missingMembers = [];
+  var ambiguousMembers = [];
 
   var typeMembers = JSIL.GetMembersInternal(typeObject, $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public"));
   var resolveContext = typeObject.__IsStatic__ ? publicInterface : publicInterface.prototype;
-
-  var namePairs = [[null, null], [null, null]];
 
   __interfaces__:
   for (var i = 0, l = interfaces.length; i < l; i++) {
@@ -2770,7 +2769,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       if (hasNonPlaceholder(proto, qualifiedName))
         continue;
 
-      var isMissing = false;
+      var isMissing = false, isAmbiguous = false;
 
       switch (member.__MemberType__) {
         case "MethodInfo":
@@ -2781,14 +2780,23 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           );
 
           if (matchingMethods.length === 0) {
-            // FIXME: Check for existing
-            missingMembers.push(member.get_Name());
+            isMissing = true;
           } else if (matchingMethods.length > 1) {
+            isAmbiguous = true;
+          } else {
+            var implementation = matchingMethods[0];
+
+            var sourceQualifiedName = implementation._data.signature.GetKey(implementation._descriptor.EscapedName);
+
+            if (trace)
+              console.log(typeName + "::" + signatureQualifiedName + " = " + sourceQualifiedName);
+
+            JSIL.SetLazyValueProperty(
+              proto, signatureQualifiedName, 
+              JSIL.MakeInterfaceMemberGetter(proto, sourceQualifiedName)
+            );
           }
-          console.log(
-            "Matching methods for " + ifaceName + "::" + member.get_Name() + ":", 
-            matchingMethods
-          );
+
           break;
 
         default:
@@ -2796,54 +2804,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           break;
       }
 
-      /*
-
-        if (
-          hasShortRecursive && 
-          (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
-          shortImpl.__IsPlaceholder__ != false
-        ) {
-          hasShortRecursive = hasShort = false;
-        }
-
-        if (
-          hasQualifiedRecursive && 
-          (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
-          qualifiedImpl.__IsPlaceholder__ != false
-        ) {
-          hasQualifiedRecursive = hasQualified = false;
-        }
-
-        if (!hasShortRecursive && !hasQualifiedRecursive) {
-          isMissing = true;
-          return;
-        }
-
-        if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
-          if (trace)
-            console.log(typeName + "::" + qualifiedName + " = " + shortName);
-
-          switch (member.__MemberType__) {
-            case "MethodInfo":
-            case "ConstructorInfo":
-              JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
-              JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, shortName));
-              break;
-
-            case "PropertyInfo":
-              Object.defineProperty(proto, qualifiedName, shortImpl);
-              break;
-          }
-        } else {
-          if (trace)
-            console.log("Skipping " + typeName + "::" + qualifiedName);
-        }
-      });
-
       if (isMissing)
-        missingMembers.push(namePairs[0][1]);
-      */
-
+        missingMembers.push(signatureQualifiedName || qualifiedName);
+      else if (isAmbiguous)
+        ambiguousMembers.push(signatureQualifiedName || qualifiedName);
     }
 
     if (interfaces.indexOf(iface) < 0)
@@ -2907,6 +2871,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (missingMembers.length > 0) {
     if ((JSIL.SuppressInterfaceWarnings !== true) || trace)
       JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): " + missingMembers.join(", "));
+  }
+
+  if (ambiguousMembers.length > 0) {
+    if ((JSIL.SuppressInterfaceWarnings !== true) || trace)
+      JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' has ambiguous implementation of interface member(s): " + ambiguousMembers.join(", "));
   }
 };
 
@@ -8533,6 +8502,7 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
         var argumentType = argumentTypes[j];
         var argumentTypeB = parameterInfos[j].get_ParameterType();
 
+        // FIXME: Do a more complete assignability check
         if (argumentType !== argumentTypeB) {
           if (trace)
             console.log("Dropping because arg mismatch", argumentType, argumentTypeB);
@@ -8544,6 +8514,7 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
     }
 
     if (typeof (returnType) !== "undefined") {
+      // FIXME: Do a more complete assignability check
       if (returnType !== method.get_ReturnType()) {
         if (trace)
           console.log("Dropping because wrong return type", returnType, method.get_ReturnType());
