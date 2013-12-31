@@ -257,6 +257,7 @@
     <None Include="SimpleTestCases\Issue305.cs" />
     <None Include="SimpleTestCases\ListAddOverride.cs" />
     <None Include="ReflectionTestCases\Issue310.cs" />
+    <None Include="SimpleTestCases\Issue298.cs" />
     <None Include="TestCases\DictionaryKeysAndValues.cs" />
     <None Include="FailingTestCases\GenericMethodOfInterface.cs" />
     <None Include="FailingTestCases\LinqAggregate.cs" />

@@ -2665,7 +2665,7 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 };
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
-  var trace = false;
+  var trace = true;
 
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
@@ -2741,67 +2741,62 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
 
+    var hasNonPlaceholder = function (obj, name) {
+      var value = obj[name];
+      if ((typeof (value) === "undefined") ||
+          (value === null))
+        return false;
+
+      if (value.__IsPlaceholder__)
+        return false;
+
+      return true;
+    }
+
     __members__:
     for (var j = 0; j < members.length; j++) {
       var member = members[j];
+      var qualifiedName = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.EscapedName;
+      var signature = member._data.signature || null;
+      var signatureQualifiedName = null;
 
-      namePairs[0][0] = member._descriptor.EscapedName;
-      namePairs[0][1] = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.EscapedName;
-
-      if (member._data.signature) {
-        var signature = member._data.signature;
-
-        namePairs[1][0] = signature.GetKey(namePairs[0][0]);
-        namePairs[1][1] = signature.GetKey(namePairs[0][1]);
-        namePairs[0][1] = signature.GetKey(namePairs[0][1]);
-
-        if (trace)
-          console.log(signature.toString(member._descriptor.EscapedName), namePairs[1][1]);
-      } else {
-        namePairs[1][0] = null;
-        namePairs[1][1] = null;
+      if (signature) {
+        signatureQualifiedName = signature.GetKey(qualifiedName);
       }
+
+      if (signature && hasNonPlaceholder(proto, signatureQualifiedName))
+        continue;
+
+      if (hasNonPlaceholder(proto, qualifiedName))
+        continue;
 
       var isMissing = false;
 
-      namePairs.forEach(function (namePair) {
-        var shortName = namePair[0];
-        var qualifiedName = namePair[1];
+      switch (member.__MemberType__) {
+        case "MethodInfo":
+        case "ConstructorInfo":
+          // FIXME: Match signatures
+          var matchingMethods = typeObject.$GetMatchingInstanceMethods(
+            member.get_Name(), member.GetParameterTypes(), member.get_ReturnType()
+          );
 
-        if (!shortName)
-          return;
+          if (matchingMethods.length === 0) {
+            // FIXME: Check for existing
+            missingMembers.push(member.get_Name());
+          } else if (matchingMethods.length > 1) {
+          }
+          console.log(
+            "Matching methods for " + ifaceName + "::" + member.get_Name() + ":", 
+            matchingMethods
+          );
+          break;
 
-        if (trace)
-          console.log(shortName, qualifiedName);
+        default:
+          // FIXME: Not implemented
+          break;
+      }
 
-        var hasShort = proto.hasOwnProperty(shortName);
-        var hasQualified = proto.hasOwnProperty(qualifiedName);
-
-        var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, shortName);
-        var hasQualifiedRecursive = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
-
-        switch (member.__MemberType__) {
-          case "MethodInfo":
-          case "ConstructorInfo":
-            var shortImpl = proto[shortName];
-            var qualifiedImpl = proto[qualifiedName];
-            break;
-
-          case "PropertyInfo":
-            var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, shortName);
-            var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
-            break;
-
-          default:
-            // FIXME
-            return;
-        }
-
-        if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
-          hasShortRecursive = hasShort = false;
-
-        if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
-          hasQualifiedRecursive = hasQualified = false;
+      /*
 
         if (
           hasShortRecursive && 
@@ -2826,7 +2821,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
         if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
           if (trace)
-            console.log(qualifiedName, "->", shortName);
+            console.log(typeName + "::" + qualifiedName + " = " + shortName);
 
           switch (member.__MemberType__) {
             case "MethodInfo":
@@ -2841,12 +2836,13 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           }
         } else {
           if (trace)
-            console.log("Skipping " + qualifiedName);
+            console.log("Skipping " + typeName + "::" + qualifiedName);
         }
       });
 
       if (isMissing)
         missingMembers.push(namePairs[0][1]);
+      */
 
     }
 
@@ -2898,7 +2894,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
       if (trace)
-        console.log(key, "->", member._descriptor.EscapedName);
+        console.log("Overrides set " + typeName + "::" + key + " = " + member._descriptor.EscapedName);
 
       // Important: This may overwrite an existing member with this key, from an automatic interface fixup
       //  like 'Foo.GetEnumerator' -> 'Foo.Ixx$GetEnumerator'.
@@ -8517,7 +8513,8 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
   return null;
 };
 
-JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
+JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnType) {
+  var trace = false;
   var l = methods.length;
 
   for (var i = 0; i < l; i++) {
@@ -8527,6 +8524,9 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
     var parameterInfos = $jsilcore.$MethodGetParameters(method);
 
     if (parameterInfos.length !== argumentTypes.length) {
+      if (trace)
+        console.log("Dropping because wrong argcount", argumentTypes.length, parameterInfos.length);
+
       remove = true;
     } else {
       for (var j = 0; j < argumentTypes.length; j++) {
@@ -8534,9 +8534,21 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes) {
         var argumentTypeB = parameterInfos[j].get_ParameterType();
 
         if (argumentType !== argumentTypeB) {
+          if (trace)
+            console.log("Dropping because arg mismatch", argumentType, argumentTypeB);
+
           remove = true;
           break;
         }
+      }
+    }
+
+    if (typeof (returnType) !== "undefined") {
+      if (returnType !== method.get_ReturnType()) {
+        if (trace)
+          console.log("Dropping because wrong return type", returnType, method.get_ReturnType());
+
+        remove = true;
       }
     }
 
