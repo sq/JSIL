@@ -689,6 +689,8 @@ JSIL.MakeStaticClass("System.Console", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.ArrayEnumerator");
+
   $.RawMethod(false, "__CopyMembers__", 
     function ArrayEnumerator_CopyMembers (source, target) {
       target._array = source._array;
@@ -732,18 +734,29 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
       this._length = -1;
     }
   );
-  $.Method({Public: true , Static: false}, "get_Current", 
+
+  $.Method({Public: true , Static: false}, "IEnumerator_get_Current", 
     new JSIL.MethodSignature(System.Object, []),
     function () {
       return this._array[this._index];
     }
-  );
+  )
+    .Overrides(1, "get_Current");
+
+  $.Method({Public: true , Static: false}, "get_Current", 
+    new JSIL.MethodSignature(T, []),
+    function () {
+      return this._array[this._index];
+    }
+  )
+    .Overrides(2, "get_Current");
 
   $.Property({Public: true , Static: false, Virtual: true }, "Current");
 
   $.ImplementInterfaces(
-    System.IDisposable, System.Collections.IEnumerator,
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.ArrayEnumerator")])
+    /* 0 */ System.IDisposable, 
+    /* 1 */ System.Collections.IEnumerator,
+    /* 2 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.ArrayEnumerator")])
   );
 });
 
@@ -2819,12 +2832,21 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, ["T"], function
     }
   );
 
+  $.Method({Static: false, Public: true }, "IEnumerator_get_Current",
+    new JSIL.MethodSignature($.Object, []),
+    function () {
+      return this._current.get();
+    }
+  )
+    .Overrides(0, "get_Current");
+
   $.Method({Static: false, Public: true }, "get_Current",
     new JSIL.MethodSignature(T, []),
     function () {
       return this._current.get();
     }
-  );
+  )
+    .Overrides(1, "get_Current");
 
   $.Property({Static: false, Public: true, Virtual: true }, "Current");
 

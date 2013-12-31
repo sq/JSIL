@@ -216,7 +216,8 @@ JSIL.MakeInterface(
   "System.Collections.IDictionaryEnumerator", true, [], function ($) {
     $.Method({}, "get_Key", new JSIL.MethodSignature($.Object, [], []));
     $.Method({}, "get_Value", new JSIL.MethodSignature($.Object, [], []));
-    $.Method({}, "get_Entry", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.DictionaryEntry"), [], []));
+    // FIXME
+    // $.Method({}, "get_Entry", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.DictionaryEntry"), [], []));
     $.Property({}, "Key");
     $.Property({}, "Value");
     $.Property({}, "Entry");
@@ -568,3 +569,26 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Attribute", true, [],
     }
   );
 });
+
+JSIL.MakeEnum(
+  "System.TypeCode", true, {
+    Empty: 0, 
+    Object: 1, 
+    DBNull: 2, 
+    Boolean: 3, 
+    Char: 4, 
+    SByte: 5, 
+    Byte: 6, 
+    Int16: 7, 
+    UInt16: 8, 
+    Int32: 9, 
+    UInt32: 10, 
+    Int64: 11, 
+    UInt64: 12, 
+    Single: 13, 
+    Double: 14, 
+    Decimal: 15, 
+    DateTime: 16, 
+    String: 18
+  }, false
+);

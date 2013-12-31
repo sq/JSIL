@@ -2667,6 +2667,10 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var trace = false;
 
+  // HACK HACK HACK ugh.
+  if (typeObject.__FullName__ === "System.Enum")
+    return;
+
   var interfaces = typeObject.__Interfaces__;
   if (!JSIL.IsArray(interfaces))
     return;
@@ -8482,6 +8486,19 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
   return null;
 };
 
+JSIL.$DoTypesMatch = function (expected, type) {
+  if (expected === null)
+    return (type === null);
+
+  if (expected === type)
+    return true;
+
+  if (expected.__FullName__ === "System.Array")
+    return type.__IsArray__;
+
+  return false;
+}
+
 JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnType) {
   var trace = false;
   var l = methods.length;
@@ -8502,10 +8519,9 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
         var argumentType = argumentTypes[j];
         var argumentTypeB = parameterInfos[j].get_ParameterType();
 
-        // FIXME: Do a more complete assignability check
-        if (argumentType !== argumentTypeB) {
+        if (!JSIL.$DoTypesMatch(argumentType, argumentTypeB)) {
           if (trace)
-            console.log("Dropping because arg mismatch", argumentType, argumentTypeB);
+            console.log("Dropping because arg mismatch", argumentType.__FullName__, argumentTypeB.__FullName__);
 
           remove = true;
           break;
@@ -8515,9 +8531,9 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
 
     if (typeof (returnType) !== "undefined") {
       // FIXME: Do a more complete assignability check
-      if (returnType !== method.get_ReturnType()) {
+      if (!JSIL.$DoTypesMatch(returnType, method.get_ReturnType())) {
         if (trace)
-          console.log("Dropping because wrong return type", returnType, method.get_ReturnType());
+          console.log("Dropping because wrong return type", returnType.__FullName__, method.get_ReturnType().__FullName__);
 
         remove = true;
       }

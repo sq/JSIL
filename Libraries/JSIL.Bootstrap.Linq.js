@@ -24,15 +24,24 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, ["T"], function
     }
   );
 
+  function getEnumeratorImpl () {
+    if (this._getEnumerator !== null)
+      return this._getEnumerator();
+    else
+      return new (JSIL.AbstractEnumerator.Of(this.T))(this._getNextItem, this._reset, this._dispose);
+  };
+
+  $.Method({Static: false, Public: true }, "IEnumerable_GetEnumerator",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), []),
+    getEnumeratorImpl
+  )
+    .Overrides(0, "GetEnumerator");
+
   $.Method({Static: false, Public: true }, "GetEnumerator",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), []),
-    function () {
-      if (this._getEnumerator !== null)
-        return this._getEnumerator();
-      else
-        return new (JSIL.AbstractEnumerator.Of(this.T))(this._getNextItem, this._reset, this._dispose);
-    }
-  );
+    getEnumeratorImpl
+  )
+    .Overrides(1, "GetEnumerator");
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"), 
