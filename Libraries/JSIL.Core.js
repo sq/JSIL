@@ -7894,7 +7894,8 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
 };
 
 var $blobBuilderInfo = {
-  initialized: false
+  initialized: false,
+  retainedBlobs: []
 };
 
 JSIL.InitBlobBuilder = function () {
@@ -7907,6 +7908,7 @@ JSIL.InitBlobBuilder = function () {
   $blobBuilderInfo.hasBlobBuilder = Boolean(blobBuilder);
   $blobBuilderInfo.blobBuilder = blobBuilder;
   $blobBuilderInfo.hasBlobCtor = false;
+  $blobBuilderInfo.applyIEHack = navigator.userAgent.indexOf("Trident/") >= 0;
 
   try {
     var blob = new Blob();
@@ -7954,6 +7956,9 @@ JSIL.GetObjectURLForBytes = function (bytes, mimeType) {
 
   if (!blob)
     JSIL.RuntimeError("Blob API broken or not available");
+
+  if ($blobBuilderInfo.applyIEHack)
+    $blobBuilderInfo.retainedBlobs.push(blob);
 
   return window.URL.createObjectURL(blob);
 }
