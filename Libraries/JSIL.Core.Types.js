@@ -56,14 +56,14 @@ JSIL.ImplementExternals("System.Object", function ($) {
 
 
   $.Method({Static: false, Public: true}, "GetType",
-    new JSIL.MethodSignature("System.Type", [], [], $jsilcore),
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [], $jsilcore),
     function Object_GetType () {
       return this.__ThisType__;
     }
   );
 
   $.Method({Static: false, Public: true}, "Object.Equals",
-    new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore),
+    new JSIL.MethodSignature($.Boolean, [$.Object], [], $jsilcore),
     function Object_Equals (rhs) {
       return this === rhs;
     }
@@ -80,7 +80,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   var currentMemberwiseCloneInvocation = null;
 
   $.Method({Static: false, Public: false}, "MemberwiseClone",
-    new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
+    new JSIL.MethodSignature($.Object, [], [], $jsilcore),
     function Object_MemberwiseClone () {
       var result = null;
 
@@ -107,7 +107,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   );
 
   $.Method({Static: false, Public: true}, "toString",
-    new JSIL.MethodSignature("System.String", [], [], $jsilcore),
+    new JSIL.MethodSignature($.String, [], [], $jsilcore),
     function Object_ToString () {
       return JSIL.GetTypeName(this);
     }
