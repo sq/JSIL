@@ -776,46 +776,58 @@ function finishLoading () {
       JSIL.Initialize();
     }
 
-    if (typeof ($jsilreadonlystorage) !== "undefined") {
-      var prefixedFileRoot;
-
-      if (jsilConfig.fileVirtualRoot[0] !== "/")
-        prefixedFileRoot = "/" + jsilConfig.fileVirtualRoot;
-      else
-        prefixedFileRoot = jsilConfig.fileVirtualRoot;
-
-      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
+    if (state.initFailed) {
+      return;
     }
 
-    JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
-      var root;
-      if (JSIL.GetStorageVolumes) {
-        var volumes = JSIL.GetStorageVolumes();
+    try {
+      if (typeof ($jsilreadonlystorage) !== "undefined") {
+        var prefixedFileRoot;
 
-        if (volumes.length) {
-          root = volumes[0];
-        }
+        if (jsilConfig.fileVirtualRoot[0] !== "/")
+          prefixedFileRoot = "/" + jsilConfig.fileVirtualRoot;
+        else
+          prefixedFileRoot = jsilConfig.fileVirtualRoot;
+
+        $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
       }
 
-      if (!root && typeof(VirtualVolume) === "function") {
-        root = new VirtualVolume("root", "/");
-      }
+      JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
+        var root;
+        if (JSIL.GetStorageVolumes) {
+          var volumes = JSIL.GetStorageVolumes();
 
-      if (root) {
-        if ($jsilbrowserstate.readOnlyStorage) {
-          var trimmedRoot = jsilConfig.fileVirtualRoot.trim();
-
-          if (trimmedRoot !== "/" && trimmedRoot)
-            root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
-          else
-            root = $jsilbrowserstate.readOnlyStorage;
+          if (volumes.length) {
+            root = volumes[0];
+          }
         }
 
-        return root;
-      }
+        if (!root && typeof(VirtualVolume) === "function") {
+          root = new VirtualVolume("root", "/");
+        }
 
-      return null;
-    });
+        if (root) {
+          if ($jsilbrowserstate.readOnlyStorage) {
+            var trimmedRoot = jsilConfig.fileVirtualRoot.trim();
+
+            if (trimmedRoot !== "/" && trimmedRoot)
+              root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+            else
+              root = $jsilbrowserstate.readOnlyStorage;
+          }
+
+          return root;
+        }
+
+        return null;
+      });
+
+      state.initFailed = false;
+    } catch (exc) {
+      state.initFailed = true;
+
+      throw exc;
+    }
   };
 
   while (Date.now() <= endBy) {
