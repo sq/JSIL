@@ -4,8 +4,19 @@ if (typeof (JSIL) !== "undefined")
   throw new Error("JSIL.Core included twice");
 
 var JSIL = {
-  __FullName__ : "JSIL"  
+  __FullName__: "JSIL"
 };
+
+Object.defineProperty(
+  this,
+  "JSIL",
+  {
+    value: JSIL,
+    configurable: false,
+    enumerable: true,
+    writable: false
+  }
+);
 
 if (typeof (jsilConfig) === "undefined") {
   var jsilConfig = {};
@@ -2051,13 +2062,6 @@ JSIL.ResolveTypeReference = function (typeReference, context) {
   ) {
     if (typeReference.indexOf("!!") === 0) {
       result = new JSIL.PositionalGenericParameter(typeReference, context);
-
-      if (
-        (typeof (context) === "object") && (context !== null) &&
-        (Object.getPrototypeOf(context) === JSIL.MethodSignature.prototype)
-      ) {
-        result = context.genericArgumentNames[result.index];
-      }
     } else {
 
       if (
@@ -3491,9 +3495,21 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
         }
 
         var argTypes = resolvedMethod.argumentTypes;
+        var numGenericArguments = argc - argTypes.length;
+
+        var resolvedGenericMethod = resolvedMethod;
+
+        // If the method signature has any generic arguments, resolve any positional generic parameters
+        //  referenced in the method signature. If we don't do this those types will just be "!!0" etc
+        if (numGenericArguments > 0) {
+          var genericArguments = Array.prototype.slice.call(arguments, 0, numGenericArguments);
+          resolvedGenericMethod = resolvedMethod.ResolvePositionalGenericParameters(genericArguments);
+          argTypes = resolvedGenericMethod.argumentTypes;
+        }
 
         // Check the types of the passed in argument values against the types expected for
-        //  this particular signature.
+        //  this particular signature. Note that we use the resolved generic version so that
+        //  any positional generic parameters are used for type matching.
         for (var j = 0; j < argc; j++) {
           var expectedType = argTypes[j];
           var arg = arguments[j + offset];
@@ -3507,6 +3523,8 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
           }
         }
 
+        // Find the method implementation. Note that we don't use the key generated from the
+        //  resolved generic version, because the actual method key contains !!0 etc.
         var foundOverload = target[resolvedMethod.key];
 
         if (typeof (foundOverload) !== "function") {
@@ -6680,6 +6698,46 @@ JSIL.ResolvedMethodSignature = function (methodSignature, key, returnType, argum
   this.key = key;
   this.returnType = returnType;
   this.argumentTypes = argumentTypes;
+
+  JSIL.ValidateArgumentTypes(argumentTypes);
+};
+
+JSIL.ResolvedMethodSignature.prototype.ResolvePositionalGenericParameter = function (genericParameterValues, parameter) {
+  if (
+    (typeof (parameter) === "object") && 
+    (parameter !== null) &&
+    (Object.getPrototypeOf(parameter) === JSIL.PositionalGenericParameter.prototype)
+  ) {
+    return genericParameterValues[parameter.index] || null;
+  } else {
+    return parameter;
+  }
+};
+
+JSIL.ResolvedMethodSignature.prototype.ResolvePositionalGenericParameters = function (genericParameterValues) {
+  var returnType = this.ResolvePositionalGenericParameter(genericParameterValues, this.returnType);
+  var argumentTypes = [];
+
+  var resolvedAnyArguments = false;
+
+  for (var i = 0, l = this.argumentTypes.length; i < l; i++) {
+    var argumentType = this.argumentTypes[i];
+    argumentType = this.ResolvePositionalGenericParameter(genericParameterValues, argumentType);
+    argumentTypes.push(argumentType);
+
+    if (argumentType !== this.argumentTypes[i]);
+      resolvedAnyArguments = true;
+  }
+
+  if ((returnType !== this.returnType) || resolvedAnyArguments)
+    return new JSIL.ResolvedMethodSignature(
+      this.methodSignature,
+      this.key,
+      returnType,
+      argumentTypes
+    );
+  else
+    return this;
 };
 
 JSIL.ResolvedMethodSignature.prototype.toString = function () {
@@ -7751,7 +7809,14 @@ JSIL.StringToCharArray = function (text) {
   return result;
 };
 
-var $equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
+JSIL.$equalsSignature = null;
+
+JSIL.GetEqualsSignature = function () {
+  if (JSIL.$equalsSignature === null)
+    JSIL.$equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
+
+  return JSIL.$equalsSignature;
+}
 
 JSIL.ObjectEquals = function (lhs, rhs) {
   if ((lhs === null) || (rhs === null))
@@ -7766,7 +7831,7 @@ JSIL.ObjectEquals = function (lhs, rhs) {
       break;
 
     case "object":
-      var key = $equalsSignature.GetKey("Object_Equals");
+      var key = JSIL.GetEqualsSignature().GetKey("Object_Equals");
       var fn = lhs[key];
 
       if (fn)
@@ -8549,4 +8614,19 @@ JSIL.ThrowNullReferenceException = function () {
 
 JSIL.RuntimeError = function (text) {
   throw new Error(text);
+};
+
+JSIL.ValidateArgumentTypes = function (types) {
+  for (var i = 0, l = types.length; i < l; i++) {
+    var item = types[i];
+
+    if (
+      (typeof (item) === "string") || 
+      (typeof (item) === "number") ||
+      (typeof (item) === "undefined") ||
+      (item === null)
+    ) {
+      JSIL.RuntimeError("Argument type list must only contain type objects: " + JSON.stringify(item));
+    }
+  }
 };

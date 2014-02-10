@@ -38,7 +38,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 
     var typeObject = JSIL.ResolveTypeReference(type)[1];
     
-    var elementName = JSIL.GetTypeName(type);
+    var elementName = JSIL.GetTypeName(typeObject);
     var compositePublicInterface = types[elementName];
 
     if (typeof (compositePublicInterface) === "undefined") {
