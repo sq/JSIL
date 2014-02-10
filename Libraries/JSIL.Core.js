@@ -7234,9 +7234,9 @@ JSIL.CreateInstanceOfTypeRecord = function (type, constructorName, constructor, 
   if ((constructorName === null) && (constructor === null)) {
   } else {
     if (type.__IsStruct__)
-      constructorBody.push("if (argv && argv.length === 0) return;");
-
-    constructorBody.push("if ((typeof (argv) === 'undefined') || (argv === null)) argv = [];");
+      constructorBody.push("if ((argv === null) || (typeof (argv) === 'undefined') || (argv.length === 0)) return;");
+    else
+      constructorBody.push("if ((typeof (argv) === 'undefined') || (argv === null)) argv = [];");
 
     if (constructor) {
       closure.actualConstructor = constructor;
