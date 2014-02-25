@@ -157,7 +157,11 @@ namespace JSIL.Utilities {
             var result = new Dictionary<string, byte[]>();
 
             foreach (var resourceFile in resourceFiles) {
-                using (var stream = asm.GetManifestResourceStream(resourceFile)) {
+                var stream = asm.GetManifestResourceStream(resourceFile);
+                if (stream == null)
+                    throw new FileNotFoundException("No manifest resource stream named " + resourceFile);
+
+                using (stream) {
                     var buffer = new byte[stream.Length];
                     stream.Read(buffer, 0, buffer.Length);
                     result[resourceFile] = buffer;
@@ -176,8 +180,6 @@ namespace JSIL.Utilities {
                 var manifestResources = resourceExtractor.GetManifestResources(
                     assemblyPath, (fn) => !fn.EndsWith(".resources")
                 );
-
-                var encoding = new UTF8Encoding(false);
 
                 foreach (var kvp in manifestResources) {
                     Console.WriteLine(kvp.Key);

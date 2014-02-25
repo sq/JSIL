@@ -39,8 +39,6 @@ namespace JSIL.Compiler {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
 
-                var variables = result.ApplyTo(new VariableSet());
-
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
                 result.ContributingPaths = new[] { Path.GetFullPath(filename) };
 
@@ -91,7 +89,7 @@ namespace JSIL.Compiler {
             catch(BadImageFormatException ex)
             {
                 Console.Error.WriteLine("// Invalid .NET Assembly: \"" + fileName + "\".  It will not be loaded.");
-                Console.Error.WriteLine("//     Reason: " + (ex.Message ?? "").Trim().Replace(Environment.NewLine, Environment.NewLine + "// "));
+                Console.Error.WriteLine("//     Reason: " + ex.Message.Trim().Replace(Environment.NewLine, Environment.NewLine + "// "));
                 return null;
             }
         }
@@ -240,7 +238,7 @@ namespace JSIL.Compiler {
                         (b) => autoloadProfiles[0] = (b == null)},
                     {"pa=|profileAssembly=",
                         "Loads one or more project profiles from the specified profile assembly. Note that this does not force the profiles to be used.",
-                        (filename) => profileAssemblies.Add(filename)},
+                        profileAssemblies.Add},
                     {"dp=|defaultProfile=",
                         "Overrides the default profile to use for projects by specifying the name of the new default profile.",
                         (profileName) => newDefaultProfile[0] = profileName},
@@ -343,7 +341,7 @@ namespace JSIL.Compiler {
                 var solutionFullPath = Path.GetFullPath(solution);
                 var solutionDir = Path.GetDirectoryName(solutionFullPath);
 
-                if ((solutionDir == null) || (solutionFullPath == null)) {
+                if (solutionDir == null) {
                     Console.Error.WriteLine("// Can't process solution '{0}' - path seems malformed", solution);
                     continue;
                 }
@@ -372,8 +370,10 @@ namespace JSIL.Compiler {
                     config.SolutionBuilder.LogVerbosity
                 );
 
-                var jss = new JavaScriptSerializer();
-                jss.MaxJsonLength = (1024 * 1024) * 64;
+                var jss = new JavaScriptSerializer {
+                    MaxJsonLength = (1024 * 1024) * 64
+                };
+
                 var buildResultJson = jss.Serialize(buildResult);
                 buildResult = jss.Deserialize<SolutionBuilder.BuildResult>(buildResultJson);
 
@@ -549,26 +549,22 @@ namespace JSIL.Compiler {
 
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, assemblyCache, 
-                onProxyAssemblyLoaded: (name, classification) => {
-                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name));
-                }
+                onProxyAssemblyLoaded: (name, classification) => 
+                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name))                
             );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
             translator.RunningTransforms += MakeProgressHandler ("Translating ");
             translator.Writing += MakeProgressHandler           ("Writing JS  ");
 
-            translator.AssemblyLoaded += (fn, classification) => {
+            translator.AssemblyLoaded += (fn, classification) =>
                 Console.Error.WriteLine("// Loaded {0} ({1})", ShortenPath(fn), classification);
-            };
             translator.CouldNotLoadSymbols += (fn, ex) => {
             };
-            translator.CouldNotResolveAssembly += (fn, ex) => {
+            translator.CouldNotResolveAssembly += (fn, ex) => 
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);
-            };
-            translator.CouldNotDecompileMethod += (fn, ex) => {
+            translator.CouldNotDecompileMethod += (fn, ex) =>
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
-            };
 
             if (typeInfoProvider == null) {
                 if (CachedTypeInfoProvider != null)
@@ -610,7 +606,7 @@ namespace JSIL.Compiler {
                         continue;
                     }
 
-                    string fileConfigPath = null;
+                    string fileConfigPath;
                     var fileConfigSearchDir = Path.GetDirectoryName(filename);
                     var separators = new char[] { '/', '\\' };
 

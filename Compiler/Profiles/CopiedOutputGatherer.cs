@@ -35,8 +35,7 @@ namespace JSIL.Utilities {
                     if (retries < (maxRetries - 1)) {
                         Console.Error.Write(".");
                     } else {
-                        if (wroteFailureMessage)
-                            Console.Error.WriteLine();
+                        Console.Error.WriteLine();
                         throw;
                     }
                 }
@@ -79,7 +78,7 @@ namespace JSIL.Utilities {
 
                     // Skip XNA content projects because the XNA profile will automatically copy the files over
                     //  and put them in its content manifest.
-                    if (projectFileName.Contains(".contentproj"))
+                    if ((projectFileName != null) && projectFileName.Contains(".contentproj"))
                         continue;
 
                     var projectFileDirectory = Path.GetDirectoryName(projectFilePath);
@@ -118,14 +117,16 @@ namespace JSIL.Utilities {
                             copiedAny = true;
                         }
 
-                        var sourcePath = Path.Combine(projectFileDirectory, item.EvaluatedInclude);
+                        var sourcePath = (projectFileDirectory != null) 
+                            ? Path.Combine(projectFileDirectory, item.EvaluatedInclude) 
+                            : item.EvaluatedInclude;
                         var fileInfo = new FileInfo(sourcePath);
                         var collapsedSourcePath = fileInfo.FullName.ToLower();
 
                         if (outputDirectorySourcePaths.Contains(collapsedSourcePath)) {
                             CopyFile(collapsedSourcePath, outputPath, true);
 
-                            manifestWriter.Add("File", outputLocalPath, new Dictionary<string, object>() {
+                            manifestWriter.Add("File", outputLocalPath, new Dictionary<string, object> {
                                 {"sizeBytes", fileInfo.Length}
                             });
                         }
