@@ -1709,6 +1709,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     constructing: false,
     name: name
   };
+
   JSIL.AllRegisteredNames.push(state);
 
   var getter = function RegisterName_getter (unseal) {
@@ -1801,6 +1802,10 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     publicName.setLazy(getter);
 
   JSIL.DefineTypeName(name, getter, isPublic);
+
+  // V8 closure leaks yaaaaaay
+  creator = null;
+  initializer = null;
 };
 
 JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, assembly) {
@@ -5006,13 +5011,21 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
   var wrappedInitializer = null;
   if (initializer) {
-    wrappedInitializer = function (to) {
-      var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, to.__Type__, to);
-      return initializer(interfaceBuilder);
+    var makeWrappedInitializer = function (i, a) {
+      return function (to) {
+        var interfaceBuilder = new JSIL.InterfaceBuilder(a, to.__Type__, to);
+        return i(interfaceBuilder);
+      };
     };
+
+    wrappedInitializer = makeWrappedInitializer(initializer, assembly);
   }
 
   JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, wrappedInitializer);
+
+  // Goddamn V8 closure leaks UGH JESUS
+  initializer = null;
+  wrappedInitializer = null;
 
   return memberBuilder;
 };
@@ -6061,6 +6074,11 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     var getName = function () {
       var thisType = (this.__Type__ || this.__ThisType__);
       var lateBoundSignature = thisType.__ExternalMethods__[externalMethodIndex];
+
+      // FIXME: Why is this necessary now when it wasn't before?
+      if (lateBoundSignature == null)
+        lateBoundSignature = signature;
+
       return lateBoundSignature.toString(methodName);
     };
     newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
