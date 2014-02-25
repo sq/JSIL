@@ -145,9 +145,12 @@ namespace JSIL.Transforms {
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
             Func<GenericParameter, bool> filter =
                 (gp) => {
-                    // If the generic parameter can be expanded given the method that declared the type, don't cache locally.
+                    // If the generic parameter can be expanded given the type that declared the method, don't cache locally.
                     var resolved = MethodSignature.ResolveGenericParameter(gp, method.DeclaringType);
-                    if ((resolved != gp) && (resolved != null))
+                    // Note that we have to ensure the resolved type is not generic either. A generic parameter can resolve to a
+                    //  *different* generic parameter, and that is still correct - i.e. SomeMethod<A> calls SomeMethod<B>,
+                    //  in that case resolving B will yield A.
+                    if ((resolved != gp) && (resolved != null) && !TypeUtil.IsOpenType(resolved))
                         return false;
 
                     var ownerMethod = gp.Owner as MethodReference;
