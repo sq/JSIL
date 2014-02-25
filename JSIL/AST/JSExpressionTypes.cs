@@ -58,6 +58,13 @@ namespace JSIL.Ast {
             return EqualsImpl(obj, true);
         }
 
+        public override int GetHashCode () {
+            return Method.GetHashCode() ^
+                AllVariables.Count.GetHashCode() ^
+                Parameters.Length.GetHashCode() ^
+                base.GetHashCodeOfValues();
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (Method != null) {
                 var delegateType = MethodTypes.Get(Method.Reference, typeSystem);
@@ -119,6 +126,10 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format("goto {0}", TargetLabel);
         }
+
+        public override int GetHashCode() {
+            return (TargetLabel ?? "").GetHashCode();
+        }
     }
 
     public class JSExitLabelGroupExpression : JSGotoExpression {
@@ -160,6 +171,10 @@ namespace JSIL.Ast {
 
             return Value.Equals(rhs.Value);
         }
+
+        public override int GetHashCode() {
+            return Value.GetHashCode();
+        }
     }
 
     public class JSBreakExpression : JSFlowControlExpression {
@@ -180,6 +195,10 @@ namespace JSIL.Ast {
 
             return TargetLoop.Equals(rhs.TargetLoop);
         }
+
+        public override int GetHashCode () {
+            return TargetLoop.GetValueOrDefault(-1).GetHashCode();
+        }
     }
 
     public class JSContinueExpression : JSFlowControlExpression {
@@ -199,6 +218,10 @@ namespace JSIL.Ast {
                 return base.Equals(obj);
 
             return TargetLoop.Equals(rhs.TargetLoop);
+        }
+
+        public override int GetHashCode () {
+            return TargetLoop.GetValueOrDefault(-1).GetHashCode();
         }
     }
 
@@ -542,6 +565,10 @@ namespace JSIL.Ast {
         public override bool Equals (object obj) {
             return EqualsImpl(obj, true);
         }
+
+        public override int GetHashCode() {
+            return 0;
+        }
     }
 
     public class JSUntranslatableExpression : JSNullExpression {
@@ -563,6 +590,10 @@ namespace JSIL.Ast {
             }
 
             return EqualsImpl(obj, true);
+        }
+
+        public override int GetHashCode() {
+            return Type.GetHashCode();
         }
     }
 
@@ -617,6 +648,11 @@ namespace JSIL.Ast {
             return EqualsImpl(obj, true);
         }
 
+        public override int GetHashCode() {
+            return Member.GetHashCode() ^
+                Arguments.Length.GetHashCode();
+        }
+
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
         }
 
@@ -663,6 +699,10 @@ namespace JSIL.Ast {
             }
 
             return EqualsImpl(obj, true);
+        }
+
+        public override int GetHashCode() {
+            return Type.GetHashCode();
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
@@ -2246,6 +2286,10 @@ namespace JSIL.Ast {
 
         public override bool Equals (object obj) {
             return EqualsImpl(obj, true);
+        }
+
+        public override int GetHashCode () {
+            return base.GetHashCodeOfValues();
         }
 
         public override string ToString () {

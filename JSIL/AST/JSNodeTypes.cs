@@ -297,8 +297,15 @@ namespace JSIL.Ast {
             return EqualsImpl(obj, false);
         }
 
+        protected int GetHashCodeOfValues () {
+            return Values.Length;
+        }
+
         public override int GetHashCode () {
-            return 0; // :-(
+            // HACK: Can we do better?
+            //  I think this has to return 0 since derived types may actually ignore Values[] in their Equals implementation.
+            // return Values.Length;
+            return 0;
         }
     }
 
@@ -464,6 +471,10 @@ namespace JSIL.Ast {
             var comparer = Comparer<T>.Default;
 
             return comparer.Compare(Value, rhs.Value) == 0;
+        }
+
+        public override int GetHashCode() {
+            return GetType().GetHashCode() ^ Value.GetHashCode();
         }
 
         public override bool IsConstant {

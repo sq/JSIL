@@ -68,6 +68,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public override int GetHashCode() {
+            return base.GetHashCode();
+        }
+
         public override string ToString () {
             return String.Format("default({0})", Value.FullName);
         }

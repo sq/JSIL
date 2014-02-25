@@ -763,6 +763,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public override int GetHashCode() {
+            return Identifier.GetHashCode();
+        }
+
         public override string ToString () {
             JSVariable variable;
             if (Variables.TryGetValue(Identifier, out variable))

@@ -1036,6 +1036,16 @@ namespace JSIL.Transforms {
             }
         }
 
+        public override int GetHashCode () {
+            return EscapingVariables.Count.GetHashCode() ^
+                ModifiedVariables.Count.GetHashCode() ^
+                ResultIsNew.GetHashCode() ^
+                ResultVariable.GetHashCode() ^
+                VariableAliases.Count.GetHashCode() ^
+                ViolatesThisReferenceImmutability.GetHashCode() ^
+                IsPure.GetHashCode();
+        }
+
         public bool FieldIsMutatedRecursively (FieldInfo field) {
             if (MutatedFields == null)
                 // Can't know for sure
