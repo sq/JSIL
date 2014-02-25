@@ -62,8 +62,9 @@ namespace JSIL.Internal {
 
             var bclName = new AssemblyNameReference(
                 name.Name,
-                // FIXME: Hard-coding 4.0 is probably a mistake
-                new Version(4, 0, 0, 0)
+                // FIXME: Is this right? It was 4.0 before, but that's definitely wrong.
+                //  This should pick the highest appropriate version from the GAC.
+                null
             ) {
                 Culture = name.Culture,
                 PublicKeyToken = BCLPublicKeyToken
@@ -78,7 +79,7 @@ namespace JSIL.Internal {
             foreach (var kvp in Configuration.Assemblies.Redirects) {
                 if (Regex.IsMatch(name.FullName, kvp.Key, RegexOptions.IgnoreCase)) {
                     redirectedFrom = name.FullName;
-                    return new AssemblyNameReference(kvp.Value, null);
+                    return AssemblyNameReference.Parse(kvp.Value);
                 }
             }
 
