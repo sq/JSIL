@@ -7281,6 +7281,9 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
       return 0;
   }
 
+  if (type.__Type__ && !type.__PublicInterface__)
+    throw new Error("CreateInstanceOfType expects a type but a public interface was provided");
+
   var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__];
   if (!recordSet)
     recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = new JSIL.CreateInstanceOfTypeRecordSet(type);

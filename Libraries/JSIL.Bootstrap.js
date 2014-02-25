@@ -2132,36 +2132,34 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", $jsilcore.has
 JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) {
   var mscorlib = JSIL.GetCorlib();
 
+  function initFields (self) {
+    self._dict = JSIL.CreateDictionaryObject(null);
+    self._count = 0;
+    self.tKeyCollection = null;
+    self.tValueCollection = null;
+    self.tKeyEnumerator = null;
+    self.tValueEnumerator = null;
+    self.tEnumerator = null;
+  };
+
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
-      this._dict = {};
-      this._count = 0;
-      this.tKeysEnumerator = null;
-      this.tValuesEnumerator = null;
-      this.tEnumerator = null;
+      initFields(this);
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (capacity) {
-      this._dict = {};
-      this._count = 0;
-      this.tKeysEnumerator = null;
-      this.tValuesEnumerator = null;
-      this.tEnumerator = null;
+      initFields(this);
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])), 
     function _ctor (dictionary) {
-      this._dict = {};
-      this._count = 0;
-      this.tKeysEnumerator = null;
-      this.tValuesEnumerator = null;
-      this.tEnumerator = null;
+      initFields(this);
 
       var enumerator = JSIL.GetEnumerator(dictionary);
       while (enumerator.MoveNext())
@@ -2225,60 +2223,24 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   $.Method({Static:false, Public:true }, "get_Keys", 
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/KeyCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
     function get_Keys () {
-      if (this.tKeysEnumerator === null) {
-        this.tKeysEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
+      if (this.tKeyCollection === null) {
+        this.tKeyCollection = $jsilcore.System.Collections.Generic.Dictionary$b2_KeyCollection.Of(this.TKey, this.TValue).__Type__;
+        this.tKeyEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_KeyCollection_Enumerator.Of(this.TKey, this.TValue).__Type__;
       }
 
-      var result = new (JSIL.AbstractEnumerable.Of(this.TKey))(
-        (function getKeysProxy () {
-          var keys = [];
-
-          for (var k in this._dict) {
-            if (!this._dict.hasOwnProperty(k))
-              continue;
-            var bucket = this._dict[k];
-
-            for (var i = 0; i < bucket.length; i++)
-              keys.push(bucket[i].key);
-          }
-
-          return new (this.tKeysEnumerator)(keys, -1);
-        }).bind(this)
-      );
-
-      // FIXME: Terrible hack
-      result.get_Count = this.get_Count.bind(this);
-      return result;
+      return JSIL.CreateInstanceOfType(this.tKeyCollection, [this]);
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Values", 
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
     function get_Values () {
-      if (this.tValuesEnumerator === null) {
-        this.tValuesEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
+      if (this.tValueCollection === null) {
+        this.tValueCollection = $jsilcore.System.Collections.Generic.Dictionary$b2_ValueCollection.Of(this.TKey, this.TValue).__Type__;
+        this.tValueEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_ValueCollection_Enumerator.Of(this.TKey, this.TValue).__Type__;
       }
 
-      var result = new (JSIL.AbstractEnumerable.Of(this.TValue))(
-        (function getValuesProxy () {
-          var values = [];
-
-          for (var k in this._dict) {
-            if (!this._dict.hasOwnProperty(k))
-              continue;
-            var bucket = this._dict[k];
-
-            for (var i = 0; i < bucket.length; i++)
-              values.push(bucket[i].value);
-          }
-
-          return new (this.tValuesEnumerator)(values, -1);
-        }).bind(this)
-      );
-
-      // FIXME: Terrible hack
-      result.get_Count = this.get_Count.bind(this);
-      return result;
+      return JSIL.CreateInstanceOfType(this.tValueCollection, [this]);
     }
   );
 
@@ -2289,7 +2251,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         this.tEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_Enumerator.Of(this.TKey, this.TValue).__Type__;
       }
 
-      return JSIL.CreateInstanceOfType(this.tEnumerator, "_ctor", [this]);
+      return JSIL.CreateInstanceOfType(this.tEnumerator, [this]);
     }
   );
 
@@ -2353,6 +2315,194 @@ JSIL.ImplementExternals("System.Collections.Generic.KeyValuePair`2", function ($
 
 });
 
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2/KeyCollection", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.Dictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/KeyCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/KeyCollection")])], []), 
+    function _ctor (dictionary) {
+      this.dictionary = dictionary;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_Count", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_Count () {
+      return this.dictionary.get_Count();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/KeyCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/KeyCollection")]), [], []), 
+    function GetEnumerator () {
+      return JSIL.CreateInstanceOfType(this.dictionary.tKeyEnumerator, [this.dictionary]);
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerable.GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []), 
+    function System_Collections_IEnumerable_GetEnumerator () {
+      return JSIL.CreateInstanceOfType(this.dictionary.tKeyEnumerator, [this.dictionary]);
+    }
+  )
+    .Overrides(3, "GetEnumerator");
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2/ValueCollection", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.Dictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/ValueCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/ValueCollection")])], []), 
+    function _ctor (dictionary) {
+      this.dictionary = dictionary;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_Count", 
+    new JSIL.MethodSignature($.Int32, [], []), 
+    function get_Count () {
+      return this.dictionary.get_Count();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/ValueCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/ValueCollection")]), [], []), 
+    function GetEnumerator () {
+      return JSIL.CreateInstanceOfType(this.dictionary.tValueEnumerator, [this.dictionary]);
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerable.GetEnumerator", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []), 
+    function System_Collections_IEnumerable_GetEnumerator () {
+      return JSIL.CreateInstanceOfType(this.dictionary.tValueEnumerator, [this.dictionary]);
+    }
+  )
+    .Overrides(3, "GetEnumerator");
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.Dictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator")])], []), 
+    function _ctor (dictionary) {
+      this.dictionary = dictionary;
+      this.kvpEnumerator = null;
+      this.System_Collections_IEnumerator_Reset();
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__",
+    function __CopyMembers__ (source, target) {
+      target.dictionary = source.dictionary;
+      if (source.kvpEnumerator)
+        target.kvpEnumerator = source.kvpEnumerator.MemberwiseClone();
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Dispose () {
+      if (this.kvpEnumerator)
+        this.kvpEnumerator.Dispose();
+
+      this.kvpEnumerator = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_Current", 
+    new JSIL.MethodSignature(new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator"), [], []), 
+    function get_Current () {
+      return this.kvpEnumerator.get_Current().key;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "MoveNext", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function MoveNext () {
+      return this.kvpEnumerator.MoveNext();
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.get_Current", 
+    new JSIL.MethodSignature($.Object, [], []), 
+    function System_Collections_IEnumerator_get_Current () {
+      return this.kvpEnumerator.get_Current().key;
+    }
+  )
+    .Overrides(2, "get_Current");
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.Reset", 
+    new JSIL.MethodSignature(null, [], []), 
+    function System_Collections_IEnumerator_Reset () {
+      this.kvpEnumerator = this.dictionary.GetEnumerator();
+    }
+  )
+    .Overrides(2, "Reset");
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.Dictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator")])], []), 
+    function _ctor (dictionary) {
+      this.dictionary = dictionary;
+      this.kvpEnumerator = null;
+      this.System_Collections_IEnumerator_Reset();
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__",
+    function __CopyMembers__ (source, target) {
+      target.dictionary = source.dictionary;
+      if (source.kvpEnumerator)
+        target.kvpEnumerator = source.kvpEnumerator.MemberwiseClone();
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
+    new JSIL.MethodSignature(null, [], []), 
+    function Dispose () {
+      if (this.kvpEnumerator)
+        this.kvpEnumerator.Dispose();
+
+      this.kvpEnumerator = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "get_Current", 
+    new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator"), [], []), 
+    function get_Current () {
+      return this.kvpEnumerator.get_Current().value;
+    }
+  );
+
+  $.Method({Static:false, Public:true , Virtual:true }, "MoveNext", 
+    new JSIL.MethodSignature($.Boolean, [], []), 
+    function MoveNext () {
+      return this.kvpEnumerator.MoveNext();
+    }
+  );
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.get_Current", 
+    new JSIL.MethodSignature($.Object, [], []), 
+    function System_Collections_IEnumerator_get_Current () {
+      return this.kvpEnumerator.get_Current().value;
+    }
+  )
+    .Overrides(2, "get_Current");
+
+  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.Reset", 
+    new JSIL.MethodSignature(null, [], []), 
+    function System_Collections_IEnumerator_Reset () {
+      this.kvpEnumerator = this.dictionary.GetEnumerator();
+    }
+  )
+    .Overrides(2, "Reset");
+});
+
 JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2", true, ["TKey", "TValue"], function ($) {
   $.Field({Static:false, Public:false}, "key", $.GenericParameter("TKey"));
 
@@ -2381,6 +2531,46 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
       /* 2 */ $jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"), 
       /* 3 */ $jsilcore.TypeRef("System.Collections.IEnumerator")
   );
+});
+
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.Object"), 
+    Name: "System.Collections.Generic.Dictionary`2/KeyCollection", 
+    IsPublic: true, 
+    IsReferenceType: true, 
+    GenericParameters: ["TKey", "TValue"], 
+    MaximumConstructorArguments: 1, 
+  }, function ($) {
+});
+
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.Object"), 
+    Name: "System.Collections.Generic.Dictionary`2/ValueCollection", 
+    IsPublic: true, 
+    IsReferenceType: true, 
+    GenericParameters: ["TKey", "TValue"], 
+    MaximumConstructorArguments: 1, 
+  }, function ($) {
+});
+
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.ValueType"), 
+    Name: "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator", 
+    IsPublic: true, 
+    IsReferenceType: false, 
+    GenericParameters: ["TKey", "TValue"], 
+    MaximumConstructorArguments: 1, 
+  }, function ($) {
+});
+
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.ValueType"), 
+    Name: "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator", 
+    IsPublic: true, 
+    IsReferenceType: false, 
+    GenericParameters: ["TKey", "TValue"], 
+    MaximumConstructorArguments: 1, 
+  }, function ($) {
 });
 
 JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2/Enumerator", function ($interfaceBuilder) {

@@ -269,7 +269,8 @@ namespace JSIL.Tests {
                     @"TestCases\DictionaryInitializer.cs",
                     @"TestCases\DictionaryEnumerator.cs",
                     @"TestCases\DictionaryKeyValuePairs.cs",
-                    @"TestCases\DictionaryValueCollectionCount.cs"
+                    @"TestCases\DictionaryValueCollectionCount.cs",
+                    @"TestCases\DictionaryKeysAndValues.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

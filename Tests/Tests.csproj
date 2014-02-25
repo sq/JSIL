@@ -257,6 +257,7 @@
     <None Include="SimpleTestCases\Issue305.cs" />
     <None Include="SimpleTestCases\ListAddOverride.cs" />
     <None Include="ReflectionTestCases\Issue310.cs" />
+    <None Include="TestCases\DictionaryKeysAndValues.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
