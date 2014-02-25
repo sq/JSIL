@@ -188,7 +188,7 @@ namespace JSIL.Transforms {
                         return;
 
                     } else {
-                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe.ToString());
+                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe);
                     }
                 }
             }

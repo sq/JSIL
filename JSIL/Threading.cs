@@ -180,7 +180,6 @@ namespace JSIL.Threading {
         internal bool TryDequeueOneWait (TrackedLock lck, out Wait wait) {
             wait = null;
 
-            var currentThread = Thread.CurrentThread;
             OrderedDictionary<Wait, bool> waits;
             if (!Waits.TryGet(lck, out waits))
                 return false;

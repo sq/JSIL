@@ -146,7 +146,7 @@ namespace JSIL.Transforms {
                     return;
 
                 } else {
-                    throw new NotImplementedException("Unary mutation not supported: " + uoe.ToString());
+                    throw new NotImplementedException("Unary mutation not supported: " + uoe);
                 }
             }
 

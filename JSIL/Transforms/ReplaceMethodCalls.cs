@@ -72,7 +72,7 @@ namespace JSIL.Transforms {
                                 replacement = JSLiteral.New(false);
                             else
                                 replacement = new JSBinaryOperatorExpression(
-                                    JSBinaryOperator.Equal,
+                                    JSOperator.Equal,
                                     lhs, rhs,
                                     TypeSystem.Boolean
                                 );
@@ -92,7 +92,7 @@ namespace JSIL.Transforms {
 
                                 replacement = new JSTernaryOperatorExpression(
                                     new JSBinaryOperatorExpression(
-                                        JSBinaryOperator.NotEqual,
+                                        JSOperator.NotEqual,
                                         thisExpression, new JSNullLiteral(thisType),
                                         TypeSystem.Boolean
                                     ),

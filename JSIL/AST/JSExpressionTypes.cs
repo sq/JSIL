@@ -215,7 +215,6 @@ namespace JSIL.Ast {
         /// Converts a constructed reference into the expression it refers to, turning it back into a regular expression.
         /// </summary>
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
-            var originalReference = reference;
             var cast = reference as JSCastExpression;
             var cte = reference as JSChangeTypeExpression;
             bool isCast = false, isCte = false;

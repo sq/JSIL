@@ -43,7 +43,7 @@ namespace JSIL.Transforms {
                 var replacer = new VariableEliminator(variable, replaceWith);
                 var assignments = (from a in FirstPass.Assignments where 
                                        variable.Equals(a.NewValue) ||
-                                       a.NewValue.SelfAndChildrenRecursive.Any((_n) => variable.Equals(_n))
+                                       a.NewValue.SelfAndChildrenRecursive.Any(variable.Equals)
                                        select a).ToArray();
 
                 foreach (var a in assignments) {

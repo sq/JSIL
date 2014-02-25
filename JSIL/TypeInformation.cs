@@ -177,7 +177,7 @@ namespace JSIL.Internal {
             return String.Format(
                 "{0}<{1}>",
                 (Type + GetRankSuffix(ArrayRank)),
-                String.Join<TypeIdentifier>(", ", Arguments)
+                String.Join(", ", Arguments)
             );
         }
     }
@@ -1355,7 +1355,7 @@ namespace JSIL.Internal {
         protected bool _WasReservedIdentifier;
         protected string _ShortName;
 
-        public MemberInfo (
+        protected MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
             T member, ProxyInfo[] proxies, 
             bool isIgnored, bool isExternal, ProxyInfo sourceProxy
@@ -1379,7 +1379,7 @@ namespace JSIL.Internal {
             foreach (var proxy in proxies) {
                 ICustomAttributeProvider proxyMember;
 
-                if (proxy.GetMember<ICustomAttributeProvider>(identifier, out proxyMember)) {
+                if (proxy.GetMember(identifier, out proxyMember)) {
                     var meta = new MetadataCollection(proxyMember);
                     Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
                 }
@@ -1610,10 +1610,7 @@ namespace JSIL.Internal {
         }
 
         protected override string GetName () {
-            string result;
-            result = ChangedName ?? Member.Name;
-
-            return result;
+            return ChangedName ?? Member.Name;
         }
 
         public override TypeReference ReturnType {
@@ -1847,13 +1844,11 @@ namespace JSIL.Internal {
         }
 
         public string GetName (bool stripGenericSuffix) {
-            string result;
-
             var cn = ChangedName;
             if (cn != null)
                 return cn;
 
-            result = Member.Name;
+            string result = Member.Name;
             
             if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);

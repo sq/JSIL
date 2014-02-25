@@ -13,19 +13,10 @@ namespace JSIL.Transforms
         private readonly TypeSystem TypeSystem;
         private readonly MethodTypeFactory MethodTypeFactory;
 
-        private readonly JSType int64;
-        
-        private readonly JSType uint64;
-
         public EmulateInt64(MethodTypeFactory methodTypeFactory, TypeSystem typeSystem)
         {
             TypeSystem = typeSystem;
             MethodTypeFactory = methodTypeFactory;
-
-            int64 = new JSType(TypeSystem.Int64);
-
-            uint64 = new JSType(TypeSystem.UInt64);
-
         }
 
         public JSInvocationExpression GetLongLiteralExpression(long number, bool unsigned = false) {
@@ -101,7 +92,6 @@ namespace JSIL.Transforms
 
                 if (verb != null)
                 {
-                    var type = exType == TypeSystem.Int64 ? int64 : uint64;
                     var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
                     var replacement = JSInvocationExpression.InvokeStatic(exType, method, new[] { uoe.Expression }, true);
                     ParentNode.ReplaceChild(uoe, replacement);

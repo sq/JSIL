@@ -320,7 +320,7 @@ namespace JSIL.Transforms {
                 var thisReferenceType = thisReference.GetActualType(TypeSystem);
                 if (TypeUtil.IsStruct(thisReferenceType)) {
                     if (!(thisReference is JSVariable) && !(thisReference is JSFieldAccess))
-                        throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation.ToString());
+                        throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation);
 
                     var cloneExpr = new JSBinaryOperatorExpression(
                         JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType

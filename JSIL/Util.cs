@@ -194,7 +194,7 @@ namespace JSIL.Internal {
                     break;
                     default:
                         if ((ch <= 32) || (ch >= 127)) {
-                            sb.AppendFormat("${0:x}", ch);
+                            sb.AppendFormat("${0:x}", (int)ch);
                             isEscaped = true;
                         } else
                             sb.Append(ch);
@@ -436,7 +436,7 @@ namespace JSIL.Internal {
 
     public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable {
         public delegate TValue CreatorFunction (TKey key);
-        public delegate TValue CreatorFunction<TUserData> (TKey key, TUserData userData);
+        public delegate TValue CreatorFunction<in TUserData> (TKey key, TUserData userData);
 
         protected class ConstructionState : IDisposable {
             private volatile bool IsDisposed;

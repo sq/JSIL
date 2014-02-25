@@ -41,36 +41,6 @@ namespace JSIL.Transforms {
             var result = State;
             State = null;
 
-            if (false) {
-                var bg = new StaticAnalysis.BarrierGenerator(TypeSystem, function);
-                bg.Generate();
-
-                var targetFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Barriers"
-                );
-                Directory.CreateDirectory(targetFolder);
-
-                var typeName = function.Method.QualifiedIdentifier.Type.ToString();
-                var methodName = function.Method.Method.Name;
-
-                if (typeName.Length >= 96)
-                    typeName = typeName.Substring(0, 93) + "…";
-
-                if (methodName.Length >= 32)
-                    methodName = methodName.Substring(0, 29) + "…";
-
-                var filename = String.Format("{0}.{1}", typeName, methodName);
-
-                filename = filename.Replace("<", "").Replace(">", "").Replace("/", "");
-
-                var targetFile = Path.Combine(
-                    targetFolder,
-                    String.Format("{0}.xml", filename)
-                );
-
-                bg.SaveXML(targetFile);
-            }
-
             return result;
         }
 
@@ -411,9 +381,10 @@ namespace JSIL.Transforms {
 
         private Dictionary<string, string[]> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
             var variables = new Dictionary<string, string[]>();
+            var paramsArray = parameters.ToArray();
 
             int i = 0;
-            foreach (var kvp in parameters) {
+            foreach (var kvp in paramsArray) {
                 var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToArray();
 
                 if ((kvp.Key == null) || String.IsNullOrWhiteSpace(kvp.Key.Name)) {
@@ -428,7 +399,7 @@ namespace JSIL.Transforms {
                             throw new InvalidDataException(String.Format(
                                 "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
                                 kvp.Key.Name, method,
-                                String.Join(", ", parameters)
+                                String.Join(", ", paramsArray)
                             ));
                     } else {
                         variables.Add(kvp.Key.Name, value);

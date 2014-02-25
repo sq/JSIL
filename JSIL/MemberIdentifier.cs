@@ -43,7 +43,7 @@ namespace JSIL.Internal {
 
         private readonly int HashCode;
 
-        public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] { };
+        public static readonly TypeReference[] AnyParameterTypes = { };
 
         public static MemberIdentifier New (ITypeInfoSource ti, MemberReference mr) {
             MethodReference method;

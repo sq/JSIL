@@ -107,6 +107,7 @@ namespace JSIL.Internal {
                 hash |= 1;
 
             _Hash = hash;
+
             return hash;
         }
 

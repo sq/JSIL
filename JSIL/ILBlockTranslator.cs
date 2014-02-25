@@ -2818,7 +2818,6 @@ namespace JSIL {
 
         protected JSInitializerApplicationExpression Translate_InitObject (ILExpression node) {
             var target = TranslateNode(node.Arguments[0]);
-            var typeInfo = TypeInfo.Get(target.GetActualType(TypeSystem));
 
             var initializers = new List<JSPairExpression>();
 
@@ -3002,9 +3001,6 @@ namespace JSIL {
 
             if (method.HasThis) {
                 var firstArg =  node.Arguments.First();
-                var ilv = firstArg.Operand as ILVariable;
-
-                var firstArgType = TypeUtil.DereferenceType(firstArg.ExpectedType);
 
                 if (IsInvalidThisExpression(firstArg)) {
                     if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression)) {

@@ -107,10 +107,8 @@ namespace JSIL.Transforms {
         }
 
         private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
-            Identifier result;
-
             string _id = id = String.Format("$temp{0:X2}", Function.TemporaryVariableCount++);
-            result = new Identifier(_id, new JSRawOutputIdentifier(
+            var result = new Identifier(_id, new JSRawOutputIdentifier(
                 type, _id
             ));
             ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));

@@ -106,7 +106,6 @@
     <Compile Include="Transforms\ConvertPropertyAccessesToInvocations.cs" />
     <Compile Include="Transforms\OptimizePropertyMutationAssignments.cs" />
     <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
-    <Compile Include="Transforms\StaticAnalysis\BarrierGenerator.cs" />
     <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />
     <Compile Include="Transforms\ExpandCastExpressions.cs" />
     <Compile Include="Transforms\IntroduceCharCasts.cs" />

@@ -102,7 +102,7 @@ namespace JSIL.Transforms {
                 // C# expressions such as (t is T) (where T is a generic parameter). See issue #150. 
                 // Tested with AsWithGenericParameter.cs
                 newExpression = new JSBinaryOperatorExpression(
-                    JSBinaryOperator.NotEqual,
+                    JSOperator.NotEqual,
                     ce.Expression, new JSNullLiteral(currentType),
                     TypeSystem.Boolean
                 );  
@@ -117,7 +117,7 @@ namespace JSIL.Transforms {
                 (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
                 newExpression = new JSBinaryOperatorExpression(
-                    JSBinaryOperator.NotEqual,
+                    JSOperator.NotEqual,
                     ce.Expression, new JSDefaultValueLiteral(currentType),
                     TypeSystem.Boolean
                 );

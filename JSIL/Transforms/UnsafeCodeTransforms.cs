@@ -98,9 +98,9 @@ namespace JSIL.Transforms {
             var rightPointer = boe.Right as JSPointerLiteral;
             if (!(boe.Operator is JSAssignmentOperator)) {
                 if (leftPointer != null)
-                    boe.ReplaceChild(boe.Left, JSIntegerLiteral.New(leftPointer.Value));
+                    boe.ReplaceChild(boe.Left, JSLiteral.New(leftPointer.Value));
                 if (rightPointer != null)
-                    boe.ReplaceChild(boe.Right, JSIntegerLiteral.New(rightPointer.Value));
+                    boe.ReplaceChild(boe.Right, JSLiteral.New(rightPointer.Value));
             }
 
             JSExpression replacement = null;
@@ -151,7 +151,6 @@ namespace JSIL.Transforms {
             if (boe == null)
                 return false;
 
-            var leftType = boe.Left.GetActualType(typeSystem);
             var rightType = boe.Right.GetActualType(typeSystem);
             var resultType = boe.GetActualType(typeSystem);
 

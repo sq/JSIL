@@ -12,8 +12,8 @@ namespace JSIL.Transforms {
 
         public bool EnableEnumeratorRemoval = true;
 
-        private List<JSBinaryOperatorExpression> SeenAssignments = new List<JSBinaryOperatorExpression>();
-        private HashSet<JSVariable> EnumeratorsToKill = new HashSet<JSVariable>();
+        private readonly List<JSBinaryOperatorExpression> SeenAssignments = new List<JSBinaryOperatorExpression>();
+        private readonly HashSet<JSVariable> EnumeratorsToKill = new HashSet<JSVariable>();
         private FunctionAnalysis1stPass FirstPass = null;
 
         private JSFunctionExpression Function;
@@ -183,9 +183,9 @@ namespace JSIL.Transforms {
             );
 
             var condition = new JSBinaryOperatorExpression(
-                JSBinaryOperator.LessThan, 
+                JSOperator.LessThan, 
                 new JSUnaryOperatorExpression(
-                    JSUnaryOperator.PreIncrement,
+                    JSOperator.PreIncrement,
                     indexVariable, TypeSystem.Int32
                 ), 
                 lengthVariable, TypeSystem.Boolean
@@ -246,12 +246,12 @@ namespace JSIL.Transforms {
             );
 
             var condition = new JSBinaryOperatorExpression(
-                JSBinaryOperator.LessThan,
+                JSOperator.LessThan,
                 indexVariable, lengthVariable, TypeSystem.Boolean
             );
 
             var increment = new JSUnaryOperatorExpression(
-                JSUnaryOperator.PostIncrement,
+                JSOperator.PostIncrement,
                 indexVariable, TypeSystem.Int32
             );
 

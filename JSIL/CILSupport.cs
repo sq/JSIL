@@ -25,12 +25,12 @@ namespace JSIL.Internal {
     }
 
     public class AssemblyResolver : BaseAssemblyResolver, IDisposable {
-        private static readonly byte[] PCLPublicKeyToken = new byte[] {
+        private static readonly byte[] PCLPublicKeyToken = {
             124, 236, 133, 215,
             190, 167, 121, 142
         };
 
-        private static readonly byte[] BCLPublicKeyToken = new byte[] {
+        private static readonly byte[] BCLPublicKeyToken = {
             183, 122, 92, 86,
             25, 52, 224, 137
         };

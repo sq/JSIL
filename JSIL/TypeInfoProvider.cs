@@ -339,8 +339,6 @@ namespace JSIL {
             if (TypeInformation.TryGet(identifier, out result))
                 return result;
 
-            var fullName = type.FullName;
-
             var args = new MakeTypeInfoArgs();
 
             EnqueueType(args.TypesToInitialize, type);

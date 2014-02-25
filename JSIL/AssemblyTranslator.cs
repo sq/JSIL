@@ -1372,7 +1372,7 @@ namespace JSIL {
             var typeCacher = new TypeExpressionCacher(typedef);
             var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
 
-            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
+            _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return Tuple.Create(typeCacher, signatureCacher);
 
@@ -1949,10 +1949,7 @@ namespace JSIL {
                         ), args
                     );
 
-                    JSExpression result = fieldExpression;
-                    var resultType = result.GetActualType(field.Module.TypeSystem);
-
-                    return result;
+                    return fieldExpression;
                 }
             }
         }
