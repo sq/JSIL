@@ -605,9 +605,6 @@ namespace JSIL.Internal {
             var fullName = (typeInfo != null) ? typeInfo.FullName
                     : (typeDef != null) ? typeDef.FullName
                         : type.FullName;
-            var identifier = Util.EscapeIdentifier(
-                fullName, EscapingMode.String
-            );
 
             AssemblyReference(type);
             Dot();

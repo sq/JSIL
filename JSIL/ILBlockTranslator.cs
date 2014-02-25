@@ -485,7 +485,7 @@ namespace JSIL {
 
             PackedArrayUtil.CheckInvocationSafety(method.Method, arguments, TypeSystem);
 
-            bool retry = false;
+            bool retry;
             do {
                 retry = false;
                 var metadata = methodInfo.Metadata;
@@ -576,7 +576,7 @@ namespace JSIL {
                             argumentsDict = new Dictionary<string, JSExpression>();
 
                             for (var i = 0; i < 40; i++)
-                                argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSIntegerLiteral.New(i)));
+                                argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSLiteral.New(i)));
                         } else {
                             var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
 
@@ -852,9 +852,10 @@ namespace JSIL {
 
                 toTranslate = new ILExpression(
                     ILCode.Stloc, initializer.Operand, ldelema
-                );
-                toTranslate.ExpectedType = initializer.ExpectedType;
-                toTranslate.InferredType = initializer.InferredType;
+                ) {
+                    ExpectedType = initializer.ExpectedType,
+                    InferredType = initializer.InferredType
+                };
             }
 
             var translated = TranslateNode(toTranslate);

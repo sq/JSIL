@@ -1438,8 +1438,8 @@ namespace JSIL {
                 var fl = (JSForLoop)ParentNode;
                 if (
                     (fl.Condition == bop) ||
-                    (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
-                    (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
+                    (fl.Increment.SelfAndChildrenRecursive.Any(bop.Equals)) ||
+                    (fl.Initializer.SelfAndChildrenRecursive.Any(bop.Equals))
                 ) {
                     return false;
                 }
@@ -1857,7 +1857,7 @@ namespace JSIL {
 
                     ReferenceContext.InvokingMethod = jsm.Reference;
 
-                    if ((method != null) && method.DeclaringType.IsInterface) {
+                    if (method.DeclaringType.IsInterface) {
                         // runtimeDispatch is always false here.
 
                         Output.Identifier("CallVirtual");

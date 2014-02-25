@@ -34,7 +34,7 @@ namespace JSIL.Ast.Traversal {
             var tIgnoreInherited = typeof(JSAstIgnoreInheritedMembersAttribute);
             var records = new List<JSNodeTraversalRecord>();
 
-            var flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 
             var typeToScan = nodeType;
             var seenMembers = new HashSet<string>();
@@ -81,6 +81,7 @@ namespace JSIL.Ast.Traversal {
                     newRecord.SortKey = traverseAttribute.TraversalIndex;
                     newRecord.Name = traverseAttribute.Name ?? newRecord.Name;
                     newRecord.OriginalIndex = records.Count;
+
                     records.Add(newRecord);
                 }
 

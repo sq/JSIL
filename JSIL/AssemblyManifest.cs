@@ -18,7 +18,10 @@ namespace JSIL {
 
             public string IDString {
                 get {
-                    return String.Format("$asm{0:X2}", ID.Value);
+                    if (ID.HasValue)
+                        return String.Format("$asm{0:X2}", ID.Value);
+                    else
+                        throw new InvalidOperationException("Token has no ID");
                 }
             }
 

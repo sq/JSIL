@@ -98,17 +98,13 @@ namespace JSIL {
             AssemblyLoadedHandler onProxyAssemblyLoaded = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
-            Warning = (s) => {
+            Warning = (s) =>
                 Console.Error.WriteLine("// {0}", s);
-            };
 
             Configuration = configuration;
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
-            if (manifest != null)
-                Manifest = manifest;
-            else
-                Manifest = new AssemblyManifest();
+            Manifest = manifest ?? new AssemblyManifest();
 
             if (typeInfoProvider != null) {
                 _TypeInfoProvider = typeInfoProvider;
@@ -135,10 +131,7 @@ namespace JSIL {
             }
 
             OwnsAssemblyCache = (assemblyCache == null);
-            if (assemblyCache != null)
-                AssemblyCache = assemblyCache;
-            else
-                AssemblyCache = new AssemblyCache();
+            AssemblyCache = assemblyCache ?? new AssemblyCache();
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
         }
@@ -153,7 +146,7 @@ namespace JSIL {
                     proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
                 } else {
                     throw new ArgumentOutOfRangeException(
-                        "FrameworkVersion",
+                        "frameworkVersion",
                         String.Format("Framework version '{0}' not supported", frameworkVersion)
                     );
                 }
@@ -297,8 +290,9 @@ namespace JSIL {
             if (assembly == null)
                 throw new FileNotFoundException("Could not load the assembly '" + path + "'");
 
-            var result = new List<AssemblyDefinition>();
-            result.Add(assembly);
+            var result = new List<AssemblyDefinition> {
+                assembly
+            };
 
             if (AssemblyLoaded != null)
                 AssemblyLoaded(path, ClassifyAssembly(assembly));
@@ -341,8 +335,7 @@ namespace JSIL {
                         0, assembliesToLoad.Count, parallelOptions, (i) => {
                             var anr = assembliesToLoad[i];
 
-                            AssemblyDefinition refAssembly = null;
-                            refAssembly = AssemblyLoadErrorWrapper(
+                            var refAssembly = AssemblyLoadErrorWrapper(
                                 readerParameters.AssemblyResolver.Resolve,
                                 anr, readerParameters,
                                 useSymbols, path
@@ -375,18 +368,18 @@ namespace JSIL {
         }
 
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
-            var context = new DecompilerContext(module);
-
-            context.Settings.AsyncAwait = false;
-            context.Settings.YieldReturn = false;
-            context.Settings.AnonymousMethods = true;
-            context.Settings.QueryExpressions = false;
-            context.Settings.LockStatement = false;
-            context.Settings.FullyQualifyAmbiguousTypeNames = true;
-            context.Settings.ForEachStatement = false;
-            context.Settings.ExpressionTrees = false;
-
-            return context;
+            return new DecompilerContext(module) {
+                Settings = {
+                    AsyncAwait = false,
+                    YieldReturn = false,
+                    AnonymousMethods = true,
+                    QueryExpressions = false,
+                    LockStatement = false,
+                    FullyQualifyAmbiguousTypeNames = true,
+                    ForEachStatement = false,
+                    ExpressionTrees = false
+                }
+            };
         }
 
         protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
@@ -664,9 +657,7 @@ namespace JSIL {
 
                 Parallel.For(
                     0, types.Length, parallelOptions,
-                    () => {
-                        return new List<TypeDefinition>();
-                    },
+                    () => new List<TypeDefinition>(),
                     (i, loopState, typeList) => {
                         var type = types[i];
 
@@ -856,9 +847,8 @@ namespace JSIL {
 
             output.Comma();
             output.OpenFunction(null, (f) =>
-            {
-                f.Identifier("$");
-            });
+                f.Identifier("$")
+            );
 
             var refContext = new TypeReferenceContext {
                 EnclosingType = iface,
@@ -869,7 +859,7 @@ namespace JSIL {
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
-                    if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
+                    if ((methodInfo == null) || methodInfo.IsIgnored)
                         continue;
 
                     output.Identifier("$", EscapingMode.None);
@@ -1261,9 +1251,9 @@ namespace JSIL {
                     output.Unindent();
 
                     output.Comma();
-                    output.OpenFunction(null, (f) => {
-                        f.Identifier("$interfaceBuilder");
-                    });
+                    output.OpenFunction(null, (f) => 
+                        f.Identifier("$interfaceBuilder")
+                    );
 
                     TranslateTypeDefinition(
                         context, typedef, 
@@ -1527,22 +1517,6 @@ namespace JSIL {
                     TranslateEvent(context, astEmitter, output, @event, dollar);
             };
 
-            Func<TypeReference, bool> isInterfaceIgnored = (i) => {
-                var interfaceInfo = _TypeInfoProvider.GetTypeInformation(i);
-                if (interfaceInfo != null)
-                    return interfaceInfo.IsIgnored;
-                else
-                    return true;
-            };
-
-            Func<FieldDefinition, bool> isFieldIgnored = (f) => {
-                IMemberInfo memberInfo;
-                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(this._TypeInfoProvider, f), out memberInfo))
-                    return memberInfo.IsIgnored;
-                else
-                    return true;
-            };
-
             if (!makingSkeletons)
                 TranslateTypeStaticConstructor(
                     context, typedef, astEmitter, 
@@ -1624,7 +1598,7 @@ namespace JSIL {
                 var identifier = new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
                 );
-                JSFunctionExpression function = null;
+                JSFunctionExpression function;
 
                 if (FunctionCache.TryGetExpression(identifier, out function)) {
                     return function;
@@ -1636,14 +1610,12 @@ namespace JSIL {
                 }
 
                 var bodyDef = methodDef;
-                Func<TypeReference, TypeReference> typeReplacer = (originalType) => {
-                    return originalType;
-                };
+                Func<TypeReference, TypeReference> typeReplacer = (originalType) =>
+                    originalType;
 
                 if (methodInfo.IsFromProxy && methodInfo.Member.HasBody) {
                     bodyDef = methodInfo.Member;
 
-                    var actualType = methodInfo.DeclaringType;
                     var sourceProxy = methodInfo.SourceProxy;
                     typeReplacer = (originalType) => {
                         if (TypeUtil.TypesAreEqual(sourceProxy.Definition, originalType))
@@ -1700,7 +1672,7 @@ namespace JSIL {
                     typeReplacer
                 );
 
-                JSBlockStatement body = null;
+                JSBlockStatement body;
                 try {
                     body = translator.Translate();
                 } catch (Exception exc) {
@@ -1823,9 +1795,7 @@ namespace JSIL {
                     this, memberIdentifier, function, si
                 );
 
-            bool completed = false;
-
-            completed = pipeline.RunUntilCompletion();
+            bool completed = pipeline.RunUntilCompletion();
 
             if (completed) {
                 if (pipeline.SuspendCount >= FunctionTransformPipeline.SuspendCountLogThreshold) {
@@ -1953,7 +1923,7 @@ namespace JSIL {
                         defaultValue = new JSDefaultValueLiteral(fieldInfo.FieldType);
 
                     return new JSBinaryOperatorExpression(
-                        JSBinaryOperator.Assignment,
+                        JSOperator.Assignment,
                         new JSFieldAccess(
                             thisParameter,
                             new JSField(field, fieldInfo)
@@ -2090,7 +2060,7 @@ namespace JSIL {
                             if (TypeUtil.IsIgnoredType(expectedType))
                                 continue;
 
-                            JSExpression defaultValue = null;
+                            JSExpression defaultValue;
 
                             try {
                                 defaultValue = translator.TranslateNode(ile.Arguments[0]);
@@ -2228,8 +2198,9 @@ namespace JSIL {
                     typeCacher, signatureCacher, ref temp, null, fixupCctor
                 );
             } else if (fieldsToEmit.Length > 0) {
-                var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
-                fakeCctor.DeclaringType = typedef;
+                var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void) {
+                    DeclaringType = typedef
+                };
 
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(this._TypeInfoProvider, fakeCctor);
@@ -2461,8 +2432,7 @@ namespace JSIL {
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            JSFunctionExpression function;
-            function = GetFunctionBodyForMethod(
+            JSFunctionExpression function = GetFunctionBodyForMethod(
                 isExternal, methodInfo
             );
 
@@ -2561,8 +2531,7 @@ namespace JSIL {
                 return;
             }
 
-            JSFunctionExpression function;
-            function = GetFunctionBodyForMethod(
+            JSFunctionExpression function = GetFunctionBodyForMethod(
                 isExternal, methodInfo
             );
 

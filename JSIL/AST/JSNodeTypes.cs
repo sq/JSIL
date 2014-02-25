@@ -75,7 +75,7 @@ namespace JSIL.Ast {
             return TypeIds[nodeType];
         }
 
-        public JSNode () {
+        protected JSNode () {
             TypeId = TypeIds[GetType()];
 
             var td = JSNodeTraversalData.Get(TypeId);
@@ -161,6 +161,7 @@ namespace JSIL.Ast {
                 return _ActualValueNames[index];
         }
 
+        // HACK: This function is invoked via reflection only!
         [JSAstTraverse(0)]
         static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
             JSExpression expr = (JSExpression)parent;
@@ -304,13 +305,12 @@ namespace JSIL.Ast {
     public abstract class JSIdentifier : JSExpression {
         protected readonly TypeReference _IdentifierType;
 
-        public JSIdentifier (TypeReference identifierType = null) {
+        protected JSIdentifier (TypeReference identifierType = null) {
             _IdentifierType = identifierType;
         }
 
         public override bool Equals (object obj) {
             var id = obj as JSIdentifier;
-            var str = obj as string;
 
             if (id != null) {
                 return String.Equals(Identifier, id.Identifier) &&

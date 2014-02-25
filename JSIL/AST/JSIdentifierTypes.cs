@@ -423,10 +423,7 @@ namespace JSIL.Ast {
 
             Function = function;
 
-            if (defaultValue != null)
-                DefaultValue = defaultValue;
-            else
-                DefaultValue = new JSDefaultValueLiteral(type);
+            DefaultValue = defaultValue ?? new JSDefaultValueLiteral(type);
         }
 
         public override string Identifier {
@@ -492,7 +489,7 @@ namespace JSIL.Ast {
             var defaultValueText = "";
 
             if (!DefaultValue.IsNull && !(DefaultValue is JSDefaultValueLiteral))
-                defaultValueText = String.Format(" := {0}", DefaultValue.ToString());
+                defaultValueText = String.Format(" := {0}", DefaultValue);
 
             if (IsReference)
                 return String.Format("<{0} {1}{2}>", IdentifierType, Identifier, defaultValueText);

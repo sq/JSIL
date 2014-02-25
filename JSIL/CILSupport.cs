@@ -43,10 +43,7 @@ namespace JSIL.Internal {
             Configuration = configuration;
 
             OwnsCache = (cache == null);
-            if (cache != null)
-                Cache = cache;
-            else
-                Cache = new AssemblyCache();
+            Cache = cache ?? new AssemblyCache();
 
             foreach (var dir in dirs)
                 AddSearchDirectory(dir);
@@ -67,10 +64,10 @@ namespace JSIL.Internal {
                 name.Name,
                 // FIXME: Hard-coding 4.0 is probably a mistake
                 new Version(4, 0, 0, 0)
-            );
-
-            bclName.Culture = name.Culture;
-            bclName.PublicKeyToken = BCLPublicKeyToken;
+            ) {
+                Culture = name.Culture,
+                PublicKeyToken = BCLPublicKeyToken
+            };
 
             return bclName;
         }
@@ -237,10 +234,10 @@ namespace JSIL.Internal {
         public static MethodReference RebindMethod (MethodReference method, TypeReference newDeclaringType, TypeReference newReturnType = null) {
             var result = new MethodReference(
                 method.Name, newReturnType ?? method.ReturnType, newDeclaringType
-            );
-
-            result.HasThis = method.HasThis;
-            result.ExplicitThis = method.ExplicitThis;
+            ) {
+                HasThis = method.HasThis,
+                ExplicitThis = method.ExplicitThis
+            };
 
             // TODO: Copy more attributes?
 

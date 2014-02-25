@@ -82,13 +82,12 @@ namespace JSIL.Ast {
         }
 
         private IEnumerable<State> VisitNode (JSNode node, string name = null, Indices indices = null, int depth = 0) {
-            int nodeIndex;
             int? statementIndex = null;
 
             if (indices == null)
                 indices = new Indices();
 
-            nodeIndex = indices.GetNodeIndex();
+            int nodeIndex = indices.GetNodeIndex();
 
             if (node is JSStatement)
                 statementIndex = indices.GetStatementIndex();

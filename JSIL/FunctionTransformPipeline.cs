@@ -119,7 +119,7 @@ namespace JSIL.Internal {
             var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
 
             if (!lockResult) {
-                Console.Error.WriteLine(String.Format("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock));
+                Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
                 return false;
             }
 

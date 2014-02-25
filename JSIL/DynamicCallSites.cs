@@ -110,7 +110,7 @@ namespace JSIL {
             var invocation = expression as JSInvocationExpression;
             if (invocation != null) {
                 var firstArg = invocation.Arguments.FirstOrDefault();
-                type = type ?? firstArg as JSType;
+                type = firstArg as JSType;
             }
 
             if (type != null)
@@ -486,7 +486,7 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 return new JSBinaryOperatorExpression(
-                    JSBinaryOperator.Assignment,
+                    JSOperator.Assignment,
                     JSDotExpression.New(
                         thisArgument,
                         new JSStringIdentifier(MemberName, returnType)
@@ -553,7 +553,7 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 return new JSBinaryOperatorExpression(
-                    JSBinaryOperator.Assignment,
+                    JSOperator.Assignment,
                     new JSIndexerExpression(
                         thisArgument,
                         arguments[2],

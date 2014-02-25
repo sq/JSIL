@@ -529,12 +529,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public JSNullExpression ()
-            : base() {
-        }
-
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
-            return;
         }
 
         public override string ToString () {
@@ -1567,9 +1562,7 @@ namespace JSIL.Ast {
         public readonly bool IsVirtual;
         public readonly bool IsReadonly;
 
-        public JSMemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false)
-            : base() {
-
+        public JSMemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false) {
             IsPublic = isPublic;
             IsStatic = isStatic;
             IsVirtual = isVirtual;
@@ -1806,7 +1799,7 @@ namespace JSIL.Ast {
 
         public bool IsPostfix {
             get {
-                return ((JSUnaryOperator)Operator).IsPostfix;
+                return Operator.IsPostfix;
             }
         }
 
@@ -2726,7 +2719,7 @@ namespace JSIL.Ast {
     public abstract class JSNewReference : JSExpression {
         public readonly TypeReference ReferenceType;
 
-        public JSNewReference (TypeReference referenceType, params JSExpression[] values)
+        protected JSNewReference (TypeReference referenceType, params JSExpression[] values)
             : base(values) {
             ReferenceType = referenceType;
         }

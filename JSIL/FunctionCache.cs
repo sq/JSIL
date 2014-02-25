@@ -117,13 +117,12 @@ namespace JSIL {
                 };
             };
 
-            MakeNullCacheEntry = (id, args) => {
-                return new Entry(id, Locks) {
+            MakeNullCacheEntry = (id, args) =>
+                new Entry(id, Locks) {
                     Info = args.Info,
                     Reference = args.Method,
                     Expression = null
                 };
-            };
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -290,7 +289,7 @@ namespace JSIL {
     public abstract class TemporarilySuspendTransformPipelineException : Exception {
         public readonly QualifiedMemberIdentifier Identifier;
 
-        public TemporarilySuspendTransformPipelineException (QualifiedMemberIdentifier identifier) {
+        protected TemporarilySuspendTransformPipelineException (QualifiedMemberIdentifier identifier) {
             Identifier = identifier;
         }
     }

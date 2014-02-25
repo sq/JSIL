@@ -231,7 +231,7 @@ namespace JSIL.Ast {
             } else {
                 EnumMemberInfo em;
                 if (enumTypeInfo.ValueToEnumMember.TryGetValue(value, out em))
-                    enumMembers = new EnumMemberInfo[1] { em };
+                    enumMembers = new [] { em };
             }
 
             if ((enumMembers != null) && (enumMembers.Length > 0))

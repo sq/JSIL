@@ -24,7 +24,7 @@ namespace JSIL.Ast {
         protected JSNode NextSibling = null;
 
         public delegate void NodeVisitor (JSAstVisitor @this, JSNode node);
-        public delegate void NodeVisitor<TVisitor, TNode> (TVisitor @this, TNode node)
+        public delegate void NodeVisitor<in TVisitor, in TNode> (TVisitor @this, TNode node)
             where TVisitor : JSAstVisitor
             where TNode : JSNode;
 
