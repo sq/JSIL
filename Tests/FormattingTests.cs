@@ -948,5 +948,43 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void ClassMarkedWithMetaAttibutes()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\ClassMarkedWithMetaAttibutes.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsTrue(
+                    generatedJs.Contains("function ClassThatShouldBeStubbed"),
+                    "Class marked with JSStubOnly should be translated as stub");
+                Assert.IsTrue(
+                    generatedJs.Contains("$.ExternalMethod({Static:true , Public:true }, \"MethodInStubbedClass\""),
+                    "Method inside class marked with JSStubOnly should have declaration as ExternalMethod");
+                Assert.IsTrue(
+                    generatedJs.Contains("JSIL.MakeExternalType(\"ClassThatShouldBeExternal\""),
+                    "Class marked with JSExternal should be translated with MakeExternalType declaration");
+                Assert.IsFalse(
+                    generatedJs.Contains("MethodInExternalClass"),
+                    "Method inside class marked with JSExternal should not be translated");
+                Assert.IsFalse(
+                    generatedJs.Contains("ClassThatShouldBeIgnored"),
+                    "Class marked with JSIgnore should not be translated");
+                Assert.IsFalse(
+                    generatedJs.Contains("MethodInIgnoredClass"),
+                    "Method inside class marked with JSIgnore should not be translated");
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

@@ -91,15 +91,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void ClassMarkedAsStubOnly()
-        {
-            using (var test = MakeTest(@"SpecialTestCases\ClassMarkedAsStubOnly.cs", throwOnUnimplementedExternals: false))
-            {
-                test.Run();
-            }
-        }
-
-        [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
             RunSingleComparisonTestCase(parameters);

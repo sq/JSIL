@@ -67,13 +67,12 @@ namespace JSIL.Tests {
         protected ComparisonTest MakeTest (
             string filename, string[] stubbedAssemblies = null,
             TypeInfoProvider typeInfo = null,
-            AssemblyCache assemblyCache = null,
-            bool throwOnUnimplementedExternals = true
+            AssemblyCache assemblyCache = null
         ) {
             return new ComparisonTest(
                 EvaluatorPool,
                 Portability.NormalizeDirectorySeparators(filename), stubbedAssemblies,
-                typeInfo, assemblyCache, throwOnUnimplementedExternals
+                typeInfo, assemblyCache
             );
         }
 
