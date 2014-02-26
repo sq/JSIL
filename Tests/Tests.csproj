@@ -809,6 +809,7 @@
     <None Include="BinaryTestCases\InheritedAndExplicitOverwrittenMethods.cs" />
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
     <None Include="BinaryTestCases\InheritedInterfacesExplicit.cs" />
+    <None Include="SpecialTestCases\ClassMarkedAsStubOnly.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">

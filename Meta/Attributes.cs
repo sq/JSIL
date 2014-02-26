@@ -36,6 +36,15 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
+    /// Specifies that this type is implemented externally and only stub should  be generated when translating code to JavaScript
+    ///  (but does not prevent use of the type like <see cref="JSIgnore"/> and <see cref="JSExternal"/> does.)
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class JSStubOnly : Attribute
+    {
+    }
+
+    /// <summary>
     /// Specifies a policy to apply to reads, writes, or invocations of a member when translating code to JavaScript.
     /// </summary>
     [AttributeUsage(

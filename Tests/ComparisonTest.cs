@@ -52,6 +52,7 @@ namespace JSIL.Tests {
         public readonly CompileResult CompileResult;
         public readonly TimeSpan CompilationElapsed;
         public readonly EvaluatorPool EvaluatorPool;
+        public readonly bool ThrowOnUnimplementedExternals;
 
         protected bool? MainAcceptsArguments;
 
@@ -96,7 +97,7 @@ namespace JSIL.Tests {
         public ComparisonTest (
             EvaluatorPool pool,
             string filename, string[] stubbedAssemblies = null,
-            TypeInfoProvider typeInfo = null, AssemblyCache assemblyCache = null
+            TypeInfoProvider typeInfo = null, AssemblyCache assemblyCache = null, bool throwOnUnimplementedExternals = true
         )
             : this(
                   pool,
@@ -105,7 +106,7 @@ namespace JSIL.Tests {
                       TestSourceFolder,
                       MapSourceFileToTestFile(filename)
                   ),
-                  stubbedAssemblies, typeInfo, assemblyCache
+                  stubbedAssemblies, typeInfo, assemblyCache, throwOnUnimplementedExternals:throwOnUnimplementedExternals
               ) {
         }
 
@@ -113,7 +114,7 @@ namespace JSIL.Tests {
             EvaluatorPool pool,
             IEnumerable<string> filenames, string outputPath,
             string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null,
-            AssemblyCache assemblyCache = null, string compilerOptions = ""
+            AssemblyCache assemblyCache = null, string compilerOptions = "", bool throwOnUnimplementedExternals = true
         ) {
             var started = DateTime.UtcNow.Ticks;
             OutputPath = outputPath;
@@ -152,6 +153,7 @@ namespace JSIL.Tests {
             StubbedAssemblies = stubbedAssemblies;
             TypeInfo = typeInfo;
             AssemblyCache = assemblyCache;
+            ThrowOnUnimplementedExternals = throwOnUnimplementedExternals;
 
             var ended = DateTime.UtcNow.Ticks;
             CompilationElapsed = TimeSpan.FromTicks(ended - started);
@@ -442,7 +444,7 @@ namespace JSIL.Tests {
 
             var invocationJs = String.Format(
                 "function runTestCase (timeout, dateNow) {{\r\n" +
-                "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" +
+                (ThrowOnUnimplementedExternals ? "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" : string.Empty) +
                 "  timeout({0});\r\n" +
                 "  var started = dateNow();\r\n" +
                 "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
