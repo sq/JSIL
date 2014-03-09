@@ -1166,7 +1166,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
     if (index === -1)
       return false;
 
-    return this.RemoveAt(index);
+    this.RemoveAt(index);
+    return true;
   };
 
   switch (type) {
