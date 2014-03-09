@@ -404,6 +404,7 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
+        public readonly bool IsStubOnly;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -509,6 +510,8 @@ namespace JSIL.Internal {
             } else {
                 Replacement = null;
             }
+
+            IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;

@@ -1030,6 +1030,11 @@ namespace JSIL {
             if (declaredTypes.Contains(typedef))
                 return;
 
+            if (typeInfo.IsStubOnly)
+            {
+                stubbed = true;
+            }
+
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
                 declaredTypes.Add(typedef);
