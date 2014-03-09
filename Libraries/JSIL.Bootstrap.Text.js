@@ -1527,6 +1527,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Object], [])), 
+    function Append (value) {
+      var string = value.toString();
+      appendString(this, string, 0, string.length, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
     (new JSIL.MethodSignature($.Type, [$.String], [])), 
     function Append (value) {
       appendString(this, value, 0, value.length, 1);
