@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Mono.Cecil;
 
@@ -11,8 +12,9 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private Compiler.Configuration compilerConfiguration;
         private Configuration Configuration;
 
+        private Stopwatch stopwatchElapsed;
+
         public DeadCodeAnalyzer() {
-            
             entrypoints = new List<MethodDefinition>();
         }
 
@@ -35,11 +37,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
              if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
                 return;
 
+            stopwatchElapsed = new Stopwatch();
+            stopwatchElapsed.Start();
+
             var foundEntrypoints = from assembly in assemblies
                                    from modules in assembly.Modules
                                    where modules.EntryPoint != null
                                    select modules.EntryPoint;
-
             entrypoints.AddRange(foundEntrypoints);
 
             deadCodeInfo.AddAssemblies(assemblies);
@@ -49,11 +53,16 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
                 return;
 
+            stopwatchElapsed.Start();
+
             foreach (MethodDefinition method in entrypoints) {
                 deadCodeInfo.WalkMethod(method);
             }
 
             deadCodeInfo.ResolveVirtualMethods();
+
+            stopwatchElapsed.Stop();
+            Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
         }
 
         public bool MemberCanBeSkipped(MemberReference member) {

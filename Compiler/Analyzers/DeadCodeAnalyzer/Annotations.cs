@@ -31,22 +31,22 @@ using Mono.Cecil;
 
 namespace Mono.Linker {
     public class AnnotationStore {
-        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> base_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
-        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> override_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
-        private readonly Dictionary<IMemberDefinition, List<MethodDefinition>> preserved_methods = new Dictionary<IMemberDefinition, List<MethodDefinition>>();
+        private readonly Dictionary<MethodDefinition, HashSet<MethodDefinition>> base_methods = new Dictionary<MethodDefinition, HashSet<MethodDefinition>>();
+        private readonly Dictionary<MethodDefinition, HashSet<MethodDefinition>> override_methods = new Dictionary<MethodDefinition, HashSet<MethodDefinition>>();
+        private readonly Dictionary<IMemberDefinition, HashSet<MethodDefinition>> preserved_methods = new Dictionary<IMemberDefinition, HashSet<MethodDefinition>>();
 
         public void AddOverride(MethodDefinition @base, MethodDefinition @override) {
-            List<MethodDefinition> methods = GetOverrides(@base);
+            HashSet<MethodDefinition> methods = GetOverrides(@base);
             if (methods == null) {
-                methods = new List<MethodDefinition>();
+                methods = new HashSet<MethodDefinition>();
                 override_methods[@base] = methods;
             }
 
             methods.Add(@override);
         }
 
-        public List<MethodDefinition> GetOverrides(MethodDefinition method) {
-            List<MethodDefinition> overrides;
+        public HashSet<MethodDefinition> GetOverrides(MethodDefinition method) {
+            HashSet<MethodDefinition> overrides;
             if (override_methods.TryGetValue(method, out overrides)) {
                 return overrides;
             }
@@ -55,17 +55,17 @@ namespace Mono.Linker {
         }
 
         public void AddBaseMethod(MethodDefinition method, MethodDefinition @base) {
-            List<MethodDefinition> methods = GetBaseMethods(method);
+            HashSet<MethodDefinition> methods = GetBaseMethods(method);
             if (methods == null) {
-                methods = new List<MethodDefinition>();
+                methods = new HashSet<MethodDefinition>();
                 base_methods[method] = methods;
             }
 
             methods.Add(@base);
         }
 
-        public List<MethodDefinition> GetBaseMethods(MethodDefinition method) {
-            List<MethodDefinition> bases;
+        public HashSet<MethodDefinition> GetBaseMethods(MethodDefinition method) {
+            HashSet<MethodDefinition> bases;
             if (base_methods.TryGetValue(method, out bases)) {
                 return bases;
             }
@@ -73,7 +73,7 @@ namespace Mono.Linker {
             return null;
         }
 
-        public List<MethodDefinition> GetPreservedMethods(TypeDefinition type) {
+        public HashSet<MethodDefinition> GetPreservedMethods(TypeDefinition type) {
             return GetPreservedMethods(type as IMemberDefinition);
         }
 
@@ -81,7 +81,7 @@ namespace Mono.Linker {
             AddPreservedMethod(type as IMemberDefinition, method);
         }
 
-        public List<MethodDefinition> GetPreservedMethods(MethodDefinition method) {
+        public HashSet<MethodDefinition> GetPreservedMethods(MethodDefinition method) {
             return GetPreservedMethods(method as IMemberDefinition);
         }
 
@@ -89,8 +89,8 @@ namespace Mono.Linker {
             AddPreservedMethod(key as IMemberDefinition, method);
         }
 
-        private List<MethodDefinition> GetPreservedMethods(IMemberDefinition definition) {
-            List<MethodDefinition> preserved;
+        private HashSet<MethodDefinition> GetPreservedMethods(IMemberDefinition definition) {
+            HashSet<MethodDefinition> preserved;
             if (preserved_methods.TryGetValue(definition, out preserved)) {
                 return preserved;
             }
@@ -99,9 +99,9 @@ namespace Mono.Linker {
         }
 
         private void AddPreservedMethod(IMemberDefinition definition, MethodDefinition method) {
-            List<MethodDefinition> methods = GetPreservedMethods(definition);
+            HashSet<MethodDefinition> methods = GetPreservedMethods(definition);
             if (methods == null) {
-                methods = new List<MethodDefinition>();
+                methods = new HashSet<MethodDefinition>();
                 preserved_methods[definition] = methods;
             }
 
