@@ -16,20 +16,15 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private readonly List<TypeDefinition> types;
 
         private readonly TypeMapStep typeMapStep = new TypeMapStep();
-        private Configuration configuration;
+        private readonly Configuration configuration;
 
-        public DeadCodeInfoProvider() {
+        public DeadCodeInfoProvider(Configuration configuration) {
+            this.configuration = configuration;
+
             types = new List<TypeDefinition>();
             methods = new List<MethodDefinition>();
             fields = new List<FieldDefinition>();
             assemblies = new List<AssemblyDefinition>();
-        }
-
-        public void SetConfiguration(Configuration configuration) {
-            if (configuration == null)
-                return;
-
-            this.configuration = configuration;
         }
 
         public bool IsUsed(MemberReference member) {
