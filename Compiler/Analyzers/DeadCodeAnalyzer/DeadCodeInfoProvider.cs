@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using ICSharpCode.NRefactory.Utils;
@@ -10,21 +11,31 @@ using Mono.Linker.Steps;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
     public class DeadCodeInfoProvider {
-        private readonly List<AssemblyDefinition> assemblies;
-        private readonly List<FieldDefinition> fields;
-        private readonly List<MethodDefinition> methods;
-        private readonly List<TypeDefinition> types;
+        private readonly HashSet<AssemblyDefinition> assemblies;
+        private readonly HashSet<FieldDefinition> fields;
+        private readonly HashSet<MethodDefinition> methods;
+        private readonly HashSet<TypeDefinition> types;
 
         private readonly TypeMapStep typeMapStep = new TypeMapStep();
         private readonly Configuration configuration;
+        private readonly List<Regex> whiteListCache; 
 
         public DeadCodeInfoProvider(Configuration configuration) {
             this.configuration = configuration;
 
-            types = new List<TypeDefinition>();
-            methods = new List<MethodDefinition>();
-            fields = new List<FieldDefinition>();
-            assemblies = new List<AssemblyDefinition>();
+            types = new HashSet<TypeDefinition>();
+            methods = new HashSet<MethodDefinition>();
+            fields = new HashSet<FieldDefinition>();
+            assemblies = new HashSet<AssemblyDefinition>();
+
+            if (configuration.WhiteList != null &
+                configuration.WhiteList.Count > 0) {
+                whiteListCache = new List<Regex>(configuration.WhiteList.Count);
+                foreach (var pattern in configuration.WhiteList) {
+                    Regex compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
+                    whiteListCache.Add(compiledRegex);
+                }
+            }
         }
 
         public bool IsUsed(MemberReference member) {
@@ -91,15 +102,18 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         public void ResolveVirtualMethods() {
-            for (int i = 0; i < methods.Count; i++) {
-                MethodDefinition method = methods[i];
+            MethodDefinition[] tempMethods = new MethodDefinition[methods.Count];
+            methods.CopyTo(tempMethods);
+
+            for (int i = 0; i < tempMethods.Length; i++) {
+                MethodDefinition method = tempMethods[i];
                 if (method.IsVirtual)
                     ResolveVirtualMethod(method);
             }
         }
 
         private void ResolveVirtualMethod(MethodDefinition method) {
-            List<MethodDefinition> overrides = new List<MethodDefinition>();
+            HashSet<MethodDefinition> overrides = new HashSet<MethodDefinition>();
             GetAllOverrides(method, overrides);
             foreach (MethodDefinition methodDefinition in overrides) {
                 if (IsUsed(methodDefinition.DeclaringType)) {
@@ -115,9 +129,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             TypeDefinition resolvedType = type.Resolve();
 
-            if (resolvedType != null && !types.Contains(resolvedType)) {
-                types.Add(resolvedType);
-
+            if (resolvedType != null && types.Add(resolvedType)) {
                 if (resolvedType.HasCustomAttributes) {
                     foreach (CustomAttribute attribute in resolvedType.CustomAttributes) {
                         if (attribute.HasConstructorArguments)
@@ -142,9 +154,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             AddType(resolvedMethod.DeclaringType);
             AddType(resolvedMethod.ReturnType);
 
-            if (resolvedMethod.HasBody && !methods.Contains(resolvedMethod)) {
-                methods.Add(resolvedMethod);
-
+            if (resolvedMethod.HasBody && methods.Add(resolvedMethod)) {
                 //if (resolvedMethod.HasCustomAttributes) {
                 //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
                 //        AddType(attribute.AttributeType);
@@ -164,39 +174,40 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             FieldDefinition resolvedField = field.Resolve();
 
-            if (!fields.Contains(resolvedField)) {
-                fields.Add(resolvedField);
-            }
+            fields.Add(resolvedField);
         }
 
         public void AddAssemblies(AssemblyDefinition[] assemblies) {
-            ModuleDefinition[] modules = (from assembly in assemblies
-                                          from module in assembly.Modules
-                                          select module).ToArray();
-
+            IEnumerable<ModuleDefinition> modules = from assembly in assemblies
+                                                    from module in assembly.Modules
+                                                    select module;
+            
             foreach (ModuleDefinition module in modules) {
                 typeMapStep.ProcessModule(module);
 
-                foreach (var type in module.Types) {
-                    ProcessWhitelist(type);
+                if (whiteListCache.Count > 0) {
+                    foreach (var type in module.Types) {
+                        ProcessWhiteList(type);
+                    }
                 }
             }
-            this.assemblies.AddRange(assemblies);
+
+            this.assemblies.UnionWith(assemblies);
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
             if (configuration.WhiteList == null)
                 return false;
 
-            foreach (var whiteListItem in configuration.WhiteList) {
-                if (Regex.IsMatch(member.FullName, whiteListItem, RegexOptions.IgnoreCase))
+            foreach (var regex in whiteListCache) {
+                if (regex.IsMatch(member.FullName))
                     return true;
             }
 
             return false;
         }
 
-        private void ProcessWhitelist(MemberReference member) {
+        private void ProcessWhiteList(MemberReference member) {
             if (member is TypeReference) {
                 TypeDefinition type = (member as TypeReference).Resolve();
                 
@@ -206,13 +217,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
                     if (type.HasNestedTypes) {
                         foreach (var nestedType in type.NestedTypes) {
-                            ProcessWhitelist(nestedType);
+                            ProcessWhiteList(nestedType);
                         }
                     }
                     if (type.HasMethods) {
                         foreach (var method in type.Methods) {
                             if (IsMemberWhiteListed(method))
-                                ProcessWhitelist(method);
+                                ProcessWhiteList(method);
                         }
                     }
                 }
@@ -235,16 +246,16 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             throw new ArgumentException("Unexpected member reference type");
         }
 
-        private void GetAllOverrides(MethodDefinition method, List<MethodDefinition> deepOverrides) {
+        private void GetAllOverrides(MethodDefinition method, HashSet<MethodDefinition> deepOverrides) {
             if (method == null)
                 return;
 
-            List<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
+            HashSet<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
 
             if (overrides == null)
                 return;
 
-            deepOverrides.AddRange(overrides);
+            deepOverrides.UnionWith(overrides);
             foreach (MethodDefinition overrideMethod in overrides) {
                 GetAllOverrides(overrideMethod, deepOverrides);
             }
