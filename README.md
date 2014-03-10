@@ -10,7 +10,7 @@ For help on getting started using JSILc, see [the wiki](https://github.com/kevin
 License
 =======
 
-Copyright 2011 Kevin Gadd  
+Copyright 2011 K. Gadd  
 License: MIT/X11
 
 Replay/Record support copyright 2012 Mozilla Corporation
