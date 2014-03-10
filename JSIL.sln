@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL", "JSIL\JSIL.csproj", 
 		{3B2A5653-EC97-4001-BB9B-D90F1AF2C371} = {3B2A5653-EC97-4001-BB9B-D90F1AF2C371}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.DeadCodeAnalyzer", "Compiler\Analyzers\DeadCodeAnalyzer\JSIL.DeadCodeAnalyzer.csproj", "{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.Decompiler", "Upstream\ILSpy\ICSharpCode.Decompiler\ICSharpCode.Decompiler.csproj", "{984CC812-9470-4A13-AFF9-CC44068D666C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.NRefactory", "Upstream\ILSpy\NRefactory\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj", "{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}"
