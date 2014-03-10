@@ -88,6 +88,8 @@
     <Compile Include="..\Upstream\Options.cs" />
     <Compile Include="BuildGroup.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Extensibility\ICompilerExtension.cs" />
+    <Compile Include="Extensibility\IAnalyzer.cs" />
     <Compile Include="Profiles\Base.cs" />
     <Compile Include="Profiles\ContentManifestWriter.cs" />
     <Compile Include="Profiles\CopiedOutputGatherer.cs" />

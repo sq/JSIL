@@ -70,6 +70,10 @@ namespace JSIL {
         public event Action<string> Warning;
         public event Action<string, string[]> IgnoredMethod;
 
+        public event Action<AssemblyDefinition[]> AssembliesLoaded;
+        public event Action AnalyzeStarted;
+        public event Func<MemberReference, bool> MemberCanBeSkipped;
+
         internal readonly TypeInfoProvider _TypeInfoProvider;
 
         protected bool OwnsAssemblyCache;
@@ -405,6 +409,13 @@ namespace JSIL {
             var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
+
+            if (AssembliesLoaded != null)
+                AssembliesLoaded(assemblies);
+
+            if (AnalyzeStarted != null) {
+                AnalyzeStarted();
+            }
 
             if (scanForProxies)
                 _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
@@ -1024,6 +1035,13 @@ namespace JSIL {
             return true;
         }
 
+        protected bool ShouldSkipMember(MemberReference member) {
+            if (MemberCanBeSkipped != null)
+                return MemberCanBeSkipped(member);
+
+            return false;
+        }
+
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
@@ -1033,6 +1051,9 @@ namespace JSIL {
 
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                return;
+
+            if (ShouldSkipMember(typedef))
                 return;
 
             if (declaredTypes.Contains(typedef))
@@ -1311,6 +1332,9 @@ namespace JSIL {
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
+            if (ShouldSkipMember(typedef))
+                return false;
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy || typeInfo.IsExternal)
                 return false;
@@ -1468,6 +1492,9 @@ namespace JSIL {
             }
 
             foreach (var method in methodsToTranslate) {
+                if (ShouldSkipMember(method))
+                    continue;
+
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
@@ -1510,6 +1537,9 @@ namespace JSIL {
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
             foreach (var method in methodsToTranslate) {
+                if (ShouldSkipMember(method))
+                    continue;
+
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
@@ -1612,6 +1642,11 @@ namespace JSIL {
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
                 );
                 JSFunctionExpression function;
+
+                if (ShouldSkipMember(method)) {
+                    FunctionCache.CreateNull(methodInfo, method, identifier);
+                    return null;
+                }
 
                 if (FunctionCache.TryGetExpression(identifier, out function)) {
                     return function;
@@ -1844,6 +1879,9 @@ namespace JSIL {
             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
             bool cctorContext, JSRawOutputIdentifier dollar, JSStringIdentifier fieldSelfIdentifier
         ) {
+            if (ShouldSkipMember(field))
+                return null;
+
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
@@ -2313,9 +2351,12 @@ namespace JSIL {
                 bool isFirst = true;
 
                 foreach (var attribute in member.CustomAttributes) {
+                    if (ShouldSkipMember(attribute.AttributeType))
+                        continue;
+
                     if (!isFirst || standalone)
                         output.NewLine();
-
+                        
                     output.Dot();
                     output.Identifier("Attribute");
                     output.LPar();
@@ -2415,6 +2456,9 @@ namespace JSIL {
                 methodInfo, stubbed,
                 out isExternal, out isReplaced, out methodIsProxied
             );
+
+            if(ShouldSkipMember(method))
+                return false;
 
             if (isExternal) {
                 if (isReplaced)
