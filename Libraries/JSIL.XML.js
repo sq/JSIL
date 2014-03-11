@@ -153,9 +153,9 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
   $.RawMethod(false, "GetContractClass", function () {
       var contractName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializerContract";
 
-      var contractAssembly = this.type.Assembly.toString();
+      var contractAssembly = this.type.Assembly.FullName;
       if (this.type.IsArray) {
-          contractAssembly = this.type.GetElementType().Assembly.toString();
+          contractAssembly = this.type.GetElementType().Assembly.FullName;
       }
       var indexOfFirstComaInAssemblyName = contractAssembly.search(",");
       if (indexOfFirstComaInAssemblyName >= 0)
