@@ -419,15 +419,15 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
   $.RawMethod(false, "$getNullAttribute", function () {
     var a = this.r.GetAttribute(this.nilID, this.instanceNsID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs2000ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs1999ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     return false;
   });
