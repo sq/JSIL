@@ -152,6 +152,18 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
 
   $.RawMethod(false, "GetContractClass", function () {
       var contractName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializerContract";
+
+      var contractAssembly = this.type.Assembly.FullName;
+      if (this.type.IsArray) {
+          contractAssembly = this.type.GetElementType().Assembly.FullName;
+      }
+      var indexOfFirstComaInAssemblyName = contractAssembly.search(",");
+      if (indexOfFirstComaInAssemblyName >= 0)
+      {
+          contractAssembly = contractAssembly.substring(0, indexOfFirstComaInAssemblyName) + ".XmlSerializers" + contractAssembly.substring(indexOfFirstComaInAssemblyName, contractAssembly.length);
+          contractName = contractName + ", " + contractAssembly;
+      }
+
       var contractType = getType(contractName);
 
       if (!contractType)
@@ -407,15 +419,15 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
   $.RawMethod(false, "$getNullAttribute", function () {
     var a = this.r.GetAttribute(this.nilID, this.instanceNsID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs2000ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs1999ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     return false;
   });
