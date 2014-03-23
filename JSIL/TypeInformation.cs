@@ -990,7 +990,7 @@ namespace JSIL.Internal {
                     return _FullName;
 
                 if (DeclaringType != null)
-                    return _FullName = DeclaringType.FullName + "/" + Name;
+                    return _FullName = DeclaringType.FullName + "+" + Name;
 
                 if (string.IsNullOrEmpty(Definition.Namespace))
                     return _FullName = Name;

@@ -838,7 +838,7 @@ namespace JSIL {
             output.LPar();
             output.NewLine();
             
-            output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(iface.FullName));
             output.Comma();
 
             output.Value(iface.IsPublic);
@@ -955,7 +955,7 @@ namespace JSIL {
             output.LPar();
             output.NewLine();
 
-            output.Value(Util.EscapeIdentifier(typeInfo.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
             output.Comma();
 
             output.Value(enm.IsPublic);
@@ -999,7 +999,7 @@ namespace JSIL {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
-            output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(del.FullName));
             output.Comma();
 
             output.Value(del.IsPublic);
@@ -1051,7 +1051,7 @@ namespace JSIL {
                 output.WriteRaw("$jsilcore");
                 output.Comma();
 
-                output.Value(typedef.FullName);
+                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
 
                 output.RPar();
                 output.Semicolon();
@@ -1091,7 +1091,7 @@ namespace JSIL {
                     output.Identifier("JSIL.MakeExternalType", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1162,13 +1162,13 @@ namespace JSIL {
                     output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
 
                 } else if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1215,7 +1215,7 @@ namespace JSIL {
                     output.NewLine();
 
                     output.WriteRaw("Name: ");
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.NewLine();
 
@@ -2296,17 +2296,23 @@ namespace JSIL {
             TypeReference declaringType,
             Mono.Cecil.ICustomAttributeProvider member, 
             JavascriptAstEmitter astEmitter, 
-            JavascriptFormatter output
+            JavascriptFormatter output,
+            bool standalone = true
         ) {
             astEmitter.ReferenceContext.Push();
             try {
                 astEmitter.ReferenceContext.EnclosingType = null;
                 astEmitter.ReferenceContext.DefiningType = null;
 
-                output.Indent();
+                if (standalone)
+                    output.Indent();
+
+                bool isFirst = true;
 
                 foreach (var attribute in member.CustomAttributes) {
-                    output.NewLine();
+                    if (!isFirst || standalone)
+                        output.NewLine();
+
                     output.Dot();
                     output.Identifier("Attribute");
                     output.LPar();
@@ -2329,12 +2335,55 @@ namespace JSIL {
                     }
 
                     output.RPar();
+
+                    isFirst = false;
                 }
 
-                output.Unindent();
+                if (standalone)
+                    output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
+        }
+
+        private void TranslateParameterAttributes (
+            DecompilerContext context,
+            TypeReference declaringType,
+            MethodDefinition method,
+            JavascriptAstEmitter astEmitter,
+            JavascriptFormatter output
+        ) {
+            output.Indent();
+
+            foreach (var parameter in method.Parameters) {
+                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+                    continue;
+
+                output.NewLine();
+                output.Dot();
+                output.Identifier("Parameter");
+                output.LPar();
+
+                output.Value(parameter.Index);
+                output.Comma();
+
+                output.Value(parameter.Name);
+                output.Comma();
+
+                output.OpenFunction(null, (jf) => jf.Identifier("_"));
+
+                output.Identifier("_");
+
+                TranslateCustomAttributes(context, declaringType, parameter, astEmitter, output, false);
+
+                output.NewLine();
+
+                output.CloseBrace(false);
+
+                output.RPar();
+            }
+
+            output.Unindent();
         }
 
         protected void CreateMethodInformation (
@@ -2611,6 +2660,8 @@ namespace JSIL {
                 TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
 
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+
+                TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
             } finally {

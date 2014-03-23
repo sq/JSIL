@@ -690,6 +690,7 @@ $jsilcore.$MethodGetParameters = function (method) {
     result = method._cachedParameters = [];
 
     var argumentTypes = method._data.signature.argumentTypes;
+    var parameterInfos = method._data.parameterInfo;
     var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
 
     if (argumentTypes) {
@@ -698,8 +699,13 @@ $jsilcore.$MethodGetParameters = function (method) {
           argumentTypes[i], method._typeObject.__Context__
         )[1];
 
+        var parameterInfo = parameterInfos[i] || null;
+
         // FIXME: Missing non-type information
         var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
+        if (parameterInfo)
+          pi.$populateWithParameterInfo(parameterInfo);
+
         result.push(pi);
       }
     }
@@ -1015,6 +1021,18 @@ JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceB
   $.RawMethod(false, "$fromArgumentTypeAndPosition", function (argumentType, position) {
     this.argumentType = argumentType;
     this.position = position;
+    this._name = null;
+    this.__Attributes__ = [];
+  });
+
+  $.RawMethod(false, "$populateWithParameterInfo", function (parameterInfo) {
+    this._name = parameterInfo.name || null;
+
+    if (parameterInfo.attributes) {
+      var mb = new JSIL.MemberBuilder(null);
+      parameterInfo.attributes(mb);
+      this.__Attributes__ = mb.attributes;
+    }
   });
 
   $.Method({Static:false, Public:true }, "get_Attributes", 
@@ -1055,8 +1073,11 @@ JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceB
   $.Method({Static:false, Public:true }, "get_Name", 
     new JSIL.MethodSignature($.String, [], []), 
     function get_Name () {
-      // FIXME
-      return "Parameter" + this.position;
+      if (this._name) {
+        return this._name;
+      } else {
+        return "<unnamed parameter #" + this.position + ">";
+      }
     }
   );
 
@@ -1077,21 +1098,21 @@ JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceB
   $.Method({Static:false, Public:true }, "GetCustomAttributes", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Object]), [$.Boolean], []), 
     function GetCustomAttributes (inherit) {
-      throw new Error('Not implemented');
+      return JSIL.GetMemberAttributes(this, inherit, null);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetCustomAttributes", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Object]), [$jsilcore.TypeRef("System.Type"), $.Boolean], []), 
     function GetCustomAttributes (attributeType, inherit) {
-      throw new Error('Not implemented');
+      return JSIL.GetMemberAttributes(this, inherit, attributeType);
     }
   );
 
   $.Method({Static:false, Public:true }, "toString", 
     new JSIL.MethodSignature($.String, [], []), 
     function toString () {
-      return this.get_Name();
+      return this.argumentType.toString() + " " + this.get_Name();
     }
   );
 });

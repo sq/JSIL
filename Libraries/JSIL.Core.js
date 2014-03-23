@@ -5632,6 +5632,7 @@ JSIL.MemberBuilder = function (context) {
   this.context = context;
   this.attributes = [];
   this.overrides = [];
+  this.parameterInfo = {};
 };
 
 JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructorArguments, initializer) {
@@ -5645,6 +5646,15 @@ JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructor
 JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndex, interfaceMemberName) {
   var record = new JSIL.OverrideRecord(interfaceIndex, interfaceMemberName);
   this.overrides.push(record);
+
+  return this;
+};
+
+JSIL.MemberBuilder.prototype.Parameter = function (index, name, attributes) {
+  this.parameterInfo[index] = {
+    name: name,
+    attributes: attributes || null
+  };
 
   return this;
 };
@@ -6199,17 +6209,18 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
     JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
   }
 
-  var memberBuilder = new JSIL.MemberBuilder(this.context);
-
   var isConstructor = (descriptor.EscapedName === "_ctor");
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
+
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
 
   this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
     genericSignature: null,
     mangledName: mangledName,
     isExternal: false,
-    isConstructor: isConstructor
+    isConstructor: isConstructor,
+    parameterInfo: memberBuilder.parameterInfo
   }, memberBuilder);
 
   return memberBuilder;
