@@ -258,6 +258,10 @@
     <None Include="SimpleTestCases\ListAddOverride.cs" />
     <None Include="ReflectionTestCases\Issue310.cs" />
     <None Include="TestCases\DictionaryKeysAndValues.cs" />
+    <None Include="FailingTestCases\GenericMethodOfInterface.cs" />
+    <None Include="FailingTestCases\LinqAggregate.cs" />
+    <None Include="SimpleTestCases\IsGenericParameter.cs" />
+    <None Include="SimpleTestCases\GetInterfaces.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

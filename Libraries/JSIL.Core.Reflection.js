@@ -443,6 +443,18 @@ JSIL.ImplementExternals(
         return $jsilcore.System.Type.__Type__;
       }
     );
+    
+    $.Method({Public: true , Static: false}, "get_IsGenericParameter",
+      new JSIL.MethodSignature($.Type, []),
+      JSIL.TypeObjectPrototype.get_IsGenericParameter
+    );
+    
+    $.Method({ Public: true, Static: false }, "GetInterfaces",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),
+      function () {
+        return this.__Interfaces__;
+      }
+    );
   }
 );
 

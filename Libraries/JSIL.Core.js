@@ -301,6 +301,8 @@ JSIL.$GetSpecialType = function (name) {
 ( function () {
   JSIL.TypeObjectPrototype = Object.create(null);
 
+  // FIXME: It's gross that methods are split between this and System.Type externals.
+
   JSIL.TypeObjectPrototype.toString = function () {
     return JSIL.GetTypeName(this, true);
   };
@@ -352,6 +354,9 @@ JSIL.$GetSpecialType = function (name) {
   };
   JSIL.TypeObjectPrototype.get_IsArray = function() { 
     return this.__IsArray__; 
+  };
+  JSIL.TypeObjectPrototype.get_IsGenericParameter = function() { 
+    return false;
   };
 
   var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
@@ -1466,6 +1471,10 @@ JSIL.GenericParameter.prototype.toString = function () {
   return result;
 };
 
+JSIL.GenericParameter.prototype.get_IsGenericParameter = function () {
+  return true;
+};
+
 JSIL.GenericParameter.prototype.get_Name = function () {
   return this.name.humanReadable;
 };
@@ -1508,6 +1517,10 @@ JSIL.PositionalGenericParameter.prototype.toString = function (context) {
   }
 
   return "<Generic Method Parameter #" + this.index + ">";
+};
+
+JSIL.PositionalGenericParameter.prototype.get_IsGenericParameter = function () {
+  return true;
 };
 
 JSIL.PositionalGenericParameter.prototype.get_Name = function () {
