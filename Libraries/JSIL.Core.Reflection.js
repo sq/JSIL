@@ -297,7 +297,15 @@ JSIL.ImplementExternals(
     $.Method({Public: true , Static: false}, "GetConstructor",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ConstructorInfo"), [typeArray]),      
       function (argumentTypes) {
-        return getConstructorImpl(this, defaultFlags(), argumentTypes);
+          var flags = 
+            System.Reflection.BindingFlags.Instance | 
+            System.Reflection.BindingFlags.Static | 
+            System.Reflection.BindingFlags.Public |
+            // FIXME: I think this is necessary to avoid pulling in inherited constructors,
+            //  since calling the System.Object constructor to create an instance of String
+            //  is totally insane.
+            System.Reflection.BindingFlags.DeclaredOnly;
+        return getConstructorImpl(this, flags, argumentTypes);
       }
     );
 
@@ -329,7 +337,11 @@ JSIL.ImplementExternals(
           this, 
           System.Reflection.BindingFlags.Instance | 
           System.Reflection.BindingFlags.Static | 
-          System.Reflection.BindingFlags.Public,
+          System.Reflection.BindingFlags.Public |
+          // FIXME: I think this is necessary to avoid pulling in inherited constructors,
+          //  since calling the System.Object constructor to create an instance of String
+          //  is totally insane.
+          System.Reflection.BindingFlags.DeclaredOnly,
           "ConstructorInfo"
         );
       }
