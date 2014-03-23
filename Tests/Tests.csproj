@@ -269,6 +269,7 @@
     <None Include="ReflectionTestCases\GetInterfaceAttributes.cs" />
     <None Include="ReflectionTestCases\GetParameterAttributes.cs" />
     <None Include="ReflectionTestCases\GetConstructorAttributes.cs" />
+    <None Include="SimpleTestCases\EnumDefaults.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

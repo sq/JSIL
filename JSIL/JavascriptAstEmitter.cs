@@ -832,11 +832,13 @@ namespace JSIL {
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (TypeUtil.IsEnum(defaultValue.Value)) {
+                EnumMemberInfo emi;
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
-                if (enumInfo.FirstEnumMember != null) {
+                
+                if (enumInfo.ValueToEnumMember.TryGetValue(0, out emi)) {
                     Output.Identifier(defaultValue.Value, ReferenceContext);
                     Output.Dot();
-                    Output.Identifier(enumInfo.FirstEnumMember.Name);
+                    Output.Identifier(emi.Name);
                 } else {
                     Output.WriteRaw("0");
                 }
