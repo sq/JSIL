@@ -558,9 +558,10 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getGetMethodImpl = function (nonPublic) {
     var methodName = "get_" + this.get_Name();
     var bf = System.Reflection.BindingFlags;
+    var instanceOrStatic = this.get_IsStatic() ? "Static" : "Instance";
     var bindingFlags = (nonPublic 
-      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : bf.$Flags("DeclaredOnly", "Instance", "Public")
+      ? bf.$Flags("DeclaredOnly", "Static", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Static", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
@@ -568,9 +569,10 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getSetMethodImpl = function (nonPublic) {
     var methodName = "set_" + this.get_Name();
     var bf = System.Reflection.BindingFlags;
+    var instanceOrStatic = this.get_IsStatic() ? "Static" : "Instance";
     var bindingFlags = (nonPublic 
-      ? bf.$Flags("DeclaredOnly", "Instance", "Public", "NonPublic")
-      : bf.$Flags("DeclaredOnly", "Instance", "Public")
+      ? bf.$Flags("DeclaredOnly", "Static", "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", "Static", "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
@@ -658,6 +660,20 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
       }
 
       return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_CanRead", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanRead () {
+      return getGetMethodImpl.call(this, true) !== null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_CanWrite", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanWrite () {
+      return getSetMethodImpl.call(this, true) !== null;
     }
   );
 });
