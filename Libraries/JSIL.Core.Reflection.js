@@ -453,6 +453,11 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($.Type, []),
       JSIL.TypeObjectPrototype.get_IsInterface
     );
+    
+    $.Method({Public: true , Static: false}, "get_IsByRef",
+      new JSIL.MethodSignature($.Type, []),
+      JSIL.TypeObjectPrototype.get_IsByRef
+    );
 
     $.Method({ Public: true, Static: false }, "GetInterfaces",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),

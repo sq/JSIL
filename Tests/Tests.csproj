@@ -264,6 +264,7 @@
     <None Include="SimpleTestCases\GetInterfaces.cs" />
     <None Include="SimpleTestCases\IsInterface.cs" />
     <None Include="SimpleTestCases\CanWriteOrRead.cs" />
+    <None Include="SimpleTestCases\IsByRef.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

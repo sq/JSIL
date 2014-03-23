@@ -358,6 +358,9 @@ JSIL.$GetSpecialType = function (name) {
   JSIL.TypeObjectPrototype.get_IsGenericParameter = function() { 
     return false;
   };
+  JSIL.TypeObjectPrototype.get_IsByRef = function() { 
+    return this.__IsByRef__;
+  };
   JSIL.TypeObjectPrototype.get_IsInterface = function() {
     // FIXME: I think Object.DefineProperty might mess with us here. Should probably rename the backing value to __IsInterface__.
     return this.IsInterface;
@@ -4963,6 +4966,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     typeObject.IsInterface = false;
     typeObject.__IsValueType__ = !isReferenceType;
+    typeObject.__IsByRef__ = false;
 
     // Lazily initialize struct's native size and alignment properties
     if (typeObject.__IsStruct__) {
@@ -5219,6 +5223,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__FullName__ = fullName; 
     typeObject.__IsArray__ = false;
     typeObject.__IsEnum__ = true;
+    typeObject.__IsByRef__ = false;
     typeObject.__IsValueType__ = true;
     typeObject.__IsReferenceType__ = false;
     typeObject.__IsClosed__ = true;
@@ -7765,6 +7770,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.__IsEnum__ = false;
+    typeObject.__IsValueType__ = false;
+    typeObject.__IsByRef__ = false;
     typeObject.__TypeInitialized__ = false;
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
