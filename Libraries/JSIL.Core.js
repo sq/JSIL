@@ -5093,6 +5093,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
   if (typeof (printStackTrace) === "function")
     callStack = printStackTrace();
 
+  var memberBuilder = new JSIL.MemberBuilder(fullName);
+
   var creator = function CreateInterface () {
     var publicInterface = new Object();
     JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString () {
@@ -5124,6 +5126,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
+    typeObject.__Attributes__ = memberBuilder.attributes;
     typeObject.__Interfaces__ = interfaces || [];
 
     var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface, "interface");
@@ -5149,6 +5152,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
   };
 
   JSIL.RegisterName(fullName, $private, isPublic, creator);
+
+  return memberBuilder;
 };
 
 JSIL.EnumValue = function (m) {

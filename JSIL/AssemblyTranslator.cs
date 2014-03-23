@@ -830,7 +830,10 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, output, declaredTypes, stubbed);
         }
 
-        protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
+        protected void TranslateInterface (
+            DecompilerContext context, JavascriptAstEmitter astEmitter, 
+            JavascriptFormatter output, TypeDefinition iface
+        ) {
             output.Identifier("JSIL.MakeInterface", EscapingMode.None);
             output.LPar();
             output.NewLine();
@@ -921,6 +924,9 @@ namespace JSIL {
             output.CloseBracket();
 
             output.RPar();
+
+            TranslateCustomAttributes(context, iface, iface, astEmitter, output);
+
             output.Semicolon();
             output.NewLine();
         }
@@ -1098,7 +1104,7 @@ namespace JSIL {
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateInterface(context, output, typedef);
+                    TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
                     output.Comment("enum {0}", typedef.FullName);
