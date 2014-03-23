@@ -262,6 +262,7 @@
     <None Include="FailingTestCases\LinqAggregate.cs" />
     <None Include="SimpleTestCases\IsGenericParameter.cs" />
     <None Include="SimpleTestCases\GetInterfaces.cs" />
+    <None Include="SimpleTestCases\IsInterface.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

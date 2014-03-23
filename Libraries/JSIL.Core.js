@@ -358,6 +358,10 @@ JSIL.$GetSpecialType = function (name) {
   JSIL.TypeObjectPrototype.get_IsGenericParameter = function() { 
     return false;
   };
+  JSIL.TypeObjectPrototype.get_IsInterface = function() {
+    // FIXME: I think Object.DefineProperty might mess with us here. Should probably rename the backing value to __IsInterface__.
+    return this.IsInterface;
+  };
 
   var systemObjectPrototype = JSIL.$MakeSpecialPrototype("System.Object", Object.prototype);
   var memberInfoPrototype = JSIL.$MakeSpecialPrototype("System.Reflection.MemberInfo", systemObjectPrototype);
@@ -1439,6 +1443,8 @@ JSIL.GenericParameter = function (name, context) {
   JSIL.SetValueProperty(this, "__FullName__", this.name.humanReadable);
 };
 
+JSIL.GenericParameter.prototype = Object.create(JSIL.TypeObjectPrototype);
+
 JSIL.GenericParameter.prototype.in = function () {
   this.contravariant = true;
   return this;
@@ -1494,6 +1500,8 @@ JSIL.PositionalGenericParameter = function (name, context) {
   Object.defineProperty(this, "__FullName__", fullNameDecl);
   Object.defineProperty(this, "__FullNameWithoutArguments__", fullNameDecl);
 };
+
+JSIL.PositionalGenericParameter.prototype = Object.create(JSIL.TypeObjectPrototype);
 
 JSIL.PositionalGenericParameter.prototype.getFullName = function () {
   return "!!" + this.index;
