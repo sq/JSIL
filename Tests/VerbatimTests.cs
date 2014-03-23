@@ -35,7 +35,7 @@ namespace JSIL.Tests {
         public void BuiltinsThisEvaluatesToJSThis () {
             GenericTest(
                 @"SpecialTestCases\VerbatimThis.cs",
-                "", "Program/CustomType"
+                "", "Program+CustomType"
             );
         }
 
