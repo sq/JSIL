@@ -565,8 +565,8 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
     var bf = System.Reflection.BindingFlags;
     var instanceOrStatic = this.get_IsStatic() ? "Static" : "Instance";
     var bindingFlags = (nonPublic 
-      ? bf.$Flags("DeclaredOnly", "Static", "Public", "NonPublic")
-      : bf.$Flags("DeclaredOnly", "Static", "Public")
+      ? bf.$Flags("DeclaredOnly", instanceOrStatic, "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", instanceOrStatic, "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
@@ -576,8 +576,8 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
     var bf = System.Reflection.BindingFlags;
     var instanceOrStatic = this.get_IsStatic() ? "Static" : "Instance";
     var bindingFlags = (nonPublic 
-      ? bf.$Flags("DeclaredOnly", "Static", "Public", "NonPublic")
-      : bf.$Flags("DeclaredOnly", "Static", "Public")
+      ? bf.$Flags("DeclaredOnly", instanceOrStatic, "Public", "NonPublic")
+      : bf.$Flags("DeclaredOnly", instanceOrStatic, "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
