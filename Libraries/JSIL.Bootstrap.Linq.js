@@ -233,7 +233,7 @@ JSIL.ImplementExternals(
             return ok;
           },
           function reset () {
-            state.enumerator = JSIL.GetEnumerator(enumerable);
+            state.enumerator = JSIL.GetEnumerator(enumerable, TSource);
           },
           function dispose () {
             JSIL.Dispose(state.enumerator);
@@ -273,14 +273,14 @@ JSIL.ImplementExternals(
               var ok = moveNext.Call(state.enumerator);
               if (ok) {
                 var enumerable = selector(get_Current.Call(state.enumerator));
-                state.currentSubsequence = JSIL.GetEnumerator(enumerable);
+                state.currentSubsequence = JSIL.GetEnumerator(enumerable, TResult);
               } else {
                 return ok;
               }
             }
           },
           function reset () {
-            state.enumerator = JSIL.GetEnumerator(source);
+            state.enumerator = JSIL.GetEnumerator(source, TSource);
             state.currentSubsequence = null;
           },
           function dispose () {
@@ -500,7 +500,7 @@ JSIL.ImplementExternals(
     function Sum_Int32 (enumerable) {
       var result = 0;
 
-      var e = JSIL.GetEnumerator(enumerable);
+      var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Int32);
 
       var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
       var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Int32).get_Current;
@@ -525,7 +525,7 @@ JSIL.ImplementExternals(
     function Sum_Single (enumerable) {
       var result = +0;
 
-      var e = JSIL.GetEnumerator(enumerable);
+      var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Single);
 
       var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
       var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Single).get_Current;
@@ -550,7 +550,7 @@ JSIL.ImplementExternals(
     function Sum_Double (enumerable) {
       var result = +0;
 
-      var e = JSIL.GetEnumerator(enumerable);
+      var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Double);
 
       var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
       var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Double).get_Current;
