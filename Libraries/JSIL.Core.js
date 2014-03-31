@@ -6455,7 +6455,7 @@ JSIL.MethodSignature.$EmitInvocation = function (
 
   if (genericArgumentNames)
   for (var i = 0, l = genericArgumentNames.length; i < l; i++) {
-    comma = ((i < (l - 1)) || (argumentTypes.length > 0)) ? "," : "";
+    comma = ((i < (l - 1)) || (!needsBindingForm && argumentTypes.length > 0)) ? "," : "";
     body.push("  ga[" + i + "]" + comma);
   }
 
