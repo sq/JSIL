@@ -822,6 +822,7 @@
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
     <None Include="BinaryTestCases\InheritedInterfacesExplicit.cs" />
     <None Include="SpecialTestCases\ClassMarkedWithMetaAttibutes.cs" />
+	<None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
