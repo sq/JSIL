@@ -7961,15 +7961,17 @@ JSIL.ObjectHashCode = function (obj) {
   }
 };
 
-// MemberwiseClone if parameter is struct, otherwise do nothing.
+// MemberwiseClone if parameter is struct (or nullable underling type is struct), otherwise do nothing.
 JSIL.CloneParameter = function (parameterType, value) {
   if (!parameterType)
     JSIL.RuntimeError("Undefined parameter type");
 
-  if (parameterType.__IsStruct__)
-    return value.MemberwiseClone();
-  else
-    return value;
+  if (parameterType.__IsStruct__) {
+    if (parameterType.__FullName__.indexOf("System.Nullable`1") != 0 || (parameterType.__GenericArgumentValues__[0].__IsStruct__ && value !== null)) {
+      return value.MemberwiseClone();
+    }
+  }
+  return value;
 };
 
 JSIL.ValueOfNullable = function (value) {
