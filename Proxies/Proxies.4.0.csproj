@@ -34,9 +34,14 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Activator.cs" />
     <Compile Include="Array.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="Collections.cs" />
+    <Compile Include="Encoding.cs" />
+    <Compile Include="Enum.cs" />
+    <Compile Include="EventInfo.cs" />
+    <Compile Include="MonoProxy.cs" />
     <Compile Include="Unsafe.cs" />
     <Compile Include="DateTime.cs" />
     <Compile Include="IO.cs" />

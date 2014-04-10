@@ -79,6 +79,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+
         [JSIsPure]
         [JSReplacement("JSIL.SplitString($this, $dividers)")]
         public abstract string[] Split (AnyType[] dividers);
@@ -315,6 +316,70 @@ namespace JSIL.Proxies {
 
         [JSReplacement("System.String.CopyTo($this, $sourceIndex, $destination, $destinationIndex, $count)")]
         public void CopyTo (int sourceIndex, char[] destination, int destinationIndex, int count) {
+            throw new InvalidOperationException();
+        }
+
+        // ADD: String Compare methods and missing concat methods
+        [JSReplacement("System.String.Compare($strA, $strB)")]
+        [JSIsPure]
+        public static int Compare(string strA, string strB)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Compare($strA, $strB, $ignoreCase)")]
+        [JSIsPure]
+        public static int Compare(string strA, string strB, bool ignoreCase)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Compare($strA, $strB, $comparisonType)")]
+        [JSIsPure]
+        public static int Compare(string strA, string strB, StringComparison comparisonType)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Concat($values)")]
+        [JSIsPure]
+        public static string Concat(IEnumerable<string> values)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Concat($values)")]
+        [JSIsPure]
+        public static string Concat<T>(IEnumerable<T> values)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.IndexOfAny($chars, $startIndex)")]
+        [JSIsPure]
+        public static int IndexOfAny(char[] chars, int startIndex)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.LastIndexOfAny($chars, $startIndex)")]
+        [JSIsPure]
+        public static int LastIndexOfAny(char[] chars, int startIndex)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.IsNullOrEmpty($value)")]
+        [JSIsPure]
+        public static bool IsNullOrEmpty(string value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.IsNullOrWhiteSpace($value)")]
+        [JSIsPure]
+        public static bool IsNullOrWhiteSpace(string value)
+        {
             throw new InvalidOperationException();
         }
     }

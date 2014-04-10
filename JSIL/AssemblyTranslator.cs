@@ -2687,7 +2687,9 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaceIndex = typeInfo.AllInterfacesRecursive.TakeWhile(
+                    var interfaces = typeInfo.AllInterfacesRecursive.Where((tuple) => (tuple.Item1 == typeInfo && !tuple.Item2.IsIgnored));
+
+                    var interfaceIndex = interfaces.TakeWhile(
                         (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
                     ).Count();
 

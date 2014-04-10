@@ -38,6 +38,26 @@ namespace JSIL.Proxies {
         public FileStreamProxy (SafeFileHandle handle, AnyType access, int bufferSize, bool isAsync) {
             throw new NotImplementedException();
         }
+    }
 
+    [JSProxy(
+        typeof(TextReader),
+        JSProxyMemberPolicy.ReplaceDeclared
+    )]
+    public abstract class TextReaderProxy
+    {
+        [JSReplacement("System.IO.TextReader.Dispose()")]
+        [JSIsPure]
+        public void Dispose()
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.IO.TextReader.Dispose($b)")]
+        [JSIsPure]
+        public void Dispose(bool b)
+        {
+            throw new InvalidOperationException();
+        }
     }
 }

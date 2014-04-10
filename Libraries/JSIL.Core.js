@@ -6825,7 +6825,7 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
 
 JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {
   var cache = this.variantInvocationCandidateCache;
-  var typeId = thisReference.__TypeId__;
+  var typeId = thisReference.__ThisTypeId__;
 
   var result = cache[typeId];
 
@@ -6859,7 +6859,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   }
 
   if (!result)
-    result = this.fallbackMethod;
+    result = this.fallbackMethod ? this.fallbackMethod(this.typeObject) : null;
 
   if (!result) {
     var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
@@ -7883,14 +7883,21 @@ JSIL.GetEqualsSignature = function () {
   return JSIL.$equalsSignature;
 }
 
+JSIL.ObjectEqualsStaticHelper = function (lhs, rhs) {
+    if (lhs["Object_Equals"] != null)
+        return lhs["Object_Equals"](rhs);
+    return JSIL.ObjectEquals(lhs, rhs);
+}
+
 JSIL.ObjectEquals = function (lhs, rhs) {
   if ((lhs === null) || (rhs === null))
     return lhs === rhs;
   if (lhs === rhs)
     return true;
-
   switch (typeof (lhs)) {
+
     case "string":
+    case "boolean":
     case "number":
       return lhs == rhs;
       break;
@@ -8491,14 +8498,21 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
   return result;
 };
 
-JSIL.$GetEnumeratorFallback = function () {
-  if (typeof (this) === "string")
-    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
-  else if (JSIL.IsArray(this))
-    // HACK: Too hard to detect the correct element type here.
-    return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__, true);
-  else
-    JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of GetEnumerator");
+JSIL.$GetEnumeratorFallback = function (thisTypeObject) {
+    var interfaceTypeObject = thisTypeObject;
+    return function () {
+        if (typeof (this) === "string")
+            return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
+        else if (JSIL.IsArray(this)) {
+            if (interfaceTypeObject.IsGenericType) {
+                return JSIL.GetEnumerator(this, thisTypeObject.__GenericArgumentValues__[0], true);
+            }
+            // HACK: Too hard to detect the correct element type here.
+            return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__, true);
+        }
+        else
+            JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of GetEnumerator");
+    };
 };
 
 // FIXME: This can probably be replaced with compiler and/or runtime intelligence 

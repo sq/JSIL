@@ -24,11 +24,11 @@ namespace JSIL.Proxies {
         [JSRuntimeDispatch]
         new abstract public string ToString ();
 
-        [JSIsPure]
+        /*[JSIsPure]
         [JSChangeName("Object.Equals")]
         [JSNeverReplace]
         [JSRuntimeDispatch]
-        new public abstract bool Equals (object obj);
+        new public abstract bool Equals (object obj);*/
 
         [JSIsPure]
         [JSReplacement("JSIL.ObjectEquals($objA, $objB)")]
@@ -41,5 +41,8 @@ namespace JSIL.Proxies {
         public static bool ReferenceEquals (object objA, object objB) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("JSIL.ObjectEqualsStaticHelper($this, $obj)")]
+        new public abstract bool Equals(object obj);
     }
 }
