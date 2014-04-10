@@ -19,6 +19,7 @@ Proxies/obj
 Proxies/bin
 Proxies/XNA/obj
 Proxies/XNA/bin
+Proxies/BCL/obj
 Examples/simpleray
 Examples/bin
 /bin
@@ -67,8 +68,8 @@ _UpgradeReport_Files
 /Upstream/FFMPEG/*.exe
 /Upstream/FFMPEG/licenses
 /Upstream/OggEnc/*.exe
-/Upstream/XapParse/obj
-/Upstream/XapParse/bin
+/Upstream/xapparse/obj
+/Upstream/xapparse/bin
 Skeletons/*.js
 Corlib/*.js
 Corlib/*.nlp
