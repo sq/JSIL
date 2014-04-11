@@ -99,5 +99,7 @@ Corlib/*.js
 *.Windows.sln
 *.MacOS.sln
 *.Linux.sln
+*.Web.csproj
+*.Web.sln
 /Compiler/bin/*
 *.userprefs
