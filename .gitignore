@@ -93,3 +93,11 @@ Corlib/*.js
 /Upstream/OpenTKBindingGenerator
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
+*.Windows.csproj
+*.MacOS.csproj
+*.Linux.csproj
+*.Windows.sln
+*.MacOS.sln
+*.Linux.sln
+/Compiler/bin/*
+*.userprefs

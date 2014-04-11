@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExternalProject Name="JSIL.Upstream">
+
+  <Project
+    Name="Mono.Cecil"
+    Guid="D68133BD-1E63-496E-9EDE-4FBDBF77B486"
+    Path="Upstream/ILSpy/Mono.Cecil/Mono.Cecil.csproj">
+    <ConfigurationMapping Old="Debug" New="net_4_0_Debug|Any CPU" />
+    <ConfigurationMapping Old="Release" New="net_4_0_Release|Any CPU" />
+  </Project>
+
+</ExternalProject>
+

@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="JSIL.Compiler" Path="Compiler" Type="Console" Platforms="Windows,MacOS,Linux">
+  <Properties>
+    <Property Name="ApplicationIcon" Value="jsil.ico" />
+    <Property Name="ForceArchitecture" Value="x86" />
+    <CustomDefinitions>
+      <Platform Name="Linux">UNIX</Platform>
+      <Platform Name="MacOS">OSX</Platform>
+      <Platform Name="Windows">WINDOWS</Platform>
+    </CustomDefinitions>
+  </Properties>
+  <References>
+    <Reference Include="OptionalMicrosoftBuildAPIs" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="JSIL" />
+    <Reference Include="JSIL.Upstream" />
+    <Reference Include="JSIL.Compiler.RuntimeDependencies" />
+  </References>
+  <Files>
+    <Compile Include="..\Upstream\Options.cs" />
+    <Compile Include="BuildGroup.cs" />
+    <Compile Include="Configuration.cs" />
+    <Compile Include="Profiles\Base.cs" />
+    <Compile Include="Profiles\ContentManifestWriter.cs" />
+    <Compile Include="Profiles\CopiedOutputGatherer.cs" />
+    <Compile Include="Profiles\Default.cs" />
+    <Compile Include="Extensibility\IProfile.cs" />
+    <Compile Include="Profiles\ResourceConverter.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="SolutionBuilder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VariableSet.cs" />
+    <Content Include="jsil.ico" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="defaults.jsilconfig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </Files>
+</Project>
