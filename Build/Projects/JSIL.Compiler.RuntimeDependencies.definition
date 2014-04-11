@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ContentProject Name="JSIL.Compiler.RuntimeDependencies">
-  <Source Include="Upstream/Spidermonkey" Match="*" />
-  <Source Include="Upstream/PNGQuant" Match="*.dll" />
-  <Source Include="Upstream/PNGQuant" Match="*.exe" />
-</ContentProject>

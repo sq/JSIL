@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Name="JSIL" Path="JSIL" Type="Library" Platforms="Windows,MacOS,Linux">
+<Project Name="JSIL" Path="JSIL" Type="Library" Platforms="Windows,MacOS,Linux,Web">
   <Properties>
     <Property Name="ApplicationIcon" Value="jsil.ico" />
     <CustomDefinitions>
@@ -23,28 +23,28 @@
   </References>
   <Files>
     <Compile Include="AssemblyManifest.cs" />
+    <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="AST\Enumerators.cs" />
     <Compile Include="AST\JSAstCursor.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSExpressionTypes.cs" />
     <Compile Include="AST\JSIdentifierTypes.cs" />
     <Compile Include="AST\JSLiteralTypes.cs" />
-    <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
+    <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSStatementTypes.cs" />
     <Compile Include="AST\StaticAnalysisAstVisitor.cs" />
     <Compile Include="AST\Traversal.cs" />
     <Compile Include="BugChecks.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />
-    <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
+    <Compile Include="FunctionCache.cs" />
     <Compile Include="FunctionTransformPipeline.cs" />
     <Compile Include="HTMLColor.cs" />
+    <Compile Include="ILBlockTranslator.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />
-    <Compile Include="ILBlockTranslator.cs" />
-    <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="MemberIdentifier.cs" />
     <Compile Include="MethodSignature.cs" />
     <Compile Include="PackedStructArray.cs" />
@@ -52,49 +52,56 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
     <Compile Include="Threading.cs" />
-    <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CacheSignatures.cs" />
-    <Compile Include="Transforms\IntroducePackedArrays.cs" />
-    <Compile Include="Transforms\StaticAnalysis\AllocationHoisting.cs" />
-    <Compile Include="Transforms\StaticAnalysis\EliminatePointlessRetargeting.cs" />
-    <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
-    <Compile Include="Transforms\DecomposeMutationOperators.cs" />
-    <Compile Include="Transforms\FixupStructConstructorInvocations.cs" />
-    <Compile Include="Transforms\EmulateInt64.cs" />
+    <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CollapseNulls.cs" />
     <Compile Include="Transforms\ConvertPropertyAccessesToInvocations.cs" />
-    <Compile Include="Transforms\OptimizePropertyMutationAssignments.cs" />
-    <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
-    <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />
-    <Compile Include="Transforms\ExpandCastExpressions.cs" />
-    <Compile Include="Transforms\IntroduceCharCasts.cs" />
-    <Compile Include="Transforms\RemoveUnusedLoopNames.cs" />
-    <Compile Include="Transforms\LabelGroupBuilder.cs" />
+    <Compile Include="Transforms\DecomposeMutationOperators.cs" />
     <Compile Include="Transforms\DeoptimizeSwitchStatements.cs" />
-    <Compile Include="Transforms\ReplaceMethodCalls.cs" />
+    <Compile Include="Transforms\EmulateInt64.cs" />
+    <Compile Include="Transforms\ExpandCastExpressions.cs" />
+    <Compile Include="Transforms\FixupStructConstructorInvocations.cs" />
+    <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
+    <Compile Include="Transforms\IntroduceCharCasts.cs" />
     <Compile Include="Transforms\IntroduceEnumCasts.cs" />
-    <Compile Include="Transforms\SimplifyLoops.cs" />
-    <Compile Include="Transforms\StaticAnalysis\OptimizeArrayEnumerators.cs" />
-    <Compile Include="Transforms\StaticAnalysis\EliminatePointlessFinallyBlocks.cs" />
-    <Compile Include="Transforms\StaticAnalysis\StaticAnalyzer.cs" />
-    <Compile Include="Transforms\StaticAnalysis\EliminateSingleUseTemporaries.cs" />
-    <Compile Include="Transforms\SimplifyOperators.cs" />
-    <Compile Include="Transforms\IntroduceVariableReferences.cs" />
-    <Compile Include="Transforms\StaticAnalysis\EmulateStructAssignment.cs" />
+    <Compile Include="Transforms\IntroducePackedArrays.cs" />
     <Compile Include="Transforms\IntroduceVariableDeclarations.cs" />
+    <Compile Include="Transforms\IntroduceVariableReferences.cs" />
+    <Compile Include="Transforms\LabelGroupBuilder.cs" />
+    <Compile Include="Transforms\OptimizePropertyMutationAssignments.cs" />
+    <Compile Include="Transforms\RemoveUnusedLoopNames.cs" />
+    <Compile Include="Transforms\ReplaceMethodCalls.cs" />
+    <Compile Include="Transforms\SimplifyLoops.cs" />
+    <Compile Include="Transforms\SimplifyOperators.cs" />
+    <Compile Include="Transforms\StaticAnalysis\AllocationHoisting.cs" />
+    <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />
+    <Compile Include="Transforms\StaticAnalysis\EliminatePointlessFinallyBlocks.cs" />
+    <Compile Include="Transforms\StaticAnalysis\EliminatePointlessRetargeting.cs" />
+    <Compile Include="Transforms\StaticAnalysis\EliminateSingleUseTemporaries.cs" />
+    <Compile Include="Transforms\StaticAnalysis\EmulateStructAssignment.cs" />
+    <Compile Include="Transforms\StaticAnalysis\OptimizeArrayEnumerators.cs" />
+    <Compile Include="Transforms\StaticAnalysis\StaticAnalyzer.cs" />
+    <Compile Include="Transforms\UnsafeCodeTransforms.cs" />
     <Compile Include="TranslationResult.cs" />
-    <Compile Include="TypeUtil.cs" />
     <Compile Include="TypeInfoProvider.cs" />
     <Compile Include="TypeInformation.cs" />
+    <Compile Include="TypeUtil.cs" />
     <Compile Include="Util.cs" />
-    <None Include="..\Libraries\JSIL.Core.js">
-      <Link>JS Libraries\JSIL.Core.js</Link>
-    </None>
+    <Content Include="..\Libraries\JSIL.XNACore.js">
+      <Link>JS Libraries\JSIL.XNACore.js</Link>
+    </Content>
+    <Content Include="jsil.ico" />
     <None Include="..\Libraries\JSIL.Bootstrap.js">
       <Link>JS Libraries\JSIL.Bootstrap.js</Link>
     </None>
     <None Include="..\Libraries\JSIL.Browser.js">
       <Link>JS Libraries\JSIL.Browser.js</Link>
+    </None>
+    <None Include="..\Libraries\JSIL.Core.js">
+      <Link>JS Libraries\JSIL.Core.js</Link>
+    </None>
+    <None Include="..\Libraries\JSIL.IO.js">
+      <Link>JS Libraries\JSIL.IO.js</Link>
     </None>
     <None Include="..\Libraries\JSIL.XNA3.js">
       <Link>JS Libraries\JSIL.XNA3.js</Link>
@@ -108,12 +115,5 @@
     <None Include="..\Libraries\System.Windows.js">
       <Link>JS Libraries\System.Windows.js</Link>
     </None>
-    <None Include="..\Libraries\JSIL.IO.js">
-      <Link>JS Libraries\JSIL.IO.js</Link>
-    </None>
-    <Content Include="..\Libraries\JSIL.XNACore.js">
-      <Link>JS Libraries\JSIL.XNACore.js</Link>
-    </Content>
-    <Content Include="jsil.ico" />
   </Files>
 </Project>
