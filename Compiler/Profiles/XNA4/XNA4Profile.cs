@@ -35,7 +35,10 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ProcessSkippedAssembly(configuration, assemblyPath, result);
+            foreach (var path in GetProcessedAssembliesPathes(configuration, assemblyPath, result))
+            {
+                ProcessSkippedAssembly(configuration, path, result);
+            }
 
             result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()

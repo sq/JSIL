@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using JSIL.Compiler.Extensibility;
@@ -42,6 +43,32 @@ namespace JSIL.Compiler.Profiles {
             VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
         ) {
             return buildResult;
+        }
+
+        protected IEnumerable<string> GetProcessedAssembliesPathes(
+            Configuration configuration, string assemblyPath, TranslationResult result)
+        {
+            string basePath = Path.GetDirectoryName(assemblyPath);
+            List<string> assemblyPaths = new List<string>();
+
+            foreach (var item in result.Assemblies)
+            {
+                var path = Path.Combine(basePath, item.Name.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    assemblyPaths.Add(path);
+                }
+                else
+                {
+                    path = Path.Combine(basePath, item.Name.Name + ".exe");
+                    if (File.Exists(path))
+                    {
+                        assemblyPaths.Add(path);
+                    }
+                }
+            }
+
+            return assemblyPaths;
         }
     }
 }

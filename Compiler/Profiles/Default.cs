@@ -13,7 +13,8 @@ namespace JSIL.Compiler.Profiles {
             return false;
         }
 
-        public virtual TranslationResult Translate (
+        public override TranslationResult Translate (
+            VariableSet variables, 
             AssemblyTranslator translator, 
             Configuration configuration, 
             string assemblyPath, 
@@ -21,7 +22,10 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ProcessSkippedAssembly(configuration, assemblyPath, result);
+            foreach (var path in GetProcessedAssembliesPathes(configuration, assemblyPath, result))
+            {
+                ProcessSkippedAssembly(configuration, path, result);
+            }
 
             return result;
         }
