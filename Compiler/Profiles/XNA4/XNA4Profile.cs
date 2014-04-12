@@ -35,7 +35,7 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            foreach (var path in GetProcessedAssembliesPathes(configuration, assemblyPath, result))
+            foreach (var path in GetPathsForProcessedAssemblies(configuration, assemblyPath, result))
             {
                 ProcessSkippedAssembly(configuration, path, result);
             }

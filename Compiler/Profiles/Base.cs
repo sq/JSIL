@@ -45,7 +45,7 @@ namespace JSIL.Compiler.Profiles {
             return buildResult;
         }
 
-        protected IEnumerable<string> GetProcessedAssembliesPathes(
+        protected IEnumerable<string> GetPathsForProcessedAssemblies(
             Configuration configuration, string assemblyPath, TranslationResult result)
         {
             string basePath = Path.GetDirectoryName(assemblyPath);
