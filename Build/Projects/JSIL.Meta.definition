@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="JSIL.Meta" Path="Meta" Type="Library" Platforms="Windows,MacOS,Linux,Web">
+  <Properties>
+    <Property Name="ApplicationIcon" Value="jsil.ico" />
+  </Properties>
+  <References>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </References>
+  <Files>
+    <Compile Include="Attributes.cs" />
+    <Compile Include="Builtins.cs" />
+    <Compile Include="PackedArray.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Proxies.cs" />
+    <Compile Include="StaticAnalysis.cs" />
+    <Compile Include="Verbatim.cs" />
+    <Content Include="jsil.ico" />
+  </Files>
+</Project>

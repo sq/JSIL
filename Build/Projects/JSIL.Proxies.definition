@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="JSIL.Proxies" Path="Proxies" Type="Library" Platforms="Windows,MacOS,Linux,Web">
+  <Properties>
+    <Property Name="ApplicationIcon" Value="jsil.ico" />
+    <Property Name="AssemblyName" Value="JSIL.Proxies.4.0" />
+  </Properties>
+  <References>
+    <Reference Include="System" />
+    <Reference Include="JSIL.Meta" />
+  </References>
+  <Files>
+    <Compile Include="Array.cs" />
+    <Compile Include="Collections.cs" />
+    <Compile Include="Console.cs" />
+    <Compile Include="DateTime.cs" />
+    <Compile Include="Forms.cs" />
+    <Compile Include="IO.cs" />
+    <Compile Include="Math.cs" />
+    <Compile Include="Numbers.cs" />
+    <Compile Include="Object.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Reflection.cs" />
+    <Compile Include="String.cs" />
+    <Compile Include="Unsafe.cs" />
+  </Files>
+</Project>
