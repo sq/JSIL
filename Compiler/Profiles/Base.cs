@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using JSIL.Compiler.Extensibility;
+using JSIL.Utilities;
 
 namespace JSIL.Compiler.Profiles {
     public abstract class BaseProfile : IProfile {
@@ -45,7 +46,13 @@ namespace JSIL.Compiler.Profiles {
             return buildResult;
         }
 
-        protected IEnumerable<string> GetPathsForProcessedAssemblies(
+        protected void PostProcessAssembly(Configuration configuration, string assemblyPath, TranslationResult result)
+        {
+            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
+            ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
+        }
+
+        protected void PostProcessAllTranslatedAssemblies(
             Configuration configuration, string assemblyPath, TranslationResult result)
         {
             string basePath = Path.GetDirectoryName(assemblyPath);
@@ -68,7 +75,10 @@ namespace JSIL.Compiler.Profiles {
                 }
             }
 
-            return assemblyPaths;
+            foreach (var path in assemblyPaths)
+            {
+                PostProcessAssembly(configuration, path, result);
+            }
         }
     }
 }
