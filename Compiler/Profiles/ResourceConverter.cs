@@ -123,13 +123,21 @@ namespace JSIL.Utilities {
                 CachePath = currentSetup.CachePath,
                 ConfigurationFile = currentSetup.ConfigurationFile,
                 DisallowCodeDownload = true,
-                DynamicBase = currentSetup.DynamicBase,
                 PrivateBinPath = currentSetup.PrivateBinPath,
                 PrivateBinPathProbe = currentSetup.PrivateBinPathProbe,
                 ShadowCopyDirectories = currentSetup.ShadowCopyDirectories,
                 ShadowCopyFiles = currentSetup.ShadowCopyFiles,
                 LoaderOptimization = LoaderOptimization.MultiDomain
             };
+
+            try
+            {
+                domainSetup.DynamicBase = currentSetup.DynamicBase;
+            }
+            catch (System.MemberAccessException)
+            {
+                // Mono bugs! Yay!
+            }
 
             Domain = AppDomain.CreateDomain(name, null, domainSetup);
         }
