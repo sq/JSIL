@@ -192,17 +192,20 @@ namespace JSIL.Internal {
 
         private volatile int _Count = 0;
         private readonly Dictionary<NamedMethodSignature, Count> Counts;
+
+        private readonly List<MethodSignature> _Signatures; 
         private readonly string Name;
 
         internal MethodSignatureSet (MethodSignatureCollection collection, string name) {
             Counts = collection.Counts;
+            _Signatures = (from k in Counts.Keys where k.Name == this.Name select k.Signature).ToList();
             Name = name;
         }
 
         public MethodSignature[] Signatures {
-            get {
-                lock (Counts)
-                    return (from k in Counts.Keys where k.Name == this.Name select k.Signature).ToArray();
+            get
+            {
+                lock (_Signatures) return _Signatures.ToArray();
             }
         }
 
@@ -213,18 +216,37 @@ namespace JSIL.Internal {
             // if (signature.Name != Name)
             //     throw new InvalidOperationException();
 
+            lock (_Signatures)
+            {
+                if (!_Signatures.Contains(signature.Signature)) _Signatures.Add(signature.Signature);
+            }
+
+            Interlocked.Increment(ref _Count);
+        }
+
+        public void AddWithCount(NamedMethodSignature signature)
+        {
+            // if (signature.Name != Name)
+            //     throw new InvalidOperationException();
+
             Count c;
 
-            lock (Counts) {
+            lock (Counts)
+            {
                 if (!Counts.TryGetValue(signature, out c))
                     Counts.Add(signature, c = new Count());
+            }
+
+            lock (_Signatures)
+            {
+                if (!_Signatures.Contains(signature.Signature)) _Signatures.Add(signature.Signature);
             }
 
             Interlocked.Increment(ref c.Value);
             Interlocked.Increment(ref _Count);
         }
 
-        public int GetCountOf (NamedMethodSignature signature) {
+        public int GetCountOfForGenericType (NamedMethodSignature signature) {
             Count result;
             lock (Counts)
                 if (Counts.TryGetValue(signature, out result))
@@ -276,12 +298,12 @@ namespace JSIL.Internal {
             return 0;
         }
 
-        public int GetDefinitionCountOf (MethodInfo method) {
+        public int GetDefinitionCountOfForGenericType (MethodInfo method) {
             MethodSignatureSet set;
             var namedSignature = method.NamedSignature;
 
             if (TryGet(namedSignature.Name, out set))
-                return set.GetCountOf(namedSignature);
+                return set.GetCountOfForGenericType(namedSignature);
 
             return 0;
         }

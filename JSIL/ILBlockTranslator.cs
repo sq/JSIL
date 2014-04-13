@@ -2974,7 +2974,7 @@ namespace JSIL {
                 // If the method was defined in a generic class, overloaded dispatch won't be sufficient
                 //  because of generic parameters.
                 if (!declaringTypeDef.IsGenericInstance && !declaringTypeDef.HasGenericParameters) {
-                    var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
+                    var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOfForGenericType(methodInfo);
 
                     if (definitionCount < 2)
                         return false;

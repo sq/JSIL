@@ -416,6 +416,8 @@ namespace JSIL.Internal {
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
 
+        protected bool _IsGeneric = false;
+
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
@@ -661,6 +663,8 @@ namespace JSIL.Internal {
                 }
             }
 
+            _IsGeneric = type.Name.Contains("`");
+
             if (
                 !IsInterface &&
                 !IsDelegate &&
@@ -672,18 +676,41 @@ namespace JSIL.Internal {
                     Members.Values.OfType<FieldInfo>().All((f) => f.IsStatic || f.IsImmutable);
             }
 
-            DoDeferredMethodSignatureSetUpdate();
+            if (!this.IsInterface)
+            {
+                DoDeferredMethodSignatureSetUpdate();
+            }
         }
 
         private void DoDeferredMethodSignatureSetUpdate () {
             var selfAndBaseTypesRecursive = this.SelfAndBaseTypesRecursive.ToArray();
 
-            foreach (var t in selfAndBaseTypesRecursive) {
+            foreach (var t in selfAndBaseTypesRecursive)
+            {
+                if (t.FullName == "System.Object")
+                {
+                    continue;
+                }
+
+                if (t._DerivedTypeCount > 10)
+                {
+                    continue;
+                }
+                
                 var ms = t.MethodSignatures;
 
-                foreach (var nms in DeferredMethodSignatureSetUpdates) {
+                foreach (var nms in this.DeferredMethodSignatureSetUpdates)
+                {
                     var set = ms.GetOrCreateFor(nms.Name);
-                    set.Add(nms);
+
+                    if (t._IsGeneric)
+                    {
+                        set.AddWithCount(nms);
+                    }
+                    else
+                    {
+                        set.Add(nms);
+                    }
                 }
             }
 
@@ -1808,17 +1835,6 @@ namespace JSIL.Internal {
         public bool IsOverloaded {
             get {
                 return _MethodGroup != null;
-            }
-        }
-
-        public bool IsRedefinedRecursive {
-            get {
-                if (!_IsRedefinedRecursive.HasValue) {
-                    _IsRedefinedRecursive = 
-                        DeclaringType.MethodSignatures.GetDefinitionCountOf(this) > 1;
-                }
-
-                return _IsRedefinedRecursive.Value;
             }
         }
 
