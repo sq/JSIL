@@ -416,6 +416,8 @@ namespace JSIL.Internal {
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
 
+        protected bool _IsGeneric = false;
+
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
@@ -661,6 +663,8 @@ namespace JSIL.Internal {
                 }
             }
 
+            _IsGeneric = type.Name.Contains("`");
+
             if (
                 !IsInterface &&
                 !IsDelegate &&
@@ -683,7 +687,15 @@ namespace JSIL.Internal {
 
                 foreach (var nms in DeferredMethodSignatureSetUpdates) {
                     var set = ms.GetOrCreateFor(nms.Name);
-                    set.Add(nms);
+
+                    if (t._IsGeneric)
+                    {
+                        set.AddWithCount(nms);
+                    }
+                    else
+                    {
+                        set.Add(nms);
+                    }
                 }
             }
 
@@ -1808,17 +1820,6 @@ namespace JSIL.Internal {
         public bool IsOverloaded {
             get {
                 return _MethodGroup != null;
-            }
-        }
-
-        public bool IsRedefinedRecursive {
-            get {
-                if (!_IsRedefinedRecursive.HasValue) {
-                    _IsRedefinedRecursive = 
-                        DeclaringType.MethodSignatures.GetDefinitionCountOf(this) > 1;
-                }
-
-                return _IsRedefinedRecursive.Value;
             }
         }
 
