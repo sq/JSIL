@@ -676,16 +676,31 @@ namespace JSIL.Internal {
                     Members.Values.OfType<FieldInfo>().All((f) => f.IsStatic || f.IsImmutable);
             }
 
-            DoDeferredMethodSignatureSetUpdate();
+            if (!this.IsInterface)
+            {
+                DoDeferredMethodSignatureSetUpdate();
+            }
         }
 
         private void DoDeferredMethodSignatureSetUpdate () {
             var selfAndBaseTypesRecursive = this.SelfAndBaseTypesRecursive.ToArray();
 
-            foreach (var t in selfAndBaseTypesRecursive) {
+            foreach (var t in selfAndBaseTypesRecursive)
+            {
+                if (t.FullName == "System.Object")
+                {
+                    continue;
+                }
+
+                if (t._DerivedTypeCount > 10)
+                {
+                    continue;
+                }
+                
                 var ms = t.MethodSignatures;
 
-                foreach (var nms in DeferredMethodSignatureSetUpdates) {
+                foreach (var nms in this.DeferredMethodSignatureSetUpdates)
+                {
                     var set = ms.GetOrCreateFor(nms.Name);
 
                     if (t._IsGeneric)
