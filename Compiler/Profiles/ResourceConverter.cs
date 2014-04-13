@@ -11,7 +11,9 @@ using JSIL.Compiler;
 
 namespace JSIL.Utilities {
     public static class ResourceConverter {
-        public static void ConvertResources (Configuration configuration, string assemblyPath, TranslationResult result) {
+        public static void ConvertResources (Configuration configuration, string assemblyPath, TranslationResult result)
+        {
+            assemblyPath = Path.GetFullPath(assemblyPath);
             ConvertEmbeddedResources(configuration, assemblyPath, result);
             ConvertSatelliteResources(configuration, assemblyPath, result);
         }

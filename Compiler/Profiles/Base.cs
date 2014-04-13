@@ -55,7 +55,7 @@ namespace JSIL.Compiler.Profiles {
         protected void PostProcessAllTranslatedAssemblies(
             Configuration configuration, string assemblyPath, TranslationResult result)
         {
-            string basePath = Path.GetDirectoryName(assemblyPath);
+            string basePath = Path.GetDirectoryName(Path.GetFullPath(assemblyPath));
             List<string> assemblyPaths = new List<string>();
 
             foreach (var item in result.Assemblies)
