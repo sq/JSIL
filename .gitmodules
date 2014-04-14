@@ -1,18 +1,9 @@
-[submodule "Examples/Tetris"]
-	path = Examples/Tetris
-	url = https://github.com/ttocs7/tetris.git
-[submodule "Examples/Mannux-xna"]
-	path = Examples/Mannux-xna
-	url = git@github.com:kevingadd/XnaMannux.git
-[submodule "Examples/PlatformerStarterKit"]
-	path = Examples/PlatformerStarterKit
-	url = git@github.com:kevingadd/PlatformerStarterKit.git
 [submodule "Upstream/Gamepad.js"]
 	path = Upstream/Gamepad.js
 	url = https://github.com/kevingadd/gamepad.js.git
 [submodule "Upstream/ILSpy"]
 	path = Upstream/ILSpy
-	url = https://github.com/kevingadd/ILSpy
+	url = https://github.com/kevingadd/ILSpy.git
 [submodule "Examples/ThirdParty/Tetris"]
 	path = Examples/ThirdParty/Tetris
 	url = git://github.com/ttocs7/tetris.git
