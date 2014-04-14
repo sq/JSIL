@@ -1224,6 +1224,11 @@ namespace JSIL {
                     output.Comma();
                     output.NewLine();
 
+                    output.WriteRaw("IsAbstract: ");
+                    output.Value(typedef.IsAbstract);
+                    output.Comma();
+                    output.NewLine();
+
                     output.WriteRaw("IsReferenceType: ");
                     output.Value(!typedef.IsValueType);
                     output.Comma();

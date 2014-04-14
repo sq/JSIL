@@ -35,6 +35,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Activator.cs" />
+    <Compile Include="AppDomain.cs" />
     <Compile Include="Array.cs" />
     <Compile Include="Bootstrap.cs" />
     <Compile Include="Console.cs" />
@@ -46,6 +47,7 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="MonoProxy.cs" />
     <Compile Include="Random.cs" />
+    <Compile Include="Regex.cs" />
     <Compile Include="Resources.cs" />
     <Compile Include="Threading.cs" />
     <Compile Include="Unsafe.cs" />

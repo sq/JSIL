@@ -4869,11 +4869,12 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var fullName = typeArgs.Name || null;
   var isReferenceType = Boolean(typeArgs.IsReferenceType);
   var isPublic = Boolean(typeArgs.IsPublic);
+  var isAbstract = Boolean(typeArgs.IsAbstract);
   var genericArguments = typeArgs.GenericParameters || [];
   var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
 
   if (typeof (isPublic) === "undefined")
-    JSIL.Host.abort(new Error("Must specify isPublic"));
+      JSIL.Host.abort(new Error("Must specify isPublic"));
 
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
@@ -4935,6 +4936,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
+    typeObject.__IsAbstract__ = isAbstract;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
@@ -5143,7 +5145,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        if (typeOfValue.__AssignableTypes__ != null) {
+            return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        }
+        return false;
     };
 
     JSIL.MakeCastMethods(publicInterface, typeObject, "interface");

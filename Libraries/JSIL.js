@@ -179,6 +179,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
+  environment.loadScript(libraryRoot + "JSIL.HeuristicLab.js");
   //environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
 
   if (config.testFixture || environment.getUserSetting("testFixture"))

@@ -94,6 +94,8 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsArray
     );
+
+
     
     $.Method({Public: true , Static: false}, "get_IsValueType",
       new JSIL.MethodSignature($.Boolean, []),
@@ -111,6 +113,20 @@ JSIL.ImplementExternals(
         return this.__ElementType__;
       }
     );
+
+    $.Method({ Static: false, Public: true }, "get_IsAbstract",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__IsAbstract__;
+        }
+    );
+
+    $.Method({ Static: false, Public: true }, "get_HasElementType",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__ElementType__ != null;
+        });
+
     
     $.Method({Public: true , Static: false}, "get_BaseType",
       new JSIL.MethodSignature($.Type, []),
