@@ -2615,6 +2615,7 @@ namespace JSIL {
                 output.Comma();
                 output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
 
+
                 output.Comma();
                 output.NewLine();
 

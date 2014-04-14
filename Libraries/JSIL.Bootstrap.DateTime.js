@@ -84,7 +84,7 @@ JSIL.ImplementExternals(
       fromTicks
     );
 
-    $.Method({Static:true , Public:true }, "op_Addition", 
+    /*$.Method({Static:true , Public:true }, "op_Addition", 
       (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
       function op_Addition (t1, t2) {
         return fromTicks($jsilcore.System.Int64.op_Addition(t1._ticks, t2._ticks, TempI64A));
@@ -145,7 +145,7 @@ JSIL.ImplementExternals(
       function op_UnaryNegation (self) {
         return fromTicks($jsilcore.System.Int64.op_UnaryNegation(self._ticks));
       }
-    );
+    );*/
 
     $.RawMethod(false, "$accumulate", function (multiplier, amount) {
       // FIXME: unnecessary garbage

@@ -114,4 +114,13 @@ namespace JSIL.Proxies {
     [JSIsArrayEnumerator("_array", "_index", "_length")]
     public abstract class ArrayEnumeratorProxy {
     }
+
+    /*[JSProxy(new[] {
+        "System.Collections.Generic.Dictionary`2"
+    })]
+    [JSStubOnly]
+    public abstract class GenericDictionaryProxy
+    {
+
+    }*/
 }

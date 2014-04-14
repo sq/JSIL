@@ -36,12 +36,18 @@
   <ItemGroup>
     <Compile Include="Activator.cs" />
     <Compile Include="Array.cs" />
+    <Compile Include="Bootstrap.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="Collections.cs" />
     <Compile Include="Encoding.cs" />
     <Compile Include="Enum.cs" />
+    <Compile Include="Environment.cs" />
     <Compile Include="EventInfo.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="MonoProxy.cs" />
+    <Compile Include="Random.cs" />
+    <Compile Include="Resources.cs" />
+    <Compile Include="Threading.cs" />
     <Compile Include="Unsafe.cs" />
     <Compile Include="DateTime.cs" />
     <Compile Include="IO.cs" />

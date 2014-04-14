@@ -4,6 +4,7 @@ using JSIL.Proxy;
 using System.Collections.Generic;
 
 namespace JSIL.Proxies {
+
     [JSProxy(
         typeof(Array),
         memberPolicy: JSProxyMemberPolicy.ReplaceDeclared
