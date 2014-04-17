@@ -95,7 +95,25 @@ JSIL.ImplementExternals(
       JSIL.TypeObjectPrototype.get_IsArray
     );
 
+    $.Method({ Static: false, Public: true }, "get_IsAbstract",
+      new JSIL.MethodSignature($.Boolean, []),
+      function () {
+          return this.__IsAbstract__;
+      }
+    );
 
+    $.Method({ Static: false, Public: true }, "get_IsPrimitive",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__IsPrimitive__;
+        }
+    );
+
+    $.Method({ Static: false, Public: true }, "get_HasElementType",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__ElementType__ != null;
+    });
     
     $.Method({Public: true , Static: false}, "get_IsValueType",
       new JSIL.MethodSignature($.Boolean, []),
@@ -113,20 +131,6 @@ JSIL.ImplementExternals(
         return this.__ElementType__;
       }
     );
-
-    $.Method({ Static: false, Public: true }, "get_IsAbstract",
-        new JSIL.MethodSignature($.Boolean, []),
-        function () {
-            return this.__IsAbstract__;
-        }
-    );
-
-    $.Method({ Static: false, Public: true }, "get_HasElementType",
-        new JSIL.MethodSignature($.Boolean, []),
-        function () {
-            return this.__ElementType__ != null;
-        });
-
     
     $.Method({Public: true , Static: false}, "get_BaseType",
       new JSIL.MethodSignature($.Type, []),
@@ -388,9 +392,23 @@ JSIL.ImplementExternals(
     $.Method({Public: true , Static: false}, "GetFields",
       new JSIL.MethodSignature(fieldArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),      
       function (flags) {
-        return JSIL.GetMembersInternal(
+          var result = [];
+        var tempResult = JSIL.GetMembersInternal(
           this, flags, "FieldInfo"
         );
+        for (var i = 0; i < tempResult.length; i++) {
+            var f = tempResult[i];
+            var fieldType = f._data.fieldType;
+            if (typeof (fieldType.get_FullName) != "undefined") {
+                if (fieldType.get_FullName() != "System.Double[]") {
+                    result.push(f);
+                } else {
+                    console.log("MultidimensionalArray")
+                }
+            }
+        }
+
+        return result;
       }
     );
 
@@ -885,7 +903,10 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericTypeDefinition");
     $.Property({Public: true , Static: false }, "IsArray");
     $.Property({Public: true , Static: false }, "IsValueType");
-    $.Property({Public: true , Static: false }, "IsEnum");
+    $.Property({ Public: true, Static: false }, "IsEnum");
+    $.Property({ Public: true, Static: false }, "IsAbstract");
+    $.Property({ Public: true, Static: false }, "IsPrimitive");
+    $.Property({ Public: true, Static: false }, "HasElementType");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {

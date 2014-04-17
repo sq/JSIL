@@ -310,7 +310,17 @@ JSIL.$GetSpecialType = function (name) {
   JSIL.TypeObjectPrototype.get_Assembly = function() { 
     return this.__Context__.__Assembly__; 
   };
-  JSIL.TypeObjectPrototype.get_BaseType = function() { 
+  JSIL.TypeObjectPrototype.get_BaseType = function () {
+      var JSILTypes = ["System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
+        "System.SByte", "System.Int16", "System.Int32", "System.Int64",
+        "System.Single", "System.Double", "System.String", "System.Object",
+        "System.Boolean", "System.Char"];
+    if (JSILTypes.indexOf(this.__FullName__) > -1)
+        return null;
+    if (typeof (this.__BaseType__.__Type__) != "undefined")
+        return this.__BaseType__.__Type__;
+    if (this.__BaseType__.__FullName__.indexOf("JSIL") == 0)
+        return null;
     return this.__BaseType__; 
   };
   JSIL.TypeObjectPrototype.get_Namespace = function() { 
@@ -1347,7 +1357,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
 
   // Deferring the execution of externals functions is important in case they reference
   //  other types or assemblies.
-  queue.push(function ImplementExternalsImpl () {  
+  queue.push(function ImplementExternalsImpl() {
     var typeId = JSIL.AssignTypeId(context, namespaceName);
     var typeObject = {
       __Members__: [],
@@ -3998,7 +4008,7 @@ JSIL.InitializeType = function (type) {
   else if (typeof (type.__Type__) === "object")
     typeObject = type.__Type__;
   else
-    return;
+      return;
 
   if (typeObject.__TypeInitialized__ || false)
     return;
@@ -4870,11 +4880,15 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var isReferenceType = Boolean(typeArgs.IsReferenceType);
   var isPublic = Boolean(typeArgs.IsPublic);
   var isAbstract = Boolean(typeArgs.IsAbstract);
+  var isPrimitive = Boolean(typeArgs.IsPrimitive);
   var genericArguments = typeArgs.GenericParameters || [];
   var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
 
   if (typeof (isPublic) === "undefined")
       JSIL.Host.abort(new Error("Must specify isPublic"));
+
+  if (typeof (isPublic) === "undefined")
+      JSIL.Host.abort(new Error("Must specify isPrimitive"));
 
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
@@ -4937,6 +4951,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
     typeObject.__IsAbstract__ = isAbstract;
+    typeObject.__IsPrimitive__ = isPrimitive;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
@@ -5008,7 +5023,9 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        //if (typeOfValue.__AssignableTypes__ != null) {
+            return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        //}
     };
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
@@ -7958,8 +7975,16 @@ JSIL.ObjectHashCode = function (obj) {
   var type = typeof obj;
 
   if (type === "object") {
-    if (obj.GetHashCode)
-      return (obj.GetHashCode() | 0);
+      if (obj.GetHashCode) { 
+          try{
+              return (obj.GetHashCode() | 0);
+          } catch(err) {
+              // HashCode returns null,
+              return 0;
+          }
+
+      }
+
 
     return JSIL.HashCodeInternal(obj);
   } else {
