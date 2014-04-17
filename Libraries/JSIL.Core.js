@@ -3803,6 +3803,7 @@ JSIL.$CreateMethodMembranes = function (typeObject, publicInterface) {
   // This can't be done before now due to generic types.
   for (var i = 0, l = methods.length; i < l; i++) {
     var method = methods[i];
+
     var isStatic = method._descriptor.Static;
     // FIXME: I'm not sure this is right for open generic methods.
     // I think it might be looking up the old open form of the method signature
@@ -7525,7 +7526,9 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
 
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
-
+    if (member._data.mangledName == "Method$10=void") {
+      console.log("Method(param)")
+    }
     // HACK: Reflection never seems to enumerate static constructors. This is probably because
     //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
     if (

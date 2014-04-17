@@ -267,6 +267,13 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number");
     });
 
+    $.Method({ Static: true, Public: true }, "IsInfinity",
+    (new JSIL.MethodSignature($.Boolean, [$.Double], [])),
+    function (d) {
+      return (d == -Infinity || d == Infinity);
+    }
+  );
+
     $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
 
     $.Constant({ Public: true, Static: true }, "MinValue", -1.7976931348623157E+308);
