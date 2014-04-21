@@ -49,7 +49,7 @@ JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "get_Controls", 
-    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.Control/ControlCollection"), [], [])), 
+    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.Control+ControlCollection"), [], [])), 
     function get_Controls () {
       return this._controls;
     }
@@ -204,19 +204,19 @@ JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
   );
 });
 
-JSIL.ImplementExternals("System.Windows.Forms.Control/ControlCollection", function ($) {
+JSIL.ImplementExternals("System.Windows.Forms.Control+ControlCollection", function ($) {
   $jsilcore.$ListExternals($, $wfasms[12].TypeRef("System.Windows.Forms.Control"), "ArrangedElementCollection");
 });
 
-JSIL.ImplementExternals("System.Windows.Forms.StatusBar/StatusBarPanelCollection", function ($) {
+JSIL.ImplementExternals("System.Windows.Forms.StatusBar+StatusBarPanelCollection", function ($) {
   $jsilcore.$ListExternals($, $wfasms[12].TypeRef("System.Windows.Forms.StatusBarPanel"), "ObjectCollection");
 });
 
-JSIL.ImplementExternals("System.Windows.Forms.TabControl/TabPageCollection", function ($) {
+JSIL.ImplementExternals("System.Windows.Forms.TabControl+TabPageCollection", function ($) {
   $jsilcore.$ListExternals($, $wfasms[12].TypeRef("System.Windows.Forms.TabPage"), "ArrangedElementCollection");
 });
 
-JSIL.ImplementExternals("System.Windows.Forms.ListBox/ObjectCollection", function ($) {
+JSIL.ImplementExternals("System.Windows.Forms.ListBox+ObjectCollection", function ($) {
   $jsilcore.$ListExternals($, $.Object, "ObjectCollection");
 });
 
@@ -234,7 +234,7 @@ JSIL.ImplementExternals("System.Windows.Forms.ListBox", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "get_Items", 
-    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.ListBox/ObjectCollection"), [], [])), 
+    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.ListBox+ObjectCollection"), [], [])), 
     function get_Items () {
       return this._items;
     }
@@ -265,7 +265,7 @@ JSIL.ImplementExternals("System.Windows.Forms.StatusBar", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "get_Panels", 
-    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.StatusBar/StatusBarPanelCollection"), [], [])), 
+    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.StatusBar+StatusBarPanelCollection"), [], [])), 
     function get_Panels () {
       return this._panels;
     }
@@ -282,7 +282,7 @@ JSIL.ImplementExternals("System.Windows.Forms.TabControl", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "get_TabPages", 
-    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.TabControl/TabPageCollection"), [], [])), 
+    (new JSIL.MethodSignature($wfasms[12].TypeRef("System.Windows.Forms.TabControl+TabPageCollection"), [], [])), 
     function get_TabPages () {
       return this._tabPages;
     }
@@ -413,7 +413,7 @@ JSIL.ImplementExternals("System.Windows.Forms.MenuItem", function ($) {
   );
 
   $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [$wfasms[12].TypeRef("System.Windows.Forms.MenuItem/MenuItemData")], [])), 
+    (new JSIL.MethodSignature(null, [$wfasms[12].TypeRef("System.Windows.Forms.MenuItem+MenuItemData")], [])), 
     function _ctor (data) {
       // FIXME
     }

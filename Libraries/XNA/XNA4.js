@@ -2627,7 +2627,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.GamerCollection`1
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($xnaasms[2].TypeRef("Microsoft.Xna.Framework.GamerServices.GamerCollection`1/GamerCollectionEnumerator", [new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.GamerServices.GamerCollection`1")]), [], [])), 
+    (new JSIL.MethodSignature($xnaasms[2].TypeRef("Microsoft.Xna.Framework.GamerServices.GamerCollection`1+GamerCollectionEnumerator", [new JSIL.GenericParameter("T", "Microsoft.Xna.Framework.GamerServices.GamerCollection`1")]), [], [])), 
     function GetEnumerator () {
       return new (tEnumerator)([this.gamer]);
     }

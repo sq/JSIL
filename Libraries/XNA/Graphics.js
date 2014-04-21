@@ -3608,7 +3608,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1/Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1+Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
     function GetEnumerator () {
       // FIXME
       return JSIL.GetEnumerator([getTemporaryPass()]);
