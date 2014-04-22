@@ -147,14 +147,16 @@ namespace JSIL.Internal {
             public readonly int HashCode;
 
             public readonly string Namespace;
+			public readonly string Module;
             public readonly string Name;
             public readonly string DeclaringTypeName;
 
             public Key (TypeReference tr) {
                 Namespace = tr.Namespace;
-                Name = tr.Name;
+                Module = tr.Module.Name;
+				Name = tr.Name;
 
-                HashCode = Namespace.GetHashCode() ^ Name.GetHashCode();
+				HashCode = Namespace.GetHashCode() ^ Name.GetHashCode() ^ Module.GetHashCode();
 
                 if (tr.DeclaringType != null) {
                     DeclaringTypeName = tr.DeclaringType.FullName;
@@ -165,9 +167,9 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (Key rhs) {
-                return (Namespace == rhs.Namespace) &&
-                    (DeclaringTypeName == rhs.DeclaringTypeName) &&
-                    (Name == rhs.Name);
+                return (Namespace == rhs.Namespace) && (Module == rhs.Module) &&
+					(DeclaringTypeName == rhs.DeclaringTypeName) &&
+					(Name == rhs.Name);
             }
 
             public override bool Equals (object obj) {
