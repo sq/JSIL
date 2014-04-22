@@ -986,5 +986,31 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void InnerClassNameFormatting_Issue352()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\InnerClassNameFormatting_Issue352.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsTrue(
+                    generatedJs.Contains("\"Program+InnerGenericClass`1\""),
+                    "Inner class should be named in Outer+Inner format");
+                Assert.IsTrue(
+                    generatedJs.Contains("JSIL.GenericParameter(\"T\", \"Program+InnerGenericClass`1\")"),
+                    "Generic parameter for inner class should reference class with correct name");
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

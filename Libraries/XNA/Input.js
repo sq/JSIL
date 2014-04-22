@@ -746,7 +746,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", f
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enumerator"), [], [])), 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enumerator"), [], [])), 
     function GetEnumerator () {
       var result = new $xnaasms[4].Microsoft.Xna.Framework.Input.Touch.TouchCollection_Enumerator(this);
       return result;
@@ -789,7 +789,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", f
   );
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enumerator", function ($interfaceBuilder) {
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enumerator", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:false}, ".ctor", 

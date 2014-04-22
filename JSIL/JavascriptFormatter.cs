@@ -482,7 +482,7 @@ namespace JSIL.Internal {
                     }
 
                     if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
-                        OpenGenericParameter(gp, context.DefiningType.FullName);
+                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningType.FullName));
                         return;
                     }
 
@@ -502,7 +502,7 @@ namespace JSIL.Internal {
                             )
                         ) {
                             // FIXME: I HAVE NO IDEA WHAT I AM DOING
-                            OpenGenericParameter(gp, ownerTypeResolved.FullName);
+                            OpenGenericParameter(gp, Util.DemangleCecilTypeName(ownerTypeResolved.FullName));
                             return;
                         }
                     }
