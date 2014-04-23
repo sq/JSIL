@@ -6110,7 +6110,8 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     mangledName: mangledName,
     isExternal: true,
     isPlaceholder: isPlaceholder,
-    isConstructor: isConstructor
+    isConstructor: isConstructor,
+    parameterInfo: memberBuilder.parameterInfo
   }, memberBuilder, true);
 
   return memberBuilder;
@@ -6162,8 +6163,10 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+
   if (this.typeObject.IsInterface) {
-    var methodObject = new JSIL.InterfaceMethod(this.typeObject, descriptor.EscapedName, signature);
+    var methodObject = new JSIL.InterfaceMethod(this.typeObject, descriptor.EscapedName, signature, memberBuilder.parameterInfo);
 
     JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
 
@@ -6180,8 +6183,6 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var isConstructor = (descriptor.EscapedName === "_ctor");
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
-
-  var memberBuilder = new JSIL.MemberBuilder(this.context);
 
   this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
@@ -6254,7 +6255,8 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
     mangledName: mangledName,
     isExternal: false,
     isConstructor: isConstructor,
-    isInherited: true
+    isInherited: true,
+    parameterInfo: memberBuilder.parameterInfo
   }, memberBuilder);
 
   return memberBuilder;
@@ -6774,11 +6776,12 @@ JSIL.ResolvedMethodSignature.prototype.toString = function () {
 };
 
 
-JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
+JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInfo) {
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
   this.signature = signature;
+  this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
   this.fallbackMethod = JSIL.$PickFallbackMethodForInterfaceMethod(typeObject, methodName, signature);
@@ -6787,7 +6790,7 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature) {
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
 
 JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
-  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature);
+  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature, this.parameterInfo);
   result.fallbackMethod = this.fallbackMethod;
   return result;
 };
