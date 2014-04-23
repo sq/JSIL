@@ -491,7 +491,7 @@ JSIL.ImplementExternals(
     $.Method({ Public: true, Static: false }, "GetInterfaces",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),
       function () {
-        return this.__Interfaces__;
+        return JSIL.GetInterfacesImplementedByType(this);
       }
     );
   }
