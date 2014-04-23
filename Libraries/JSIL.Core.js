@@ -2733,12 +2733,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (typeObject.__IsFixingUpInterfaces__)
     return;
 
-  var interfaces = typeObject.__Interfaces__;
-  if (!JSIL.IsArray(interfaces))
-    return;
-
   if (typeObject.IsInterface)
     return;
+
+  var interfaces = JSIL.GetInterfacesImplementedByType(typeObject);
 
   if (!interfaces.length)
     return;
@@ -2808,6 +2806,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
 
+    var hasOwn = function (name) {
+      return Object.prototype.hasOwnProperty.call(proto, name);
+    };
+
     var hasNonPlaceholder = function (obj, name) {
       var value = obj[name];
       if ((typeof (value) === "undefined") ||
@@ -2831,10 +2833,16 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         signatureQualifiedName = signature.GetKey(qualifiedName);
       }
 
-      if (signature && hasNonPlaceholder(proto, signatureQualifiedName))
+      if (signature 
+        && hasNonPlaceholder(proto, signatureQualifiedName)
+        && hasOwn(signatureQualifiedName)
+      )
         continue;
 
-      if (hasNonPlaceholder(proto, qualifiedName))
+      if (
+        hasNonPlaceholder(proto, qualifiedName)
+        && hasOwn(qualifiedName)
+      )
         continue;
 
       var isMissing = false, isAmbiguous = false;
