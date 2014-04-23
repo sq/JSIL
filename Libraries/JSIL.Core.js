@@ -2667,8 +2667,9 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var trace = false;
 
-  // HACK HACK HACK ugh.
-  if (typeObject.__FullName__ === "System.Enum")
+  // FIXME: Is this right? I think it might be. We don't actually use the types,
+  //  just use their type objects as tokens for comparisons.
+  if (typeObject.__IsFixingUpInterfaces__)
     return;
 
   var interfaces = typeObject.__Interfaces__;
@@ -2680,6 +2681,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
   if (!interfaces.length)
     return;
+
+  typeObject.__IsFixingUpInterfaces__ = true;
 
   var context = typeObject.__Context__;
 
@@ -2881,6 +2884,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     if ((JSIL.SuppressInterfaceWarnings !== true) || trace)
       JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' has ambiguous implementation of interface member(s): " + ambiguousMembers.join(", "));
   }
+
+  typeObject.__IsFixingUpInterfaces__ = false;
 };
 
 JSIL.GetFieldList = function (typeObject) {
