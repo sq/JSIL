@@ -2289,7 +2289,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(
       mscorlib.TypeRef(
-        "System.Collections.Generic.IEnumerable`1", [
+        "System.Collections.Generic.IEnumerator`1", [
           mscorlib.TypeRef(
             "System.Collections.Generic.KeyValuePair`2", [
               new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), 
