@@ -2716,8 +2716,17 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
   }
 };
 
+$jsilcore.CanFixUpEnumInterfaces = false;
+
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var trace = false;
+
+  if (typeObject.__FullName__ === "System.Enum") {
+    if (!$jsilcore.CanFixUpEnumInterfaces) 
+      return;
+    else
+      /* trace = true */;
+  }
 
   // FIXME: Is this right? I think it might be. We don't actually use the types,
   //  just use their type objects as tokens for comparisons.
@@ -4063,7 +4072,9 @@ JSIL.InitializeType = function (type) {
     JSIL.InstantiateProperties(classObject, typeObject);
 
     if (typeObject.IsInterface !== true) {
-      JSIL.FixupInterfaces(classObject, typeObject);
+      JSIL.QueueTypeInitializer(typeObject, function () {
+        JSIL.FixupInterfaces(classObject, typeObject);
+      });
       JSIL.RebindRawMethods(classObject, typeObject);
     }
 
@@ -5373,7 +5384,21 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     //  memory usage.
     var valueCache = {};
 
+    var fixedUpEnumInterfaces = false;
+
     publicInterface.$MakeValue = function (value, name) {
+      // HACK: Letting System.Enum's interfaces get fixed up normally causes a cycle.
+      if (!fixedUpEnumInterfaces) {
+        fixedUpEnumInterfaces = true;
+
+        if (!$jsilcore.CanFixUpEnumInterfaces) {
+          $jsilcore.CanFixUpEnumInterfaces = true;
+          JSIL.FixupInterfaces($jsilcore.System.Enum, $jsilcore.System.Enum.__Type__);
+          JSIL.RunStaticConstructors(publicInterface, typeObject);
+          JSIL.FixupInterfaces(publicInterface, typeObject);
+        }
+      }
+
       var result = valueCache[value];
 
       if (!result)
@@ -5413,7 +5438,14 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
       $.__Type__.__Names__.push(key);
       $.__Type__.__ValueToName__[value] = key;
-      $[key] = $.$MakeValue(value, key);
+
+      var makeGetter = function (key, value) {
+        return function () {
+          return $.$MakeValue(value, key);
+        }
+      };
+
+      JSIL.SetLazyValueProperty($, key, makeGetter(key, value));
 
       var descriptor = ib.ParseDescriptor({Public: true, Static: true}, key);
       var mb = new JSIL.MemberBuilder(context);
@@ -5427,7 +5459,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
     // FIXME: This is doing FixupInterfaces on Enum every time instead of on the specific enum type.
     // Should be harmless, but...?
-    JSIL.FixupInterfaces(enumType.__PublicInterface__, enumType);
+    // JSIL.FixupInterfaces(enumType.__PublicInterface__, enumType);
 
     JSIL.MakeCastMethods($, $.__Type__, "enum");
   };
