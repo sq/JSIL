@@ -6523,7 +6523,7 @@ JSIL.MethodSignature.$EmitInvocation = function (
   body, callText, thisReferenceArg, prefix, argumentTypes, genericArgumentNames, isInterface
 ) {
   var comma;
-  var needsBindingForm = (isInterface) && (genericArgumentNames) && (genericArgumentNames.length);
+  var needsBindingForm = false;
 
   if (genericArgumentNames)
     comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
@@ -6611,8 +6611,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodType) {
   }
   body.push("");
 
-  if (callMethodType === "interface") {
-  } else if (genericArgumentNames.length > 0) {
+  if (genericArgumentNames.length > 0) {
     body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
     body.push("  throw new Error('Invalid number of generic arguments');");
     body.push("JSIL.ResolveTypeArgumentArray(ga);");
