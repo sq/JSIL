@@ -8779,6 +8779,12 @@ JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {
 JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
   var imProto = JSIL.InterfaceMethod.prototype;
 
+  var makeGetter = function (src, key) {
+    return function () {
+      return src[key];
+    };
+  };
+
   for (var i = 0, l = interfaceList.length; i < l; i++) {
     var ifaceRef = interfaceList[i];
     var iface = JSIL.ResolveTypeReference(ifaceRef)[0];
@@ -8790,7 +8796,7 @@ JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
       if (Object.prototype.hasOwnProperty.call(target, k))
         continue;
 
-      JSIL.MakeIndirectProperty(target, k, iface);
+      JSIL.SetLazyValueProperty(target, k, makeGetter(iface, k));
     }
   }
 };
