@@ -303,7 +303,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "ToArray", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        return JSIL.EnumerableToArray(enumerable);
+        return JSIL.EnumerableToArray(enumerable, T);
       }
     );
 

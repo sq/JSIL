@@ -954,7 +954,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (values) {
-      this._items = JSIL.EnumerableToArray(values);
+      this._items = JSIL.EnumerableToArray(values, T);
       this._capacity = this._items.length;
       this._size = this._items.length;
     }
@@ -1443,7 +1443,7 @@ $jsilcore.$CollectionExternals = function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
     function (list) {
-      this._items = JSIL.EnumerableToArray(list);
+      this._items = JSIL.EnumerableToArray(list, T);
       this._capacity = this._size = this._items.length;
     }
   );
@@ -2258,16 +2258,48 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
-  $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2+Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
-    function GetEnumerator () {
-      if (this.tEnumerator === null) {
-        this.tEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_Enumerator.Of(this.TKey, this.TValue).__Type__;
-      }
-
-      return JSIL.CreateInstanceOfType(this.tEnumerator, [this]);
+  var getEnumeratorImpl = function GetEnumerator () {
+    if (this.tEnumerator === null) {
+      this.tEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_Enumerator.Of(this.TKey, this.TValue).__Type__;
     }
+
+    return JSIL.CreateInstanceOfType(this.tEnumerator, [this]);
+  };
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(
+      mscorlib.TypeRef(
+        "System.Collections.Generic.Dictionary`2+Enumerator", [
+          new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), 
+          new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")
+        ]
+      ), [], [])
+    ), 
+    getEnumeratorImpl
   );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], [])),
+    getEnumeratorImpl
+  )
+    .Overrides("System.Collections.IEnumerable", "GetEnumerator");
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(
+      mscorlib.TypeRef(
+        "System.Collections.Generic.IEnumerable`1", [
+          mscorlib.TypeRef(
+            "System.Collections.Generic.KeyValuePair`2", [
+              new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), 
+              new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")
+            ]
+          )
+        ]
+      ), [], [])
+    ),
+    getEnumeratorImpl
+  )
+    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
   $.Method({Static:false, Public:true }, "set_Item", 
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
@@ -2753,8 +2785,8 @@ JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   return result;
 };
 
-JSIL.EnumerableToArray = function (enumerable) {
-  var e = JSIL.GetEnumerator(enumerable);
+JSIL.EnumerableToArray = function (enumerable, elementType) {
+  var e = JSIL.GetEnumerator(enumerable, elementType);
   var result = [];
 
   var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
@@ -3375,7 +3407,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
   );
 
   $.RawMethod(false, "$addRange", function (enumerable) {
-    var values = JSIL.EnumerableToArray(enumerable);
+    var values = JSIL.EnumerableToArray(enumerable, this.T);
 
     for (var i = 0; i < values.length; i++)
       this.Add(values[i]);

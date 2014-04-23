@@ -1279,8 +1279,8 @@ JSIL.AttributeRecord = function (context, type, getConstructorArguments, initial
   this.initializer = initializer;
 };
 
-JSIL.OverrideRecord = function (interfaceIndex, interfaceMemberName) {
-  this.interfaceIndex = interfaceIndex;
+JSIL.OverrideRecord = function (interfaceIndexOrName, interfaceMemberName) {
+  this.interfaceIndexOrName = interfaceIndexOrName;
   this.interfaceMemberName = interfaceMemberName;
 };
 
@@ -2840,26 +2840,30 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     for (var j = 0; j < overrides.length; j++) {
       var override = overrides[j];
       var iface = null;
-      switch (typeof (override.interfaceIndex)) {
+
+      switch (typeof (override.interfaceIndexOrName)) {
         case "string":
           // If the index is a string, search all the interfaces implemented by this type for a substring match.
           // FIXME: If there are multiple matches this picks the first one. Probably not great...
 
           for (var k = 0; k < interfaces.length; k++) {
-            if (interfaces[k].__FullName__.indexOf(override.interfaceIndex) >= 0) {
+            if (interfaces[k].__FullName__.indexOf(override.interfaceIndexOrName) >= 0) {
               iface = interfaces[k];
               break;
             }
           }
 
+          if (iface === null)
+            JSIL.RuntimeError("Interface index '" + override.interfaceIndexOrName + "' does not match any interfaces");
+
           break;
         case "number":
-          iface = interfaces[override.interfaceIndex];
+          iface = interfaces[override.interfaceIndexOrName];
           break;
       }
 
       if (!iface)
-        JSIL.RuntimeError("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface of type '" + typeObject.__FullName__ + "' with index '" + override.interfaceIndex + "'");
+        JSIL.RuntimeError("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface of type '" + typeObject.__FullName__ + "' with index '" + override.interfaceIndexOrName + "'");
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
@@ -5617,8 +5621,8 @@ JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructor
   return this;
 };
 
-JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndex, interfaceMemberName) {
-  var record = new JSIL.OverrideRecord(interfaceIndex, interfaceMemberName);
+JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndexOrName, interfaceMemberName) {
+  var record = new JSIL.OverrideRecord(interfaceIndexOrName, interfaceMemberName);
   this.overrides.push(record);
 
   return this;
@@ -6835,8 +6839,9 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
     }
   }
 
-  if (!result)
+  if (!result) {
     result = this.fallbackMethod;
+  }
 
   if (!result) {
     var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
