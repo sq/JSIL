@@ -5175,8 +5175,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__FullName__ = fullName;
     typeObject.__TypeInitialized__ = false;
 
-    if (interfaces && interfaces.length)
-      JSIL.$CopyInterfaceMethods(interfaces, publicInterface);
+    if (interfaces && interfaces.length) {
+      // FIXME: This seems wrong.
+      // JSIL.$CopyInterfaceMethods(interfaces, publicInterface);
+    }
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
@@ -8766,16 +8768,13 @@ JSIL.$CopyInterfaceMethods = function (interfaceList, target) {
     var iface = JSIL.ResolveTypeReference(ifaceRef)[0];
 
     for (var k in iface) {
-      var im = iface[k];
-
-      if (
-        !im || 
-        (typeof(im) !== "object") ||
-        (Object.getPrototypeOf(im) !== imProto)
-      )
+      if (!Object.prototype.hasOwnProperty.call(iface, k))
         continue;
 
-      target[k] = iface[k];
+      if (Object.prototype.hasOwnProperty.call(target, k))
+        continue;
+
+      JSIL.MakeIndirectProperty(target, k, iface);
     }
   }
 };
