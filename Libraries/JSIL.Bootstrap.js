@@ -720,12 +720,14 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
       this._index = -1;
     }
   );
+  
   $.Method({Public: true , Static: false}, "MoveNext", 
     new JSIL.MethodSignature(System.Boolean, []),
     function () {
       return (++this._index < this._length);
     }
   );
+
   $.Method({Public: true , Static: false}, "Dispose", 
     new JSIL.MethodSignature(null, []),
     function () {

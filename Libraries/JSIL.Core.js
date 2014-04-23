@@ -1459,7 +1459,7 @@ JSIL.GenericParameter.prototype.out = function () {
 };
 
 JSIL.GenericParameter.prototype.get = function (context) {
-  if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
+  if (!context) {
     JSIL.RuntimeError("No context provided when resolving generic parameter '" + this.name + "'");
     return JSIL.AnyType;
   }
@@ -2239,22 +2239,26 @@ $jsilcore.$Of$NoInitialize = function () {
     unresolvedBaseType = typeObject.__BaseType__;
 
   var resolvedBaseType = unresolvedBaseType;
+  var resolveContext = null;
 
-  if (typeof (staticClassObject.prototype) !== "undefined") {
-    var resolveContext = JSIL.CreatePrototypeObject(staticClassObject.prototype);
-    for (var i = 0; i < resolvedArguments.length; i++) {
-      gaNames[i].set(resolveContext, resolvedArguments[i]);
-    }
-
-    // We need to resolve any generic arguments contained in the base type so that the base type of a closed generic type is also closed.
-    // thus, given Derived<T> : Base<T> and Base<U> : Object, Derived<int>.BaseType must be Base<int>, not Base<U>.
-    resolvedBaseType = JSIL.$ResolveGenericTypeReferenceInternal(resolvedBaseType, resolveContext);
-    if (!resolvedBaseType) {
-      resolvedBaseType = unresolvedBaseType;
-    }
-
-    JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
+  if (staticClassObject.prototype) {
+    resolveContext = JSIL.CreatePrototypeObject(staticClassObject.prototype);
+  } else {
+    resolveContext = JSIL.CreateSingletonObject(null);
   }
+
+  for (var i = 0; i < resolvedArguments.length; i++) {
+    gaNames[i].set(resolveContext, resolvedArguments[i]);
+  }
+
+  // We need to resolve any generic arguments contained in the base type so that the base type of a closed generic type is also closed.
+  // thus, given Derived<T> : Base<T> and Base<U> : Object, Derived<int>.BaseType must be Base<int>, not Base<U>.
+  resolvedBaseType = JSIL.$ResolveGenericTypeReferenceInternal(resolvedBaseType, resolveContext);
+  if (!resolvedBaseType) {
+    resolvedBaseType = unresolvedBaseType;
+  }
+
+  JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
 
   var resultTypeObject = JSIL.CreateSingletonObject(typeObject);
 
@@ -2277,7 +2281,7 @@ $jsilcore.$Of$NoInitialize = function () {
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
 
-  if (typeof (staticClassObject.prototype) !== "undefined") {
+  if (staticClassObject.prototype) {
     // Given Derived<T> : Base<T> and Base<U> : Object, the prototype of Derived<T> instances must have this chain:
     // Derived<T> -> Base<T> -> Object, not:
     // Derived<T> -> Derived -> Base<U> -> Object
@@ -2408,7 +2412,7 @@ $jsilcore.$Of$NoInitialize = function () {
     name.defineProperty(result, decl);
     Object.defineProperty(result, key, getterDecl);
 
-    if (typeof (staticClassObject.prototype) !== "undefined") {
+    if (staticClassObject.prototype) {
       name.defineProperty(result.prototype, decl);
       Object.defineProperty(result.prototype, key, getterDecl);
     }
@@ -2682,6 +2686,9 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (!interfaces.length)
     return;
 
+  if (typeObject.__FullName__.indexOf("ArrayEnumerator") >= 0)
+    trace = true;
+
   typeObject.__IsFixingUpInterfaces__ = true;
 
   var context = typeObject.__Context__;
@@ -2868,8 +2875,13 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
 
-      if (trace)
+      var missingIndex = missingMembers.indexOf(key);
+      if (missingIndex >= 0)
+        missingMembers.splice(missingIndex, 1);
+
+      if (trace) {
         console.log("Overrides set " + typeName + "::" + key + " = " + member._descriptor.EscapedName);
+      }
 
       // Important: This may overwrite an existing member with this key, from an automatic interface fixup
       //  like 'Foo.GetEnumerator' -> 'Foo.Ixx$GetEnumerator'.
@@ -8613,6 +8625,13 @@ JSIL.$IgnoredPublicInterfaceMembers = [
 ];
 
 JSIL.$CopyMembersIndirect = function (target, source, ignoredNames, recursive) {
+  if (!source)
+    JSIL.RuntimeError("No source provided for copy");
+
+  if (source.__ThisType__ && (source.__ThisType__.__FullName__.indexOf("ArrayEnumerator") >= 0)) {
+    // debugger;
+  }
+
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
   for (var k in source) {
     if (ignoredNames.indexOf(k) !== -1)
