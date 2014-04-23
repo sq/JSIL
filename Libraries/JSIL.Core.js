@@ -2801,7 +2801,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
-    var members = JSIL.GetMembersInternal(iface, $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public"));
+    var members = JSIL.GetMembersInternal(
+      iface, 
+      $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "NonPublic", "Public")
+    );
     var proto = publicInterface.prototype;
 
     var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
@@ -2865,7 +2868,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             var sourceQualifiedName = implementation._data.signature.GetKey(implementation._descriptor.EscapedName);
 
             if (trace)
-              console.log(typeName + "::" + signatureQualifiedName + " = " + sourceQualifiedName);
+              console.log(typeName + "::" + signatureQualifiedName + " (" + iface + ") = " + sourceQualifiedName);
 
             JSIL.SetLazyValueProperty(
               proto, signatureQualifiedName, 
@@ -2942,7 +2945,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         missingMembers.splice(missingIndex, 1);
 
       if (trace) {
-        console.log("Overrides set " + typeName + "::" + key + " = " + member._descriptor.EscapedName);
+        console.log("Overrides set " + typeName + "::" + key + " (#" + override.interfaceIndexOrName + "=" + iface + ") = " + member._descriptor.EscapedName);
       }
 
       // Important: This may overwrite an existing member with this key, from an automatic interface fixup
@@ -8411,6 +8414,8 @@ JSIL.GetInterfacesImplementedByType = function (typeObject) {
 JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList) {
   var interfaces = typeObject.__Interfaces__;
 
+  var toEnumerate = [];
+
   if (interfaces && interfaces.length) {
     for (var i = 0, l = interfaces.length; i < l; i++) {
       var ifaceRef = interfaces[i];
@@ -8418,10 +8423,14 @@ JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resu
 
       if (iface && (resultList.indexOf(iface) < 0)) {
         resultList.push(iface);
-
-        JSIL.$EnumInterfacesImplementedByTypeExcludingBases(iface, resultList);
+        toEnumerate.push(iface);
       }
     }
+  }
+
+  for (var i = 0, l = toEnumerate.length; i < l; i++) {
+    var iface = toEnumerate[i];
+    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(iface, resultList);
   }
 };
 
