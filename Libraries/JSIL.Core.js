@@ -2574,6 +2574,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
   var rm = typeObject.__RenamedMethods__;
   var trace = false;
+  var throwOnFail = false;
 
   var isInterface = typeObject.IsInterface;
 
@@ -2609,8 +2610,9 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
           typeObject, genericSignature, resolveContext
         );
 
-        if (!signature)
+        if (!signature && throwOnFail) {
           JSIL.RuntimeError("Failed to resolve generic signature", genericSignature);
+        }
       }
 
       var newObject = oldObject.Rebind(typeObject, signature);
