@@ -2262,6 +2262,17 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var resultTypeObject = JSIL.CreateSingletonObject(typeObject);
 
+  // Since .Of() will now be called even for open types, we need to ensure that we flag
+  //  the type as open if it has any unresolved generic parameters.
+  var isClosed = true;
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    if (Object.getPrototypeOf(resolvedArguments[i]) === JSIL.GenericParameter.prototype)
+      isClosed = false;
+    else if (resolvedArguments[i].__IsClosed__ === false)
+      isClosed = false;
+  }
+  resultTypeObject.__IsClosed__ = isClosed;
+
   var constructor;
 
   if (typeObject.IsInterface)
@@ -2417,17 +2428,6 @@ $jsilcore.$Of$NoInitialize = function () {
       Object.defineProperty(result.prototype, key, getterDecl);
     }
   }
-
-  // Since .Of() will now be called even for open types, we need to ensure that we flag
-  //  the type as open if it has any unresolved generic parameters.
-  var isClosed = true;
-  for (var i = 0, l = arguments.length; i < l; i++) {
-    if (Object.getPrototypeOf(resolvedArguments[i]) === JSIL.GenericParameter.prototype)
-      isClosed = false;
-    else if (resolvedArguments[i].__IsClosed__ === false)
-      isClosed = false;
-  }
-  resultTypeObject.__IsClosed__ = isClosed;
 
   if (isClosed) {
     resultTypeObject.__AssignableFromTypes__ = {};
@@ -2685,9 +2685,6 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
   if (!interfaces.length)
     return;
-
-  if (typeObject.__FullName__.indexOf("ArrayEnumerator") >= 0)
-    trace = true;
 
   typeObject.__IsFixingUpInterfaces__ = true;
 
@@ -4786,6 +4783,12 @@ JSIL.$MakeOptimizedNumericSwitch = function (output, variableName, cases, defaul
 };
 
 JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
+  if (typeObject.__IsClosed__ === false) {
+    return function () {
+      JSIL.RuntimeError("Cannot create an instance of an open type");
+    };
+  }
+
   var ctorClosure = {
     typeObject: typeObject,
     fieldInitializer: $jsilcore.FunctionNotInitialized,

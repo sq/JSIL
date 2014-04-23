@@ -956,7 +956,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (values) {
-      this._items = JSIL.EnumerableToArray(values, T);
+      this._items = JSIL.EnumerableToArray(values, this.T);
       this._capacity = this._items.length;
       this._size = this._items.length;
     }
@@ -1445,7 +1445,7 @@ $jsilcore.$CollectionExternals = function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
     function (list) {
-      this._items = JSIL.EnumerableToArray(list, T);
+      this._items = JSIL.EnumerableToArray(list, this.T);
       this._capacity = this._size = this._items.length;
     }
   );
