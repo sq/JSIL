@@ -2916,6 +2916,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     return result;
   };
 
+  var doUnpremultiply = function (dataBytes, bytes, startIndex, elementCount) {
+    var pixelCount = (elementCount / 4) | 0;
+    for (var i = 0; i < pixelCount; i++) {
+      var p = (i * 4) | 0;
+      var p1 = (p + 1) | 0;
+      var p2 = (p + 2) | 0;
+      var p3 = (p + 3) | 0;
+
+      var a = bytes[p3] | 0;
+
+      if (a <= 0) {
+        continue;
+      } else if (a > 254) {
+        dataBytes[p] = bytes[p];
+        dataBytes[p1] = bytes[p1];
+        dataBytes[p2] = bytes[p2];
+        dataBytes[p3] = a;
+      } else {
+        var m = 255 / a;
+
+        dataBytes[p] = (bytes[p] * m) | 0;
+        dataBytes[p1] = (bytes[p1] * m) | 0;
+        dataBytes[p2] = (bytes[p2] * m) | 0;
+        dataBytes[p3] = a;
+      }
+    }
+  };
+
   $.RawMethod(false, "$makeImageDataForBytes", function $makeImageDataForBytes (
     width, height,
     bytes, startIndex, elementCount, 
@@ -2938,28 +2966,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
     //  to reverse the premultiplication.
     if (unpremultiply) {
-      var pixelCount = elementCount / 4;
-      for (var i = 0; i < pixelCount; i++) {
-        var p = (i * 4) | 0;
-
-        var a = bytes[(p + 3) | 0];
-
-        if (a <= 0) {
-          continue;
-        } else if (a > 254) {
-          dataBytes[p] = bytes[p];
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0];
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0];
-          dataBytes[(p + 3) | 0] = a;
-        } else {
-          var m = 255 / a;
-
-          dataBytes[p] = bytes[p] * m;
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
-          dataBytes[(p + 3) | 0] = a;
-        }
-      }
+      doUnpremultiply(dataBytes, bytes, startIndex, elementCount);
     } else {
       fastArrayCopy(dataBytes, 0, bytes, startIndex, elementCount);
     }
