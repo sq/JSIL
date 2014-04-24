@@ -31,11 +31,6 @@ namespace JSIL.Utilities {
                 var encoding = new UTF8Encoding(false);
 
                 foreach (var kvp in manifestResources) {
-                    var outputPath = Path.GetFileNameWithoutExtension(kvp.Key) + ".resj";
-                    // FIXME: We're converting embedded resources multiple times per run :(
-                    if (result.Files.ContainsKey(outputPath))
-                        continue;
-
                     Console.WriteLine(kvp.Key);
 
                     string resourceJson;
@@ -46,7 +41,7 @@ namespace JSIL.Utilities {
 
                     result.AddFile(
                         "Resources",
-                        outputPath,
+                        Path.GetFileNameWithoutExtension(kvp.Key) + ".resj",
                         new ArraySegment<byte>(bytes)
                     );
                 }

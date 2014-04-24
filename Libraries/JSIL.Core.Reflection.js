@@ -196,7 +196,9 @@ JSIL.ImplementExternals(
       function () {
         return JSIL.GetMembersInternal(
           this, 
-          defaultFlags()
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public
         );
       }
     );
@@ -210,21 +212,15 @@ JSIL.ImplementExternals(
       }
     );
 
-    var getMatchingMethodsImpl = function (type, name, flags, argumentTypes, returnType, allMethods) {
+    var getMethodImpl = function (type, name, flags, argumentTypes) {
       var methods = JSIL.GetMembersInternal(
-        type, flags, allMethods ? "$AllMethods" : "MethodInfo", name
+        type, flags, "MethodInfo", name
       );
 
       if (argumentTypes)
-        JSIL.$FilterMethodsByArgumentTypes(methods, argumentTypes, returnType);
+        JSIL.$FilterMethodsByArgumentTypes(methods, argumentTypes);
 
       JSIL.$ApplyMemberHiding(type, methods, type.__PublicInterface__.prototype);
-
-      return methods;
-    }
-
-    var getMethodImpl = function (type, name, flags, argumentTypes) {
-      var methods = getMatchingMethodsImpl(type, name, flags, argumentTypes);
 
       if (methods.length > 1) {
         throw new System.Exception("Multiple methods named '" + name + "' were found.");
@@ -234,16 +230,6 @@ JSIL.ImplementExternals(
 
       return methods[0];
     };
-
-    $.RawMethod(false, "$GetMatchingInstanceMethods", function (name, argumentTypes, returnType) {
-      var bindingFlags = $jsilcore.BindingFlags;
-      var flags = bindingFlags.Public | bindingFlags.NonPublic | bindingFlags.Instance;
-
-      return getMatchingMethodsImpl(
-        this, name, flags, 
-        argumentTypes, returnType, true
-      );
-    });
 
     $.Method({Public: true , Static: false}, "GetMethod",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.String]),      
@@ -466,10 +452,7 @@ JSIL.ImplementExternals(
     };
 
     var defaultFlags = function () {
-      var bindingFlags = $jsilcore.BindingFlags;
-      var result = bindingFlags.Public | bindingFlags.Instance | bindingFlags.Static;
-      return result;
-      // return System.Reflection.BindingFlags.$Flags("Public", "Instance", "Static");
+      return System.Reflection.BindingFlags.$Flags("Public", "Instance", "Static");
     };
 
     $.Method({Public: true , Static: false}, "GetField",
@@ -525,7 +508,7 @@ JSIL.ImplementExternals(
     $.Method({ Public: true, Static: false }, "GetInterfaces",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),
       function () {
-        return JSIL.GetInterfacesImplementedByType(this);
+        return this.__Interfaces__;
       }
     );
   }
@@ -607,15 +590,7 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])), 
       function GetParameterTypes () {
         var signature = this._data.signature;
-        var argumentTypes = signature.argumentTypes;
-        var result = [];
-
-        for (var i = 0, l = argumentTypes.length; i < l; i++) {
-          var argumentType = argumentTypes[i];
-          result.push(signature.ResolveTypeReference(argumentType)[1]);
-        }
-
-        return result;
+        return signature.argumentTypes;
       }
     );
 
