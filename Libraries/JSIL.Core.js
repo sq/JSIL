@@ -6474,6 +6474,7 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   this._lastKey = "<null>";
   this._genericSuffix = null;
   this._hash = null;
+  this._hashIncludesReturnType = null;
 
   this.context = context || $private;
   this.returnType = returnType;
@@ -6700,7 +6701,7 @@ JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
 };
 
 JSIL.MethodSignature.prototype.get_Hash = function (includeReturnType) {
-  if ((this._hash !== null) && (includeReturnType !== false))
+  if ((this._hash !== null) && (this._hashIncludesReturnType === includeReturnType))
     return this._hash;
 
   var hash = "$" + JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
@@ -6712,8 +6713,8 @@ JSIL.MethodSignature.prototype.get_Hash = function (includeReturnType) {
       hash += "=void";
   }
 
-  if (includeReturnType !== false)
-    this._hash = hash;
+  this._hash = hash;
+  this._hashIncludesReturnType = includeReturnType;
 
   return hash;
 };
