@@ -31,7 +31,7 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, ["T"], function
       return new (JSIL.AbstractEnumerator.Of(this.T))(this._getNextItem, this._reset, this._dispose);
   };
 
-  $.Method({Static: false, Public: true }, "IEnumerable_GetEnumerator",
+  $.Method({Static: false, Public: false }, null,
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), []),
     getEnumeratorImpl
   )
