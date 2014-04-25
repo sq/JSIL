@@ -1556,12 +1556,12 @@ namespace JSIL {
                 bool firstInterface = true;
 
                 for (var i = 0; i < interfaces.Length; i++) {
-                    if (interfaces[i].Item1 != typeInfo)
+                    if (interfaces[i].ImplementingType != typeInfo)
                         continue;
-                    if (interfaces[i].Item2.IsIgnored)
+                    if (interfaces[i].ImplementedInterface.Info.IsIgnored)
                         continue;
 
-                    var @interface = interfaces[i].Item3;
+                    var @interface = interfaces[i].ImplementedInterface.Reference;
 
                     if (firstInterface)
                         firstInterface = false;
@@ -2688,10 +2688,10 @@ namespace JSIL {
                     output.LPar();
 
                     var interfaces = typeInfo.AllInterfacesRecursive.Where((tuple) =>
-                      (!tuple.Item2.IsIgnored));
+                      (!tuple.ImplementedInterface.Info.IsIgnored));
 
                     var interfaceIndex = interfaces.TakeWhile((tuple) =>
-                      !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)).Count();
+                      !TypeUtil.TypesAreEqual(tuple.ImplementedInterface.Reference, @override.InterfaceType)).Count();
 
                     // TODO: Deprecate numeric indices entirely. They are a mess.
                     output.Value(interfaceIndex);

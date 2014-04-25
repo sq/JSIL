@@ -47,6 +47,26 @@ namespace JSIL.Internal {
         }
     }
 
+    public struct InterfaceInfo {
+        public readonly TypeInfo Info;
+        public readonly TypeReference Reference;
+
+        public InterfaceInfo (TypeInfo info, TypeReference reference) {
+            Info = info;
+            Reference = reference;
+        }
+    }
+
+    public struct RecursiveInterfaceInfo {
+        public readonly TypeInfo ImplementingType;
+        public readonly InterfaceInfo ImplementedInterface;
+
+        public RecursiveInterfaceInfo (TypeInfo implementingType, InterfaceInfo implementedInterface) {
+            ImplementingType = implementingType;
+            ImplementedInterface = implementedInterface;
+        }
+    }
+
     public struct TypeIdentifier {
         public readonly string Assembly;
         public readonly string Namespace;
@@ -378,8 +398,8 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
-        private System.Tuple<TypeInfo, TypeInfo, TypeReference>[] _AllInterfacesRecursive = null;
+        public readonly InterfaceInfo[] Interfaces;
+        private RecursiveInterfaceInfo[] _AllInterfacesRecursive = null;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -445,7 +465,7 @@ namespace JSIL.Internal {
 
             IsInterface = type.IsInterface;
 
-            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>();
+            var interfaces = new HashSet<InterfaceInfo>();
             {
                 StringBuilder errorString = null;
 
@@ -456,8 +476,8 @@ namespace JSIL.Internal {
                         continue;
                     }
 
-                    var ii = Tuple.Create(source.GetExisting(i), i);
-                    if (ii.Item1 == null) {
+                    var ii = new InterfaceInfo(source.GetExisting(i), i);
+                    if (ii.Info == null) {
                         if (errorString == null) {
                             errorString = new StringBuilder();
                             errorString.AppendFormat(
@@ -486,7 +506,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(Tuple.Create(ii, i));
+                        interfaces.Add(new InterfaceInfo(ii, i));
                     }
                 }
             }
@@ -730,17 +750,22 @@ namespace JSIL.Internal {
             return Definition.FullName;
         }
 
-        public System.Tuple<TypeInfo, TypeInfo, TypeReference>[] AllInterfacesRecursive {
+        public RecursiveInterfaceInfo[] AllInterfacesRecursive {
             get {
                 if (_AllInterfacesRecursive == null) {
-                    var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
+                    var list = new List<RecursiveInterfaceInfo>();
+                    var added = new HashSet<string>();
                     var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces)
-                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+                        foreach (var @interface in type.Interfaces) {
+                            if (!added.Contains(@interface.Info.FullName)) {
+                                list.Add(new RecursiveInterfaceInfo(type, @interface));
+                                added.Add(@interface.Info.FullName);
+                            }
+                        }
 
-                    _AllInterfacesRecursive = list.Distinct().ToArray();
+                    _AllInterfacesRecursive = list.ToArray();
                 }
 
                 return _AllInterfacesRecursive;
