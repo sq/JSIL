@@ -1845,6 +1845,9 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
   var baseTypePublicInterface = _[0];
   var baseTypeObject = _[1];
 
+  if (baseTypePublicInterface === Object)
+    baseTypeObject = null;
+
   var prototype = JSIL.$GetSpecialType(typeName).prototype;
   if (!prototype)
     prototype = JSIL.CreatePrototypeObject(baseTypePublicInterface.prototype);
@@ -2084,6 +2087,7 @@ JSIL.FindGenericParameters = function (obj, type, resultList) {
     currentType = currentType.__BaseType__;
     if (
       (typeof(currentType) === "object") && 
+      (currentType !== null) &&
       (Object.getPrototypeOf(currentType) === JSIL.TypeRef.prototype)
     )
       currentType = currentType.get().__Type__;
@@ -4997,14 +5001,27 @@ JSIL.MakeType = function (typeArgs, initializer) {
       publicInterface: staticClassObject
     };
 
-    typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
-    var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
-    var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || [];
+    if (fullName !== "System.Object") {
+      typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
 
-    // HACK: We can't do this check before creating the constructor, because recursion. UGH.
-    typeObject.__IsStruct__ = typeObject.__IsStruct__ && (baseTypeName === "System.ValueType");
+      var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
+      var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || [];
 
-    typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
+      // HACK: We can't do this check before creating the constructor, because recursion. UGH.
+      typeObject.__IsStruct__ = typeObject.__IsStruct__ && (baseTypeName === "System.ValueType");
+      typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
+      typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
+      typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || []);
+      typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__BaseType__.__RenamedMethods__ || null);
+    } else {
+      typeObject.__BaseType__ = null;
+      typeObject.__IsStruct__ = false;
+      typeObject.__InheritanceDepth__ = 0;
+      typeObject.__Interfaces__ = [];
+      typeObject.__ExternalMethods__ = Array.prototype.slice.call([]);
+      typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(null);
+    }
+
     typeObject.__IsArray__ = false;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
@@ -5016,7 +5033,6 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__ElementProxyConstructor__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
-    typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
     typeObject.__TypeInitialized__ = false;
     typeObject.__IsNativeType__ = false;
     typeObject.__AssignableTypes__ = null;
@@ -5025,12 +5041,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
     // FIXME: I'm not sure this is right. See InheritedExternalStubError.cs
-    typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || []);
     typeObject.__Attributes__ = memberBuilder.attributes;
     typeObject.__RanCctors__ = false;
-
-    typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__BaseType__.__RenamedMethods__ || null);
-
     typeObject.__RawMethods__ = [];
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
