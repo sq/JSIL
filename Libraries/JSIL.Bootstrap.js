@@ -1145,6 +1145,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
         (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1+Enumerator", [T]), [], [])), 
         getEnumeratorImpl
       );
+
+      $.Method({Static:false, Public:true }, null,
+        new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
+        getEnumeratorImpl
+      )
+        .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
+
       break;
 
     case "ArrayList":
@@ -1156,6 +1163,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
         getEnumeratorImpl
       )
         .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
+
       break;
   }
 
@@ -3602,7 +3610,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     getEnumeratorImpl
   )
 
-  $.Method({Static:false, Public:true }, "GetEnumerator", 
+  $.Method({Static:false, Public:false }, null, 
     new JSIL.MethodSignature(
       $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []
     ), 

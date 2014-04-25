@@ -5914,15 +5914,15 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   // Throw if two members with identical signatures and names are added
   if (data.signature) {
-    var ignoreReturnType =
+    var includeReturnType =
       descriptor.SpecialName;
 
     var existingMembersWithSameNameAndSignature = members.filter(function (m) {
       if (!m.data.signature)
         return false;
 
-      var sig1 = m.data.signature.GetKey(m.descriptor.EscapedName, ignoreReturnType);
-      var sig2 = data.signature.GetKey(descriptor.EscapedName, ignoreReturnType);
+      var sig1 = m.data.signature.GetKey(m.descriptor.EscapedName, includeReturnType);
+      var sig2 = data.signature.GetKey(descriptor.EscapedName, includeReturnType);
 
       return (sig1 == sig2);
     });
@@ -5932,12 +5932,12 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
         // No need to push this, the external is already implemented. Cool!
       } else {
         // This means that we accidentally implemented the same method twice, or something equally terrible.
-        var msgPrefix = ignoreReturnType ? 
-          "A member with the name and argument list '" :
-          "A member with the signature '";
+        var msgPrefix = includeReturnType ? 
+          "A member with the signature '" :
+          "A member with the name and argument list '";
 
         JSIL.RuntimeError(
-          msgPrefix + data.signature.toString(descriptor.EscapedName, ignoreReturnType) + 
+          msgPrefix + data.signature.toString(descriptor.EscapedName, includeReturnType) + 
           "' has already been declared in the type '" + 
           this.typeObject.__FullName__ + "'."
         );
@@ -7011,7 +7011,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   }
 
   if (!result) {
-    result = this.fallbackMethod;
+    result = this.fallbackMethod(this.signature, thisReference);
   }
 
   if (!result) {
@@ -8654,14 +8654,22 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
   return result;
 };
 
-JSIL.$GetEnumeratorFallback = function () {
-  if (typeof (this) === "string")
-    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
-  else if (JSIL.IsArray(this))
-    // HACK: Too hard to detect the correct element type here.
+JSIL.$GetStringEnumerator = function () {
+    return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);  
+};
+
+JSIL.$GetArrayEnumerator = function () {
     return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__, true);
-  else
-    JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of GetEnumerator");
+};
+
+JSIL.$GetEnumeratorFallback = function (signature, thisReference) {
+  if (typeof (thisReference) === "string") {
+    return JSIL.$GetStringEnumerator;
+  } else if (JSIL.IsArray(thisReference)) { 
+    // HACK: Too hard to detect the correct element type here.
+    return JSIL.$GetArrayEnumerator;
+  } else
+    JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of " + signature.toString("GetEnumerator"));
 };
 
 // FIXME: This can probably be replaced with compiler and/or runtime intelligence 
