@@ -5891,7 +5891,8 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
 
   result.SpecialName = (name == ".ctor") || (name == "_ctor") ||
     (name.indexOf(".cctor") === 0) ||
-    (name.indexOf("_cctor") === 0);
+    (name.indexOf("_cctor") === 0) ||
+    (name.indexOf("op_") === 0);
 
   JSIL.SetValueProperty(
     result, "Target", 
@@ -5913,13 +5914,17 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   // Throw if two members with identical signatures and names are added
   if (data.signature) {
-    var existingMembersWithSameName = members.filter(function (m) {
-      return (m.descriptor.EscapedName == descriptor.EscapedName);
-    });
+    var ignoreReturnType =
+      descriptor.SpecialName;
 
-    var existingMembersWithSameNameAndSignature = existingMembersWithSameName.filter(function (m) {
-      return m.data.signature && 
-        (m.data.signature.GetKey() == data.signature.GetKey());
+    var existingMembersWithSameNameAndSignature = members.filter(function (m) {
+      if (!m.data.signature)
+        return false;
+
+      var sig1 = m.data.signature.GetKey(m.descriptor.EscapedName, ignoreReturnType);
+      var sig2 = data.signature.GetKey(descriptor.EscapedName, ignoreReturnType);
+
+      return (sig1 == sig2);
     });
 
     if (existingMembersWithSameNameAndSignature.length > 0) {
@@ -5927,7 +5932,15 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
         // No need to push this, the external is already implemented. Cool!
       } else {
         // This means that we accidentally implemented the same method twice, or something equally terrible.
-        JSIL.RuntimeError("A member with the signature '" + data.signature.toString(descriptor.EscapedName) + "' has already been declared in the type '" + this.typeObject.__FullName__ + "'.");
+        var msgPrefix = ignoreReturnType ? 
+          "A member with the name and argument list '" :
+          "A member with the signature '";
+
+        JSIL.RuntimeError(
+          msgPrefix + data.signature.toString(descriptor.EscapedName, ignoreReturnType) + 
+          "' has already been declared in the type '" + 
+          this.typeObject.__FullName__ + "'."
+        );
       }
     }
   }
@@ -6418,12 +6431,18 @@ JSIL.SignatureBase = function () {
   JSIL.RuntimeError("Abstract base class");
 };
 
-JSIL.SignatureBase.prototype.GetKey = function (name) {
-  if (name === this._lastKeyName)
+JSIL.SignatureBase.prototype.GetKey = function (name, includeReturnType) {
+  if ((name === this._lastKeyName) && (includeReturnType !== false))
     return this._lastKey;
 
-  this._lastKeyName = name;
-  return this._lastKey = (name + this.get_Hash());
+  var result = (name + this.get_Hash(includeReturnType));
+
+  if (includeReturnType !== false) {
+    this._lastKeyName = name;
+    this._lastKey = result;
+  }
+
+  return result;
 };
 
 JSIL.SignatureBase.prototype.ResolveTypeReference = function (typeReference) {
@@ -6505,10 +6524,12 @@ JSIL.MethodSignature.prototype.Resolve = function (name) {
   );
 };
 
-JSIL.MethodSignature.prototype.toString = function (name) {
+JSIL.MethodSignature.prototype.toString = function (name, includeReturnType) {
   var signature;
 
-  if (this.returnType !== null) {
+  if (includeReturnType === false) {
+    signature = "";
+  } else if (this.returnType !== null) {
     signature = JSIL.TypeReferenceToName(this.returnType) + " ";
   } else {
     signature = "void ";
@@ -6678,19 +6699,23 @@ JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
   return this._genericSuffix = "";
 };
 
-JSIL.MethodSignature.prototype.get_Hash = function () {
-  if (this._hash !== null)
+JSIL.MethodSignature.prototype.get_Hash = function (includeReturnType) {
+  if ((this._hash !== null) && (includeReturnType !== false))
     return this._hash;
 
   var hash = "$" + JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
 
-  if (this.returnType !== null) {
+  if ((this.returnType !== null) && (includeReturnType !== false)) {
     hash += "=" + JSIL.HashTypeArgumentArray([this.returnType], this.context);
   } else {
-    hash += "=void";
+    if (includeReturnType !== false)
+      hash += "=void";
   }
 
-  return this._hash = hash;
+  if (includeReturnType !== false)
+    this._hash = hash;
+
+  return hash;
 };
 
 JSIL.MethodSignature.prototype.get_IsClosed = function () {
@@ -6758,7 +6783,7 @@ JSIL.ConstructorSignature.prototype.get_Type = function () {
   return this._typeObject = this.ResolveTypeReference(this.type)[1];
 };
 
-JSIL.ConstructorSignature.prototype.get_Hash = function () {
+JSIL.ConstructorSignature.prototype.get_Hash = function (includeReturnType) {
   if (this._hash !== null)
     return this._hash;
 
