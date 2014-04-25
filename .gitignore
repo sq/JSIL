@@ -22,7 +22,6 @@ Examples/bin
 /bin
 UpgradeLog.XML
 _UpgradeReport_Files
-Tests/*Cases/*.js
 /Proxies/XNA4/bin
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
@@ -93,3 +92,4 @@ Corlib/*.js
 /Upstream/OpenTKBindingGenerator
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
+*.out

@@ -150,3 +150,34 @@ JSIL.Shell.TagObject = function (obj, tag) {
     printErr("// " + objectId + "='" + tag + "'");
   }
 };
+
+JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args) {
+  return function runTestCase () {
+    JSIL.ThrowOnUnimplementedExternals = true;
+
+    timeout(timeoutDuration);
+
+    var started = dateNow();
+
+    var testAssembly = JSIL.GetAssembly(assemblyName, true);
+
+    if (!testAssembly)
+      throw new Error("No assembly named '" + assemblyName + "'");
+
+    var parsedTypeName = JSIL.ParseTypeName(typeName);    
+    var testType = JSIL.GetTypeInternal(parsedTypeName, testAssembly, true);
+    var testTypePublicInterface = testType.__PublicInterface__;
+
+    var testMethod = testTypePublicInterface[methodName];
+
+    if (!testMethod)
+      throw new Error("No method named '" + methodName + "'");
+
+    testMethod.call(testTypePublicInterface, args);
+    
+    var ended = dateNow();
+    return (ended - started);
+  };
+};
+
+

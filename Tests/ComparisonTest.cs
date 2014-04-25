@@ -47,6 +47,7 @@ namespace JSIL.Tests {
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
         public readonly string[] StubbedAssemblies;
+        public readonly string[] JSFilenames;
         public readonly string OutputPath;
         public readonly Assembly Assembly;
         public readonly CompileResult CompileResult;
@@ -89,7 +90,7 @@ namespace JSIL.Tests {
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs)$", "$0.js"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs|\\.js)$", "$0.out"
             );
         }
 
@@ -131,6 +132,8 @@ namespace JSIL.Tests {
                 Path.GetFileName(outputPath).Replace(".js", "")
             );
 
+            JSFilenames = null;
+
             switch (extensions[0]) {
                 case ".exe":
                 case ".dll":
@@ -139,6 +142,11 @@ namespace JSIL.Tests {
                         throw new InvalidOperationException("Multiple binary assemblies provided.");
 
                     Assembly = Assembly.LoadFile(fns[0]);
+                    break;
+                case ".js":
+                    JSFilenames = absoluteFilenames.ToArray();
+                    CompileResult = null;
+                    Assembly = null;
                     break;
                 default:
                     CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
@@ -413,17 +421,36 @@ namespace JSIL.Tests {
             Action<Exception> onTranslationFailure = null
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
+            string translatedJs;
 
-            string translatedJs = Translate(
-                (tr) => tr.WriteToString(), makeConfiguration, onTranslationFailure
-            );
+            if ((Assembly == null) && (JSFilenames != null)) {
+                translatedJs = String.Join(
+                    Environment.NewLine + Environment.NewLine,
+                    from fn in JSFilenames select File.ReadAllText(fn)
+                ) + Environment.NewLine;
+            } else if ((Assembly != null) && (JSFilenames == null)) {
+                translatedJs = Translate(
+                    (tr) => tr.WriteToString(), makeConfiguration, onTranslationFailure
+                );
+            } else {
+                throw new InvalidDataException("Provided both JS filenames and assembly");
+            }
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
-            var testMethod = GetTestMethod();
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(
-                testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier
-            );
+            string testAssemblyName, testTypeName, testMethodName;
+
+            if (Assembly != null) {
+                var testMethod = GetTestMethod();
+                testAssemblyName = testMethod.Module.Assembly.FullName;
+                testTypeName = testMethod.DeclaringType.FullName;
+                testMethodName = testMethod.Name;
+            } else {
+                MainAcceptsArguments = true;
+                testAssemblyName = "Test";
+                testTypeName = "Program";
+                testMethodName = "Main";
+            }
 
             string argsJson;
 
@@ -437,22 +464,15 @@ namespace JSIL.Tests {
                 if ((args != null) && (args.Length > 0))
                     throw new ArgumentException("Test case does not accept arguments");
 
-                argsJson = "";
+                argsJson = "[]";
             }
 
             var invocationJs = String.Format(
-                "function runTestCase (timeout, dateNow) {{\r\n" +
-                "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" +
-                "  timeout({0});\r\n" +
-                "  var started = dateNow();\r\n" +
-                "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
-                "  testAssembly.{2}.{3}({4});\r\n" +
-                "  var ended = dateNow();\r\n" +
-                "  return (ended - started);\r\n" +
-                "}}",
+                "runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}\r\n);",
                 JavascriptExecutionTimeout,
-                Util.EscapeString(testMethod.Module.Assembly.FullName),
-                declaringType, Util.EscapeIdentifier(testMethod.Name),
+                Util.EscapeString(testAssemblyName),
+                Util.EscapeString(testTypeName), 
+                Util.EscapeString(testMethodName),
                 argsJson
             );
 
@@ -597,18 +617,23 @@ namespace JSIL.Tests {
 
             args = args ?? new string[0];
 
-            ThreadPool.QueueUserWorkItem((_) => {
-                var oldCulture = Thread.CurrentThread.CurrentCulture;
-                try {
-                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-                    outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
-                } catch (Exception ex) {
-                    errors[0] = ex;
-                } finally {
-                    Thread.CurrentThread.CurrentCulture = oldCulture;
-                }
+            if (Assembly != null) {
+                ThreadPool.QueueUserWorkItem((_) => {
+                    var oldCulture = Thread.CurrentThread.CurrentCulture;
+                    try {
+                        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+                        outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
+                    } catch (Exception ex) {
+                        errors[0] = ex;
+                    } finally {
+                        Thread.CurrentThread.CurrentCulture = oldCulture;
+                    }
+                    signals[0].Set();
+                });
+            } else {
+                outputs[0] = "";
                 signals[0].Set();
-            });
+            }
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
@@ -631,8 +656,10 @@ namespace JSIL.Tests {
                     throw new Exception("C# test failed", errors[0]);
                 else if (errors[1] != null)
                     throw errors[1];
-                else
+                else if (Assembly != null)
                     Assert.AreEqual(outputs[0], outputs[1]);
+                else
+                    Console.WriteLine("// Output validation suppressed (raw JS)");
 
                 Console.WriteLine(
                     "passed: CL:{0:0000}ms TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
