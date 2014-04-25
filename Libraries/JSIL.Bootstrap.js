@@ -1231,7 +1231,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   $.Method({Static:false, Public:true }, "RemoveRange", 
-    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], []),
     function (index, count) {
       if (index < 0)
         throw new System.ArgumentOutOfRangeException("index");
