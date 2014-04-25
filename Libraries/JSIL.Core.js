@@ -7024,7 +7024,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   }
 
   if (!result) {
-    result = this.fallbackMethod(this.signature, thisReference);
+    result = this.fallbackMethod(this.typeObject, this.signature, thisReference);
   }
 
   if (!result) {
@@ -8671,17 +8671,29 @@ JSIL.$GetStringEnumerator = function () {
     return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);  
 };
 
-JSIL.$GetEnumeratorFallback = function (signature, thisReference) {
+$jsilcore.$GetArrayEnumeratorImplementations = {};
+
+JSIL.$GetEnumeratorFallback = function (interfaceTypeObject, signature, thisReference) {
   if (typeof (thisReference) === "string") {
     return JSIL.$GetStringEnumerator;
   } else if (JSIL.IsArray(thisReference)) {
     var enumeratorTypeArgument = $jsilcore.System.Object.__Type__;
-    if (this.typeObject.IsGenericType) {
-      enumeratorTypeArgument = this.typeObject.__GenericArgumentValues__[0];
+    if (interfaceTypeObject.IsGenericType) {
+      enumeratorTypeArgument = interfaceTypeObject.__GenericArgumentValues__[0];
     }
-    return function () { return JSIL.GetEnumerator(this, enumeratorTypeArgument, true); };
-  } else
+
+    var key = enumeratorTypeArgument.__TypeId__;
+    var result = $jsilcore.$GetArrayEnumeratorImplementations[key];
+    if (!result) {
+      $jsilcore.$GetArrayEnumeratorImplementations[key] = result = function () { 
+        return JSIL.GetEnumerator(this, enumeratorTypeArgument, true); 
+      };
+    }
+
+    return result;
+  } else {
     JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of " + signature.toString("GetEnumerator"));
+  }
 };
 
 // FIXME: This can probably be replaced with compiler and/or runtime intelltypeigence 
