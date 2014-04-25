@@ -274,6 +274,7 @@
     <None Include="SpecialTestCases\JSReplacementTypeofThisStatic.cs" />
     <Content Include="JSTestCases\SameNameDifferentReturnTypes.js" />
     <Content Include="JSTestCases\SameNameWithOverride.js" />
+    <None Include="SimpleTestCases\Issue434.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
