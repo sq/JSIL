@@ -734,11 +734,16 @@ namespace JSIL.Internal {
             get {
                 if (_AllInterfacesRecursive == null) {
                     var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
+                    var added = new Dictionary<string, TypeInfo>();
                     var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces)
-                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+                      foreach (var @interface in type.Interfaces) {
+                        if (!added.ContainsKey(@interface.Item1.FullName)) {
+                          list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+                          added.Add(@interface.Item1.FullName, @interface.Item1);
+                        }
+                      }
 
                     _AllInterfacesRecursive = list.ToArray();
                 }
