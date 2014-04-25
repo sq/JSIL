@@ -43,6 +43,7 @@ _UpgradeReport_Files
 /jsil.org/demos/Lumberjack/Content
 /jsil.org/demos/Lumberjack/Files
 /jsil.org/demos/Lumberjack/*.js
+/jsil.org/demos/Lumberjack/*.ico
 /jsil.org/demos/WebGL/*.js
 /jsil.org/demos/WebGL/Page.cs
 /jsil.org/demos/WebGL/Files/*
@@ -68,6 +69,7 @@ _UpgradeReport_Files
 /Upstream/XapParse/bin
 Skeletons/*.js
 Corlib/*.js
+Corlib/*.nlp
 /Try/obj
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs

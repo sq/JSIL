@@ -740,7 +740,7 @@ namespace JSIL.Internal {
                         foreach (var @interface in type.Interfaces)
                             list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
 
-                    _AllInterfacesRecursive = list.ToArray();
+                    _AllInterfacesRecursive = list.Distinct().ToArray();
                 }
 
                 return _AllInterfacesRecursive;
