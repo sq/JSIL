@@ -140,16 +140,6 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
-    /// Specifies that you wish to replace an existing constructor with one from your proxy. This is necessary because
-    ///  the compiler automatically generates hidden constructors for your proxy classes.
-    /// </summary>
-    [AttributeUsage(
-        AttributeTargets.Constructor
-    )]
-    public class JSReplaceConstructor : Attribute {
-    }
-
-    /// <summary>
     /// If applied to a field, specifies that you wish for JSIL to treat the specified field as if it is immutable.
     /// Struct copies will not be generated for the annotated field or any of its members.
     /// If applied to a class/struct, the class/struct and all its fields are treated as if they are immutable.
