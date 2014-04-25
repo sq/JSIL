@@ -271,6 +271,7 @@
     <None Include="ReflectionTestCases\GetParameterAttributes.cs" />
     <None Include="ReflectionTestCases\GetConstructorAttributes.cs" />
     <None Include="SimpleTestCases\EnumDefaults.cs" />
+    <None Include="SpecialTestCases\JSReplacementTypeofThisStatic.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
@@ -823,9 +824,9 @@
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
     <None Include="BinaryTestCases\InheritedInterfacesExplicit.cs" />
     <None Include="SpecialTestCases\ClassMarkedWithMetaAttibutes.cs" />
-	<None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
-	<None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
-	<None Include="SpecialTestCases\InnerClassNameFormatting_Issue352.cs" />
+    <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
+    <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
+    <None Include="SpecialTestCases\InnerClassNameFormatting_Issue352.cs" />
 	<None Include="TestCases\DictionaryInterfaces.cs" />
   </ItemGroup>
   <ItemGroup>
