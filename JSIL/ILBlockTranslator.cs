@@ -427,11 +427,15 @@ namespace JSIL {
 
                     argsDict["assemblyof(executing)"] = new JSReflectionAssembly(ThisMethod.DeclaringType.Module.Assembly);
 
-                    if (thisExpression != null) {
+                    if (methodInfo.IsStatic) {
+                        argsDict["this"] = new JSNullLiteral(TypeSystem.Object);
+                        argsDict["typeof(this)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition);
+                        argsDict["etypeof(this)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition.GetElementType());
+                    } else if (thisExpression != null) {
                         argsDict["this"] = thisExpression;
                         argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
                         argsDict["etypeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem).GetElementType());
-                    }
+                    } 
 
                     var genericMethod = method as GenericInstanceMethod;
                     if (genericMethod != null) {

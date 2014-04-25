@@ -878,6 +878,9 @@ JSIL.AngleGroupRegex = /\<([^<>]*)\>/g;
 JSIL.EscapedNameCharacterRegex = /[\.\/\+\`\~\:\<\>\(\)\{\}\[\]\@\-\=\?\!\*\ \&\,\|\']/g;
 
 JSIL.EscapeName = function (name) {
+  if ((!name) || (typeof (name) !== "string"))
+    throw new Error("EscapeName only accepts a string");
+
   // FIXME: It sucks that this has to manually duplicate the C# escape logic.
 
   name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
@@ -5828,6 +5831,8 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderM
       return "<" + this.Name + " Descriptor>";
     }
   };
+
+  this.anonymousMemberCount = 0;
 };
 
 JSIL.InterfaceBuilder.prototype.DefineTypeAliases = function (getAssembly, names) {
@@ -5875,6 +5880,11 @@ JSIL.InterfaceBuilder.prototype.SetValue = function (key, value) {
 };
 
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, signature) {
+  if (name === null) {
+    name = "anonymous$" + this.anonymousMemberCount;
+    this.anonymousMemberCount += 1;
+  }
+
   var result = JSIL.CreateDictionaryObject(this.memberDescriptorPrototype);
 
   var escapedName = JSIL.EscapeName(name);
@@ -6416,7 +6426,12 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
     JSIL.RuntimeError("Type has no interface list");
 
   for (var i = 0; i < arguments.length; i++) {
-    interfaces.push(arguments[i]);
+    var iface = arguments[i];
+
+    if (!iface)
+      throw new Error("Nonexistent interface passed to ImplementInterfaces");
+
+    interfaces.push(iface);
   }
 };
 
@@ -6959,7 +6974,7 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
 
 JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {
   var cache = this.variantInvocationCandidateCache;
-  var typeId = thisReference.__TypeId__;
+  var typeId = thisReference.__ThisTypeId__;
 
   var result = cache[typeId];
 
