@@ -57,6 +57,33 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Public: true, Static: false, Virtual: true }, "IsInstanceOfType",
+      new JSIL.MethodSignature($.Boolean, [$.Object]),
+      function (object) {
+        var typeObject = object.GetType();
+        if (this.get_IsInterface() === true) {
+          // Check interfaces
+
+          var interfaces = JSIL.GetInterfacesImplementedByType(typeObject);
+          if (interfaces && interfaces.length) {
+            for (var i = 0; i < interfaces.length; i++) {
+              if (interfaces[i].__FullName__ == this.__FullName__)
+                return true;
+            }
+
+          }
+        } else {
+          // Check inheritance tree
+          var types = JSIL.GetTypeAndBases(typeObject);
+          for (var i = 0; i < types.length; i++) {
+            if (types[i].__FullName__ == this.__FullName__)
+              return true;
+          }
+        }
+        return false;
+      }
+    );
+
     $.Method({Static:false, Public:true }, "get_IsGenericType",
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericType

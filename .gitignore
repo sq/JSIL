@@ -93,3 +93,4 @@ Corlib/*.js
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
 *.out
+*.orig
