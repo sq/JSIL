@@ -522,6 +522,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("JSTestCasesSource")]
+        public void JSTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> JSTestCasesSource () {
+            return FolderTestSource("JSTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
         [TestCaseSource("Int64TestCasesSource")]
         public void Int64TestCases (object[] parameters) {
             RunSingleComparisonTestCase(parameters);

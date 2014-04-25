@@ -272,6 +272,7 @@
     <None Include="ReflectionTestCases\GetConstructorAttributes.cs" />
     <None Include="SimpleTestCases\EnumDefaults.cs" />
     <None Include="SpecialTestCases\JSReplacementTypeofThisStatic.cs" />
+    <Content Include="JSTestCases\SameNameWithOverride.js" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
@@ -827,7 +828,7 @@
     <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
     <None Include="SpecialTestCases\InnerClassNameFormatting_Issue352.cs" />
-	<None Include="TestCases\DictionaryInterfaces.cs" />
+    <None Include="TestCases\DictionaryInterfaces.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">

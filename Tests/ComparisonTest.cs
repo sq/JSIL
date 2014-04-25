@@ -651,6 +651,17 @@ namespace JSIL.Tests {
             signals[0].Wait();
             signals[1].Wait();
 
+            const int truncateThreshold = 4096;
+
+            Action writeJSOutput = () => {
+                Console.WriteLine("// JavaScript output begins //");
+                if (outputs[1].Length > truncateThreshold) {
+                    Console.WriteLine(outputs[1].Substring(0, truncateThreshold));
+                    Console.WriteLine("(truncated)");
+                } else
+                    Console.WriteLine(outputs[1]);
+            };
+
             try {
                 if (errors[0] != null)
                     throw new Exception("C# test failed", errors[0]);
@@ -660,6 +671,9 @@ namespace JSIL.Tests {
                     Assert.AreEqual(outputs[0], outputs[1]);
                 else
                     Console.WriteLine("// Output validation suppressed (raw JS)");
+
+                if (Assembly == null)
+                    writeJSOutput();
 
                 Console.WriteLine(
                     "passed: CL:{0:0000}ms TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
@@ -673,8 +687,6 @@ namespace JSIL.Tests {
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
-
-                const int truncateThreshold = 4096;
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;
@@ -694,12 +706,7 @@ namespace JSIL.Tests {
                         Console.WriteLine(outputs[0]);
                 }
                 if (outputs[1] != null) {
-                    Console.WriteLine("// JavaScript output begins //");
-                    if (outputs[1].Length > truncateThreshold) {
-                        Console.WriteLine(outputs[1].Substring(0, truncateThreshold));
-                        Console.WriteLine("(truncated)");
-                    } else
-                        Console.WriteLine(outputs[1]);
+                    writeJSOutput();
                 }
 
                 if (dumpJsOnFailure && (generatedJs[0] != null)) {
