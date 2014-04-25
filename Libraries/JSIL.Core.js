@@ -8671,21 +8671,20 @@ JSIL.$GetStringEnumerator = function () {
     return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);  
 };
 
-JSIL.$GetArrayEnumerator = function () {
-    return JSIL.GetEnumerator(this, $jsilcore.System.Object.__Type__, true);
-};
-
 JSIL.$GetEnumeratorFallback = function (signature, thisReference) {
   if (typeof (thisReference) === "string") {
     return JSIL.$GetStringEnumerator;
-  } else if (JSIL.IsArray(thisReference)) { 
-    // HACK: Too hard to detect the correct element type here.
-    return JSIL.$GetArrayEnumerator;
+  } else if (JSIL.IsArray(thisReference)) {
+    var enumeratorTypeArgument = $jsilcore.System.Object.__Type__;
+    if (this.typeObject.IsGenericType) {
+      enumeratorTypeArgument = this.typeObject.__GenericArgumentValues__[0];
+    }
+    return function () { return JSIL.GetEnumerator(this, enumeratorTypeArgument, true); };
   } else
     JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of " + signature.toString("GetEnumerator"));
 };
 
-// FIXME: This can probably be replaced with compiler and/or runtime intelligence 
+// FIXME: This can probably be replaced with compiler and/or runtime intelltypeigence 
 //  to create interface overlays for strings, just like arrays.
 JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodName, signature) {
   // HACK: Ensures that you can enumerate the chars of a JS string or array in cases where they lack an overlay.
