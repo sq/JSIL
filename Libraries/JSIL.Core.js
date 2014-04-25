@@ -8692,7 +8692,7 @@ JSIL.$GetEnumeratorFallback = function (interfaceTypeObject, signature, thisRefe
 
     return result;
   } else {
-    JSIL.RuntimeError("Object of type '" + JSIL.GetType(this) + "' has no implementation of " + signature.toString("GetEnumerator"));
+    JSIL.RuntimeError("Object of type '" + JSIL.GetType(thisReference) + "' has no implementation of " + signature.toString("GetEnumerator"));
   }
 };
 
