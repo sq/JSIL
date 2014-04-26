@@ -5,32 +5,15 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        var item = TestInnerArrayCast(GetItems(), it => new[] { it });
-        Console.WriteLine(item.GetType().FullName);
+        var items = (IEnumerable<string>)GetTypedArray(() => new [] {"a", "b"});
+        foreach (var item in items)
+        {
+            Console.WriteLine(item);
+        }
     }
 
-    private static IEnumerable<BaseClass> GetItems()
+    public static IEnumerable<T> GetTypedArray<T>(Func<IEnumerable<T>> func)
     {
-        return new List<DerivedClass>() { new DerivedClass() };
+        return func();
     }
-
-    public static BaseClass TestInnerArrayCast(IEnumerable<BaseClass> source, Func<BaseClass, IEnumerable<BaseClass>> selector)
-    {
-        var outerEnumerator = source.GetEnumerator();
-        outerEnumerator.MoveNext();
-
-        var inner = selector(outerEnumerator.Current);
-        var innerEnumerator = inner.GetEnumerator();
-        innerEnumerator.MoveNext();
-
-        return innerEnumerator.Current;
-    }
-}
-
-public class BaseClass
-{
-}
-
-public class DerivedClass : BaseClass
-{
 }

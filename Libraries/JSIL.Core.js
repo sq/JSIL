@@ -8529,14 +8529,14 @@ JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject,
 
       if (vp.in) {
         var typeAndBasesLhs = JSIL.GetTypeAndBases(lhs);
-        foundIndex = typeAndBasesLhs.indexOf(rhs)
+        foundIndex = typeAndBasesLhs.indexOf(rhs);
         if (foundIndex < 0)
           ifaceResult = parameterResult = false;
       } 
 
       if (vp.out) {
         var typeAndBasesRhs = JSIL.GetTypeAndBases(rhs);
-        foundIndex = typeAndBasesRhs.indexOf(lhs) < 0;
+        foundIndex = typeAndBasesRhs.indexOf(lhs);
         if (foundIndex < 0)
           ifaceResult = parameterResult = false;
       }
