@@ -2691,7 +2691,7 @@ namespace JSIL {
                       (!tuple.ImplementedInterface.Info.IsIgnored));
 
                     var interfaceIndex = interfaces.TakeWhile((tuple) =>
-                      !TypeUtil.TypesAreEqual(tuple.ImplementedInterface.Reference, @override.InterfaceType)).Count();
+                      !TypeUtil.TypesAreEqual(tuple.ImplementedInterface.Reference, @override.InterfaceType, true)).Count();
 
                     // TODO: Deprecate numeric indices entirely. They are a mess.
                     output.Value(interfaceIndex);
