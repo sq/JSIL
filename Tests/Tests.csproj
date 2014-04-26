@@ -832,7 +832,8 @@
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
     <None Include="SpecialTestCases\InnerClassNameFormatting_Issue352.cs" />
     <None Include="TestCases\DictionaryInterfaces.cs" />
-	<None Include="SimpleTestCases\TypedArrayEnumerator_Issue353" />
+    <None Include="SimpleTestCases\TypedArrayEnumerator_Issue353.cs" />
+    <None Include="SimpleTestCases\CovariantCast_Issue443.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
