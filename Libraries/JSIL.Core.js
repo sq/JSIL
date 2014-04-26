@@ -2743,7 +2743,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (typeObject.IsInterface)
     return;
 
-  var interfaces = JSIL.GetInterfacesImplementedByType(typeObject);
+  // This is the table of interfaces that is used by .Overrides' numeric indices.
+  var indexedInterfaceTable = JSIL.GetInterfacesImplementedByType(typeObject, false, false);
+
+  // This is the table of every interface we actually implement (exhaustively).
+  var interfaces = JSIL.GetInterfacesImplementedByType(typeObject, true, false);
 
   if (!interfaces.length)
     return;
@@ -2921,28 +2925,45 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var iface = null;
 
       switch (typeof (override.interfaceIndexOrName)) {
+        // TODO: Accept typerefs
+
         case "string":
           // If the index is a string, search all the interfaces implemented by this type for a substring match.
-          // FIXME: If there are multiple matches this picks the first one. Probably not great...
 
-          for (var k = 0; k < interfaces.length; k++) {
-            if (interfaces[k].__FullName__.indexOf(override.interfaceIndexOrName) >= 0) {
-              iface = interfaces[k];
-              break;
-            }
+          var matchingInterfaces = interfaces.filter(function (iface) {
+            return iface.__FullName__.indexOf(override.interfaceIndexOrName) >= 0;
+          });
+
+          if (matchingInterfaces.length > 1) {
+            // TODO: Enable this warning?
+            /*
+            JSIL.RuntimeError(
+              "Member '" + member._descriptor.EscapedName + 
+              "' overrides interface '" + override.interfaceIndexOrName + 
+              "' but " + matchingInterfaces.length + " interfaces match that name: \r\n" +
+              "\r\n".join(matchingInterfaces)
+            );
+            */
+            iface = matchingInterfaces[0];
+          } else if (matchingInterfaces.length === 0) {
+            iface = null;
+          } else {
+            iface = matchingInterfaces[0];
           }
 
-          if (iface === null)
-            JSIL.RuntimeError("Interface index '" + override.interfaceIndexOrName + "' does not match any interfaces");
-
           break;
+
         case "number":
-          iface = interfaces[override.interfaceIndexOrName];
+          iface = indexedInterfaceTable[override.interfaceIndexOrName];
           break;
       }
 
       if (!iface)
-        JSIL.RuntimeError("Member '" + member._descriptor.EscapedName + "' overrides nonexistent interface of type '" + typeObject.__FullName__ + "' with index '" + override.interfaceIndexOrName + "'");
+        JSIL.RuntimeError(
+          "Member '" + member._descriptor.EscapedName + 
+          "' overrides nonexistent interface of type '" + typeObject.__FullName__ + 
+          "' with index '" + override.interfaceIndexOrName + "'"
+        );
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
       var key = member._data.signature.GetKey(interfaceQualifiedName);
@@ -7023,7 +7044,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
     }
   }
 
-  if (!result) {
+  if (!result && this.fallbackMethod) {
     result = this.fallbackMethod(this.typeObject, this.signature, thisReference);
   }
 
@@ -8451,20 +8472,33 @@ JSIL.$EnumBasesOfType = function (typeObject, resultList) {
   }
 };
 
-JSIL.GetInterfacesImplementedByType = function (typeObject) {
+JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, allowDuplicates) {
   // FIXME: Memoize the result of this function?
+
+  if (arguments.length !== 3)
+    JSIL.RuntimeError("3 arguments expected");
 
   var typeAndBases = JSIL.GetTypeAndBases(typeObject);
   var result = [];
 
+  // Walk in reverse to match the behavior of JSIL.Internal.TypeInfo.AllInterfacesRecursive
+  typeAndBases.reverse();
+
   for (var i = 0, l = typeAndBases.length; i < l; i++) {
-    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(typeAndBases[i], result);
+    var typeObject = typeAndBases[i];
+
+    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(
+      typeObject, result, walkInterfaceBases, allowDuplicates
+    );
   }
 
   return result;
 };
 
-JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList) {
+JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList, walkInterfaceBases, allowDuplicates) {
+  if (arguments.length !== 4)
+    JSIL.RuntimeError("4 arguments expected");
+
   var interfaces = typeObject.__Interfaces__;
 
   var toEnumerate = [];
@@ -8473,17 +8507,22 @@ JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resu
     for (var i = 0, l = interfaces.length; i < l; i++) {
       var ifaceRef = interfaces[i];
       var iface = JSIL.ResolveTypeReference(ifaceRef, typeObject.__Context__)[1];
+      if (!iface)
+        continue;
 
-      if (iface && (resultList.indexOf(iface) < 0)) {
+      var alreadyAdded = resultList.indexOf(iface) >= 0;
+
+      if (!alreadyAdded || allowDuplicates)
         resultList.push(iface);
+
+      if (!alreadyAdded && walkInterfaceBases)
         toEnumerate.push(iface);
-      }
     }
   }
 
   for (var i = 0, l = toEnumerate.length; i < l; i++) {
     var iface = toEnumerate[i];
-    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(iface, resultList);
+    JSIL.$EnumInterfacesImplementedByTypeExcludingBases(iface, resultList, walkInterfaceBases, allowDuplicates);
   }
 };
 
@@ -8494,7 +8533,7 @@ JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject,
   var trace = 0;
 
   // We have to scan exhaustively through all the interfaces implemented by this type
-  var interfaces = JSIL.GetInterfacesImplementedByType(actualTypeObject);
+  var interfaces = JSIL.GetInterfacesImplementedByType(actualTypeObject, true, false);
 
   if (trace >= 2)
     System.Console.WriteLine("Type {0} implements {1} interface(s): [ {2} ]", actualTypeObject.__FullName__, interfaces.length, interfaces.join(", "));

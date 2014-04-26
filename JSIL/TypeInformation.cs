@@ -47,23 +47,37 @@ namespace JSIL.Internal {
         }
     }
 
-    public struct InterfaceInfo {
+    public struct InterfaceToken {
         public readonly TypeInfo Info;
         public readonly TypeReference Reference;
 
-        public InterfaceInfo (TypeInfo info, TypeReference reference) {
+        public InterfaceToken (TypeInfo info, TypeReference reference) {
             Info = info;
             Reference = reference;
         }
     }
 
-    public struct RecursiveInterfaceInfo {
+    public struct RecursiveInterfaceToken {
         public readonly TypeInfo ImplementingType;
-        public readonly InterfaceInfo ImplementedInterface;
+        public readonly InterfaceToken ImplementedInterface;
 
-        public RecursiveInterfaceInfo (TypeInfo implementingType, InterfaceInfo implementedInterface) {
+        public RecursiveInterfaceToken (TypeInfo implementingType, InterfaceToken implementedInterface) {
             ImplementingType = implementingType;
             ImplementedInterface = implementedInterface;
+        }
+    }
+
+    public class RecursiveInterfaceTokenComparer : IEqualityComparer<RecursiveInterfaceToken> {
+        public bool Equals (RecursiveInterfaceToken x, RecursiveInterfaceToken y) {
+            return TypeUtil.TypesAreEqual(
+                x.ImplementedInterface.Reference, 
+                y.ImplementedInterface.Reference,
+                true
+            );
+        }
+
+        public int GetHashCode (RecursiveInterfaceToken obj) {
+            return obj.ImplementedInterface.Info.GetHashCode();
         }
     }
 
@@ -398,8 +412,8 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly InterfaceInfo[] Interfaces;
-        private RecursiveInterfaceInfo[] _AllInterfacesRecursive = null;
+        public readonly InterfaceToken[] Interfaces;
+        private RecursiveInterfaceToken[] _AllInterfacesRecursive = null;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -465,7 +479,7 @@ namespace JSIL.Internal {
 
             IsInterface = type.IsInterface;
 
-            var interfaces = new HashSet<InterfaceInfo>();
+            var interfaces = new HashSet<InterfaceToken>();
             {
                 StringBuilder errorString = null;
 
@@ -476,7 +490,7 @@ namespace JSIL.Internal {
                         continue;
                     }
 
-                    var ii = new InterfaceInfo(source.GetExisting(i), i);
+                    var ii = new InterfaceToken(source.GetExisting(i), i);
                     if (ii.Info == null) {
                         if (errorString == null) {
                             errorString = new StringBuilder();
@@ -506,7 +520,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(new InterfaceInfo(ii, i));
+                        interfaces.Add(new InterfaceToken(ii, i));
                     }
                 }
             }
@@ -750,22 +764,23 @@ namespace JSIL.Internal {
             return Definition.FullName;
         }
 
-        public RecursiveInterfaceInfo[] AllInterfacesRecursive {
+        /// <summary>
+        /// All interfaces implemented by this type and its base types.
+        /// Does not include interfaces implemented by those interfaces.
+        /// </summary>
+        public RecursiveInterfaceToken[] AllInterfacesRecursive {
             get {
                 if (_AllInterfacesRecursive == null) {
-                    var list = new List<RecursiveInterfaceInfo>();
-                    var added = new HashSet<string>();
+                    var list = new List<RecursiveInterfaceToken>();
                     var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces) {
-                            if (!added.Contains(@interface.Info.FullName)) {
-                                list.Add(new RecursiveInterfaceInfo(type, @interface));
-                                added.Add(@interface.Info.FullName);
-                            }
-                        }
+                        foreach (var @interface in type.Interfaces)
+                            list.Add(new RecursiveInterfaceToken(type, @interface));
 
-                    _AllInterfacesRecursive = list.ToArray();
+                    _AllInterfacesRecursive = list
+                        .Distinct(new RecursiveInterfaceTokenComparer())
+                        .ToArray();
                 }
 
                 return _AllInterfacesRecursive;
