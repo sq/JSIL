@@ -3515,18 +3515,26 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     }
   );
 
+  var addImpl = function Add (item) {
+    var bucketEntry = this.$searchBucket(item);
+
+    if (bucketEntry !== null)
+      return false;
+
+    this.$addToBucket(item, true);
+    return true;
+  };
+
   $.Method({Static:false, Public:true }, "Add", 
     (new JSIL.MethodSignature($.Boolean, [T], [])), 
-    function Add (item) {
-      var bucketEntry = this.$searchBucket(item);
-
-      if (bucketEntry !== null)
-        return false;
-
-      this.$addToBucket(item, true);
-      return true;
-    }
+    addImpl
   );
+
+  $.Method({Static:false, Public:false }, null, 
+    (new JSIL.MethodSignature(null, [T], [])), 
+    addImpl
+  )
+    .Overrides("System.Collections.Generic.ICollection`1", "Add");
 
   $.RawMethod(false, "$addRange", function (enumerable) {
     var values = JSIL.EnumerableToArray(enumerable, this.T);
@@ -3632,9 +3640,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["
 
   $.ImplementInterfaces(
       $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")]), 
-      $jsilcore.TypeRef("System.Collections.IEnumerable")
+      $jsilcore.TypeRef("System.Collections.IEnumerable"),
 //      $jsilcore.TypeRef("System.Collections.Generic.ISet`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")]), 
-//      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")]), 
+      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")])
   );
 });
 
