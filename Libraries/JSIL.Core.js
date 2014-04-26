@@ -6874,7 +6874,7 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
     return function () {
       throw new Error("Cannot create an instance of an open type");
     };
-  else if (typeObject.__IsInterface__)
+  else if (typeObject.IsInterface)
     return function () {
       throw new Error("Cannot create an instance of an interface");
     };
@@ -7543,7 +7543,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
 
     if (type.__IsClosed__ === false)
       throw new Error("Cannot create an instance of an open type");
-    else if (type.__IsInterface__)
+    else if (type.IsInterface)
       throw new Error("Cannot create an instance of an interface");
 
     record = recordSet.records[constructorName] = new JSIL.CreateInstanceOfTypeRecord(
@@ -8597,15 +8597,27 @@ JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject,
       var foundIndex = -1;
 
       if (vp.in) {
-        var typeAndBasesLhs = JSIL.GetTypeAndBases(lhs);
-        foundIndex = typeAndBasesLhs.indexOf(rhs);
+        if (rhs.IsInterface) {
+          var interfacesLhs = JSIL.GetInterfacesImplementedByType(lhs, true, true);
+          foundIndex = interfacesLhs.indexOf(rhs);
+        } else {
+          var typeAndBasesLhs = JSIL.GetTypeAndBases(lhs);
+          foundIndex = typeAndBasesLhs.indexOf(rhs);
+        }
+
         if (foundIndex < 0)
           ifaceResult = parameterResult = false;
       } 
 
       if (vp.out) {
-        var typeAndBasesRhs = JSIL.GetTypeAndBases(rhs);
-        foundIndex = typeAndBasesRhs.indexOf(lhs);
+        if (lhs.IsInterface) {
+          var interfacesRhs = JSIL.GetInterfacesImplementedByType(rhs, true, true);
+          foundIndex = interfacesRhs.indexOf(lhs);
+        } else {
+          var typeAndBasesRhs = JSIL.GetTypeAndBases(rhs);
+          foundIndex = typeAndBasesRhs.indexOf(lhs);
+        }
+
         if (foundIndex < 0)
           ifaceResult = parameterResult = false;
       }
