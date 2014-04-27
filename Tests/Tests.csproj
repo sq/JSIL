@@ -843,6 +843,7 @@
     <None Include="SimpleTestCases\VarianceCast_Issue443.cs" />
     <None Include="SimpleTestCases\RecursiveTypeConstruction_Issue394.cs" />
     <None Include="SimpleTestCases\ReflectionInvokeStructParameters_Issue449.cs" />
+    <None Include="SimpleTestCases\Issue354.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
