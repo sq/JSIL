@@ -838,7 +838,8 @@
     <None Include="TestCases\DictionaryInterfaces.cs" />
     <None Include="SimpleTestCases\TypedArrayEnumerator_Issue353.cs" />
     <None Include="SimpleTestCases\VarianceCast_Issue443.cs" />
-	<None Include="SimpleTestCases\RecursiveTypeConstruction_Issue394.cs" />
+    <None Include="SimpleTestCases\RecursiveTypeConstruction_Issue394.cs" />
+    <None Include="SimpleTestCases\ReflectionInvokeStructParameters_Issue449.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
