@@ -7011,7 +7011,7 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
 
 JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {
   var cache = this.variantInvocationCandidateCache;
-  var typeId = thisReference.__TypeId__;
+  var typeId = thisReference.__ThisTypeId__;
 
   var result = cache[typeId];
 
