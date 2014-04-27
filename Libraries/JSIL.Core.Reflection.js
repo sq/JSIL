@@ -817,6 +817,22 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
       if (typeof (impl) !== "function")
         throw new System.Exception("Failed to find constructor");
 
+      var parameterTypes = this.GetParameterTypes();
+      var parametersCount = 0;
+      if (parameters !== null)
+        parametersCount = parameters.length;
+
+      if (parameterTypes.length !== parametersCount)
+        throw new System.Exception("Parameters count mismatch.");
+
+      if (parameters !== null) {
+        parameters = parameters.slice();
+        for (var i = 0; i < parametersCount; i++) {
+          if (parameters[i] === null && parameterTypes[i].IsValueType)
+            parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
+        }
+      }
+
       return impl.apply(obj, parameters);
     }
   );
