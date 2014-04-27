@@ -279,7 +279,10 @@
     <None Include="SimpleTestCases\Issue452.cs" />
     <None Include="SimpleTestCases\Issue453.cs" />
     <None Include="SimpleTestCases\Issue372.cs" />
-    <Compile Include="SimpleTestCases\Issue445.cs" />
+    <None Include="SimpleTestCases\Issue425.cs" />
+    <None Include="SimpleTestCases\Issue445.cs" />
+    <None Include="SimpleTestCases\Issue410.cs" />
+    <None Include="SimpleTestCases\Issue411.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
