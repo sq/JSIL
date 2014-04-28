@@ -169,6 +169,8 @@ namespace JSIL.Internal {
                 return true;
             else if (lhs == null || rhs == null)
                 return false;
+            else if (TypeUtil.TypesAreTriviallyEqual(lhs, rhs))
+                return true;
 
             var lhsReference = lhs as ByReferenceType;
             var rhsReference = rhs as ByReferenceType;
@@ -212,13 +214,13 @@ namespace JSIL.Internal {
 
             string[] proxyTargets;
             if (
-                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {

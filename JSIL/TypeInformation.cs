@@ -26,7 +26,7 @@ namespace JSIL.Internal {
         ProxyInfo[] GetProxies (TypeDefinition type);
 
         void CacheProxyNames (MemberReference member);
-        bool TryGetProxyNames (string typeFullName, out string[] result);
+        bool TryGetProxyNames (TypeReference type, out string[] result);
 
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
@@ -1244,7 +1244,7 @@ namespace JSIL.Internal {
 
         public bool Inherited;
         public string Name;
-        public readonly List<Entry> Entries = new List<Entry>();
+        public readonly List<Entry> Entries = new List<Entry>(1);
     }
 
     public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
@@ -1260,11 +1260,15 @@ namespace JSIL.Internal {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
-                else
+                else {
+                    if (Attributes == null)
+                        Attributes = new Dictionary<string, AttributeGroup>(cas.Count);
+
                     Add(ca.AttributeType.FullName, new AttributeGroup {
                         Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
+                }
             }
         }
 

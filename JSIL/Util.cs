@@ -626,16 +626,22 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public bool TryCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator) {
+        public bool TryCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator, Predicate<TValue> shouldAdd = null) {
             ConstructionState state;
+
             if (TryCreateSetup(key, out state)) {
                 try {
                     var result = creator(key, userData);
 
-                    if (!Storage.TryAdd(key, result))
-                        throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
+                    if ((shouldAdd == null) || shouldAdd(result)) {
+                        if (!Storage.TryAdd(key, result))
+                            throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
 
-                    return true;
+                        return true;
+                    } else {
+                        return false;
+                    }
+
                 } finally {
                     TryCreateTeardown(key, state);
                 }

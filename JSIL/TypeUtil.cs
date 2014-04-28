@@ -435,11 +435,71 @@ namespace JSIL {
             return false;
         }
 
+        private static bool ScopesMatch (TypeReference lhs, TypeReference rhs) {
+            if (
+                (lhs.DeclaringType != null) ||
+                (rhs.DeclaringType != null)
+            ) {
+                return TypesAreEqual(lhs.DeclaringType, rhs.DeclaringType);
+            }
+
+            var sLhs = GetActualScope(lhs);
+            var sRhs = GetActualScope(rhs);
+
+            if (sLhs == sRhs)
+                return true;
+            else if (
+                (sLhs.StartsWith(sRhs) && 
+                    (sLhs.EndsWith(".dll") || sLhs.EndsWith(".exe"))
+                ) || 
+                (sRhs.StartsWith(sLhs) && 
+                    (sRhs.EndsWith(".dll") || sRhs.EndsWith(".exe"))
+                )
+            )
+                return true;
+
+            return false;
+        }
+
+        private static string GetActualScope (TypeReference tr) {
+            var result = tr.Scope.Name;
+            if (result == "CommonLanguageRuntimeLibrary")
+                result = "mscorlib";
+
+            return result;
+        }
+
+        public static bool TypesAreTriviallyEqual (TypeReference lhs, TypeReference rhs) {
+            var tTr = typeof(TypeReference);
+            var tTd = typeof(TypeDefinition);
+
+            if (
+                (
+                    (lhs.GetType() == tTr) ||
+                    (lhs.GetType() == tTd)
+                ) && (
+                    (rhs.GetType() == tTr) ||
+                    (rhs.GetType() == tTd)
+                )
+            ) {
+                if (
+                    (lhs.Name == rhs.Name) &&
+                    (lhs.Namespace == rhs.Namespace) &&
+                    ScopesMatch(lhs, rhs)
+                )
+                    return true;
+            }
+
+            return false;
+        }
+
         public static bool TypesAreEqual (TypeReference target, TypeReference source, bool strictEquality = false) {
             if (target == source)
                 return true;
             else if ((target == null) || (source == null))
                 return (target == source);
+            else if (TypesAreTriviallyEqual(source, target))
+                return true;
 
             bool result;
 
@@ -538,6 +598,26 @@ namespace JSIL {
                 return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, strictEquality);
             }
 
+            var targetBrT = target as ByReferenceType;
+            var sourceBrt = source as ByReferenceType;
+
+            if ((targetBrT != null) || (sourceBrt != null)) {
+                if ((targetBrT == null) || (sourceBrt == null))
+                    return false;
+
+                return TypesAreEqual(targetBrT.ElementType, sourceBrt.ElementType, strictEquality);
+            }
+
+            var targetP = target as PointerType;
+            var sourceP = source as PointerType;
+
+            if ((targetP != null) || (sourceP != null)) {
+                if ((targetP == null) || (sourceP == null))
+                    return false;
+
+                return TypesAreEqual(targetP.ElementType, sourceP.ElementType, strictEquality);
+            }
+
             if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
                 result = false;
             else if (target.IsPointer != source.IsPointer)
@@ -547,28 +627,7 @@ namespace JSIL {
             else if (target.IsPinned != source.IsPinned)
                 result = false;
             else {
-                if (
-                    (target.Name == source.Name) &&
-                    (target.Namespace == source.Namespace) &&
-                    (target.Module == source.Module) &&
-                    TypesAreEqual(target.DeclaringType, source.DeclaringType, strictEquality)
-                )
-                    return true;
-
-                var dTarget = GetTypeDefinition(target);
-                var dSource = GetTypeDefinition(source);
-
-                if (Equals(dTarget, dSource) && (dSource != null))
-                    result = true;
-                else if (Equals(target, source))
-                    result = true;
-                else if (
-                    (dTarget != null) && (dSource != null) &&
-                    (dTarget.FullName == dSource.FullName)
-                )
-                    result = true;
-                else
-                    result = false;
+                result = false;
             }
 
             return result;
@@ -746,7 +805,7 @@ namespace JSIL {
         }
 
         public static bool IsPositionalGenericParameter (GenericParameter gp) {
-            return gp.Name.StartsWith("!!") || gp.Name.StartsWith("!");
+            return gp.Name[0] == '!';
         }
 
         public static bool ExpandPositionalGenericParameters (TypeReference type, out TypeReference expanded) {
