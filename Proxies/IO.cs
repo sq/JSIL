@@ -15,15 +15,15 @@ namespace JSIL.Proxies {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle) {
+        public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle) {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle, int bufferSize) {
+        public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle, int bufferSize) {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle, int bufferSize, bool isAsync) {
+        public FileStreamProxy(IntPtr handle, AnyType access, bool ownsHandle, int bufferSize, bool isAsync) {
             throw new NotImplementedException();
         }
         [JSIgnore]
@@ -31,7 +31,7 @@ namespace JSIL.Proxies {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(SafeFileHandle handle, AnyType access, int bufferSize) {
+        public FileStreamProxy(SafeFileHandle handle, AnyType access, int bufferSize) {
             throw new NotImplementedException();
         }
         [JSIgnore]

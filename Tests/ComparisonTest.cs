@@ -526,7 +526,7 @@ namespace JSIL.Tests {
 
                 StartupPrologue = String.Format("contentManifest['Test'] = [['Script', {0}]]; " +
                     "function runMain () {{ " +
-                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, dateNow); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
+                    "print({1}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
                     "}}; shellStartup();",
                     Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),

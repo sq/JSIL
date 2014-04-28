@@ -1100,21 +1100,21 @@ namespace JSIL {
                     output.NewLine();
                     return;
                 } else if (typedef.IsInterface) {
-                    output.Comment("interface {0}", typedef.FullName);
+                    output.Comment("interface {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
                     TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
-                    output.Comment("enum {0}", typedef.FullName);
+                    output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
                     TranslateEnum(context, output, typedef);
                     return;
                 } else if (typeInfo.IsDelegate) {
-                    output.Comment("delegate {0}", typedef.FullName);
+                    output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
@@ -1138,7 +1138,7 @@ namespace JSIL {
                 }
 
                 if (!makingSkeletons) {
-                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", typedef.FullName);
+                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
@@ -1561,12 +1561,12 @@ namespace JSIL {
                 bool firstInterface = true;
 
                 for (var i = 0; i < interfaces.Length; i++) {
-                    if (interfaces[i].Item1 != typeInfo)
+                    if (interfaces[i].ImplementingType != typeInfo)
                         continue;
-                    if (interfaces[i].Item2.IsIgnored)
+                    if (interfaces[i].ImplementedInterface.Info.IsIgnored)
                         continue;
 
-                    var @interface = interfaces[i].Item3;
+                    var @interface = interfaces[i].ImplementedInterface.Reference;
 
                     if (firstInterface)
                         firstInterface = false;
@@ -1908,7 +1908,8 @@ namespace JSIL {
                         defaultValue is JSInvocationExpressionBase ||
                         defaultValue is JSNewArrayExpression ||
                         defaultValue is JSEnumLiteral ||
-                        defaultValue is JSCastExpression
+                        defaultValue is JSCastExpression ||
+                        defaultValue is JSTypeOfExpression
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
@@ -2693,11 +2694,11 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaces = typeInfo.AllInterfacesRecursive.Where((tuple) => !tuple.Item2.IsIgnored);
+                    var interfaces = typeInfo.AllInterfacesRecursive.Where((tuple) =>
+                      (!tuple.ImplementedInterface.Info.IsIgnored));
 
-                    var interfaceIndex = interfaces.TakeWhile(
-                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
-                    ).Count();
+                    var interfaceIndex = interfaces.TakeWhile((tuple) =>
+                      !TypeUtil.TypesAreEqual(tuple.ImplementedInterface.Reference, @override.InterfaceType, true)).Count();
 
                     output.Value(interfaceIndex);
                     //output.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);

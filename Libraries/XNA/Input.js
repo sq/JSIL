@@ -822,7 +822,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enu
     }
   );
 
-  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.get_Current", 
+  $.Method({Static:false, Public:false }, null, 
     new JSIL.MethodSignature($.Object, [], []), 
     function System_Collections_IEnumerator_get_Current () {
       return this.collection.touches[this.position];
@@ -830,7 +830,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enu
   )
     .Overrides(2, "get_Current");
 
-  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.Reset", 
+  $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
     new JSIL.MethodSignature(null, [], []), 
     function System_Collections_IEnumerator_Reset () {
       this.position = -1;

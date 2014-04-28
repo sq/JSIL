@@ -137,7 +137,6 @@ JSIL.Shell.TagObject = function (obj, tag) {
   if (typeof (evaluate) === "function") {
     var index = JSIL.Shell.TaggedObjectCount++;
     var objectId = "TAGGED_OBJECT_" + index;
-
     $$ObjectToTag = obj;
 
     var evalText = "$$ObjectToTag";
@@ -152,7 +151,7 @@ JSIL.Shell.TagObject = function (obj, tag) {
 };
 
 JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args) {
-  return function runTestCase () {
+  return function runTestCase (dateNow) {
     JSIL.ThrowOnUnimplementedExternals = true;
 
     timeout(timeoutDuration);
@@ -179,5 +178,3 @@ JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, met
     return (ended - started);
   };
 };
-
-

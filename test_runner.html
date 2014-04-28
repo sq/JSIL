@@ -94,6 +94,37 @@
         button.removeAttribute("disabled");
         button.addEventListener("click", runScript, true);
       }
+
+      // UGH
+
+      JSIL.Shell = {};
+
+      JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args) {
+        return function runTestCase () {
+          JSIL.ThrowOnUnimplementedExternals = true;
+
+          var started = Date.now();
+
+          var testAssembly = JSIL.GetAssembly(assemblyName, true);
+
+          if (!testAssembly)
+            throw new Error("No assembly named '" + assemblyName + "'");
+
+          var parsedTypeName = JSIL.ParseTypeName(typeName);    
+          var testType = JSIL.GetTypeInternal(parsedTypeName, testAssembly, true);
+          var testTypePublicInterface = testType.__PublicInterface__;
+
+          var testMethod = testTypePublicInterface[methodName];
+
+          if (!testMethod)
+            throw new Error("No method named '" + methodName + "'");
+
+          testMethod.call(testTypePublicInterface, args);
+          
+          var ended = Date.now();
+          return (ended - started);
+        };
+      };
     </script>
   </body>
 </html>

@@ -1012,5 +1012,29 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void OverridesIndicesForGenericInterfaces () {
+            var output = "Implementor2<Object,String>.Get\r\nImplementor2<Object,String>.Get";
+            var generatedJs = GetJavascript(
+                @"SimpleTestCases\Issue445.cs",
+                output
+            );
+
+            try {
+                Assert.IsTrue(
+                    generatedJs.Contains(".Overrides(0, \"Get\""),
+                    "Should have an Overrides(0, \"Get\""
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains(".Overrides(1, \"Get\""),
+                    "Should have an Overrides(1, \"Get\""
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

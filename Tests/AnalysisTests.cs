@@ -387,14 +387,14 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyTemporaries () {
             var output = 
-@"Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Right, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Up, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Left, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Down, 384)";
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Right, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Up, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Left, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Down, 384)";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\PropertyTemporaries.cs",
