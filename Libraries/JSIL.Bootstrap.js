@@ -1105,21 +1105,39 @@ $jsilcore.$ListExternals = function ($, T, type) {
     return (index >= 0) && (size > index);
   }
 
+  var getItemImpl = function (index) {
+    if (rangeCheckImpl(index, this._size))
+      return this._items[index];
+    else
+      throw new System.ArgumentOutOfRangeException("index");
+  };
+
   $.Method({Static:false, Public:true }, "get_Item", 
     new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []), 
-    function (index) {
-      if (rangeCheckImpl(index, this._size))
-        return this._items[index];
-      else
-        throw new System.ArgumentOutOfRangeException("index");
-    }
+    getItemImpl
   );
+
+  $.Method({Static:false, Public:true }, null, 
+    new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Int32")], []), 
+    getItemImpl
+  )
+    .Overrides("System.Collections.IList", "get_Item");
 
   $.Method({Static: false, Public: true }, "set_Item",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
     function (index, value) {
       if (rangeCheckImpl(index, this._size))
         this.SetItem(index, value);
+      else
+        throw new System.ArgumentOutOfRangeException("index");
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "set_Item",
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), $.Object], []), 
+    function (index, value) {
+      if (rangeCheckImpl(index, this._size))
+        this.SetItem(index, this.T.$Cast(value));
       else
         throw new System.ArgumentOutOfRangeException("index");
     }
