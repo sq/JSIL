@@ -13,7 +13,8 @@ using Mono.Cecil;
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource, IDisposable {
         protected class ProxiesByNameRecord {
-            public readonly ConcurrentCache<string, string[]> Cache = new ConcurrentCache<string, string[]>();
+            public readonly ConcurrentCache<string, string[]> Cache = 
+                new ConcurrentCache<string, string[]>(StringComparer.Ordinal);
             public volatile int Count;
         }
 
@@ -51,14 +52,16 @@ namespace JSIL {
             var levelOfParallelism = Math.Max(1, Environment.ProcessorCount / 2);
 
             Assemblies = new HashSet<AssemblyDefinition>();
-            ProxyAssemblyNames = new HashSet<string>();
+            ProxyAssemblyNames = new HashSet<string>(StringComparer.Ordinal);
             TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(TypeIdentifier.Comparer);
-            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
-            ProxiesByName = new ConcurrentCache<string, ProxiesByNameRecord>(levelOfParallelism, 256);
+            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>(StringComparer.Ordinal);
+            ProxiesByName = new ConcurrentCache<string, ProxiesByNameRecord>(
+                levelOfParallelism, 256, StringComparer.Ordinal
+            );
             TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>(levelOfParallelism, 4096);
 
             TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096, TypeIdentifier.Comparer);
-            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256);
+            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256, StringComparer.Ordinal);
 
             MakeTypeInfo = _MakeTypeInfo;
         }
