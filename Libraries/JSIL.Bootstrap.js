@@ -1670,6 +1670,8 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
 
   $.ImplementInterfaces(
     $jsilcore.TypeRef("System.Collections.IEnumerable"),
+    $jsilcore.TypeRef("System.Collections.ICollection"),
+    $jsilcore.TypeRef("System.Collections.IList"),
     $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
     $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
     $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
