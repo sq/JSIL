@@ -4486,6 +4486,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     callStack = printStackTrace();
 
   var memberBuilder = new JSIL.MemberBuilder($private);
+  var attributes = memberBuilder.attributes;
 
   var typeObject, staticClassObject;
 
@@ -4512,7 +4513,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
-    typeObject.__Attributes__ = memberBuilder.attributes;
+    typeObject.__Attributes__ = attributes;
 
     typeObject.IsInterface = false;
 
@@ -5060,6 +5061,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
   var memberBuilder = new JSIL.MemberBuilder($private);
+  var attributes = memberBuilder.attributes;
 
   var stack = null;
   if (typeof (printStackTrace) === "function")
@@ -5148,7 +5150,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
     // FIXME: I'm not sure this is right. See InheritedExternalStubError.cs
-    typeObject.__Attributes__ = memberBuilder.attributes;
+    typeObject.__Attributes__ = attributes;
     typeObject.__RanCctors__ = false;
     typeObject.__RawMethods__ = [];
 
@@ -5284,6 +5286,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     callStack = printStackTrace();
 
   var memberBuilder = new JSIL.MemberBuilder(fullName);
+  var attributes = memberBuilder.attributes;
 
   var creator = function CreateInterface () {
     var publicInterface = new Object();
@@ -5318,7 +5321,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
-    typeObject.__Attributes__ = memberBuilder.attributes;
+    typeObject.__Attributes__ = attributes;
     typeObject.__Interfaces__ = interfaces || [];
 
     var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface, "interface");
