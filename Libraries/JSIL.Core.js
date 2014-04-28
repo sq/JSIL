@@ -6403,11 +6403,11 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propertyName, propertyType) {
   this.ExternalMethod(
     descriptor, "get_" + propertyName,
-    new JSIL.MethodSignature(propertyType, [], [])
+    JSIL.MethodSignature.Return(propertyType)
   );
   this.ExternalMethod(
     descriptor, "set_" + propertyName,
-    new JSIL.MethodSignature(null, [propertyType], [])
+    JSIL.MethodSignature.Action(propertyType)
   );
 
   return this.Property(descriptor, propertyName, propertyType);
@@ -6416,11 +6416,11 @@ JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propert
 JSIL.InterfaceBuilder.prototype.ExternalEvent = function (descriptor, eventName, eventType) {
   this.ExternalMethod(
     descriptor, "add_" + eventName,
-    new JSIL.MethodSignature(eventType, [], [])
+    JSIL.MethodSignature.Return(eventType)
   );
   this.ExternalMethod(
     descriptor, "remove_" + eventName,
-    new JSIL.MethodSignature(null, [eventType], [])
+    JSIL.MethodSignature.Action(eventType)
   );
 
   return this.Event(descriptor, eventName, eventType);
@@ -6480,9 +6480,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 };
 
 JSIL.InterfaceBuilder.prototype.MakeEventAccessors = function (_descriptor, name, type) {
-  var signature = new JSIL.MethodSignature(
-    null, [type], []
-  );
+  var signature = JSIL.MethodSignature.Action(type);
 
   function adder (value) {
     var existingValue = this[name] || null;
