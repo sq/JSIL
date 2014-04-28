@@ -3018,11 +3018,18 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           break;
 
         case "string":
-          // If the index is a string, search all the interfaces implemented by this type for a substring match.
-
+          // Search for interfaces that have an exact name match.
+          // Doing this first ensures that "IFoo" does not match "IFoo`1" if "IFoo" is also in the list..
           var matchingInterfaces = interfaces.filter(function (iface) {
-            return iface.__FullName__.indexOf(override.interfaceNameOrReference) >= 0;
+            return iface.__FullName__ === override.interfaceNameOrReference;
           });
+
+          // If we didn't find any exact matches, search for a prefix match.
+          // This ensures that we can write something like 'IList`1' to match 'System.Collections.Generic.IList`1' if we are super lazy and terrible.
+          if (matchingInterfaces.length === 0)
+            matchingInterfaces = interfaces.filter(function (iface) {
+              return iface.__FullName__.indexOf(override.interfaceNameOrReference) >= 0;
+            });
 
           if (matchingInterfaces.length > 1) {
             // TODO: Enable this warning?
