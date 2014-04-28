@@ -5325,6 +5325,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
+    typeObject.__IsAbstract__ = true;
     typeObject.__Attributes__ = attributes;
     typeObject.__Interfaces__ = interfaces || [];
 
@@ -8675,7 +8676,10 @@ JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, 
 
 JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList, distanceList, walkInterfaceBases, allowDuplicates, distance) {
   if (arguments.length !== 6)
-    JSIL.RuntimeError("6 arguments expected");
+      JSIL.RuntimeError("6 arguments expected");
+
+  if (!typeObject)
+      return;
 
   var interfaces = typeObject.__Interfaces__;
 
