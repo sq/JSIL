@@ -1604,7 +1604,7 @@ JSIL.TypeRef = function (context, name, genericArguments) {
     if (typeof (name) === "string") {
       this.context = context;
       this.typeName = name;
-      this.genericArguments = genericArguments || [];
+      this.genericArguments = genericArguments || $jsilcore.ArrayNull;
       this.cachedReference = null;
     } else {
       JSIL.Host.abort(new Error("Invalid type reference: " + name + " in context " + context));
@@ -1955,7 +1955,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
   var typeArgs = {
     BaseType: baseType,
     Name: typeName,
-    GenericArguments: [],
+    GenericArguments: $jsilcore.ArrayNull,
     IsReferenceType: false,
     IsPublic: true,
     ConstructorAcceptsManyArguments: false
@@ -2103,7 +2103,7 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
       return null;
     }
   
-    var ga = obj.__GenericArguments__ || [];
+    var ga = obj.__GenericArguments__ || $jsilcore.ArrayNull;
     if (ga.length < 1)
       return null;
 
@@ -2112,7 +2112,7 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
       return null;
 
     var openPublicInterface = openType.__PublicInterface__;
-    var existingParameters = obj.__GenericArgumentValues__ || [];
+    var existingParameters = obj.__GenericArgumentValues__ || $jsilcore.ArrayNull;
     var closedParameters = new Array(existingParameters.length);
 
     for (var i = 0; i < closedParameters.length; i++) {     
@@ -2157,7 +2157,7 @@ JSIL.FindGenericParameters = function (obj, type, resultList) {
   var currentType = type;
 
   while ((typeof(currentType) !== "undefined") && (currentType !== null)) {
-    var localGa = currentType.__GenericArguments__ || [];
+    var localGa = currentType.__GenericArguments__ || $jsilcore.ArrayNull;
     var localFullName = currentType.__FullNameWithoutArguments__ || currentType.__FullName__;
 
     for (var i = 0, l = localGa.length; i < l; i++) {
@@ -4278,7 +4278,7 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
   typeObject.__RanCctors__ = true;
 
   // Run any queued initializers for the type
-  var ti = typeObject.__Initializers__ || [];
+  var ti = typeObject.__Initializers__ || $jsilcore.ArrayNull;
   while (ti.length > 0) {
     var initializer = ti.unshift();
     if (typeof (initializer) === "function")
@@ -5052,7 +5052,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var fullName = typeArgs.Name || null;
   var isReferenceType = Boolean(typeArgs.IsReferenceType);
   var isPublic = Boolean(typeArgs.IsPublic);
-  var genericArguments = typeArgs.GenericParameters || [];
+  var genericArguments = typeArgs.GenericParameters || $jsilcore.ArrayNull;
   var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
 
   if (typeof (isPublic) === "undefined")
@@ -5114,20 +5114,20 @@ JSIL.MakeType = function (typeArgs, initializer) {
       typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
 
       var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
-      var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || [];
+      var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || $jsilcore.ArrayNull;
 
       // HACK: We can't do this check before creating the constructor, because recursion. UGH.
       typeObject.__IsStruct__ = typeObject.__IsStruct__ && (baseTypeName === "System.ValueType");
       typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
       typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
-      typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || []);
+      typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || $jsilcore.ArrayNull);
       typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__BaseType__.__RenamedMethods__ || null);
     } else {
       typeObject.__BaseType__ = null;
       typeObject.__IsStruct__ = false;
       typeObject.__InheritanceDepth__ = 0;
       typeObject.__Interfaces__ = [];
-      typeObject.__ExternalMethods__ = Array.prototype.slice.call([]);
+      typeObject.__ExternalMethods__ = [];
       typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(null);
     }
 
@@ -6615,7 +6615,7 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
       var argumentTypesString = typeof(argumentTypes) + " " + String(argumentTypes);
       JSIL.RuntimeError("ArgumentTypes must be an array or null, was: " + argumentTypesString);
     } else
-      this.argumentTypes = [];
+      this.argumentTypes = $jsilcore.ArrayNull;
   } else {
     this.argumentTypes = argumentTypes;
   }
@@ -6623,7 +6623,7 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   if (JSIL.IsArray(genericArgumentNames))
     this.genericArgumentNames = genericArgumentNames;
   else
-    this.genericArgumentNames = [];
+    this.genericArgumentNames = $jsilcore.ArrayNull;
 
   this.openSignature = openSignature || null;
 };
@@ -6896,7 +6896,7 @@ JSIL.ConstructorSignature = function (type, argumentTypes, context) {
       var argumentTypesString = typeof(argumentTypes) + " " + String(argumentTypes);
       JSIL.RuntimeError("ArgumentTypes must be an array or null, was: " + argumentTypesString);
     } else
-      this.argumentTypes = [];
+      this.argumentTypes = $jsilcore.ArrayNull;
   } else {
     this.argumentTypes = argumentTypes;
   }
