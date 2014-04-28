@@ -742,4 +742,29 @@ namespace JSIL.Internal {
             );
         }
     }
+
+    public struct HashedString {
+        public readonly int HashCode;
+        public readonly string String;
+
+        public HashedString (string str) {
+            String = str;
+            HashCode = str.GetHashCode();
+        }
+
+        public HashedString (string str, int hashCode) {
+            String = str;
+            HashCode = hashCode;
+        }
+    }
+
+    public class HashedStringComparer : IEqualityComparer<HashedString> {
+        public bool Equals (HashedString x, HashedString y) {
+            return String.Equals(x.String, y.String, StringComparison.Ordinal);
+        }
+
+        public int GetHashCode (HashedString obj) {
+            return obj.HashCode;
+        }
+    }
 }
