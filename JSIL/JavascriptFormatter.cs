@@ -1154,9 +1154,7 @@ namespace JSIL.Internal {
                 !forConstructor &&
                 (signature.GenericParameterCount == 0)
             ) {
-                if (
-                    (signature.ParameterCount == 0) &&
-                ) {
+                if (signature.ParameterCount == 0) {
                     if (
                         (signature.ReturnType == null) ||
                         (signature.ReturnType.FullName == "System.Void")
@@ -1214,20 +1212,25 @@ namespace JSIL.Internal {
                     Comma();
                 }
 
-                OpenBracket(false);
+                if (signature.ParameterCount > 0) {
+                    OpenBracket(false);
+                    CommaSeparatedListCore(
+                        signature.ParameterTypes, (pt) => {
+                            if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
+                                TypeIdentifier(pt as dynamic, context, false);
+                            else
+                                TypeReference(pt, context);
+                        }
+                    );
+                    CloseBracket(false);
+                } else {
+                    WriteRaw("null");
+                }
 
-                CommaSeparatedListCore(
-                    signature.ParameterTypes, (pt) => {
-                        if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
-                            TypeIdentifier(pt as dynamic, context, false);
-                        else
-                            TypeReference(pt, context);
-                    }
-                );
-
-                CloseBracket(false);
-
-                if (!forConstructor && (signature.GenericParameterNames != null)) {
+                if (!forConstructor && 
+                    (signature.GenericParameterNames != null) &&
+                    (signature.GenericParameterCount > 0)
+                ) {
                     Comma();
                     OpenBracket(false);
                     CommaSeparatedList(signature.GenericParameterNames, context, ListValueType.Primitive);
