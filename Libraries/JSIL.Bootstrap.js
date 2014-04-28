@@ -485,7 +485,7 @@ JSIL.ImplementExternals(
     };
 
     $.Method({Static:false, Public:true }, ".ctor", 
-      (new JSIL.MethodSignature(null, [], [])), 
+      (JSIL.MethodSignature.Void), 
       function _ctor () {
         this._message = null;
         this._stackTrace = captureStackTrace();
@@ -553,7 +553,7 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "System.SystemException", function ($) {
     $.Method({Static:false, Public:true }, ".ctor", 
-      new JSIL.MethodSignature(null, [], []),
+      JSIL.MethodSignature.Void,
       function () {
         System.Exception.prototype._ctor.call(this);
       }
@@ -855,7 +855,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
 JSIL.ImplementExternals(
   "System.Threading.Thread", function ($) {
     $.Method({Static:true , Public:true }, ".cctor2", 
-      (new JSIL.MethodSignature(null, [], [])), 
+      (JSIL.MethodSignature.Void), 
       function () {
         // This type already has a cctor, so we add a second one.
         System.Threading.Thread._currentThread = JSIL.CreateInstanceOfType(
@@ -938,7 +938,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []),
+    JSIL.MethodSignature.Void,
     function () {
       $jsilcore.InitResizableArray(this, getT(this), 16);
       this._size = 0;
@@ -1011,7 +1011,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    new JSIL.MethodSignature(null, [], []),
+    JSIL.MethodSignature.Void,
     function () {
       this.ClearItems();
     }
@@ -1279,7 +1279,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   $.Method({Static:false, Public:true }, "Sort", 
-    new JSIL.MethodSignature(null, [], []),
+    JSIL.MethodSignature.Void,
     function () {
       this._items.sort(JSIL.CompareValues);
     }
@@ -1378,7 +1378,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   $.Method({Static:false, Public:false, Virtual:true }, "ClearItems", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function ClearItems () {
       // Necessary to clear any element values.
       var oldLength = this._items.length;
@@ -1551,7 +1551,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   var system = JSIL.GetAssembly("System", true);
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       $jsilcore.InitResizableArray(this, this.T, 16);
       this._size = 0;
@@ -1567,7 +1567,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this._items.length = this._size = 0;
     }
@@ -1621,7 +1621,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   var system = JSIL.GetAssembly("System", true);
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       $jsilcore.InitResizableArray(this, this.T, 16);
       this._size = 0;
@@ -1637,7 +1637,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this._items.length = this._size = 0;
     }
@@ -1806,7 +1806,7 @@ JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
 JSIL.ImplementExternals("System.Random", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.mt = new MersenneTwister();
     }
@@ -2194,7 +2194,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       initFields(this);
     }
@@ -2232,7 +2232,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this._dict = {}
       this._count = 0;
@@ -2525,7 +2525,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+KeyCollection+E
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       if (this.kvpEnumerator)
         this.kvpEnumerator.Dispose();
@@ -2558,7 +2558,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+KeyCollection+E
     .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Reset () {
       this.kvpEnumerator = this.dictionary.GetEnumerator();
     }
@@ -2587,7 +2587,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+ValueCollection
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       if (this.kvpEnumerator)
         this.kvpEnumerator.Dispose();
@@ -2620,7 +2620,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+ValueCollection
     .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function System_Collections_IEnumerator_Reset () {
       this.kvpEnumerator = this.dictionary.GetEnumerator();
     }
@@ -2664,7 +2664,7 @@ JSIL.MakeInterface(
     $.Method({}, "get_Values", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.ICollection"), [], []));
     $.Method({}, "Contains", new JSIL.MethodSignature($.Boolean, [$.Object], []));
     $.Method({}, "Add", new JSIL.MethodSignature(null, [$.Object, $.Object], []));
-    $.Method({}, "Clear", new JSIL.MethodSignature(null, [], []));
+    $.Method({}, "Clear", JSIL.MethodSignature.Void);
     $.Method({}, "get_IsReadOnly", new JSIL.MethodSignature($.Boolean, [], []));
     $.Method({}, "get_IsFixedSize", new JSIL.MethodSignature($.Boolean, [], []));
     $.Method({}, "GetEnumerator", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"), [], []));
@@ -2795,7 +2795,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       this.state = null;
       this.dictionary = null;
@@ -2846,7 +2846,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
     .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function System_Collections_IEnumerator_Reset () {
       this.state.bucketIndex = 0;
       this.state.valueIndex = -1;
@@ -2883,7 +2883,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", funct
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       this.state = null;
       this.hashSet = null;
@@ -2932,7 +2932,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", funct
     .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function System_Collections_IEnumerator_Reset () {
       this.state.bucketIndex = 0;
       this.state.valueIndex = -1;
@@ -3152,7 +3152,7 @@ JSIL.ImplementExternals("System.Diagnostics.StackTrace", function ($) {
   var mscorlib = JSIL.GetCorlib();
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.CaptureStackTrace(0, false, null, null);
     }
@@ -3183,7 +3183,7 @@ JSIL.ImplementExternals("System.Diagnostics.StackFrame", function ($) {
   var mscorlib = JSIL.GetCorlib();
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       // FIXME
     }
@@ -3405,7 +3405,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
   var mscorlib = JSIL.GetCorlib(); 
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.Reset();
     }
@@ -3450,7 +3450,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Reset", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Reset () {
       this.elapsed = 0;
       this.isRunning = false;
@@ -3459,7 +3459,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Restart", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Restart () {
       this.elapsed = 0;
       this.isRunning = true;
@@ -3468,7 +3468,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Start", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Start () {
       if (!this.isRunning) {
         this.startedWhen = JSIL.Host.getTickCount();
@@ -3487,7 +3487,7 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Stop", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Stop () {
       if (this.isRunning) {
         this.isRunning = false;
@@ -3581,7 +3581,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
   var T = new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1");
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this._dict = {};
       this._count = 0;
@@ -3651,7 +3651,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
   });
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this._dict = {};
       this._count = 0;
@@ -4572,7 +4572,7 @@ JSIL.ParseDataURL = function (dataUrl) {
 
 JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.Clear();
     }
@@ -4708,7 +4708,7 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this._head = null;
       this._tail = null;
@@ -4808,14 +4808,14 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "RemoveFirst", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function RemoveFirst () {
       this.$removeNode(this._head);
     }
   );
 
   $.Method({Static:false, Public:true }, "RemoveLast", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function RemoveLast () {
       this.$removeNode(this._tail);
     }

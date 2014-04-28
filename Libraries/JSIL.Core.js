@@ -6494,7 +6494,7 @@ JSIL.InterfaceBuilder.prototype.MakeEventAccessors = function (_descriptor, name
 };
 
 JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
-  var signature = new JSIL.MethodSignature(null, [], []);
+  var signature = JSIL.MethodSignature.Void;
   var descriptor = this.ParseDescriptor({Public: true, Static: false}, name, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
@@ -6629,6 +6629,57 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
 };
 
 JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
+
+JSIL.SetLazyValueProperty(JSIL.MethodSignature, "Void", function () {
+  return new JSIL.MethodSignature(null, null, null);
+});
+
+JSIL.MethodSignature.$returnCache = {};
+JSIL.MethodSignature.$actionCache = {};
+
+JSIL.MethodSignature.Return = function (returnType) {
+  var key = null;
+
+  if (!returnType)
+    throw new Error("Return type must be specified");
+  else if (Object.getPrototypeOf(returnType) === JSIL.TypeRef.prototype)
+    key = returnType.getTypeId();
+  else if (returnType.__TypeId__)
+    key = returnType.__TypeId__;
+  else
+    throw new Error("Unsupported return type format");
+
+  var result = JSIL.MethodSignature.$returnCache[key];
+
+  if (!result) {
+    result = new JSIL.MethodSignature(returnType, null, null);
+    JSIL.MethodSignature.$returnCache[key] = result;
+  }
+
+  return result;
+};
+
+JSIL.MethodSignature.Action = function (argumentType) {
+  var key = null;
+
+  if (!argumentType)
+    throw new Error("Argument type must be specified");
+  else if (Object.getPrototypeOf(argumentType) === JSIL.TypeRef.prototype)
+    key = argumentType.getTypeId();
+  else if (argumentType.__TypeId__)
+    key = argumentType.__TypeId__;
+  else
+    throw new Error("Unsupported argument type format");
+
+  var result = JSIL.MethodSignature.$actionCache[key];
+
+  if (!result) {
+    result = new JSIL.MethodSignature(null, [argumentType], null);
+    JSIL.MethodSignature.$actionCache[key] = result;
+  }
+
+  return result;
+};
 
 JSIL.SetLazyValueProperty(JSIL.MethodSignature.prototype, "Call", function () { return this.$MakeCallMethod("direct"); }, true);
 

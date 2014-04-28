@@ -672,7 +672,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", func
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPass", function ($) {
   $.Method({Static:false, Public:true }, "Apply", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Apply () {
       // FIXME
     }
@@ -750,7 +750,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   $.Method({
     Static: false,
     Public: true
-  }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
+  }, "ApplyChanges", JSIL.MethodSignature.Void, function () {
     var oc = this.device.originalCanvas;
 
     $jsilbrowserstate.nativeWidth = this.device.originalWidth = this._width;
@@ -996,7 +996,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   );
 
   $.Method({Static:false, Public:true }, "End", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function SpriteBatch_End () {
       if (this.defer) {
         this.defer = false;
@@ -3012,7 +3012,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
   });
 });
 
@@ -3090,19 +3090,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
   $.Method({
     Static: false,
     Public: true
-  }, "SetData", new JSIL.MethodSignature(null, [], []), function (T, level, rect, data, startIndex, elementCount) {
+  }, "SetData", JSIL.MethodSignature.Void, function (T, level, rect, data, startIndex, elementCount) {
     throw new System.NotImplementedException();
   });
   $.Method({
     Static: false,
     Public: true
-  }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {
+  }, "$ResynthesizeImage", JSIL.MethodSignature.Void, function () {
     this.image.isDirty = true;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
     if (!this.canvas)
       return;
 
@@ -3483,7 +3483,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.cachedFilter = Microsoft.Xna.Framework.Graphics.TextureFilter.Linear;
       this.name = null;

@@ -196,7 +196,7 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
 
 JSIL.MakeInterface(
   "System.IDisposable", true, [], function ($) {
-    $.Method({}, "Dispose", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Dispose", (JSIL.MethodSignature.Void));
   }, []);
 
 JSIL.MakeInterface(
@@ -208,7 +208,7 @@ JSIL.MakeInterface(
   "System.Collections.IEnumerator", true, [], function ($) {
     $.Method({}, "MoveNext", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], [])));
     $.Method({}, "get_Current", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [], [])));
-    $.Method({}, "Reset", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Reset", (JSIL.MethodSignature.Void));
     $.Property({}, "Current");
   }, []);
 
@@ -256,7 +256,7 @@ JSIL.MakeInterface(
     $.Method({}, "set_Item", (new JSIL.MethodSignature(null, [$.Int32, $.Object], [])));
     $.Method({}, "Add", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
     $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [$.Object], [])));
-    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Clear", (JSIL.MethodSignature.Void));
     $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "get_IsFixedSize", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "IndexOf", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
@@ -273,7 +273,7 @@ JSIL.MakeInterface(
     $.Method({}, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])));
     $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "Add", (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
-    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Clear", (JSIL.MethodSignature.Void));
     $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
     $.Method({}, "CopyTo", (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $.Int32], [])));
     $.Method({}, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
@@ -564,7 +564,7 @@ JSIL.ImplementExternals("System.Enum", function ($) {
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Attribute", true, [], function ($) {
   $.Method({Static: false, Public: true }, ".ctor",
-    (new JSIL.MethodSignature(null, [], [])),
+    (JSIL.MethodSignature.Void),
     function () {
     }
   );

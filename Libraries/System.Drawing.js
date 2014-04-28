@@ -135,7 +135,7 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
   };
 
   $.Method({Static:true , Public:false}, ".cctor2", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _cctor2 () {
       var sdc = systemDrawing.System.Drawing.Color;
 

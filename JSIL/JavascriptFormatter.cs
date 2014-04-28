@@ -1149,6 +1149,43 @@ namespace JSIL.Internal {
         }
 
         public void Signature (MethodReference method, MethodSignature signature, TypeReferenceContext context, bool forConstructor, bool allowCache) {
+            // Reduce method signature heap usage
+            if (
+                !forConstructor &&
+                (signature.GenericParameterCount == 0)
+            ) {
+                if (
+                    (signature.ParameterCount == 0) &&
+                ) {
+                    if (
+                        (signature.ReturnType == null) ||
+                        (signature.ReturnType.FullName == "System.Void")
+                    ){
+                        WriteRaw("JSIL.MethodSignature.Void");
+                        return;
+                    } else if (!TypeUtil.IsOpenType(signature.ReturnType)) {
+                        WriteRaw("JSIL.MethodSignature.Return");
+                        LPar();
+                        TypeReference(signature.ReturnType, context);
+                        RPar();
+                        return;
+                    }
+                } else if (
+                    (
+                        (signature.ReturnType == null) ||
+                        (signature.ReturnType.FullName == "System.Void")
+                    ) &&
+                    (signature.ParameterCount == 1) &&
+                    !TypeUtil.IsOpenType(signature.ParameterTypes[0])
+                ) {
+                    WriteRaw("JSIL.MethodSignature.Action");
+                    LPar();
+                    TypeReference(signature.ParameterTypes[0], context);
+                    RPar();
+                    return;
+                }
+            }
+
             if (forConstructor)
                 WriteRaw("new JSIL.ConstructorSignature");
             else
