@@ -239,7 +239,9 @@ namespace JSIL.Internal {
                 return;
 
             _IndentNeeded = false;
-            Output.Write(new string(' ', (int)(_IndentLevel * 2)));
+            var tabs = _IndentLevel;
+            for (var i = 0; i < tabs; i++)
+                Output.Write("  ");
         }
 
         public void WriteRaw (string characters) {

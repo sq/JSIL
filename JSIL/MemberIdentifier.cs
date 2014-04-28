@@ -128,6 +128,9 @@ namespace JSIL.Internal {
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
+            if (parameters.Count == 0)
+                return null;
+
             if (parameters.Count == 1) {
                 var p = parameters[0];
                 for (int c = p.CustomAttributes.Count, i = 0; i < c; i++) {

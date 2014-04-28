@@ -1717,11 +1717,25 @@ namespace JSIL {
             if (nodes == null)
                 return 0;
 
-            return (from n in nodes
-                    where (n != null) && 
-                          ((n is TNode) ||
-                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null))
-                    select n).Count();
+            int result = 0;
+
+            foreach (var n in nodes) {
+                if (n == null)
+                    continue;
+
+                if (n is TNode) {
+                    result += 1;
+                } else {
+                    foreach (var m in n.AllChildrenRecursive) {
+                        if (m is TNode) {
+                            result += 1;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
 
         protected static bool ArgumentsNeedLineBreak (IList<JSExpression> arguments) {

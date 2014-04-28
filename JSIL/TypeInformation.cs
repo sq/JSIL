@@ -82,6 +82,18 @@ namespace JSIL.Internal {
     }
 
     public struct TypeIdentifier {
+        public class ComparerImpl : IEqualityComparer<TypeIdentifier> {
+            public bool Equals (TypeIdentifier x, TypeIdentifier y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (TypeIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
+        public static readonly ComparerImpl Comparer = new ComparerImpl(); 
+
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;

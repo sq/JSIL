@@ -48,6 +48,10 @@ namespace JSIL.Internal {
             RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
 
+        private static ThreadLocal<StringBuilder> EscapeStringBuilder = new ThreadLocal<StringBuilder>(
+            () => new StringBuilder(10240)
+        );
+
         public static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
             var result = Uri.UnescapeDataString(uri.AbsolutePath);
@@ -242,8 +246,9 @@ namespace JSIL.Internal {
             if (text == null)
                 return "null";
 
-            var sb = new StringBuilder(text.Length + 16);
+            var sb = EscapeStringBuilder.Value;
 
+            sb.Clear();
             sb.Append(quoteCharacter);
 
             foreach (var ch in text) {

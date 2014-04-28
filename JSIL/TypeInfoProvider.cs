@@ -18,9 +18,9 @@ namespace JSIL {
         }
 
         protected class MakeTypeInfoArgs {
-            public readonly Dictionary<TypeIdentifier, TypeDefinition> MoreTypes = new Dictionary<TypeIdentifier, TypeDefinition>();
-            public readonly Dictionary<TypeIdentifier, TypeInfo> SecondPass = new Dictionary<TypeIdentifier, TypeInfo>();
-            public readonly OrderedDictionary<TypeIdentifier, TypeDefinition> TypesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>();
+            public readonly Dictionary<TypeIdentifier, TypeDefinition> MoreTypes = new Dictionary<TypeIdentifier, TypeDefinition>(TypeIdentifier.Comparer);
+            public readonly Dictionary<TypeIdentifier, TypeInfo> SecondPass = new Dictionary<TypeIdentifier, TypeInfo>(TypeIdentifier.Comparer);
+            public readonly OrderedDictionary<TypeIdentifier, TypeDefinition> TypesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>(TypeIdentifier.Comparer);
 
             public TypeDefinition Definition;
         }
@@ -52,12 +52,12 @@ namespace JSIL {
 
             Assemblies = new HashSet<AssemblyDefinition>();
             ProxyAssemblyNames = new HashSet<string>();
-            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(TypeIdentifier.Comparer);
             DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
             ProxiesByName = new ConcurrentCache<string, ProxiesByNameRecord>(levelOfParallelism, 256);
             TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>(levelOfParallelism, 4096);
 
-            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096);
+            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096, TypeIdentifier.Comparer);
             ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256);
 
             MakeTypeInfo = _MakeTypeInfo;
@@ -66,7 +66,7 @@ namespace JSIL {
         protected TypeInfoProvider (TypeInfoProvider cloneSource) {
             Assemblies = new HashSet<AssemblyDefinition>(cloneSource.Assemblies);
             ProxyAssemblyNames = new HashSet<string>(cloneSource.ProxyAssemblyNames);
-            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(cloneSource.TypeProxies);
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(cloneSource.TypeProxies, TypeIdentifier.Comparer);
 
             DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
             foreach (var kvp in cloneSource.DirectProxiesByTypeName)
@@ -560,8 +560,16 @@ namespace JSIL {
     }
 
     public class OrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
-        protected readonly Dictionary<TKey, TValue> Dictionary = new Dictionary<TKey, TValue>();
+        protected readonly Dictionary<TKey, TValue> Dictionary;
         protected readonly LinkedList<TKey> LinkedList = new LinkedList<TKey>();
+
+        public OrderedDictionary () {
+            Dictionary = new Dictionary<TKey, TValue>();
+        }
+
+        public OrderedDictionary (IEqualityComparer<TKey> comparer) {
+            Dictionary = new Dictionary<TKey, TValue>(comparer);
+        }
 
         public int Count {
             get {

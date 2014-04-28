@@ -44,6 +44,8 @@ namespace JSIL {
 
         public const int LargeMethodThreshold = 20 * 1024;
 
+        public const int DefaultStreamCapacity = 4 * (1024 * 1024);
+
         public readonly Configuration Configuration;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
@@ -452,7 +454,7 @@ namespace JSIL {
                 long existingSize;
 
                 if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                    using (var outputStream = new MemoryStream()) {
+                    using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
                         var context = MakeDecompilerContext(assembly.MainModule);
 
                         try {
