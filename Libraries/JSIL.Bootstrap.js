@@ -2866,7 +2866,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", funct
   );
 
   $.Method({Static:false, Public:false}, ".ctor", 
-    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.HashSet`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.Dictionary`2+Enumerator"), new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1+Enumerator")])], []), 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.HashSet`1", [$.GenericParameter("T")])], []), 
     function _ctor (hashSet) {
       this.hashSet = hashSet;
 
@@ -2891,7 +2891,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", funct
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "get_Current", 
-    new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Dictionary`2+Enumerator"), [], []), 
+    new JSIL.MethodSignature($.GenericParameter("T"), [], []), 
     function get_Current () {
       return this.state.current;
     }
