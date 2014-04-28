@@ -189,6 +189,10 @@ namespace JSIL.Internal {
     public class MethodSignatureSet : IDisposable {
         public class Count {
             public volatile int Value;
+
+            public Count (int value) {
+                Value = value;
+            }
         }
 
         private volatile int _Count = 0;
@@ -214,13 +218,8 @@ namespace JSIL.Internal {
             // if (signature.Name != Name)
             //     throw new InvalidOperationException();
 
-            Count c;
-
-            while (!Counts.TryGetValue(signature, out c)) {
-                if (Counts.TryAdd(signature, c = new Count()))
-                    break;
-            }
-
+            var c = new Count(0);
+            c = Counts.GetOrAdd(signature, c);
             Interlocked.Increment(ref c.Value);
             Interlocked.Increment(ref _Count);
         }

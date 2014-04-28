@@ -71,7 +71,7 @@ namespace JSIL.Internal {
             bool isEscaped = false;
             string result = identifier;
 
-            var sb = new StringBuilder();
+            var sb = EscapeStringBuilder.Value;
             for (int i = 0, l = identifier.Length; i < l; i++) {
                 var ch = identifier[i];
 
