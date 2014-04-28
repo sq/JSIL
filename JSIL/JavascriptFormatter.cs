@@ -30,6 +30,7 @@ namespace JSIL.Internal {
             public MethodReference DefiningMethod;
             public MethodReference InvokingMethod;
             public MethodReference SignatureMethod;
+            public MethodReference AttributesMethod;
         }
 
         private readonly Stack<_State> Stack = new Stack<_State>();
@@ -68,6 +69,7 @@ namespace JSIL.Internal {
                 State.EnclosingMethod = value;
             }
         }
+
         public MethodReference DefiningMethod {
             get {
                 return State.DefiningMethod;
@@ -76,6 +78,7 @@ namespace JSIL.Internal {
                 State.DefiningMethod = value;
             }
         }
+
         public MethodReference InvokingMethod {
             get {
                 return State.InvokingMethod;
@@ -84,12 +87,22 @@ namespace JSIL.Internal {
                 State.InvokingMethod = value;
             }
         }
+
         public MethodReference SignatureMethod {
             get {
                 return State.SignatureMethod;
             }
             set {
                 State.SignatureMethod = value;
+            }
+        }
+
+        public MethodReference AttributesMethod {
+            get {
+                return State.AttributesMethod;
+            }
+            set {
+                State.AttributesMethod = value;
             }
         }
 
@@ -124,6 +137,15 @@ namespace JSIL.Internal {
             get {
                 if (SignatureMethod != null)
                     return SignatureMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference AttributesMethodType {
+            get {
+                if (AttributesMethod != null)
+                    return AttributesMethod.DeclaringType;
                 else
                     return null;
             }
@@ -481,11 +503,6 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
-                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningType.FullName));
-                        return;
-                    }
-
                     if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingType)) {
                         LocalOpenGenericParameter(gp);
                         return;
@@ -507,8 +524,18 @@ namespace JSIL.Internal {
                         }
                     }
 
+                    if (TypeUtil.TypesAreEqual(ownerType, context.AttributesMethodType)) {
+                        LocalOpenGenericParameter(gp);
+                        return;
+                    }
+
                     if (TypeUtil.TypesAreEqual(ownerType, context.DefiningMethodType)) {
                         OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningMethodType.FullName));
+                        return;
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
+                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningType.FullName));
                         return;
                     }
 

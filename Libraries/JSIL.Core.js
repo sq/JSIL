@@ -1793,6 +1793,10 @@ JSIL.TypeRef.prototype.get = function (allowPartiallyConstructed) {
   return this.cachedReference;
 };
 
+JSIL.TypeRef.prototype.genericParameter = function (name) {
+  return new JSIL.GenericParameter(name, this.getTypeName());
+};
+
 JSIL.AllRegisteredNames = [];
 JSIL.AllImplementedExternals = {};
 JSIL.ExternalsQueue = {};
@@ -5879,6 +5883,8 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderM
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
   this.builderMode = builderMode || "class";
 
+  this._genericParameterCache = {};
+
   var selfRef = typeObject;
   var gaNames = typeObject.__GenericArguments__;
   if (gaNames && gaNames.length > 0) {
@@ -5886,7 +5892,10 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderM
 
     for (var i = 0, l = gaNames.length; i < l; i++) {
       var gpName = gaNames[i];
-      genericArgs.push(new JSIL.GenericParameter(gpName, typeObject));
+      var gp = new JSIL.GenericParameter(gpName, this.namespace);
+      
+      genericArgs.push(gp);
+      this._genericParameterCache[gpName] = gp;
     }
 
     selfRef = new JSIL.TypeRef(context, this.namespace, genericArgs);
@@ -5955,7 +5964,11 @@ JSIL.InterfaceBuilder.prototype.toString = function () {
 };
 
 JSIL.InterfaceBuilder.prototype.GenericParameter = function (name) {
-  return new JSIL.GenericParameter(name, this.namespace);
+  var result = this._genericParameterCache[name];
+  if (!result)
+    result = this._genericParameterCache[name] = new JSIL.GenericParameter(name, this.namespace);
+
+  return result;
 };
 
 JSIL.InterfaceBuilder.prototype.SetValue = function (key, value) {
