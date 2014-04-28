@@ -2283,7 +2283,7 @@ namespace JSIL {
         private JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType, bool getReference) {
             var expectedType = elementType ?? node.InferredType ?? node.ExpectedType;
             var target = TranslateNode(node.Arguments[0]);
-            if (target.IsNull)
+            if (target.IsNull || target is JSIgnoredMemberReference || target is JSIgnoredTypeReference)
                 return target;
 
             var targetType = target.GetActualType(TypeSystem);

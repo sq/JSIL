@@ -7,6 +7,8 @@ using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
+using Mono.CSharp;
+using TypeDefinition = Mono.Cecil.TypeDefinition;
 
 namespace JSIL {
     public static class TypeUtil {
@@ -469,9 +471,13 @@ namespace JSIL {
             return result;
         }
 
-        public static bool TypesAreTriviallyEqual (TypeReference lhs, TypeReference rhs) {
+        public static bool TypesAreTriviallyEqual (TypeReference lhs, TypeReference rhs, out bool shallowMatch) {
             var tTr = typeof(TypeReference);
             var tTd = typeof(TypeDefinition);
+
+            shallowMatch = (lhs.Name == rhs.Name) &&
+                    (lhs.Namespace == rhs.Namespace) &&
+                    ScopesMatch(lhs, rhs);
 
             if (
                 (
@@ -482,26 +488,38 @@ namespace JSIL {
                     (rhs.GetType() == tTd)
                 )
             ) {
-                if (
-                    (lhs.Name == rhs.Name) &&
-                    (lhs.Namespace == rhs.Namespace) &&
-                    ScopesMatch(lhs, rhs)
-                )
+                if (shallowMatch)
                     return true;
             }
 
             return false;
         }
 
+        private static bool? SubtypeElementComparison<T> (TypeReference lhs, TypeReference rhs, bool strictEquality) 
+            where T : TypeSpecification
+        {
+            var tLhs = lhs as T;
+            var tRhs = rhs as T;
+
+            if ((tLhs != null) || (tRhs != null)) {
+                if ((tLhs == null) || (tRhs == null))
+                    return false;
+
+                return TypesAreEqual(tLhs.ElementType, tRhs.ElementType, strictEquality);
+            }
+
+            return null;
+        }
+
         public static bool TypesAreEqual (TypeReference target, TypeReference source, bool strictEquality = false) {
+            bool shallowMatch;
+
             if (target == source)
                 return true;
             else if ((target == null) || (source == null))
                 return (target == source);
-            else if (TypesAreTriviallyEqual(source, target))
+            else if (TypesAreTriviallyEqual(source, target, out shallowMatch))
                 return true;
-
-            bool result;
 
             int targetDepth, sourceDepth;
             FullyDereferenceType(target, out targetDepth);
@@ -559,20 +577,7 @@ namespace JSIL {
 
                 return true;
             }
-
-            var targetArray = target as ArrayType;
-            var sourceArray = source as ArrayType;
-
-            if ((targetArray != null) || (sourceArray != null)) {
-                if ((targetArray == null) || (sourceArray == null))
-                    return false;
-
-                if (targetArray.Rank != sourceArray.Rank)
-                    return false;
-
-                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, strictEquality);
-            }
-
+            
             var targetGit = target as GenericInstanceType;
             var sourceGit = source as GenericInstanceType;
 
@@ -598,39 +603,45 @@ namespace JSIL {
                 return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, strictEquality);
             }
 
-            var targetBrT = target as ByReferenceType;
-            var sourceBrt = source as ByReferenceType;
-
-            if ((targetBrT != null) || (sourceBrt != null)) {
-                if ((targetBrT == null) || (sourceBrt == null))
-                    return false;
-
-                return TypesAreEqual(targetBrT.ElementType, sourceBrt.ElementType, strictEquality);
+            var areEqualArray =
+                SubtypeElementComparison<ArrayType>(target, source, strictEquality);
+            if (areEqualArray.HasValue) {                
+                return areEqualArray.Value && (
+                    ((ArrayType)target).Rank == ((ArrayType)source).Rank
+                );
             }
 
-            var targetP = target as PointerType;
-            var sourceP = source as PointerType;
+            var areEqualBR =
+                SubtypeElementComparison<ByReferenceType>(target, source, strictEquality);
+            if (areEqualBR.HasValue)
+                return areEqualBR.Value;
 
-            if ((targetP != null) || (sourceP != null)) {
-                if ((targetP == null) || (sourceP == null))
-                    return false;
+            var areEqualP =
+                SubtypeElementComparison<PointerType>(target, source, strictEquality);
+            if (areEqualP.HasValue)
+                return areEqualP.Value;
 
-                return TypesAreEqual(targetP.ElementType, sourceP.ElementType, strictEquality);
-            }
+            var areEqualOM =
+                SubtypeElementComparison<OptionalModifierType>(target, source, strictEquality);
+            if (areEqualOM.HasValue)
+                return areEqualOM.Value;
 
-            if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
-                result = false;
-            else if (target.IsPointer != source.IsPointer)
-                result = false;
-            else if (target.IsFunctionPointer != source.IsFunctionPointer)
-                result = false;
-            else if (target.IsPinned != source.IsPinned)
-                result = false;
-            else {
-                result = false;
-            }
+            var areEqualRM =
+                SubtypeElementComparison<RequiredModifierType>(target, source, strictEquality);
+            if (areEqualRM.HasValue)
+                return areEqualRM.Value;
 
-            return result;
+            var areEqualFP =
+                SubtypeElementComparison<FunctionPointerType>(target, source, strictEquality);
+            if (areEqualFP.HasValue)
+                return areEqualFP.Value;
+
+            areEqualP =
+                SubtypeElementComparison<PinnedType>(target, source, strictEquality);
+            if (areEqualP.HasValue)
+                return areEqualP.Value;
+
+            return shallowMatch;
         }
 
         public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {

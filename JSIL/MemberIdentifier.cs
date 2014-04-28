@@ -168,11 +168,13 @@ namespace JSIL.Internal {
         }
 
         public static bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
+            bool shallowMatch;
+
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)
                 return false;
-            else if (TypeUtil.TypesAreTriviallyEqual(lhs, rhs))
+            else if (TypeUtil.TypesAreTriviallyEqual(lhs, rhs, out shallowMatch))
                 return true;
 
             var lhsReference = lhs as ByReferenceType;
