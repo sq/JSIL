@@ -5880,7 +5880,14 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderM
   this.context = context;
   this.typeObject = typeObject;
   this.publicInterface = publicInterface;
-  this.namespace = JSIL.GetTypeName(typeObject);
+
+  if (Object.getPrototypeOf(typeObject) === Object.prototype) {
+    // HACK: Handle the fact that ImplementExternals doesn't pass us a real type object.
+    this.namespace = this.typeObject.__FullName__;
+  } else {
+    this.namespace = JSIL.GetTypeName(typeObject);
+  }
+
   this.externals = JSIL.AllImplementedExternals[this.namespace];
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
