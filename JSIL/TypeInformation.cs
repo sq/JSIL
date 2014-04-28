@@ -72,7 +72,7 @@ namespace JSIL.Internal {
             return TypeUtil.TypesAreEqual(
                 x.ImplementedInterface.Reference, 
                 y.ImplementedInterface.Reference,
-                false
+                true
             );
         }
 

@@ -64,7 +64,7 @@ JSIL.ImplementExternals(
         if (this.get_IsInterface() === true) {
           // Check interfaces
 
-          var interfaces = JSIL.GetInterfacesImplementedByType(typeObject);
+          var interfaces = JSIL.GetInterfacesImplementedByType(typeObject, true, false);
           if (interfaces && interfaces.length) {
             for (var i = 0; i < interfaces.length; i++) {
               if (interfaces[i].__FullName__ == this.__FullName__)

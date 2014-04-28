@@ -35,8 +35,7 @@ function HLGetTypes(type, assembly, pOnlyInstantiable, pIncludeGenericTypeDefini
     var includeGenericTypeDefinitions = Boolean(pIncludeGenericTypeDefinitions);
 
     JSIL.InitializeType(type);
-    var list = new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Collections.Generic.List`1", [$jsilcore.TypeRef("System.Type")]), []);
-    var result = list.Construct();
+    var result = [];
 
     for (var k = 0; k < assemblyTypes.length; k++) {
         JSIL.InitializeType(assemblyTypes[k]);
@@ -53,7 +52,7 @@ function HLGetTypes(type, assembly, pOnlyInstantiable, pIncludeGenericTypeDefini
                 if (!HLIsNonDiscoverable(t)) {
                     if (onlyInstantiable === false || (!t.IsAbstract && !t.IsInterface && !t.HasElementType)) {
                         if (includeGenericTypeDefinitions || !t.IsGenericTypeDefinition) {
-                            result.Add(t);
+                            result.push(t);
                         }
                     }
                 }

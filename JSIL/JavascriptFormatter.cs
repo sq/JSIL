@@ -507,6 +507,11 @@ namespace JSIL.Internal {
                         }
                     }
 
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningMethodType)) {
+                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningMethodType.FullName));
+                        return;
+                    }
+
                     throw new NotImplementedException(String.Format(
                         "Unimplemented form of generic type parameter: '{0}'.",
                         gp
