@@ -1117,11 +1117,12 @@ $jsilcore.$ListExternals = function ($, T, type) {
     getItemImpl
   );
 
-  $.Method({Static:false, Public:true }, null, 
-    new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Int32")], []), 
-    getItemImpl
-  )
-    .Overrides("System.Collections.IList", "get_Item");
+  if (type != "ArrayList")
+    $.Method({Static:false, Public:true }, null, 
+      new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Int32")], []), 
+      getItemImpl
+    )
+      .Overrides("System.Collections.IList", "get_Item");
 
   $.Method({Static: false, Public: true }, "set_Item",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
@@ -1133,15 +1134,16 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({Static: false, Public: true }, "set_Item",
-    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), $.Object], []), 
-    function (index, value) {
-      if (rangeCheckImpl(index, this._size))
-        this.SetItem(index, this.T.$Cast(value));
-      else
-        throw new System.ArgumentOutOfRangeException("index");
-    }
-  );
+  if (type != "ArrayList")
+    $.Method({Static: false, Public: true }, "set_Item",
+      new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), $.Object], []), 
+      function (index, value) {
+        if (rangeCheckImpl(index, this._size))
+          this.SetItem(index, this.T.$Cast(value));
+        else
+          throw new System.ArgumentOutOfRangeException("index");
+      }
+    );
 
   var getEnumeratorType = function (self) {
     if (self.$enumeratorType)
