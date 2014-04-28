@@ -2664,6 +2664,8 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                astEmitter.ReferenceContext.AttributesMethod = methodRef;
+
                 TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
 
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);

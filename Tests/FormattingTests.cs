@@ -810,10 +810,10 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(
-                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                    generatedJs.Contains("\"U\").in()"), "B`1.U missing variance indicator"
                 );
                 Assert.IsTrue(
-                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                    generatedJs.Contains("\"V\").out()"), "C`1.V missing variance indicator"
                 );
                 Assert.IsTrue(
                     generatedJs.Contains("\"in U\""), "U name missing variance indicator"
@@ -1002,8 +1002,8 @@ namespace JSIL.Tests {
                     generatedJs.Contains("\"Program+InnerGenericClass`1\""),
                     "Inner class should be named in Outer+Inner format");
                 Assert.IsTrue(
-                    generatedJs.Contains("JSIL.GenericParameter(\"T\", \"Program+InnerGenericClass`1\")"),
-                    "Generic parameter for inner class should reference class with correct name");
+                    generatedJs.Contains("$.GenericParameter(\"T\")"),
+                    "Generic parameter for inner class should reference class via $");
             }
             catch
             {
