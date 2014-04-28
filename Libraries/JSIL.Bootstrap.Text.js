@@ -1153,7 +1153,7 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   var UTF8NotAChar         = 0xFFFF;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.emitBOM = false;
       this.throwOnInvalid = false;
@@ -1333,7 +1333,7 @@ JSIL.ImplementExternals("System.Text.UnicodeEncoding", function ($) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.bigEndian = false;
       this.emitBOM = true;
@@ -1460,7 +1460,7 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.UnicodeEncoding", true, [], 
 JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this._str = "";
     }
