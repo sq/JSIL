@@ -743,7 +743,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
       return this._array[this._index];
     }
   )
-    .Overrides(1, "get_Current");
+    .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Public: true , Static: false}, "get_Current", 
     new JSIL.MethodSignature(T, []),
@@ -751,7 +751,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
       return this._array[this._index];
     }
   )
-    .Overrides(2, "get_Current");
+    .Overrides("System.Collections.Generic.IEnumerator`1", "get_Current");
 
   $.Property({Public: true , Static: false, Virtual: true }, "Current");
 
@@ -788,7 +788,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
       return JSIL.GetEnumerator(this._array, this.T);
     }
   )
-    .Overrides(0, "GetEnumerator");
+    .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
@@ -796,7 +796,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
       return JSIL.GetEnumerator(this._array, this.T);
     }
   )
-    .Overrides(1, "GetEnumerator");
+    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
   
   // FIXME: Implement actual members of IList.
   
@@ -1689,12 +1689,14 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
   $.Property({Public: false, Static: false}, "IsReadOnly");
 
   $.ImplementInterfaces(
-    $jsilcore.TypeRef("System.Collections.IEnumerable"),
-    $jsilcore.TypeRef("System.Collections.ICollection"),
-    $jsilcore.TypeRef("System.Collections.IList"),
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
-    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
-    $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
+    /* 0 */ $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), 
+    /* 1 */ $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), 
+    /* 2 */ $jsilcore.TypeRef("System.Collections.IList"), 
+    /* 3 */ $jsilcore.TypeRef("System.Collections.ICollection"), 
+    /* 4 */ $jsilcore.TypeRef("System.Collections.Generic.IReadOnlyList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), 
+    /* 5 */ $jsilcore.TypeRef("System.Collections.Generic.IReadOnlyCollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), 
+    /* 6 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), 
+    /* 7 */ $jsilcore.TypeRef("System.Collections.IEnumerable")
   );
 });
 
@@ -2841,7 +2843,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
       return this.state.current.MemberwiseClone();
     }
   )
-    .Overrides(3, "get_Current");
+    .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
     new JSIL.MethodSignature(null, [], []), 
@@ -2850,7 +2852,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
       this.state.valueIndex = -1;
     }
   )
-    .Overrides(3, "Reset"); 
+    .Overrides("System.Collections.IEnumerator", "Reset"); 
 });
 
 JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", function ($interfaceBuilder) {
@@ -3092,7 +3094,7 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, ["T"], function
       return this._current.get();
     }
   )
-    .Overrides(0, "get_Current");
+    .Overrides("System.Collections.IEnumerator", "get_Current");
 
   $.Method({Static: false, Public: true }, "get_Current",
     new JSIL.MethodSignature(T, []),
@@ -3100,7 +3102,7 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, ["T"], function
       return this._current.get();
     }
   )
-    .Overrides(1, "get_Current");
+    .Overrides("System.Collections.Generic.IEnumerator`1", "get_Current");
 
   $.Property({Static: false, Public: true, Virtual: true }, "Current");
 
@@ -3698,7 +3700,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     ), 
     getEnumeratorImpl
   )
-    .Overrides(0, "GetEnumerator");
+    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
   $.Method({Static:false, Public:false }, null, 
     new JSIL.MethodSignature(
@@ -3706,7 +3708,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     ), 
     getEnumeratorImpl
   )
-    .Overrides(1, "GetEnumerator");
+    .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["T"], function ($) {
@@ -5171,3 +5173,24 @@ JSIL.ImplementExternals("System.Diagnostics.Trace", function ($) {
 
 JSIL.MakeStaticClass("System.Diagnostics.Trace", true, [], function ($) {
 });
+
+/* interface System.Collections.Generic.IReadOnlyCollection`1 */ 
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IReadOnlyCollection`1", true, ["out T"], function ($) {
+    $.Method({}, "get_Count", new JSIL.MethodSignature($.Int32, [], []));
+    $.Property({}, "Count");
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyCollection`1").out()]), $jsilcore.TypeRef("System.Collections.IEnumerable")])
+  .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
+  .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));
+
+/* interface System.Collections.Generic.IReadOnlyList`1 */ 
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IReadOnlyList`1", true, ["out T"], function ($) {
+    $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out(), [$.Int32], []));
+    $.Property({}, "Item");
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IReadOnlyCollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out()]), $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out()]), $jsilcore.TypeRef("System.Collections.IEnumerable")])
+  .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
+  .Attribute($jsilcore.TypeRef("System.Reflection.DefaultMemberAttribute"), function () { return ["Item"]; })
+  .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));

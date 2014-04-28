@@ -285,6 +285,7 @@
     <None Include="SimpleTestCases\Issue411.cs" />
     <None Include="SimpleTestCases\Issue459.cs" />
     <None Include="SimpleTestCases\Issue464.cs" />
+    <None Include="SimpleTestCases\Issue378_2.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

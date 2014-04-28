@@ -972,7 +972,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Context");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Context");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.get_Implementation", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.IGraphicsContext"), [], []), 
@@ -980,7 +980,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Implementation");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Implementation");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.GetAddress", 
     new JSIL.MethodSignature($mgasms[2].TypeRef("System.IntPtr"), [$.String], []), 
@@ -988,7 +988,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "GetAddress");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "GetAddress");
 
 /*
   $.Method({Static:true , Public:true }, "set_DirectRendering", 

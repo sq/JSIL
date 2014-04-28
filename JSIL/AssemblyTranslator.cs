@@ -2688,14 +2688,7 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaces = typeInfo.AllInterfacesRecursive.Where((tuple) =>
-                      (!tuple.ImplementedInterface.Info.IsIgnored));
-
-                    var interfaceIndex = interfaces.TakeWhile((tuple) =>
-                      !TypeUtil.TypesAreEqual(tuple.ImplementedInterface.Reference, @override.InterfaceType, true)).Count();
-
-                    // TODO: Deprecate numeric indices entirely. They are a mess.
-                    output.Value(interfaceIndex);
+                    output.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);
 
                     output.Comma();
                     output.Value(@override.MemberIdentifier.Name);

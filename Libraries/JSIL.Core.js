@@ -1282,8 +1282,17 @@ JSIL.AttributeRecord = function (context, type, getConstructorArguments, initial
   this.initializer = initializer;
 };
 
-JSIL.OverrideRecord = function (interfaceIndexOrName, interfaceMemberName) {
-  this.interfaceIndexOrName = interfaceIndexOrName;
+JSIL.OverrideRecord = function (interfaceNameOrReference, interfaceMemberName) {
+  if (
+    (
+      (typeof (interfaceNameOrReference) !== "string") &&
+      (typeof (interfaceNameOrReference) !== "object")
+    ) || !interfaceNameOrReference
+  ) {
+    throw new Error("Override must specify interface name or typeref");
+  }
+
+  this.interfaceNameOrReference = interfaceNameOrReference;
   this.interfaceMemberName = interfaceMemberName;
 };
 
@@ -1546,6 +1555,45 @@ JSIL.PositionalGenericParameter.prototype.get_Name = function () {
 JSIL.PositionalGenericParameter.prototype.__IsClosed__ = false;
 
 
+JSIL.NamespaceRef = function (context, namespace) {
+  if (arguments.length === 1) {
+    this.context = null;
+    this.namespace = arguments[0];
+  } else if (arguments.length === 2) {
+    this.context = context;
+    this.namespace = namespace;
+  } else {
+    throw new Error("Invalid argument count");
+  }
+
+  this.cachedReference = null;
+};
+
+JSIL.NamespaceRef.prototype.toString = function () {
+  var result = null;
+
+  result = "ref namespace " + this.namespace;
+
+  return result;
+};
+
+JSIL.NamespaceRef.prototype.get = function () {
+  if (this.cachedReference !== null)
+    return this.cachedReference;
+
+  var result = JSIL.ResolveName(this.context, this.namespace, true);
+  if (!result.exists())
+    JSIL.RuntimeError("The name '" + this.namespace + "' does not exist.");
+
+  this.cachedReference = result.get();
+  return this.cachedReference;
+};
+
+JSIL.NamespaceRef.prototype.TypeRef = function (name, genericArguments) {
+  return new JSIL.TypeRef(this, name, genericArguments);
+};
+
+
 JSIL.TypeRef = function (context, name, genericArguments) {
   if (arguments.length === 1) {
     this.context = null;
@@ -1574,13 +1622,44 @@ JSIL.TypeRef = function (context, name, genericArguments) {
     }
   }
 };
+
+JSIL.TypeRef.prototype.getAssembly = function () {
+  if (
+    this.context &&
+    Object.getPrototypeOf(this.context) === JSIL.NamespaceRef.prototype
+  )
+    return this.context.context;
+  else
+    return this.context;
+};
+
+JSIL.TypeRef.prototype.getContext = function () {
+  if (
+    this.context &&
+    Object.getPrototypeOf(this.context) === JSIL.NamespaceRef.prototype
+  )
+    return this.context.get();
+  else
+    return this.context;
+};
+
+JSIL.TypeRef.prototype.getTypeName = function () {
+  if (
+    this.context &&
+    Object.getPrototypeOf(this.context) === JSIL.NamespaceRef.prototype
+  )
+    return this.context.namespace + "." + this.typeName;
+  else
+    return this.typeName;
+};
+
 JSIL.TypeRef.prototype.toString = function () {
   var result = null;
 
   if (this.typeName === null)
     result = "ref " + JSIL.GetTypeName(this.cachedReference);
   else
-    result = "ref " + this.typeName;
+    result = "ref " + this.getTypeName();
 
   if (this.genericArguments && this.genericArguments.length) {
     result += "[";
@@ -1596,17 +1675,18 @@ JSIL.TypeRef.prototype.toString = function () {
 
   return result;
 };
+
 JSIL.TypeRef.prototype.toName = function () {
   var result = null;
 
   if (this.typeName === null)
     result = JSIL.GetTypeName(this.cachedReference);
   else
-    result = this.typeName;
+    result = this.getTypeName();
 
   // HACK: System.Array[T] -> T[]
   if (
-    (this.typeName === "System.Array") && 
+    (this.getTypeName() === "System.Array") && 
     this.genericArguments && 
     this.genericArguments.length
   ) {
@@ -1627,16 +1707,17 @@ JSIL.TypeRef.prototype.toName = function () {
 
   return result;
 };
+
 JSIL.TypeRef.prototype.getTypeId = function () {
   if (this.cachedReference !== null)
     return this.cachedReference.__TypeId__;
   else {
-    var result = JSIL.AssignTypeId(this.context, this.typeName);
+    var result = JSIL.AssignTypeId(this.getAssembly(), this.getTypeName());
 
     if (this.genericArguments.length > 0) {
       result += "[";
 
-      result += JSIL.HashTypeArgumentArray(this.genericArguments, this.context);
+      result += JSIL.HashTypeArgumentArray(this.genericArguments, this.getAssembly());
 
       result += "]";
 
@@ -1646,6 +1727,7 @@ JSIL.TypeRef.prototype.getTypeId = function () {
     return result;
   }
 };
+
 JSIL.TypeRef.prototype.bindGenericArguments = function (unbound) {
   if (this.genericArguments.length > 0) {
     var ga = this.genericArguments;
@@ -1655,7 +1737,7 @@ JSIL.TypeRef.prototype.bindGenericArguments = function (unbound) {
 
       if (typeof (arg) === "string") {
         if (arg.indexOf("!!") === 0) {
-          ga[i] = arg = new JSIL.PositionalGenericParameter(arg, this.context);
+          ga[i] = arg = new JSIL.PositionalGenericParameter(arg, this.getContext());
         } else {
           ga[i] = arg = new JSIL.TypeRef(this.context, arg);
         }
@@ -1671,28 +1753,30 @@ JSIL.TypeRef.prototype.bindGenericArguments = function (unbound) {
 
   return unbound;
 };
+
 JSIL.TypeRef.prototype.getNoInitialize = function () {
   if (this.cachedReference !== null)
     return this.cachedReference;
 
-  var result = JSIL.GetTypeByName(this.typeName, this.context);
+  var result = JSIL.GetTypeByName(this.getTypeName(), this.getAssembly());
 
   result = this.bindGenericArguments(result);
 
   return result;
 };
+
 JSIL.TypeRef.prototype.get = function (allowPartiallyConstructed) {
   if (this.cachedReference !== null)
     return this.cachedReference;
 
   if (allowPartiallyConstructed === true) {
-    var inFlight = $jsilcore.InFlightObjectConstructions[this.typeName];
+    var inFlight = $jsilcore.InFlightObjectConstructions[this.getTypeName()];
 
     if (inFlight)
       return inFlight.publicInterface;
   }
 
-  var result = JSIL.ResolveName(this.context, this.typeName, true);
+  var result = JSIL.ResolveName(this.getContext(), this.typeName, true);
   if (!result.exists())
     JSIL.RuntimeError("The name '" + this.typeName + "' does not exist.");
 
@@ -2003,7 +2087,7 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
     }
 
     if (anyChanges)
-      return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
+      return new JSIL.TypeRef(obj.context, obj.getTypeName(), resolvedGa);
     else
       return null;
   } else if (obj.__IsClosed__ === false) {
@@ -2791,7 +2875,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         else
           iface = iface.get();
       } catch (exc) {
-        JSIL.Host.warning("Type " + typeName + " implements an interface named '" + String(iface.typeName || iface) + "' that could not be resolved: " + exc);
+        JSIL.Host.warning("Type " + typeName + " implements an interface named '" + String(iface.getTypeName() || iface) + "' that could not be resolved: " + exc);
         interfaces[i] = null;
         continue __interfaces__;
       }
@@ -2924,14 +3008,16 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var override = overrides[j];
       var iface = null;
 
-      switch (typeof (override.interfaceIndexOrName)) {
-        // TODO: Accept typerefs
+      switch (typeof (override.interfaceNameOrReference)) {
+        case "object":
+          iface = JSIL.ResolveTypeReference(override.interfaceNameOrReference)[1];
+          break;
 
         case "string":
           // If the index is a string, search all the interfaces implemented by this type for a substring match.
 
           var matchingInterfaces = interfaces.filter(function (iface) {
-            return iface.__FullName__.indexOf(override.interfaceIndexOrName) >= 0;
+            return iface.__FullName__.indexOf(override.interfaceNameOrReference) >= 0;
           });
 
           if (matchingInterfaces.length > 1) {
@@ -2939,7 +3025,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             /*
             JSIL.RuntimeError(
               "Member '" + member._descriptor.EscapedName + 
-              "' overrides interface '" + override.interfaceIndexOrName + 
+              "' overrides interface '" + override.interfaceNameOrReference + 
               "' but " + matchingInterfaces.length + " interfaces match that name: \r\n" +
               "\r\n".join(matchingInterfaces)
             );
@@ -2952,17 +3038,13 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           }
 
           break;
-
-        case "number":
-          iface = indexedInterfaceTable[override.interfaceIndexOrName];
-          break;
       }
 
       if (!iface)
         JSIL.RuntimeError(
           "Member '" + member._descriptor.EscapedName + 
           "' overrides nonexistent interface of type '" + typeObject.__FullName__ + 
-          "' with index '" + override.interfaceIndexOrName + "'"
+          "' with index '" + override.interfaceNameOrReference + "'"
         );
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
@@ -2973,7 +3055,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         missingMembers.splice(missingIndex, 1);
 
       if (trace) {
-        console.log("Overrides set " + typeName + "::" + key + " (#" + override.interfaceIndexOrName + "=" + iface + ") = " + member._descriptor.EscapedName);
+        console.log("Overrides set " + typeName + "::" + key + " (#" + override.interfaceNameOrReference + "=" + iface + ") = " + member._descriptor.EscapedName);
       }
 
       // Important: This may overwrite an existing member with this key, from an automatic interface fixup
@@ -5770,8 +5852,8 @@ JSIL.MemberBuilder.prototype.Attribute = function (attributeType, getConstructor
   return this;
 };
 
-JSIL.MemberBuilder.prototype.Overrides = function (interfaceIndexOrName, interfaceMemberName) {
-  var record = new JSIL.OverrideRecord(interfaceIndexOrName, interfaceMemberName);
+JSIL.MemberBuilder.prototype.Overrides = function (interfaceNameOrReference, interfaceMemberName) {
+  var record = new JSIL.OverrideRecord(interfaceNameOrReference, interfaceMemberName);
   this.overrides.push(record);
 
   return this;

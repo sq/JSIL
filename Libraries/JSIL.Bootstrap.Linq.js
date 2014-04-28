@@ -35,13 +35,13 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, ["T"], function
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), []),
     getEnumeratorImpl
   )
-    .Overrides(0, "GetEnumerator");
+    .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 
   $.Method({Static: false, Public: true }, "GetEnumerator",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), []),
     getEnumeratorImpl
   )
-    .Overrides(1, "GetEnumerator");
+    .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
   $.ImplementInterfaces(
     /* 0 */ $jsilcore.TypeRef("System.Collections.IEnumerable"), 
