@@ -708,5 +708,17 @@ namespace JSIL.Tests {
                 "this should have been boxed twice"
             );
         }
+
+        [Test]
+        public void Issue395 () {
+            string output = "00";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue395.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

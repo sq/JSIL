@@ -312,12 +312,17 @@ namespace JSIL.Transforms {
             if (
                 (thisReference != null) && 
                 (sa != null) && 
-                sa.ViolatesThisReferenceImmutability && 
-                !(ParentNode is JSCommaExpression)
+                !(ParentNode is JSCommaExpression) &&
+                (
+                    sa.ViolatesThisReferenceImmutability ||
+                    sa.ModifiedVariables.Contains("this") ||
+                    sa.EscapingVariables.Contains("this")
+                )
             ) {
                 // The method we're calling violates immutability so we need to clone the this-reference
                 //  before we call it.
                 var thisReferenceType = thisReference.GetActualType(TypeSystem);
+
                 if (TypeUtil.IsStruct(thisReferenceType)) {
                     if (!(thisReference is JSVariable) && !(thisReference is JSFieldAccess))
                         throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation);
