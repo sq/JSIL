@@ -1709,24 +1709,78 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 	);
 });
 
-// TODO: This type is actually a struct in the CLR
-JSIL.MakeClass($jsilcore.TypeRef("JSIL.ArrayEnumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1+Enumerator")]), "System.Collections.Generic.List`1+Enumerator", true, ["T"], function ($) {
-  $.Field({Public: false, Static: false}, "_array", Array, function ($) { return null; });
-  $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
-  $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
+JSIL.MakeStruct(
+  "System.ValueType", "System.Collections.Generic.List`1+Enumerator", true, ["T"], 
+  function ($) {
+    $.Field({Public: false, Static: false}, "_array", Array, function ($) { return null; });
+    $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
+    $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
 
-  $.Method({Public: true, Static: false}, ".ctor", 
-    new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),
-    function (list) {
-      this._array = list._items;
-      this._length = list._size;
-    }
-  );
+    $.Method({Public: true, Static: false}, ".ctor", 
+      new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),
+      function (list) {
+        if (!list)
+          throw new Error("List must be specified");
 
-  $.ImplementInterfaces(
-    $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1+Enumerator")])
-  );
-});
+        this._array = list._items;
+        this._length = list._size;
+        this._index = -1;
+      }
+    );
+
+    $.RawMethod(false, "__CopyMembers__",
+      function __CopyMembers__ (source, target) {
+        target._array = source._array;
+        target._length = source._length;
+        target._index = source._index;
+      }
+    );
+
+    $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
+      JSIL.MethodSignature.Void, 
+      function Dispose () {
+        this._array = null;
+      }
+    );
+
+    $.Method({Static:false, Public:true , Virtual:true }, "get_Current", 
+      new JSIL.MethodSignature($.GenericParameter("T"), [], []), 
+      function get_Current () {
+        return this._array[this._index];
+      }
+    )
+        .Overrides("System.Collections.Generic.IEnumerator`1", "get_Current");
+
+    $.Method({Static:false, Public:true , Virtual:true }, "MoveNext", 
+      new JSIL.MethodSignature($.Boolean, [], []), 
+      function MoveNext () {
+        this._index += 1;
+        return (this._index < this._length);
+      }
+    );
+
+    $.Method({Static:false, Public:false }, null, 
+      new JSIL.MethodSignature($.Object, [], []), 
+      function System_Collections_IEnumerator_get_Current () {
+        return this._array[this._index];
+      }
+    )
+      .Overrides("System.Collections.IEnumerator", "get_Current");
+
+    $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
+      JSIL.MethodSignature.Void, 
+      function Reset () {
+        this._index = -1;
+      }
+    )
+      .Overrides("System.Collections.IEnumerator", "Reset");
+
+    $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.IEnumerator"),
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1+Enumerator")])
+    );
+  }
+);
 
 JSIL.ImplementExternals(
   "System.Threading.Interlocked", function ($) {
