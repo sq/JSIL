@@ -475,7 +475,7 @@ namespace JSIL {
                     lock (result.Assemblies)
                         result.Assemblies.Add(assembly);
                 } else {
-                    Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                    Console.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
 
                     result.AddExistingFile("Script", outputPath, existingSize);
                 }

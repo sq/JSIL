@@ -896,7 +896,7 @@ namespace JSIL.Internal {
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
-                        Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
+                        Console.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
                     Members.TryRemove(identifier, out result);
                 } else {

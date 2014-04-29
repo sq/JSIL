@@ -188,7 +188,7 @@ namespace JSIL.Transforms {
                     !SecondPass.VariableAliases.ContainsKey(rightVar.Identifier)
                 ) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
+                        Console.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
 
                     return false;
                 }
@@ -259,7 +259,7 @@ namespace JSIL.Transforms {
             GenericParameter relevantParameter;
             if (IsCopyNeeded(pair.Value, out relevantParameter)) {
                 if (Tracing)
-                    Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
+                    Console.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
 
                 pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
             }
@@ -356,14 +356,14 @@ namespace JSIL.Transforms {
                 if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter))
                 {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
+                        Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     argumentValues[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
                 else
                 {
                     if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
-                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
+                        Console.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
                 }
             }
         }
@@ -375,7 +375,7 @@ namespace JSIL.Transforms {
                 GenericParameter relevantParameter;
                 if (IsCopyNeeded(argument, out relevantParameter)) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument argument #{0}: {1}", i, argument));
+                        Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
@@ -408,16 +408,16 @@ namespace JSIL.Transforms {
                     !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
                 ) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+                        Console.WriteLine(String.Format("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right));
 
                     boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
+                        Console.WriteLine(String.Format("struct copy elided for assignment {0} = {1}", boe.Left, boe.Right));
                 }
             } else {
                 if (Tracing)
-                    Debug.WriteLine(String.Format("no copy needed for assignment rhs {0}", boe.Right));
+                    Console.WriteLine(String.Format("no copy needed for assignment {0} = {1}", boe.Left, boe.Right));
             }
 
             VisitChildren(boe);

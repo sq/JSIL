@@ -115,7 +115,7 @@ namespace JSIL.Transforms {
             );
 
             if (Tracing)
-                Debug.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
+                Console.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
 
             Variables[newVariable.Identifier] = newVariable;
             Variables.Add(newParameter.Identifier, newParameter);
@@ -152,7 +152,7 @@ namespace JSIL.Transforms {
             ));
 
             if (Tracing)
-                Debug.WriteLine(String.Format("Transformed {0} into {1} in {2}", variable, newVariable, statement));
+                Console.WriteLine(String.Format("Transformed {0} into {1} in {2}", variable, newVariable, statement));
 
             // Insert the new declaration directly before the top-level block containing the original
             //  declaration. This ensures that if its initial value has a dependency on external state,

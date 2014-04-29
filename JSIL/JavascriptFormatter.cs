@@ -956,7 +956,7 @@ namespace JSIL.Internal {
             if (info != null) {
                 Identifier(info.Name);
             } else {
-                Debug.WriteLine("Method missing type information: {0}", method.FullName);
+                Console.WriteLine("Method missing type information: {0}", method.FullName);
                 Identifier(method.Name);
             }
         }
