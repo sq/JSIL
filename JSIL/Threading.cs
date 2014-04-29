@@ -9,18 +9,6 @@ using System.Threading;
 using JSIL.Internal;
 
 namespace JSIL.Threading {
-    public class ReferenceComparer<T> : IEqualityComparer<T>
-        where T : class {
-
-        public bool Equals (T x, T y) {
-            return (x == y);
-        }
-
-        public int GetHashCode (T obj) {
-            return obj.GetHashCode();
-        }
-    }
-
     public class TrackedLockCollection : IDisposable {
         public class DeadlockInfo {
             public readonly TrackedLock A, B;

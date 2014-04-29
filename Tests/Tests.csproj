@@ -93,6 +93,7 @@
     <None Include="AnalysisTestCases\PackedArrayInitializationHoisting.cs" />
     <None Include="AnalysisTestCases\CopyForTemporaryStructInLoop.cs" />
     <None Include="AnalysisTestCases\StructAllocationHoistingTwiceInStatement.cs" />
+    <None Include="AnalysisTestCases\Issue371.cs" />
     <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />

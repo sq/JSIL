@@ -682,5 +682,31 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void AsyncAwaitCloning () {
+            // HACK: async/await support not merged to trunk yet
+            var hack = true;
+            string output = hack ? "" : "Continuation:AsyncMethod result";
+
+            var generatedJs = GetJavascript(
+                @"AnalysisTestCases\Issue371.cs",
+                output
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"\/\* ref \*\/ this").Count,
+                0,
+                "this was passed as a reference"
+            );
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"new JSIL\.BoxedVariable\(this\)").Count,
+                2,
+                "this should have been boxed twice"
+            );
+        }
     }
 }

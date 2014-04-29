@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
@@ -14,8 +15,12 @@ namespace JSIL.Transforms {
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly JSILIdentifier JSIL;
 
-        protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>();
-        protected readonly Dictionary<JSVariableDeclarationStatement, JSBlockStatement> Declarations = new Dictionary<JSVariableDeclarationStatement, JSBlockStatement>();
+        protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>(
+            new ReferenceComparer<JSPassByReferenceExpression>()
+        );
+        protected readonly Dictionary<JSVariableDeclarationStatement, JSBlockStatement> Declarations = new Dictionary<JSVariableDeclarationStatement, JSBlockStatement>(
+            new ReferenceComparer<JSVariableDeclarationStatement>()
+        );
 
         public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables) {
             JSIL = jsil;
