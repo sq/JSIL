@@ -23,6 +23,7 @@ namespace JSIL.Transforms {
         public readonly bool OptimizeCopies;
 
         private FunctionAnalysis2ndPass SecondPass = null;
+        private JSExpression ResultReferenceReplacement = null;
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
@@ -313,6 +314,7 @@ namespace JSIL.Transforms {
                 (thisReference != null) && 
                 (sa != null) && 
                 !(ParentNode is JSCommaExpression) &&
+                !(thisReference is JSStructCopyExpression) &&
                 (
                     sa.ViolatesThisReferenceImmutability ||
                     sa.ModifiedVariables.Contains("this") ||
@@ -324,21 +326,38 @@ namespace JSIL.Transforms {
                 var thisReferenceType = thisReference.GetActualType(TypeSystem);
 
                 if (TypeUtil.IsStruct(thisReferenceType)) {
-                    if (!(thisReference is JSVariable) && !(thisReference is JSFieldAccess))
-                        throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation);
+                    if ((thisReference is JSVariable) || (thisReference is JSFieldAccess)) {
+                        var rre = ParentNode as JSResultReferenceExpression;
+                        var cloneExpr = new JSBinaryOperatorExpression(
+                            JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
+                        );
+                        var commaExpression = new JSCommaExpression(cloneExpr, invocation);
 
-                    var cloneExpr = new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
-                    );
-                    var commaExpression = new JSCommaExpression(cloneExpr, invocation);
+                        if (rre != null) {
+                            ResultReferenceReplacement = commaExpression;
+                        } else {
+                            ParentNode.ReplaceChild(invocation, commaExpression);
+                            VisitReplacement(commaExpression);
+                        }
+                    } else {
+                        invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
+                        VisitChildren(invocation);
+                    }
 
-                    ParentNode.ReplaceChild(invocation, commaExpression);
-                    VisitReplacement(commaExpression);
                     return;
                 }
             }
 
             VisitChildren(invocation);
+        }
+
+        public void VisitNode (JSResultReferenceExpression rre) {
+            VisitChildren(rre);
+
+            if (ResultReferenceReplacement != null) {
+                ParentNode.ReplaceChild(rre, ResultReferenceReplacement);
+                VisitReplacement(ResultReferenceReplacement);
+            }
         }
 
         private void CloneArgumentsIfNecessary(
