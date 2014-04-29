@@ -315,6 +315,10 @@ namespace JSIL.Transforms {
                 (sa != null) && 
                 !(ParentNode is JSCommaExpression) &&
                 !(thisReference is JSStructCopyExpression) &&
+                !(
+                    (ParentNode is JSResultReferenceExpression) &&
+                    Stack.OfType<JSCommaExpression>().Any()
+                ) &&
                 (
                     sa.ViolatesThisReferenceImmutability ||
                     sa.ModifiedVariables.Contains("this") ||
@@ -331,7 +335,12 @@ namespace JSIL.Transforms {
                         var cloneExpr = new JSBinaryOperatorExpression(
                             JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
                         );
-                        var commaExpression = new JSCommaExpression(cloneExpr, invocation);
+                        var commaExpression = new JSCommaExpression(
+                            cloneExpr,
+                            (rre != null)
+                                ? (JSExpression)new JSResultReferenceExpression(invocation)
+                                : (JSExpression)invocation
+                        );
 
                         if (rre != null) {
                             ResultReferenceReplacement = commaExpression;
@@ -355,8 +364,10 @@ namespace JSIL.Transforms {
             VisitChildren(rre);
 
             if (ResultReferenceReplacement != null) {
-                ParentNode.ReplaceChild(rre, ResultReferenceReplacement);
-                VisitReplacement(ResultReferenceReplacement);
+                var newRre = ResultReferenceReplacement;
+                ResultReferenceReplacement = null;
+                ParentNode.ReplaceChild(rre, newRre);
+                VisitReplacement(newRre);
             }
         }
 
