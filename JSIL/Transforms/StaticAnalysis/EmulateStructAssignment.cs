@@ -443,6 +443,24 @@ namespace JSIL.Transforms {
             VisitChildren(nbv);
         }
 
+        public void VisitNode (JSWriteThroughReferenceExpression wtre) {
+            var rightType = wtre.GetActualType(TypeSystem);
+            GenericParameter relevantParameter;
+
+            if (
+                IsStructOrGenericParameter(rightType) &&
+                IsCopyNeeded(wtre.Right, out relevantParameter)
+            ) {
+                var replacement = new JSWriteThroughReferenceExpression(
+                    (JSVariable)wtre.Left, MakeCopyForExpression(wtre.Right, relevantParameter)
+                );
+                ParentNode.ReplaceChild(wtre, replacement);
+                VisitReplacement(replacement);
+            } else {
+                VisitChildren(wtre);
+            }
+        }
+
         protected JSStructCopyExpression MakeCopyForExpression (JSExpression expression, GenericParameter relevantParameter) {
             if (relevantParameter != null)
                 return new JSConditionalStructCopyExpression(relevantParameter, expression);
