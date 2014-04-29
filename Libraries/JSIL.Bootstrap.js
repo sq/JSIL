@@ -388,16 +388,22 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
     function CreateDelegate (delegateType, firstArgument, method) {
       var impl = JSIL.$GetMethodImplementation(method);
 
-      if (typeof (impl) !== "function")
-        throw new System.Exception("Failed to bind delegate");
-
       var delegatePublicInterface = delegateType.__PublicInterface__;
 
-      if (typeof (delegatePublicInterface.New) !== "function") {
+      if (typeof (delegatePublicInterface.New) !== "function")
         JSIL.Host.abort(new Error("Invalid delegate type"));
-      }
 
-      return delegatePublicInterface.New(firstArgument, impl);
+      if (!impl) {
+        throw new System.Exception("Method has no implementation");
+      } else if (typeof (impl) === "function") {
+        return delegatePublicInterface.New(firstArgument, impl);
+      } else if (Object.getPrototypeOf(impl) === JSIL.InterfaceMethod.prototype) {
+        // FIXME: I think this may not work right when the interface method is overloaded.
+        var interfaceMethodImplementation =
+          impl.LookupMethod(firstArgument);
+
+        return delegatePublicInterface.New(firstArgument, interfaceMethodImplementation);
+      }
     }
   );  
 

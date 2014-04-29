@@ -7155,6 +7155,7 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInf
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
+  this.methodKey = null;
   this.signature = signature;
   this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
@@ -7191,6 +7192,10 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
 
   var result = null;
   var variantInvocationCandidates = null;
+
+  if (!this.methodKey) {
+    this.methodKey = this.signature.GetKey(this.qualifiedName);
+  }
 
   if (this.variantGenericArguments.length) {
     variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
@@ -7241,7 +7246,6 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
 
 JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
   if (this.typeObject.__IsClosed__ && this.signature.IsClosed) {
-    this.methodKey = this.signature.GetKey(this.qualifiedName);
     return this.signature.$MakeCallMethod("interface");
   } else {
     return function () {
@@ -9029,11 +9033,23 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
 
 JSIL.$GetMethodImplementation = function (method) {
   var isStatic = method._descriptor.Static;
-  var key = method._data.mangledName || method._descriptor.EscapedName;
+  var isInterface = method._typeObject.IsInterface;
+  var key = isInterface
+    ? method._descriptor.EscapedName
+    : method._data.mangledName || method._descriptor.EscapedName;
   var publicInterface = method._typeObject.__PublicInterface__;
-  var context = isStatic ? publicInterface : publicInterface.prototype;
+  var context = isStatic || isInterface 
+    ? publicInterface 
+    : publicInterface.prototype;
 
-  return context[key] || null;
+  var result = context[key] || null;
+
+  if (isInterface) {
+      if (!result.signature.IsClosed)
+        throw new Error("Generic method is not closed");
+  }
+
+  return result;
 };
 
 JSIL.$FindMethodBodyInTypeChain = function (typeObject, isStatic, key, recursive) {
