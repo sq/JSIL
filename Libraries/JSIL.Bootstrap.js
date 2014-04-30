@@ -1768,8 +1768,8 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals("System.Threading.Monitor", function ($) {
   var enterImpl = function (obj) {
     var current = (obj.__LockCount__ || 0);
-    if (current >= 1)
-      JSIL.Host.warning("Warning: lock recursion " + obj);
+    /*if (current >= 1)
+      JSIL.Host.warning("Warning: lock recursion " + obj);*/
 
     obj.__LockCount__ = current + 1;
 
