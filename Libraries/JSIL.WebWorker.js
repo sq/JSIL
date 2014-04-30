@@ -20,6 +20,10 @@ var $jsilbrowserstate = window.$jsilbrowserstate = {
     blockGamepadInput: false
 };
 
+function updateProgressBar(prefix, suffix, bytesLoaded, bytesTotal) {
+    postMessage({operation: 'updateProgress', prefix: prefix, suffix: suffix, bytesLoaded: bytesLoaded, bytesTotal: bytesTotal});
+}
+
 JSIL.WebWorker.PageVisibilityService = function () {
 };
 
@@ -433,6 +437,8 @@ function finishLoading(st) {
                 initIfNeeded();
             }
 
+            updateProgressBar("Loading " + item[3], null, state.assetsFinished, state.assetCount);
+
             if (typeof (cb) === "function") {
                 cb(state);
             }
@@ -454,8 +460,11 @@ function finishLoading(st) {
     }
     initIfNeeded();
 
+    updateProgressBar("Initializing Application", null, 1, 1);
+
     var allFailures = $jsilloaderstate.loadFailures.concat(state.assetLoadFailures);
 
+    postMessage({ operation: 'finishedLoading' });
     return;
 };
 
@@ -514,6 +523,7 @@ function pollAssetQueue(st) {
 
     while ((state.assetsLoading < maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
         try {
+            updateProgressBar("Downloading: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
             var assetSpec = state.assets[state.loadIndex];
 
             var assetType = assetSpec[0];
@@ -644,7 +654,6 @@ function beginLoading() {
         }
     }
 
-    postMessage("Loading data ... ");
     loadAssets(allAssetsToLoad);
 };
 
@@ -675,62 +684,6 @@ function stringifyLoadError(error) {
         return String(error);
 };
 
-function showSaveRecordingDialog() {
-    try {
-        Microsoft.Xna.Framework.Game.ForcePause();
-    } catch (exc) {
-    }
-
-    var theDialog = document.getElementById("saveRecordingDialog");
-    if (!theDialog) {
-        var dialog = document.createElement("div");
-        dialog.id = "saveRecordingDialog";
-
-        dialog.innerHTML =
-          '<label for="recordingName">Recording Name:</label> ' +
-          '<input type="text" id="recordingName" value="test" style="background: white; color: black"><br>' +
-          '<a id="saveRecordingToLocalStorage" href="#" style="color: black">Save to Local Storage</a> | ' +
-          '<a id="saveRecordingAsFile" download="test.replay" target="_blank" href="#" style="color: black">Download</a> | ' +
-          '<a id="cancelSaveRecording" href="#" style="color: black">Close</a>';
-
-        dialog.style.position = "absolute";
-        dialog.style.background = "rgba(240, 240, 240, 0.9)";
-        dialog.style.color = "black";
-        dialog.style.padding = "24px";
-        dialog.style.borderRadius = "8px 8px 8px 8px";
-        dialog.style.boxShadow = "2px 2px 4px rgba(0, 0, 0, 0.75)";
-
-        var body = document.getElementsByTagName("body")[0];
-
-        body.appendChild(dialog);
-        theDialog = dialog;
-
-        document.getElementById("saveRecordingToLocalStorage").addEventListener("click", saveRecordingToLocalStorage, true);
-        document.getElementById("cancelSaveRecording").addEventListener("click", hideSaveRecordingDialog, true);
-
-        var inputField = document.getElementById("recordingName")
-        inputField.addEventListener("input", updateSaveLinkDownloadAttribute, true);
-        inputField.addEventListener("change", updateSaveLinkDownloadAttribute, true);
-        inputField.addEventListener("blur", updateSaveLinkDownloadAttribute, true);
-    }
-
-    var saveLink = document.getElementById("saveRecordingAsFile");
-
-    try {
-        // FIXME: Memory leak
-        var json = JSIL.Replay.SaveAsJSON();
-        var bytes = JSIL.StringToByteArray(json);
-
-        saveLink.href = JSIL.GetObjectURLForBytes(bytes, "application/json");
-    } catch (exc) {
-    }
-
-    var x = (document.documentElement.clientWidth - theDialog.clientWidth) / 2;
-    var y = (document.documentElement.clientHeight - theDialog.clientHeight) / 2;
-    theDialog.style.left = x + "px";
-    theDialog.style.top = y + "px";
-    theDialog.style.display = "block";
-};
 
 function updateSaveLinkDownloadAttribute(evt) {
     var saveLink = document.getElementById("saveRecordingAsFile");

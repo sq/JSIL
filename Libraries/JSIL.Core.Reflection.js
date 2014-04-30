@@ -961,6 +961,9 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
+    $.Field({ Static: true, Public: true, ReadOnly: true }, "EmptyTypes", $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), function ($pi) {
+        return JSIL.Array.New($jsilcore.System.Type, 0);
+    });
     $.Property({Public: true , Static: false, Virtual: true }, "Module");
     $.Property({Public: true , Static: false, Virtual: true }, "Assembly");
     $.Property({Public: true , Static: false, Virtual: true }, "FullName");
@@ -1257,6 +1260,27 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
         throw new System.Exception("Failed to find constructor");
 
       return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
+    }
+  );
+
+  var equalsImpl = function (lhs, rhs) {
+      if (lhs === rhs)
+          return true;
+
+      return JSIL.ObjectEquals(lhs, rhs);
+  };
+
+  $.Method({ Static: true, Public: true }, "op_Equality",
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], [])),
+    function op_Equality(left, right) {
+        return equalsImpl(left, right);
+    }
+  );
+
+  $.Method({ Static: true, Public: true }, "op_Inequality",
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], [])),
+    function op_Inequality(left, right) {
+        return !equalsImpl(left, right);
     }
   );
 });

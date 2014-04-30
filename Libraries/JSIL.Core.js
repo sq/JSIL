@@ -5209,7 +5209,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        return typeOfValue.__AssignableTypes__ != null ? typeOfValue.__AssignableTypes__[this.__TypeId__] === true : false;
     };
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {

@@ -369,7 +369,7 @@ var assetLoaders = {
       }
     });
   },
-  "Resources": function loadResources (filename, data, onError, onDoneLoading) {
+  "Resources": function loadResources(filename, data, onError, onDoneLoading) {
     loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
       if ((result !== null) && (!error)) {
         var finisher = function () {
