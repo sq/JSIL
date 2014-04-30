@@ -26,7 +26,7 @@ namespace JSIL.Internal {
         ProxyInfo[] GetProxies (TypeDefinition type);
 
         void CacheProxyNames (MemberReference member);
-        bool TryGetProxyNames (string typeFullName, out string[] result);
+        bool TryGetProxyNames (TypeReference type, out string[] result);
 
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
@@ -82,6 +82,18 @@ namespace JSIL.Internal {
     }
 
     public struct TypeIdentifier {
+        public class ComparerImpl : IEqualityComparer<TypeIdentifier> {
+            public bool Equals (TypeIdentifier x, TypeIdentifier y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (TypeIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
+        public static readonly ComparerImpl Comparer = new ComparerImpl(); 
+
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;
@@ -885,7 +897,7 @@ namespace JSIL.Internal {
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
-                        Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
+                        Console.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
                     Members.TryRemove(identifier, out result);
                 } else {
@@ -1245,7 +1257,7 @@ namespace JSIL.Internal {
 
         public bool Inherited;
         public string Name;
-        public readonly List<Entry> Entries = new List<Entry>();
+        public readonly List<Entry> Entries = new List<Entry>(1);
     }
 
     public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
@@ -1261,11 +1273,15 @@ namespace JSIL.Internal {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
-                else
+                else {
+                    if (Attributes == null)
+                        Attributes = new Dictionary<string, AttributeGroup>(cas.Count);
+
                     Add(ca.AttributeType.FullName, new AttributeGroup {
                         Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
+                }
             }
         }
 

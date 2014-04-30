@@ -5,15 +5,23 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using JSIL.Internal;
+using JSIL.Proxies;
 using Mono.Cecil;
 
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource, IDisposable {
+        protected class ProxiesByNameRecord {
+            public readonly ConcurrentCache<HashedString, string[]> Cache =
+                new ConcurrentCache<HashedString, string[]>(new HashedStringComparer());
+            public volatile int Count;
+        }
+
         protected class MakeTypeInfoArgs {
-            public readonly Dictionary<TypeIdentifier, TypeDefinition> MoreTypes = new Dictionary<TypeIdentifier, TypeDefinition>();
-            public readonly Dictionary<TypeIdentifier, TypeInfo> SecondPass = new Dictionary<TypeIdentifier, TypeInfo>();
-            public readonly OrderedDictionary<TypeIdentifier, TypeDefinition> TypesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>();
+            public readonly Dictionary<TypeIdentifier, TypeDefinition> MoreTypes = new Dictionary<TypeIdentifier, TypeDefinition>(TypeIdentifier.Comparer);
+            public readonly Dictionary<TypeIdentifier, TypeInfo> SecondPass = new Dictionary<TypeIdentifier, TypeInfo>(TypeIdentifier.Comparer);
+            public readonly OrderedDictionary<TypeIdentifier, TypeDefinition> TypesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>(TypeIdentifier.Comparer);
 
             public TypeDefinition Definition;
         }
@@ -24,30 +32,36 @@ namespace JSIL {
         protected readonly ConcurrentCache<string, ModuleInfo> ModuleInformation;
         protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies;
         protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName;
-        protected readonly ConcurrentCache<string, string[]> ProxiesByName;
+        protected readonly ConcurrentCache<HashedString, ProxiesByNameRecord> ProxiesByName;
         protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache;
 
         protected static readonly ConcurrentCache<string, ModuleInfo>.CreatorFunction<ModuleDefinition> MakeModuleInfo;
-        protected static readonly ConcurrentCache<string, string[]>.CreatorFunction<MemberReference> MakeProxiesByName;
+        protected static readonly ConcurrentCache<HashedString, ProxiesByNameRecord>.CreatorFunction<MemberReference> MakeProxiesByName;
+        protected static readonly ConcurrentCache<HashedString, string[]>.CreatorFunction<MemberReference> MakeProxiesByFullName;
+        protected static readonly Predicate<string[]> ShouldAddProxies; 
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo>.CreatorFunction<MakeTypeInfoArgs> MakeTypeInfo;
 
         static TypeInfoProvider () {
             MakeModuleInfo = (key, module) => new ModuleInfo(module);
             MakeProxiesByName = _MakeProxiesByName;
+            MakeProxiesByFullName = _MakeProxiesByFullName;
+            ShouldAddProxies = _ShouldAddProxies;
         }
 
         public TypeInfoProvider () {
             var levelOfParallelism = Math.Max(1, Environment.ProcessorCount / 2);
 
             Assemblies = new HashSet<AssemblyDefinition>();
-            ProxyAssemblyNames = new HashSet<string>();
-            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
-            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
-            ProxiesByName = new ConcurrentCache<string, string[]>(levelOfParallelism, 256);
+            ProxyAssemblyNames = new HashSet<string>(StringComparer.Ordinal);
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(TypeIdentifier.Comparer);
+            DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>(StringComparer.Ordinal);
+            ProxiesByName = new ConcurrentCache<HashedString, ProxiesByNameRecord>(
+                levelOfParallelism, 256, new HashedStringComparer()
+            );
             TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>(levelOfParallelism, 4096);
 
-            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096);
-            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256);
+            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(levelOfParallelism, 4096, TypeIdentifier.Comparer);
+            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(levelOfParallelism, 256, StringComparer.Ordinal);
 
             MakeTypeInfo = _MakeTypeInfo;
         }
@@ -55,7 +69,7 @@ namespace JSIL {
         protected TypeInfoProvider (TypeInfoProvider cloneSource) {
             Assemblies = new HashSet<AssemblyDefinition>(cloneSource.Assemblies);
             ProxyAssemblyNames = new HashSet<string>(cloneSource.ProxyAssemblyNames);
-            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(cloneSource.TypeProxies);
+            TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>(cloneSource.TypeProxies, TypeIdentifier.Comparer);
 
             DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
             foreach (var kvp in cloneSource.DirectProxiesByTypeName)
@@ -73,17 +87,28 @@ namespace JSIL {
             return new TypeInfoProvider(this);
         }
 
-        private static string[] _MakeProxiesByName (string key, MemberReference mr) {
+        private static bool _ShouldAddProxies (string[] proxies) {
+            if (proxies == null)
+                return false;
+            else if (proxies.Length == 0)
+                return false;
+            else
+                return true;
+        }
+
+        private static ProxiesByNameRecord _MakeProxiesByName (HashedString key, MemberReference mr) {
+            return new ProxiesByNameRecord();
+        }
+
+        private static string[] _MakeProxiesByFullName (HashedString key, MemberReference mr) {
             var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
             if (icap == null)
                 return null;
 
             CustomAttribute proxyAttribute = null;
-            for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++)
-            {
+            for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
                 var ca = icap.CustomAttributes[i];
-                if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy"))
-                {
+                if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
                     proxyAttribute = ca;
                     break;
                 }
@@ -95,33 +120,28 @@ namespace JSIL {
             string[] proxyTargets = null;
             var args = proxyAttribute.ConstructorArguments;
 
-            foreach (var arg in args)
-            {
-                switch (arg.Type.FullName)
-                {
+            foreach (var arg in args) {
+                switch (arg.Type.FullName) {
                     case "System.Type":
-                        proxyTargets = new string[] {((TypeReference) arg.Value).FullName};
+                        proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
 
                         break;
-                    case "System.Type[]":
-                        {
-                            var values = (CustomAttributeArgument[]) arg.Value;
+                    case "System.Type[]": {
+                            var values = (CustomAttributeArgument[])arg.Value;
                             proxyTargets = new string[values.Length];
                             for (var i = 0; i < proxyTargets.Length; i++)
-                                proxyTargets[i] = ((TypeReference) values[i].Value).FullName;
+                                proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
 
                             break;
                         }
-                    case "System.String":
-                        {
-                            proxyTargets = new string[] {(string) arg.Value};
+                    case "System.String": {
+                            proxyTargets = new string[] { (string)arg.Value };
 
                             break;
                         }
-                    case "System.String[]":
-                        {
-                            var values = (CustomAttributeArgument[]) arg.Value;
-                            proxyTargets = (from v in values select (string) v.Value).ToArray();
+                    case "System.String[]": {
+                            var values = (CustomAttributeArgument[])arg.Value;
+                            proxyTargets = (from v in values select (string)v.Value).ToArray();
 
                             break;
                         }
@@ -191,14 +211,33 @@ namespace JSIL {
             TypeAssignabilityCache.Clear();
         }
 
-        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
-            return ProxiesByName.TryGet(typeFullName, out result);
+        bool ITypeInfoSource.TryGetProxyNames (TypeReference tr, out string[] result) {
+            result = null;
+
+            ProxiesByNameRecord proxiesByFullName;
+            var name = new HashedString(tr.Name);
+            if (!ProxiesByName.TryGet(name, out proxiesByFullName))
+                return false;
+
+            if (proxiesByFullName.Count == 0)
+                return false;
+
+            var fullName = new HashedString(tr.FullName);
+            return proxiesByFullName.Cache.TryGet(fullName, out result);
         }
 
         void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
-            var fullName = mr.DeclaringType.FullName;
+            var name = new HashedString(mr.DeclaringType.Name);
+            var proxiesByFullName = ProxiesByName.GetOrCreate(
+                name, mr, MakeProxiesByName
+            );
 
-            ProxiesByName.TryCreate(fullName, mr, MakeProxiesByName);
+            var fullName = new HashedString(mr.DeclaringType.FullName);
+            if (proxiesByFullName.Cache.TryCreate(
+                fullName, mr,
+                MakeProxiesByFullName, ShouldAddProxies
+            ))
+                Interlocked.Increment(ref proxiesByFullName.Count);
         }
 
         protected IEnumerable<TypeDefinition> ProxyTypesFromAssembly (AssemblyDefinition assembly) {
@@ -217,11 +256,12 @@ namespace JSIL {
         private void Remove (TypeDefinition type) {
             var identifier = new TypeIdentifier(type);
             var typeName = type.FullName;
+            var hashedTypeName = new HashedString(typeName);
 
             TypeProxies.Remove(identifier);
             TypeInformation.TryRemove(identifier);
             DirectProxiesByTypeName.Remove(typeName);
-            ProxiesByName.TryRemove(typeName);
+            ProxiesByName.TryRemove(hashedTypeName);
 
             foreach (var nt in type.NestedTypes)
                 Remove(nt);
@@ -528,8 +568,16 @@ namespace JSIL {
     }
 
     public class OrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
-        protected readonly Dictionary<TKey, TValue> Dictionary = new Dictionary<TKey, TValue>();
+        protected readonly Dictionary<TKey, TValue> Dictionary;
         protected readonly LinkedList<TKey> LinkedList = new LinkedList<TKey>();
+
+        public OrderedDictionary () {
+            Dictionary = new Dictionary<TKey, TValue>();
+        }
+
+        public OrderedDictionary (IEqualityComparer<TKey> comparer) {
+            Dictionary = new Dictionary<TKey, TValue>(comparer);
+        }
 
         public int Count {
             get {

@@ -240,7 +240,9 @@ namespace JSIL.Internal {
                 return;
 
             _IndentNeeded = false;
-            Output.Write(new string(' ', (int)(_IndentLevel * 2)));
+            var tabs = _IndentLevel;
+            for (var i = 0; i < tabs; i++)
+                Output.Write("  ");
         }
 
         public void WriteRaw (string characters) {
@@ -954,7 +956,7 @@ namespace JSIL.Internal {
             if (info != null) {
                 Identifier(info.Name);
             } else {
-                Debug.WriteLine("Method missing type information: {0}", method.FullName);
+                Console.WriteLine("Method missing type information: {0}", method.FullName);
                 Identifier(method.Name);
             }
         }

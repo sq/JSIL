@@ -128,6 +128,9 @@ namespace JSIL.Internal {
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
+            if (parameters.Count == 0)
+                return null;
+
             if (parameters.Count == 1) {
                 var p = parameters[0];
                 for (int c = p.CustomAttributes.Count, i = 0; i < c; i++) {
@@ -165,10 +168,14 @@ namespace JSIL.Internal {
         }
 
         public static bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
+            bool shallowMatch;
+
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)
                 return false;
+            else if (TypeUtil.TypesAreTriviallyEqual(lhs, rhs, out shallowMatch))
+                return true;
 
             var lhsReference = lhs as ByReferenceType;
             var rhsReference = rhs as ByReferenceType;
@@ -212,13 +219,13 @@ namespace JSIL.Internal {
 
             string[] proxyTargets;
             if (
-                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {
