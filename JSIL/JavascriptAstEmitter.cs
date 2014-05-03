@@ -1782,34 +1782,40 @@ namespace JSIL {
             if (method.DeclaringType.IsInterface)
                 return false;
 
-            if (method.DeclaringType.MethodSignatures.TryGet(method.NamedSignature.Name, out mss)) {
-                int overloadCount = 0;
+            var typeToCheck = method.DeclaringType;
+            int overloadCount = 0;
+            do
+            {
+                if (typeToCheck.MethodSignatures.TryGet(method.NamedSignature.Name, out mss))
+                {                   
+                    var gaCount = method.GenericParameterNames.Length;
+                    int argCount = method.Parameters.Length;
 
-                var gaCount = method.GenericParameterNames.Length;
-                int argCount = method.Parameters.Length;
-
-                foreach (var signature in mss.Signatures) {
-                    if (
-                        (signature.ParameterCount == argCount)
-                    )
-                        overloadCount += 1;
-                    else if ((signature.GenericParameterNames.Length > 0) || (gaCount > 0)) {
+                    foreach (var signature in mss.Signatures)
+                    {
                         if (
-                            (signature.ParameterCount == gaCount) ||
-                            (signature.GenericParameterNames.Length == argCount) ||
-                            (signature.GenericParameterNames.Length == gaCount)
-                        ) {
+                            (signature.ParameterCount == argCount)
+                        )
                             overloadCount += 1;
+                        else if ((signature.GenericParameterNames.Length > 0) || (gaCount > 0))
+                        {
+                            if (
+                                (signature.ParameterCount == gaCount) ||
+                                (signature.GenericParameterNames.Length == argCount) ||
+                                (signature.GenericParameterNames.Length == gaCount)
+                            )
+                            {
+                                overloadCount += 1;
+                            }
                         }
                     }
                 }
+                typeToCheck = typeToCheck.BaseClass;
+            } while (typeToCheck != null);
 
-                // If there's only one overload with this argument count, we don't need to use
-                //  the expensive overloaded method dispatch path.
-                return overloadCount < 2;
-            }
-
-            return false;
+            // If there's only one overload with this argument count, we don't need to use
+            //  the expensive overloaded method dispatch path.
+            return overloadCount < 2;
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
