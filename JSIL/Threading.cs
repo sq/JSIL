@@ -402,7 +402,7 @@ namespace JSIL.Threading {
             }
         }
 
-        public static implicit operator bool (TrackedLockResult result) {
+        public static explicit operator bool (TrackedLockResult result) {
             return result.Success;
         }
 

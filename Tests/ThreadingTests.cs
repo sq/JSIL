@@ -38,7 +38,7 @@ namespace JSIL.Tests {
         public void AcquireAndRelease () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
             Assert.IsTrue(l.IsHeld);
             l.Exit();
             Assert.IsFalse(l.IsHeld);
@@ -48,7 +48,7 @@ namespace JSIL.Tests {
         public void DisposeLock () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
             Assert.IsTrue(l.IsHeld);
             l.Dispose();
             Assert.IsFalse(l.IsHeld);
@@ -59,7 +59,7 @@ namespace JSIL.Tests {
         public void DisposeLockCollection () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
             Assert.IsTrue(l.IsHeld);
             Locks.Dispose();
             Assert.IsFalse(l.IsHeld);
@@ -70,7 +70,7 @@ namespace JSIL.Tests {
         public void HeldLockTracking () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
 
             Assert.AreEqual(Thread.CurrentThread, l.HeldBy);
 
@@ -83,10 +83,10 @@ namespace JSIL.Tests {
         public void AcquireOnSameThreadFails () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
 
             Thread previousOwner;
-            Assert.IsFalse(l.TryEnter(out previousOwner));
+            Assert.IsFalse(l.TryEnter(out previousOwner).Success);
             Assert.AreEqual(Thread.CurrentThread, previousOwner);
             Assert.AreEqual(l.TryEnter().FailureReason, TrackedLockFailureReason.HeldByCurrentThread);
         }
@@ -95,12 +95,12 @@ namespace JSIL.Tests {
         public void AcquireOnOtherThreadFails () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
 
             Assert.AreEqual(Thread.CurrentThread, RunOnThread(
                 () => {
                     Thread previousOwner;
-                    if (l.TryEnter(out previousOwner))
+                    if (l.TryEnter(out previousOwner).Success)
                         return null;
                     else
                         return previousOwner;
@@ -115,7 +115,7 @@ namespace JSIL.Tests {
 
             lock (log)
                 log.Add("Main+TryEnter");
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
             lock (log)
                 log.Add("Main-TryEnter");
 
@@ -299,10 +299,10 @@ namespace JSIL.Tests {
         public void RecursiveAcquireOnSameThreadWorks () {
             var l = new TrackedLock(Locks, "A");
 
-            Assert.IsTrue(l.TryEnter());
+            Assert.IsTrue(l.TryEnter().Success);
             Assert.AreEqual(0, l.RecursionDepth);
 
-            Assert.IsTrue(l.TryEnter(recursive: true));
+            Assert.IsTrue(l.TryEnter(recursive: true).Success);
             Assert.AreEqual(1, l.RecursionDepth);
 
             l.Exit();
