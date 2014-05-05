@@ -5059,6 +5059,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var fullName = typeArgs.Name || null;
   var isReferenceType = Boolean(typeArgs.IsReferenceType);
   var isPublic = Boolean(typeArgs.IsPublic);
+  var isAbstract = Boolean(typeArgs.IsAbstract);
+  var isPrimitive = Boolean(typeArgs.IsPrimitive);
   var genericArguments = typeArgs.GenericParameters || $jsilcore.ArrayNull;
   var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
 
@@ -5139,6 +5141,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject.__IsArray__ = false;
+    typeObject.__IsAbstract__ = isAbstract;
+    typeObject.__IsPrimitive__ = isPrimitive;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
@@ -5328,6 +5332,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
+    typeObject.__IsAbstract__ = true;
+    typeObject.__IsPrimitive__ = false;
     typeObject.__Attributes__ = attributes;
     typeObject.__Interfaces__ = interfaces || [];
 

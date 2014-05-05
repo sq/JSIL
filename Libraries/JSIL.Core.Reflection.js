@@ -57,6 +57,36 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Public: true, Static: false, Virtual: true }, "IsInstanceOfType",
+     new JSIL.MethodSignature($.Boolean, [$.Object]),
+     function (object) {
+         if (object === null)
+             return false;
+
+         var typeObject = object.GetType();
+         if (this.get_IsInterface() === true) {
+             // Check interfaces
+
+             var interfaces = JSIL.GetInterfacesImplementedByType(typeObject, true, false);
+             if (interfaces && interfaces.length) {
+                 for (var i = 0; i < interfaces.length; i++) {
+                     if (interfaces[i].__FullName__ == this.__FullName__)
+                         return true;
+                 }
+
+             }
+         } else {
+             // Check inheritance tree
+             var types = JSIL.GetTypeAndBases(typeObject);
+             for (var i = 0; i < types.length; i++) {
+                 if (types[i].__FullName__ == this.__FullName__)
+                     return true;
+             }
+         }
+         return false;
+     }
+   );
+
     $.Method({Static:false, Public:true }, "get_IsGenericType",
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericType
@@ -95,6 +125,27 @@ JSIL.ImplementExternals(
       JSIL.TypeObjectPrototype.get_IsArray
     );
     
+    $.Method({ Static: false, Public: true }, "get_IsAbstract",
+     new JSIL.MethodSignature($.Boolean, []),
+     function () {
+         return this.__IsAbstract__;
+     }
+   );
+
+    $.Method({ Static: false, Public: true }, "get_IsPrimitive",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__IsPrimitive__;
+        }
+    );
+
+    $.Method({ Static: false, Public: true }, "get_HasElementType",
+        new JSIL.MethodSignature($.Boolean, []),
+        function () {
+            return this.__ElementType__ != null;
+        }
+    );
+
     $.Method({Public: true , Static: false}, "get_IsValueType",
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsValueType
@@ -900,6 +951,9 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
+    $.Field({ Static: true, Public: true, ReadOnly: true }, "EmptyTypes", $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), function ($pi) {
+        return JSIL.Array.New($jsilcore.System.Type, 0);
+    });
     $.Property({Public: true , Static: false, Virtual: true }, "Module");
     $.Property({Public: true , Static: false, Virtual: true }, "Assembly");
     $.Property({Public: true , Static: false, Virtual: true }, "FullName");
@@ -910,7 +964,10 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericTypeDefinition");
     $.Property({Public: true , Static: false }, "IsArray");
     $.Property({Public: true , Static: false }, "IsValueType");
-    $.Property({Public: true , Static: false }, "IsEnum");
+    $.Property({ Public: true, Static: false }, "IsEnum");
+    $.Property({ Public: true, Static: false }, "IsAbstract");
+    $.Property({ Public: true, Static: false }, "IsPrimitive");
+    $.Property({ Public: true, Static: false }, "HasElementType");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
