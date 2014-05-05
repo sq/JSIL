@@ -1883,9 +1883,9 @@ namespace JSIL.Internal {
                 if (IsOverloaded)
                     return true;
 
-                if (!_IsOverloadedRecursive.HasValue) {
-                    _IsOverloadedRecursive = 
-                        DeclaringType.MethodSignatures.GetOverloadCountOf(Name) > 1;
+                if (!_IsOverloadedRecursive.HasValue)
+                {
+                    _IsOverloadedRecursive = IsOverloadOrSameNameInBase(DeclaringType, Name);
                 }
 
                 return _IsOverloadedRecursive.Value;
@@ -1964,6 +1964,21 @@ namespace JSIL.Internal {
 
         public override TypeReference ReturnType {
             get { return Member.ReturnType; }
+        }
+
+        private static bool IsOverloadOrSameNameInBase(TypeInfo type, string methodName)
+        {
+            if (type.MethodSignatures.GetOverloadCountOf(methodName) > 1)
+            {
+                return true;
+            }
+
+            if (type.BaseClass != null)
+            {
+                return IsOverloadOrSameNameInBase(type.BaseClass, methodName);
+            }
+
+            return false;
         }
     }
 
