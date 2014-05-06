@@ -731,10 +731,18 @@ namespace JSIL.Internal {
                     var set = ms.GetOrCreateFor(nms.Name);
                     set.Add(nms);
                 }
+
+                foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
+                    if (t != this)
+                    {
+                        var set = MethodSignatures.GetOrCreateFor(nms.Name);
+                        set.Add(nms);
+                    }
+                }
             }
 
-            DeferredMethodSignatureSetUpdates.Clear();
-            DeferredMethodSignatureSetUpdates = null;
+            //DeferredMethodSignatureSetUpdates.Clear();
+            //DeferredMethodSignatureSetUpdates = null;
         }
 
         public bool IsFullyInitialized {
