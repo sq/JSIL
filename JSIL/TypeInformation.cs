@@ -732,9 +732,8 @@ namespace JSIL.Internal {
                     set.Add(nms);
                 }
 
-                foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
-                    if (t != this)
-                    {
+                if (t != this) {
+                    foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
                         var set = MethodSignatures.GetOrCreateFor(nms.Name);
                         set.Add(nms);
                     }
