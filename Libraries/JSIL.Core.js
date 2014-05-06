@@ -4056,6 +4056,13 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
 
     JSIL.$ApplyMemberHiding(typeObject, methodList, resolveContext);
   }
+  
+  var record = function (distance, signature) {
+    this.distance = distance;
+    this.signature = signature;
+  };
+  
+  var typesHiearchy = JSIL.GetTypeAndBases(typeObject); 
 
   for (var key in methodsByName) {
     var methodList = methodsByName[key];
@@ -4065,12 +4072,23 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     var isStatic = methodList[0]._descriptor.Static;
     var signature = methodList[0]._data.signature;
 
-    var entries = [];
+    var entriesToSort = []; 
 
     for (var i = 0, l = methodList.length; i < l; i++) {
-      var method = methodList[i];
+       var method = methodList[i];
+       entriesToSort.push(new record(typesHiearchy.indexOf(method._typeObject), method._data.signature));
+    }
+    
+    entriesToSort.sort(function (lhs, rhs) {
+      return JSIL.CompareValues(lhs.distance, rhs.distance);
+    });
 
-      entries.push(method._data.signature);
+    var entries = [];
+
+    for (var i = 0, l = entriesToSort.length; i < l; i++) {
+      var method = entriesToSort[i];
+
+      entries.push(method.signature);
     }
 
     var target = isStatic ? publicInterface : publicInterface.prototype;
