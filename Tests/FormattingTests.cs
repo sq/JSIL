@@ -1012,5 +1012,52 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void PreventFastMethodDispatcherIfHideBase_Issue368()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.Method();"),
+                    "Base.Method should not used fast dispatcher as it may be hidden by Derived.Method");
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.MethodWithParameter1();"),
+                    "Base.MethodWithParameter1 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter1");
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.MethodWithParameter2();"),
+                    "Base.MethodWithParameter2 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter2");
+
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.Method();"),
+                    "Derived.Method should not used fast dispatcher as it is hidden by Base.Method");
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.MethodWithParameter1();"),
+                    "Derived.MethodWithParameter1 should not used fast dispatcher as it is hidden by Base.MethodWithParameter1");
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.MethodWithParameter2();"),
+                    "Derived.MethodWithParameter2 should not used fast dispatcher as it is hidden by Base.MethodWithParameter2");
+
+                Assert.IsTrue(
+                    generatedJs.Length - generatedJs.Replace("bas.AnotherMethod();", string.Empty).Length == "bas.AnotherMethod();".Length * 2,
+                    "Base.AnotherMethod should use fast dispatcher");
+                Assert.IsTrue(
+                    generatedJs.Contains("derived.AnotherMethod();"),
+                    "Base.AnotherMethod should use fast dispatcher even if called on Dervided instance");
+
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
