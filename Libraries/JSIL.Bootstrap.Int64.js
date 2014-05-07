@@ -283,8 +283,10 @@ JSIL.Make64BitInt = function ($, _me) {
   });
 
   $.RawMethod(true, "FromNumberImpl", function (n, makeResult) {
-    if (n < 0)
-      JSIL.RuntimeError("cannot construct UInt64 from negative number");
+      if (n < 0) {
+          //JSIL.RuntimeError("cannot construct UInt64 from negative number");
+          n = 0 - n;
+      }
 
     var bits24 = 0xffffff;
 

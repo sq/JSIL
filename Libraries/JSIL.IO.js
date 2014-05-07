@@ -718,6 +718,21 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       return this._fileName;
     }
   );
+
+  $.Method({ Static: false, Public: true }, "get_CanRead",
+      (new JSIL.MethodSignature($.Boolean, [], [])),
+      function get_CanRead() {
+          return this._canRead;
+      }
+    );
+
+  $.Method({ Static: false, Public: true }, "get_CanWrite",
+      (new JSIL.MethodSignature($.Boolean, [], [])),
+      function get_CanWrite() {
+          return this._canWrite;
+      }
+    );
+
 });
 
 JSIL.ImplementExternals(

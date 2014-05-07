@@ -84,6 +84,21 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Public: true, Static: false, Virtual: true }, "GetInterface",
+        new JSIL.MethodSignature($.Type, [$.String]),
+        function (fullName) {
+            var interfaces = JSIL.GetInterfacesImplementedByType(this, true, false);
+            if (interfaces && interfaces.length) {
+                for (var i = 0; i < interfaces.length; i++) {
+                    var mangled = interfaces[i].__FullName__;
+                    if (mangled == fullName)
+                        return interfaces[i];
+                }
+            }
+            return null;
+        }
+    );
+
     $.Method({Static:false, Public:true }, "get_IsGenericType",
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericType
@@ -134,6 +149,13 @@ JSIL.ImplementExternals(
         function () {
             return this.__IsPrimitive__;
         }
+    );
+
+    $.Method({ Static: false, Public: true }, "get_ContainsGenericParameters",
+      new JSIL.MethodSignature($.Boolean, []),
+      function () {
+          return this.__GenericArguments__ && this.__GenericArguments__.length > 0;
+      }
     );
 
     $.Method({ Static: false, Public: true }, "get_HasElementType",
@@ -978,6 +1000,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({ Public: true, Static: false }, "IsAbstract");
     $.Property({ Public: true, Static: false }, "IsPrimitive");
     $.Property({ Public: true, Static: false }, "HasElementType");
+    $.Property({ Public: true, Static: false }, "ContainsGenericParameters");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
