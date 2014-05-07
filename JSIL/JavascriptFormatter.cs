@@ -181,6 +181,7 @@ namespace JSIL.Internal {
             Configuration configuration, bool stubbed
         ) {
             Output = output;
+            //Output = Console.Out;
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
@@ -483,7 +484,6 @@ namespace JSIL.Internal {
         protected void TypeReferenceInternal (GenericParameter gp, TypeReferenceContext context) {
             var ownerType = gp.Owner as TypeReference;
             var ownerMethod = gp.Owner as MethodReference;
-
             if (context != null) {
                 if (ownerType != null) {
                     if (TypeUtil.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
@@ -681,7 +681,7 @@ namespace JSIL.Internal {
                 (context != null) &&
                 (context.EnclosingType != null)
             ) {
-                if (TypeUtil.TypesAreEqual(type, context.EnclosingType)) {
+                if (TypeUtil.TypesAreEqual(type, context.EnclosingType, true)) {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {

@@ -1226,6 +1226,11 @@ namespace JSIL {
                     output.Comma();
                     output.NewLine();
 
+                    output.WriteRaw("IsAbstract: ");
+                    output.Value(typedef.IsAbstract);
+                    output.Comma();
+                    output.NewLine();
+
                     output.WriteRaw("IsReferenceType: ");
                     output.Value(!typedef.IsValueType);
                     output.Comma();
@@ -2617,6 +2622,7 @@ namespace JSIL {
 
                 output.Comma();
                 output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
+
 
                 output.Comma();
                 output.NewLine();

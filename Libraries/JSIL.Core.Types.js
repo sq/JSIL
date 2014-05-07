@@ -525,6 +525,30 @@ JSIL.ImplementExternals(
         arr.set(newArray);
       }
     );
+
+    $.Method({ Static: true, Public: false }, "UnsafeStore",
+        new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32,
+        "!!0"
+        ], ["T"]),
+            function (T, array, index, value) {
+                array[index] = value;
+            }
+    );
+
+    $.Method({ Static: true, Public: false }, "UnsafeLoad",
+        new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32], ["T"]),
+        function(T, array, index) {
+            return array[index];
+        }
+    );
+
+    $.Method({ Static: true, Public: false }, "UnsafeMov",
+        new JSIL.MethodSignature("!!1", ["!!0"], ["S", "R"]),
+        function (S, R, instance) {
+            return R.$Cast(instance);
+        }
+    );
   }
 );
 

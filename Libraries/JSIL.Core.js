@@ -5059,6 +5059,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
   var fullName = typeArgs.Name || null;
   var isReferenceType = Boolean(typeArgs.IsReferenceType);
   var isPublic = Boolean(typeArgs.IsPublic);
+  var isAbstract = Boolean(typeArgs.IsAbstract);
+  var isPrimitive = Boolean(typeArgs.IsPrimitive);
   var genericArguments = typeArgs.GenericParameters || $jsilcore.ArrayNull;
   var maxConstructorArguments = typeArgs.MaximumConstructorArguments;
 
@@ -5139,6 +5141,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject.__IsArray__ = false;
+    typeObject.__IsAbstract__ = isAbstract;
+    typeObject.__IsPrimitive__ = isPrimitive;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
@@ -5205,7 +5209,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+        return typeOfValue.__AssignableTypes__ != null ? typeOfValue.__AssignableTypes__[this.__TypeId__] === true : false;
     };
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
@@ -5328,6 +5332,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
+    typeObject.__IsAbstract__ = true;
     typeObject.__Attributes__ = attributes;
     typeObject.__Interfaces__ = interfaces || [];
 
@@ -5345,7 +5350,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+      return typeOfValue.__AssignableTypes__ != null ? typeOfValue.__AssignableTypes__[this.__TypeId__] === true : false;
     };
 
     JSIL.MakeCastMethods(publicInterface, typeObject, "interface");
@@ -8240,6 +8245,12 @@ JSIL.GetEqualsSignature = function () {
   return JSIL.$equalsSignature;
 }
 
+JSIL.ObjectEqualsStaticHelper = function (lhs, rhs) {
+    if (lhs["Object_Equals"] != null)
+        return lhs["Object_Equals"](rhs);
+    return JSIL.ObjectEquals(lhs, rhs);
+}
+
 JSIL.ObjectEquals = function (lhs, rhs) {
   if ((lhs === null) || (rhs === null))
     return lhs === rhs;
@@ -8248,6 +8259,7 @@ JSIL.ObjectEquals = function (lhs, rhs) {
 
   switch (typeof (lhs)) {
     case "string":
+    case "boolean":
     case "number":
       return lhs == rhs;
       break;
@@ -8675,7 +8687,10 @@ JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, 
 
 JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList, distanceList, walkInterfaceBases, allowDuplicates, distance) {
   if (arguments.length !== 6)
-    JSIL.RuntimeError("6 arguments expected");
+      JSIL.RuntimeError("6 arguments expected");
+
+  if (!typeObject)
+      return;
 
   var interfaces = typeObject.__Interfaces__;
 

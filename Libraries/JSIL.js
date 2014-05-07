@@ -114,17 +114,47 @@ var $jsilloaderstate = {
     this.loadScript(libraryRoot + "JSIL.Shell.Loaders.js");
   };
 
+  // Web Worker
+
+  function Environment_WebWorker(config) {
+      var self = this;
+      this.config = config;
+
+      contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
+      contentManifest["JSIL"].push(["Library", "JSIL.IO.js"]);
+      contentManifest["JSIL"].push(["Library", "JSIL.XML.js"]);
+  };
+
+  Environment_WebWorker.prototype.getUserSetting = function (key) {
+      return false;
+  };
+
+  Environment_WebWorker.prototype.loadEnvironmentScripts = function () {
+      this.loadScript(libraryRoot + "JSIL.WebWorker.js");
+      this.loadScript(libraryRoot + "JSIL.WebWorker.Loaders.js");
+  };
+
+  Environment_WebWorker.prototype.loadScript = function (uri) {
+      if (console && console.log)
+          console.log("Loading '" + uri + "'...");
+
+      importScripts(uri);
+  };
+
 
   var environments = {
     "browser": Environment_Browser,
-    "spidermonkey_shell": Environment_SpidermonkeyShell
+    "spidermonkey_shell": Environment_SpidermonkeyShell,
+    "webworker" : Environment_WebWorker
   }
 
   if (!config.environment) {
-    if (typeof (window) !== "undefined")
-      config.environment = "browser";
-    else
-      throw new Error("jsilConfig.environment not set and no default available");
+      if (typeof (window) !== "undefined")
+          config.environment = "browser";
+      else {
+          console.log(config);
+          throw new Error("jsilConfig.environment not set and no default available");
+      }
   }
 
   var environment;
@@ -179,7 +209,8 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
-  environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
+  environment.loadScript(libraryRoot + "JSIL.HeuristicLab.js");
+  //environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
 
   if (config.testFixture || environment.getUserSetting("testFixture"))
     environment.loadScript(libraryRoot + "JSIL.TestFixture.js");

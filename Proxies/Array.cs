@@ -1,8 +1,10 @@
 ﻿using System;
 using JSIL.Meta;
 using JSIL.Proxy;
+using System.Collections.Generic;
 
 namespace JSIL.Proxies {
+
     [JSProxy(
         typeof(Array),
         memberPolicy: JSProxyMemberPolicy.ReplaceDeclared
@@ -97,6 +99,12 @@ namespace JSIL.Proxies {
         public static void Sort<T> (T[] array) {
             throw new InvalidOperationException();
         }
+
+        /*[JSReplacement("Array.prototype.sort.call($array)")]
+        public static void Sort<T> (T[] array, IComparer<T> comparer)
+        {
+            throw new InvalidOperationException();
+        }*/
 
         [JSReplacement("JSIL.GetEnumerator($this)")]
         [JSIsPure]

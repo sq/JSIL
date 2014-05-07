@@ -121,5 +121,27 @@ namespace JSIL.Proxies {
         public static AnyType Pow (AnyType @base, AnyType exponent) {
             throw new InvalidOperationException();
         }
+
+        // ADDED: Missing math methods
+        [JSReplacement("System.Math.IEEERemainder($x, $y)")]
+        [JSIsPure]
+        public static double IEEERemainder(double x, double y)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.Math.Round($value, $places)")]
+        [JSIsPure]
+        public static double Round(double value, int places)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.Math.Sign($value)")]
+        [JSIsPure]
+        public static int Sign(AnyType value)
+        {
+            throw new InvalidOperationException();
+        }
     }
 }

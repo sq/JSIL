@@ -34,9 +34,21 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Activator.cs" />
+    <Compile Include="AppDomain.cs" />
     <Compile Include="Array.cs" />
+    <Compile Include="Bootstrap.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="Collections.cs" />
+    <Compile Include="Diagnostics.cs" />
+    <Compile Include="Encoding.cs" />
+    <Compile Include="Enum.cs" />
+    <Compile Include="Environment.cs" />
+    <Compile Include="EventInfo.cs" />
+    <Compile Include="MonoProxy.cs" />
+    <Compile Include="Regex.cs" />
+    <Compile Include="Resources.cs" />
+    <Compile Include="Text.cs" />
     <Compile Include="Unsafe.cs" />
     <Compile Include="DateTime.cs" />
     <Compile Include="IO.cs" />
@@ -47,6 +59,7 @@
     <Compile Include="Object.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="String.cs" />
+    <Compile Include="XmlSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Meta\Meta.csproj">

@@ -87,6 +87,7 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
     switch (ch) {
       case "\t":
       case " ":
+      case "%":
         commands.push(rawCharacter.bind(ch));
         break;
 
@@ -311,6 +312,8 @@ JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatPr
 
       case 'f':
       case 'F':
+      case 'r':
+      case 'R':
         result = formatFloat(value, valueFormat.substr(1));
         break;
 

@@ -95,3 +95,4 @@ Corlib/*.nlp
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
 *.out
+*.orig

@@ -784,6 +784,7 @@ namespace JSIL.Internal {
             get {
                 if (_AllInterfacesRecursive == null) {
                     var list = new List<RecursiveInterfaceToken>();
+                    var added = new HashSet<string>();
                     var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
 
                     foreach (var type in types)
