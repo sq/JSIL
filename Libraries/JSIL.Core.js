@@ -3205,8 +3205,13 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
     var key = "f" + i.toString();
 
     if (field.isStruct) {
-      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
-      types[key] = field.type.__PublicInterface__;
+      if (field.type.__FullName__.indexOf("System.Nullable`1") != 0)
+      {
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
+        types[key] = field.type.__PublicInterface__;
+      } else {
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = null;");
+      }
     } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
       // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
       //  an object's field slots should be.
@@ -8313,15 +8318,23 @@ JSIL.ObjectHashCode = function (obj) {
   }
 };
 
-// MemberwiseClone if parameter is struct, otherwise do nothing.
+// MemberwiseClone if parameter is struct (or nullable underling type is struct), otherwise do nothing.
 JSIL.CloneParameter = function (parameterType, value) {
   if (!parameterType)
     JSIL.RuntimeError("Undefined parameter type");
 
-  if (parameterType.__IsStruct__)
+  if (parameterType.__IsStruct__) {
+    if (parameterType.__FullName__.indexOf("System.Nullable`1") != 0 || (parameterType.__GenericArgumentValues__[0].__IsStruct__ && value !== null)) {
+      return value.MemberwiseClone();
+    }
+  }
+  return value;
+};
+
+JSIL.MemberwiseClone = function (value) {
+  if (value !== null)
     return value.MemberwiseClone();
-  else
-    return value;
+  return value;
 };
 
 JSIL.ValueOfNullable = function (value) {

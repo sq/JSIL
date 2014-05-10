@@ -842,6 +842,8 @@
     <None Include="BinaryTestCases\InheritedInterfacesExplicit.cs" />
     <None Include="SpecialTestCases\ClassMarkedWithMetaAttibutes.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
+    <None Include="SimpleTestCases\NullableField_Issue316.cs" />
+    <None Include="SimpleTestCases\NullableCloneParameter_Issue316.cs" />
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
     <None Include="SpecialTestCases\InnerClassNameFormatting_Issue352.cs" />
     <None Include="TestCases\DictionaryInterfaces.cs" />
@@ -853,6 +855,7 @@
     <None Include="SimpleTestCases\Issue364_1.cs" />
     <None Include="SimpleTestCases\Issue364_2.cs" />
     <None Include="SimpleTestCases\Issue364_3.cs" />
+    <None Include="SimpleTestCases\NullableModification_Issue361.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">

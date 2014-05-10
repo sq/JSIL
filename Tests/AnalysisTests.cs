@@ -22,7 +22,7 @@ namespace JSIL.Tests {
                 @"mc.UpdateWithNewState(2, ct);"
             ));
             Assert.IsTrue(generatedJs.Contains(
-                @"mc.UpdateWithNewState(2, ct.MemberwiseClone());"
+                @"mc.UpdateWithNewState(2, JSIL.MemberwiseClone(ct));"
             ));
         }
 
@@ -38,36 +38,36 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"a = \$thisType.A.MemberwiseClone\(\)"
+                @"a = JSIL.MemberwiseClone\(\$thisType.A\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"b = \$thisType.ReturnArgument\($thisType.B\).MemberwiseClone\(\)"
+                @"b = JSIL.MemberwiseClone\(\$thisType.ReturnArgument\($thisType.B\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"c = \$thisType.B.MemberwiseClone\(\)"
+                @"c = JSIL.MemberwiseClone\(\$thisType.B\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"d = \$thisType.A.MemberwiseClone\(\)"
+                @"d = JSIL.MemberwiseClone\(\$thisType.A\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"e = \$thisType.A.MemberwiseClone\(\)"
+                @"e = JSIL.MemberwiseClone\(\$thisType.A\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"\$thisType.Field = e.MemberwiseClone\(\)"
+                @"\$thisType.Field = JSIL.MemberwiseClone\(e\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
+                @"\$thisType.StoreArgument\(JSIL.MemberwiseClone\(d\)\)"
             ));
 
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"f = new JSIL.BoxedVariable\(\$thisType\.A\.MemberwiseClone\(\)\)"
+                @"f = new JSIL.BoxedVariable\(JSIL.MemberwiseClone\(\$thisType\.A\)\)"
             ), "Struct values should be copied when creating a boxed variable from them");
         }
 
@@ -83,11 +83,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"\$thisType.ReturnArgument\(a.MemberwiseClone\(\)\)"
+                @"\$thisType.ReturnArgument\(JSIL.MemberwiseClone\(a\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = \$thisType.ReturnArgument\(a\).MemberwiseClone\(\);"
+                @"b = JSIL.MemberwiseClone\(\$thisType.ReturnArgument\(a\)\);"
             ));
         }
 
@@ -103,11 +103,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(JSIL.MemberwiseClone\(a.\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = JSIL.MemberwiseClone\(\$thisType.ReturnMutatedArgument\(a, 0\)\);"
             ));
         }
 
@@ -123,11 +123,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(JSIL.MemberwiseClone\(a\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = JSIL.MemberwiseClone\(\$thisType.ReturnMutatedArgument\(a, 0\)\);"
             ));
         }
 
@@ -145,7 +145,7 @@ namespace JSIL.Tests {
                 @".IncrementArgumentValue(a)"
             ));
             Assert.IsTrue(generatedJs.Contains(
-                @".IncrementArgumentValue(a.MemberwiseClone())"
+                @".IncrementArgumentValue(JSIL.MemberwiseClone(a))"
             ));
         }
 
@@ -163,7 +163,7 @@ namespace JSIL.Tests {
                 @".IncrementArgumentValue(a)"
             ));
             Assert.IsTrue(generatedJs.Contains(
-                @".IncrementArgumentValue(a.MemberwiseClone())"
+                @".IncrementArgumentValue(JSIL.MemberwiseClone(a))"
             ));
         }
 
@@ -255,9 +255,9 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = \$thisType.ReturnArgument\(" +
-                @"\$thisType.ReturnIncrementedArgument\(\$thisType.ReturnArgument\(a\)." +
-                @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
+                @"b = JSIL.MemberwiseClone\(\$thisType.ReturnArgument\(" +
+                @"\$thisType.ReturnIncrementedArgument\(JSIL.MemberwiseClone\(\$thisType.ReturnArgument\(a\)" +
+                @"\)\)\)\)"
             ));
         }
 
@@ -300,7 +300,7 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
             Assert.IsTrue(generatedJs.Contains(
-                @"copy = arg.MemberwiseClone()"
+                @"copy = JSIL.MemberwiseClone(arg)"
             ), "Copy was not cloned");
         }
 
@@ -441,7 +441,7 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
             Assert.IsTrue(generatedJs.Contains(
-                @"b = a.MemberwiseClone()"
+                @"b = JSIL.MemberwiseClone(a)"
             ), "Copy was not cloned");
         }
 
@@ -456,10 +456,10 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
             Assert.IsFalse(generatedJs.Contains(
-                @"ICT.MemberwiseClone"
+                @"JSIL.MemberwiseClone($thisType.ICT)"
             ));
             Assert.IsTrue(generatedJs.Contains(
-                @"CT.MemberwiseClone"
+                @"JSIL.MemberwiseClone($thisType.CT)"
             ));
         }
 
@@ -474,7 +474,7 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
             Assert.IsTrue(generatedJs.Contains(
-                @"ict = ict.MemberwiseClone(),"
+                @"ict = JSIL.MemberwiseClone(ict),"
             ));
         }
 
