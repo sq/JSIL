@@ -241,7 +241,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "Free", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Free () {
       // FIXME: Unpin?
     }

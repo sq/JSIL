@@ -85,7 +85,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
   $.Method({
     Static: false,
     Public: true
-  }, "Unload", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Unload", JSIL.MethodSignature.Void, function () {
     // Unnecessary since we rely on the host to preload our assets.
   });
 
@@ -151,7 +151,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", fun
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       var assembly = $xnaasms.xna;
 
@@ -350,7 +350,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Vector4Reader", functio
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       var assembly = $xnaasms.xna;
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
@@ -387,7 +387,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       var assembly = $xnaasms.xna;
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
@@ -830,7 +830,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       var assembly = $xnaasms.xna;
 
@@ -877,7 +877,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.DictionaryReader`2", fu
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       var assembly = $xnaasms.xna;
 

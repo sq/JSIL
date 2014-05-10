@@ -88,7 +88,7 @@ namespace JSIL {
             if (Manifest.Array == null)
                 throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
 
-            using (var ms = new MemoryStream()) {
+            using (var ms = new MemoryStream(AssemblyTranslator.DefaultStreamCapacity)) {
                 WriteToStream(ms);
                 return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
             }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
@@ -14,8 +15,12 @@ namespace JSIL.Transforms {
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly JSILIdentifier JSIL;
 
-        protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>();
-        protected readonly Dictionary<JSVariableDeclarationStatement, JSBlockStatement> Declarations = new Dictionary<JSVariableDeclarationStatement, JSBlockStatement>();
+        protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>(
+            new ReferenceComparer<JSPassByReferenceExpression>()
+        );
+        protected readonly Dictionary<JSVariableDeclarationStatement, JSBlockStatement> Declarations = new Dictionary<JSVariableDeclarationStatement, JSBlockStatement>(
+            new ReferenceComparer<JSVariableDeclarationStatement>()
+        );
 
         public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables) {
             JSIL = jsil;
@@ -110,7 +115,7 @@ namespace JSIL.Transforms {
             );
 
             if (Tracing)
-                Debug.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
+                Console.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
 
             Variables[newVariable.Identifier] = newVariable;
             Variables.Add(newParameter.Identifier, newParameter);
@@ -147,7 +152,7 @@ namespace JSIL.Transforms {
             ));
 
             if (Tracing)
-                Debug.WriteLine(String.Format("Transformed {0} into {1} in {2}", variable, newVariable, statement));
+                Console.WriteLine(String.Format("Transformed {0} into {1} in {2}", variable, newVariable, statement));
 
             // Insert the new declaration directly before the top-level block containing the original
             //  declaration. This ensures that if its initial value has a dependency on external state,

@@ -30,6 +30,7 @@ namespace JSIL.Internal {
             public MethodReference DefiningMethod;
             public MethodReference InvokingMethod;
             public MethodReference SignatureMethod;
+            public MethodReference AttributesMethod;
         }
 
         private readonly Stack<_State> Stack = new Stack<_State>();
@@ -68,6 +69,7 @@ namespace JSIL.Internal {
                 State.EnclosingMethod = value;
             }
         }
+
         public MethodReference DefiningMethod {
             get {
                 return State.DefiningMethod;
@@ -76,6 +78,7 @@ namespace JSIL.Internal {
                 State.DefiningMethod = value;
             }
         }
+
         public MethodReference InvokingMethod {
             get {
                 return State.InvokingMethod;
@@ -84,12 +87,22 @@ namespace JSIL.Internal {
                 State.InvokingMethod = value;
             }
         }
+
         public MethodReference SignatureMethod {
             get {
                 return State.SignatureMethod;
             }
             set {
                 State.SignatureMethod = value;
+            }
+        }
+
+        public MethodReference AttributesMethod {
+            get {
+                return State.AttributesMethod;
+            }
+            set {
+                State.AttributesMethod = value;
             }
         }
 
@@ -124,6 +137,15 @@ namespace JSIL.Internal {
             get {
                 if (SignatureMethod != null)
                     return SignatureMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference AttributesMethodType {
+            get {
+                if (AttributesMethod != null)
+                    return AttributesMethod.DeclaringType;
                 else
                     return null;
             }
@@ -217,7 +239,9 @@ namespace JSIL.Internal {
                 return;
 
             _IndentNeeded = false;
-            Output.Write(new string(' ', (int)(_IndentLevel * 2)));
+            var tabs = _IndentLevel;
+            for (var i = 0; i < tabs; i++)
+                Output.Write("  ");
         }
 
         public void WriteRaw (string characters) {
@@ -481,11 +505,6 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
-                        OpenGenericParameter(gp, context.DefiningType.FullName);
-                        return;
-                    }
-
                     if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingType)) {
                         LocalOpenGenericParameter(gp);
                         return;
@@ -502,9 +521,24 @@ namespace JSIL.Internal {
                             )
                         ) {
                             // FIXME: I HAVE NO IDEA WHAT I AM DOING
-                            OpenGenericParameter(gp, ownerTypeResolved.FullName);
+                            OpenGenericParameter(gp, Util.DemangleCecilTypeName(ownerTypeResolved.FullName));
                             return;
                         }
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.AttributesMethodType)) {
+                        LocalOpenGenericParameter(gp);
+                        return;
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningMethodType)) {
+                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningMethodType.FullName));
+                        return;
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
+                        OpenGenericParameter(gp, Util.DemangleCecilTypeName(context.DefiningType.FullName));
+                        return;
                     }
 
                     throw new NotImplementedException(String.Format(
@@ -922,7 +956,7 @@ namespace JSIL.Internal {
             if (info != null) {
                 Identifier(info.Name);
             } else {
-                Debug.WriteLine("Method missing type information: {0}", method.FullName);
+                Console.WriteLine("Method missing type information: {0}", method.FullName);
                 Identifier(method.Name);
             }
         }
@@ -1117,6 +1151,41 @@ namespace JSIL.Internal {
         }
 
         public void Signature (MethodReference method, MethodSignature signature, TypeReferenceContext context, bool forConstructor, bool allowCache) {
+            // Reduce method signature heap usage
+            if (
+                !forConstructor &&
+                (signature.GenericParameterCount == 0)
+            ) {
+                if (signature.ParameterCount == 0) {
+                    if (
+                        (signature.ReturnType == null) ||
+                        (signature.ReturnType.FullName == "System.Void")
+                    ){
+                        WriteRaw("JSIL.MethodSignature.Void");
+                        return;
+                    } else if (!TypeUtil.IsOpenType(signature.ReturnType)) {
+                        WriteRaw("JSIL.MethodSignature.Return");
+                        LPar();
+                        TypeReference(signature.ReturnType, context);
+                        RPar();
+                        return;
+                    }
+                } else if (
+                    (
+                        (signature.ReturnType == null) ||
+                        (signature.ReturnType.FullName == "System.Void")
+                    ) &&
+                    (signature.ParameterCount == 1) &&
+                    !TypeUtil.IsOpenType(signature.ParameterTypes[0])
+                ) {
+                    WriteRaw("JSIL.MethodSignature.Action");
+                    LPar();
+                    TypeReference(signature.ParameterTypes[0], context);
+                    RPar();
+                    return;
+                }
+            }
+
             if (forConstructor)
                 WriteRaw("new JSIL.ConstructorSignature");
             else
@@ -1145,20 +1214,25 @@ namespace JSIL.Internal {
                     Comma();
                 }
 
-                OpenBracket(false);
+                if (signature.ParameterCount > 0) {
+                    OpenBracket(false);
+                    CommaSeparatedListCore(
+                        signature.ParameterTypes, (pt) => {
+                            if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
+                                TypeIdentifier(pt as dynamic, context, false);
+                            else
+                                TypeReference(pt, context);
+                        }
+                    );
+                    CloseBracket(false);
+                } else {
+                    WriteRaw("null");
+                }
 
-                CommaSeparatedListCore(
-                    signature.ParameterTypes, (pt) => {
-                        if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
-                            TypeIdentifier(pt as dynamic, context, false);
-                        else
-                            TypeReference(pt, context);
-                    }
-                );
-
-                CloseBracket(false);
-
-                if (!forConstructor && (signature.GenericParameterNames != null)) {
+                if (!forConstructor && 
+                    (signature.GenericParameterNames != null) &&
+                    (signature.GenericParameterCount > 0)
+                ) {
                     Comma();
                     OpenBracket(false);
                     CommaSeparatedList(signature.GenericParameterNames, context, ListValueType.Primitive);

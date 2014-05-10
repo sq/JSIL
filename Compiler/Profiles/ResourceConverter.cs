@@ -11,7 +11,9 @@ using JSIL.Compiler;
 
 namespace JSIL.Utilities {
     public static class ResourceConverter {
-        public static void ConvertResources (Configuration configuration, string assemblyPath, TranslationResult result) {
+        public static void ConvertResources (Configuration configuration, string assemblyPath, TranslationResult result)
+        {
+            assemblyPath = Path.GetFullPath(assemblyPath);
             ConvertEmbeddedResources(configuration, assemblyPath, result);
             ConvertSatelliteResources(configuration, assemblyPath, result);
         }
@@ -29,6 +31,11 @@ namespace JSIL.Utilities {
                 var encoding = new UTF8Encoding(false);
 
                 foreach (var kvp in manifestResources) {
+                    var outputPath = Path.GetFileNameWithoutExtension(kvp.Key) + ".resj";
+                    // FIXME: We're converting embedded resources multiple times per run :(
+                    if (result.Files.ContainsKey(outputPath))
+                        continue;
+
                     Console.WriteLine(kvp.Key);
 
                     string resourceJson;
@@ -39,7 +46,7 @@ namespace JSIL.Utilities {
 
                     result.AddFile(
                         "Resources",
-                        Path.GetFileNameWithoutExtension(kvp.Key) + ".resj",
+                        outputPath,
                         new ArraySegment<byte>(bytes)
                     );
                 }
@@ -123,13 +130,21 @@ namespace JSIL.Utilities {
                 CachePath = currentSetup.CachePath,
                 ConfigurationFile = currentSetup.ConfigurationFile,
                 DisallowCodeDownload = true,
-                DynamicBase = currentSetup.DynamicBase,
                 PrivateBinPath = currentSetup.PrivateBinPath,
                 PrivateBinPathProbe = currentSetup.PrivateBinPathProbe,
                 ShadowCopyDirectories = currentSetup.ShadowCopyDirectories,
                 ShadowCopyFiles = currentSetup.ShadowCopyFiles,
                 LoaderOptimization = LoaderOptimization.MultiDomain
             };
+
+            try
+            {
+                domainSetup.DynamicBase = currentSetup.DynamicBase;
+            }
+            catch (System.MemberAccessException)
+            {
+                // Mono bugs! Yay!
+            }
 
             Domain = AppDomain.CreateDomain(name, null, domainSetup);
         }

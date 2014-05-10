@@ -85,7 +85,7 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     var $thisType = $.publicInterface;
 
     $.ExternalMethod({Static:false, Public:false}, ".ctor", 
-      new JSIL.MethodSignature(null, [], [])
+      JSIL.MethodSignature.Void
     );
 
     $.ExternalMethod({Static:false, Public:true }, ".ctor", 
@@ -115,7 +115,7 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     );
 
     $.ExternalMethod({Static:false, Public:true }, "Close", 
-      new JSIL.MethodSignature(null, [], [])
+      JSIL.MethodSignature.Void
     );
 
     $.ExternalMethod({Static:false, Public:false}, "Dispose", 
@@ -187,7 +187,7 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
     );
 
     $.ExternalMethod({Static:false, Public:true }, "Close", 
-      new JSIL.MethodSignature(null, [], [])
+      JSIL.MethodSignature.Void
     );
 
     $.ExternalMethod({Static:false, Public:false}, "Dispose", 
@@ -458,7 +458,7 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Close", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Close () {
       if (this._onClose) {
         this._onClose();
@@ -468,7 +468,7 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       if (this._onClose) {
         this._onClose();
@@ -636,7 +636,7 @@ var $bytestream = function ($) {
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       System.IO.Stream.prototype._ctor.call(this);
 
@@ -735,7 +735,7 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       ctorBytesImpl(this, [], true);
     }
@@ -803,7 +803,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   });
 
   $.Method({Static:false, Public:true }, "Flush", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Flush () {
     }
   );
@@ -966,7 +966,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   );
 
   $.Method({Static: false, Public: true}, "Dispose",
-    (new JSIL.MethodSignature(null, [], [])),
+    (JSIL.MethodSignature.Void),
     function () {
       if (this.m_stream)
         this.m_stream.Close();
@@ -1030,7 +1030,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Close", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Close () {
       this.m_stream = null;
       this.m_encoding = null;
@@ -1286,7 +1286,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       this.m_stream = null;
     }
@@ -1455,7 +1455,7 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
 
 JSIL.ImplementExternals("System.IO.TextReader", function ($) {
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
     }
   );
@@ -1479,7 +1479,7 @@ JSIL.ImplementExternals("System.IO.FileSystemInfo", function ($) {
   });
 
   $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this._node = null;
       this._path = null;
@@ -1515,7 +1515,7 @@ JSIL.ImplementExternals("System.IO.FileSystemInfo", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Refresh", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Refresh () {
       // FIXME: Does this need to do anything?
     }
@@ -1537,7 +1537,7 @@ JSIL.ImplementExternals("System.IO.DirectoryInfo", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Create", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Create () {
       System.IO.Directory.CreateDirectory(this._path);
     }
@@ -1795,21 +1795,21 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Decrypt", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Decrypt () {
       throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true }, "Delete", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Delete () {
       System.IO.File.Delete(this._path);
     }
   );
 
   $.Method({Static:false, Public:true }, "Encrypt", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Encrypt () {
       throw new Error('Not implemented');
     }

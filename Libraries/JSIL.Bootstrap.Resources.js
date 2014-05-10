@@ -126,7 +126,7 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
   });
 
   $.Method({Static:false, Public:true }, "Close", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Close () {
     }
   );
@@ -138,7 +138,7 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
     }
   );

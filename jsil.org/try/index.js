@@ -126,6 +126,7 @@ function loadExistingGist (gistId, callback) {
     url: requestUrl,
     dataType: 'jsonp',
     success: function (resultGist) {
+      var user;
       if (typeof (callback) === "function")
         callback();
 
@@ -142,13 +143,16 @@ function loadExistingGist (gistId, callback) {
       var forkedFromName = null, forkedFromId = null;
 
       if (resultGist.data.fork_of && resultGist.data.fork_of.id) {
-        forkedFromName = resultGist.data.fork_of.user.login;
+        user = resultGist.data.fork_of.user || resultGist.data.fork_of.owner;
+        forkedFromName = user.login;
         forkedFromId = resultGist.data.fork_of.id;
       }
+      
+      user = resultGist.data.user || resultGist.data.owner;
 
       setCurrentGist(
         gistId, resultGist.data.description, 
-        resultGist.data.user.login, resultGist.data.user.id,
+        user.login, user.id,
         forkedFromName, forkedFromId
       );
 
@@ -264,7 +268,8 @@ function confirmSaveGist () {
 
   var onSuccessful = function (result) {
     setStatus("Save successful.");
-    setCurrentGist(result.id, result.description, result.user.login, result.user.id);
+    var user = result.user || result.owner;
+    setCurrentGist(result.id, result.description, user.login, user.id);
     setControlsEnabled(true);
     window.setTimeout(loadMyGists, 500);
   };

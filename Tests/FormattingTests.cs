@@ -810,10 +810,10 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(
-                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                    generatedJs.Contains("\"U\").in()"), "B`1.U missing variance indicator"
                 );
                 Assert.IsTrue(
-                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                    generatedJs.Contains("\"V\").out()"), "C`1.V missing variance indicator"
                 );
                 Assert.IsTrue(
                     generatedJs.Contains("\"in U\""), "U name missing variance indicator"
@@ -978,6 +978,32 @@ namespace JSIL.Tests {
                 Assert.IsFalse(
                     generatedJs.Contains("MethodInIgnoredClass"),
                     "Method inside class marked with JSIgnore should not be translated");
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void InnerClassNameFormatting_Issue352()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\InnerClassNameFormatting_Issue352.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsTrue(
+                    generatedJs.Contains("\"Program+InnerGenericClass`1\""),
+                    "Inner class should be named in Outer+Inner format");
+                Assert.IsTrue(
+                    generatedJs.Contains("$.GenericParameter(\"T\")"),
+                    "Generic parameter for inner class should reference class via $");
             }
             catch
             {

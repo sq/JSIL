@@ -94,6 +94,16 @@ namespace JSIL.Proxy {
     }
 
     /// <summary>
+    /// Specifies that you wish to replace an existing constructor with one from your proxy. This is necessary because
+    ///  the compiler automatically generates hidden constructors for your proxy classes.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Constructor
+    )]
+    public class JSReplaceConstructor : Attribute {
+    }
+
+    /// <summary>
     /// Use this as a stand-in type when defining a proxy to specify that any type is valid for the given parameter/return type.
     /// </summary>
     public abstract class AnyType {

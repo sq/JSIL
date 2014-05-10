@@ -13,7 +13,8 @@ namespace JSIL.Compiler.Profiles {
             return false;
         }
 
-        public virtual TranslationResult Translate (
+        public override TranslationResult Translate (
+            VariableSet variables, 
             AssemblyTranslator translator, 
             Configuration configuration, 
             string assemblyPath, 
@@ -21,7 +22,7 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ProcessSkippedAssembly(configuration, assemblyPath, result);
+            PostProcessAllTranslatedAssemblies(configuration, assemblyPath, result);
 
             return result;
         }
@@ -29,8 +30,7 @@ namespace JSIL.Compiler.Profiles {
         public override void ProcessSkippedAssembly (
             Configuration configuration, string assemblyPath, TranslationResult result
         ) {
-            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
-            ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
+            PostProcessAssembly(configuration, assemblyPath, result);
         }
 
         public override SolutionBuilder.BuildResult ProcessBuildResult (VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult) {
