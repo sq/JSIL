@@ -66,6 +66,11 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition
     );
+
+    $.Method({Static:false, Public:true }, "get_ContainsGenericParameters",
+      new JSIL.MethodSignature($.Boolean, []),
+      JSIL.TypeObjectPrototype.get_ContainsGenericParameters
+    );
     
     $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
       (new JSIL.MethodSignature($.Type, [], [])),
@@ -908,6 +913,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "BaseType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericTypeDefinition");
+    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
     $.Property({Public: true , Static: false }, "IsArray");
     $.Property({Public: true , Static: false }, "IsValueType");
     $.Property({Public: true , Static: false }, "IsEnum");
