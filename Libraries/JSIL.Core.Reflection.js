@@ -879,6 +879,27 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
       return info;
     }
   );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethod",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethod() {
+      return this._data.signature.genericArgumentNames.length !== 0;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethodDefinition",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_ContainsGenericParameters",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
+    }
+  );
 });
 
 JSIL.ImplementExternals(
@@ -961,6 +982,9 @@ JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethod");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethodDefinition");
+    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
