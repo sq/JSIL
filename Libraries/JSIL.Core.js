@@ -8972,6 +8972,9 @@ JSIL.$DoTypesMatch = function (expected, type) {
   if (expected === null)
     return (type === null);
 
+  if (expected instanceof JSIL.PositionalGenericParameter && type instanceof JSIL.PositionalGenericParameter && expected.index === type.index)
+    return true;
+  
   if (expected === type)
     return true;
 
