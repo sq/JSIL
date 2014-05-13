@@ -343,11 +343,14 @@ JSIL.$GetSpecialType = function (name) {
   JSIL.TypeObjectPrototype.get_IsEnum = function() { 
     return this.__IsEnum__; 
   };
+  JSIL.TypeObjectPrototype.get_ContainsGenericParameters = function() { 
+    return this.__IsClosed__ === false; 
+  };
   JSIL.TypeObjectPrototype.get_IsGenericType = function() { 
-    return this.__OpenType__ !== undefined || this.__IsClosed__ === false; 
+    return (this.__OpenType__ !== undefined || this.__IsClosed__ === false) && !(this instanceof JSIL.GenericParameter); 
   };
   JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { 
-    return this.__IsClosed__ === false; 
+    return this.__IsClosed__ === false && this.__GenericArgumentValues__ === undefined && !(this instanceof JSIL.GenericParameter); 
   };
   JSIL.TypeObjectPrototype.get_IsValueType = function() { 
     return this.__IsValueType__; 
