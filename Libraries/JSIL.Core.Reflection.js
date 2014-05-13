@@ -817,7 +817,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static:false, Public:true , Virtual:true }, "Invoke", 
     new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Array", [$.Object])], []), 
     function Invoke (obj, parameters) {
-      var impl = JSIL.$GetMethodImplementation(this);
+      var impl = JSIL.$GetMethodImplementation(this, obj);
 
       if (typeof (impl) !== "function")
         throw new System.Exception("Failed to find constructor");
@@ -842,6 +842,43 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true , Virtual:true }, "MakeGenericMethod", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")])]),
+    function MakeGenericMethod(typeArguments) {
+      if (this._data.signature.genericArgumentNames.length === 0)
+        throw new System.Exception("Method is not Generic");
+      if (this._data.signature.genericArgumentValues !== undefined)
+        throw new System.Exception("Method is closed Generic");
+
+      var cacheKey = JSIL.HashTypeArgumentArray(typeArguments, this._data.signature.context);
+      var ofCache = this.__OfCache__;
+      if (!ofCache)
+        this.__OfCache__ = ofCache = {};
+
+      var result = ofCache[cacheKey];
+      if (result)
+        return result;
+
+      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.MethodInfo");    
+      var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
+      var info = JSIL.CreateInstanceOfType(infoType, null);
+      info._typeObject = this._typeObject;
+      info._descriptor = this._descriptor;
+      info.__Attributes__ = this.__Attributes__;
+      info.__Overrides__ = this.__Overrides__;
+
+      info._data = {};
+
+      if (this._data.genericSignature)
+        info._data.genericSignature = this._data.genericSignature;
+
+      var source = this._data.signature;
+      info._data.signature = new JSIL.MethodSignature(source.returnType, source.argumentTypes, source.genericArgumentNames, source.context, source, typeArguments.slice())
+
+      ofCache[cacheKey]  = info;
+      return info;
+    }
+  );
 });
 
 JSIL.ImplementExternals(
@@ -1193,7 +1230,7 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
   $.Method({Static:false, Public:true }, "Invoke", 
     new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Array", [$.Object])], []), 
     function Invoke (parameters) {
-      var impl = JSIL.$GetMethodImplementation(this);
+      var impl = JSIL.$GetMethodImplementation(this, null);
 
       if (typeof (impl) !== "function")
         throw new System.Exception("Failed to find constructor");

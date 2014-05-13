@@ -386,7 +386,7 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
           $jsilcore.TypeRef("System.Reflection.MethodInfo")
         ], [])), 
     function CreateDelegate (delegateType, firstArgument, method) {
-      var impl = JSIL.$GetMethodImplementation(method);
+      var impl = JSIL.$GetMethodImplementation(method, firstArgument);
 
       var delegatePublicInterface = delegateType.__PublicInterface__;
 

@@ -6633,7 +6633,7 @@ JSIL.SignatureBase.prototype.LookupMethod = function (context, name) {
 };
 
 
-JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context, openSignature) {
+JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context, openSignature, genericArgumentValues) {
   this._lastKeyName = "<null>";
   this._lastKey = "<null>";
   this._genericSuffix = null;
@@ -6659,6 +6659,10 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentNames = $jsilcore.ArrayNull;
 
   this.openSignature = openSignature || null;
+
+  if (JSIL.IsArray(genericArgumentValues)){
+    this.genericArgumentValues = genericArgumentValues;
+  }
 };
 
 JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
@@ -9055,7 +9059,7 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
   methods.length = l;
 };
 
-JSIL.$GetMethodImplementation = function (method) {
+JSIL.$GetMethodImplementation = function (method, target) {
   var isStatic = method._descriptor.Static;
   var isInterface = method._typeObject.IsInterface;
   var key = isInterface
@@ -9072,7 +9076,12 @@ JSIL.$GetMethodImplementation = function (method) {
       if (!result.signature.IsClosed)
         throw new Error("Generic method is not closed");
   }
-
+  if (method._data.signature.genericArgumentValues) {
+    if (isStatic) {
+       return result.apply(method.DeclaringType.__PublicInterface__, method._data.signature.genericArgumentValues).bind(method.DeclaringType.__PublicInterface__);
+    }
+    return result.apply(target, method._data.signature.genericArgumentValues);
+  }
   return result;
 };
 
