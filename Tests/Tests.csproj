@@ -856,6 +856,7 @@
     <None Include="SimpleTestCases\Issue368.cs" />
     <None Include="SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs" />
     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
+    <None Include="InterfaceGenericCallWithGenericParameter_Issue348.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
