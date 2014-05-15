@@ -24,6 +24,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (configuration.AnalyzerSettings != null && configuration.AnalyzerSettings.ContainsKey("DeadCodeAnalyzer")) {
                 Configuration = new Configuration((Dictionary<string, object>) configuration.AnalyzerSettings["DeadCodeAnalyzer"]);
             }
+            else
+            {
+                Configuration = new Configuration(new Dictionary<string, object>());
+            }
 
             if (Configuration.DeadCodeElimination.GetValueOrDefault(false)) {
                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +
@@ -59,7 +63,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 deadCodeInfo.WalkMethod(method);
             }
 
-            deadCodeInfo.ResolveVirtualMethods();
+            deadCodeInfo.ResolveVirtualMethodsCycle();
 
             stopwatchElapsed.Stop();
             Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
