@@ -48,6 +48,10 @@ namespace JSIL.Internal {
             RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
 
+        private static ThreadLocal<StringBuilder> EscapeStringBuilder = new ThreadLocal<StringBuilder>(
+            () => new StringBuilder(10240)
+        );
+
         public static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
             var result = Uri.UnescapeDataString(uri.AbsolutePath);
@@ -67,7 +71,9 @@ namespace JSIL.Internal {
             bool isEscaped = false;
             string result = identifier;
 
-            var sb = new StringBuilder();
+            var sb = EscapeStringBuilder.Value;
+            sb.Clear();
+
             for (int i = 0, l = identifier.Length; i < l; i++) {
                 var ch = identifier[i];
 
@@ -242,8 +248,9 @@ namespace JSIL.Internal {
             if (text == null)
                 return "null";
 
-            var sb = new StringBuilder(text.Length + 16);
+            var sb = EscapeStringBuilder.Value;
 
+            sb.Clear();
             sb.Append(quoteCharacter);
 
             foreach (var ch in text) {
@@ -260,6 +267,10 @@ namespace JSIL.Internal {
             sb.Append(quoteCharacter);
 
             return sb.ToString();
+        }
+
+        public static string DemangleCecilTypeName (string typeName) {
+            return typeName.Replace("/", "+");
         }
 
         public sealed class ListSkipAdapter<T> : IList<T> {
@@ -622,16 +633,22 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public bool TryCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator) {
+        public bool TryCreate<TUserData> (TKey key, TUserData userData, CreatorFunction<TUserData> creator, Predicate<TValue> shouldAdd = null) {
             ConstructionState state;
+
             if (TryCreateSetup(key, out state)) {
                 try {
                     var result = creator(key, userData);
 
-                    if (!Storage.TryAdd(key, result))
-                        throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
+                    if ((shouldAdd == null) || shouldAdd(result)) {
+                        if (!Storage.TryAdd(key, result))
+                            throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
 
-                    return true;
+                        return true;
+                    } else {
+                        return false;
+                    }
+
                 } finally {
                     TryCreateTeardown(key, state);
                 }
@@ -723,6 +740,31 @@ namespace JSIL.Internal {
                 type,
                 "$temp{0:X2}", function.TemporaryVariableCount++
             );
+        }
+    }
+
+    public struct HashedString {
+        public readonly int HashCode;
+        public readonly string String;
+
+        public HashedString (string str) {
+            String = str;
+            HashCode = str.GetHashCode();
+        }
+
+        public HashedString (string str, int hashCode) {
+            String = str;
+            HashCode = hashCode;
+        }
+    }
+
+    public class HashedStringComparer : IEqualityComparer<HashedString> {
+        public bool Equals (HashedString x, HashedString y) {
+            return String.Equals(x.String, y.String, StringComparison.Ordinal);
+        }
+
+        public int GetHashCode (HashedString obj) {
+            return obj.HashCode;
         }
     }
 }

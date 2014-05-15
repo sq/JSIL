@@ -117,6 +117,8 @@ namespace JSIL.Ast {
     public class JSType : JSIdentifier {
         public readonly TypeReference Type;
 
+        string _cachedIdentifier = null;
+
         public JSType (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -125,7 +127,12 @@ namespace JSIL.Ast {
         }
 
         public override string Identifier {
-            get { return Type.FullName; }
+            get { 
+                if (_cachedIdentifier == null)
+                    _cachedIdentifier = Util.DemangleCecilTypeName(Type.FullName);
+
+                return _cachedIdentifier;
+            }
         }
 
         public override bool HasGlobalStateDependency {

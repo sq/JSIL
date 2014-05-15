@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using JSIL.Ast;
@@ -72,12 +73,27 @@ namespace JSIL.Transforms {
                         )
                     );
 
-                if (actualMethodInfo != null) {
-                    actualMethod = new JSMethod(
-                        actualMethodInfo.Member, actualMethodInfo,
-                        originalMethod.MethodTypes, originalMethod.GenericArguments
+                MethodReference actualMethodReference = actualMethodInfo.Member;
+                if (originalMethod.Reference is GenericInstanceMethod) {
+                    throw new InvalidDataException("Reconstructing an invocation of a generic instance method? Shouldn't be possible.");
+                } else if (declaringType is GenericInstanceType) {
+                    var declaringGit = (GenericInstanceType)declaringType;
+                    var returnType = actualMethodReference.ReturnType;
+
+                    if (TypeUtil.IsOpenType(returnType)) {
+                        var actualReturnType = JSExpression.SubstituteTypeArgs(TypeInfo, actualMethodReference.ReturnType, actualMethodReference);
+                        returnType = actualReturnType;
+                    }
+
+                    actualMethodReference = new MethodReference(
+                        actualMethodReference.Name, returnType, declaringGit
                     );
                 }
+
+                actualMethod = new JSMethod(
+                    actualMethodReference, actualMethodInfo,
+                    originalMethod.MethodTypes, originalMethod.GenericArguments
+                );
             }
 
             bool needsExplicitThis = !pa.IsVirtualCall && ILBlockTranslator.NeedsExplicitThis(

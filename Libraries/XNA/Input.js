@@ -689,7 +689,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", f
   );
 
   $.Method({Static:false, Public:true }, "Clear", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Clear () {
       this.touches.length = 0;
     }
@@ -746,7 +746,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", f
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enumerator"), [], [])), 
+    (new JSIL.MethodSignature($xnaasms[4].TypeRef("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enumerator"), [], [])), 
     function GetEnumerator () {
       var result = new $xnaasms[4].Microsoft.Xna.Framework.Input.Touch.TouchCollection_Enumerator(this);
       return result;
@@ -789,7 +789,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection", f
   );
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enumerator", function ($interfaceBuilder) {
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection+Enumerator", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:false}, ".ctor", 
@@ -801,7 +801,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enu
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       this.position = -1;
     }
@@ -822,21 +822,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchCollection/Enu
     }
   );
 
-  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.get_Current", 
+  $.Method({Static:false, Public:false }, null, 
     new JSIL.MethodSignature($.Object, [], []), 
     function System_Collections_IEnumerator_get_Current () {
       return this.collection.touches[this.position];
     }
   )
-    .Overrides(2, "get_Current");
+    .Overrides("System.Collections.IEnumerator", "get_Current");
 
-  $.Method({Static:false, Public:false, Virtual:true }, "System.Collections.IEnumerator.Reset", 
-    new JSIL.MethodSignature(null, [], []), 
+  $.Method({Static:false, Public:false, Virtual:true }, "Reset", 
+    JSIL.MethodSignature.Void, 
     function System_Collections_IEnumerator_Reset () {
       this.position = -1;
     }
   )
-    .Overrides(2, "Reset");
+    .Overrides("System.Collections.IEnumerator", "Reset");
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Touch.TouchLocation", function ($interfaceBuilder) {

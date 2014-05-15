@@ -225,12 +225,21 @@ namespace JSIL.Ast {
                         select em
                     ).Take(1).ToArray();
                 } else {
-                    enumMembers = (
+                    var allMatchingMembers = (
                         from em in enumTypeInfo.EnumMembers.Values
                         where (em.Value != 0) &&
                             ((value & em.Value) == em.Value)
                         select em
-                    ).ToArray();
+                    );
+
+                    // For scenarios where a flags enum has an 'Any' value, don't duplicate the subflags.
+                    var filteredMatchingMembers = (
+                        from em in allMatchingMembers
+                        where !allMatchingMembers.Any((om) => (Math.Abs(om.Value) > em.Value) && ((om.Value & em.Value) == em.Value))
+                        select em
+                    );
+
+                    enumMembers = filteredMatchingMembers.ToArray();
                 }
             } else {
                 EnumMemberInfo em;

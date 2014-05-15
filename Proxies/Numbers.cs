@@ -7,8 +7,8 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         new [] { 
-            typeof(SByte), typeof(Int16), typeof(Int32), typeof(Int64), 
-            typeof(Byte), typeof(UInt16), typeof(UInt32), typeof(UInt64) 
+            typeof(SByte), typeof(Int16), typeof(Int32), 
+            typeof(Byte), typeof(UInt16), typeof(UInt32)
         },
         JSProxyMemberPolicy.ReplaceDeclared
     )]

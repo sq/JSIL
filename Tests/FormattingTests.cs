@@ -810,10 +810,10 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(
-                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                    generatedJs.Contains("\"U\").in()"), "B`1.U missing variance indicator"
                 );
                 Assert.IsTrue(
-                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                    generatedJs.Contains("\"V\").out()"), "C`1.V missing variance indicator"
                 );
                 Assert.IsTrue(
                     generatedJs.Contains("\"in U\""), "U name missing variance indicator"
@@ -943,6 +943,70 @@ namespace JSIL.Tests {
                     "DrawBatch function has a locally cached method signature"
                 );
             } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void ClassMarkedWithMetaAttibutes()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\ClassMarkedWithMetaAttibutes.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsTrue(
+                    generatedJs.Contains("function ClassThatShouldBeStubbed"),
+                    "Class marked with JSStubOnly should be translated as stub");
+                Assert.IsTrue(
+                    generatedJs.Contains("$.ExternalMethod({Static:true , Public:true }, \"MethodInStubbedClass\""),
+                    "Method inside class marked with JSStubOnly should have declaration as ExternalMethod");
+                Assert.IsTrue(
+                    generatedJs.Contains("JSIL.MakeExternalType(\"ClassThatShouldBeExternal\""),
+                    "Class marked with JSExternal should be translated with MakeExternalType declaration");
+                Assert.IsFalse(
+                    generatedJs.Contains("MethodInExternalClass"),
+                    "Method inside class marked with JSExternal should not be translated");
+                Assert.IsFalse(
+                    generatedJs.Contains("ClassThatShouldBeIgnored"),
+                    "Class marked with JSIgnore should not be translated");
+                Assert.IsFalse(
+                    generatedJs.Contains("MethodInIgnoredClass"),
+                    "Method inside class marked with JSIgnore should not be translated");
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void InnerClassNameFormatting_Issue352()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\InnerClassNameFormatting_Issue352.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsTrue(
+                    generatedJs.Contains("\"Program+InnerGenericClass`1\""),
+                    "Inner class should be named in Outer+Inner format");
+                Assert.IsTrue(
+                    generatedJs.Contains("$.GenericParameter(\"T\")"),
+                    "Generic parameter for inner class should reference class via $");
+            }
+            catch
+            {
                 Console.WriteLine(generatedJs);
 
                 throw;

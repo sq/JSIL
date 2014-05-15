@@ -152,6 +152,18 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
 
   $.RawMethod(false, "GetContractClass", function () {
       var contractName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializerContract";
+
+      var contractAssembly = this.type.Assembly.FullName;
+      if (this.type.IsArray) {
+          contractAssembly = this.type.GetElementType().Assembly.FullName;
+      }
+      var indexOfFirstComaInAssemblyName = contractAssembly.search(",");
+      if (indexOfFirstComaInAssemblyName >= 0)
+      {
+          contractAssembly = contractAssembly.substring(0, indexOfFirstComaInAssemblyName) + ".XmlSerializers" + contractAssembly.substring(indexOfFirstComaInAssemblyName, contractAssembly.length);
+          contractName = contractName + ", " + contractAssembly;
+      }
+
       var contractType = getType(contractName);
 
       if (!contractType)
@@ -407,15 +419,15 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
   $.RawMethod(false, "$getNullAttribute", function () {
     var a = this.r.GetAttribute(this.nilID, this.instanceNsID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs2000ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     a = this.r.GetAttribute(this.nilID, this.instanceNs1999ID);
     if (a !== null)
-      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+      return System.Xml.XmlConvert.ToBoolean(a);
 
     return false;
   });
@@ -432,7 +444,7 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
   );
 
   $.Method({Static:false, Public:true }, "ReadEndElement", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function ReadEndElement () {
       while (this.r.NodeType == System.Xml.XmlNodeType.Whitespace)
         this.r.Skip();
@@ -523,7 +535,7 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
 JSIL.ImplementExternals("System.Xml.XmlQualifiedName", function ($) {
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.name = "";
       this.ns = "";
@@ -754,7 +766,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Skip", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Skip () {
       this.$skip();
     }
@@ -860,7 +872,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "ReadStartElement", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function ReadStartElement () {
       if (!this.IsStartElement())
         throw new Error("Start element not found");
@@ -870,7 +882,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "ReadEndElement", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function ReadEndElement () {
       if (this.MoveToContent() != ntEndElement)
         throw new Error("End element not found");
@@ -1234,7 +1246,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       // FIXME
     }
@@ -1251,7 +1263,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
 
 JSIL.ImplementExternals("System.Xml.XmlNameTable", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
-    new JSIL.MethodSignature(null, [], []),
+    JSIL.MethodSignature.Void,
     function () {
       this._names = {};
     }
@@ -1488,7 +1500,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   });
 
   $.Method({Static:false, Public:true }, "Close", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Close () {
       this.$dispose();
     }
@@ -1566,7 +1578,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Flush", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Flush () {
       this.$flush(false);
     }
@@ -1735,21 +1747,21 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "WriteEndAttribute", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function WriteEndAttribute () {
       throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true }, "WriteEndDocument", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function WriteEndDocument () {
       this.$flush(true);
     }
   );
 
   $.Method({Static:false, Public:true }, "WriteEndElement", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function WriteEndElement () {
       this.$flushOne(true);
       this._stack.pop();
@@ -1764,7 +1776,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "WriteFullEndElement", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function WriteFullEndElement () {
       throw new Error('Not implemented');
     }
@@ -1861,7 +1873,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "WriteStartDocument", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function WriteStartDocument () {
       this._needPrologue = false;
       this.$write('<?xml version="1.0" encoding="');
@@ -1993,7 +2005,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       // FIXME
       this.$dispose();

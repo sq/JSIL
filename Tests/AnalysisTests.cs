@@ -387,14 +387,14 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyTemporaries () {
             var output = 
-@"Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Right, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Up, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Left, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Down, 384)";
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Right, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Up, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Left, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Down, 384)";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\PropertyTemporaries.cs",
@@ -677,6 +677,44 @@ Shockwave.TryMove(Down, 384)";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\CopyForTemporaryStructInLoop.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void AsyncAwaitCloning () {
+            // HACK: async/await support not merged to trunk yet
+            var hack = true;
+            string output = hack ? "" : "Continuation:AsyncMethod result";
+
+            var generatedJs = GetJavascript(
+                @"AnalysisTestCases\Issue371.cs",
+                output
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"\/\* ref \*\/ this").Count,
+                0,
+                "this was passed as a reference"
+            );
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"new JSIL\.BoxedVariable\(this\)").Count,
+                2,
+                "this should have been boxed twice"
+            );
+        }
+
+        [Test]
+        public void Issue395 () {
+            string output = "00";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue395.cs",
                 output, output
             );
 

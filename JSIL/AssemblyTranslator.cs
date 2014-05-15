@@ -44,6 +44,8 @@ namespace JSIL {
 
         public const int LargeMethodThreshold = 20 * 1024;
 
+        public const int DefaultStreamCapacity = 4 * (1024 * 1024);
+
         public readonly Configuration Configuration;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
@@ -463,7 +465,7 @@ namespace JSIL {
                 long existingSize;
 
                 if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                    using (var outputStream = new MemoryStream()) {
+                    using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
                         var context = MakeDecompilerContext(assembly.MainModule);
 
                         try {
@@ -484,7 +486,7 @@ namespace JSIL {
                     lock (result.Assemblies)
                         result.Assemblies.Add(assembly);
                 } else {
-                    Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                    Console.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
 
                     result.AddExistingFile("Script", outputPath, existingSize);
                 }
@@ -841,12 +843,15 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, output, declaredTypes, stubbed);
         }
 
-        protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
+        protected void TranslateInterface (
+            DecompilerContext context, JavascriptAstEmitter astEmitter, 
+            JavascriptFormatter output, TypeDefinition iface
+        ) {
             output.Identifier("JSIL.MakeInterface", EscapingMode.None);
             output.LPar();
             output.NewLine();
             
-            output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(iface.FullName));
             output.Comma();
 
             output.Value(iface.IsPublic);
@@ -932,6 +937,9 @@ namespace JSIL {
             output.CloseBracket();
 
             output.RPar();
+
+            TranslateCustomAttributes(context, iface, iface, astEmitter, output);
+
             output.Semicolon();
             output.NewLine();
         }
@@ -960,7 +968,7 @@ namespace JSIL {
             output.LPar();
             output.NewLine();
 
-            output.Value(Util.EscapeIdentifier(typeInfo.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
             output.Comma();
 
             output.Value(enm.IsPublic);
@@ -1004,7 +1012,7 @@ namespace JSIL {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
-            output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(del.FullName));
             output.Comma();
 
             output.Value(del.IsPublic);
@@ -1051,6 +1059,11 @@ namespace JSIL {
             if (declaredTypes.Contains(typedef))
                 return;
 
+            if (typeInfo.IsStubOnly)
+            {
+                stubbed = true;
+            }
+
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
                 declaredTypes.Add(typedef);
@@ -1061,7 +1074,7 @@ namespace JSIL {
                 output.WriteRaw("$jsilcore");
                 output.Comma();
 
-                output.Value(typedef.FullName);
+                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
 
                 output.RPar();
                 output.Semicolon();
@@ -1101,7 +1114,7 @@ namespace JSIL {
                     output.Identifier("JSIL.MakeExternalType", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1110,21 +1123,21 @@ namespace JSIL {
                     output.NewLine();
                     return;
                 } else if (typedef.IsInterface) {
-                    output.Comment("interface {0}", typedef.FullName);
+                    output.Comment("interface {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateInterface(context, output, typedef);
+                    TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
-                    output.Comment("enum {0}", typedef.FullName);
+                    output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
                     TranslateEnum(context, output, typedef);
                     return;
                 } else if (typeInfo.IsDelegate) {
-                    output.Comment("delegate {0}", typedef.FullName);
+                    output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
@@ -1148,7 +1161,7 @@ namespace JSIL {
                 }
 
                 if (!makingSkeletons) {
-                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", typedef.FullName);
+                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
@@ -1172,13 +1185,13 @@ namespace JSIL {
                     output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
 
                 } else if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1225,7 +1238,7 @@ namespace JSIL {
                     output.NewLine();
 
                     output.WriteRaw("Name: ");
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.NewLine();
 
@@ -1575,12 +1588,12 @@ namespace JSIL {
                 bool firstInterface = true;
 
                 for (var i = 0; i < interfaces.Length; i++) {
-                    if (interfaces[i].Item1 != typeInfo)
+                    if (interfaces[i].ImplementingType != typeInfo)
                         continue;
-                    if (interfaces[i].Item2.IsIgnored)
+                    if (interfaces[i].ImplementedInterface.Info.IsIgnored)
                         continue;
 
-                    var @interface = interfaces[i].Item3;
+                    var @interface = interfaces[i].ImplementedInterface.Reference;
 
                     if (firstInterface)
                         firstInterface = false;
@@ -1930,7 +1943,8 @@ namespace JSIL {
                         defaultValue is JSInvocationExpressionBase ||
                         defaultValue is JSNewArrayExpression ||
                         defaultValue is JSEnumLiteral ||
-                        defaultValue is JSCastExpression
+                        defaultValue is JSCastExpression ||
+                        defaultValue is JSTypeOfExpression
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
@@ -2323,20 +2337,26 @@ namespace JSIL {
             TypeReference declaringType,
             Mono.Cecil.ICustomAttributeProvider member, 
             JavascriptAstEmitter astEmitter, 
-            JavascriptFormatter output
+            JavascriptFormatter output,
+            bool standalone = true
         ) {
             astEmitter.ReferenceContext.Push();
             try {
                 astEmitter.ReferenceContext.EnclosingType = null;
                 astEmitter.ReferenceContext.DefiningType = null;
 
-                output.Indent();
+                if (standalone)
+                    output.Indent();
+
+                bool isFirst = true;
 
                 foreach (var attribute in member.CustomAttributes) {
                     if (ShouldSkipMember(attribute.AttributeType))
                         continue;
+                        
+                    if (!isFirst || standalone)
+                        output.NewLine();
 
-                    output.NewLine();
                     output.Dot();
                     output.Identifier("Attribute");
                     output.LPar();
@@ -2359,12 +2379,55 @@ namespace JSIL {
                     }
 
                     output.RPar();
+
+                    isFirst = false;
                 }
 
-                output.Unindent();
+                if (standalone)
+                    output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
+        }
+
+        private void TranslateParameterAttributes (
+            DecompilerContext context,
+            TypeReference declaringType,
+            MethodDefinition method,
+            JavascriptAstEmitter astEmitter,
+            JavascriptFormatter output
+        ) {
+            output.Indent();
+
+            foreach (var parameter in method.Parameters) {
+                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+                    continue;
+
+                output.NewLine();
+                output.Dot();
+                output.Identifier("Parameter");
+                output.LPar();
+
+                output.Value(parameter.Index);
+                output.Comma();
+
+                output.Value(parameter.Name);
+                output.Comma();
+
+                output.OpenFunction(null, (jf) => jf.Identifier("_"));
+
+                output.Identifier("_");
+
+                TranslateCustomAttributes(context, declaringType, parameter, astEmitter, output, false);
+
+                output.NewLine();
+
+                output.CloseBrace(false);
+
+                output.RPar();
+            }
+
+            output.Unindent();
         }
 
         protected void CreateMethodInformation (
@@ -2641,9 +2704,13 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                astEmitter.ReferenceContext.AttributesMethod = methodRef;
+
                 TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
 
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+
+                TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
             } finally {
@@ -2669,11 +2736,7 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaceIndex = typeInfo.AllInterfacesRecursive.TakeWhile(
-                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
-                    ).Count();
-
-                    output.Value(interfaceIndex);
+                    output.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);
 
                     output.Comma();
                     output.Value(@override.MemberIdentifier.Name);

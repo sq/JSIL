@@ -672,7 +672,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", func
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPass", function ($) {
   $.Method({Static:false, Public:true }, "Apply", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Apply () {
       // FIXME
     }
@@ -750,7 +750,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   $.Method({
     Static: false,
     Public: true
-  }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
+  }, "ApplyChanges", JSIL.MethodSignature.Void, function () {
     var oc = this.device.originalCanvas;
 
     $jsilbrowserstate.nativeWidth = this.device.originalWidth = this._width;
@@ -996,7 +996,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   );
 
   $.Method({Static:false, Public:true }, "End", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function SpriteBatch_End () {
       if (this.defer) {
         this.defer = false;
@@ -2916,6 +2916,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     return result;
   };
 
+  var doUnpremultiply = function (dataBytes, bytes, startIndex, elementCount) {
+    var pixelCount = (elementCount / 4) | 0;
+    for (var i = 0; i < pixelCount; i++) {
+      var p = (i * 4) | 0;
+      var p1 = (p + 1) | 0;
+      var p2 = (p + 2) | 0;
+      var p3 = (p + 3) | 0;
+
+      var a = bytes[p3] | 0;
+
+      if (a <= 0) {
+        continue;
+      } else if (a > 254) {
+        dataBytes[p] = bytes[p];
+        dataBytes[p1] = bytes[p1];
+        dataBytes[p2] = bytes[p2];
+        dataBytes[p3] = a;
+      } else {
+        var m = 255 / a;
+
+        dataBytes[p] = (bytes[p] * m) | 0;
+        dataBytes[p1] = (bytes[p1] * m) | 0;
+        dataBytes[p2] = (bytes[p2] * m) | 0;
+        dataBytes[p3] = a;
+      }
+    }
+  };
+
   $.RawMethod(false, "$makeImageDataForBytes", function $makeImageDataForBytes (
     width, height,
     bytes, startIndex, elementCount, 
@@ -2938,28 +2966,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
     //  to reverse the premultiplication.
     if (unpremultiply) {
-      var pixelCount = elementCount / 4;
-      for (var i = 0; i < pixelCount; i++) {
-        var p = (i * 4) | 0;
-
-        var a = bytes[(p + 3) | 0];
-
-        if (a <= 0) {
-          continue;
-        } else if (a > 254) {
-          dataBytes[p] = bytes[p];
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0];
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0];
-          dataBytes[(p + 3) | 0] = a;
-        } else {
-          var m = 255 / a;
-
-          dataBytes[p] = bytes[p] * m;
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
-          dataBytes[(p + 3) | 0] = a;
-        }
-      }
+      doUnpremultiply(dataBytes, bytes, startIndex, elementCount);
     } else {
       fastArrayCopy(dataBytes, 0, bytes, startIndex, elementCount);
     }
@@ -3005,7 +3012,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
   });
 });
 
@@ -3083,19 +3090,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
   $.Method({
     Static: false,
     Public: true
-  }, "SetData", new JSIL.MethodSignature(null, [], []), function (T, level, rect, data, startIndex, elementCount) {
+  }, "SetData", JSIL.MethodSignature.Void, function (T, level, rect, data, startIndex, elementCount) {
     throw new System.NotImplementedException();
   });
   $.Method({
     Static: false,
     Public: true
-  }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {
+  }, "$ResynthesizeImage", JSIL.MethodSignature.Void, function () {
     this.image.isDirty = true;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
     if (!this.canvas)
       return;
 
@@ -3476,7 +3483,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.cachedFilter = Microsoft.Xna.Framework.Graphics.TextureFilter.Linear;
       this.name = null;
@@ -3608,7 +3615,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1/Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1+Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
     function GetEnumerator () {
       // FIXME
       return JSIL.GetEnumerator([getTemporaryPass()]);

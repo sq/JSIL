@@ -45,6 +45,7 @@ namespace JSIL.Translator {
             public bool? HintDoubleArithmetic;
             public bool? AutoGenerateEventAccessorsInSkeletons;
             public bool? AggressivelyUseElementProxies;
+            public bool? EmitAllParameterNames;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -83,6 +84,8 @@ namespace JSIL.Translator {
                     result.AutoGenerateEventAccessorsInSkeletons = AutoGenerateEventAccessorsInSkeletons;
                 if (AggressivelyUseElementProxies.HasValue)
                     result.AggressivelyUseElementProxies = AggressivelyUseElementProxies;
+                if (EmitAllParameterNames.HasValue)
+                    result.EmitAllParameterNames = EmitAllParameterNames;
             }
         }
 

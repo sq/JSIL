@@ -76,7 +76,7 @@ JSIL.ImplementExternals("Tao.Sdl.Sdl", function ($) {
   );
 
   $.Method({Static:true , Public:true }, "SDL_JoystickUpdate", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function SDL_JoystickUpdate () {
       var svc = JSIL.Host.getService("nativeGamepad");
 

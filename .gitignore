@@ -24,7 +24,6 @@ Examples/bin
 /bin
 UpgradeLog.XML
 _UpgradeReport_Files
-Tests/*Cases/*.js
 /Proxies/XNA4/bin
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
@@ -46,6 +45,7 @@ Tests/*Cases/*.js
 /jsil.org/demos/Lumberjack/Content
 /jsil.org/demos/Lumberjack/Files
 /jsil.org/demos/Lumberjack/*.js
+/jsil.org/demos/Lumberjack/*.ico
 /jsil.org/demos/WebGL/*.js
 /jsil.org/demos/WebGL/Page.cs
 /jsil.org/demos/WebGL/Files/*
@@ -71,6 +71,7 @@ Tests/*Cases/*.js
 /Upstream/XapParse/bin
 Skeletons/*.js
 Corlib/*.js
+Corlib/*.nlp
 /Try/obj
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs
@@ -95,3 +96,4 @@ Corlib/*.js
 /Upstream/OpenTKBindingGenerator
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
+*.out

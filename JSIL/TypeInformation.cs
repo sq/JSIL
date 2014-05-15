@@ -26,7 +26,7 @@ namespace JSIL.Internal {
         ProxyInfo[] GetProxies (TypeDefinition type);
 
         void CacheProxyNames (MemberReference member);
-        bool TryGetProxyNames (string typeFullName, out string[] result);
+        bool TryGetProxyNames (TypeReference type, out string[] result);
 
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
@@ -47,7 +47,53 @@ namespace JSIL.Internal {
         }
     }
 
+    public struct InterfaceToken {
+        public readonly TypeInfo Info;
+        public readonly TypeReference Reference;
+
+        public InterfaceToken (TypeInfo info, TypeReference reference) {
+            Info = info;
+            Reference = reference;
+        }
+    }
+
+    public struct RecursiveInterfaceToken {
+        public readonly TypeInfo ImplementingType;
+        public readonly InterfaceToken ImplementedInterface;
+
+        public RecursiveInterfaceToken (TypeInfo implementingType, InterfaceToken implementedInterface) {
+            ImplementingType = implementingType;
+            ImplementedInterface = implementedInterface;
+        }
+    }
+
+    public class RecursiveInterfaceTokenComparer : IEqualityComparer<RecursiveInterfaceToken> {
+        public bool Equals (RecursiveInterfaceToken x, RecursiveInterfaceToken y) {
+            return TypeUtil.TypesAreEqual(
+                x.ImplementedInterface.Reference, 
+                y.ImplementedInterface.Reference,
+                true
+            );
+        }
+
+        public int GetHashCode (RecursiveInterfaceToken obj) {
+            return obj.ImplementedInterface.Info.GetHashCode();
+        }
+    }
+
     public struct TypeIdentifier {
+        public class ComparerImpl : IEqualityComparer<TypeIdentifier> {
+            public bool Equals (TypeIdentifier x, TypeIdentifier y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (TypeIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
+        public static readonly ComparerImpl Comparer = new ComparerImpl(); 
+
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;
@@ -378,8 +424,8 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
-        private System.Tuple<TypeInfo, TypeInfo, TypeReference>[] _AllInterfacesRecursive = null;
+        public readonly InterfaceToken[] Interfaces;
+        private RecursiveInterfaceToken[] _AllInterfacesRecursive = null;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -404,6 +450,7 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
+        public readonly bool IsStubOnly;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -444,7 +491,7 @@ namespace JSIL.Internal {
 
             IsInterface = type.IsInterface;
 
-            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>();
+            var interfaces = new HashSet<InterfaceToken>();
             {
                 StringBuilder errorString = null;
 
@@ -455,8 +502,8 @@ namespace JSIL.Internal {
                         continue;
                     }
 
-                    var ii = Tuple.Create(source.GetExisting(i), i);
-                    if (ii.Item1 == null) {
+                    var ii = new InterfaceToken(source.GetExisting(i), i);
+                    if (ii.Info == null) {
                         if (errorString == null) {
                             errorString = new StringBuilder();
                             errorString.AppendFormat(
@@ -485,7 +532,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(Tuple.Create(ii, i));
+                        interfaces.Add(new InterfaceToken(ii, i));
                     }
                 }
             }
@@ -509,6 +556,8 @@ namespace JSIL.Internal {
             } else {
                 Replacement = null;
             }
+
+            IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
@@ -727,17 +776,23 @@ namespace JSIL.Internal {
             return Definition.FullName;
         }
 
-        public System.Tuple<TypeInfo, TypeInfo, TypeReference>[] AllInterfacesRecursive {
+        /// <summary>
+        /// All interfaces implemented by this type and its base types.
+        /// Does not include interfaces implemented by those interfaces.
+        /// </summary>
+        public RecursiveInterfaceToken[] AllInterfacesRecursive {
             get {
                 if (_AllInterfacesRecursive == null) {
-                    var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
+                    var list = new List<RecursiveInterfaceToken>();
                     var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
 
                     foreach (var type in types)
                         foreach (var @interface in type.Interfaces)
-                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+                            list.Add(new RecursiveInterfaceToken(type, @interface));
 
-                    _AllInterfacesRecursive = list.ToArray();
+                    _AllInterfacesRecursive = list
+                        .Distinct(new RecursiveInterfaceTokenComparer())
+                        .ToArray();
                 }
 
                 return _AllInterfacesRecursive;
@@ -841,7 +896,7 @@ namespace JSIL.Internal {
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
-                        Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
+                        Console.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
                     Members.TryRemove(identifier, out result);
                 } else {
@@ -987,7 +1042,7 @@ namespace JSIL.Internal {
                     return _FullName;
 
                 if (DeclaringType != null)
-                    return _FullName = DeclaringType.FullName + "/" + Name;
+                    return _FullName = DeclaringType.FullName + "+" + Name;
 
                 if (string.IsNullOrEmpty(Definition.Namespace))
                     return _FullName = Name;
@@ -1201,7 +1256,7 @@ namespace JSIL.Internal {
 
         public bool Inherited;
         public string Name;
-        public readonly List<Entry> Entries = new List<Entry>();
+        public readonly List<Entry> Entries = new List<Entry>(1);
     }
 
     public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
@@ -1217,11 +1272,15 @@ namespace JSIL.Internal {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
-                else
+                else {
+                    if (Attributes == null)
+                        Attributes = new Dictionary<string, AttributeGroup>(cas.Count);
+
                     Add(ca.AttributeType.FullName, new AttributeGroup {
                         Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
+                }
             }
         }
 

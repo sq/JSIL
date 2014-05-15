@@ -271,6 +271,7 @@ namespace JSIL.Tests {
                     @"TestCases\DictionaryKeyValuePairs.cs",
                     @"TestCases\DictionaryValueCollectionCount.cs",
                     @"TestCases\DictionaryKeysAndValues.cs",
+                    @"TestCases\DictionaryInterfaces.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
@@ -518,6 +519,16 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
             return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("JSTestCasesSource")]
+        public void JSTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> JSTestCasesSource () {
+            return FolderTestSource("JSTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
         [Test]

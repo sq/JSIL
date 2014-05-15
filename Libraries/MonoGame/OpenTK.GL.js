@@ -443,7 +443,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:true }, "Flush", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Flush () {
       var ctx = JSIL.GL.getContext();
       ctx.flush();
@@ -772,7 +772,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:false}, "Finish", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Finish () {
       var ctx = JSIL.GL.getContext();
       ctx.finish();
