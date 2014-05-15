@@ -874,7 +874,11 @@ namespace JSIL {
             bool isFirst = true;
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
+                    if (ShouldSkipMember(m))
+                        continue;
+
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
+
                     if ((methodInfo == null) || methodInfo.IsIgnored)
                         continue;
 
@@ -1035,7 +1039,11 @@ namespace JSIL {
             return true;
         }
 
-        protected bool ShouldSkipMember(MemberReference member) {
+        protected bool ShouldSkipMember(MemberReference member)
+        {
+            if (member is MethodReference && member.Name == ".cctor")
+                return false;
+
             if (MemberCanBeSkipped != null)
                 return MemberCanBeSkipped(member);
 
