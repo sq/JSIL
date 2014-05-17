@@ -1600,6 +1600,8 @@ namespace JSIL {
                         continue;
                     if (interfaces[i].ImplementedInterface.Info.IsIgnored)
                         continue;
+                    if (ShouldSkipMember(interfaces[i].ImplementedInterface.Reference))
+                        continue;
 
                     var @interface = interfaces[i].ImplementedInterface.Reference;
 

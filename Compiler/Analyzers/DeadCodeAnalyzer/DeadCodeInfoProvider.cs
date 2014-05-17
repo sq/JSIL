@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using ICSharpCode.NRefactory.Utils;
@@ -39,18 +37,23 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         public bool IsUsed(MemberReference member) {
-            if (member is TypeReference) {
-                TypeDefinition typeDefinition = member as TypeDefinition;
-                if (typeDefinition != null && typeDefinition.IsInterface)
-                    return true; // HACK: always include interfaces
+            var typeReference = member as TypeReference;
+            if (typeReference != null)
+            {
+                var defenition = typeReference.Resolve();
+                return types.Contains(defenition);
+            }
 
-                return types.Contains(member);
+            var methodReference = member as MethodReference;
+            if (methodReference != null) {
+                var defenition = methodReference.Resolve();
+                return methods.Contains(defenition);
             }
-            if (member is MethodReference) {
-                return methods.Contains(member);
-            }
-            if (member is FieldReference) {
-                return fields.Contains(member);
+
+            var fieldReference = member as FieldReference;
+            if (fieldReference != null) {
+                var defenition = fieldReference.Resolve();
+                return fields.Contains(defenition);
             }
 
             throw new ArgumentException("Unexpected member reference type");
