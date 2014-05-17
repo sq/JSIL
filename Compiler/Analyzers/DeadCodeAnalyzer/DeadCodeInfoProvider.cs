@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using ICSharpCode.NRefactory.Utils;
+using JSIL.Internal;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Linker.Steps;
@@ -35,6 +36,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 }
             }
         }
+
+        internal TypeInfoProvider TypeInfoProvider { get; set; }
 
         public bool IsUsed(MemberReference member) {
             var typeReference = member as TypeReference;
@@ -197,7 +200,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private bool AddMethod(MethodReference method) {
-            if (method == null) {
+            if (method == null || method.DeclaringType.IsArray) {
                 return false;
             }
 
@@ -230,6 +233,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 //        AddType(attribute.AttributeType);
                 //    }
                 //}
+                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(method);
+                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
+                {
+                    return false;
+                }
 
                 return true;
             }
@@ -248,7 +256,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             fields.Add(resolvedField);
         }
 
-        public void AddAssemblies(AssemblyDefinition[] assemblies) {
+        public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies) {
             IEnumerable<ModuleDefinition> modules = from assembly in assemblies
                                                     from module in assembly.Modules
                                                     select module;
@@ -363,6 +371,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                         foreach (var method in type.Methods) {
                             if (IsMemberWhiteListed(method))
                                 ProcessWhiteList(method);
+                        }
+                    }
+                    if (type.HasFields)
+                    {
+                        foreach (var field in type.Fields)
+                        {
+                            if (IsMemberWhiteListed(field))
+                                ProcessWhiteList(field);
                         }
                     }
                 }

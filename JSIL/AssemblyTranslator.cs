@@ -74,7 +74,7 @@ namespace JSIL {
         public event Action AnalyzeStarted;
         public event Func<MemberReference, bool> MemberCanBeSkipped;
 
-        internal readonly TypeInfoProvider _TypeInfoProvider;
+        public readonly TypeInfoProvider _TypeInfoProvider;
 
         protected bool OwnsAssemblyCache;
         protected bool OwnsTypeInfoProvider;

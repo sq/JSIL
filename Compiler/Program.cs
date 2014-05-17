@@ -697,7 +697,7 @@ namespace JSIL.Compiler {
 
                         translator.AnalyzeStarted += () => {
                                 foreach (var analyzer in analyzers.Values) {
-                                    analyzer.Analyze();
+                                    analyzer.Analyze(translator._TypeInfoProvider);
                                 }
                             };
 

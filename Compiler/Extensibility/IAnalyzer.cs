@@ -6,7 +6,7 @@ namespace JSIL.Compiler.Extensibility {
 
         void AddAssemblies(AssemblyDefinition[] assemblies);
 
-        void Analyze();
+        void Analyze(TypeInfoProvider typeInfoProvider);
 
         bool MemberCanBeSkipped(MemberReference member);
     }
