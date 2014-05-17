@@ -1458,7 +1458,7 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
                 _IsIgnored = true;
 
-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement") || Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
                 IsExternal = true;
 
             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");

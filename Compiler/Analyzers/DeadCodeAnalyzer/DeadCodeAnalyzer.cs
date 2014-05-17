@@ -6,7 +6,7 @@ using Mono.Cecil;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
     public class DeadCodeAnalyzer : IAnalyzer {
-        private readonly List<MethodDefinition> entrypoints;
+        private readonly List<AssemblyDefinition> assemblyDefinitions;
         private DeadCodeInfoProvider deadCodeInfo;
 
         private Compiler.Configuration compilerConfiguration;
@@ -15,7 +15,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private Stopwatch stopwatchElapsed;
 
         public DeadCodeAnalyzer() {
-            entrypoints = new List<MethodDefinition>();
+            assemblyDefinitions = new List<AssemblyDefinition>();
         }
 
         public void SetConfiguration(Compiler.Configuration configuration) {
@@ -41,25 +41,28 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
              if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
                 return;
 
-            stopwatchElapsed = new Stopwatch();
-            stopwatchElapsed.Start();
-
-            var foundEntrypoints = from assembly in assemblies
-                                   from modules in assembly.Modules
-                                   where modules.EntryPoint != null
-                                   select modules.EntryPoint;
-            entrypoints.AddRange(foundEntrypoints);
-
-            deadCodeInfo.AddAssemblies(assemblies);
+            assemblyDefinitions.AddRange(assemblies);
         }
 
-        public void Analyze() {
+        public void Analyze(TypeInfoProvider typeInfoProvider) {
             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
                 return;
 
+            deadCodeInfo.TypeInfoProvider = typeInfoProvider;
+
+            stopwatchElapsed = new Stopwatch();
             stopwatchElapsed.Start();
 
-            foreach (MethodDefinition method in entrypoints) {
+            var foundEntrypoints = from assembly in assemblyDefinitions
+                                   from modules in assembly.Modules
+                                   where modules.EntryPoint != null
+                                   select modules.EntryPoint;
+
+            deadCodeInfo.AddAssemblies(assemblyDefinitions);
+
+
+            foreach (MethodDefinition method in foundEntrypoints)
+            {
                 deadCodeInfo.WalkMethod(method);
             }
 
