@@ -199,8 +199,114 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
         }
 
+        private bool IsIgnored(TypeReference type)
+        {
+            if (type == null)
+            {
+                return false;
+            }
+
+            var typeDefenition = type.Resolve();
+            if (typeDefenition != null)
+            {
+                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
+                if (typeInformation.IsIgnored)
+                {
+                    return true;
+                }
+            }
+
+            if (type.IsGenericInstance)
+            {
+                var genericType = (GenericInstanceType) type;
+                if (genericType.GenericArguments.Any(IsIgnored))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsIgnored(MethodReference method)
+        {
+            var methodDefenition = method.Resolve();
+            if (methodDefenition != null)
+            {
+                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(methodDefenition);
+                if (methodInfo.IsIgnored && !methodInfo.IsLambda)
+                {
+                    return true;
+                }
+            }
+
+            if (method.IsGenericInstance)
+            {
+                var genericMethod = (GenericInstanceMethod) method;
+                if (genericMethod.GenericArguments.Any(IsIgnored))
+                {
+                    return true;
+                }
+            }
+
+            if (method.IsGenericInstance || method.DeclaringType.IsGenericInstance)
+            {
+                if (IsIgnored(method.DeclaringType))
+                {
+                    return true;
+                }
+
+                if (IsIgnored(method.ReturnType))
+                {
+                    return true;
+                }
+
+                if (method.Parameters.Any(parameterDefinition => IsIgnored(parameterDefinition.ParameterType)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsStubOrExternal(TypeReference type)
+        {
+            var typeDefenition = type.Resolve();
+            if (typeDefenition != null)
+            {
+                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
+                if (typeInformation.IsExternal || typeInformation.IsStubOnly)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsStubOrExternal(MethodReference method)
+        {
+            var methodDefenition = method.Resolve();
+            if (methodDefenition != null)
+            {
+                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(methodDefenition);
+                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private bool AddMethod(MethodReference method) {
             if (method == null || method.DeclaringType.IsArray) {
+                return false;
+            }
+
+            if (IsIgnored(method))
+            {
                 return false;
             }
 
@@ -233,8 +339,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 //        AddType(attribute.AttributeType);
                 //    }
                 //}
-                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(method);
-                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
+                
+                if (IsStubOrExternal(method))
                 {
                     return false;
                 }
