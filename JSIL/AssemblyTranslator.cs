@@ -1064,6 +1064,11 @@ namespace JSIL {
             if (declaredTypes.Contains(typedef))
                 return;
 
+            if (typeInfo.IsStubOnly)
+            {
+                stubbed = true;
+            }
+
             if (ShouldSkipMember(typedef))
             {
                 declaredTypes.Add(typedef);
@@ -1082,11 +1087,6 @@ namespace JSIL {
                 }
 
                 return;
-            }
-
-            if (typeInfo.IsStubOnly)
-            {
-                stubbed = true;
             }
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
