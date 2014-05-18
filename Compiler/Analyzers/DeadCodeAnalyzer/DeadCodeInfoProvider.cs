@@ -249,19 +249,9 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 }
             }
 
-            if (method.IsGenericInstance || method.DeclaringType.IsGenericInstance)
+            if (method.DeclaringType.IsGenericInstance)
             {
                 if (IsIgnored(method.DeclaringType))
-                {
-                    return true;
-                }
-
-                if (IsIgnored(method.ReturnType))
-                {
-                    return true;
-                }
-
-                if (method.Parameters.Any(parameterDefinition => IsIgnored(parameterDefinition.ParameterType)))
                 {
                     return true;
                 }
