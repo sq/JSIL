@@ -1061,11 +1061,28 @@ namespace JSIL {
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
-            if (ShouldSkipMember(typedef))
-                return;
-
             if (declaredTypes.Contains(typedef))
                 return;
+
+            if (ShouldSkipMember(typedef))
+            {
+                declaredTypes.Add(typedef);
+                // We still may need to declare inner types.
+                astEmitter.ReferenceContext.Push();
+                astEmitter.ReferenceContext.EnclosingType = typedef;
+
+                try
+                {
+                    foreach (var nestedTypeDef in typedef.NestedTypes)
+                        DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                }
+                finally
+                {
+                    astEmitter.ReferenceContext.Pop();
+                }
+
+                return;
+            }
 
             if (typeInfo.IsStubOnly)
             {
