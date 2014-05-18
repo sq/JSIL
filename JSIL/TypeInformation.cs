@@ -450,7 +450,6 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
-        public readonly bool IsStubOnly;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -460,6 +459,7 @@ namespace JSIL.Internal {
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
+        protected bool _IsStubOnly;
         protected bool _MethodGroupsInitialized = false;
 
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
@@ -557,7 +557,7 @@ namespace JSIL.Internal {
                 Replacement = null;
             }
 
-            IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
+            _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
@@ -865,6 +865,24 @@ namespace JSIL.Internal {
             }
         }
 
+        public bool IsStubOnly
+        {
+            get
+            {
+                if (_FullyInitialized)
+                    return _IsStubOnly;
+
+                if (Definition.DeclaringType != null)
+                {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsStubOnly)
+                        return true;
+                }
+
+                return _IsStubOnly;
+            }
+        }
+
         protected static bool ShouldNeverReplace (CustomAttribute ca) {
             return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace";
         }
@@ -1110,6 +1128,12 @@ namespace JSIL.Internal {
             return defaultResult;
         }
 
+        public static bool IsLambdaMethodName(string shortName)
+        {
+            var m = MangledNameRegex.Match(shortName);
+            return m.Success && shortName[m.Groups[2].Index] == 'b';
+        }
+
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
@@ -1239,6 +1263,7 @@ namespace JSIL.Internal {
                 return;
 
             _IsIgnored = IsIgnored;
+            _IsStubOnly = IsStubOnly;
             _FullyInitialized = true;
         }
     }
@@ -1447,7 +1472,7 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
                 _IsIgnored = true;
 
-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement") || Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
+            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
                 IsExternal = true;
 
             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
@@ -1750,6 +1775,7 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
         }
 
         public MethodInfo (
@@ -1771,6 +1797,7 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
 
             if (property != null)
                 Metadata.Update(property.Metadata, false);
@@ -1794,6 +1821,7 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
 
             if (evt != null)
                 Metadata.Update(evt.Metadata, false);
@@ -1900,6 +1928,12 @@ namespace JSIL.Internal {
                 _IsOverloadedRecursive = null;
                 _MethodGroup = value;
             }
+        }
+
+        public bool IsLambda
+        {
+            get;
+            private set;
         }
 
         public string GetName (bool stripGenericSuffix) {
