@@ -142,7 +142,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private void AddType(TypeReference type) {
-            if (type == null) {
+            if (type == null || IsIgnored(type))
+            {
                 return;
             }
 
@@ -228,6 +229,29 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             return false;
         }
 
+        private bool IsIgnored(FieldReference field)
+        {
+            var fieldDefenition = field.Resolve();
+            if (fieldDefenition != null)
+            {
+                var fieldInfo = TypeInfoProvider.GetMemberInformation<FieldInfo>(fieldDefenition);
+                if (fieldInfo.IsIgnored)
+                {
+                    return true;
+                }
+            }
+
+            if (field.DeclaringType.IsGenericInstance)
+            {
+                if (IsIgnored(field.DeclaringType))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private bool IsIgnored(MethodReference method)
         {
             var methodDefenition = method.Resolve();
@@ -252,21 +276,6 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (method.DeclaringType.IsGenericInstance)
             {
                 if (IsIgnored(method.DeclaringType))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool IsStubOrExternal(TypeReference type)
-        {
-            var typeDefenition = type.Resolve();
-            if (typeDefenition != null)
-            {
-                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
-                if (typeInformation.IsExternal || typeInformation.IsStubOnly)
                 {
                     return true;
                 }
@@ -342,7 +351,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private void AddField(FieldReference field) {
-            if (field == null) {
+            if (field == null || IsIgnored(field)) {
                 return;
             }
 
