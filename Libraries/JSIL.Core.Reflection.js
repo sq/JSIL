@@ -66,6 +66,11 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition
     );
+
+    $.Method({Static:false, Public:true }, "get_ContainsGenericParameters",
+      new JSIL.MethodSignature($.Boolean, []),
+      JSIL.TypeObjectPrototype.get_ContainsGenericParameters
+    );
     
     $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
       (new JSIL.MethodSignature($.Type, [], [])),
@@ -812,7 +817,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static:false, Public:true , Virtual:true }, "Invoke", 
     new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Array", [$.Object])], []), 
     function Invoke (obj, parameters) {
-      var impl = JSIL.$GetMethodImplementation(this);
+      var impl = JSIL.$GetMethodImplementation(this, obj);
 
       if (typeof (impl) !== "function" && !(impl instanceof JSIL.InterfaceMethod))
         throw new System.Exception("Failed to find constructor");
@@ -841,6 +846,64 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true , Virtual:true }, "MakeGenericMethod", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")])]),
+    function MakeGenericMethod(typeArguments) {
+      if (this._data.signature.genericArgumentNames.length === 0)
+        throw new System.Exception("Method is not Generic");
+      if (this._data.signature.genericArgumentValues !== undefined)
+        throw new System.Exception("Method is closed Generic");
+
+      var cacheKey = JSIL.HashTypeArgumentArray(typeArguments, this._data.signature.context);
+      var ofCache = this.__OfCache__;
+      if (!ofCache)
+        this.__OfCache__ = ofCache = {};
+
+      var result = ofCache[cacheKey];
+      if (result)
+        return result;
+
+      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.MethodInfo");    
+      var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
+      var info = JSIL.CreateInstanceOfType(infoType, null);
+      info._typeObject = this._typeObject;
+      info._descriptor = this._descriptor;
+      info.__Attributes__ = this.__Attributes__;
+      info.__Overrides__ = this.__Overrides__;
+
+      info._data = {};
+
+      if (this._data.genericSignature)
+        info._data.genericSignature = this._data.genericSignature;
+
+      var source = this._data.signature;
+      info._data.signature = new JSIL.MethodSignature(source.returnType, source.argumentTypes, source.genericArgumentNames, source.context, source, typeArguments.slice())
+
+      ofCache[cacheKey]  = info;
+      return info;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethod",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethod() {
+      return this._data.signature.genericArgumentNames.length !== 0;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethodDefinition",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_ContainsGenericParameters",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
+    }
+  );
 });
 
 JSIL.ImplementExternals(
@@ -912,6 +975,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "BaseType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericTypeDefinition");
+    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
     $.Property({Public: true , Static: false }, "IsArray");
     $.Property({Public: true , Static: false }, "IsValueType");
     $.Property({Public: true , Static: false }, "IsEnum");
@@ -922,6 +986,9 @@ JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethod");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethodDefinition");
+    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
@@ -1191,7 +1258,7 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
   $.Method({Static:false, Public:true }, "Invoke", 
     new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Array", [$.Object])], []), 
     function Invoke (parameters) {
-      var impl = JSIL.$GetMethodImplementation(this);
+      var impl = JSIL.$GetMethodImplementation(this, null);
 
       if (typeof (impl) !== "function")
         throw new System.Exception("Failed to find constructor");

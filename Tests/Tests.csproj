@@ -855,6 +855,9 @@
     <None Include="SimpleTestCases\Issue364_3.cs" />
     <None Include="SimpleTestCases\ReflectionInterfaceMethodInvoke.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+    <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
+    <None Include="SimpleTestCases\ReflectionGenericMethodInfoProperties.cs" />
+    <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
