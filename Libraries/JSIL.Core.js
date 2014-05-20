@@ -8971,12 +8971,15 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
 JSIL.$DoTypesMatch = function (expected, type) {
   if (expected === null)
     return (type === null);
-
+  
   if (expected === type)
     return true;
 
   if (expected.__FullName__ === "System.Array")
     return type.__IsArray__;
+
+  if (expected instanceof JSIL.PositionalGenericParameter && type instanceof JSIL.PositionalGenericParameter && expected.index === type.index)
+    return true;
 
   return false;
 }
