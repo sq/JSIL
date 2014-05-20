@@ -9262,8 +9262,12 @@ JSIL.$GetMethodImplementation = function (method, target) {
   if (method._data.signature.genericArgumentValues) {
     if (isStatic) {
        return result.apply(method.DeclaringType.__PublicInterface__, method._data.signature.genericArgumentValues).bind(method.DeclaringType.__PublicInterface__);
+    } else if (result instanceof JSIL.InterfaceMethod) {
+      return function(methodArgs) { return result.Call(this, method._data.signature.genericArgumentValues, methodArgs) };
     }
     return result.apply(target, method._data.signature.genericArgumentValues);
+  } else if (result instanceof JSIL.InterfaceMethod) {
+    return function(methodArgs) { return result.Call(this, methodArgs); };
   }
   return result;
 };
