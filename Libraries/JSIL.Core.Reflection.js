@@ -814,7 +814,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
     function Invoke (obj, parameters) {
       var impl = JSIL.$GetMethodImplementation(this);
 
-      if (typeof (impl) !== "function")
+      if (typeof (impl) !== "function" && !(impl instanceof JSIL.InterfaceMethod))
         throw new System.Exception("Failed to find constructor");
 
       var parameterTypes = this.GetParameterTypes();
@@ -831,6 +831,10 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
           if (parameters[i] === null && parameterTypes[i].IsValueType)
             parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
         }
+      }
+
+      if (impl instanceof JSIL.InterfaceMethod) {
+        return impl.Call(obj, parameters)
       }
 
       return impl.apply(obj, parameters);
