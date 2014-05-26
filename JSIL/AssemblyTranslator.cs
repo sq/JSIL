@@ -997,7 +997,7 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo) {
+        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo, JavascriptAstEmitter astEmitter) {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
@@ -1011,6 +1011,25 @@ namespace JSIL {
             if (del.HasGenericParameters)
                 WriteGenericParameterNames(output, del.GenericParameters);
             output.CloseBracket();
+
+            var invokeMethod = del.Methods.FirstOrDefault(method => method.Name == "Invoke");
+            if (invokeMethod != null)
+            {
+                output.Comma();
+                astEmitter.ReferenceContext.Push();
+                astEmitter.ReferenceContext.DefiningType = del;
+                try
+                {
+                    output.MethodSignature(invokeMethod,
+                                           typeInfo.MethodSignatures.GetOrCreateFor("Invoke").Signatures[0],
+                                           astEmitter.ReferenceContext);
+
+                }
+                finally
+                {
+                    astEmitter.ReferenceContext.Pop();
+                }
+            }
 
             output.RPar();
             output.Semicolon();
@@ -1120,7 +1139,7 @@ namespace JSIL {
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateDelegate(context, output, typedef, typeInfo);
+                    TranslateDelegate(context, output, typedef, typeInfo, astEmitter);
                     return;
                 }
 
