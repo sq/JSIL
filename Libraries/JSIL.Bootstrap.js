@@ -380,10 +380,6 @@ $jsilcore.$RemoveDelegate = function (lhs, rhs) {
 JSIL.ImplementExternals("System.Delegate", function ($) {
   var tDelegate = $jsilcore.TypeRef("System.Delegate");
 
-  $.RawMethod(false, "Invoke", function () {
-    return this.__method__.apply(this.__object__, arguments);
-  });
-
   $.Method({Static:false, Public:true }, "GetInvocationList", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [tDelegate]), [], [])), 
     function GetInvocationList () {
@@ -442,10 +438,6 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
 });
 
 JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
-  $.RawMethod(false, "Invoke", function () {
-    return this.apply(null, arguments);
-  });
-
   $.Method({Static:false, Public:true }, "GetInvocationList", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Delegate")]), [], [])), 
     function GetInvocationList () {
@@ -481,17 +473,23 @@ JSIL.MulticastDelegate.New = function (delegates) {
   return resultDelegate;
 };
 
-JSIL.MakeDelegate("System.Action", true, []);
-JSIL.MakeDelegate("System.Action`1", true, ["in T"]);
-JSIL.MakeDelegate("System.Action`2", true, ["in T1", "in T2"]);
-JSIL.MakeDelegate("System.Action`3", true, ["in T1", "in T2", "in T3"]);
+JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
+JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
+JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T1", "System.Action`2").in(), new JSIL.GenericParameter("T2", "System.Action`2").in()]));
+JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"], new JSIL.MethodSignature(null, [
+      new JSIL.GenericParameter("T1", "System.Action`3").in(), new JSIL.GenericParameter("T2", "System.Action`3").in(), 
+      new JSIL.GenericParameter("T3", "System.Action`3").in()
+    ]));
 
-JSIL.MakeDelegate("System.Func`1", true, ["out TResult"]);
-JSIL.MakeDelegate("System.Func`2", true, ["in T", "out TResult"]);
-JSIL.MakeDelegate("System.Func`3", true, ["in T1", "in T2", "out TResult"]);
-JSIL.MakeDelegate("System.Func`4", true, ["in T1", "in T2", "in T3", "out TResult"]);
-
-JSIL.MakeDelegate("System.Predicate`1", true, ["in T"]);
+JSIL.MakeDelegate("System.Func`1", true, ["TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`1").out(), null));
+JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`2").out(), [new JSIL.GenericParameter("T", "System.Func`2").in()]));
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`3").out(), [new JSIL.GenericParameter("T1", "System.Func`3").in(), new JSIL.GenericParameter("T2", "System.Func`3").in()]));
+JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`4").out(), [
+      new JSIL.GenericParameter("T1", "System.Func`4").in(), new JSIL.GenericParameter("T2", "System.Func`4").in(), 
+      new JSIL.GenericParameter("T3", "System.Func`4").in()
+    ]));
+    
+JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.Predicate`1").in()]));
 
 JSIL.ImplementExternals(
   "System.Exception", function ($) {
