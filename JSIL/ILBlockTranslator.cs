@@ -533,6 +533,10 @@ namespace JSIL {
             switch (method.Method.Member.FullName) {
                 // Doing this replacement here enables more elimination of temporary variables
                 case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle,System.RuntimeTypeHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle,System.RuntimeTypeHandle)":
                     return arguments.First();
 
                 case "T JSIL.Builtins::CreateNamedFunction(System.String,System.String[],System.String,System.Object)":
@@ -2911,12 +2915,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
             var methodInfo = GetMethod(method);
-            return new JSMethod(method, methodInfo, MethodTypes);
+            return new JSMethodOfExpression(method, methodInfo, MethodTypes);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
             var fieldInfo = GetField(field);
-            return new JSField(field, fieldInfo);
+            return new JSFieldOfExpression(field, fieldInfo);
         }
 
         public static bool NeedsExplicitThis (

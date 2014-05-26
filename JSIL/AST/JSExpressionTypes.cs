@@ -757,6 +757,31 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSMethodOfExpression : JSMethod
+    {
+        public JSMethodOfExpression(MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments = null)
+            : base(reference, method, methodTypes, genericArguments)
+        {
+        }
+
+        public override bool HasGlobalStateDependency
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsConstant
+        {
+            get
+            {
+                return true;
+            }
+        }
+    }
+
     public class JSPublicInterfaceOfExpression : JSExpression {
         public JSPublicInterfaceOfExpression (JSExpression inner)
             : base(inner) {

@@ -216,5 +216,23 @@ namespace JSIL.Proxies.Bcl
         {
             throw new NotImplementedException();
         }
+
+        public override Type Type
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool IsByRef
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }

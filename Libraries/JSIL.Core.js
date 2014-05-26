@@ -9434,3 +9434,34 @@ JSIL.ValidateArgumentTypes = function (types) {
     }
   }
 };
+
+JSIL.GetMethodInfo = function(typeObject, name, signature, isStatic, methodGenericParameters){
+  var methods = JSIL.GetMembersInternal(
+    typeObject.__Type__, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Public", "NonPublic", isStatic ? "Static" : "Instance"), "$AllMethods", name
+  );
+  for (var i = 0, l = methods.length; i < l; i++) {
+    var method = methods[i];
+
+    if (method._data.signature.Hash == signature.Hash){
+      if (JSIL.IsArray(methodGenericParameters)) {
+        var genericParameterTypes = [];
+        for (var i = 0, l = methodGenericParameters.length; i < l; i++) {
+          genericParameterTypes.push(methodGenericParameters[i].get().__Type__);
+        }
+        return method.MakeGenericMethod(genericParameterTypes);
+      }
+      return method;
+    }
+  }
+  return null; 
+};
+
+JSIL.GetFieldInfo = function(typeObject, name, isStatic){
+  var fields = JSIL.GetMembersInternal(
+    typeObject.__Type__, $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Public", "NonPublic", isStatic ? "Static" : "Instance"), "FieldInfo", name
+  );
+  if (fields.length == 1) {
+    return fields[0]; 
+  }
+  return null;
+};
