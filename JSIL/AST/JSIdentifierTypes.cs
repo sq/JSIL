@@ -214,6 +214,14 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSFieldOfExpression : JSField
+    {
+        public JSFieldOfExpression(FieldReference reference, FieldInfo field)
+            : base(reference, field)
+        {
+        }
+    }
+
     public class JSProperty : JSIdentifier {
         public readonly MemberReference Reference;
         public readonly PropertyInfo Property;

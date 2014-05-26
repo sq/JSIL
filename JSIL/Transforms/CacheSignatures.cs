@@ -253,6 +253,11 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode(JSMethodOfExpression methodOf)
+        {
+            CacheSignature(methodOf.Reference, methodOf.Method.Signature, false);
+        }
+
         public void VisitNode (JSInvocationExpression invocation) {
             var jsm = invocation.JSMethod;
             MethodInfo method = null;
