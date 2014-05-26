@@ -25,11 +25,10 @@ public static class Program
 
     public static void Write(Type type, int index)
     {
-        Console.WriteLine(index);
-        Console.WriteLine("IsGenericType: {0}", type.IsGenericType);
-        Console.WriteLine("IsGenericTypeDefinition: {0}", type.IsGenericTypeDefinition);
-        Console.WriteLine("ContainsGenericParameters: {0}", type.ContainsGenericParameters);
-        Console.WriteLine("IsGenericParameter: {0}", type.IsGenericParameter);
+        Console.WriteLine("{1} IGT: {0}", type.IsGenericType, index);
+        Console.WriteLine("{1} IGTD: {0}", type.IsGenericTypeDefinition, index);
+        Console.WriteLine("{1} CGP: {0}", type.ContainsGenericParameters, index);
+        Console.WriteLine("{1} IGP: {0}", type.IsGenericParameter, index);
     }
 }
 
