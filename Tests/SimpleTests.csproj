@@ -71,9 +71,13 @@
     <None Include="SimpleTestCases\Issue538.cs" />
     <None Include="SimpleTestCases\Issue567.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Issue585.cs" />
-    <None Include="SimpleTestCasesForTranslatedBcl\Issue578.cs" />
-    <None Include="SimpleTestCasesForStubbedBcl\Issue578.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\Issue585.cs" />
+    <None Include="SimpleTestCases\ConvertEnum.cs" />
+    <None Include="SimpleTestCases\DelegateBaseType_Issue449.cs" />
+    <None Include="SimpleTestCases\DelegateInvoke_Issue500.cs" />
+    <None Include="SimpleTestCases\DelegateInvoke_Issue543.cs" />
+    <None Include="SimpleTestCases\DelegateReflection_Issue500.cs" />
+    <Compile Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
