@@ -369,10 +369,6 @@ $jsilcore.$RemoveDelegate = function (lhs, rhs) {
 JSIL.ImplementExternals("System.Delegate", function ($) {
   var tDelegate = $jsilcore.TypeRef("System.Delegate");
 
-  $.RawMethod(false, "Invoke", function () {
-    return this.__method__.apply(this.__object__, arguments);
-  });
-
   $.Method({Static:false, Public:true }, "GetInvocationList", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [tDelegate]), [], [])), 
     function GetInvocationList () {
@@ -431,10 +427,6 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
 });
 
 JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
-  $.RawMethod(false, "Invoke", function () {
-    return this.apply(null, arguments);
-  });
-
   $.Method({Static:false, Public:true }, "GetInvocationList", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Delegate")]), [], [])), 
     function GetInvocationList () {
