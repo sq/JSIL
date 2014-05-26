@@ -574,6 +574,17 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Reflection.MethodBase", function ($) {
+    $.RawMethod(false, "InitResolvedSignature",
+      function InitResolvedSignature() {
+        if (this.resolvedSignature === undefined) {
+          this._data.resolvedSignature = this._data.signature.Resolve(this.Name);
+          if (this._data.signature.genericArgumentValues !== undefined) {
+            this._data.resolvedSignature = this._data.resolvedSignature.ResolvePositionalGenericParameters(this._data.signature.genericArgumentValues)
+          }
+        }
+      }
+    );
+  
     $.Method({Static:false, Public:false}, "GetParameterTypes", 
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])), 
       function GetParameterTypes () {
@@ -730,21 +741,18 @@ $jsilcore.$MethodGetParameters = function (method) {
 
   if (typeof (result) === "undefined") {
     result = method._cachedParameters = [];
+    method.InitResolvedSignature();
 
-    var argumentTypes = method._data.signature.argumentTypes;
+    var argumentTypes = method._data.resolvedSignature.argumentTypes;
     var parameterInfos = method._data.parameterInfo;
     var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
 
     if (argumentTypes) {
       for (var i = 0; i < argumentTypes.length; i++) {
-        var argumentType = JSIL.ResolveTypeReference(
-          argumentTypes[i], method._typeObject.__Context__
-        )[1];
-
         var parameterInfo = parameterInfos[i] || null;
 
         // FIXME: Missing non-type information
-        var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
+        var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentTypes[i], i]);
         if (parameterInfo)
           pi.$populateWithParameterInfo(parameterInfo);
 
@@ -756,7 +764,7 @@ $jsilcore.$MethodGetParameters = function (method) {
   return result;
 };
 
-JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) { 
   $.Method({Static: false, Public: true }, "GetParameters", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
     function GetParameters () {
@@ -767,18 +775,10 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static:false, Public:true }, "get_ReturnType", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
     function get_ReturnType () {
-      if (!this._data.signature.returnType)
-        return $jsilcore.System.Void.__Type__;
-
-      var result = this._cachedReturnType;
-
-      if (typeof (result) === "undefined") {
-        result = this._cachedReturnType = JSIL.ResolveTypeReference(
-          this._data.signature.returnType, this._typeObject.__Context__
-        )[1];
-      }
-
-      return result;
+       if (!this._data.signature.returnType)
+        return $jsilcore.System.Void.__Type__;	  
+      this.InitResolvedSignature();
+      return this._data.resolvedSignature.returnType;
     }
   );
 
@@ -868,6 +868,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
       info.__Overrides__ = this.__Overrides__;
 
       info._data = {};
+	  info._data.parameterInfo = this._data.parameterInfo;
 
       if (this._data.genericSignature)
         info._data.genericSignature = this._data.genericSignature;
