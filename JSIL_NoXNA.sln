@@ -146,6 +146,7 @@ Global
 		{261C3CF3-D25E-4F17-8973-5D0F761FE422}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{261C3CF3-D25E-4F17-8973-5D0F761FE422}.Release|Any CPU.Build.0 = Release|Any CPU
 		{261C3CF3-D25E-4F17-8973-5D0F761FE422}.Release|x86.ActiveCfg = Release|Any CPU
+		{261C3CF3-D25E-4F17-8973-5D0F761FE422}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
