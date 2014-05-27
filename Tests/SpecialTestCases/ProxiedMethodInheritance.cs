@@ -38,7 +38,7 @@ public class DerivedClass2 : DerivedClass {
     inheritable: true
 )]
 public abstract class BaseClassProxy {
-    public static void Method1 () {
+    public void Method1 () {
         Console.WriteLine("BaseClassProxy.Method1");
     }
 }
@@ -49,7 +49,7 @@ public abstract class BaseClassProxy {
     inheritable: false
 )]
 public abstract class DerivedClassProxy {
-    public static void Method2 () {
+    public void Method2 () {
         Console.WriteLine("DerivedClassProxy.Method2");
     }
 }
