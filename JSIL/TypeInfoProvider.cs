@@ -469,8 +469,13 @@ namespace JSIL {
         ProxyInfo[] ITypeInfoSource.GetProxies (TypeDefinition type) {
             var result = new HashSet<ProxyInfo>();
             bool isInherited = false;
+            bool isInterface = type.IsInterface;
 
             while (type != null) {
+                // Never inherit proxy members from System.Object when processing an interface.
+                if (isInterface && type.FullName == "System.Object")
+                    break;
+
                 HashSet<ProxyInfo> candidates;
                 bool found;
 

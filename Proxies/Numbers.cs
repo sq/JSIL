@@ -78,4 +78,31 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        new[] { 
+            typeof(UInt64), typeof(Int64)
+        },
+        JSProxyMemberPolicy.ReplaceDeclared
+    )]
+    public abstract class LargeIntegerProxy {
+        [JSReplacement("($this).toString()")]
+        public string ToString () {
+            return base.ToString();
+        }
+
+        // FIXME
+        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format)")]
+        [JSReplacement("($this).toString()")]
+        public string ToString (string format) {
+            throw new InvalidOperationException();
+        }
+
+        // FIXME
+        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format, $formatProvider)")]
+        [JSReplacement("($this).toString()")]
+        public string ToString (string format, IFormatProvider formatProvider) {
+            throw new InvalidOperationException();
+        }
+    }
 }
