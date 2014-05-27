@@ -2251,6 +2251,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     self.tKeyEnumerator = null;
     self.tValueEnumerator = null;
     self.tEnumerator = null;
+    self.tKeyValuePair = System.Collections.Generic.KeyValuePair$b2.Of(self.TKey, self.TValue).__Type__;
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -2840,7 +2841,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
       this.dictionary = dictionary;
 
       var tKey = dictionary.TKey, tValue = dictionary.TValue;
-      var tKvp = System.Collections.Generic.KeyValuePair$b2.Of(tKey, tValue).__Type__;
+      var tKvp = dictionary.tKeyValuePair;
 
       this.state = {
         tKey: tKey,
