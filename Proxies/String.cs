@@ -89,11 +89,15 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSReplacement("JSIL.JoinEnumerable($separator, $values)")]
-        public abstract string Join<T> (string separator, IEnumerable<T> values);
+        public static string Join<T> (string separator, IEnumerable<T> values) {
+            throw new NotImplementedException();
+        }
 
         [JSIsPure]
         [JSReplacement("JSIL.JoinStrings($separator, $values)")]
-        public abstract string Join (string separator, params string[] values);
+        public static string Join (string separator, params string[] values) {
+            throw new NotImplementedException();
+        }
 
         [JSChangeName("length")]
         [JSAlwaysAccessAsProperty]
