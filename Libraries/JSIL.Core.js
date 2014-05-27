@@ -4769,14 +4769,27 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       customCheckOnly = true;    
       asFunction = throwInvalidAsError;
 
-      castFunction = function Cast_Enum (expression) {
-        var n = expression.valueOf();
+      var castCache = [];
+      var valueToName = typeObject.__ValueToName__;
 
-        var result = typeObject.__ValueToName__[n];
-        if (result)
-          return publicInterface[result];
+      var populateCastCache = function (value) {
+        value |= 0;
 
-        return publicInterface.$MakeValue(n, null);
+        var name = valueToName[value] || null;
+        if (name !== null)
+          return publicInterface[name];
+
+        return publicInterface.$MakeValue(value, null);
+      };
+
+      castFunction = function Cast_Enum (value) {
+        value |= 0;
+
+        var result = castCache[value] || null;
+        if (result === null)
+          result = castCache[value] = populateCastCache(value);
+
+        return result;
       };
 
       break;
@@ -5511,7 +5524,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__AssignableFromTypes__ = {};
     typeObject.__AssignableFromTypes__[typeObject.__TypeId__] = true;
     
-    typeObject.__ValueToName__ = {};
+    typeObject.__ValueToName__ = [];
     typeObject.__Names__ = [];
 
     JSIL.SetValueProperty(typeObject, "toString", function Type_ToString () {
@@ -5585,11 +5598,10 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     // FIXME: Memory leak! Weak references would help here, but TC39 apparently thinks
     //  hiding GC behavior from developers is more important than letting them control
     //  memory usage.
-    var valueCache = {};
+    var valueCache = JSIL.CreateDictionaryObject(null);
 
     var fixedUpEnumInterfaces = false;
-
-    publicInterface.$MakeValue = function (value, name) {
+    var maybeFixUpInterfaces = function () {
       // HACK: Letting System.Enum's interfaces get fixed up normally causes a cycle.
       if (!fixedUpEnumInterfaces) {
         fixedUpEnumInterfaces = true;
@@ -5601,7 +5613,11 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
           JSIL.FixupInterfaces(publicInterface, typeObject);
         }
       }
+    };
 
+    publicInterface.$MakeValue = function (value, name) {
+      maybeFixUpInterfaces();
+      
       var result = valueCache[value];
 
       if (!result)

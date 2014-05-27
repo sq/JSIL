@@ -51,6 +51,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void EnumCasts () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\EnumCasts.cs"
+            )) {
+                test.Run();
+            }
+        }
+
+        [Test]
         public void Sieve () {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Sieve.cs"
