@@ -355,7 +355,11 @@ namespace JSIL.Internal {
                 if ((method.Name == ".cctor") && method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSExtraStaticConstructor")) {
                     ExtraStaticConstructor = method;
                 } else {
-                    Methods.Add(new MemberIdentifier(typeInfo, method), method);
+                    var key = new MemberIdentifier(typeInfo, method);
+                    if (Methods.ContainsKey(key))
+                        throw new InvalidOperationException("Proxy '" + proxyType.FullName + "' contains multiple matches for member '" + key.ToString());
+                    else
+                        Methods.Add(key, method);
                 }
             }
         }

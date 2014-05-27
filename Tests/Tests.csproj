@@ -289,6 +289,7 @@
     <None Include="SimpleTestCases\Issue466.cs" />
     <None Include="AnalysisTestCases\Issue395.cs" />
     <None Include="FailingTestCases\ReflectionTypeGenericInfo13.cs" />
+    <None Include="Int64TestCases\Int64ToString.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

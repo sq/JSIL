@@ -22,7 +22,7 @@ namespace JSIL.Proxies {
         [JSChangeName("toString")]
         [JSNeverReplace]
         [JSRuntimeDispatch]
-        new abstract public string ToString ();
+        new abstract public string ToString (params AnyType[] arguments);
 
         [JSIsPure]
         [JSChangeName("Object.Equals")]
