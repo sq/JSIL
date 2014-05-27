@@ -6579,8 +6579,7 @@ JSIL.InterfaceBuilder.prototype.MakeEventAccessors = function (_descriptor, name
   this.Method(_descriptor, "remove_" + name, signature, remover);
 };
 
-JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
-  var signature = JSIL.MethodSignature.Void;
+JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name, signature) {
   var descriptor = this.ParseDescriptor({Public: true, Static: false}, name, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
@@ -6600,7 +6599,7 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
     }
 
     if (typeof (baseMethod) === "function")
-      baseMethod.apply(this, arguments);
+      return baseMethod.apply(this, arguments);
     else
       JSIL.Host.warning("InheritBaseMethod() used but no method was found to inherit!");
   };
@@ -6625,7 +6624,7 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
 };
 
 JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
-  this.InheritBaseMethod(".ctor");
+  this.InheritBaseMethod(".ctor", JSIL.MethodSignature.Void);
 };
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {

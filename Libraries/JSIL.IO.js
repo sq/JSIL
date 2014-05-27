@@ -1614,8 +1614,8 @@ JSIL.ImplementExternals("System.IO.DirectoryInfo", function ($) {
     }
   );
 
-  $.InheritBaseMethod("get_Exists");
-  $.InheritBaseMethod("get_Name");
+  $.InheritBaseMethod("get_Exists", JSIL.MethodSignature.Return($.Boolean));
+  $.InheritBaseMethod("get_Name", JSIL.MethodSignature.Return($.String));
 
   $.Method({Static:false, Public:true }, "get_Parent", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.DirectoryInfo"), [], [])), 
@@ -1829,7 +1829,7 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
     }
   );
 
-  $.InheritBaseMethod("get_Exists");
+  $.InheritBaseMethod("get_Exists", JSIL.MethodSignature.Return($.Boolean));
 
   $.Method({Static:false, Public:true }, "get_IsReadOnly", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
@@ -1845,7 +1845,7 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
     }
   );
 
-  $.InheritBaseMethod("get_Name");
+  $.InheritBaseMethod("get_Name", JSIL.MethodSignature.Return($.String));
 
   $.Method({Static:false, Public:true }, "GetAccessControl", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Security.AccessControl.FileSecurity"), [], [])), 
