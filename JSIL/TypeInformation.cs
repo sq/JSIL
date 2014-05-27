@@ -686,7 +686,7 @@ namespace JSIL.Internal {
 
                     // The constructor may be compiler-generated, so only replace if it has the attribute.
                     if ((method.Name == ".ctor") && (method.Parameters.Count == 0)) {
-                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSReplaceConstructor"))
+                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Proxy.JSReplaceConstructor"))
                             continue;
                     }
 
