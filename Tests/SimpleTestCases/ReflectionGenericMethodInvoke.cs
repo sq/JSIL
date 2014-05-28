@@ -39,8 +39,7 @@ public static class Program
         actionInt = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), obj, mi);
         actionInt(11);
 
-        // TODO: Implement interface method reflection invoke
-        /*obj = new NonGeneric();
+        obj = new NonGeneric();
         mi = typeof(INonGeneric).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(string) });
         mi.Invoke(obj, new object[] { "TestString12" });
         actionStr = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), obj, mi);
@@ -70,7 +69,7 @@ public static class Program
         mi = typeof(IGeneric<string>).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(int) });
         mi.Invoke(obj, new object[] { 22 });
         actionInt = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), obj, mi);
-        actionInt(23);*/
+        actionInt(23);
     }
 
     public static void StaticGenericMethod<T>(T input)
