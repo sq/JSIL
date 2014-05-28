@@ -8,6 +8,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using JSIL.Internal;
+using JSIL.Translator;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
@@ -517,8 +518,45 @@ namespace JSIL.Tests {
             RunSingleComparisonTestCase(parameters);
         }
 
-        protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
+        protected IEnumerable<TestCaseData> SimpleTestCasesSource()
+        {
             return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("SimpleTestCasesSourceForTranslatedBcl")]
+        public void SimpleTestCasesForTranslatedBcl(object[] parameters)
+        {
+            RunSingleComparisonTestCase(parameters, () =>
+                {
+                    var c = new Configuration
+                        {
+                            ApplyDefaults = false,
+                        };
+                    c.Assemblies.Stubbed.Add("^System,");
+                    c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
+                    c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");
+                    c.Assemblies.Stubbed.Add("FSharp.Core,");
+
+                    c.Assemblies.Ignored.Add("Microsoft\\.VisualC,");
+                    c.Assemblies.Ignored.Add("Accessibility,");
+                    c.Assemblies.Ignored.Add("SMDiagnostics,");
+                    c.Assemblies.Ignored.Add("System\\.EnterpriseServices,");
+                    c.Assemblies.Ignored.Add("System\\.Security,");
+                    c.Assemblies.Ignored.Add("System\\.Runtime\\.Serialization\\.Formatters\\.Soap,");
+                    c.Assemblies.Ignored.Add("System\\.Runtime\\.DurableInstancing,");
+                    c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
+                    c.Assemblies.Ignored.Add("JSIL\\.Meta,");
+
+                    c.Assemblies.Proxies.Add("JSIL.Proxies.Bcl.dll");
+                    return c;
+                },
+                false);
+        }
+
+        protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
+        {
+            return FolderTestSource("SimpleTestCasesForTranslatedBcl", null, new AssemblyCache());
         }
 
         [Test]

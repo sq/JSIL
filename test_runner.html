@@ -99,9 +99,9 @@
 
       JSIL.Shell = {};
 
-      JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args) {
+      JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args, throwOnUnimplementedExternals) {
         return function runTestCase () {
-          JSIL.ThrowOnUnimplementedExternals = true;
+          JSIL.ThrowOnUnimplementedExternals = throwOnUnimplementedExternals;
 
           var started = Date.now();
 
