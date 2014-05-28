@@ -39,7 +39,7 @@ namespace JSIL.Proxies.Bcl
         }
 
         [JSExternal]
-        public static System.TimeSpan FromTicks(long value)
+        public static TimeSpan FromTicks(long value)
         {
             throw new NotImplementedException();
         }
@@ -99,122 +99,126 @@ namespace JSIL.Proxies.Bcl
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_TimeSpan(long ticks)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_TimeSpan(int hours, int minutes, int seconds)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_TimeSpan(int days, int hours, int minutes, int seconds)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_TimeSpan(int days, int hours, int minutes, int seconds, int milliseconds)
         {
             throw new NotImplementedException();
         }
 
-        [JSExternal]
         public int Days
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public int Hours 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public int Milliseconds 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public int Minutes 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public int Seconds 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public long Ticks
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public double TotalMilliseconds
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public double TotalSeconds  
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public double TotalMinutes 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public double TotalHours 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public double TotalDays 
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
@@ -238,40 +242,45 @@ namespace JSIL.Proxies.Bcl
     public class System_DateTime
     {
         [JSExternal]
+        [JSReplaceConstructor]
         public System_DateTime(long ticks)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         private System_DateTime(ulong dateData)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_DateTime(int year, int month, int day)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
+        [JSReplaceConstructor]
         public System_DateTime(int year, int month, int day, Calendar calendar)
         {
             throw new NotImplementedException();
         }
 
-        [JSExternal]
-        public static System.DateTime Now
+        public static DateTime Now
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
-        public static System.DateTime UtcNow { 
+        public static DateTime UtcNow
+        {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();

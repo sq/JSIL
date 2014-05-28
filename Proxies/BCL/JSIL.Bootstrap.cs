@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -63,7 +65,7 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Collections.Generic.List`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(List<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_List_1
     {
@@ -75,26 +77,26 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Collections.ObjectModel.Collection`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Collection<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_ObjectModel_Collection_1
     {
     }
 
-    [JSProxy("System.Collections.ObjectModel.ReadOnlyCollection`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(ReadOnlyCollection<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_ObjectModel_ReadOnlyCollection_1
     {
     }
 
 
-    [JSProxy("System.Collections.Generic.Stack`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Stack<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_Stack_1
     {
     }
 
-    [JSProxy("System.Collections.Generic.Queue`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Queue<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_Queue_1
     {
@@ -130,13 +132,13 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Collections.Generic.Dictionary`2", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Dictionary<,>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_Dictionary_2
     {
     }
 
-    [JSProxy("System.Collections.Generic.KeyValuePair`2", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(KeyValuePair<,>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_KeyValuePair_2
     {
@@ -148,7 +150,7 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Nullable`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Nullable<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Nullable_1
     {
@@ -196,7 +198,7 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Collections.Generic.HashSet`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(HashSet<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_HashSet_1
     {
@@ -214,19 +216,19 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy("System.Collections.Generic.LinkedList`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(LinkedList<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public static class System_Collections_Generic_LinkedList_1
     {
     }
 
-    [JSProxy("System.Collections.Generic.LinkedListNode`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(LinkedListNode<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public static class System_Collections_Generic_LinkedListNode_1
     {
     }
 
-    [JSProxy("System.Collections.Generic.Comparer`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSProxy(typeof(Comparer<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_Comparer_1
     {
