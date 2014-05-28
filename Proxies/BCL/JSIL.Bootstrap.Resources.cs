@@ -41,27 +41,27 @@ namespace JSIL.Proxies.Bcl
             throw new NotImplementedException();
         }
 
-        [JSExternal]
         public string Name
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public string TwoLetterISOLanguageName
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
         public bool UseUserOverride
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
@@ -69,35 +69,35 @@ namespace JSIL.Proxies.Bcl
         }
 
         [JSExternal]
-        public CultureInfo GetCultureByName(string str, bool boolean)
+        private static CultureInfo GetCultureByName(string str, bool boolean)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
-        public CultureInfo GetCultureInfo(string str)
+        public static CultureInfo GetCultureInfo(string str)
         {
             throw new NotImplementedException();
         }
 
         [JSExternal]
-        public CultureInfo GetCultureInfoByIetfLanguageTag(string str)
+        public static CultureInfo GetCultureInfoByIetfLanguageTag(string str)
         {
             throw new NotImplementedException();
         }
 
-        [JSExternal]
-        public CultureInfo CurrentUICulture
+        public static CultureInfo CurrentUICulture
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
             }
         }
 
-        [JSExternal]
-        public CultureInfo CurrentCulture
+        public static CultureInfo CurrentCulture
         {
+            [JSExternal]
             get
             {
                 throw new NotImplementedException();
