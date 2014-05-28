@@ -418,6 +418,7 @@ namespace JSIL.Tests {
         public string GenerateJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation,
             Func<Configuration> makeConfiguration = null,
+            bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
@@ -468,12 +469,13 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                "runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}\r\n);",
+                "runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}, \r\n  {5}\r\n);",
                 JavascriptExecutionTimeout,
                 Util.EscapeString(testAssemblyName),
                 Util.EscapeString(testTypeName), 
                 Util.EscapeString(testMethodName),
-                argsJson
+                argsJson,
+                throwOnUnimplementedExternals ? "true" : "false"
             );
 
             generatedJavascript = translatedJs;
@@ -498,25 +500,27 @@ namespace JSIL.Tests {
             string temp1, temp4, temp5;
             long temp2, temp3;
 
-            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration, onTranslationFailure);
+            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration, true, onTranslationFailure);
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
             Func<Configuration> makeConfiguration = null,
+            bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null
         ) {
             string temp1, temp2;
 
-            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration, onTranslationFailure);
+            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration, throwOnUnimplementedExternals, onTranslationFailure);
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
             Func<Configuration> makeConfiguration = null,
+            bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null
         ) {
-            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration, onTranslationFailure);
+            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration, throwOnUnimplementedExternals, onTranslationFailure);
 
             using (var evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
@@ -604,6 +608,7 @@ namespace JSIL.Tests {
         public void Run (
             string[] args = null, 
             Func<Configuration> makeConfiguration = null, 
+            bool throwOnUnimplementedExternals = true,
             bool dumpJsOnFailure = true,
             Action<Exception> onTranslationFailure = null
         ) {
@@ -640,6 +645,7 @@ namespace JSIL.Tests {
                     outputs[1] = RunJavascript(
                         args, out generatedJs[0], out elapsed[1], out elapsed[2], 
                         makeConfiguration: makeConfiguration,
+                        throwOnUnimplementedExternals: throwOnUnimplementedExternals,
                         onTranslationFailure: onTranslationFailure
                     ).Replace("\r", "").Trim();
                 } catch (Exception ex) {
