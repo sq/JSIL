@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using ICSharpCode.Decompiler.ILAst;
+﻿using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Internal;
 using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace JSIL {
     public enum BlockType {
@@ -1114,10 +1111,13 @@ namespace JSIL {
                 Output.CurrentMethod = null;
             }
 
-            Output.OpenFunction(
+	        Output.OpenFunction(
                 function.DisplayName,
-                (o) => o.WriteParameterList(function.Parameters)
-            );
+	            o =>
+	            {
+					var remove = function.Method != null && function.Method.Reference.IsGenericClosure() ? function.Parameters.Where( x => function.Method.Reference.GenericParameters.Any( y => x.Name == y.Name ) ) : Enumerable.Empty<JSVariable>();
+					o.WriteParameterList( function.Parameters.Except( remove ) );
+	            } );
 
             if (function.TemporaryVariableCount > 0) {
                 Output.WriteRaw("var ");

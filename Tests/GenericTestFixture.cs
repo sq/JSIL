@@ -1,13 +1,13 @@
-﻿using System;
+﻿using JSIL.Internal;
+using JSIL.Translator;
+using Microsoft.Win32;
+using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using JSIL.Internal;
-using JSIL.Translator;
-using Microsoft.Win32;
-using NUnit.Framework;
 
 namespace JSIL.Tests {
     public class GenericTestFixture : IDisposable {

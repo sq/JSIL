@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
-using JSIL.Internal;
 using JSIL.Translator;
 using Mono.Cecil;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using JSIL;
+using System.IO;
+using System.Linq;
 
 namespace JSIL.Internal {
     public enum ListValueType {
@@ -570,7 +567,7 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+	                if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
                         Identifier(gp.Name);
 
                         return;
@@ -584,6 +581,12 @@ namespace JSIL.Internal {
 
                         return;
                     }
+
+	                if ( ownerMethod.IsGenericClosure() )
+	                {
+		                Identifier(gp.Name);
+                        return;
+	                }
 
                     throw new NotImplementedException(String.Format(
                         "Unimplemented form of generic method parameter: '{0}'.",
