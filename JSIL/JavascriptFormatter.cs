@@ -585,6 +585,11 @@ namespace JSIL.Internal {
                         return;
                     }
 
+                    if (ownerMethod.IsGenericClosure()) {
+                        Identifier(gp.Name);
+                        return;
+                    }
+
                     throw new NotImplementedException(String.Format(
                         "Unimplemented form of generic method parameter: '{0}'.",
                         gp

@@ -1192,7 +1192,12 @@ namespace JSIL {
 
             Output.OpenFunction(
                 function.DisplayName,
-                (o) => o.WriteParameterList(function.Parameters)
+                o => {
+                    var remove = ((function.Method != null) && function.Method.Reference.IsGenericClosure())
+                        ? function.Parameters.Where(x => function.Method.Reference.GenericParameters.Any(y => x.Name == y.Name)) 
+                        : Enumerable.Empty<JSVariable>();
+                    o.WriteParameterList(function.Parameters.Except(remove));
+                } 
             );
 
             if (function.TemporaryVariableCount > 0) {
