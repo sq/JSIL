@@ -4,7 +4,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-		var a = FailingMethod<object>();
+        var a = FailingMethod<TestType>();
         Console.WriteLine(a);
     }
 
@@ -16,11 +16,16 @@ public static class Program
     }
 }
 
+public class TestType
+{}
+
 public class GenericClassWithTwoConstructors<T>
 {
-    public GenericClassWithTwoConstructors(string str)
-    {}
-
+    public GenericClassWithTwoConstructors( string str )
+    {
+    	
+    }
+    
     public GenericClassWithTwoConstructors()
     {}
 }	
