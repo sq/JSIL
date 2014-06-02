@@ -329,7 +329,7 @@ namespace JSIL.Transforms {
                 //  before we call it.
                 var thisReferenceType = thisReference.GetActualType(TypeSystem);
 
-                if (TypeUtil.IsStruct(thisReferenceType)) {
+                if (TypeUtil.IsStruct(thisReferenceType) && !TypeUtil.IsStructImmutable(thisReferenceType)) {
                     if ((thisReference is JSVariable) || (thisReference is JSFieldAccess)) {
                         var rre = ParentNode as JSResultReferenceExpression;
                         var cloneExpr = new JSBinaryOperatorExpression(

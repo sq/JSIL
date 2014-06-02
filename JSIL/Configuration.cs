@@ -46,6 +46,7 @@ namespace JSIL.Translator {
             public bool? AutoGenerateEventAccessorsInSkeletons;
             public bool? AggressivelyUseElementProxies;
             public bool? EmitAllParameterNames;
+            public readonly List<string> EmitAttributes = new List<string>();
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -86,6 +87,7 @@ namespace JSIL.Translator {
                     result.AggressivelyUseElementProxies = AggressivelyUseElementProxies;
                 if (EmitAllParameterNames.HasValue)
                     result.EmitAllParameterNames = EmitAllParameterNames;
+                result.EmitAttributes.AddRange(EmitAttributes);
             }
         }
 

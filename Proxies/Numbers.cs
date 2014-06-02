@@ -62,9 +62,28 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("!isFinite($value)")]
+        public static bool IsInfinity(NumberProxy value)
+        {
+          throw new InvalidOperationException();
+        }
+
         [JSReplacement("isNaN($value)")]
-        public static bool IsNaN (NumberProxy value) {
-            throw new InvalidOperationException();
+        public static bool IsNaN(NumberProxy value)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("($value == Infinity)")]
+        public static bool IsPositiveInfinity(NumberProxy value)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("($value == -Infinity)")]
+        public static bool IsNegativeInfinity(NumberProxy value)
+        {
+          throw new InvalidOperationException();
         }
 
         [JSIsPure]

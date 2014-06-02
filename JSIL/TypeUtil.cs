@@ -96,6 +96,17 @@ namespace JSIL {
             return (etype == MetadataType.ValueType);
         }
 
+        public static bool IsStructImmutable(TypeReference type)
+        {
+          bool isImmutable = false;
+          TypeDefinition typeDef = type.Resolve();
+          if (typeDef.CustomAttributes.Count > 0)
+          {
+            isImmutable = typeDef.CustomAttributes.FirstOrDefault(ca => ca.AttributeType.FullName == "JSIL.Meta.JSImmutable") != null;
+          }
+          return isImmutable;
+        }
+
         public static bool IsNumeric (TypeReference type) {
             type = DereferenceType(type);
 

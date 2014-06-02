@@ -75,6 +75,36 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("JSIL.Array.Find($array, $match)")]
+        public static T Find<T>(T[] array, Predicate<T> match)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.Array.FindIndex($array, $match)")]
+        public static int FindIndex<T>(T[] array, Predicate<T> match)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.Array.ForEach($array, $action)")]
+        public static void ForEach<T>(T[] array, Action<T> action)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.Array.ConvertAll($array, $converter)")]
+        public static TOutput[] ConvertAll<TInput, TOutput>(TInput[] array, Converter<TInput, TOutput> converter)
+        {
+          throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Array.prototype.every.call($array, $match)")]
+        public static bool TrueForAll<T>(T[] array, Predicate<T> match)
+        {
+          throw new InvalidOperationException();
+        }
+
         [JSReplacement("JSIL.Array.Clone($this)")]
         public object Clone () {
             throw new InvalidOperationException();
@@ -104,6 +134,5 @@ namespace JSIL.Proxies {
         public System.Collections.IEnumerator GetEnumerator () {
             throw new InvalidOperationException();
         }
-
     }
 }

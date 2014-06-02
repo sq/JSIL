@@ -269,6 +269,20 @@ namespace JSIL {
             return false;
         }
 
+        protected bool IsAttributeIgnored(string attributeName)
+        {
+          List<string> emitAttributes = Configuration.CodeGenerator.EmitAttributes;
+          if (emitAttributes.Count == 0)
+            return false;
+          foreach (var ia in emitAttributes)
+          {
+            if (Regex.IsMatch(attributeName, ia, RegexOptions.IgnoreCase))
+              return false;
+          }
+
+          return true;
+        }
+
         public string ClassifyAssembly (AssemblyDefinition asm) {
             if (IsIgnored(asm.FullName))
                 return "ignored";
@@ -2175,6 +2189,11 @@ namespace JSIL {
                         output.NewLine();
                         astEmitter.Visit(expr);
 
+                        //if (typedef.ToString() == "System.TimeSpan")
+                        //{
+                          //Console.WriteLine(fd.FullName); // detect TimeSpan.MaxValue issue
+                        //}
+
                         TranslateCustomAttributes(context, typedef, fd, astEmitter, output);
 
                         output.Semicolon(false);
@@ -2313,6 +2332,10 @@ namespace JSIL {
                 bool isFirst = true;
 
                 foreach (var attribute in member.CustomAttributes) {
+                    if (IsAttributeIgnored(attribute.AttributeType.FullName))
+                    {
+                      continue;
+                    }
                     if (!isFirst || standalone)
                         output.NewLine();
 
@@ -2356,10 +2379,14 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter,
             JavascriptFormatter output
         ) {
+            if (!Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+            {
+              return;
+            }
             output.Indent();
 
             foreach (var parameter in method.Parameters) {
-                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+                if (!parameter.HasCustomAttributes)
                     continue;
 
                 output.NewLine();
