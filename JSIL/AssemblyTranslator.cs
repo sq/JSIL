@@ -2189,11 +2189,6 @@ namespace JSIL {
                         output.NewLine();
                         astEmitter.Visit(expr);
 
-                        //if (typedef.ToString() == "System.TimeSpan")
-                        //{
-                          //Console.WriteLine(fd.FullName); // detect TimeSpan.MaxValue issue
-                        //}
-
                         TranslateCustomAttributes(context, typedef, fd, astEmitter, output);
 
                         output.Semicolon(false);

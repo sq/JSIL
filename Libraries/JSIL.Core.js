@@ -8330,25 +8330,17 @@ JSIL.Array.Find = function (array, predicate) { // implements: T System.Array.Fi
 };
 
 JSIL.Array.ForEach = function (array, action) { // implements: void ForEach<T>(T[] array, Action<T> action)
-  if (JSIL.IsTypedArray(array)) {
-    for (var i = 0, l = array.length; i < l; i++) {
-      array[i] = action(array[i]);
-    }
+  for (var i = 0, l = array.length; i < l; i++) {
+    array[i] = action(array[i]);
   }
-  else Array.prototype.forEach.call(array, action);
 };
 
 JSIL.Array.ConvertAll = function (array, converter) { // implements: TOutput[] ConvertAll<TInput, TOutput>(TInput[] array, Converter<TInput, TOutput> converter)
-  var cloned;
-  if (JSIL.IsTypedArray(array)) {
-    var ctor = Object.getPrototypeOf(array).constructor; // clone the typed array
-    cloned = new ctor(array);
-    for (var i = 0, l = cloned.length; i < l; i++) {
-      cloned[i] = converter(cloned[i]);
-    }
+  var ctor = Object.getPrototypeOf(array).constructor; // create the array (support typed array)
+  var cloned = new ctor(array.length);
+  for (var i = 0, l = array.length; i < l; i++) {
+    cloned[i] = converter(array[i]);
   }
-  else cloned = Array.prototype.map.call(array, converter);
-
   return cloned;
 };
 
