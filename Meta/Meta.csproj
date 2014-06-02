@@ -37,12 +37,6 @@
   <PropertyGroup>
     <ApplicationIcon>jsil.ico</ApplicationIcon>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>jsil.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -62,9 +56,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="jsil.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="jsil.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
