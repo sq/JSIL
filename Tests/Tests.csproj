@@ -831,6 +831,7 @@
     <None Include="IOTestCases\BasicStreamNavigation.cs" />
     <Compile Include="TestUtil.cs" />
     <Compile Include="VerbatimTests.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\ExpressionsTest.cs" />
     <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
     <None Include="InterfaceTestCases\InterfaceColliding.cs" />
     <None Include="InterfaceTestCases\InterfaceCollidingImplicit.cs" />
