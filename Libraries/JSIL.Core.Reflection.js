@@ -565,14 +565,6 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.Reflection.PropertyInfo", $jsilcore.MemberInfoExternals
-);
-
-JSIL.ImplementExternals(
-  "System.Reflection.FieldInfo", $jsilcore.MemberInfoExternals
-);
-
-JSIL.ImplementExternals(
   "System.Reflection.MethodBase", function ($) {
     $.RawMethod(false, "InitResolvedSignature",
       function InitResolvedSignature() {
