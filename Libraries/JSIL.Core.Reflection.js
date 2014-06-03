@@ -961,6 +961,7 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
     $.Property({Public: true , Static: false, Virtual: true }, "IsPublic");
     $.Property({Public: true , Static: false, Virtual: true }, "IsStatic");
     $.Property({Public: true , Static: false, Virtual: true }, "IsSpecialName");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
@@ -990,19 +991,54 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", t
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
     $.Property({Public: true , Static: false}, "ReturnType");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Method;
+      }
+    );	
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.ConstructorInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Constructor;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.FieldInfo", true, [], function ($) {
     $.Property({Public: true , Static: false}, "FieldType");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Field;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Event;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Property;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function ($) {
@@ -1352,3 +1388,17 @@ JSIL.ImplementExternals("System.Reflection.EventInfo", function ($) {
     }
   );
 });
+
+JSIL.MakeEnum(
+  "System.Reflection.MemberTypes", true, {
+    Constructor: 1, 
+    Event: 2, 
+    Field: 4, 
+    Method: 8, 
+    Property: 16, 
+    TypeInfo: 32, 
+    Custom: 64, 
+    NestedType: 128, 
+    All: 191
+  }, true
+);
