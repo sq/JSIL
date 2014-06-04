@@ -1057,6 +1057,18 @@ namespace JSIL {
                 stubbed = true;
             }
 
+            bool isAttribute = false;
+            TypeInfo typeBaseClass = typeInfo.BaseClass;
+            while (!isAttribute && typeBaseClass != null)
+            {
+                isAttribute = (typeBaseClass.FullName == "System.Attribute");
+                typeBaseClass = typeBaseClass.BaseClass;
+            }
+            if (isAttribute && IsAttributeIgnored(typeInfo.FullName))
+            {
+                return;
+            }
+
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
                 declaredTypes.Add(typedef);

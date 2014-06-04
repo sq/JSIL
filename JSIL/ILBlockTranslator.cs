@@ -555,6 +555,8 @@ namespace JSIL {
                 case "System.Boolean JSIL.Builtins::IsFalsy(System.Object)":
                     return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
 
+                case "T JSIL.Verbatim::Expression(System.String)":
+                case "T JSIL.Verbatim::Expression(System.String,System.Object[])":
                 case "System.Object JSIL.Verbatim::Expression(System.String)":
                 case "System.Object JSIL.Verbatim::Expression(System.String,System.Object[])": {
                     var expression = arguments[0] as JSStringLiteral;

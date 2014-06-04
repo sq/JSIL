@@ -96,14 +96,19 @@ namespace JSIL {
             return (etype == MetadataType.ValueType);
         }
 
-        public static bool IsStructImmutable(TypeReference type)
+        public static bool IsStructImmutable(TypeReference type) // much faster than: typeInfo = TypeInfo.GetTypeInformation(type) + typeInfo.IsImmutable
         {
           bool isImmutable = false;
           TypeDefinition typeDef = type.Resolve();
           if (typeDef.CustomAttributes.Count > 0)
-          {
+          { // check the attribute first
             isImmutable = typeDef.CustomAttributes.FirstOrDefault(ca => ca.AttributeType.FullName == "JSIL.Meta.JSImmutable") != null;
           }
+          if (!isImmutable)
+          { // all fields are read-only
+            isImmutable = typeDef.Fields.All(fd => fd.IsStatic || fd.IsInitOnly);
+          }
+
           return isImmutable;
         }
 
