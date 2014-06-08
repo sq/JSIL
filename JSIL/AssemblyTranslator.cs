@@ -106,6 +106,8 @@ namespace JSIL {
             Configuration = configuration;
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
+            TypeUtil.s_ConfigurationChangeEnumToNumber = configuration.CodeGenerator.ChangeEnumToNumber.GetValueOrDefault(0);
+
             Manifest = manifest ?? new AssemblyManifest();
 
             if (typeInfoProvider != null) {
@@ -1135,6 +1137,11 @@ namespace JSIL {
                     TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
+                    if ((TypeUtil.IsEnum(typedef) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+                    {
+                      return;
+                    }
+
                     output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
@@ -2301,7 +2308,7 @@ namespace JSIL {
                 );
             } else if (ca.Type.FullName == "System.Type") {
                 return new JSTypeOfExpression((TypeReference)ca.Value);
-            } else if (TypeUtil.IsEnum(ca.Type)) {
+            } else if (TypeUtil.IsEnum(ca.Type) > 0) {
                 var longValue = Convert.ToInt64(ca.Value);
                 var result = JSEnumLiteral.TryCreate(
                     _TypeInfoProvider.GetExisting(ca.Type),

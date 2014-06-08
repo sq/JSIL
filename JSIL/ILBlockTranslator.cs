@@ -354,7 +354,7 @@ namespace JSIL {
             }
 
             // Insert correct casts when unary operators are applied to enums.
-            if (TypeUtil.IsEnum(innerType) && TypeUtil.IsEnum(node.InferredType ?? node.ExpectedType)) {
+            if (TypeUtil.IsEnum(innerType) > 0 && TypeUtil.IsEnum(node.InferredType ?? node.ExpectedType) > 0) {
                 return JSCastExpression.New(
                     new JSUnaryOperatorExpression(
                         op,

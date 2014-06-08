@@ -700,6 +700,12 @@ namespace JSIL.Internal {
                 }
             }
 
+            if ((TypeUtil.IsEnum(type) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+            {
+              WriteRaw("$.Int32");
+              return;
+            }
+
             if (type.FullName == "JSIL.Proxy.AnyType") {
                 Value("JSIL.AnyType");
                 return;
@@ -855,6 +861,12 @@ namespace JSIL.Internal {
                 if ((info != null) && (info.Replacement != null)) {
                     WriteRaw(info.Replacement);
                     return;
+                }
+
+                if ((TypeUtil.IsEnum(type) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+                {
+                  WriteRaw("$jsilcore.System.Int32");
+                  return;
                 }
 
                 var typedef = type.Resolve();

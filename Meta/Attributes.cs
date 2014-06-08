@@ -102,6 +102,19 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
+    /// Specifies that uses of this enum should be replaced with corresponding number when translating code to javascript.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Enum
+    )]
+    public sealed class JSChangeEnumToNumber : Attribute
+    {
+      public JSChangeEnumToNumber()
+      {
+      }
+    }
+
+    /// <summary>
     /// Specifies that, if overloaded, the correct overload of this method to invoke should be decided at runtime instead of compile time.
     /// </summary>
     [AttributeUsage(
