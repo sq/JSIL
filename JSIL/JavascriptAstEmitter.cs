@@ -580,11 +580,15 @@ namespace JSIL {
 
         public void VisitNode (JSTruncateExpression te) {
             Output.LPar();
+
+            Output.LPar();
             Visit(te.Expression);
             Output.RPar();
 
             var expressionType = te.Expression.GetActualType(TypeSystem);
             WriteTruncationForType(expressionType);
+
+            Output.RPar();
         }
 
         public void VisitNode (JSIntegerToFloatExpression itfe) {
