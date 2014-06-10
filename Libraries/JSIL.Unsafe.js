@@ -438,8 +438,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "asView",
     function Pointer_asView (elementType, sizeInBytes) {
-      if (typeof (sizeInBytes) !== "number")
-        sizeInBytes = (this.memoryRange.buffer.byteLength - this.offsetInBytes) | 0;
+      var underlyingBufferSize = (this.memoryRange.buffer.byteLength - this.offsetInBytes) | 0;
+
+      // FIXME: Maybe make this null instead? Int-only is probably better.
+      sizeInBytes = sizeInBytes | 0;
+      if (sizeInBytes === -1)
+        sizeInBytes = underlyingBufferSize;
 
       var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType.__Type__, true);
       var offsetInElements = (this.offsetBytes / arrayCtor.BYTES_PER_ELEMENT) | 0;
@@ -450,8 +454,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       if ((sizeInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
         JSIL.RuntimeError("Size must be an integral multiple of element size");
 
-      var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
+      // Where possible, return a cached view to avoid creating garbage.
+      // FIXME: Maybe don't even apply the size constraint here?
+      if ((offsetInElements === 0) && (sizeInBytes === underlyingBufferSize))
+        return this.memoryRange.getView(elementType.__Type__, true);
 
+      var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
       return view;
     }
   );
