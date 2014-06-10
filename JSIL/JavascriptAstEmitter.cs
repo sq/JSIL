@@ -1471,9 +1471,7 @@ namespace JSIL {
                 return false;
             else if (ParentNode is JSCommaExpression)
                 return false;
-            else if (ParentNode is JSTruncateExpression)
-                return false;
-            else if (ParentNode is JSIntegerToFloatExpression)
+            else if (ParentNode is JSSpecialNumericCastExpression)
                 return false;
 
             return true;

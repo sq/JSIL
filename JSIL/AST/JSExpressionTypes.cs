@@ -2094,17 +2094,17 @@ namespace JSIL.Ast {
         protected JSSpecialNumericCastExpression (JSExpression inner)
             : base(inner) {
         }
-    }
-
-    public class JSTruncateExpression : JSSpecialNumericCastExpression {
-        public JSTruncateExpression (JSExpression inner) 
-            : base (inner) {
-        }
 
         public JSExpression Expression {
             get {
                 return Values[0];
             }
+        }
+    }
+
+    public class JSTruncateExpression : JSSpecialNumericCastExpression {
+        public JSTruncateExpression (JSExpression inner) 
+            : base (inner) {
         }
 
         public override bool HasGlobalStateDependency {
@@ -2143,12 +2143,6 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public JSExpression Expression {
-            get {
-                return Values[0];
-            }
-        }
-
         public override bool HasGlobalStateDependency {
             get {
                 return Expression.HasGlobalStateDependency;
@@ -2179,12 +2173,6 @@ namespace JSIL.Ast {
     public class JSDoubleToFloatExpression : JSSpecialNumericCastExpression {
         public JSDoubleToFloatExpression (JSExpression inner)
             : base(inner) {
-        }
-
-        public JSExpression Expression {
-            get {
-                return Values[0];
-            }
         }
 
         public override bool HasGlobalStateDependency {
@@ -2479,17 +2467,14 @@ namespace JSIL.Ast {
             while (true) {
                 var cte = e as JSChangeTypeExpression;
                 var cast = e as JSCastExpression;
-                var truncation = e as JSTruncateExpression;
-                var intToFloat = e as JSIntegerToFloatExpression;
+                var specialNumericCast = e as JSSpecialNumericCastExpression;
 
                 if (cte != null)
                     e = cte.Expression;
                 else if (cast != null)
                     e = cast.Expression;
-                else if (truncation != null)
-                    e = truncation.Expression;
-                else if (intToFloat != null)
-                    e = intToFloat.Expression;
+                else if (specialNumericCast != null)
+                    e = specialNumericCast.Expression;
                 else
                     break;
             }
