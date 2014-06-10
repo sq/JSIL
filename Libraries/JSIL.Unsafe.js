@@ -292,22 +292,52 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function MemoryRange_ctor (buffer) {
       this.buffer = buffer;
-      this.viewCache = JSIL.CreateDictionaryObject(null);
+
+      if (typeof (Map) !== "undefined") {
+        this.viewCache = new Map();
+        this.viewCacheIsMap = true;
+      } else {
+        this.viewCache = JSIL.CreateDictionaryObject(null);
+        this.viewCacheIsMap = false;
+      }
+
+      this.viewCacheByElementType = JSIL.CreateDictionaryObject(null);
+    }
+  );
+
+  $.RawMethod(false, "getCachedView",
+    function MemoryRange_getCachedView (key) {
+      if (this.viewCacheIsMap) {
+        return this.viewCache.get(key);
+      } else {
+        var ctorKey = key.name || String(key.constructor);
+        return this.viewCache[ctorKey];
+      }
+    }
+  );
+
+  $.RawMethod(false, "setCachedView",
+    function MemoryRange_setCachedView (key, value) {
+      if (this.viewCacheIsMap) {
+        this.viewCache.set(key, value);
+      } else {
+        var ctorKey = key.name || String(key.constructor);
+        this.viewCache[ctorKey] = value;
+      }
     }
   );
 
   $.RawMethod(false, "storeExistingView",
     function MemoryRange_storeExistingView (view) {
       var arrayCtor = Object.getPrototypeOf(view);
-      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
 
-      if (
-        this.viewCache[ctorKey] && 
-        (this.viewCache[ctorKey] !== view)
-      )
-        JSIL.RuntimeError("A different view is already stored for this element type");
-
-      this.viewCache[ctorKey] = view;
+      var cachedView = this.getCachedView(arrayCtor);
+      if (cachedView) {
+        if (cachedView !== view)
+          JSIL.RuntimeError("A different view is already stored for this element type");
+      } else {
+        this.setCachedView(arrayCtor, view);
+      }
     }
   );
 
@@ -317,11 +347,11 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (!arrayCtor)
         return null;
 
-      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
-
-      var result = this.viewCache[ctorKey];
-      if (!result)
-        result = this.viewCache[ctorKey] = new arrayCtor(this.buffer);
+      var result = this.getCachedView(arrayCtor);
+      if (!result) {
+        result = new arrayCtor(this.buffer);
+        this.setCachedView(arrayCtor, result);
+      }
 
       return result;
     }
