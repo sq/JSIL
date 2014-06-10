@@ -25,3 +25,27 @@ if (typeof (Function.prototype.bind) !== "function") {
     return bound;
   };
 }
+
+
+if (typeof (Math.fround) === "function") {
+  // Math.fround builtin truncates f64 to f32
+  // (Note that f32s are often not stored on the heap, but truncation works)
+
+} else if (typeof (Float32Array) !== "undefined") {
+  // Simple Math.fround polyfill
+
+  (function () {
+    var f32 = new Float32Array(1);
+
+    Math.fround = function (d) {
+      return f32[0] = d, f32[0];
+    };
+  })();
+} else {
+  // FIXME: This is *inaccurate* and will cause DoubleFloatCasts.cs to fail!
+  // Maybe generate a warning on first use? Most code won't care...
+
+  Math.fround = function (d) {
+    return +d;
+  };
+}

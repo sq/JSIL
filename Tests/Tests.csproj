@@ -291,6 +291,7 @@
     <None Include="FailingTestCases\ReflectionTypeGenericInfo13.cs" />
     <None Include="Int64TestCases\Int64ToString.cs" />
     <None Include="PerformanceTestCases\EnumCasts.cs" />
+    <None Include="SpecialTestCases\DoubleFloatCasts.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
