@@ -382,6 +382,11 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
+            if (!Directory.Exists(testPath)) {
+                Console.WriteLine("WARNING: Folder {0} doesn't exist.", testPath);
+                yield break;
+            }
+
             var testNames = Directory.GetFiles(testPath, "*.cs")
                 .Concat(Directory.GetFiles(testPath, "*.vb"))
                 .Concat(Directory.GetFiles(testPath, "*.fs"))
