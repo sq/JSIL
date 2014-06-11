@@ -527,7 +527,7 @@ namespace JSIL.Tests {
         [TestCaseSource("SimpleTestCasesSourceForTranslatedBcl")]
         public void SimpleTestCasesForTranslatedBcl(object[] parameters)
         {
-            RunSingleComparisonTestCase(parameters, () =>
+            Func<Configuration> makeConfiguration = () =>
                 {
                     var c = new Configuration
                         {
@@ -550,8 +550,19 @@ namespace JSIL.Tests {
 
                     c.Assemblies.Proxies.Add("JSIL.Proxies.Bcl.dll");
                     return c;
-                },
-                false);
+                };
+
+            Action<AssemblyTranslator> initializeTranslator = (at) => {
+                // Suppress stdout spew
+                at.IgnoredMethod += (_, _2) => { };
+            };
+
+            RunSingleComparisonTestCase(
+                parameters, 
+                makeConfiguration,
+                false,
+                initializeTranslator: initializeTranslator
+            );
         }
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
