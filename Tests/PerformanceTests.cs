@@ -182,7 +182,7 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyVsField () {
             using (var test = MakeTest(
-                @"PerformanceTestCases\PropertyVsField.cs"                
+                @"PerformanceTestCases\PropertyVsField.cs"
             )) {
                 long elapsedcs;
 
@@ -195,6 +195,18 @@ namespace JSIL.Tests {
                         return cfg;
                     }
                 ));
+            }
+        }
+
+        [Test]
+        public void BaseMethodCalls () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\BaseMethodCalls.cs"
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
     }
