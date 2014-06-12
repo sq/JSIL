@@ -95,6 +95,7 @@
     <Compile Include="Threading.cs" />
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CacheSignatures.cs" />
+    <Compile Include="Transforms\CacheBaseMethods.cs" />
     <Compile Include="Transforms\IntroducePackedArrays.cs" />
     <Compile Include="Transforms\StaticAnalysis\AllocationHoisting.cs" />
     <Compile Include="Transforms\StaticAnalysis\EliminatePointlessRetargeting.cs" />

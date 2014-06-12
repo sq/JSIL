@@ -664,6 +664,10 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSCachedMethod cachedMethod) {
+            Output.WriteRaw("$BM{0:X2}()", cachedMethod.Index);
+        }
+
         public void VisitNode (JSIdentifier identifier) {
             Output.Identifier(identifier.Identifier);
         }
@@ -2046,6 +2050,14 @@ namespace JSIL {
 
                         Visit(invocation.Method);
                         Output.LPar();
+                    } else if (invocation.Method is JSCachedMethod) {
+                        Visit(invocation.Method);
+                        Output.LPar();
+
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
                     } else if (invocation.ExplicitThis) {
                         if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);

@@ -355,6 +355,17 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSCachedMethod : JSMethod {
+        public readonly int Index;
+
+        public JSCachedMethod (
+            MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments, int index
+        ) : base (reference, method, methodTypes, genericArguments) {
+            Index = index;
+        }
+    }
+
     [JSAstIgnoreInheritedMembers]
     public class JSFakeMethod : JSIdentifier {
         public readonly MethodTypeFactory MethodTypes;

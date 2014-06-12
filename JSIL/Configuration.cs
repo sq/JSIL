@@ -35,6 +35,7 @@ namespace JSIL.Translator {
             public bool? CacheMethodSignatures;
             public bool? CacheGenericMethodSignatures;
             public bool? CacheTypeExpressions;
+            public bool? CacheBaseMethodHandles;
             public bool? EliminatePointlessFinallyBlocks;
             public bool? PreferAccessorMethods;
             public bool? HintIntegerArithmetic;
@@ -64,6 +65,8 @@ namespace JSIL.Translator {
                     result.CacheGenericMethodSignatures = CacheGenericMethodSignatures;
                 if (CacheTypeExpressions.HasValue)
                     result.CacheTypeExpressions = CacheTypeExpressions;
+                if (CacheBaseMethodHandles.HasValue)
+                    result.CacheBaseMethodHandles = CacheBaseMethodHandles;
                 if (EliminatePointlessFinallyBlocks.HasValue)
                     result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
                 if (PreferAccessorMethods.HasValue)
