@@ -35,6 +35,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="JSIL.Async.cs" />
     <Compile Include="JSIL.Bootstrap.cs" />
     <Compile Include="JSIL.Bootstrap.DateTime.cs" />
     <Compile Include="JSIL.Bootstrap.Linq.cs" />
