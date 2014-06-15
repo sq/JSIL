@@ -555,7 +555,7 @@ var vectorUtil = {
       return function () {
         if (state === null)
           state = JSIL.CreateInstanceOfType(
-            tVector.get().__Type__, values
+            tVector.get().__Type__, "_ctor", values
           );
 
         return state;

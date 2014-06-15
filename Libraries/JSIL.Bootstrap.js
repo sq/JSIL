@@ -2338,7 +2338,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
           this.tKeyEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_KeyCollection_Enumerator.Of(this.TKey, this.TValue).__Type__;
       }
 
-      return JSIL.CreateInstanceOfType(this.tKeyCollection, [this]);
+      return JSIL.CreateInstanceOfType(this.tKeyCollection, "_ctor", [this]);
   };
     
   $.Method({Static:false, Public:true }, "get_Keys", 
@@ -2364,7 +2364,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
           this.tValueEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_ValueCollection_Enumerator.Of(this.TKey, this.TValue).__Type__;
       }
 
-      return JSIL.CreateInstanceOfType(this.tValueCollection, [this]);
+      return JSIL.CreateInstanceOfType(this.tValueCollection, "_ctor", [this]);
   };
     
   $.Method({ Static: false, Public: true }, "get_Values",
@@ -2389,7 +2389,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
       this.tEnumerator = $jsilcore.System.Collections.Generic.Dictionary$b2_Enumerator.Of(this.TKey, this.TValue).__Type__;
     }
 
-    return JSIL.CreateInstanceOfType(this.tEnumerator, [this]);
+    return JSIL.CreateInstanceOfType(this.tEnumerator, "_ctor", [this]);
   };
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
@@ -2505,7 +2505,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+KeyCollection",
   );
 
   var getEnumeratorImpl = function GetEnumerator () {
-    return JSIL.CreateInstanceOfType(this.dictionary.tKeyEnumerator, [this.dictionary]);
+    return JSIL.CreateInstanceOfType(this.dictionary.tKeyEnumerator, "_ctor", [this.dictionary]);
   };
 
   $.Method({Static:false, Public: true }, "GetEnumerator", 
@@ -2544,7 +2544,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+ValueCollection
   );
 
   var getEnumeratorImpl = function GetEnumerator () {
-    return JSIL.CreateInstanceOfType(this.dictionary.tValueEnumerator, [this.dictionary]);
+    return JSIL.CreateInstanceOfType(this.dictionary.tValueEnumerator, "_ctor", [this.dictionary]);
   };
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
@@ -3411,7 +3411,7 @@ JSIL.ImplementExternals("System.Activator", function ($) {
   $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type")], [])), 
     function CreateInstance (type) {
-      return JSIL.CreateInstanceOfType(type, []);
+      return JSIL.CreateInstanceOfType(type, "_ctor", []);
     }
   );
 
@@ -3421,14 +3421,14 @@ JSIL.ImplementExternals("System.Activator", function ($) {
       if (!args)
         args = [];
 
-      return JSIL.CreateInstanceOfType(type, args);
+      return JSIL.CreateInstanceOfType(type, "_ctor", args);
     }
   );
 
   $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature("!!0", [], ["T"])), 
     function CreateInstance (T) {
-      return JSIL.CreateInstanceOfType(T, []);
+      return JSIL.CreateInstanceOfType(T, "_ctor", []);
     }
   );
 
@@ -3438,7 +3438,7 @@ JSIL.ImplementExternals("System.Activator", function ($) {
       if (!args)
         args = [];
 
-      return JSIL.CreateInstanceOfType(T, args);
+      return JSIL.CreateInstanceOfType(T, "_ctor", args);
     }
   );
 
@@ -3453,7 +3453,7 @@ JSIL.ImplementExternals("System.Activator", function ($) {
       if (!args)
         args = [];
       
-      return JSIL.CreateInstanceOfType(type, args);
+      return JSIL.CreateInstanceOfType(type, "_ctor", args);
     }
   );
 
@@ -3745,7 +3745,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
       this.tEnumerator = $jsilcore.System.Collections.Generic.HashSet$b1_Enumerator.Of(this.T).__Type__;
     }
 
-    return JSIL.CreateInstanceOfType(this.tEnumerator, [this]);
+    return JSIL.CreateInstanceOfType(this.tEnumerator, "_ctor", [this]);
   };
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
@@ -4650,7 +4650,7 @@ JSIL.ImplementExternals("System.Collections.Generic.LinkedList`1", function ($) 
 
   var makeNode = function (self, value) {
     var tNode = System.Collections.Generic.LinkedListNode$b1.Of(self.T).__Type__;
-    return JSIL.CreateInstanceOfType(tNode, [self, value]);
+    return JSIL.CreateInstanceOfType(tNode, "_ctor", [self, value]);
   };
 
   var addIntoEmptyImpl = function (self, node) {

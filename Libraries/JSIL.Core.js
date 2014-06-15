@@ -1334,7 +1334,7 @@ JSIL.AttributeRecord.prototype.Construct = function () {
   else
     this.constructorArguments = constructorArguments = [];
 
-  var instance = JSIL.CreateInstanceOfType(resolvedType, constructorArguments);
+  var instance = JSIL.CreateInstanceOfType(resolvedType, "_ctor", constructorArguments);
   return instance;
 };
 
@@ -7899,10 +7899,10 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
       return 0;
   }
 
-  if (type.__Type__ && !type.__PublicInterface__)
+  if (!type.__PublicInterface__)
     JSIL.RuntimeError("CreateInstanceOfType expects a type but a public interface was provided");
 
-  var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__];
+  var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] || null;
   if (!recordSet)
     recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = new JSIL.CreateInstanceOfTypeRecordSet(type);
 

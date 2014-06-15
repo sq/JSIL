@@ -1031,7 +1031,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ReflectiveReader`1", fu
     (new JSIL.MethodSignature($.Object, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $.Object], [])), 
     function Read (input, existingInstance) {
       if (!existingInstance)
-        existingInstance = JSIL.CreateInstanceOfType(this.targetType, []);
+        existingInstance = JSIL.CreateInstanceOfType(this.targetType);
 
       if (this.baseReader) {
         var readBaseInstance = this.baseReader.Read(input, existingInstance);
