@@ -6944,12 +6944,24 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     argumentNames.push(argumentName);
   }
 
+  var requiredArgumentCount = argumentNames.length;
+  var argumentCheckOperator = "!==";
+
+  // HACK to allow simple 'method.call(x)' form for zero-argument, non-generic methods.
+  if ((genericArgumentNames.length === 0) && (argumentTypes.length === 0)) {
+    requiredArgumentCount = 1;
+    argumentCheckOperator = "<";
+  }
+
   var functionName = (callMethodName === "CallInterface" ? "InterfaceMethod" : "MethodSignature") +
       "." + callMethodName +
       "$" + genericArgumentNames.length + 
       "$" + argumentTypes.length;   
 
   var body = [];
+  body.push("var argc = arguments.length | 0;");
+  body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ") JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
+
   if (callMethodName === "CallInterface") {
     body.push("var method = this.LookupMethod(" + methodLookupArg + ");");
     body.push("");
@@ -9310,9 +9322,15 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
 JSIL.$GetMethodImplementation = function (method, target) {
   var isStatic = method._descriptor.Static;
   var isInterface = method._typeObject.IsInterface;
-  var key = isInterface
-    ? method._descriptor.EscapedName
-    : method._data.mangledName || method._descriptor.EscapedName;
+  var key = null;
+  if (isInterface)
+    key = method._descriptor.EscapedName;
+  else if (method._data.signature)
+    key = method._data.signature.GetKey(method._descriptor.EscapedName);
+  else
+    key = method._data.mangledName || method._descriptor.EscapedName;
+
+  var genericArgumentValues = method._data.signature.genericArgumentValues;
   var publicInterface = method._typeObject.__PublicInterface__;
   var context = isStatic || isInterface 
     ? publicInterface 
@@ -9324,15 +9342,55 @@ JSIL.$GetMethodImplementation = function (method, target) {
       if (!result.signature.IsClosed)
         JSIL.RuntimeError("Generic method is not closed");
   }
-  if (method._data.signature.genericArgumentValues) {
+
+  if (genericArgumentValues && genericArgumentValues.length) {
     if (isStatic) {
-       return result.apply(method.DeclaringType.__PublicInterface__, method._data.signature.genericArgumentValues).bind(method.DeclaringType.__PublicInterface__);
+      // Return an invoker that concats generic arguments and arglist and invokes
+      //  static generic method implementation directly.
+
+      return function (methodArgs) { 
+        var fullArgumentList = genericArgumentValues.concat(methodArgs);
+
+        return result.apply(
+          publicInterface, fullArgumentList
+        );
+      };
+
     } else if (result instanceof JSIL.InterfaceMethod) {
-      return function(methodArgs) { return result.Call(this, method._data.signature.genericArgumentValues, methodArgs) };
+      // Return an invoker that specifies the generic arguments and passes in rest
+
+      return function (methodArgs) { 
+        return result.Call(
+          this, 
+          genericArgumentValues, 
+          methodArgs
+        );
+      };
+
+    } else {
+      // Return an invoker that concats generic arguments and arglist and invokes
+      //  generic method implementation directly.
+
+      return function (methodArgs) { 
+        var fullArgumentList = genericArgumentValues.concat(methodArgs);
+
+        return result.apply(
+          this, fullArgumentList
+        );
+      };
     }
-    return result.apply(target, method._data.signature.genericArgumentValues);
+
   } else if (result instanceof JSIL.InterfaceMethod) {
-    return function(methodArgs) { return result.Call(this, methodArgs); };
+    // Wrap the interface method invoker since it expects a generic arguments parameter.
+
+    return function (methodArgs) { 
+      return result.Call(this, null, methodArgs); 
+    };
+
+  }
+
+  if (!result) {
+    debugger;
   }
   return result;
 };
