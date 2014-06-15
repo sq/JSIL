@@ -7843,22 +7843,27 @@ JSIL.GetTypesFromAssembly = function (assembly) {
   return result;
 };
 
-JSIL.$CreateInstanceOfTypeTable = {
-};
+JSIL.$CreateInstanceOfTypeTable = JSIL.CreateDictionaryObject(null);
 
 JSIL.CreateInstanceOfTypeRecordSet = function (type) {
-  this.records = {};
+  this.records = JSIL.CreateDictionaryObject(null);
 };
 
-JSIL.CreateInstanceOfTypeRecord = function (type, constructorName, constructor, publicInterface) {
+JSIL.CreateInstanceOfTypeRecord = function (
+  type, publicInterface, 
+  constructorName, constructor,
+  specialValue
+) {
   JSIL.RunStaticConstructors(publicInterface, type);
 
-  var closure = {};
+  var closure = JSIL.CreateDictionaryObject(null);
   var constructorBody = [];
 
   this.type = type;
   this.constructorName = constructorName;
   this.constructor = constructor;
+  this.specialValue = specialValue;
+  this.argumentlessInstanceConstructor = null;  
 
   // FIXME: I think this runs the field initializer twice? :(
   var fi = JSIL.GetFieldInitializer(type);
@@ -7869,10 +7874,18 @@ JSIL.CreateInstanceOfTypeRecord = function (type, constructorName, constructor, 
 
   if ((constructorName === null) && (constructor === null)) {
   } else {
-    if (type.__IsStruct__)
-      constructorBody.push("if ((argv === null) || (typeof (argv) === 'undefined') || (argv.length === 0)) return;");
-    else
+    if (type.__IsStruct__) {
+      this.argumentlessInstanceConstructor = JSIL.CreateNamedFunction(
+        type.__FullName__ + ".CreateInstanceOfType$NoArguments",
+        [],
+        constructorBody.join("\r\n"),
+        closure
+      );
+      this.argumentlessInstanceConstructor.prototype = publicInterface.prototype;
+
+    } else {
       constructorBody.push("if ((typeof (argv) === 'undefined') || (argv === null)) argv = [];");
+    }
 
     if (constructor) {
       closure.actualConstructor = constructor;
@@ -7890,61 +7903,97 @@ JSIL.CreateInstanceOfTypeRecord = function (type, constructorName, constructor, 
   this.instanceConstructor.prototype = publicInterface.prototype;
 };
 
-JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
-  if (type.__IsNumeric__) {
-    // HACK: This System.Char nonsense is getting out of hand.
-    if (type.__FullName__ === "System.Char")
-      return "\0";
-    else
-      return 0;
-  }
-
-  if (!type.__PublicInterface__)
-    JSIL.RuntimeError("CreateInstanceOfType expects a type but a public interface was provided");
-
-  var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] || null;
+JSIL.CreateInstanceOfType$CacheMiss = function (type, constructorName, constructorArguments, recordSet) {
   if (!recordSet)
-    recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = new JSIL.CreateInstanceOfTypeRecordSet(type);
+    recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] = 
+      new JSIL.CreateInstanceOfTypeRecordSet(type);
 
-  // FIXME: This gets used a lot, so make constructorName a required argument
-  //  if arguments are provided.
-  if (
-    JSIL.IsArray(constructorName) || 
-    (typeof (constructorName) === "undefined")
-  ) {
-    constructorArguments = constructorName;
-    constructorName = "_ctor";
-  }
+  var publicInterface = type.__PublicInterface__;
+  var record = null;
 
-  var record = recordSet.records[constructorName];
-  if (!record) {
-    var publicInterface = type.__PublicInterface__;
-    var constructor = null;
+  if (type.__IsNativeType__) {
+    var specialValue = JSIL.DefaultValue(type);
 
-    if (typeof (constructorName) === "string") {
-      constructor = publicInterface.prototype[constructorName];
+    record = new JSIL.CreateInstanceOfTypeRecord(
+      type, publicInterface, null, null, specialValue
+    );
+  } else if (typeof (constructorName) === "string") {
+    var constructor = publicInterface.prototype[constructorName];
 
-      if (!constructor)
-        JSIL.RuntimeError("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
-    } else if (typeof (constructorName) === "function") {
-      constructor = constructorName;
-    }
+    if (!constructor)
+      JSIL.RuntimeError("Type '" + type.__FullName__ + "' does not have a constructor named '" + constructorName + "'");    
 
-    if (type.__IsClosed__ === false)
-      JSIL.RuntimeError("Cannot create an instance of an open type");
-    else if (type.IsInterface)
-      JSIL.RuntimeError("Cannot create an instance of an interface");
-
-    record = recordSet.records[constructorName] = new JSIL.CreateInstanceOfTypeRecord(
-      type, constructorName, constructor, publicInterface
+    record = new JSIL.CreateInstanceOfTypeRecord(
+      type, publicInterface, constructorName, constructor, null
+    );
+  } else if (typeof (constructorName) === "function") {
+    record = new JSIL.CreateInstanceOfTypeRecord(
+      type, publicInterface, constructorName, constructorName, null
+    );
+  } else {
+    record = new JSIL.CreateInstanceOfTypeRecord(
+      type, publicInterface, null, null, null
     );
   }
 
+  if (type.__IsClosed__ === false)
+    JSIL.RuntimeError("Cannot create an instance of an open type");
+  else if (type.IsInterface)
+    JSIL.RuntimeError("Cannot create an instance of an interface");
+
+  recordSet.records[constructorName] = record;
+
+  return JSIL.CreateInstanceOfType$CacheHit(type, record, constructorArguments);
+};
+
+JSIL.CreateInstanceOfType$CacheHit = function (type, record, constructorArguments) {
   if (type.__IsNativeType__) {
     // Native types need to be constructed differently.
-    return record.constructor.apply(record.constructor, constructorArguments);
+    if (record.specialValue !== null)
+      return record.specialValue;
+    else
+      return record.constructor.apply(record.constructor, constructorArguments);
+
   } else {
-    return new (record.instanceConstructor)(constructorArguments);
+
+    if (
+      (constructorArguments === null) ||
+      (constructorArguments === undefined) ||
+      (constructorArguments.length === 0)
+    ) {
+      if (record.argumentlessInstanceConstructor !== null)
+        return new (record.argumentlessInstanceConstructor)();
+      else
+        return new (record.instanceConstructor)($jsilcore.ArrayNull);
+
+    } else {
+      return new (record.instanceConstructor)(constructorArguments);
+    }
+  }
+};
+
+JSIL.CreateInstanceOfType = function (type, $constructorName, $constructorArguments) {
+  var constructorName = null, constructorArguments = null;
+  if (arguments.length < 2)
+    constructorName = "_ctor";
+  else
+    constructorName = $constructorName;
+
+  if (arguments.length < 3)
+    constructorArguments = null;
+  else
+    constructorArguments = $constructorArguments;
+
+  var recordSet = JSIL.$CreateInstanceOfTypeTable[type.__TypeId__] || null;
+  if (recordSet) {
+    var record = recordSet.records[constructorName] || null;
+    if (record) {
+      return JSIL.CreateInstanceOfType$CacheHit(type, record, constructorArguments);
+    } else {
+      return JSIL.CreateInstanceOfType$CacheMiss(type, constructorName, constructorArguments, recordSet);
+    }
+  } else {
+    return JSIL.CreateInstanceOfType$CacheMiss(type, constructorName, constructorArguments, null);
   }
 };
 

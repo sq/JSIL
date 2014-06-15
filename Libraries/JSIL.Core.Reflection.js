@@ -834,7 +834,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
         parameters = parameters.slice();
         for (var i = 0; i < parametersCount; i++) {
           if (parameters[i] === null && parameterTypes[i].IsValueType)
-            parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
+            parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
         }
       }
 
