@@ -592,7 +592,7 @@ namespace JSIL.Compiler {
             translator.CouldNotResolveAssembly += (fn, ex) => 
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);
             translator.CouldNotDecompileMethod += (fn, ex) =>
-                Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
+                Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex);
 
             if (typeInfoProvider == null) {
                 if (CachedTypeInfoProvider != null)
