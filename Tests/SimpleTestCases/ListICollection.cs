@@ -24,7 +24,7 @@ public static class Program
     PrintBool(collection.Contains("two-shouldNotExits"));
 
     // The following line passes even if IsReadonly is undefined in JSIL.Bootsrap.js, because !undefined seems to be true in JavaScript
-    // I can not write better unit test because of https://github.com/kevingadd/JSIL/issues/91
+    // I can not write better unit test because of https://github.com/sq/JSIL/issues/91
     // Manual tests (through JavaScript debugger) shows, that the property correctly returns false
     PrintBool(collection.IsReadOnly);
 
