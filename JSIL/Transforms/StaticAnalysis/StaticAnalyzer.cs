@@ -196,7 +196,7 @@ namespace JSIL.Transforms {
                     State.Assignments.Add(
                         new FunctionAnalysis1stPass.Assignment(
                             GetParentNodeIndices(), StatementIndex, NodeIndex,
-                            variable, uoe, uoe.Operator,
+                            variable.Identifier, uoe, uoe.Operator,
                             variable.GetActualType(TypeSystem), uoe.GetActualType(TypeSystem)
                         )
                     );
@@ -245,7 +245,7 @@ namespace JSIL.Transforms {
                         State.Assignments.Add(
                             new FunctionAnalysis1stPass.Assignment(
                                 GetParentNodeIndices(), StatementIndex, NodeIndex,
-                                leftVar, boe.Right, boe.Operator,
+                                leftVar.Identifier, boe.Right, boe.Operator,
                                 leftType, rightType
                             )
                         );
@@ -278,7 +278,7 @@ namespace JSIL.Transforms {
                 var parentNodeIndices = GetParentNodeIndices();
 
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v, "element modified"
+                    parentNodeIndices, StatementIndex, NodeIndex, v.Identifier, "element modified"
                 ));
             } else {
                 ;
@@ -299,7 +299,7 @@ namespace JSIL.Transforms {
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v, "field modified"
+                    parentNodeIndices, StatementIndex, NodeIndex, v.Identifier, "field modified"
                 ));
             }
 
@@ -345,7 +345,7 @@ namespace JSIL.Transforms {
                 // Setter
                 if (v != null) {
                     State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        GetParentNodeIndices(), StatementIndex, NodeIndex, v, "property set"
+                        GetParentNodeIndices(), StatementIndex, NodeIndex, v.Identifier, "property set"
                     ));
                 }
                 /*
@@ -455,7 +455,7 @@ namespace JSIL.Transforms {
                 State.Assignments.Add(
                     new FunctionAnalysis1stPass.Assignment(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
-                        tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
+                        tcb.CatchVariable.Identifier, new JSNullExpression(), JSOperator.Assignment,
                         tcb.CatchVariable.IdentifierType, tcb.CatchVariable.IdentifierType
                     )
                 );
@@ -507,7 +507,7 @@ namespace JSIL.Transforms {
                 State.Accesses.Add(
                     new FunctionAnalysis1stPass.Access(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
-                        variable, isControlFlow
+                        variable.Identifier, isControlFlow
                     )
                 );
             } else {
@@ -560,12 +560,12 @@ namespace JSIL.Transforms {
         }
 
         public class Access : Item {
-            public readonly JSVariable Source;
+            public readonly string Source;
             public readonly bool IsControlFlow;
 
             public Access (
                 NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
-                JSVariable source, bool isControlFlow
+                string source, bool isControlFlow
             ) : base (parentNodeIndices, statementIndex, nodeIndex) { 
                 Source = source;
                 IsControlFlow = isControlFlow;
@@ -573,29 +573,35 @@ namespace JSIL.Transforms {
 
             public override string ToString () {
                 if (IsControlFlow)
-                    return String.Format("ControlFlow {0}", Source);
+                    return String.Format("ControlFlow {0})", Source);
                 else
-                    return Source.ToString();
+                    return Source;
             }
         }
 
         public class Assignment : Item {
-            public readonly JSVariable Target;
+            public readonly string Target;
             public readonly JSExpression NewValue;
-            public readonly JSVariable SourceVariable;
+            public readonly string SourceVariable;
             public readonly JSOperator Operator;
             public readonly TypeReference SourceType, TargetType;
             public readonly bool IsConversion;
 
             public Assignment (
                 NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable target, JSExpression newValue,
+                string target, JSExpression newValue,
                 JSOperator @operator,
                 TypeReference targetType, TypeReference sourceType
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Target = target;
                 NewValue = newValue;
-                SourceVariable = newValue as JSVariable;
+
+                var newVariable = newValue as JSVariable;
+                if (newVariable != null)
+                    SourceVariable = newVariable.Identifier;
+                else
+                    SourceVariable = null;
+
                 SourceType = sourceType;
                 TargetType = targetType;
                 Operator = @operator;
@@ -619,12 +625,12 @@ namespace JSIL.Transforms {
         }
 
         public class SideEffect : Item {
-            public readonly JSVariable Variable;
+            public readonly string Variable;
             public readonly string Type;
 
             public SideEffect (
                 NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable variable, string type
+                string variable, string type
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
                 Type = type;
@@ -759,10 +765,10 @@ namespace JSIL.Transforms {
             foreach (var assignment in data.Assignments) {
                 if (assignment.SourceVariable != null) {
                     HashSet<string> aliases;
-                    if (!VariableAliases.TryGetValue(assignment.SourceVariable.Identifier, out aliases))
-                        VariableAliases[assignment.SourceVariable.Identifier] = aliases = new HashSet<string>();
+                    if (!VariableAliases.TryGetValue(assignment.SourceVariable, out aliases))
+                        VariableAliases[assignment.SourceVariable] = aliases = new HashSet<string>();
 
-                    aliases.Add(assignment.Target.Identifier);
+                    aliases.Add(assignment.Target);
                 }
             }
 

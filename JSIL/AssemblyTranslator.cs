@@ -688,7 +688,10 @@ namespace JSIL {
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log);
+                if (RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log)) {
+                    // Release our SpecialIdentifiers instance so it doesn't leak indefinitely.
+                    // e.SpecialIdentifiers = null;
+                }
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -1935,7 +1938,7 @@ namespace JSIL {
             return allVariables;
         }
 
-        private void RunTransformsOnFunction (
+        private bool RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
             SpecialIdentifiers si, StringBuilder log
         ) {
@@ -1960,6 +1963,8 @@ namespace JSIL {
                         );
                 }
             }
+
+            return completed;
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
@@ -2939,6 +2944,21 @@ namespace JSIL {
         public TypeInfoProvider GetTypeInfoProvider () {
             OwnsTypeInfoProvider = false;
             return _TypeInfoProvider;
+        }
+
+        private SpecialIdentifiers _CachedSpecialIdentifiers;
+        private object _CachedSpecialIdentifiersLock = new object();
+
+        public SpecialIdentifiers GetSpecialIdentifiers (TypeSystem typeSystem) {
+            lock (_CachedSpecialIdentifiersLock) {
+                if (
+                    (_CachedSpecialIdentifiers == null) ||
+                    (_CachedSpecialIdentifiers.TypeSystem != typeSystem)
+                )
+                    _CachedSpecialIdentifiers = new JSIL.SpecialIdentifiers(FunctionCache.MethodTypes, typeSystem, _TypeInfoProvider);
+            }
+
+            return _CachedSpecialIdentifiers;
         }
     }
 }

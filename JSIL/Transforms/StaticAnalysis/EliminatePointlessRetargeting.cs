@@ -116,7 +116,7 @@ namespace JSIL.Transforms {
             if (variable != null) {
                 var scopeNodeIndex = ScopeNodeIndices.Peek();
                 var relevantAssignments = FirstPass.Assignments
-                    .Where((a) => a.Target.Identifier == variable.Identifier)
+                    .Where((a) => a.Target == variable.Identifier)
                     .Where((a) => a.ParentNodeIndices.Contains(scopeNodeIndex))
                     .ToArray();
 

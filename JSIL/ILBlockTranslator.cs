@@ -85,7 +85,7 @@ namespace JSIL {
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
 
-            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem, TypeInfo);
+            SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));

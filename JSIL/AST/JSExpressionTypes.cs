@@ -2420,16 +2420,17 @@ namespace JSIL.Ast {
 
         public JSVariable Variable {
             get {
-                return (JSVariable)Values[0];
+                // FIXME: Why is this not a variable sometimes??
+                return Values[0] as JSVariable;
             }
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return DeReferenceType(Variable.GetActualType(typeSystem), true);
+            return DeReferenceType(Values[0].GetActualType(typeSystem), true);
         }
 
         public override string ToString () {
-            return String.Format("{0}.get()", Variable);
+            return String.Format("{0}.get()", Values[0]);
         }
     }
 

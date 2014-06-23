@@ -143,16 +143,16 @@ namespace JSIL.Transforms {
                 if (VariablesExemptedFromEffectivelyConstantStatus.Contains(v.Identifier))
                     return false;
 
-                var sourceAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
+                var sourceAssignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.Target) select a).ToArray();
                 if (sourceAssignments.Length < 1)
                     return v.IsParameter;
 
-                var sourceAccesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                var sourceAccesses = (from a in FirstPass.Accesses where v.Identifier.Equals(a.Source) select a).ToArray();
                 if (sourceAccesses.Length < 1)
                     return false;
 
-                var targetAssignmentIndices = (from a in FirstPass.Assignments where target.Equals(a.Target) select a.StatementIndex);
-                var targetAccessIndices = (from a in FirstPass.Accesses where target.Equals(a.Source) select a.StatementIndex).ToArray();
+                var targetAssignmentIndices = (from a in FirstPass.Assignments where target.Identifier.Equals(a.Target) select a.StatementIndex);
+                var targetAccessIndices = (from a in FirstPass.Accesses where target.Identifier.Equals(a.Source) select a.StatementIndex).ToArray();
                 var targetUseIndices = targetAccessIndices.Concat(targetAssignmentIndices).ToArray();
 
                 if (sourceAssignments.Length == 1) {
@@ -220,7 +220,7 @@ namespace JSIL.Transforms {
 
                         if (
                             (invocationSecondPass.Data != null) &&
-                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable.Identifier == argumentName)
+                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable == argumentName)
                         ) {
                             reason = "touches it with side effects";
                         } else if (                            
@@ -287,9 +287,9 @@ namespace JSIL.Transforms {
                 if (v.IsThis || v.IsParameter)
                     continue;
 
-                var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
-                var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
-                var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                var assignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.Target) select a).ToArray();
+                var reassignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.SourceVariable) select a).ToArray();
+                var accesses = (from a in FirstPass.Accesses where v.Identifier.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
                 var unsafeInvocations = FilterInvocations(invocations);
                 var isPassedByReference = FirstPass.VariablesPassedByRef.Contains(v.Name);
@@ -355,7 +355,7 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                var copies = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
+                var copies = (from a in FirstPass.Assignments where v.Identifier.Equals(a.SourceVariable) select a).ToArray();
                 if (
                     (copies.Length + accesses.Length) > 1
                 ) {

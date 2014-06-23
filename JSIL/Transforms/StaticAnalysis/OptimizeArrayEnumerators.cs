@@ -41,7 +41,7 @@ namespace JSIL.Transforms {
                     var variableName = variable.Name;
                     var accesses = (
                         from a in FirstPass.Accesses
-                        where a.Source.Name == variableName
+                        where a.Source == variableName
                         select a
                     );
 
