@@ -789,24 +789,21 @@ namespace JSIL.Internal {
 
     public static class ImmutableArrayPool<T> {
         private class State {
-            public readonly T[][] Buffers;
-            public int ElementsUsed, BuffersUsed;
+            public readonly T[] Buffer;
+            public int ElementsUsed;
 
             public State (int capacity) {
-                Buffers = new T[BufferCount][];
-                for (int i = 0; i < Buffers.Length; i++)
-                    Buffers[i] = new T[capacity];
+                Buffer = new T[capacity];
 
                 ElementsUsed = 0;
-                BuffersUsed = 0;
             }
         }
 
-        // The large object heap threshold is roughly 85KB so we set our block size to 64KB
+        // The large object heap threshold is roughly 85KB so we set our block size small.
         //  this ensures that our blocks start in gen0 and can get collected early, instead
-        //  of spending their entire life on the large object heap
-        public const int MaxSizeBytes = 64 * 1024;
-        public const int BufferCount = 8;
+        //  of spending their entire life on the large object heap.
+        // This also reduces waste in cases where some but not all of the buffers expire.
+        public const int MaxSizeBytes = 1 * 1024;
 
         public static readonly int Capacity;
         public static readonly ArraySegment<T> Empty = new ArraySegment<T>(new T[0]);
@@ -842,23 +839,20 @@ namespace JSIL.Internal {
 
             bool usedUpElements = false;
             bool allocateNew = (data == null) ||
-                ((usedUpElements = (data.ElementsUsed >= Capacity - count)) &&
-                 (data.BuffersUsed >= BufferCount - 1));
+                (usedUpElements = (data.ElementsUsed >= Capacity - count));
 
             if (allocateNew) {
                 data = ThreadLocal.Value = new State(Capacity);
                 usedUpElements = false;
             }
 
-            if (usedUpElements) {
+            if (usedUpElements)
                 data.ElementsUsed = 0;
-                data.BuffersUsed += 1;
-            }
 
             var offset = data.ElementsUsed;
             data.ElementsUsed += count;
 
-            return new ArraySegment<T>(data.Buffers[data.BuffersUsed], offset, count);
+            return new ArraySegment<T>(data.Buffer, offset, count);
         }
 
         public static ArraySegment<T> Elements (T a) {

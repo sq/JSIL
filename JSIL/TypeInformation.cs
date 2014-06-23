@@ -545,7 +545,8 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Proxy.JSProxy") && !IsProxy)
                 Metadata.Remove("JSIL.Proxy.JSProxy");
 
-            Interfaces = interfaces.ToImmutableArray(interfaces.Count);
+            // FIXME: Using ImmutableArrayPool here can leak.
+            Interfaces = new ArraySegment<InterfaceToken>(interfaces.ToArray());
 
             _IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.Namespace, false) || 
@@ -805,9 +806,10 @@ namespace JSIL.Internal {
                         foreach (var @interface in type.Interfaces.ToEnumerable())
                             list.Add(new RecursiveInterfaceToken(type, @interface));
 
-                    _AllInterfacesRecursive = list
+                    // FIXME: Using ImmutableArrayPool here can leak.
+                    _AllInterfacesRecursive = new ArraySegment<RecursiveInterfaceToken>(list
                         .Distinct(new RecursiveInterfaceTokenComparer())
-                        .ToImmutableArray(list.Count);
+                        .ToArray());
                 }
 
                 return _AllInterfacesRecursive;

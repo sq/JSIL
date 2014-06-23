@@ -125,30 +125,30 @@ namespace JSIL {
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
                     case "System.Type": {
-                            proxyTargets = ImmutableArrayPool<string>.Elements(
+                            proxyTargets = new ArraySegment<string>(new string[] { 
                                 ((TypeReference)arg.Value).FullName
-                            );
+                            });
 
                             break;
                         }
                     case "System.Type[]": {
                             var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = (from v in values select ((TypeReference)v.Value).FullName)
-                                .ToImmutableArray(values.Length);
+                            proxyTargets = new ArraySegment<string>((from v in values select ((TypeReference)v.Value).FullName)
+                                .ToArray());
 
                             break;
                         }
                     case "System.String": {
-                            proxyTargets = ImmutableArrayPool<string>.Elements(
+                            proxyTargets = new ArraySegment<string>(new string[] { 
                                 (string)arg.Value
-                            );
+                            });
 
                             break;
                         }
                     case "System.String[]": {
                             var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = (from v in values select (string)v.Value)
-                                .ToImmutableArray(values.Length);
+                            proxyTargets = new ArraySegment<string>((from v in values select (string)v.Value)
+                                .ToArray());
 
                             break;
                         }
@@ -507,7 +507,7 @@ namespace JSIL {
                 isInherited = true;
             }
 
-            return result.ToImmutableArray(result.Count);
+            return new ArraySegment<ProxyInfo>(result.ToArray());
         }
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {
