@@ -279,10 +279,12 @@ namespace JSIL.Threading {
         }
 
         private void EnsureTracked () {
-            lock (this) {
-                if (!_IsTracked) {
-                    Collection.Track(WeakSelf);
-                    _IsTracked = true;
+            if (!_IsTracked) {
+                lock (this) {
+                    if (!_IsTracked) {
+                        Collection.Track(WeakSelf);
+                        _IsTracked = true;
+                    }
                 }
             }
         }

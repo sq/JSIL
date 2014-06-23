@@ -9,7 +9,10 @@ using Mono.Cecil;
 namespace JSIL.Internal {
     public static class PackedArrayUtil {
         public static bool IsPackedArrayType (TypeReference type) {
-            return type.FullName.StartsWith("JSIL.Runtime.IPackedArray");
+            if (type.Namespace != "JSIL.Runtime")
+                return false;
+
+            return type.Name == "IPackedArray`1";
         }
 
         public static TypeReference GetElementType (TypeReference arrayType) {
