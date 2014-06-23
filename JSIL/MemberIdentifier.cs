@@ -246,16 +246,16 @@ namespace JSIL.Internal {
                 return true;
             }
 
-            string[] proxyTargets;
+            ArraySegment<string> proxyTargets;
             if (
                 typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
-                (proxyTargets != null) &&
+                (proxyTargets.Array != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
                 typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
-                (proxyTargets != null) &&
+                (proxyTargets.Array != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {
                 return true;

@@ -15,8 +15,8 @@ using TypeInfo = JSIL.Internal.TypeInfo;
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource, IDisposable {
         protected class ProxiesByNameRecord {
-            public readonly ConcurrentCache<HashedString, string[]> Cache =
-                new ConcurrentCache<HashedString, string[]>(new HashedStringComparer());
+            public readonly ConcurrentCache<HashedString, ArraySegment<string>> Cache =
+                new ConcurrentCache<HashedString, ArraySegment<string>>(new HashedStringComparer());
             public volatile int Count;
         }
 
@@ -39,8 +39,8 @@ namespace JSIL {
 
         protected static readonly ConcurrentCache<string, ModuleInfo>.CreatorFunction<ModuleDefinition> MakeModuleInfo;
         protected static readonly ConcurrentCache<HashedString, ProxiesByNameRecord>.CreatorFunction<MemberReference> MakeProxiesByName;
-        protected static readonly ConcurrentCache<HashedString, string[]>.CreatorFunction<MemberReference> MakeProxiesByFullName;
-        protected static readonly Predicate<string[]> ShouldAddProxies; 
+        protected static readonly ConcurrentCache<HashedString, ArraySegment<string>>.CreatorFunction<MemberReference> MakeProxiesByFullName;
+        protected static readonly Predicate<ArraySegment<string>> ShouldAddProxies; 
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo>.CreatorFunction<MakeTypeInfoArgs> MakeTypeInfo;
 
         static TypeInfoProvider () {
@@ -89,10 +89,10 @@ namespace JSIL {
             return new TypeInfoProvider(this);
         }
 
-        private static bool _ShouldAddProxies (string[] proxies) {
-            if (proxies == null)
+        private static bool _ShouldAddProxies (ArraySegment<string> proxies) {
+            if (proxies.Array == null)
                 return false;
-            else if (proxies.Length == 0)
+            else if (proxies.Count == 0)
                 return false;
             else
                 return true;
@@ -102,10 +102,10 @@ namespace JSIL {
             return new ProxiesByNameRecord();
         }
 
-        private static string[] _MakeProxiesByFullName (HashedString key, MemberReference mr) {
+        private static ArraySegment<string> _MakeProxiesByFullName (HashedString key, MemberReference mr) {
             var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
             if (icap == null)
-                return null;
+                return ImmutableArrayPool<string>.Empty;
 
             CustomAttribute proxyAttribute = null;
             for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
@@ -117,33 +117,38 @@ namespace JSIL {
             }
 
             if (proxyAttribute == null)
-                return null;
+                return ImmutableArrayPool<string>.Empty;
 
-            string[] proxyTargets = null;
+            ArraySegment<string> proxyTargets = ImmutableArrayPool<string>.Empty;
             var args = proxyAttribute.ConstructorArguments;
 
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
-                    case "System.Type":
-                        proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
+                    case "System.Type": {
+                            proxyTargets = ImmutableArrayPool<string>.Elements(
+                                ((TypeReference)arg.Value).FullName
+                            );
 
-                        break;
+                            break;
+                        }
                     case "System.Type[]": {
                             var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = new string[values.Length];
-                            for (var i = 0; i < proxyTargets.Length; i++)
-                                proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
+                            proxyTargets = (from v in values select ((TypeReference)v.Value).FullName)
+                                .ToImmutableArray(values.Length);
 
                             break;
                         }
                     case "System.String": {
-                            proxyTargets = new string[] { (string)arg.Value };
+                            proxyTargets = ImmutableArrayPool<string>.Elements(
+                                (string)arg.Value
+                            );
 
                             break;
                         }
                     case "System.String[]": {
                             var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = (from v in values select (string)v.Value).ToArray();
+                            proxyTargets = (from v in values select (string)v.Value)
+                                .ToImmutableArray(values.Length);
 
                             break;
                         }
@@ -213,8 +218,8 @@ namespace JSIL {
             TypeAssignabilityCache.Clear();
         }
 
-        bool ITypeInfoSource.TryGetProxyNames (TypeReference tr, out string[] result) {
-            result = null;
+        bool ITypeInfoSource.TryGetProxyNames (TypeReference tr, out ArraySegment<string> result) {
+            result = ImmutableArrayPool<string>.Empty;
 
             ProxiesByNameRecord proxiesByFullName;
             var name = new HashedString(tr.Name);
@@ -468,7 +473,7 @@ namespace JSIL {
             return result;
         }
 
-        ProxyInfo[] ITypeInfoSource.GetProxies (TypeDefinition type) {
+        ArraySegment<ProxyInfo> ITypeInfoSource.GetProxies (TypeDefinition type) {
             var result = new HashSet<ProxyInfo>();
             bool isInherited = false;
             bool isInterface = type.IsInterface;
@@ -502,7 +507,7 @@ namespace JSIL {
                 isInherited = true;
             }
 
-            return result.ToArray();
+            return result.ToImmutableArray(result.Count);
         }
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {

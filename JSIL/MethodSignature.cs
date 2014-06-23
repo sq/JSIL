@@ -205,9 +205,9 @@ namespace JSIL.Internal {
             Name = name;
         }
 
-        public MethodSignature[] Signatures {
+        public IEnumerable<MethodSignature> Signatures {
             get {
-                return (from k in Counts.Keys where k.Name == this.Name select k.Signature).ToArray();
+                return (from k in Counts.Keys where k.Name == Name select k.Signature);
             }
         }
 

@@ -179,7 +179,7 @@ namespace JSIL.Threading {
 
         public void Dispose () {
             while (Locks.Count > 0) {
-                foreach (var lck in Locks.Keys.ToArray())
+                foreach (var lck in Locks.Keys.ToList())
                     lck.Dispose();
             }
         }

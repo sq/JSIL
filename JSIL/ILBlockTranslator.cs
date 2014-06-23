@@ -278,12 +278,6 @@ namespace JSIL {
             return result;
         }
 
-        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
-            return (
-                from p in parameters select JSVariable.New(p, function)
-            ).ToArray();
-        }
-
         protected bool NeedToRenameVariable (string name, TypeReference type) {
             if (String.IsNullOrWhiteSpace(name))
                 return true;

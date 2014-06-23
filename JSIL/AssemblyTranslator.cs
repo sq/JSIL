@@ -1673,7 +1673,7 @@ namespace JSIL {
             }
 
             var interfaces = typeInfo.AllInterfacesRecursive;
-            if (!makingSkeletons && (interfaces.Length > 0)) {
+            if (!makingSkeletons && (interfaces.Count > 0)) {
                 output.NewLine();
 
                 dollar.WriteTo(output);
@@ -1683,15 +1683,16 @@ namespace JSIL {
 
                 bool firstInterface = true;
 
-                for (var i = 0; i < interfaces.Length; i++) {
-                    if (interfaces[i].ImplementingType != typeInfo)
+                for (var i = 0; i < interfaces.Count; i++) {
+                    var elt = interfaces.Array[interfaces.Offset + i];
+                    if (elt.ImplementingType != typeInfo)
                         continue;
-                    if (interfaces[i].ImplementedInterface.Info.IsIgnored)
+                    if (elt.ImplementedInterface.Info.IsIgnored)
                         continue;
-                    if (ShouldSkipMember(interfaces[i].ImplementedInterface.Reference))
+                    if (ShouldSkipMember(elt.ImplementedInterface.Reference))
                         continue;
 
-                    var @interface = interfaces[i].ImplementedInterface.Reference;
+                    var @interface = elt.ImplementedInterface.Reference;
 
                     if (firstInterface)
                         firstInterface = false;
@@ -2349,7 +2350,7 @@ namespace JSIL {
 
                 lock (typeInfo.Members)
                     typeInfo.Members[identifier] = new Internal.MethodInfo(
-                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], null
+                        typeInfo, identifier, fakeCctor, new ArraySegment<ProxyInfo>(), null
                     );
 
                 output.NewLine();

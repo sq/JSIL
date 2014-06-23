@@ -808,15 +808,32 @@ namespace JSIL.Internal {
         public const int BufferCount = 8;
 
         public static readonly int Capacity;
+        public static readonly ArraySegment<T> Empty = new ArraySegment<T>(new T[0]);
 
         private readonly static ThreadLocal<State> ThreadLocal = new ThreadLocal<State>();
 
         static ImmutableArrayPool () {
-            var itemSize = Marshal.SizeOf(typeof(T));
+            // Assume heap reference
+            int itemSize = Environment.Is64BitProcess 
+                ? 8 
+                : 4;
+
+            try {
+                // If it's a blittable type, estimate its in-memory size
+                if (!typeof(T).IsClass)
+                    itemSize = Marshal.SizeOf(typeof(T));
+            } catch {
+                // Non-blittable struct. Make a rough estimate of size (conservative) so we try to stay below LOH threshold.
+                itemSize = 32;
+            }
+
             Capacity = MaxSizeBytes / itemSize;
         }
 
         public static ArraySegment<T> Allocate (int count) {
+            if (count == 0)
+                return Empty;
+
             if (count > Capacity)
                 return new ArraySegment<T>(new T[count], 0, count);
 
@@ -841,6 +858,83 @@ namespace JSIL.Internal {
             data.ElementsUsed += count;
 
             return new ArraySegment<T>(data.Buffers[data.BuffersUsed], offset, count);
+        }
+
+        public static ArraySegment<T> Elements (T a) {
+            var result = Allocate(1);
+            result.Array[result.Offset + 0] = a;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b) {
+            var result = Allocate(2);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b, T c) {
+            var result = Allocate(3);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            result.Array[result.Offset + 2] = c;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b, T c, T d) {
+            var result = Allocate(4);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            result.Array[result.Offset + 2] = c;
+            result.Array[result.Offset + 3] = d;
+            return result;
+        }
+    }
+
+    public static class ImmutableArrayPoolExtensions {
+        public static ArraySegment<T> ToImmutableArray<T> (this IEnumerable<T> enumerable) {
+            var collection = enumerable as ICollection<T>;
+            var readOnlyCollection = enumerable as IReadOnlyCollection<T>;
+            var array = enumerable as T[];
+
+            if (collection != null) {
+                var count = collection.Count;
+                var buffer = ImmutableArrayPool<T>.Allocate(count);
+                collection.CopyTo(buffer.Array, buffer.Offset);
+                return buffer;
+            } else if (readOnlyCollection != null) {
+                return ToImmutableArray(enumerable, readOnlyCollection.Count);
+            } else if (array != null) {
+                return new ArraySegment<T>(array);
+            } else {
+                // Slow path =[
+                array = enumerable.ToArray();
+                return new ArraySegment<T>(array);
+            }
+        }
+
+        public static ArraySegment<T> ToImmutableArray<T> (this IEnumerable<T> enumerable, int maximumCount) {
+            int count = maximumCount;
+            var buffer = ImmutableArrayPool<T>.Allocate(maximumCount);
+
+            using (var e = enumerable.GetEnumerator()) {
+                for (var i = 0; i < count; i++) {
+                    if (!e.MoveNext()) {
+                        count = i;
+                        break;
+                    }
+
+                    buffer.Array[i + buffer.Offset] = e.Current;
+                }
+
+                if (e.MoveNext())
+                    throw new ArgumentException("Enumerable was longer", "maximumCount");
+            }
+
+            if (buffer.Array == null)
+                return ImmutableArrayPool<T>.Empty;
+            else
+                return new ArraySegment<T>(buffer.Array, buffer.Offset, count);
         }
     }
 }

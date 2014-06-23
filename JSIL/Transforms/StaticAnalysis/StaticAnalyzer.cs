@@ -382,13 +382,13 @@ namespace JSIL.Transforms {
             VisitChildren(verbatim);
         }
 
-        private Dictionary<string, string[]> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
-            var variables = new Dictionary<string, string[]>();
+        private Dictionary<string, ArraySegment<string>> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
+            var variables = new Dictionary<string, ArraySegment<string>>();
             var paramsArray = parameters.ToArray();
 
             int i = 0;
             foreach (var kvp in paramsArray) {
-                var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToArray();
+                var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToImmutableArray();
 
                 if ((kvp.Key == null) || String.IsNullOrWhiteSpace(kvp.Key.Name)) {
                     variables.Add(String.Format("#{0}", i++), value);
@@ -397,7 +397,7 @@ namespace JSIL.Transforms {
                         variables.ContainsKey(kvp.Key.Name)
                     ) {
                         if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute"))
-                            variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToArray();
+                            variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToImmutableArray();
                         else
                             throw new InvalidDataException(String.Format(
                                 "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
@@ -647,12 +647,12 @@ namespace JSIL.Transforms {
             public readonly string ThisVariable;
             public readonly JSMethod Method;
             public readonly object NonJSMethod;
-            public readonly IDictionary<string, string[]> Variables;
+            public readonly Dictionary<string, ArraySegment<string>> Variables;
 
             public Invocation (
                 NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSType type, JSMethod method, object nonJSMethod,
-                IDictionary<string, string[]> variables
+                Dictionary<string, ArraySegment<string>> variables
             )
                 : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
@@ -668,7 +668,7 @@ namespace JSIL.Transforms {
             public Invocation (
                 NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSVariable thisVariable, JSMethod method, object nonJSMethod,
-                IDictionary<string, string[]> variables
+                Dictionary<string, ArraySegment<string>> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 if (thisVariable != null)
                     ThisVariable = thisVariable.Identifier;
@@ -731,7 +731,7 @@ namespace JSIL.Transforms {
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
         public readonly HashSet<FieldInfo> MutatedFields;
-        public readonly HashSet<FieldInfo>[] RecursivelyMutatedFields;
+        public readonly HashSet<HashSet<FieldInfo>> RecursivelyMutatedFields;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -815,7 +815,7 @@ namespace JSIL.Transforms {
                         invocationSecondPass = null;
 
                     foreach (var invocationKvp in invocation.Variables) {
-                        if (invocationKvp.Value.Length == 0)
+                        if (invocationKvp.Value.Count == 0)
                             continue;
 
                         bool escapes;
@@ -826,7 +826,7 @@ namespace JSIL.Transforms {
                             escapes = true;
 
                         if (escapes) {
-                            if (invocationKvp.Value.Length > 1) {
+                            if (invocationKvp.Value.Count > 1) {
                                 // FIXME: Is this right?
                                 // Multiple variables -> a binary operator expression or an invocation.
                                 // In either case, it should be impossible for any of them to escape without being flagged otherwise.
@@ -839,7 +839,7 @@ namespace JSIL.Transforms {
 
                                 continue;
                             } else {
-                                var escapingVariable = invocationKvp.Value[0];
+                                var escapingVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
 
                                 if (TraceEscapes)
                                     Console.WriteLine("Parameter '{0}::{1}' escapes; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, escapingVariable);
@@ -906,7 +906,7 @@ namespace JSIL.Transforms {
                     recursivelyMutatedFields.Add(rrmf);
             }
 
-            RecursivelyMutatedFields = recursivelyMutatedFields.ToArray();
+            RecursivelyMutatedFields = recursivelyMutatedFields;
 
             Trace(data.Function.Method.Reference.FullName);
         }
