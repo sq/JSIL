@@ -117,15 +117,12 @@
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="defaults.jsilconfig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  
   <Import Project="..\.NET 4.5.targets" />
-  
   <PropertyGroup Condition="'$(Platform)' == 'AnyCPU'">
     <PreBuildEvent>
 ECHO JSIL must be built with the platform set to x86.
