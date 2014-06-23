@@ -567,6 +567,17 @@ namespace JSIL.Compiler {
         ) {
             TypeInfoProvider typeInfoProvider = null;
 
+            Console.Error.WriteLine(
+                "// Using .NET framework {0} in {1} GC mode. Tuned GC {2}.",
+                Environment.Version.ToString(),
+                System.Runtime.GCSettings.IsServerGC ? "server" : "workstation",
+#if TARGETTING_FX_4_5
+                configuration.TuneGarbageCollection.GetValueOrDefault(true) ? "enabled" : "disabled"
+#else
+                "disabled (must be built in .NET 4.5 mode)"
+#endif
+            );
+
             if (
                 configuration.ReuseTypeInfoAcrossAssemblies.GetValueOrDefault(true) && 
                 (CachedTypeInfoProvider != null)

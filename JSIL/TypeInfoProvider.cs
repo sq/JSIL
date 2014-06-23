@@ -10,6 +10,8 @@ using JSIL.Internal;
 using JSIL.Proxies;
 using Mono.Cecil;
 
+using TypeInfo = JSIL.Internal.TypeInfo;
+
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource, IDisposable {
         protected class ProxiesByNameRecord {

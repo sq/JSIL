@@ -17,8 +17,10 @@ using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+
 using GenericParameterAttributes = Mono.Cecil.GenericParameterAttributes;
 using MethodInfo = JSIL.Internal.MethodInfo;
+using TypeInfo = JSIL.Internal.TypeInfo;
 
 namespace JSIL {
     public delegate void AssemblyLoadedHandler (string assemblyName, string classification);
@@ -418,12 +420,34 @@ namespace JSIL {
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
-            var sw = Stopwatch.StartNew();
+            var originalLatencyMode = System.Runtime.GCSettings.LatencyMode;
 
-            if (Configuration.RunBugChecks.GetValueOrDefault(true))
-                BugChecks.RunBugChecks();
-            else
-                Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+            try {
+#if TARGETTING_FX_4_5
+                if (Configuration.TuneGarbageCollection.GetValueOrDefault(true))
+                    System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
+#endif
+
+                var sw = Stopwatch.StartNew();
+
+                if (Configuration.RunBugChecks.GetValueOrDefault(true))
+                    BugChecks.RunBugChecks();
+                else
+                    Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+
+                var result = TranslateInternal(assemblyPath, scanForProxies);
+
+                sw.Stop();
+                result.Elapsed = sw.Elapsed;
+                return result;
+            } finally {
+                System.Runtime.GCSettings.LatencyMode = originalLatencyMode;
+            }
+        }
+
+        private TranslationResult TranslateInternal (
+            string assemblyPath, bool scanForProxies = true
+        ) {
 
             var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
             var assemblies = LoadAssembly(assemblyPath);
@@ -450,9 +474,11 @@ namespace JSIL {
             }
 
             AnalyzeFunctions(
-                parallelOptions, assemblies, 
+                parallelOptions, assemblies,
                 methodsToAnalyze, pr
             );
+
+            TriggerAutomaticGC();
 
             pr.OnFinished();
 
@@ -462,6 +488,8 @@ namespace JSIL {
 
             RunTransformsOnAllFunctions(parallelOptions, pr, result.Log);
             pr.OnFinished();
+
+            TriggerAutomaticGC();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -522,11 +550,16 @@ namespace JSIL {
                     writeAssembly(i);
             }
 
+            TriggerAutomaticGC();
+
             pr.OnFinished();
 
-            sw.Stop();
-            result.Elapsed = sw.Elapsed;
             return result;
+        }
+
+        private void TriggerAutomaticGC () {
+            if (Configuration.TuneGarbageCollection.GetValueOrDefault(true))
+                GC.Collect(2, GCCollectionMode.Optimized, false);
         }
 
         public static void GenerateManifest (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
@@ -632,6 +665,8 @@ namespace JSIL {
         protected void RunTransformsOnAllFunctions (ParallelOptions parallelOptions, ProgressReporter pr, StringBuilder log) {
             int i = 0;
 
+            const int autoGcInterval = 256;
+
             Action<QualifiedMemberIdentifier> itemHandler = (id) => {
                 var e = FunctionCache.GetCacheEntry(id);
 
@@ -640,6 +675,9 @@ namespace JSIL {
                     return;
 
                 var _i = Interlocked.Increment(ref i);
+
+                if ((_i % autoGcInterval) == 0)
+                    TriggerAutomaticGC();
 
                 if (e.Expression == null)
                     return;

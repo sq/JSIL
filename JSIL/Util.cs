@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,6 +12,8 @@ using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using Mono.Cecil;
+
+using TypeInfo = JSIL.Internal.TypeInfo;
 
 namespace JSIL.Internal {
     public enum EscapingMode {

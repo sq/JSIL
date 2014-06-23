@@ -13,6 +13,8 @@ using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
 
+using TypeInfo = JSIL.Internal.TypeInfo;
+
 namespace JSIL {
     public class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;

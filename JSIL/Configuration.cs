@@ -100,6 +100,7 @@ namespace JSIL.Translator {
         public bool? GenerateSkeletonsForStubbedAssemblies;
         public bool? GenerateContentManifest;
         public bool? RunBugChecks;
+        public bool? TuneGarbageCollection;
         public string FilenameEscapeRegex;
         public string AssemblyCollectionName;
 
@@ -128,6 +129,8 @@ namespace JSIL.Translator {
                 result.GenerateContentManifest = GenerateContentManifest;
             if (RunBugChecks.HasValue)
                 result.RunBugChecks = RunBugChecks;
+            if (TuneGarbageCollection.HasValue)
+                result.TuneGarbageCollection = TuneGarbageCollection;
 
             if (FilenameEscapeRegex != null)
                 result.FilenameEscapeRegex = FilenameEscapeRegex;
