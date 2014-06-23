@@ -28,6 +28,7 @@ namespace JSIL {
         internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
+        private readonly Dictionary<string, JSIndirectVariable> IndirectVariables = new Dictionary<string, JSIndirectVariable>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -477,6 +478,15 @@ namespace JSIL {
             return newExpression;
         }
 
+        private JSIndirectVariable MakeIndirectVariable (string name) {
+            JSIndirectVariable result;
+
+            if (!IndirectVariables.TryGetValue(name, out result))
+                IndirectVariables.Add(name, result = new JSIndirectVariable(Variables, name, ThisMethodReference));
+
+            return result;
+        }
+
         protected JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
@@ -629,7 +639,7 @@ namespace JSIL {
                 }
 
                 case "System.Object JSIL.Builtins::get_This()":
-                    return new JSIndirectVariable(Variables, "this", ThisMethodReference);
+                    return MakeIndirectVariable("this");
 
                 case "System.Boolean JSIL.Builtins::get_IsJavascript()":
                     return new JSBooleanLiteral(true);
@@ -1846,15 +1856,15 @@ namespace JSIL {
             bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
 
             if (RenamedVariables.TryGetValue(variable, out renamed)) {
-                return new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
+                return MakeIndirectVariable(renamed.Identifier);
             } else if (
                 !isThis &&
                 Variables.TryGetValue(escapedName, out theVariable)
             ) {
                 // Handle cases where the variable's identifier must be escaped (like @this)
-                return new JSIndirectVariable(Variables, theVariable.Name, ThisMethodReference);
+                return MakeIndirectVariable(theVariable.Name);
             } else {
-                return new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+                return MakeIndirectVariable(variable.Name);
             }
         }
 
