@@ -163,8 +163,10 @@ namespace JSIL {
         }
 
         private static bool TryAcquireStaticAnalysisDataLock (Entry entry, QualifiedMemberIdentifier method) {
-            var result = entry.StaticAnalysisDataLock.TryBlockingEnter(recursive: true);
-            // FIXME: Detect deadlock and throw restart exception
+            const int lockTimeoutMs = 33;
+
+            var result = entry.StaticAnalysisDataLock.TryBlockingEnter(recursive: true, timeoutMs: lockTimeoutMs);
+
             if (!result.Success) {
                 if (result.FailureReason == TrackedLockFailureReason.Deadlock)
                     throw new StaticAnalysisDataTemporarilyUnavailableException(method);

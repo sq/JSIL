@@ -112,14 +112,17 @@ namespace JSIL.Internal {
         }
 
         public bool RunUntilCompletion () {
+            const int lockTimeoutMs = 250;
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
             TrackedLockCollection.DeadlockInfo deadlock;
-            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
+            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock, timeoutMs: lockTimeoutMs);
 
             if (!lockResult.Success) {
-                Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
+                if (deadlock != null)
+                    Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
+
                 return false;
             }
 

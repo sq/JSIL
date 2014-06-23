@@ -51,8 +51,13 @@ namespace JSIL.Threading {
                 }
             }
 
-            public void Block () {
-                Signal.Wait();
+            public bool Block (int timeoutMs = -1) {
+                if (timeoutMs >= 0) {
+                    return Signal.Wait(timeoutMs);
+                } else {
+                    Signal.Wait();
+                    return true;
+                }
             }
 
             public void Wake () {
@@ -326,16 +331,17 @@ namespace JSIL.Threading {
             return TryEnter(out temp, recursive);
         }
 
-        public TrackedLockResult TryBlockingEnter (bool recursive = false) {
+        public TrackedLockResult TryBlockingEnter (bool recursive = false, int timeoutMs = -1) {
             TrackedLockCollection.DeadlockInfo temp;
-            return TryBlockingEnter(out temp, recursive);
+            return TryBlockingEnter(out temp, recursive, timeoutMs);
         }
 
-        public TrackedLockResult TryBlockingEnter (out TrackedLockCollection.DeadlockInfo deadlock, bool recursive = false) {
+        public TrackedLockResult TryBlockingEnter (out TrackedLockCollection.DeadlockInfo deadlock, bool recursive = false, int timeoutMs = -1) {
+            bool iterating = true;
             TrackedLockCollection.Wait wait;
             deadlock = null;
 
-            while (true) {
+            while (iterating) {
                 var result = TryEnter(recursive);
                 if (result.FailureReason != TrackedLockFailureReason.HeldByOtherThread)
                     return result;
@@ -347,7 +353,10 @@ namespace JSIL.Threading {
                         result = TryEnter(recursive);
 
                         if (result.FailureReason == TrackedLockFailureReason.HeldByOtherThread) {
-                            wait.Block();
+                            var finishedWaiting = wait.Block(timeoutMs);
+
+                            if (!finishedWaiting)
+                                iterating = false;
                         } else {
                             return result;
                         }
@@ -356,13 +365,15 @@ namespace JSIL.Threading {
                     return new TrackedLockResult(TrackedLockFailureReason.Deadlock);
                 }
             }
+
+            return new TrackedLockResult(TrackedLockFailureReason.HeldByOtherThread);
         }
 
-        public void BlockingEnter (bool recursive = false) {
+        public void BlockingEnter (bool recursive = false, int timeoutMs = -1) {
             EnsureTracked();
 
             TrackedLockCollection.DeadlockInfo deadlock;
-            var result = TryBlockingEnter(out deadlock, recursive);
+            var result = TryBlockingEnter(out deadlock, recursive, timeoutMs);
 
             if (!result.Success) {
                 switch (result.FailureReason) {
