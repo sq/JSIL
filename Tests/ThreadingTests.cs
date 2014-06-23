@@ -62,8 +62,8 @@ namespace JSIL.Tests {
             Assert.IsTrue(l.TryEnter().Success);
             Assert.IsTrue(l.IsHeld);
             Locks.Dispose();
-            Assert.IsFalse(l.IsHeld);
-            Assert.IsTrue(l.IsDisposed);
+            Assert.IsTrue(l.IsHeld);
+            Assert.IsFalse(l.IsDisposed);
         }
 
         [Test]
