@@ -5318,7 +5318,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__Members__ = [];
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
-    typeObject.__Context__ = $private;
+    typeObject.__Context__ = assembly;
     typeObject.__FullName__ = fullName;
     typeObject.__TypeInitialized__ = false;
 

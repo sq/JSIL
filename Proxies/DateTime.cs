@@ -4,20 +4,72 @@ using JSIL.Proxy;
 using System.Globalization;
 
 namespace JSIL.Proxies {
-    [JSProxy(
+    /*[JSProxy(
         typeof(TimeSpan), 
-        JSProxyMemberPolicy.ReplaceNone
+        JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class TimeSpanProxy {
+        [JSReplacement("System.TimeSpan.op_Addition($lhs, $rhs)")]
         [JSIsPure]
         public static TimeSpanProxy operator + (TimeSpanProxy lhs, TimeSpanProxy rhs) {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("System.TimeSpan.op_Subtraction($lhs, $rhs)")]
         [JSIsPure]
         public static TimeSpanProxy operator - (TimeSpanProxy lhs, TimeSpanProxy rhs) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("System.TimeSpan.op_Equality($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator ==(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_Inequality($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator !=(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_GreaterThan($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator >(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_GreaterThanOrEqual($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator >=(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_LessThan($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator <(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_LessThanOrEqual($lhs, $rhs)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator <=(TimeSpanProxy lhs, TimeSpanProxy rhs)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.TimeSpan.op_UnaryNegation($ts)")]
+        [JSIsPure]
+        public static TimeSpanProxy operator -(TimeSpanProxy ts)
+        {
+            throw new InvalidOperationException();
+        }
+
 
 
     }
@@ -154,6 +206,12 @@ namespace JSIL.Proxies {
         {
             throw new InvalidOperationException();
         }
+    }*/
+    [JSProxy(typeof(TimeSpan), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class TimeSpanProxy
+    {
+
     }
 
     [JSProxy(

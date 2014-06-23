@@ -47,6 +47,15 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Public: true, Static: false, Virtual: true }, "Equals",
+        new JSIL.MethodSignature($.Boolean, [$.Type]),
+        function (type) {
+            if (this === type)
+                return true;
+
+            return String(this) == String(type);
+        }
+    );
     $.Method({Public: true , Static: true }, "op_Inequality",
       new JSIL.MethodSignature($.Boolean, [$.Type, $.Type]),
       function (lhs, rhs) {
