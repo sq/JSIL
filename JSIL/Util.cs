@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -782,6 +783,64 @@ namespace JSIL.Internal {
 
         public int GetHashCode (HashedString obj) {
             return obj.HashCode;
+        }
+    }
+
+    public static class ImmutableArrayPool<T> {
+        private class State {
+            public readonly T[][] Buffers;
+            public int ElementsUsed, BuffersUsed;
+
+            public State (int capacity) {
+                Buffers = new T[BufferCount][];
+                for (int i = 0; i < Buffers.Length; i++)
+                    Buffers[i] = new T[capacity];
+
+                ElementsUsed = 0;
+                BuffersUsed = 0;
+            }
+        }
+
+        // The large object heap threshold is roughly 85KB so we set our block size to 64KB
+        //  this ensures that our blocks start in gen0 and can get collected early, instead
+        //  of spending their entire life on the large object heap
+        public const int MaxSizeBytes = 64 * 1024;
+        public const int BufferCount = 8;
+
+        public static readonly int Capacity;
+
+        private readonly static ThreadLocal<State> ThreadLocal = new ThreadLocal<State>();
+
+        static ImmutableArrayPool () {
+            var itemSize = Marshal.SizeOf(typeof(T));
+            Capacity = MaxSizeBytes / itemSize;
+        }
+
+        public static ArraySegment<T> Allocate (int count) {
+            if (count > Capacity)
+                return new ArraySegment<T>(new T[count], 0, count);
+
+            var data = ThreadLocal.Value;
+
+            bool usedUpElements = false;
+            bool allocateNew = (data == null) ||
+                ((usedUpElements = (data.ElementsUsed >= Capacity - count)) &&
+                 (data.BuffersUsed >= BufferCount - 1));
+
+            if (allocateNew) {
+                data = ThreadLocal.Value = new State(Capacity);
+                usedUpElements = false;
+            }
+
+            if (usedUpElements) {
+                data.ElementsUsed = 0;
+                data.BuffersUsed += 1;
+            }
+
+            var offset = data.ElementsUsed;
+            data.ElementsUsed += count;
+
+            return new ArraySegment<T>(data.Buffers[data.BuffersUsed], offset, count);
         }
     }
 }

@@ -213,7 +213,7 @@ namespace JSIL {
             return new JSUntranslatableStatement(node.GetType().Name);
         }
 
-        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
+        public List<JSExpression> Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
             var result = new List<JSExpression>();
             ParameterDefinition parameter;
 
@@ -250,10 +250,10 @@ namespace JSIL {
                 throw new InvalidDataException(errorString.ToString());
             }
 
-            return result.ToArray();
+            return result;
         }
 
-        public JSExpression[] Translate (IEnumerable<ILExpression> values) {
+        public List<JSExpression> Translate (IEnumerable<ILExpression> values) {
             var result = new List<JSExpression>();
             StringBuilder errorString = null;
 
@@ -275,7 +275,7 @@ namespace JSIL {
             if (errorString != null)
                 throw new InvalidDataException(errorString.ToString());
 
-            return result.ToArray();
+            return result;
         }
 
         public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
@@ -1051,7 +1051,7 @@ namespace JSIL {
                     (FieldReference)cond.Arguments[0].Operand,
                     binderMethod.Name,
                     targetType,
-                    arguments
+                    arguments.ToArray()
                 );
 
                 result = new JSNullStatement();
@@ -2739,19 +2739,19 @@ namespace JSIL {
             var arguments = Translate(node.Arguments, constructor.Parameters, false);
 
             if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
-                return Translate_Newobj_Delegate(node, constructor, arguments);
+                return Translate_Newobj_Delegate(node, constructor, arguments.ToArray());
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
-                    constructor.DeclaringType.GetElementType(), arguments
+                    constructor.DeclaringType.GetElementType(), arguments.ToArray()
                 );
             }
 
             var methodInfo = GetMethod(constructor);
             if ((methodInfo == null) || methodInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, methodInfo, arguments);
+                return new JSIgnoredMemberReference(true, methodInfo, arguments.ToArray());
 
             var result = new JSNewExpression(
-                constructor.DeclaringType, constructor, methodInfo, arguments
+                constructor.DeclaringType, constructor, methodInfo, arguments.ToArray()
             );
 
             return Translate_ConstructorReplacement(constructor, methodInfo, result);
@@ -2770,7 +2770,7 @@ namespace JSIL {
 
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
             var at = _arrayType as ArrayType;
-            var initializer = new JSArrayExpression(at, Translate(node.Arguments));
+            var initializer = new JSArrayExpression(at, Translate(node.Arguments).ToArray());
             int rank = 0;
             if (at != null)
                 rank = at.Rank;
@@ -3026,7 +3026,7 @@ namespace JSIL {
                     thisExpression = arguments[0];
                 }
 
-                arguments = arguments.Skip(1).ToArray();
+                arguments = arguments.Skip(1).ToList();
 
                 var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
@@ -3044,8 +3044,8 @@ namespace JSIL {
             }
 
             var result = DoMethodReplacement(
-                new JSMethod(method, methodInfo, MethodTypes), 
-                thisExpression, arguments, false, 
+                new JSMethod(method, methodInfo, MethodTypes),
+                thisExpression, arguments.ToArray(), false, 
                 !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
@@ -3154,7 +3154,7 @@ namespace JSIL {
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
-            return callSite.Translate(this, invocationArguments);
+            return callSite.Translate(this, invocationArguments.ToArray());
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {

@@ -44,8 +44,11 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        private int[] GetParentNodeIndices () {
-            return NodeIndexStack.ToArray();
+        private FunctionAnalysis1stPass.NodeIndices GetParentNodeIndices () {
+            var count = NodeIndexStack.Count;
+            var buffer = ImmutableArrayPool<int>.Allocate(count);
+            NodeIndexStack.CopyTo(buffer.Array, buffer.Offset);
+            return new FunctionAnalysis1stPass.NodeIndices(buffer);
         }
 
         public void VisitNode (JSReturnExpression ret) {
@@ -524,12 +527,30 @@ namespace JSIL.Transforms {
     }
 
     public class FunctionAnalysis1stPass {
+        public struct NodeIndices {
+            public readonly ArraySegment<int> Indices;
+
+            public NodeIndices (ArraySegment<int> indices) {
+                Indices = indices;
+            }
+
+            public int this[int index] {
+                get {
+                    return Indices.Array[Indices.Offset + index];
+                }
+            }
+
+            internal bool Contains (int scopeNodeIndex) {
+                return Array.IndexOf(Indices.Array, scopeNodeIndex, Indices.Offset, Indices.Count) >= 0;
+            }
+        }
+
         public class Item {
-            public readonly int[] ParentNodeIndices;
+            public readonly NodeIndices ParentNodeIndices;
             public readonly int StatementIndex;
             public readonly int NodeIndex;
 
-            public Item (int[] parentNodeIndices, int statementIndex, int nodeIndex) {
+            public Item (NodeIndices parentNodeIndices, int statementIndex, int nodeIndex) {
                 ParentNodeIndices = parentNodeIndices;
                 StatementIndex = statementIndex;
                 NodeIndex = nodeIndex;
@@ -541,7 +562,7 @@ namespace JSIL.Transforms {
             public readonly bool IsControlFlow;
 
             public Access (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSVariable source, bool isControlFlow
             ) : base (parentNodeIndices, statementIndex, nodeIndex) { 
                 Source = source;
@@ -565,7 +586,7 @@ namespace JSIL.Transforms {
             public readonly bool IsConversion;
 
             public Assignment (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSVariable target, JSExpression newValue,
                 JSOperator @operator,
                 TypeReference targetType, TypeReference sourceType
@@ -588,7 +609,7 @@ namespace JSIL.Transforms {
             public readonly TypeInfo Type;
 
             public StaticReference (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 TypeInfo type
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 Type = type;
@@ -600,7 +621,7 @@ namespace JSIL.Transforms {
             public readonly string Type;
 
             public SideEffect (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSVariable variable, string type
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
@@ -613,7 +634,7 @@ namespace JSIL.Transforms {
             public readonly bool IsRead;
 
             public FieldAccess (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSField field, bool isRead
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 Field = field;
@@ -629,7 +650,7 @@ namespace JSIL.Transforms {
             public readonly IDictionary<string, string[]> Variables;
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSType type, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             )
@@ -645,7 +666,7 @@ namespace JSIL.Transforms {
             }
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSVariable thisVariable, JSMethod method, object nonJSMethod,
                 IDictionary<string, string[]> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
