@@ -222,11 +222,13 @@ namespace JSIL.Transforms {
                             (invocationSecondPass.Data != null) &&
                             invocationSecondPass.Data.SideEffects.Any((se) => se.Variable == argumentName)
                         ) {
-                            reason = "touches it with side effects";
-                        } else if (                            
+                            if (TraceLevel >= 2)
+                                reason = "touches it with side effects";
+                        } else if (
                             invocationSecondPass.EscapingVariables.Contains(argumentName)
                         ) {
-                            reason = "allows it to escape";
+                            if (TraceLevel >= 2)
+                                reason = "allows it to escape";
                         }
 
                         if (reason != null) {

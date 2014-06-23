@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using ICSharpCode.NRefactory.PatternMatching;
 using JSIL.Ast.Traversal;
@@ -18,10 +19,23 @@ namespace JSIL.Ast.Enumerators {
             EnumeratorTemplate = new JSNodeChildEnumerator(node, traversalData, includeSelf);
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        public JSNodeChildEnumerator GetEnumerator () {
+            return EnumeratorTemplate;
+        }
+
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         System.Collections.Generic.IEnumerator<JSNode> System.Collections.Generic.IEnumerable<JSNode>.GetEnumerator () {
             return EnumeratorTemplate;
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
             return EnumeratorTemplate;
         }
@@ -67,8 +81,11 @@ namespace JSIL.Ast.Enumerators {
             }
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         IEnumerator IEnumerable.GetEnumerator () {
-            return this.GetEnumerator();
+            return GetEnumerator();
         }
     }
 
@@ -76,6 +93,7 @@ namespace JSIL.Ast.Enumerators {
         public readonly JSNodeTraversalData TraversalData;
         public readonly JSNode Node;
         public readonly bool IncludeSelf;
+        internal readonly int RecordCount;
 
         internal int _Index;
         internal JSNodeTraversalArrayRecord _ArrayRecord;
@@ -88,6 +106,7 @@ namespace JSIL.Ast.Enumerators {
             TraversalData = traversalData;
             Node = node;
             IncludeSelf = includeSelf;
+            RecordCount = traversalData.Records.Length;
             _Index = IncludeSelf ? -2 : -1;
             _ArrayRecord = null;
             _ArrayRecordState = default(JSNodeTraversalArrayRecordState);
@@ -96,10 +115,16 @@ namespace JSIL.Ast.Enumerators {
         }
 
         public string CurrentName {
+#if TARGETTING_FX_4_5
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
             get { return _CurrentName; }
         }
 
         public JSNode Current {
+#if TARGETTING_FX_4_5
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
             get { return _Current; }
         }
 
@@ -110,15 +135,50 @@ namespace JSIL.Ast.Enumerators {
             get { return _Current; }
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        private bool MoveNextArray () {
+            if (_ArrayRecord.MoveNext(ref _ArrayRecordState)) {
+                _Current = _ArrayRecordState.CurrentNode;
+                _CurrentName = _ArrayRecordState.CurrentName;
+                return true;
+            } else {
+                _ArrayRecord = null;
+                return false;
+            }
+        }
+
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        private bool MoveNextElement (JSNodeTraversalElementRecord elementRecord) {
+            elementRecord.Get(Node, out _Current, out _CurrentName);
+
+            return _Current != null;
+        }
+
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        private void MoveNextArrayRecord (JSNodeTraversalArrayRecord arrayRecord) {
+            _ArrayRecord = arrayRecord;
+            _ArrayRecordState = arrayRecord.StartEnumeration(Node);
+        }
+
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public bool MoveNext () {
             _Current = null;
             _CurrentName = null;
 
             while (true) {
-                if ((_ArrayRecord == null) || (_Index < 0))
+                var isEnumeratingArray = _ArrayRecord != null;
+                if (!isEnumeratingArray || (_Index < 0))
                     _Index += 1;
 
-                if (_Index >= TraversalData.Records.Length)
+                if (_Index >= RecordCount)
                     return false;
 
                 if (_Index < 0) {
@@ -127,38 +187,36 @@ namespace JSIL.Ast.Enumerators {
                         _CurrentName = "Self";
                         return true;
                     } else
-                        throw new InvalidOperationException("Enumerator error");
+                        // FIXME: Throw?
+                        return false;
                 }
 
-                if (_ArrayRecord != null) {
-                    if (_ArrayRecord.MoveNext(ref _ArrayRecordState)) {
-                        _Current = _ArrayRecordState.CurrentNode;
-                        _CurrentName = _ArrayRecordState.CurrentName;
-                        return true;
-                    } else {
-                        _ArrayRecord = null;
-                    }
-                } else {
+                if (!isEnumeratingArray) {
                     var record = TraversalData.Records[_Index];
                     var elementRecord = record as JSNodeTraversalElementRecord;
-                    if (elementRecord != null) {
-                        elementRecord.Get(Node, out _Current, out _CurrentName);
 
-                        if (_Current != null)
+                    if (elementRecord != null) {
+                        if (MoveNextElement(elementRecord))
                             return true;
                     } else {
                         var arrayRecord = record as JSNodeTraversalArrayRecord;
-                        if (arrayRecord != null) {
-                            _ArrayRecord = arrayRecord;
-                            _ArrayRecordState = arrayRecord.StartEnumeration(Node);
-                        } else {
-                            throw new InvalidDataException("Unrecognized record type");
-                        }
+
+                        if (arrayRecord != null)
+                            MoveNextArrayRecord(arrayRecord);
+                        else
+                            // FIXME: Throw?
+                            return false;
                     }
+                } else {
+                    if (MoveNextArray())
+                        return true;
                 }
             }
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public void Reset () {
             _Index = IncludeSelf ? -2 : -1;
             _ArrayRecord = null;
