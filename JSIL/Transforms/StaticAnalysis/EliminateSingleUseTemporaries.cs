@@ -202,7 +202,7 @@ namespace JSIL.Transforms {
 
                 if (invocationSecondPass == null) {
                     foreach (var kvp in invocation.Variables) {
-                        foreach (var variableName in kvp.Value) {
+                        foreach (var variableName in kvp.Value.ToEnumerable()) {
                             if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                 if (TraceLevel >= 2)
                                     Console.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method ?? invocation.NonJSMethod);
@@ -230,7 +230,7 @@ namespace JSIL.Transforms {
                         }
 
                         if (reason != null) {
-                            foreach (var variableName in kvp.Value) {
+                            foreach (var variableName in kvp.Value.ToEnumerable()) {
                                 if (ShouldExemptVariableFromEffectivelyConstantStatus(variableName)) {
                                     if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                         if (TraceLevel >= 2)
@@ -441,7 +441,7 @@ namespace JSIL.Transforms {
                             (invocationSecondPass == null) ||
                             (invocationSecondPass.MutatedFields == null)
                         ) {
-                            if (invocation.Variables.Any((kvp) => kvp.Value.Contains(v.Identifier))) {
+                            if (invocation.Variables.Any((kvp) => kvp.Value.ToEnumerable().Contains(v.Identifier))) {
                                 if (TraceLevel >= 2)
                                     Console.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use with it as an argument", v, invocation.Method ?? invocation.NonJSMethod));
 

@@ -527,7 +527,7 @@ namespace JSIL.Internal {
                     throw new InvalidDataException(errorString.ToString());
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
                 if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceNone) {
@@ -632,7 +632,7 @@ namespace JSIL.Internal {
                 IsFlagsEnum = Metadata.HasAttribute("System.FlagsAttribute");
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 var seenMethods = new HashSet<MethodDefinition>();
 
                 foreach (var property in proxy.Properties.Values) {
@@ -802,7 +802,7 @@ namespace JSIL.Internal {
                     var types = SelfAndBaseTypesRecursive.Reverse();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces)
+                        foreach (var @interface in type.Interfaces.ToEnumerable())
                             list.Add(new RecursiveInterfaceToken(type, @interface));
 
                     _AllInterfacesRecursive = list
@@ -1488,7 +1488,7 @@ namespace JSIL.Internal {
             Metadata = new MetadataCollection(member);
 
             if (proxies.Array != null)
-            foreach (var proxy in proxies) {
+            foreach (var proxy in proxies.ToEnumerable()) {
                 ICustomAttributeProvider proxyMember;
 
                 if (proxy.GetMember(identifier, out proxyMember)) {

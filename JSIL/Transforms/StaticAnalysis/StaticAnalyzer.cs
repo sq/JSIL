@@ -396,9 +396,11 @@ namespace JSIL.Transforms {
                     if (
                         variables.ContainsKey(kvp.Key.Name)
                     ) {
-                        if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute"))
-                            variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToImmutableArray();
-                        else
+                        if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute")) {
+                            var left = variables[kvp.Key.Name];
+                            var right = value;
+                            variables[kvp.Key.Name] = left.ToEnumerable().Concat(right.ToEnumerable()).ToImmutableArray(left.Count + right.Count);
+                        } else
                             throw new InvalidDataException(String.Format(
                                 "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
                                 kvp.Key.Name, method,

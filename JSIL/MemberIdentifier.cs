@@ -250,13 +250,13 @@ namespace JSIL.Internal {
             if (
                 typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
                 (proxyTargets.Array != null) &&
-                proxyTargets.Contains(rhs.FullName)
+                proxyTargets.ToEnumerable().Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
                 typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
                 (proxyTargets.Array != null) &&
-                proxyTargets.Contains(lhs.FullName)
+                proxyTargets.ToEnumerable().Contains(lhs.FullName)
             ) {
                 return true;
             }

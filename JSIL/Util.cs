@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -892,9 +893,75 @@ namespace JSIL.Internal {
     }
 
     public static class ImmutableArrayPoolExtensions {
+#if TARGETTING_FX_4_5
+        public static ArraySegment<T> ToEnumerable<T> (this ArraySegment<T> aseg) {
+            return aseg;
+        }
+#else
+        public struct ArraySegmentEnumerable<T> : IEnumerable<T> {
+            public struct Enumerator : IEnumerator<T> {
+                public readonly ArraySegment<T> ArraySegment;
+                private int Index;
+
+                public Enumerator (ArraySegment<T> aseg) {
+                    ArraySegment = aseg;
+                    Index = -1;
+                }
+
+                public bool MoveNext () {
+                    Index += 1;
+                    return (Index < ArraySegment.Count);
+                }
+
+                public T Current {
+                    get {
+                        return ArraySegment.Array[ArraySegment.Offset + Index];
+                    }
+                }
+
+                public void Reset () {
+                    Index = -1;
+                }
+
+                public void Dispose () {
+                }
+
+                object System.Collections.IEnumerator.Current {
+                    get { 
+                        return Current; 
+                    }
+                }
+            }
+
+            public readonly ArraySegment<T> ArraySegment;
+
+            public ArraySegmentEnumerable (ArraySegment<T> aseg) {
+                ArraySegment = aseg;
+            }
+
+            public Enumerator GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+
+            IEnumerator<T> IEnumerable<T>.GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+        }
+
+        public static ArraySegmentEnumerable<T> ToEnumerable<T> (this ArraySegment<T> aseg) {
+            return new ArraySegmentEnumerable<T>(aseg);
+        }
+#endif
+
         public static ArraySegment<T> ToImmutableArray<T> (this IEnumerable<T> enumerable) {
             var collection = enumerable as ICollection<T>;
+#if TARGETTING_FX_4_5
             var readOnlyCollection = enumerable as IReadOnlyCollection<T>;
+#endif
             var array = enumerable as T[];
 
             if (collection != null) {
@@ -902,8 +969,10 @@ namespace JSIL.Internal {
                 var buffer = ImmutableArrayPool<T>.Allocate(count);
                 collection.CopyTo(buffer.Array, buffer.Offset);
                 return buffer;
+#if TARGETTING_FX_4_5
             } else if (readOnlyCollection != null) {
                 return ToImmutableArray(enumerable, readOnlyCollection.Count);
+#endif
             } else if (array != null) {
                 return new ArraySegment<T>(array);
             } else {

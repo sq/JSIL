@@ -559,7 +559,11 @@ namespace JSIL {
 
         private void TriggerAutomaticGC () {
             if (Configuration.TuneGarbageCollection.GetValueOrDefault(true))
+#if TARGETTING_FX_4_5
                 GC.Collect(2, GCCollectionMode.Optimized, false);
+#else
+                GC.Collect(2, GCCollectionMode.Optimized);
+#endif
         }
 
         public static void GenerateManifest (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
