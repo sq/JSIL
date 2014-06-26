@@ -1710,21 +1710,36 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
-            if (node.ExpectedType.FullName == "System.UInt32") {
-                return new JSUInt32MultiplyExpression(
-                    TranslateNode(node.Arguments[0]),
-                    TranslateNode(node.Arguments[1]),
-                    TypeSystem
-                );
-            } else if (node.ExpectedType.FullName == "System.Int32") {
-                return new JSInt32MultiplyExpression(
-                    TranslateNode(node.Arguments[0]), 
-                    TranslateNode(node.Arguments[1]),
-                    TypeSystem
-                );
-            } else {
-                return Translate_BinaryOp(node, JSOperator.Multiply);
+            if (TypeUtil.IsIntegral(node.ExpectedType)) {
+                var left = TranslateNode(node.Arguments[0]);
+                var right = TranslateNode(node.Arguments[1]);
+                var leftType = left.GetActualType(TypeSystem);
+                var rightType = right.GetActualType(TypeSystem);
+
+                // FIXME: This may be too strict.
+                // We do this to ensure that certain multiply operations don't erroneously get replaced with imul, like
+                //  (int)(float * int)
+                // If this is too strict then we will fail to use imul in scenarios where we should have. :(
+                if (
+                    TypeUtil.IsIntegral(leftType) &&
+                    TypeUtil.IsIntegral(rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, node.ExpectedType)
+                ) {
+
+                    if (node.ExpectedType.FullName == "System.UInt32")
+                        return new JSUInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+                    else if (node.ExpectedType.FullName == "System.Int32")
+                        return new JSInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+
+                }
             }
+
+            return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
         protected JSExpression Translate_Mul_Ovf (ILExpression node) {

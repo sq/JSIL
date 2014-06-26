@@ -403,7 +403,13 @@ namespace JSIL.Tests {
 
             Assert.IsTrue(generatedJs.Contains("var x = "));
             Assert.IsTrue(generatedJs.Contains("var y = "));
-            Assert.IsTrue(generatedJs.Contains("/ 8) | 0) * 8"));
+            Assert.IsTrue(
+                generatedJs.Contains("/ 8) | 0) * 8") ||
+                (
+                    generatedJs.Contains("(Math.imul(") &&
+                    generatedJs.Contains("/ 8) | 0), 8) | 0")
+                )
+            );
 
             Console.WriteLine(generatedJs);
         }

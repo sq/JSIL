@@ -855,9 +855,9 @@ namespace JSIL.Tests {
         [Test]
         public void SpuriousIntegerHints () {
             var output = "0F0F\r\n7773";
-            var generatedJs = GetJavascript(
+            var generatedJs = GenericTest(
                 @"SpecialTestCases\SpuriousIntegerHints.cs",
-                output
+                output, output
             );
 
             try {
