@@ -1712,6 +1712,12 @@ namespace JSIL {
         protected JSExpression Translate_Mul (ILExpression node) {
             if (node.ExpectedType.FullName == "System.UInt32") {
                 return new JSUInt32MultiplyExpression(
+                    TranslateNode(node.Arguments[0]),
+                    TranslateNode(node.Arguments[1]),
+                    TypeSystem
+                );
+            } else if (node.ExpectedType.FullName == "System.Int32") {
+                return new JSInt32MultiplyExpression(
                     TranslateNode(node.Arguments[0]), 
                     TranslateNode(node.Arguments[1]),
                     TypeSystem

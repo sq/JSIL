@@ -1653,6 +1653,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUInt32MultiplyExpression ume) {
+            Output.LPar();
             Output.WriteRaw("Math.imul");
             Output.LPar();
 
@@ -1660,6 +1661,26 @@ namespace JSIL {
             Output.Comma();
             Visit(ume.Right);
 
+            Output.RPar();
+
+            Output.WriteRaw(" >>> 0");
+            Output.RPar();
+
+            // FIXME: Spit out a >>> 0 here? Probably not needed?
+        }
+
+        public void VisitNode (JSInt32MultiplyExpression ume) {
+            Output.LPar();
+            Output.WriteRaw("Math.imul");
+            Output.LPar();
+
+            Visit(ume.Left);
+            Output.Comma();
+            Visit(ume.Right);
+
+            Output.RPar();
+
+            Output.WriteRaw(" | 0");
             Output.RPar();
 
             // FIXME: Spit out a >>> 0 here? Probably not needed?

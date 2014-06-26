@@ -3015,4 +3015,10 @@ namespace JSIL.Ast {
             : base(JSOperator.Multiply, lhs, rhs, typeSystem.UInt32, canSimplify: false) {
         }
     }
+
+    public class JSInt32MultiplyExpression : JSBinaryOperatorExpression {
+        public JSInt32MultiplyExpression (JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
+            : base(JSOperator.Multiply, lhs, rhs, typeSystem.Int32, canSimplify: false) {
+        }
+    }
 }

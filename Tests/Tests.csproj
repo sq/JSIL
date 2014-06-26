@@ -507,7 +507,7 @@
     <None Include="InterfaceTestCases\InterfaceEqualityComparison.cs" />
     <None Include="SimpleTestCases\Int32OverflowAndUnderflow.cs" />
     <None Include="FailingTestCases\SmallIntOverflowAndUnderflow.cs" />
-    <None Include="FailingTestCases\Int32Multiply.cs" />
+    <None Include="SimpleTestCases\Int32Multiply.cs" />
     <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
     <None Include="SpecialTestCases\InheritedExternalStubError.cs" />
     <None Include="InterfaceTestCases\CastArrayToIList.cs" />
