@@ -222,13 +222,11 @@ namespace JSIL.Transforms {
                             (invocationSecondPass.Data != null) &&
                             invocationSecondPass.Data.SideEffects.Any((se) => se.Variable == argumentName)
                         ) {
-                            if (TraceLevel >= 2)
-                                reason = "touches it with side effects";
+                            reason = "touches it with side effects";
                         } else if (
                             invocationSecondPass.EscapingVariables.Contains(argumentName)
                         ) {
-                            if (TraceLevel >= 2)
-                                reason = "allows it to escape";
+                            reason = "allows it to escape";
                         }
 
                         if (reason != null) {
@@ -299,7 +297,7 @@ namespace JSIL.Transforms {
                 if (assignments.FirstOrDefault() == null) {
                     if ((accesses.Length == 0) && (invocations.Length == 0) && (reassignments.Length == 0) && !isPassedByReference) {
                         if (TraceLevel >= 1)
-                            Console.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
+                            Console.WriteLine("Eliminating {0} because it is never used.", v);
 
                         if (!DryRun) {
                             EliminatedVariables.Add(v);
@@ -310,7 +308,7 @@ namespace JSIL.Transforms {
                         }
                     } else {
                         if (TraceLevel >= 2)
-                            Console.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
+                            Console.WriteLine("Never found an initial assignment for {0}.", v);
                     }
 
                     continue;
@@ -322,28 +320,28 @@ namespace JSIL.Transforms {
 
                 if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it is passed by reference.", v);
 
                     continue;
                 }
 
                 if (unsafeInvocations.Length > 1) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it multiple times that are not provably safe.", v));
+                        Console.WriteLine("Cannot eliminate {0}; methods are invoked on it multiple times that are not provably safe.", v);
 
                     continue;
                 }
 
                 if ((from a in accesses where a.IsControlFlow select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it participates in control flow.", v);
 
                     continue;
                 }
 
                 if (assignments.Length > 1) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it is reassigned.", v);
 
                     continue;
                 }
@@ -352,7 +350,7 @@ namespace JSIL.Transforms {
                 var replacement = replacementAssignment.NewValue;
                 if (replacement.SelfAndChildrenRecursive.Contains(v)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it contains a self-reference.", v);
 
                     continue;
                 }
@@ -363,10 +361,10 @@ namespace JSIL.Transforms {
                 ) {
                     if (replacement is JSLiteral) {
                         if (TraceLevel >= 5)
-                            Console.WriteLine(String.Format("Skipping veto of elimination for {0} because it is a literal.", v));
+                            Console.WriteLine("Skipping veto of elimination for {0} because it is a literal.", v);
                     } else {
                         if (TraceLevel >= 2)
-                            Console.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
+                            Console.WriteLine("Cannot eliminate {0}; it is used multiple times.", v);
 
                         continue;
                     }
@@ -374,7 +372,7 @@ namespace JSIL.Transforms {
 
                 if (!IsEffectivelyConstant(v, replacement)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; {1} is not a constant expression.", v, replacement));
+                        Console.WriteLine("Cannot eliminate {0}; {1} is not a constant expression.", v, replacement);
 
                     continue;
                 }
