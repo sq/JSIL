@@ -1,9 +1,6 @@
 ﻿using System;
 
 public static class Program {
-    // TODO: What does the C# spec say about this?
-    // In C, signed imul overflow is undefined.
-    // As a result, JS only exposes unsigned imul, not signed imul.
     public static void Main (string[] args) {
         // TODO: Throw appropriately.
         /*
@@ -11,13 +8,13 @@ public static class Program {
 
         checked {
             {
-                int x = int.MinValue;
+                uint x = uint.MaxValue;
                 x = x * x;
                 Console.WriteLine(x);
             }
 
             {
-                int x = (int.MaxValue / 3);
+                uint x = (uint.MaxValue / 3);
                 x = x * x;
                 Console.WriteLine(x);
             }
@@ -28,13 +25,13 @@ public static class Program {
 
         unchecked {
             {
-                int x = int.MinValue;
+                uint x = uint.MaxValue;
                 x = x * x;
                 Console.WriteLine(x);
             }
 
             {
-                int x = (int.MaxValue / 3);
+                uint x = (uint.MaxValue / 3);
                 x = x * x;
                 Console.WriteLine(x);
             }

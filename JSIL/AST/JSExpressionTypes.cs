@@ -1769,7 +1769,9 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {        
+    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
+        public readonly bool CanSimplify = true;
+
         static JSBinaryOperatorExpression () {
             SetValueNames(
                 typeof(JSBinaryOperatorExpression),
@@ -1781,16 +1783,19 @@ namespace JSIL.Ast {
         /// <summary>
         /// Construct a binary operator expression with an explicit expected type.
         /// </summary>
-        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType)
-            : base(
-                op, actualType, lhs, rhs
-                ) {
+        public JSBinaryOperatorExpression (
+            JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, bool canSimplify = true
+        ) : base(
+            op, actualType, lhs, rhs
+        ) {
+            CanSimplify = canSimplify;
         }
 
-        protected JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, params JSExpression[] extraValues)
-            : base(
-                op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
-                ) {
+        protected JSBinaryOperatorExpression (
+            JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, params JSExpression[] extraValues
+        ) : base(
+            op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
+        ) {
         }
 
         public JSExpression Left {
@@ -3002,6 +3007,12 @@ namespace JSIL.Ast {
             get {
                 return Values[2];
             }
+        }
+    }
+
+    public class JSUInt32MultiplyExpression : JSBinaryOperatorExpression {
+        public JSUInt32MultiplyExpression (JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
+            : base(JSOperator.Multiply, lhs, rhs, typeSystem.UInt32, canSimplify: false) {
         }
     }
 }

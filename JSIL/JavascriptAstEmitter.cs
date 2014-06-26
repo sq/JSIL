@@ -1652,6 +1652,19 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSUInt32MultiplyExpression ume) {
+            Output.WriteRaw("Math.imul");
+            Output.LPar();
+
+            Visit(ume.Left);
+            Output.Comma();
+            Visit(ume.Right);
+
+            Output.RPar();
+
+            // FIXME: Spit out a >>> 0 here? Probably not needed?
+        }
+
         public void VisitNode (JSTernaryOperatorExpression ternary) {
             Output.LPar();
 

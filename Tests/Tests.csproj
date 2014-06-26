@@ -314,6 +314,7 @@
     <None Include="SimpleTestCases\Issue530.cs" />
     <None Include="SimpleTestCases\Issue508.cs" />
     <None Include="SimpleTestCases\Issue381.cs" />
+    <None Include="SimpleTestCases\UInt32Multiply.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

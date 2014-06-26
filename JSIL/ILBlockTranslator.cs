@@ -1710,7 +1710,15 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
-            return Translate_BinaryOp(node, JSOperator.Multiply);
+            if (node.ExpectedType.FullName == "System.UInt32") {
+                return new JSUInt32MultiplyExpression(
+                    TranslateNode(node.Arguments[0]), 
+                    TranslateNode(node.Arguments[1]),
+                    TypeSystem
+                );
+            } else {
+                return Translate_BinaryOp(node, JSOperator.Multiply);
+            }
         }
 
         protected JSExpression Translate_Mul_Ovf (ILExpression node) {
