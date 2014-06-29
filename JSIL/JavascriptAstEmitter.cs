@@ -565,14 +565,33 @@ namespace JSIL {
             Output.RPar();
         }
 
+        private int GetParenCountForTruncation (TypeReference type) {
+            switch (type.FullName) {
+                case "System.SByte":
+                case "System.Int16":
+                    return 2;
+
+                default:
+                    return 1;
+            }
+        }
+
         private void WriteTruncationForType (TypeReference type) {
             switch (type.FullName) {
                 case "System.Byte":
                     Output.WriteRaw(" & 0xFF");
                     break;
 
+                case "System.SByte":
+                    Output.WriteRaw(" + 0x80 & 0xFF) - 0x80");
+                    break;
+
                 case "System.UInt16":
                     Output.WriteRaw(" & 0xFFFF");
+                    break;
+
+                case "System.Int16":
+                    Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000");
                     break;
 
                 case "System.UInt32":
@@ -587,13 +606,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTruncateExpression te) {
-            Output.LPar();
+            var expressionType = te.Expression.GetActualType(TypeSystem);
+            var parenCount = GetParenCountForTruncation(expressionType);
+
+            for (var i = 0; i < parenCount; i++)
+                Output.LPar();
 
             Output.LPar();
             Visit(te.Expression);
             Output.RPar();
 
-            var expressionType = te.Expression.GetActualType(TypeSystem);
             WriteTruncationForType(expressionType);
 
             Output.RPar();
@@ -1501,9 +1523,11 @@ namespace JSIL {
         public void VisitNode (JSUnaryOperatorExpression uop) {
             var resultType = uop.GetActualType(TypeSystem);
             bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType);
+            var parenCount = GetParenCountForTruncation(resultType);
 
             if (needsTruncation)
-                Output.LPar();
+                for (var i = 0; i < parenCount; i++)
+                    Output.LPar();
 
             if (!uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
@@ -1611,6 +1635,7 @@ namespace JSIL {
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
             bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
             bool parens = NeedParensForBinaryOperator(bop);
+            var parenCount = GetParenCountForTruncation(resultType);
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
@@ -1623,7 +1648,9 @@ namespace JSIL {
             parens |= needsCast;
 
             if (needsTruncation)
-                Output.LPar();
+                for (var i = 0; i < parenCount; i++)
+                    Output.LPar();
+
             if (parens)
                 Output.LPar();
 

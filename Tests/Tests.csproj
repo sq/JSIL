@@ -315,7 +315,7 @@
     <None Include="SimpleTestCases\Issue508.cs" />
     <None Include="SimpleTestCases\Issue381.cs" />
     <None Include="SimpleTestCases\UInt32Multiply.cs" />
-    <None Include="FailingTestCases\SmallSignedIntOverflowAndUnderflow.cs" />
+    <None Include="SimpleTestCases\SmallSignedIntOverflowAndUnderflow.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
@@ -893,7 +893,6 @@
     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
     <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
-    <None Include="SimpleTestCases\ReflectionMethodArgumentTypes" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
