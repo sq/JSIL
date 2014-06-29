@@ -567,6 +567,14 @@ namespace JSIL {
 
         private void WriteTruncationForType (TypeReference type) {
             switch (type.FullName) {
+                case "System.Byte":
+                    Output.WriteRaw(" & 0xFF");
+                    break;
+
+                case "System.UInt16":
+                    Output.WriteRaw(" & 0xFFFF");
+                    break;
+
                 case "System.UInt32":
                     Output.WriteRaw(" >>> 0");
                     break;
