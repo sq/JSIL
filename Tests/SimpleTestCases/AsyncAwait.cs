@@ -8,18 +8,27 @@ public static class Program
     {
         var source1 = new TaskCompletionSource<object>();
         var source2 = new TaskCompletionSource<object>();
+        var signal = new ManualResetEventSlim(false);
 
         Console.WriteLine("Main thread");
-        AsyncMethod(source1.Task, source2.Task).ContinueWith((Task pre) => Console.WriteLine("Continuation:" + ((Task<string>)pre).Result));
+
+        AsyncMethod(source1.Task, source2.Task).ContinueWith(
+            (Task pre) => {
+                Console.WriteLine("Continuation:" + ((Task<string>)pre).Result);
+                if (!JSIL.Builtins.IsJavascript)
+                    Console.Out.Flush();
+
+                signal.Set();
+            }
+        );
+
         Console.WriteLine("Main: Delay 1 complete");
         source1.TrySetResult(string.Empty);
+
         Console.WriteLine("Main: Delay 2 complete");
         source2.TrySetResult(string.Empty);
 
-        if (!JSIL.Builtins.IsJavascript)
-        {
-            Thread.Sleep(100);
-        }
+        signal.Wait();
     }
 
     public static async Task<string> AsyncMethod(Task task1, Task task2)
