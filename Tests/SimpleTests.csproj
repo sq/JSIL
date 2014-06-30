@@ -371,7 +371,11 @@
     <None Include="SimpleTestCases\ReflectionGenericMethodInfoProperties.cs" />
     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
-    <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
+    <None Include="SimpleTestCases\ReflectionMethodArgumentTypes.cs" />
+    <None Include="SimpleTestCases\NullableField_Issue316.cs" />
+    <None Include="SimpleTestCases\NullableCloneParameter_Issue316.cs" />
+    <None Include="SimpleTestCases\NullableModification_Issue361.cs" />
+    <None Include="SimpleTestCases\NullableNullAccess.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
