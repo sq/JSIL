@@ -65,7 +65,9 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
       JSIL.SetValueProperty(compositePublicInterface.prototype, "toString", toStringImpl);
       JSIL.SetValueProperty(compositeTypeObject, "toString", toStringImpl);
 
-      compositePublicInterface.__FullName__ = compositeTypeObject.__FullName__ = typeName;
+      JSIL.SetValueProperty(compositePublicInterface, "__FullName__", typeName);
+      JSIL.SetValueProperty(compositeTypeObject, "__FullName__", typeName);
+      
       JSIL.SetTypeId(
         compositePublicInterface, compositeTypeObject, (
           $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]"

@@ -25,10 +25,8 @@ JSIL.TypeBuilder.prototype.declareConstant = function (key, isStatic, value) {
 
   Object.defineProperty(target, key, {
     value: value,
-    enumerable: true,
-    configurable: true,
-    writable: false,
-    writeable: false
+    enumerable: true, configurable: true,
+    writable: false, writeable: false
   });
 };
 
@@ -48,6 +46,15 @@ JSIL.TypeBuilder.prototype.getPublicInterface = function () {
     this.publicInterface.__proto__ = this.resultProperties;
 
   this.publicInterface.prototype = this.resultPrototype;
+
+  Object.defineProperty(
+    this.typeObject, "__PublicInterface__",
+    {
+      value: this.publicInterface,
+      enumerable: true, configurable: true,
+      writable: false, writeable: false
+    }
+  );
 
   return this.publicInterface;
 };

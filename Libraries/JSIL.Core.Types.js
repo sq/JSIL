@@ -355,9 +355,12 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       );
       compositePublicInterface.CheckType = publicInterface.CheckType;
 
-      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
-      compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
-      compositeTypeObject.__IsReferenceType__ = true;
+      JSIL.SetValueProperty(compositeTypeObject, "__PublicInterface__", compositePublicInterface);
+      JSIL.SetValueProperty(
+        compositeTypeObject, "__FullName__", 
+        compositeTypeObject.__FullNameWithoutArguments__ = typeName
+      );
+      JSIL.SetValueProperty(compositeTypeObject, "__IsReferenceType__", true);
       compositeTypeObject.__IsArray__ = true;
       compositeTypeObject.__ElementType__ = elementTypeObject;
       compositeTypeObject.__IsClosed__ = Object.getPrototypeOf(compositeTypeObject.__ElementType__) !== JSIL.GenericParameter.prototype;

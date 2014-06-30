@@ -1043,8 +1043,8 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo",
 
 JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (publicInterface, fullName) {
-    this.__PublicInterface__ = publicInterface;
-    this.__FullName__ = fullName;
+    JSIL.SetValueProperty(this, "__PublicInterface__", publicInterface);
+    JSIL.SetValueProperty(this, "__FullName__", fullName);
   });
 
   $.Method({Static:true , Public:true }, "op_Equality", 
