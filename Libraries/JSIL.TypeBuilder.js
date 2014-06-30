@@ -9,6 +9,7 @@ JSIL.TypeBuilder = function (typeObject) {
   this.typeObject = typeObject;
   this.resultConstructor = function () {};
   this.publicInterface = null;
+  this.useSetPrototype = false;
 
   this.declareConstant("__Type__", true, typeObject);
 };
@@ -18,6 +19,17 @@ JSIL.TypeBuilder.prototype.setConstructor = function (ctor) {
     throw new Error("Public interface already created");
 
   this.resultConstructor = ctor;
+
+  if (!this.useSetPrototype) {
+    for (var k in this.resultProperties) {
+      if (!this.resultProperties.hasOwnProperty(k))
+        continue;
+
+      this.resultConstructor[k] = this.resultProperties[k];
+    }
+
+    this.resultProperties = this.resultConstructor;
+  }
 };
 
 JSIL.TypeBuilder.prototype.declareConstant = function (key, isStatic, value) {
@@ -40,10 +52,12 @@ JSIL.TypeBuilder.prototype.getPublicInterface = function () {
 
   this.publicInterface = this.resultConstructor;
 
-  if (Object.setPrototypeOf)
-    Object.setPrototypeOf(this.publicInterface, this.resultProperties);
-  else
-    this.publicInterface.__proto__ = this.resultProperties;
+  if (this.useSetPrototype) {
+    if (Object.setPrototypeOf)
+      Object.setPrototypeOf(this.publicInterface, this.resultProperties);
+    else
+      this.publicInterface.__proto__ = this.resultProperties;
+  }
 
   this.publicInterface.prototype = this.resultPrototype;
 
