@@ -1,3 +1,5 @@
+"use strict";
+
 //
 // JSIL loader. Synchronously loads all core JSIL scripts, adds essential libraries to the content manifest,
 //  and loads your manifest scripts.
@@ -5,9 +7,33 @@
 // Asset loading (after page load) is provided by JSIL.Browser.js.
 //
 
-if (typeof (contentManifest) !== "object") { 
-  contentManifest = {}; 
-};
+(function (globalNamespace) {
+  if (typeof (globalNamespace.JSIL) !== "undefined")
+    throw new Error("JSIL.js loaded twice");
+
+  var JSIL = {
+    __FullName__: "JSIL"
+  };
+
+  Object.defineProperty(
+    globalNamespace, "JSIL",
+    {
+      value: JSIL,
+      configurable: false,
+      enumerable: true,
+      writable: false
+    }
+  );
+
+  JSIL.GlobalNamespace = globalNamespace;
+
+  if (typeof (globalNamespace.jsilConfig) !== "object")
+    globalNamespace.jsilConfig = {};
+
+  if (typeof (globalNamespace.contentManifest) !== "object")
+    globalNamespace.contentManifest = {}; 
+})(this);
+
 contentManifest["JSIL"] = [];
 
 var $jsilloaderstate = {
@@ -165,6 +191,14 @@ var $jsilloaderstate = {
 
   environment.loadScript(libraryRoot + "Polyfills.js");
   environment.loadScript(libraryRoot + "mersenne.js");
+
+  if (config.typedObjects || false) {
+    environment.loadScript(libraryRoot + "typedobjects.js");
+    environment.loadScript(libraryRoot + "JSIL.TypeBuilder.ES7.js");
+  } else {
+    environment.loadScript(libraryRoot + "JSIL.TypeBuilder.js");
+  }
+
   environment.loadScript(libraryRoot + "JSIL.Core.js");
   environment.loadScript(libraryRoot + "JSIL.Host.js");
 
@@ -247,4 +281,4 @@ var $jsilloaderstate = {
   if (config.localStorage)
     contentManifest["JSIL"].push(["Library", "JSIL.LocalStorage.js"]);
 
-})(jsilConfig || {});
+})(jsilConfig);

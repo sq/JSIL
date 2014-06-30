@@ -1,34 +1,13 @@
 "use strict";
 
-if (typeof (JSIL) !== "undefined")
-  throw new Error("JSIL.Core included twice");
-
-var JSIL = {
-  __FullName__: "JSIL"
-};
-
-Object.defineProperty(
-  this,
-  "JSIL",
-  {
-    value: JSIL,
-    configurable: false,
-    enumerable: true,
-    writable: false
-  }
-);
-
-if (typeof (jsilConfig) === "undefined") {
-  var jsilConfig = {};
-}
+if (typeof (JSIL) === "undefined")
+  throw new Error("JSIL.js must be loaded first");
 
 JSIL.SuppressInterfaceWarnings = true;
 JSIL.ReadOnlyPropertyWriteWarnings = false;
 JSIL.ThrowOnUnimplementedExternals = false;
 JSIL.ThrowOnStaticCctorError = false;
 JSIL.WarnAboutGenericResolveFailures = false;
-
-JSIL.GlobalNamespace = this;
 
 JSIL.$NextAssemblyId = 0;
 JSIL.PrivateNamespaces = {};
@@ -5176,21 +5155,25 @@ JSIL.MakeType = function (typeArgs, initializer) {
     // Without this, the generated constructor won't behave correctly for 0-argument construction
     typeObject.__IsStruct__ = !isReferenceType;
 
+    var typeBuilder = new JSIL.TypeBuilder(typeObject);
+
+    var ctorFunction = null;
     if (genericArguments && genericArguments.length) {
-      staticClassObject = function OpenType () {
+      ctorFunction = function OpenType () {
         JSIL.RuntimeError("Cannot create an instance of open generic type '" + fullName + "'");
       };
     } else {
-      staticClassObject = JSIL.MakeTypeConstructor(typeObject, maxConstructorArguments);
+      ctorFunction = JSIL.MakeTypeConstructor(typeObject, maxConstructorArguments);
     }
+
+    typeBuilder.setConstructor(ctorFunction);
+    staticClassObject = typeBuilder.getPublicInterface();
 
     typeObject.__MaxConstructorArguments__ = maxConstructorArguments;
 
     var typeId = JSIL.AssignTypeId(assembly, fullName);
     JSIL.SetTypeId(typeObject, staticClassObject, typeId);
-
     typeObject.__PublicInterface__ = staticClassObject;
-    staticClassObject.__Type__ = typeObject;
 
     // FIXME: This should probably be a per-assembly dictionary to work right in the case of name collisions.
     $jsilcore.InFlightObjectConstructions[fullName] = {
