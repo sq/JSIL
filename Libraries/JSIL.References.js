@@ -47,8 +47,8 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
       var compositeTypeObject = JSIL.CreateDictionaryObject($.Type);
       compositePublicInterface = JSIL.CreateDictionaryObject(JSIL.Reference);
 
-      compositePublicInterface.__Type__ = compositeTypeObject;
-      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
+      JSIL.SetValueProperty(compositePublicInterface, "__Type__", compositeTypeObject);
+      JSIL.SetValueProperty(compositeTypeObject, "__PublicInterface__", compositePublicInterface);
       compositeTypeObject.__IsByRef__ = true;
 
       var toStringImpl = function (context) {
