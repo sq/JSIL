@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj
 		{C7BF4561-20DD-4E49-8B5A-4E8AF032C47A} = {C7BF4561-20DD-4E49-8B5A-4E8AF032C47A}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\SimpleTests.csproj", "{2DBBCB24-54AD-4C66-B7D6-911811CEB186}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Cecil.Pdb", "Upstream\ILSpy\Mono.Cecil\symbols\pdb\Mono.Cecil.Pdb.csproj", "{63E6915C-7EA4-4D76-AB28-0D7191EEA626}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Cecil.Mdb", "Upstream\ILSpy\Mono.Cecil\symbols\mdb\Mono.Cecil.Mdb.csproj", "{8559DD7F-A16F-46D0-A05A-9139FAEBA8FD}"
@@ -157,7 +159,29 @@ Global
 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.Build.0 = Release|x86
 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.ActiveCfg = Release|x86
 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.Build.0 = Release|x86
-	EndGlobalSection
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Debug|.NET 4.5 x86.ActiveCfg = Debug|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Debug|.NET 4.5 x86.Build.0 = Debug|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Debug|Any CPU.ActiveCfg = Debug|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Debug|x86.ActiveCfg = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Debug|x86.Build.0 = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Release|.NET 4.5 x86.ActiveCfg = Release|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Release|.NET 4.5 x86.Build.0 = Release|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Release|Any CPU.ActiveCfg = Release|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Release|x86.ActiveCfg = Release|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB185}.Release|x86.Build.0 = Release|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|.NET 4.5 x86.ActiveCfg = Debug|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|.NET 4.5 x86.Build.0 = Debug|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|Any CPU.Build.0 = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|x86.ActiveCfg = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Debug|x86.Build.0 = Debug|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|.NET 4.5 x86.ActiveCfg = Release|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|.NET 4.5 x86.Build.0 = Release|.NET 4.5 x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|Any CPU.ActiveCfg = Release|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|Any CPU.Build.0 = Release|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|x86.ActiveCfg = Release|x86
+		{2DBBCB24-54AD-4C66-B7D6-911811CEB186}.Release|x86.Build.0 = Release|x86
+  EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection

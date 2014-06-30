@@ -1,0 +1,403 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{2DBBCB24-54AD-4C66-B7D6-911811CEB186}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>JSIL.SimpleTests</RootNamespace>
+    <AssemblyName>SimpleTests</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <OutputPath>..\bin\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>true</CodeAnalysisFailOnMissingRules>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\Upstream\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml" />
+    <Reference Include="FSharp.Compiler.CodeDom, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
+      <HintPath>..\Upstream\FSharp\FSharp.Compiler.CodeDom.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <HintPath>..\Upstream\FSharp\FSharp.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="SimpleTests.cs" />
+    <None Include="SimpleTestCases\BaseAutoProperties.cs" />
+    <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
+    <None Include="SimpleTestCases\RecursiveArrayInitializer.cs" />
+    <None Include="SimpleTestCases\NestedSwitchStatement.cs" />
+    <None Include="SimpleTestCases\ReturnNestedCasts.cs" />
+    <None Include="SimpleTestCases\IntegerDivideTruncation.cs" />
+    <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
+    <None Include="SimpleTestCases\ListGetEnumerator.cs" />
+    <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
+    <None Include="SimpleTestCases\Issue194.cs" />
+    <None Include="SimpleTestCases\AssignNewToOut.cs" />
+    <None Include="SimpleTestCases\ListForEach.cs" />
+    <None Include="SimpleTestCases\EnumerableWhere.cs" />
+    <None Include="SimpleTestCases\EnumerableRange.cs" />
+    <None Include="SimpleTestCases\InvokeInheritedOverloadedMethod.cs" />
+    <None Include="SimpleTestCases\Issue198.fs" />
+    <None Include="SimpleTestCases\Issue173.cs" />
+    <None Include="SimpleTestCases\StructHoistingInComplexLoop.cs" />
+    <None Include="SimpleTestCases\RefDouble.cs" />
+    <None Include="SimpleTestCases\Issue205.cs" />
+    <None Include="SimpleTestCases\NullableStructRef.cs" />
+    <None Include="SimpleTestCases\ConvertObject.cs" />
+    <None Include="SimpleTestCases\EnumBaseType.cs" />
+    <None Include="SimpleTestCases\EnumerableSum.cs" />
+    <None Include="SimpleTestCases\Issue213.cs" />
+    <None Include="SimpleTestCases\InterfaceBaseType.cs" />
+    <None Include="SimpleTestCases\ArrayCopyEnum.cs" />
+    <None Include="SimpleTestCases\StringGetHashCode.cs" />
+    <None Include="SimpleTestCases\EnumIConvertible.cs" />
+    <None Include="SimpleTestCases\GetEntryAssembly.cs" />
+    <None Include="SimpleTestCases\CastEnumTypeToRuntimeType.cs" />
+    <None Include="SimpleTestCases\CastIntegerConstantToEnum.cs" />
+    <None Include="SimpleTestCases\CastOtherEnumToEnumConstant.cs" />
+    <None Include="SimpleTestCases\ArrayClear.cs" />
+    <None Include="SimpleTestCases\GenericCastCharToChar.cs" />
+    <None Include="SimpleTestCases\GenericCastCharToChar2.cs" />
+    <None Include="SimpleTestCases\EnumToBooleanWithoutZeroValue.cs" />
+    <None Include="SimpleTestCases\CastToByteTruncation.cs" />
+    <None Include="SimpleTestCases\CharArithmetic.cs" />
+    <None Include="SimpleTestCases\StringFormatCurlies.cs" />
+    <None Include="SimpleTestCases\CharIs.cs" />
+    <None Include="SimpleTestCases\FieldReturnsInvalidDefaultOnFirstUse.cs" />
+    <None Include="SimpleTestCases\Issue239.cs" />
+    <None Include="SimpleTestCases\Issue243.cs" />
+    <None Include="SimpleTestCases\Issue241.cs" />
+    <None Include="SimpleTestCases\Issue242.cs" />
+    <None Include="SimpleTestCases\Issue247.cs" />
+    <None Include="SimpleTestCases\Issue248.cs" />
+    <None Include="SimpleTestCases\Issue249.cs" />
+    <None Include="SimpleTestCases\NullableGetType.cs" />
+    <None Include="SimpleTestCases\IEEERemainder.cs" />
+    <None Include="SimpleTestCases\StringFormatAlignment.cs" />
+    <None Include="SimpleTestCases\EnumerableFirst.cs" />
+    <None Include="SimpleTestCases\Issue245.cs" />
+    <None Include="SimpleTestCases\ListIndexOfEnum.cs" />
+    <None Include="SimpleTestCases\ArrayICollection.cs" />
+    <None Include="SimpleTestCases\StringJoinEnumerable.cs" />
+    <None Include="SimpleTestCases\Issue268.cs" />
+    <None Include="SimpleTestCases\Issue271.cs" />
+    <None Include="SimpleTestCases\DiagnosticsTrace.cs" />
+    <None Include="SimpleTestCases\HashSetToArray.cs" />
+    <None Include="SimpleTestCases\BitConverter.cs" />
+    <None Include="SimpleTestCases\ArrayCopy5Arg.cs" />
+    <None Include="SimpleTestCases\Issue304.cs" />
+    <None Include="SimpleTestCases\Issue307.cs" />
+    <None Include="SimpleTestCases\Issue306.cs" />
+    <None Include="SimpleTestCases\Issue302.cs" />
+    <None Include="SimpleTestCases\Issue309.cs" />
+    <None Include="SimpleTestCases\Issue305.cs" />
+    <None Include="SimpleTestCases\ListAddOverride.cs" />
+    <None Include="SimpleTestCases\Issue298.cs" />
+    <None Include="SimpleTestCases\IsGenericParameter.cs" />
+    <None Include="SimpleTestCases\GetInterfaces.cs" />
+    <None Include="SimpleTestCases\IsInterface.cs" />
+    <None Include="SimpleTestCases\CanWriteOrRead.cs" />
+    <None Include="SimpleTestCases\IsByRef.cs" />
+    <None Include="SimpleTestCases\ListRemoveReturnValue.cs" />
+    <None Include="SimpleTestCases\EnumDefaults.cs" />
+    <None Include="SimpleTestCases\Issue434.cs" />
+    <None Include="SimpleTestCases\Issue427.cs" />
+    <None Include="SimpleTestCases\Issue452.cs" />
+    <None Include="SimpleTestCases\Issue453.cs" />
+    <None Include="SimpleTestCases\Issue372.cs" />
+    <None Include="SimpleTestCases\Issue425.cs" />
+    <None Include="SimpleTestCases\Issue445.cs" />
+    <None Include="SimpleTestCases\Issue410.cs" />
+    <None Include="SimpleTestCases\Issue411.cs" />
+    <None Include="SimpleTestCases\Issue459.cs" />
+    <None Include="SimpleTestCases\Issue464.cs" />
+    <None Include="SimpleTestCases\Issue378_2.cs" />
+    <None Include="SimpleTestCases\Issue466.cs" />
+    <None Include="SimpleTestCases\Issue529.cs" />
+    <None Include="SimpleTestCases\Issue530.cs" />
+    <None Include="SimpleTestCases\Issue508.cs" />
+    <None Include="SimpleTestCases\Issue381.cs" />
+    <None Include="SimpleTestCases\UInt32Multiply.cs" />
+    <None Include="SimpleTestCases\SmallSignedIntOverflowAndUnderflow.cs" />
+    <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
+    <None Include="SimpleTestCases\ArrayLongLength.cs" />
+    <None Include="SimpleTestCases\ArrayResize.cs" />
+    <None Include="SimpleTestCases\StringContains.cs" />
+    <None Include="SimpleTestCases\StringSubstring.cs" />
+    <None Include="SimpleTestCases\GetTypeOfBoolean.cs" />
+    <None Include="SimpleTestCases\Int32CompareExchange.cs" />
+    <None Include="SimpleTestCases\StringSplit.cs" />
+    <None Include="SimpleTestCases\StringIsNullOrEmpty.cs" />
+    <None Include="SimpleTestCases\ListConstructor.cs" />
+    <None Include="SimpleTestCases\Array2D.cs" />
+    <None Include="SimpleTestCases\ListToArray.cs" />
+    <None Include="SimpleTestCases\ListICollection.cs" />
+    <None Include="SimpleTestCases\ListContains.cs" />
+    <None Include="SimpleTestCases\ListIndexOf.cs" />
+    <None Include="SimpleTestCases\ListInsert.cs" />
+    <None Include="SimpleTestCases\StructGenericParameterReferenceEquality.cs" />
+    <None Include="SimpleTestCases\ArrayListIndexer.cs" />
+    <None Include="SimpleTestCases\ListIList.cs" />
+    <None Include="SimpleTestCases\MultiDimArrayClone.cs" />
+    <None Include="SimpleTestCases\NestedInitializer.cs" />
+    <None Include="SimpleTestCases\StringPad.cs" />
+    <None Include="SimpleTestCases\PrivateMoveNext.cs" />
+    <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
+    <None Include="SimpleTestCases\GenericFieldInitializer.cs" />
+    <None Include="SimpleTestCases\EnumCompare.cs" />
+    <None Include="SimpleTests.dll.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="SimpleTestCases\GenericInheritedField.cs" />
+    <None Include="SimpleTestCases\DelegateFieldInitializer2.cs" />
+    <None Include="SimpleTestCases\StringFormatF.cs" />
+    <None Include="SimpleTestCases\StringFormatN.cs" />
+    <None Include="SimpleTestCases\StringFormatD.cs" />
+    <None Include="SimpleTestCases\StringFormatX.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlaces.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlacesDecimal.cs" />
+    <None Include="SimpleTestCases\StringFormatQuotedString.cs" />
+    <None Include="SimpleTestCases\StringFormatPlaceSeparators.cs" />
+    <None Include="SimpleTestCases\IntegerToStringFormatted.cs" />
+    <None Include="SimpleTestCases\JaggedArrayReference.cs" />
+    <None Include="SimpleTestCases\JaggedStructArrayReference.cs" />
+    <None Include="SimpleTestCases\IfReferenceBool.cs" />
+    <None Include="SimpleTestCases\IntegerRanges.cs" />
+    <None Include="SimpleTestCases\ParseInteger.cs" />
+    <None Include="SimpleTestCases\ParseHexInteger.cs" />
+    <None Include="SimpleTestCases\IncrementBaseProperty.cs" />
+    <None Include="SimpleTestCases\Mutate2DArray.cs" />
+    <None Include="SimpleTestCases\TruncationRoundToZero.cs" />
+    <None Include="SimpleTestCases\StringRemove.cs" />
+    <None Include="SimpleTestCases\ArrayDefaultValues2.cs" />
+    <None Include="SimpleTestCases\IntegerToStringNullFormat.cs" />
+    <None Include="SimpleTestCases\PropertyMultipleAssignment.cs" />
+    <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
+    <None Include="SimpleTestCases\Type.cs" />
+    <None Include="SimpleTestCases\ParameterNamedThis.cs" />
+    <None Include="SimpleTestCases\EnumInPlaceAdd.cs" />
+    <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
+    <None Include="SimpleTestCases\UnboxBoolean.cs" />
+    <None Include="SimpleTestCases\MathIntrinsics.cs" />
+    <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
+    <None Include="SimpleTestCases\CompoundAssignmentToMultiDimArray.cs" />
+    <None Include="SimpleTestCases\TypeQualifiedPropertyInNestedType.cs" />
+    <None Include="SimpleTestCases\ReflectionMemberType.cs" />
+    <None Include="SimpleTestCases\ArrayFromInt64.cs" />
+    <None Include="SimpleTestCases\FloatArrayInitializer.cs" />
+    <None Include="SimpleTestCases\StaticConstructorAndFieldAccess.cs" />
+    <None Include="SimpleTestCases\StaticConstructorAndFieldAccess2.cs" />
+    <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
+    <None Include="SimpleTestCases\DecimalCast.cs" />
+    <None Include="SimpleTestCases\DecimalCopy.cs" />
+    <None Include="SimpleTestCases\EnumGetValuesLoop.cs" />
+    <None Include="SimpleTestCases\ClassMemberwiseClone.cs" />
+    <None Include="SimpleTestCases\AsWithGenericParameter.cs" />
+    <None Include="SimpleTestCases\ListRemoveRange.cs" />
+    <None Include="SimpleTestCases\ListBinarySearch.cs" />
+    <None Include="SimpleTestCases\CoercedArrayLength.cs" />
+    <None Include="SimpleTestCases\NullableCompoundAssignment.cs" />
+    <None Include="SimpleTestCases\EventHandlerSample.cs" />
+    <None Include="SimpleTestCases\Int32OverflowAndUnderflow.cs" />
+    <None Include="SimpleTestCases\SmallUnsignedIntOverflowAndUnderflow.cs" />
+    <None Include="SimpleTestCases\Int32Multiply.cs" />
+    <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
+    <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
+    <None Include="SimpleTestCases\GenericCreateInstance.cs" />
+    <None Include="SimpleTestCases\GenericSelfConstraint.cs" />
+    <None Include="SimpleTestCases\BooleanFieldDefaults.cs" />
+    <None Include="SimpleTestCases\BooleanCasts.cs" />
+    <None Include="SimpleTestCases\DecimalEquality.cs" />
+    <None Include="SimpleTestCases\StringFromCharArray.cs" />
+    <None Include="SimpleTestCases\EnumerableCast.cs" />
+    <None Include="SimpleTestCases\EnumerableToList.cs" />
+    <None Include="SimpleTestCases\Issue176.cs" />
+    <None Include="SimpleTestCases\Issue118_1.fs" />
+    <None Include="SimpleTestCases\EnumerableElementAt.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="SimpleTestCases\AutoProperties.cs" />
+    <None Include="SimpleTestCases\Constructors.cs" />
+    <None Include="SimpleTestCases\CustomProperties.cs" />
+    <None Include="SimpleTestCases\Fields.cs" />
+    <None Include="SimpleTestCases\OutParameters.cs" />
+    <None Include="SimpleTestCases\AbstractMethods.cs" />
+    <None Include="SimpleTestCases\InheritedMethods.cs" />
+    <None Include="SimpleTestCases\DefaultToString.cs" />
+    <None Include="SimpleTestCases\TypeCasts.cs" />
+    <None Include="SimpleTestCases\TryCatch.cs" />
+    <None Include="SimpleTestCases\CustomExceptions.cs" />
+    <None Include="SimpleTestCases\InvokeBaseMethod.cs" />
+    <None Include="SimpleTestCases\BaseProperties.cs" />
+    <None Include="SimpleTestCases\Delegates.cs" />
+    <None Include="SimpleTestCases\MethodReferences.cs" />
+    <None Include="SimpleTestCases\CustomOperators.cs" />
+    <None Include="SimpleTestCases\BasicLoops.cs" />
+    <None Include="SimpleTestCases\UsingBlocks.cs" />
+    <None Include="SimpleTestCases\NamespacedTypes.cs" />
+    <None Include="SimpleTestCases\InitFieldsInMain.cs" />
+    <None Include="SimpleTestCases\OverloadedMethods.cs" />
+    <None Include="SimpleTestCases\OverloadedConstructors.cs" />
+    <None Include="SimpleTestCases\Arrays.cs" />
+    <None Include="SimpleTestCases\MultiDimArrays.cs" />
+    <None Include="SimpleTestCases\ArrayOverload.cs" />
+    <None Include="SimpleTestCases\VarArgs.cs" />
+    <None Include="SimpleTestCases\ExtensionMethods.cs" />
+    <None Include="SimpleTestCases\NestedNamespaces.cs" />
+    <None Include="SimpleTestCases\BasePropertyInvocation.cs" />
+    <None Include="SimpleTestCases\Indexers.cs" />
+    <None Include="SimpleTestCases\IntAndFloatCast.cs" />
+    <None Include="SimpleTestCases\CustomEnumerator.cs" />
+    <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
+    <None Include="SimpleTestCases\Decimals.cs" />
+    <None Include="SimpleTestCases\Initializers.cs" />
+    <None Include="SimpleTestCases\NullCoalescing.cs" />
+    <None Include="SimpleTestCases\CustomEvents.cs" />
+    <None Include="SimpleTestCases\MultipleCatchClauses.cs" />
+    <None Include="SimpleTestCases\If.cs" />
+    <None Include="SimpleTestCases\MemberRefParameters.cs" />
+    <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
+    <None Include="SimpleTestCases\Operators.cs" />
+    <None Include="SimpleTestCases\DefaultValue.cs" />
+    <None Include="SimpleTestCases\FlagsEnums.cs" />
+    <None Include="SimpleTestCases\Constants.cs" />
+    <None Include="SimpleTestCases\LotsOfParameters.cs" />
+    <None Include="SimpleTestCases\InitializerOnSubStruct.cs" />
+    <None Include="SimpleTestCases\SelfTypedFields.cs" />
+    <None Include="SimpleTestCases\LockTypeObject.cs" />
+    <None Include="SimpleTestCases\CollectionInitializers.cs" />
+    <None Include="SimpleTestCases\GetType.cs" />
+    <None Include="SimpleTestCases\OverloadedProperties.cs" />
+    <None Include="SimpleTestCases\IfNull.cs" />
+    <None Include="SimpleTestCases\StringCharacters.cs" />
+    <None Include="SimpleTestCases\ComplexRefOverload.cs" />
+    <None Include="SimpleTestCases\VirtualBaseProperties.cs" />
+    <None Include="SimpleTestCases\MemberRefMangledNames.cs" />
+    <None Include="SimpleTestCases\OverloadWithDelegate.cs" />
+    <None Include="SimpleTestCases\ArrayDefaultValues.cs" />
+    <None Include="SimpleTestCases\ClassEquals.cs" />
+    <None Include="SimpleTestCases\CollectionAndObjectInitializers.cs" />
+    <None Include="SimpleTestCases\HideBaseMethod.cs" />
+    <None Include="SimpleTestCases\GetUnderlyingType.cs" />
+    <None Include="SimpleTestCases\NestedLambdas.cs" />
+    <None Include="SimpleTestCases\IsOperator.cs" />
+    <None Include="SimpleTestCases\StringEquals.cs" />
+    <None Include="SimpleTestCases\ArrayOfStructsDefaultValues.cs" />
+    <None Include="SimpleTestCases\IsAssignableFrom.cs" />
+    <None Include="SimpleTestCases\Constructors.vb" />
+    <None Include="SimpleTestCases\ArrayOfArrays.cs" />
+    <None Include="SimpleTestCases\StringStartsAndEndsWith.cs" />
+    <None Include="SimpleTestCases\StringCompare.cs" />
+    <None Include="SimpleTestCases\StringLowerAndUpper.cs" />
+    <None Include="SimpleTestCases\ArrayClone.cs" />
+    <None Include="SimpleTestCases\StringTrim.cs" />
+    <None Include="SimpleTestCases\StringIndexOf.cs" />
+    <None Include="SimpleTestCases\StringLastIndexOf.cs" />
+    <None Include="SimpleTestCases\StringReplace.cs" />
+    <None Include="SimpleTestCases\StringToCharArray.cs" />
+    <None Include="SimpleTestCases\RecursiveConstructorInheritance.cs" />
+    <None Include="SimpleTestCases\GetExecutingAssembly.cs" />
+    <None Include="SimpleTestCases\AssemblyGetType.cs" />
+    <None Include="SimpleTestCases\ListFindAll.cs" />
+    <None Include="SimpleTestCases\ListExists.cs" />
+    <None Include="SimpleTestCases\ListRemoveAll.cs" />
+    <None Include="SimpleTestCases\ArrayEnumerator.cs" />
+    <None Include="SimpleTestCases\TryCastDelegate.cs" />
+    <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
+    <None Include="SimpleTestCases\ArrayOfNullable.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\ExpressionsTest.cs" />
+    <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
+    <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
+    <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
+    <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
+    <None Include="SimpleTestCases\AsyncAwait.cs" />
+    <None Include="SimpleTestCases\TypedArrayEnumerator_Issue353.cs" />
+    <None Include="SimpleTestCases\VarianceCast_Issue443.cs" />
+    <None Include="SimpleTestCases\RecursiveTypeConstruction_Issue394.cs" />
+    <None Include="SimpleTestCases\ReflectionInvokeStructParameters_Issue449.cs" />
+    <None Include="SimpleTestCases\Issue354.cs" />
+    <None Include="SimpleTestCases\Issue364_1.cs" />
+    <None Include="SimpleTestCases\Issue364_2.cs" />
+    <None Include="SimpleTestCases\Issue364_3.cs" />
+    <None Include="SimpleTestCases\Issue368.cs" />
+    <None Include="SimpleTestCases\ReflectionInterfaceMethodInvoke.cs" />
+    <None Include="SimpleTestCases\ReflectionGenericMethodInfoProperties.cs" />
+    <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
+    <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+    <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JSIL\JSIL.csproj">
+      <Project>{DA03D241-B70C-44D7-A465-3CEB5A9416AE}</Project>
+      <Name>JSIL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Meta\Meta.csproj">
+      <Project>{37C67C73-1F58-49B8-A39E-768AC88C2447}</Project>
+      <Name>Meta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Proxies\Proxies.4.0.csproj">
+      <Project>{12DBCC9A-50FE-43B1-BAD1-8029D4AD60C9}</Project>
+      <Name>Proxies.4.0</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\ICSharpCode.Decompiler\ICSharpCode.Decompiler.csproj">
+      <Project>{984CC812-9470-4A13-AFF9-CC44068D666C}</Project>
+      <Name>ICSharpCode.Decompiler</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
+      <Name>Mono.Cecil</Name>
+    </ProjectReference>
+    <ProjectReference Include="Tests.csproj">
+      <Project>{2DBBCB24-54AD-4C66-B7D6-911811CEB185}</Project>
+      <Name>Tests</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="..\.NET 4.5.targets" />
+</Project>
