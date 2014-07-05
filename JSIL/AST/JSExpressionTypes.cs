@@ -2119,6 +2119,28 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSNullableCastExpression : JSExpression {
+        public JSNullableCastExpression (JSExpression inner, JSType targetType)
+            : base (inner, targetType) {
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSType TargetType {
+            get {
+                return (JSType)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return TargetType.Type;
+        }
+    }
+
     // FIXME: Derive from JSCastExpression?
     public abstract class JSSpecialNumericCastExpression : JSExpression {
         protected JSSpecialNumericCastExpression (JSExpression inner)

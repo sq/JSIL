@@ -75,9 +75,7 @@ namespace JSIL.Transforms {
                     );
                 } else if (TypeUtil.IsNumeric(targetType)) {
                     if (isNullable) {
-                        newExpression = JSIL.ValueOfNullable(
-                            ce.Expression
-                        );
+                        newExpression = new JSNullableCastExpression(ce.Expression, new JSType(targetType));
                     } else if (
                         ce.Expression is JSCastExpression &&
                         (((JSCastExpression)ce.Expression).Expression.GetActualType(TypeSystem).MetadataType == MetadataType.Int64 ||

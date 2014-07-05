@@ -75,12 +75,16 @@ namespace JSIL {
         }
 
         public void VisitNode(JSValueOfNullableExpression node) {
-            Output.WriteRaw("JSIL.Nullable_Value");
-            Output.LPar();
+            if (ParentNode is JSNullableCastExpression) {
+                Visit(node.Expression);
+            } else {
+                Output.WriteRaw("JSIL.Nullable_Value");
+                Output.LPar();
 
-            Visit(node.Expression);
+                Visit(node.Expression);
 
-            Output.RPar();
+                Output.RPar();
+            }
         }
 
         public override void VisitNode (JSNode node) {
@@ -452,6 +456,18 @@ namespace JSIL {
             Output.LPar();
 
             Visit(ce.Expression);
+
+            Output.RPar();
+        }
+
+        public void VisitNode (JSNullableCastExpression nce) {
+            Output.WriteRaw("JSIL.Nullable_Cast");
+            Output.LPar();
+
+            Visit(nce.Expression);
+            Output.Comma();
+
+            Visit(nce.TargetType);
 
             Output.RPar();
         }

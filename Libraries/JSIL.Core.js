@@ -4747,6 +4747,11 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       return 0;
     } else if (expression === true) {
       return 1;
+    } else if (
+      expression.__ThisType__ &&
+      expression.__ThisType__.__IsEnum__
+    ) {
+      return expression.value;
     } else
       throwCastError(expression);
   };
@@ -8634,6 +8639,13 @@ JSIL.Nullable_ValueOrDefault = function (n, defaultValue) {
     return defaultValue;
   else
     return n;
+};
+
+JSIL.Nullable_Cast = function (n, targetType) {
+  if (n === null)
+    return null;
+  else
+    return targetType.$Cast(n);
 };
 
 JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result) {

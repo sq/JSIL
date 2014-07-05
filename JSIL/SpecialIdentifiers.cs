@@ -206,13 +206,10 @@ namespace JSIL {
         }
 
         public JSExpression ValueOfNullable (JSExpression nullableExpression) {
-            var valueType = nullableExpression.GetActualType(TypeSystem);
-            valueType = TypeUtil.StripNullable(valueType);
+            if (nullableExpression is JSValueOfNullableExpression)
+                return nullableExpression;
 
-            return JSInvocationExpression.InvokeStatic(
-                Dot("Nullable_Value", valueType),
-                new[] { nullableExpression }, true
-            );
+            return new JSValueOfNullableExpression(nullableExpression);
         }
 
         public JSExpression ValueOfNullableOrDefault (JSExpression nullableExpression, JSExpression defaultValue) {

@@ -990,16 +990,26 @@ namespace JSIL {
             ) {
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
-                bool shouldAutoCast = 
+                bool shouldAutoCast = (
                     AutoCastingState.Peek() ||
                     (
                         // Comparisons between value types still need a cast.
                         !TypeUtil.IsReferenceType(expression.ExpectedType) || 
                         !TypeUtil.IsReferenceType(expression.InferredType)
-                    );
+                    )
+                );
+
+                bool specialNullableCast = (
+                    TypeUtil.IsNullable(expression.ExpectedType) ||
+                    TypeUtil.IsNullable(expression.InferredType) ||
+                    (expression.Code == ILCode.ValueOf)
+                );
 
                 if (shouldAutoCast) {
-                    return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                    if (specialNullableCast)
+                        return new JSNullableCastExpression(result, new JSType(expression.ExpectedType));
+                    else
+                        return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
                 } else {
                     // FIXME: Should this be JSChangeTypeExpression to preserve type information?
                     // I think not, because a lot of these ExpectedTypes are wrong.
@@ -1288,19 +1298,27 @@ namespace JSIL {
         }
 
         protected bool UnwrapValueOfExpression (ref JSExpression expression) {
-            var valueOf = expression as JSValueOfNullableExpression;
-            if (valueOf != null) {
-                expression = valueOf.Expression;
-                return true;
-            }
-
-            var cast = expression as JSCastExpression;
-            if (cast != null) {
-                var temp = cast.Expression;
-                if (UnwrapValueOfExpression(ref temp)) {
-                    expression = JSCastExpression.New(temp, cast.NewType, TypeSystem);
+            while (true) {
+                var valueOf = expression as JSValueOfNullableExpression;
+                if (valueOf != null) {
+                    // Don't iterate.
+                    expression = valueOf.Expression;
                     return true;
                 }
+
+                var cast = expression as JSCastExpression;
+                if (cast != null) {
+                    expression = cast.Expression;
+                    continue;
+                }
+
+                var ncast = expression as JSNullableCastExpression;
+                if (ncast != null) {
+                    // HACK: We want to preserve the semantics here, but act as if we unwrapped successfully.
+                    return true;
+                }
+
+                break;
             }
 
             return false;
@@ -1384,9 +1402,12 @@ namespace JSIL {
             var innerType = TypeUtil.DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
-            if (innerTypeGit != null)
+            if (innerTypeGit != null) {
+                if (inner is JSValueOfNullableExpression)
+                    return inner;
+
                 return new JSValueOfNullableExpression(inner);
-            else
+            } else
                 return new JSUntranslatableExpression(node);
         }
 
