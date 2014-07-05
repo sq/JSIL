@@ -2777,6 +2777,11 @@ namespace JSIL {
                 return JSIL.NewMultidimensionalArray(
                     constructor.DeclaringType.GetElementType(), arguments.ToArray()
                 );
+            } else if (TypeUtil.IsNullable(constructor.DeclaringType)) {
+                if (arguments.Count == 0)
+                    return new JSNullLiteral(constructor.DeclaringType);
+                else
+                    return arguments[0];
             }
 
             var methodInfo = GetMethod(constructor);

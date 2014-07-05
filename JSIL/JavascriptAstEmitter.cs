@@ -75,7 +75,12 @@ namespace JSIL {
         }
 
         public void VisitNode(JSValueOfNullableExpression node) {
+            Output.WriteRaw("JSIL.Nullable_Value");
+            Output.LPar();
+
             Visit(node.Expression);
+
+            Output.RPar();
         }
 
         public override void VisitNode (JSNode node) {
@@ -893,6 +898,8 @@ namespace JSIL {
                 }
             } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
+            } else if (TypeUtil.IsNullable(defaultValue.Value)) {
+                Output.WriteRaw("null");
             } else if (defaultValue.Value.IsGenericParameter) {
                 VisitNode(new JSTernaryOperatorExpression(
                     new JSMemberReferenceExpression(new JSDotExpression(new JSType(defaultValue.Value),
@@ -904,9 +911,6 @@ namespace JSIL {
                 Output.WriteRaw("null");
             } else {
                 switch (defaultValue.Value.FullName) {
-                    case "System.Nullable`1":
-                        Output.WriteRaw("null");
-                        break;
                     case "System.Single":
                     case "System.Double":
                     case "System.Decimal":

@@ -2391,6 +2391,11 @@ $jsilcore.$Of$NoInitialize = function () {
       JSIL.RuntimeError("Cannot construct an instance of an interface");
     };
 
+  } else if (typeObject.__IsNullable__ === true) {
+    constructor = function Nullable__ctor () {
+      JSIL.RuntimeError("Cannot construct an instance of Nullable");
+    };
+
   } else {
     constructor = JSIL.MakeTypeConstructor(resultTypeObject, typeObject.__MaxConstructorArguments__);
   }
@@ -3223,8 +3228,12 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
     var key = "f" + i.toString();
 
     if (field.isStruct) {
-      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
-      types[key] = field.type.__PublicInterface__;
+      if (field.type.__IsNullable__) {
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = null;");
+      } else {
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
+        types[key] = field.type.__PublicInterface__;
+      }
     } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
       // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
       //  an object's field slots should be.
@@ -5216,6 +5225,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     }
 
     typeObject.__IsArray__ = false;
+    typeObject.__IsNullable__ = fullName.indexOf("System.Nullable`1") === 0;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
@@ -8603,17 +8613,27 @@ JSIL.CloneParameter = function (parameterType, value) {
   if (!parameterType)
     JSIL.RuntimeError("Undefined parameter type");
 
-  if (parameterType.__IsStruct__)
+  if (
+    parameterType.__IsStruct__ && 
+    (parameterType.__IsNullable__ !== true)
+  ) {
     return value.MemberwiseClone();
-  else
+  } else
     return value;
 };
 
-JSIL.ValueOfNullable = function (value) {
-  if (value === null)
-    return value;
+JSIL.Nullable_Value = function (n) {
+  if (n === null)
+    throw new System.InvalidOperationException("Nullable has no value");
   else
-    return value.valueOf();
+    return n;
+};
+
+JSIL.Nullable_ValueOrDefault = function (n, defaultValue) {
+  if (n === null)
+    return defaultValue;
+  else
+    return n;
 };
 
 JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result) {
