@@ -5261,7 +5261,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     var inited = false;
 
-    typeBuilder.declareMethod("toString", true, function TypePublicInterface_ToString () {
+    typeBuilder.declareConstant("toString", true, function TypePublicInterface_ToString () {
       return "<" + fullName + " Public Interface>";
     });
 
@@ -6329,8 +6329,14 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   var fieldIndex = this.PushMember("FieldInfo", descriptor, data, memberBuilder);
 
-  if (!descriptor.Static)
+  // Instance fields have no special logic applied to the prototype or public interface.
+  // This is important because having default values or other magic on the prototype
+  //  can impair the creation of dense memory layouts and consistent hidden classes/shapes.
+
+  if (!descriptor.Static) {
     return memberBuilder;
+  }
+
 
   var maybeRunCctors = this.maybeRunCctors;
 

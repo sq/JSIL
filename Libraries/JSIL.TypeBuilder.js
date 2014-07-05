@@ -9,6 +9,8 @@ JSIL.TypeBuilder = function (typeObject) {
   this.typeObject = typeObject;
   this.resultConstructor = function () {};
   this.publicInterface = null;
+
+  // setPrototypeOf / __proto__ deopts permanently in SpiderMonkey, so uh, yeah.
   this.useSetPrototype = false;
 
   this.declareConstant("__Type__", true, typeObject);
@@ -20,6 +22,7 @@ JSIL.TypeBuilder.prototype.setConstructor = function (ctor) {
 
   this.resultConstructor = ctor;
 
+  // BLECH
   if (!this.useSetPrototype) {
     for (var k in this.resultProperties) {
       if (!this.resultProperties.hasOwnProperty(k))
@@ -42,8 +45,7 @@ JSIL.TypeBuilder.prototype.declareConstant = function (key, isStatic, value) {
   });
 };
 
-JSIL.TypeBuilder.prototype.declareMethod = function (key, isStatic, fn) {
-  this.declareConstant(key, isStatic, fn);
+JSIL.TypeBuilder.prototype.declareInstanceField = function (key, typeName) {
 };
 
 JSIL.TypeBuilder.prototype.getPublicInterface = function () {
