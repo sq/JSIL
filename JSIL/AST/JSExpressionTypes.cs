@@ -3043,4 +3043,30 @@ namespace JSIL.Ast {
             : base(JSOperator.Multiply, lhs, rhs, typeSystem.Int32, canSimplify: false) {
         }
     }
+
+    public class JSNullCoalesceExpression : JSExpression {
+        public readonly TypeReference ResultType;
+
+        public JSNullCoalesceExpression (JSExpression lhs, JSExpression rhs, TypeReference resultType)
+            : base(lhs, rhs) {
+
+            ResultType = resultType;
+        }
+
+        public JSExpression Left {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Right {
+            get {
+                return Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ResultType;
+        }
+    }
 }

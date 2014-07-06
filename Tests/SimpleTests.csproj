@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="SimpleTestCases\Issue538.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

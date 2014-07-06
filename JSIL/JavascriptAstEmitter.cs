@@ -74,8 +74,11 @@ namespace JSIL {
             }
         }
 
-        public void VisitNode(JSValueOfNullableExpression node) {
-            if (ParentNode is JSNullableCastExpression) {
+        public void VisitNode (JSValueOfNullableExpression node) {
+            if (
+                (ParentNode is JSNullableCastExpression) ||
+                (ParentNode is JSNullCoalesceExpression)
+            ) {
                 Visit(node.Expression);
             } else {
                 Output.WriteRaw("JSIL.Nullable_Value");
@@ -85,6 +88,17 @@ namespace JSIL {
 
                 Output.RPar();
             }
+        }
+
+        public void VisitNode (JSNullCoalesceExpression node) {
+            Output.WriteRaw("JSIL.Coalesce");
+            Output.LPar();
+
+            Visit(node.Left);
+            Output.Comma();
+            Visit(node.Right);
+
+            Output.RPar();
         }
 
         public override void VisitNode (JSNode node) {

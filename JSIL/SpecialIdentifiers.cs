@@ -167,11 +167,8 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("Coalesce", expectedType),
-                new[] { left, right }, true
-            );
+        public JSExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
+            return new JSNullCoalesceExpression(left, right, expectedType);
         }
 
         public JSInvocationExpression ObjectEquals (JSExpression left, JSExpression right) {

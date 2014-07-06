@@ -2422,7 +2422,7 @@ namespace JSIL {
             }
         }
 
-        protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
+        protected JSExpression Translate_NullCoalescing (ILExpression node) {
             return JSIL.Coalesce(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
