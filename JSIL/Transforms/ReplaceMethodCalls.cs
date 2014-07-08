@@ -168,30 +168,6 @@ namespace JSIL.Transforms {
                             break;
                         }
 
-                        case "get_HasValue": {
-                            var replacement = JSIL.NullableHasValue(ie.ThisReference);
-                            if (ParentNode is JSResultReferenceExpression) {
-                                _ResultReferenceReplacement = replacement;
-                            } else {
-                                ParentNode.ReplaceChild(ie, replacement);
-                                VisitReplacement(replacement);
-                            }
-
-                            break;
-                        }
-
-                        case "get_Value": {
-                            var replacement = JSIL.ValueOfNullable(ie.ThisReference);
-                            if (ParentNode is JSResultReferenceExpression) {
-                                _ResultReferenceReplacement = replacement;
-                            } else {
-                                ParentNode.ReplaceChild(ie, replacement);
-                                VisitReplacement(replacement);
-                            }
-
-                            break;
-                        }
-
                         case "Equals":
                             JSBinaryOperatorExpression equality = new JSBinaryOperatorExpression(JSOperator.Equal, ie.ThisReference, ie.Parameters.First().Value, type.Type);
                             ParentNode.ReplaceChild(ie, equality);
@@ -355,37 +331,6 @@ namespace JSIL.Transforms {
             var git = TypeUtil.DereferenceType(type) as GenericInstanceType;
 
             return (git != null) && (git.Name == "Nullable`1");
-        }
-
-        public void VisitNode (JSPropertyAccess pa) {
-            var targetType = pa.Target.GetActualType(TypeSystem);
-
-            if (IsNullable(targetType)) {
-                var @null = JSLiteral.Null(targetType);
-
-                switch (pa.Property.Property.Member.Name) {
-                    case "HasValue": {
-                        var replacement = JSIL.NullableHasValue(pa.Target);
-                        ParentNode.ReplaceChild(pa, replacement);
-                        VisitReplacement(replacement);
-
-                        break;
-                    }
-                    case "Value": {
-                        var replacement = JSIL.ValueOfNullable(pa.Target);
-                        ParentNode.ReplaceChild(pa, replacement);
-                        VisitReplacement(replacement);
-
-                        break;
-                    }
-                    default:
-                        throw new NotImplementedException(pa.Property.Property.Member.FullName);
-                }
-
-                return;
-            }
-
-            VisitChildren(pa);
         }
 
         public void VisitNode (JSDefaultValueLiteral dvl) {

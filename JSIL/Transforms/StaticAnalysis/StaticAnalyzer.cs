@@ -116,14 +116,13 @@ namespace JSIL.Transforms {
         }
 
         protected JSVariable ExtractAffectedVariable (JSExpression expression) {
+            expression = JSReferenceExpression.Strip(expression);
+
             var variable = expression as JSVariable;
-            var dot = expression as JSDotExpressionBase;
-            var reference = expression as JSReferenceExpression;
+            var dot = expression as JSDotExpressionBase;            
 
             if (dot != null)
                 variable = ExtractAffectedVariable(dot.Target);
-            else if (reference != null)
-                variable = ExtractAffectedVariable(reference.Referent);
 
             return variable;
         }
@@ -154,9 +153,7 @@ namespace JSIL.Transforms {
 
             var left = boe.Left;
             // If the LHS is a reference expression, climb through the reference(s) to find the actual target.
-            while (left is JSReferenceExpression) {
-                left = ((JSReferenceExpression)left).Referent;
-            }
+            left = JSReferenceExpression.Strip(left);
 
             var leftIsNested = false;
 
@@ -757,6 +754,8 @@ namespace JSIL.Transforms {
             var parameterNames = new HashSet<string>(
                 from p in data.Function.Parameters select p.Name
             );
+
+            parameterNames.Add("this");
 
             var parms = data.Function.Method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSMutatedArguments");
             if (parms != null) {

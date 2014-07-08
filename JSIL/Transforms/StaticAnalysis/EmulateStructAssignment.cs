@@ -14,7 +14,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
-        public const bool TraceElidedCopies = false;
+        public const bool TraceElidedCopies = true;
         public const bool TraceInsertedCopies = false;
         public const bool TracePostOptimizedCopies = true;
         public const bool TracePostOptimizeDecisions = false;
@@ -48,8 +48,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsImmutable (JSExpression target) {
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
+            target = JSReferenceExpression.Strip(target);
 
             var fieldAccess = target as JSFieldAccess;
             if (fieldAccess != null) {
@@ -74,14 +73,13 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            target = JSReferenceExpression.Strip(target);
+
             if (!OptimizeCopies)
                 return true;
 
             if (IsImmutable(target))
                 return false;
-
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
 
             var variable = target as JSVariable;
             if (variable != null)
@@ -91,8 +89,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyAlwaysUnnecessaryForAssignmentTarget (JSExpression target) {
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
+            target = JSReferenceExpression.Strip(target);
 
             var targetDot = target as JSDotExpressionBase;
 
@@ -114,12 +111,14 @@ namespace JSIL.Transforms {
             if ((value == null) || (value.IsNull))
                 return false;
 
-            while (value is JSReferenceExpression)
-                value = ((JSReferenceExpression)value).Referent;
+            value = JSReferenceExpression.Strip(value);
 
             var sce = value as JSStructCopyExpression;
             if (sce != null)
                 return false;
+
+            if (value is JSValueOfNullableExpression)
+                return true;
 
             var valueType = value.GetActualType(TypeSystem);
             var valueTypeDerefed = TypeUtil.DereferenceType(valueType) ?? valueType;
@@ -336,7 +335,7 @@ namespace JSIL.Transforms {
                         // Maybe don't include return here?
                         sa.DoesVariableEscape("this", true)
                     ) &&
-                    !isWritableInstance;
+                    (!isWritableInstance);
             }
 
             GenericParameter relevantParameter;
@@ -609,8 +608,8 @@ namespace JSIL.Transforms {
 
             var initialValue = nbv.InitialValue;
             var initialValueDerefed = initialValue;
-            while (initialValueDerefed is JSReferenceExpression)
-                initialValueDerefed = ((JSReferenceExpression)initialValueDerefed).Referent;
+            initialValueDerefed = JSReferenceExpression.Strip(initialValueDerefed);
+
             var initialValueType = initialValueDerefed.GetActualType(TypeSystem);
 
             if (

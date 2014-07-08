@@ -359,9 +359,7 @@ namespace JSIL.Ast {
             }
 
             if (mref != null) {
-                var referent = mref.Referent;
-                while (referent is JSReferenceExpression)
-                    referent = ((JSReferenceExpression)referent).Referent;
+                var referent = Strip(mref.Referent);
 
                 var dot = referent as JSDotExpressionBase;
 
@@ -432,6 +430,19 @@ namespace JSIL.Ast {
             } else {
                 return new JSReferenceExpression(referent);
             }
+        }
+
+        public static JSExpression Strip (JSExpression expression) {
+            do {
+                var re = expression as JSReferenceExpression;
+
+                if (re != null)
+                    expression = re.Referent;
+                else
+                    break;
+            } while (true);
+
+            return expression;
         }
 
         public JSExpression Referent {
@@ -2046,8 +2057,7 @@ namespace JSIL.Ast {
                     var originalInner = inner;
                     var originalInnerType = originalInner.GetActualType(typeSystem);
 
-                    while (inner is JSReferenceExpression)
-                        inner = ((JSReferenceExpression)inner).Referent;
+                    inner = JSReferenceExpression.Strip(inner);
 
                     var innerType = inner.GetActualType(typeSystem);
                     var indexer = inner as JSIndexerExpression;
@@ -2284,7 +2294,11 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Expression.GetActualType(typeSystem);
+            int temp;
+            var innerType = TypeUtil.FullyDereferenceType(Expression.GetActualType(typeSystem), out temp);
+
+            var innerTypeGit = (GenericInstanceType)innerType;
+            return innerTypeGit.GenericArguments[0];
         }
 
         public override string ToString () {
