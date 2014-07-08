@@ -118,13 +118,8 @@ namespace JSIL.Transforms {
                 return false;
 
             var valueType = value.GetActualType(TypeSystem);
-            if (!TypeUtil.IsStruct(valueType))
-                return false;
-
-            if (value is JSValueOfNullableExpression)
-                return true;
-
             var valueTypeDerefed = TypeUtil.DereferenceType(valueType) ?? valueType;
+
             var cte = value as JSChangeTypeExpression;
             var cast = value as JSCastExpression;
 
@@ -152,6 +147,9 @@ namespace JSIL.Transforms {
 
                 relevantParameter = (valueTypeDerefed as GenericParameter);
             }
+
+            if (value is JSValueOfNullableExpression)
+                return true;
 
             if (IsTypeExcludedFromCopies(valueType)) 
                 return false;
