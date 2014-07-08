@@ -12,6 +12,13 @@ using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
+        public struct EnclosingNode<T> {
+            public T Node;
+            public string Name;
+            public JSNode Child;
+            public string ChildName;
+        }
+
         public const int DefaultStackSize = 32;
 
         public readonly Stack<JSNode> Stack = new Stack<JSNode>(DefaultStackSize);
@@ -294,6 +301,55 @@ namespace JSIL.Ast {
                             return e.Current;
 
                     return null;
+                }
+            }
+        }
+
+        protected IEnumerable<EnclosingNode<T>> GetEnclosingNodes<T> (Func<T, bool> selector = null, Func<JSNode, bool> halter = null)
+            where T : JSNode {
+
+            JSNode previous = null;
+            string previousName = null;
+
+            // Fuck the C# compiler and its busted enumerator transform
+            // https://connect.microsoft.com/VisualStudio/feedback/details/781746/c-compiler-produces-incorrect-code-for-use-of-enumerator-structs-inside-enumerator-functions
+            using (var eNodes = (IEnumerator<JSNode>)Stack.GetEnumerator())
+            using (var eNames = (IEnumerator<string>)NameStack.GetEnumerator())
+                while (eNodes.MoveNext() && eNames.MoveNext()) {
+                    var value = eNodes.Current as T;
+                    var name = eNames.Current;
+
+                    if (value == null) {
+                        previous = eNodes.Current;
+                        previousName = name;
+                        continue;
+                    }
+
+                    if ((selector == null) || selector(value)) {
+                        yield return new EnclosingNode<T> {
+                            Node = value,
+                            Child = previous,
+                            ChildName = previousName
+                        };
+                    }
+
+                    if ((halter != null) && halter(value))
+                        yield break;
+
+                    previous = eNodes.Current;
+                    previousName = name;
+                }
+        }
+
+        public static IEnumerable<T> GetChildNodes<T> (JSNode root, Func<T, bool> predicate = null)
+            where T : JSNode {
+
+            foreach (var n in root.AllChildrenRecursive) {
+                var value = n as T;
+
+                if (value != null) {
+                    if ((predicate == null) || predicate(value))
+                        yield return value;
                 }
             }
         }

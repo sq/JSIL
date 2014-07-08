@@ -321,9 +321,9 @@ namespace JSIL.Transforms {
                     Stack.OfType<JSCommaExpression>().Any()
                 ) &&
                 (
-                    sa.ViolatesThisReferenceImmutability ||
+                    sa.ViolatesThisReferenceImmutability /* ||
                     sa.ModifiedVariables.Contains("this") ||
-                    sa.EscapingVariables.Contains("this")
+                    sa.EscapingVariables.Contains("this") */
                 )
             ) {
                 // The method we're calling violates immutability so we need to clone the this-reference

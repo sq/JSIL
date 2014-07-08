@@ -204,12 +204,8 @@ namespace JSIL {
         }
 
         private FunctionAnalysis2ndPass CreateSecondPassForOverridableMethod (MethodInfo method, FunctionAnalysis1stPass firstPass) {
-            // TODO: Update static analysis to utilize overridable method information?
-            //  We can probably assert in some cases that the call always has the same target.
-
-            // return new FunctionAnalysis2ndPass(this, firstPass, false);
-
-            return new FunctionAnalysis2ndPass(this, method);
+            // FIXME: Existing code is probably wrong in terms of static analysis for virtual method calls. Welp.
+            return new FunctionAnalysis2ndPass(this, firstPass, false);
         }
 
         private FunctionAnalysis2ndPass CreateSecondPassForAbstractMethod (MethodInfo method) {

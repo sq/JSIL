@@ -2030,7 +2030,7 @@ namespace JSIL {
                 if (needsParens)
                     Output.LPar();
 
-                Visit(invocation.ThisReference);
+                Visit(invocation.ThisReference, "ThisReference");
 
                 if (needsParens)
                     Output.RPar();
@@ -2080,7 +2080,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -2110,7 +2110,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -2122,7 +2122,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -2131,7 +2131,7 @@ namespace JSIL {
                     if ((method != null) && method.DeclaringType.IsInterface) {
                         // HACK: Lets you bypass the interface method precise dispatch machinery for better performance.
                         if (runtimeDispatch) {
-                            Visit(invocation.ThisReference);
+                            Visit(invocation.ThisReference, "ThisReference");
                             Output.Dot();
                             Output.Identifier(jsm.Identifier, EscapingMode.MemberIdentifier);
                             Output.LPar();
@@ -2146,7 +2146,7 @@ namespace JSIL {
                             Output.WriteRaw("Call");
 
                             Output.LPar();
-                            Visit(invocation.ThisReference);
+                            Visit(invocation.ThisReference, "ThisReference");
                             Output.Comma();
 
                             genericArgs();
@@ -2166,7 +2166,7 @@ namespace JSIL {
                         Visit(invocation.Method);
                         Output.LPar();
 
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -2183,7 +2183,7 @@ namespace JSIL {
                         Output.Identifier("call", EscapingMode.None);
                         Output.LPar();
 
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
