@@ -117,10 +117,13 @@ namespace JSIL.Transforms {
             if (sce != null)
                 return false;
 
+            var valueType = value.GetActualType(TypeSystem);
+            if (!TypeUtil.IsStruct(valueType))
+                return false;
+
             if (value is JSValueOfNullableExpression)
                 return true;
 
-            var valueType = value.GetActualType(TypeSystem);
             var valueTypeDerefed = TypeUtil.DereferenceType(valueType) ?? valueType;
             var cte = value as JSChangeTypeExpression;
             var cast = value as JSCastExpression;
