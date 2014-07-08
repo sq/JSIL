@@ -342,15 +342,22 @@ namespace JSIL.Transforms {
 
 
                 // When invoking a method that mutates a struct's members or lets them escape,
-                //  we need to copy the this-reference if it isn't a local or field.
+                //  we need to copy the this-reference if it isn't writable.
 
-                var isFieldOrVariable = 
+                // FIXME: We're white-listing writable targets, but we probably want to blacklist
+                //  non-writable targets instead, so that if a fn's result is new we don't clone it
+                //  to use it as a this-reference.
+
+                // FIXME: Handle pointers, replace x.get().foo() with some sort of comma expr,
+                //  like ($x = x.get(), $x.foo(), x.set($x)) ?
+                var isWritableInstance = 
                     (thisReference is JSFieldAccess) ||
-                        (thisReference is JSVariable);
+                        (thisReference is JSVariable) ||
+                        (thisReference is JSReadThroughReferenceExpression);
 
                 thisReferenceNeedsCopy = isMethodInvocation &&
                     (sa.ModifiedVariables.Contains("this") || sa.EscapingVariables.Contains("this")) &&
-                    !isFieldOrVariable;
+                    !isWritableInstance;
             }
 
             GenericParameter relevantParameter;
@@ -358,6 +365,9 @@ namespace JSIL.Transforms {
             if (
                 thisReferenceNeedsCopyAndReassignment && isCopyNeeded
             ) {
+                if (Tracing)
+                    Console.WriteLine("Cloning this-reference because method reassigns this: {0}", invocation);
+
                 if (
                     (thisReference is JSFieldAccess) ||
                     (thisReference is JSVariable)
@@ -388,6 +398,9 @@ namespace JSIL.Transforms {
                     return;
                 }
             } else if (thisReferenceNeedsCopy && isCopyNeeded) {
+                if (Tracing)
+                    Console.WriteLine("Cloning this-reference because method mutates this and this-reference is not field/local: {0}", invocation);
+
                 invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
                 VisitChildren(invocation);
                 return;
