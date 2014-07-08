@@ -14,7 +14,8 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
-        public const bool Tracing = false;
+        public const bool TraceElidedCopies = false;
+        public const bool TraceInsertedCopies = true;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
@@ -194,7 +195,7 @@ namespace JSIL.Transforms {
                     rightVar.IsParameter &&
                     !SecondPass.VariableAliases.ContainsKey(rightVar.Identifier)
                 ) {
-                    if (Tracing)
+                    if (TraceElidedCopies)
                         Console.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
 
                     return false;
@@ -217,34 +218,6 @@ namespace JSIL.Transforms {
             //  copies if the return value is a 'new' expression.
             if (secondPass.ResultIsNew)
                 return false;
-
-            // We can also eliminate a return value copy if the return value is one of the function's 
-            //  arguments, and we are sure that argument does not escape (other than through the return
-            //  statement, that is).
-            if (secondPass.ResultVariable != null) {
-                var parameters = invokeMethod.Method.Parameters;
-                int parameterIndex = -1;
-
-                for (var i = 0; i < parameters.Length; i++) {
-                    if (parameters[i].Name != secondPass.ResultVariable)
-                        continue;
-
-                    parameterIndex = i;
-                    break;
-                }
-
-                if (parameterIndex < 0)
-                    return true;
-
-                var innerValue = rightInvocation.Arguments[parameterIndex];
-                var icn = IsCopyNeeded(innerValue, out relevantParameter);
-                var escapes = secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
-                var modified = secondPass.IsVariableModified(secondPass.ResultVariable);
-
-                Console.WriteLine("< {0}: {1} > icn:{2} escapes:{3} modified:{4}", parameters[parameterIndex].Name, innerValue, icn, escapes, modified);
-
-                return escapes;
-            }
  
             return true;
         }
@@ -273,7 +246,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSPairExpression pair) {
             GenericParameter relevantParameter;
             if (IsCopyNeeded(pair.Value, out relevantParameter)) {
-                if (Tracing)
+                if (TraceInsertedCopies)
                     Console.WriteLine("struct copy introduced for object value {0}", pair.Value);
 
                 pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
@@ -303,7 +276,7 @@ namespace JSIL.Transforms {
             var result = modified || (escapes && !isResult);
 
             if (!result) {
-                if (Tracing)
+                if (TraceElidedCopies)
                     Console.WriteLine("argument {0} needs no copy because it isn't modified and doesn't escape");
             }
 
@@ -386,7 +359,7 @@ namespace JSIL.Transforms {
             if (
                 thisReferenceNeedsCopyAndReassignment && isCopyNeeded
             ) {
-                if (Tracing)
+                if (TraceInsertedCopies)
                     Console.WriteLine("Cloning this-reference because method reassigns this: {0}", invocation);
 
                 if (
@@ -419,7 +392,7 @@ namespace JSIL.Transforms {
                     return;
                 }
             } else if (thisReferenceNeedsCopy && isCopyNeeded) {
-                if (Tracing)
+                if (TraceInsertedCopies)
                     Console.WriteLine("Cloning this-reference because method mutates this and this-reference is not field/local: {0}", invocation);
 
                 invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
@@ -427,7 +400,7 @@ namespace JSIL.Transforms {
                 return;
             }
 
-            VisitChildren(invocation);
+            VisitChildren(invocation);            
         }
 
         public void VisitNode (JSResultReferenceExpression rre) {
@@ -460,14 +433,14 @@ namespace JSIL.Transforms {
                 GenericParameter relevantParameter;
                 if (IsArgumentCopyNeeded(sa, parameterName, argument, out relevantParameter))
                 {
-                    if (Tracing)
+                    if (TraceInsertedCopies)
                         Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     argumentValues[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
                 else
                 {
-                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
+                    if (TraceElidedCopies && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
                         Console.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
                 }
             }
@@ -479,7 +452,7 @@ namespace JSIL.Transforms {
 
                 GenericParameter relevantParameter;
                 if (IsCopyNeeded(argument, out relevantParameter)) {
-                    if (Tracing)
+                    if (TraceInsertedCopies)
                         Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
@@ -514,16 +487,16 @@ namespace JSIL.Transforms {
                     ) &&
                     !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
                 ) {
-                    if (Tracing)
+                    if (TraceInsertedCopies)
                         Console.WriteLine(String.Format("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right));
 
                     boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
-                    if (Tracing)
+                    if (TraceElidedCopies)
                         Console.WriteLine(String.Format("struct copy elided for assignment {0} = {1}", boe.Left, boe.Right));
                 }
             } else {
-                if (Tracing)
+                if (TraceElidedCopies && TypeUtil.IsStruct(boe.Right.GetActualType(TypeSystem)))
                     Console.WriteLine(String.Format("no copy needed for assignment {0} = {1}", boe.Left, boe.Right));
             }
 
@@ -558,7 +531,7 @@ namespace JSIL.Transforms {
                 IsStructOrGenericParameter(rightType) &&
                 IsCopyNeeded(wtre.Right, out relevantParameter)
             ) {
-                if (Tracing)
+                if (TraceInsertedCopies)
                     Console.WriteLine(String.Format("struct copy introduced for write-through-reference rhs {0}", wtre));
 
                 var replacement = new JSWriteThroughReferenceExpression(
