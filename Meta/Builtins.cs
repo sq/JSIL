@@ -54,11 +54,11 @@ namespace JSIL {
             throw new NotImplementedException("Not available outside JS");
         }
 
-        public static bool IsTruthy (dynamic value) {
+        public static bool IsTruthy (object valueExplicitCastToObject) {
             throw new NotImplementedException("Not available outside JS");
         }
 
-        public static bool IsFalsy (dynamic value) {
+        public static bool IsFalsy (object valueExplicitCastToObject) {
             throw new NotImplementedException("Not available outside JS");
         }
 

@@ -131,6 +131,8 @@ namespace JSIL {
             Configuration = configuration;
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
+            TypeUtil.s_ConfigurationChangeEnumToNumber = configuration.CodeGenerator.ChangeEnumToNumber.GetValueOrDefault(0);
+
             Manifest = manifest ?? new AssemblyManifest();
 
             if (typeInfoProvider != null) {
@@ -292,6 +294,20 @@ namespace JSIL {
             }
 
             return false;
+        }
+
+        protected bool IsAttributeIgnored(string attributeName)
+        {
+          List<string> emitAttributes = Configuration.CodeGenerator.EmitAttributes;
+          if (emitAttributes.Count == 0)
+            return false;
+          foreach (var ia in emitAttributes)
+          {
+            if (Regex.IsMatch(attributeName, ia, RegexOptions.IgnoreCase))
+              return false;
+          }
+
+          return true;
         }
 
         public string ClassifyAssembly (AssemblyDefinition asm) {
@@ -1153,6 +1169,18 @@ namespace JSIL {
                 return;
             }
 
+            bool isAttribute = false;
+            TypeInfo typeBaseClass = typeInfo.BaseClass;
+            while (!isAttribute && typeBaseClass != null)
+            {
+                isAttribute = (typeBaseClass.FullName == "System.Attribute");
+                typeBaseClass = typeBaseClass.BaseClass;
+            }
+            if (isAttribute && IsAttributeIgnored(typeInfo.FullName))
+            {
+                return;
+            }
+
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
                 declaredTypes.Add(typedef);
@@ -1219,6 +1247,11 @@ namespace JSIL {
                     TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
+                    if ((TypeUtil.IsEnum(typedef) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+                    {
+                      return;
+                    }
+
                     output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
@@ -2416,7 +2449,7 @@ namespace JSIL {
                 );
             } else if (ca.Type.FullName == "System.Type") {
                 return new JSTypeOfExpression((TypeReference)ca.Value);
-            } else if (TypeUtil.IsEnum(ca.Type)) {
+            } else if (TypeUtil.IsEnum(ca.Type) > 0) {
                 var longValue = Convert.ToInt64(ca.Value);
                 var result = JSEnumLiteral.TryCreate(
                     _TypeInfoProvider.GetExisting(ca.Type),
@@ -2457,6 +2490,10 @@ namespace JSIL {
                     if (ShouldSkipMember(attribute.AttributeType))
                         continue;
 
+                    if (IsAttributeIgnored(attribute.AttributeType.FullName))
+                    {
+                      continue;
+                    }
                     if (!isFirst || standalone)
                         output.NewLine();
                         
@@ -2500,10 +2537,14 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter,
             JavascriptFormatter output
         ) {
+            if (!Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+            {
+              return;
+            }
             output.Indent();
 
             foreach (var parameter in method.Parameters) {
-                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+                if (!parameter.HasCustomAttributes)
                     continue;
 
                 output.NewLine();

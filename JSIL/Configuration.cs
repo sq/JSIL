@@ -47,6 +47,8 @@ namespace JSIL.Translator {
             public bool? AutoGenerateEventAccessorsInSkeletons;
             public bool? AggressivelyUseElementProxies;
             public bool? EmitAllParameterNames;
+            public int? ChangeEnumToNumber; // 0 - disabled, 1 - with attribute only, 2 - all enums
+            public readonly List<string> EmitAttributes = new List<string>();
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -89,6 +91,9 @@ namespace JSIL.Translator {
                     result.AggressivelyUseElementProxies = AggressivelyUseElementProxies;
                 if (EmitAllParameterNames.HasValue)
                     result.EmitAllParameterNames = EmitAllParameterNames;
+                if (ChangeEnumToNumber.HasValue)
+                    result.ChangeEnumToNumber = ChangeEnumToNumber;
+                result.EmitAttributes.AddRange(EmitAttributes);
             }
         }
 

@@ -75,7 +75,7 @@ namespace JSIL {
             type = DereferenceType(type);
             MetadataType etype = type.MetadataType;
 
-            if (IsEnum(type))
+            if (IsEnum(type) > 0)
                 return false;
 
             var git = type as GenericInstanceType;
@@ -94,6 +94,27 @@ namespace JSIL {
                 return true;
 
             return (etype == MetadataType.ValueType);
+        }
+
+        public static bool IsStructImmutable(TypeReference type) // much faster than: typeInfo = TypeInfo.GetTypeInformation(type) + typeInfo.IsImmutable
+        {
+          bool isImmutable = false;
+          TypeDefinition typeDef = type.Resolve();
+          if (typeDef == null)
+          {
+            return false;
+          }
+          if (typeDef.CustomAttributes != null &&
+              typeDef.CustomAttributes.Count > 0)
+          { // check the attribute first
+            isImmutable = typeDef.CustomAttributes.FirstOrDefault(ca => ca.AttributeType.FullName == "JSIL.Meta.JSImmutable") != null;
+          }
+          if (!isImmutable)
+          { // all fields are read-only
+            isImmutable = typeDef.Fields.All(fd => fd.IsStatic || fd.IsInitOnly);
+          }
+
+          return isImmutable;
         }
 
         public static bool IsNumeric (TypeReference type) {
@@ -247,9 +268,32 @@ namespace JSIL {
             return type;
         }
 
-        public static bool IsEnum (TypeReference type) {
-            var typedef = GetTypeDefinition(type);
-            return (typedef != null) && (typedef.IsEnum);
+        [Flags]
+        public enum EnumKind {
+          ChangeToNumber = 0x01,
+          IsEnum         = 0x02,
+
+          FlagIsFlags    = 0x04
+        };
+
+        internal static int s_ConfigurationChangeEnumToNumber = 0; // 0 - disabled, 1 - with attribute only, 2 - all enums
+
+        public static EnumKind IsEnum(TypeReference type) { // checks if type is Enum and should be converted to JS number
+          var typedef = GetTypeDefinition(type);
+          bool isEnum = (typedef != null) && typedef.IsEnum;
+          EnumKind result = 0;
+          if (isEnum)
+          {
+            var attributes = typedef.CustomAttributes;
+            result = (s_ConfigurationChangeEnumToNumber == 2) ||
+                     (s_ConfigurationChangeEnumToNumber > 0 &&
+                      attributes.Count > 0 &&
+                      attributes.Any(ca => ca.AttributeType.FullName == "JSIL.Meta.JSChangeEnumToNumber")) ? EnumKind.ChangeToNumber : EnumKind.IsEnum;
+            result |= (attributes.Count > 0 &&
+                       attributes.Any(ca => ca.AttributeType.FullName == "System.FlagsAttribute")) ? EnumKind.FlagIsFlags : 0;
+          }
+
+          return result;
         }
 
         public static bool IsBoolean (TypeReference type) {

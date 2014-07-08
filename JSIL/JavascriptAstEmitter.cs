@@ -458,6 +458,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
+            if ((TypeUtil.IsEnum(ce.NewType) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+            {
+              Visit(ce.Expression); // no cast here, since Enum changed to JS number
+              return;
+            }
+
             IncludeTypeParens.Push(false);
             try {
                 WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
@@ -817,6 +823,20 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEnumLiteral enm) {
+            TypeUtil.EnumKind enumKind = TypeUtil.IsEnum(enm.EnumType);
+            if ((enumKind & TypeUtil.EnumKind.ChangeToNumber) != 0) {
+              if (enm.Names.Length == 1) {
+                Output.Comment(enm.EnumType.Name + "." + enm.Names[0]);
+              }
+              if ((enumKind & TypeUtil.EnumKind.FlagIsFlags) != 0) {
+                Output.WriteRaw("0x{0:X}", enm.Value);
+              }
+              else {
+                Output.Value(enm.Value);
+              }
+              return;
+            }
+
             if (enm.CachedEnumType != null)
                 Visit(enm.CachedEnumType);
             else
@@ -915,7 +935,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (TypeUtil.IsEnum(defaultValue.Value)) {
+            if ((TypeUtil.IsEnum(defaultValue.Value) & TypeUtil.EnumKind.IsEnum) != 0) {
                 EnumMemberInfo emi;
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
                 
@@ -1665,8 +1685,9 @@ namespace JSIL {
         public void VisitNode (JSBinaryOperatorExpression bop) {
             var resultType = bop.GetActualType(TypeSystem);
 
+            TypeReference resultTypeStripped = TypeUtil.StripNullable(resultType);
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
-                TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
+                (TypeUtil.IsEnum(resultTypeStripped) & TypeUtil.EnumKind.IsEnum) != 0;
             bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
             bool parens = NeedParensForBinaryOperator(bop);
             var parenCount = GetParenCountForTruncation(resultType);
@@ -1675,7 +1696,7 @@ namespace JSIL {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException("Truncation of assignment operations not implemented");
             } else if (needsCast) {
-                Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
+                Output.Identifier(resultTypeStripped, ReferenceContext);
                 Output.WriteRaw(".$Cast");
             }
 

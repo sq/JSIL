@@ -351,7 +351,7 @@ namespace JSIL {
             }
 
             // Insert correct casts when unary operators are applied to enums.
-            if (TypeUtil.IsEnum(innerType) && TypeUtil.IsEnum(node.InferredType ?? node.ExpectedType)) {
+            if (TypeUtil.IsEnum(innerType) > 0 && TypeUtil.IsEnum(node.InferredType ?? node.ExpectedType) > 0) {
                 return JSCastExpression.New(
                     new JSUnaryOperatorExpression(
                         op,
@@ -565,6 +565,8 @@ namespace JSIL {
                 case "System.Boolean JSIL.Builtins::IsFalsy(System.Object)":
                     return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
 
+                case "T JSIL.Verbatim::Expression(System.String)":
+                case "T JSIL.Verbatim::Expression(System.String,System.Object[])":
                 case "System.Object JSIL.Verbatim::Expression(System.String)":
                 case "System.Object JSIL.Verbatim::Expression(System.String,System.Object[])": {
                     var expression = arguments[0] as JSStringLiteral;
@@ -1731,7 +1733,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
-            if (TypeUtil.IsIntegral(node.ExpectedType)) {
+            if (node.ExpectedType != null && TypeUtil.IsIntegral(node.ExpectedType)) {
                 var left = TranslateNode(node.Arguments[0]);
                 var right = TranslateNode(node.Arguments[1]);
                 var leftType = left.GetActualType(TypeSystem);

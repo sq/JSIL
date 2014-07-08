@@ -87,6 +87,9 @@ namespace JSIL.Transforms {
             if (TypeUtil.IsOpenType(type))
                 return false;
 
+            if ((TypeUtil.IsEnum(type) & TypeUtil.EnumKind.ChangeToNumber) != 0)
+                return false;
+
             return true;
         }
 

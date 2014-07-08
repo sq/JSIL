@@ -539,6 +539,13 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Static: false, Public: true }, "GetType",
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Type"), []),
+      function () {
+        return this.__ThisType__;
+      }
+    );
+
     $.Method({Static: false, Public: true }, "toString",
       new JSIL.MethodSignature($.String, []),
       function () {

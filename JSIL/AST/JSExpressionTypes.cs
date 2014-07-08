@@ -1981,7 +1981,7 @@ namespace JSIL.Ast {
                     return true;
             }
 
-            if (TypeUtil.IsEnum(currentType) && TypeUtil.IsIntegral(newType))
+            if (TypeUtil.IsEnum(currentType) > 0 && TypeUtil.IsIntegral(newType))
                 return true;
 
             // Allow casting T*& to U*&

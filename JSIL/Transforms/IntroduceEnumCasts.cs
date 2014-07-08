@@ -79,7 +79,7 @@ namespace JSIL.Transforms {
         public static bool IsNullableEnum (TypeReference tr) {
             var git = tr as GenericInstanceType;
             if ((git != null) && (git.Name == "Nullable`1")) {
-                if (TypeUtil.IsEnum(git.GenericArguments[0]))
+                if ((TypeUtil.IsEnum(git.GenericArguments[0]) & TypeUtil.EnumKind.IsEnum) != 0)
                     return true;
             }
 
@@ -89,7 +89,7 @@ namespace JSIL.Transforms {
         public static bool IsEnumOrNullableEnum (TypeReference tr) {
             tr = TypeUtil.DereferenceType(tr, false);
 
-            if (TypeUtil.IsEnum(tr))
+            if ((TypeUtil.IsEnum(tr) & TypeUtil.EnumKind.IsEnum) != 0)
                 return true;
 
             return IsNullableEnum(tr);

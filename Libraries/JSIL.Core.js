@@ -8412,6 +8412,37 @@ JSIL.Array.ShallowCopy = function (destination, source) {
   JSIL.Array.CopyTo(source, destination, 0);
 };
 
+JSIL.Array.FindIndex = function (array, predicate) { // implements: int System.Array.FindIndex<T>(T[] array, Predicate<T> match)
+  for (var i = 0, l = array.length; i < l; i++) {
+    if (predicate(array[i]))
+      return i;
+  }
+  return -1;
+};
+
+JSIL.Array.Find = function (array, predicate) { // implements: T System.Array.Find<T>(T[] array, Predicate<T> match)
+  for (var i = 0, l = array.length; i < l; i++) {
+    if (predicate(array[i]))
+      return array[i];
+  }
+  return null; // use 'null' and not 'undefined'
+};
+
+JSIL.Array.ForEach = function (array, action) { // implements: void ForEach<T>(T[] array, Action<T> action)
+  for (var i = 0, l = array.length; i < l; i++) {
+    array[i] = action(array[i]);
+  }
+};
+
+JSIL.Array.ConvertAll = function (array, converter) { // implements: TOutput[] ConvertAll<TInput, TOutput>(TInput[] array, Converter<TInput, TOutput> converter)
+  var ctor = Object.getPrototypeOf(array).constructor; // create the array (support typed array)
+  var cloned = new ctor(array.length);
+  for (var i = 0, l = array.length; i < l; i++) {
+    cloned[i] = converter(array[i]);
+  }
+  return cloned;
+};
+
 $jsilcore.CheckDelegateType = function (value) {
   if (value === null)
     return false;
