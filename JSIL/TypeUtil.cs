@@ -12,6 +12,19 @@ using TypeDefinition = Mono.Cecil.TypeDefinition;
 
 namespace JSIL {
     public static class TypeUtil {
+        public static TypeReference GetElementType (TypeReference type, bool throwOnFail) {
+            type = StripModifiers(type);
+
+            var ts = type as TypeSpecification;
+            if (ts != null)
+                return ts.ElementType;
+
+            if (throwOnFail)
+                throw new ArgumentException("Has no ElementType", "type");
+            else
+                return null;
+        }
+
         public static string GetLocalName (TypeDefinition type) {
             var result = new List<string>();
             result.Add(type.Name);
@@ -680,7 +693,7 @@ namespace JSIL {
                 if (
                     (targetGit != null) &&
                     (targetGit.Name == "IEnumerable`1") &&
-                    (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
+                    (targetGit.GenericArguments.FirstOrDefault() == ((ArrayType)source).ElementType)
                 )
                     return true;
             }

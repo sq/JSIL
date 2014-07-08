@@ -490,7 +490,7 @@ namespace JSIL {
             JSExpression delta = pae.Delta;
             bool addElements = false;
 
-            var offsetInElements = JSPointerExpressionUtil.OffsetFromBytesToElements(delta, pae.Pointer.GetActualType(TypeSystem).GetElementType());
+            var offsetInElements = JSPointerExpressionUtil.OffsetFromBytesToElements(delta, TypeUtil.GetElementType(pae.Pointer.GetActualType(TypeSystem), true));
             if (offsetInElements != null) {
                 addElements = true;
                 delta = offsetInElements;

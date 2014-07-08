@@ -802,6 +802,8 @@ namespace JSIL {
                     case "get_Value":
                         return JSIL.ValueOfNullable(thisExpression);
                 }
+            } else if (thisType.FullName.IndexOf("Nullable`1") >= 0) {
+                Debugger.Break();
             }
 
             return null;
@@ -2147,7 +2149,7 @@ namespace JSIL {
 
             var referenceType = reference.GetActualType(TypeSystem);
             if (referenceType.IsPointer) {
-                return new JSReadThroughPointerExpression(reference, referenceType.GetElementType());
+                return new JSReadThroughPointerExpression(reference, TypeUtil.GetElementType(referenceType, true));
             } else {
                 if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                     WarningFormatFunction("unsupported reference type for ldobj: {0}", node.Arguments[0]);
@@ -2826,7 +2828,7 @@ namespace JSIL {
                 return Translate_Newobj_Delegate(node, constructor, arguments.ToArray());
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
-                    constructor.DeclaringType.GetElementType(), arguments.ToArray()
+                    TypeUtil.GetElementType(constructor.DeclaringType, true), arguments.ToArray()
                 );
             } else if (TypeUtil.IsNullable(constructor.DeclaringType)) {
                 if (arguments.Count == 0)
@@ -2858,11 +2860,12 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
-            var at = _arrayType as ArrayType;
+            int temp;
+            var at = (ArrayType)TypeUtil.FullyDereferenceType(_arrayType, out temp);
             var initializer = new JSArrayExpression(at, Translate(node.Arguments).ToArray());
+
             int rank = 0;
-            if (at != null)
-                rank = at.Rank;
+            rank = at.Rank;
 
             if (TypeUtil.TypesAreEqual(TypeSystem.Object, at) && rank < 2)
                 return initializer;

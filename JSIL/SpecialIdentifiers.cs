@@ -122,16 +122,16 @@ namespace JSIL {
         }
 
         public JSNewArrayElementReference NewElementReference (JSExpression target, JSExpression index) {
-            var arrayType = target.GetActualType(TypeSystem);
+            var arrayType = TypeUtil.DereferenceType(target.GetActualType(TypeSystem));
             TypeReference resultType;
 
             if (PackedArrayUtil.IsPackedArrayType(arrayType)) {
                 resultType = new ByReferenceType(
                     PackedArrayUtil.GetElementType(arrayType)
                 );
-            } else if (TypeUtil.IsArray(TypeUtil.DereferenceType(arrayType))) {
+            } else if (TypeUtil.IsArray(arrayType)) {
                 resultType = new ByReferenceType(
-                    arrayType.GetElementType()
+                    TypeUtil.GetElementType(arrayType, true)
                 );
             } else {
                 throw new ArgumentException("Cannot create a reference to an element of a value of type '" + arrayType.FullName + "'", target.ToString());
@@ -239,7 +239,7 @@ namespace JSIL {
 
             return JSInvocationExpression.InvokeStatic(
                 Dot(new JSFakeMethod("StackAlloc", pointerType, new[] { TypeSystem.Int32, TypeSystem.Object }, MethodTypes)),
-                new[] { sizeInBytes, new JSType(pointerType.GetElementType()) }
+                new[] { sizeInBytes, new JSType(TypeUtil.GetElementType(pointerType, true)) }
             );
         }
 
