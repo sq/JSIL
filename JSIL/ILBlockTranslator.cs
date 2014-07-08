@@ -1761,7 +1761,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
-            if (TypeUtil.IsIntegral(node.ExpectedType)) {
+            if (TypeUtil.IsIntegral(node.ExpectedType ?? node.InferredType)) {
                 var left = TranslateNode(node.Arguments[0]);
                 var right = TranslateNode(node.Arguments[1]);
                 var leftType = left.GetActualType(TypeSystem);
