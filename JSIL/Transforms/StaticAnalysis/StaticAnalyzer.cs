@@ -362,9 +362,6 @@ namespace JSIL.Transforms {
             var method = ie.JSMethod;
 
             if (thisVar != null) {
-                // TODO: Only flag as modified if invoked method is not pure?
-                ModifiedVariable(thisVar);
-
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
                     GetParentNodeIndices(), StatementIndex, NodeIndex, thisVar, method, ie.Method, variables
                 ));

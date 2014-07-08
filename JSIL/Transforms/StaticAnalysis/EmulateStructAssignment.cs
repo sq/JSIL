@@ -535,6 +535,9 @@ namespace JSIL.Transforms {
                 IsStructOrGenericParameter(rightType) &&
                 IsCopyNeeded(wtre.Right, out relevantParameter)
             ) {
+                if (Tracing)
+                    Console.WriteLine(String.Format("struct copy introduced for write-through-reference rhs {0}", wtre));
+
                 var replacement = new JSWriteThroughReferenceExpression(
                     (JSVariable)wtre.Left, MakeCopyForExpression(wtre.Right, relevantParameter)
                 );
