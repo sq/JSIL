@@ -10,6 +10,7 @@ JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 JSIL.DeclareNamespace("System.Diagnostics");
+JSIL.DeclareNamespace("System.Collections.Generic");
 
 // HACK: Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
@@ -650,6 +651,8 @@ JSIL.MakeClass("System.SystemException", "System.NullReferenceException", true);
 
 JSIL.MakeClass("System.SystemException", "System.ArithmeticException", true);
 JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
+
+JSIL.MakeClass("System.SystemException", "System.Collections.Generic.KeyNotFoundException", true);
 
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
@@ -2328,7 +2331,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
       if (bucketEntry !== null)
         return bucketEntry.value;
       else
-        throw new System.Exception("Key not found");
+        throw new System.Collections.Generic.KeyNotFoundException("Key not found");
     }
   );
     
