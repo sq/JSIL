@@ -210,14 +210,14 @@ namespace JSIL.Transforms {
             }
         }
 
-        public static HashSet<JSVariable> ExtractExposedVariables (JSNode containingNode) {
-            var extractor = new VariableExtractor(VariableExtractor.Modes.ExposedVariables);
+        public static HashSet<JSVariable> ExtractExposedVariables (JSNode containingNode, Predicate<JSNode> haltPredicate = null) {
+            var extractor = new VariableExtractor(VariableExtractor.Modes.ExposedVariables, haltPredicate);
             extractor.Visit(containingNode);
             return extractor.Variables;
         }
 
-        public static HashSet<JSVariable> ExtractInvolvedVariables (JSNode containingNode) {
-            var extractor = new VariableExtractor(VariableExtractor.Modes.InvolvedVariables);
+        public static HashSet<JSVariable> ExtractInvolvedVariables (JSNode containingNode, Predicate<JSNode> haltPredicate = null) {
+            var extractor = new VariableExtractor(VariableExtractor.Modes.InvolvedVariables, haltPredicate);
             extractor.Visit(containingNode);
             return extractor.Variables;
         }
@@ -1144,9 +1144,17 @@ namespace JSIL.Transforms {
 
         public readonly Modes Mode;
         public readonly HashSet<JSVariable> Variables = new HashSet<JSVariable>();
+        public readonly Predicate<JSNode> HaltPredicate;
 
-        public VariableExtractor (Modes mode) {
+        public VariableExtractor (Modes mode, Predicate<JSNode> haltPredicate) {
             Mode = mode;
+            HaltPredicate = haltPredicate;
+            DefaultVisitPredicate = (node, name) => {
+                if (haltPredicate != null)
+                    return !haltPredicate(node);
+                else
+                    return true;
+            };
         }
 
         public void VisitNode (JSVariable variable) {

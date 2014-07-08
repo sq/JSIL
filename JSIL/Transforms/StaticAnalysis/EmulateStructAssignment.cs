@@ -16,7 +16,8 @@ namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
         public const bool TraceElidedCopies = false;
         public const bool TraceInsertedCopies = false;
-        public const bool TracePostOptimizedCopies = false;
+        public const bool TracePostOptimizedCopies = true;
+        public const bool TracePostOptimizeDecisions = false;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
@@ -511,19 +512,19 @@ namespace JSIL.Transforms {
             if (invokeMethod == null)
                 return;
 
-            var secondPass = GetSecondPass(invokeMethod);
-            if (secondPass == null)
+            var invocationSecondPass = GetSecondPass(invokeMethod);
+            if (invocationSecondPass == null)
                 return;
 
             bool eliminateCopy = false;
             string eliminateReason = null;
 
-            if (secondPass.ResultIsNew) {
+            if (invocationSecondPass.ResultIsNew) {
                 // If this expression is the return value of a function invocation, we can eliminate struct
                 //  copies if the return value is a 'new' expression.
                 eliminateCopy = true;
                 eliminateReason = "Result is new";
-            } else if (secondPass.ResultVariable != null) {
+            } else if (invocationSecondPass.ResultVariable != null) {
                 // We can also eliminate a return value copy if the return value is one of the function's 
                 //  arguments, and we are sure that argument does not escape (other than through the return
                 //  statement, that is).
@@ -532,27 +533,65 @@ namespace JSIL.Transforms {
                 int parameterIndex = -1;
 
                 for (var i = 0; i < parameters.Length; i++) {
-                    if (parameters[i].Name != secondPass.ResultVariable)
+                    if (parameters[i].Name != invocationSecondPass.ResultVariable)
                         continue;
 
                     parameterIndex = i;
                     break;
                 }
 
+                // We found a single parameter that acts as the result of this function call.
                 if (parameterIndex >= 0) {
                     GenericParameter relevantParameter;
                     var innerValue = invocation.Arguments[parameterIndex];
-                    var icn = IsCopyNeeded(innerValue, out relevantParameter);
-                    var escapes = secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
-                    var modified = secondPass.IsVariableModified(secondPass.ResultVariable);
 
+                    // Identify any local variables that are a dependency of the result parameter.
+                    var localVariableDependencies = StaticAnalyzer.ExtractInvolvedVariables(
+                        innerValue,
+                        // If a variable is inside a copy expression we can ignore it as a dependency.
+                        // The copy ensures that the dependency is resolved at the time of invocation.
+                        (n) => n is JSStructCopyExpression
+                    );
+
+                    // Was the result parameter already copied when invoking the function?
+                    // If so, we can eliminate the copy of the result because all dependencies have been resolved.
+                    // Note that this is separate from the variable dependency extraction above -
+                    //  if an invocation has multiple variable dependencies, the above merely narrows them down
+                    //  while this detects cases where there are effectively *no* dependencies of any kind.
+                    // This also detects cases where the argument is the result of an invocation or property access
+                    //  and the result was copied.
                     var isAlreadyCopied = innerValue is JSStructCopyExpression;
 
-                    if (isAlreadyCopied || !escapes) {
+                    var dependenciesModified = localVariableDependencies.Any(iv => SecondPass.IsVariableModified(iv.Name));
+
+                    var copyNeededForTarget = IsCopyNeededForAssignmentTarget(boe.Left);
+
+                    var escapes = invocationSecondPass.DoesVariableEscape(invocationSecondPass.ResultVariable, false);
+                    var modified = invocationSecondPass.IsVariableModified(invocationSecondPass.ResultVariable);
+
+                    var traceMessage = (Action)(() => {
+                        if (TracePostOptimizeDecisions)
+                            Console.WriteLine(
+                                "< {0}: {1} > escapes:{2} modified:{3} copyNeededForTarget({4}):{5} inputsModified:{6}", 
+                                parameters[parameterIndex].Name, innerValue, escapes, modified, boe.Left, copyNeededForTarget, dependenciesModified
+                            );
+                    });
+
+                    if (isAlreadyCopied) {
                         eliminateCopy = true;
                         eliminateReason = "Result was already copied as part of argument list";
+                    } else if (!escapes && !dependenciesModified) {
+                        if (!copyNeededForTarget) {
+                            eliminateCopy = true;
+                            eliminateReason = "Target does not require a copy and other criteria are met";
+                        } else if (!modified) {
+                            eliminateCopy = true;
+                            eliminateReason = "Input not modified, doesn't escape, no dependency changes";
+                        }
+
+                        traceMessage();
                     } else {
-                        Console.WriteLine("< {0}: {1} > icn:{2} escapes:{3} modified:{4}, alreadyCopied: {5}", parameters[parameterIndex].Name, innerValue, icn, escapes, modified, isAlreadyCopied);
+                        traceMessage();
                     }
                 }
             }

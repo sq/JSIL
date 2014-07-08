@@ -35,6 +35,7 @@ namespace JSIL.Ast {
             where TVisitor : JSAstVisitor
             where TNode : JSNode;
 
+        protected Func<JSNode, string, bool> DefaultVisitPredicate;
         protected readonly VisitorCache Visitors;
 
         protected bool VisitNestedFunctions = false;
@@ -235,6 +236,8 @@ namespace JSIL.Ast {
             var oldPreviousSibling = PreviousSibling;
             var oldNextSibling = NextSibling;
             string nextSiblingName = null;
+
+            predicate = predicate ?? DefaultVisitPredicate;
 
             try {
                 PreviousSibling = NextSibling = null;

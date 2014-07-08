@@ -266,7 +266,7 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
 
             var cloneCount = Regex.Matches(generatedJs, @".MemberwiseClone\(\)").Count;
-            Assert.AreEqual(1, cloneCount, "Expected 1 struct clone");
+            Assert.AreEqual(2, cloneCount, "Expected 2 struct clones");
         }
 
         [Test]
