@@ -14,9 +14,9 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
-        public const bool TraceElidedCopies = true;
+        public const bool TraceElidedCopies = false;
         public const bool TraceInsertedCopies = false;
-        public const bool TracePostOptimizedCopies = true;
+        public const bool TracePostOptimizedCopies = false;
         public const bool TracePostOptimizeDecisions = false;
 
         public readonly TypeInfoProvider TypeInfo;
@@ -547,9 +547,13 @@ namespace JSIL.Transforms {
                     // Identify any local variables that are a dependency of the result parameter.
                     var localVariableDependencies = StaticAnalyzer.ExtractInvolvedVariables(
                         innerValue,
-                        // If a variable is inside a copy expression we can ignore it as a dependency.
-                        // The copy ensures that the dependency is resolved at the time of invocation.
-                        (n) => n is JSStructCopyExpression
+                        (n) =>
+                            // If a variable is inside a copy expression we can ignore it as a dependency.
+                            // The copy ensures that the dependency is resolved at the time of invocation.
+                            (n is JSStructCopyExpression) ||
+                            // If a variable is inside an invocation expression we can ignore it as a dependency.
+                            // Dependency resolution would have occurred for the invocation already.
+                            (n is JSInvocationExpression)
                     );
 
                     // Was the result parameter already copied when invoking the function?

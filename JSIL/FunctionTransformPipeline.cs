@@ -189,6 +189,10 @@ namespace JSIL.Internal {
 
             Enqueue(IntroduceVariableDeclarationsAndReferences);
 
+            // Important to run this before static analysis. Otherwise var, declaration and ctor 
+            //  call can end up split, making a variable appear to get modified.
+            Enqueue(FixupStructConstructorInvocations);
+
             Enqueue(EliminateTemporaries);
 
             Enqueue(EmulateInt64);
@@ -216,8 +220,6 @@ namespace JSIL.Internal {
             Enqueue(DeoptimizeSwitchStatements);
 
             Enqueue(CollapseNulls);
-
-            Enqueue(FixupStructConstructorInvocations);
 
             Enqueue(EliminateTemporaries);
 

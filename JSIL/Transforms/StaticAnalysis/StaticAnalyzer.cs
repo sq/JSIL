@@ -766,12 +766,21 @@ namespace JSIL.Transforms {
                         ModifiedVariables.Add(s);
                 }
             } else {
-                ModifiedVariables = new HashSet<string>(
-                    data.ModificationCount.Where((kvp) => {
-                        var isParameter = parameterNames.Contains(kvp.Key);
-                        return kvp.Value >= (isParameter ? 1 : 2);
-                    }).Select((kvp) => kvp.Key)
-                );
+                ModifiedVariables = new HashSet<string>();
+
+                foreach (var kvp in data.ModificationCount) {
+                    var isParameter = parameterNames.Contains(kvp.Key);
+
+                    if (
+                        kvp.Value >= 
+                        (isParameter 
+                            ? 1 
+                            : 2
+                        )
+                    ) {
+                        ModifiedVariables.Add(kvp.Key);
+                    }
+                }
 
                 if (TraceModifications && (ModifiedVariables.Count > 0))
                     Console.WriteLine("Tagged variables as modified due to modification count: {0}", String.Join(", ", ModifiedVariables));
@@ -801,7 +810,10 @@ namespace JSIL.Transforms {
                             modified = true;
                         }
 
-                        if ((invocationKvp.Value.Count == 1) && modified) {
+                        if (
+                            (invocationKvp.Value.Count == 1) 
+                            && modified
+                        ) {
                             var relevantVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
 
                             if (TraceModifications)
