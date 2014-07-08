@@ -236,7 +236,14 @@ namespace JSIL.Transforms {
                 if (parameterIndex < 0)
                     return true;
 
-                return secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
+                var innerValue = rightInvocation.Arguments[parameterIndex];
+                var icn = IsCopyNeeded(innerValue, out relevantParameter);
+                var escapes = secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
+                var modified = secondPass.IsVariableModified(secondPass.ResultVariable);
+
+                Console.WriteLine("< {0}: {1} > icn:{2} escapes:{3} modified:{4}", parameters[parameterIndex].Name, innerValue, icn, escapes, modified);
+
+                return escapes;
             }
  
             return true;

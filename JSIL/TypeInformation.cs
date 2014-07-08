@@ -157,11 +157,23 @@ namespace JSIL.Internal {
         }
 
         public override string ToString () {
+            var shortAssembly = Assembly;
+            if (!String.IsNullOrWhiteSpace(shortAssembly)) {
+                var firstComma = Assembly.IndexOf(",");
+                if (firstComma >= 0)
+                    shortAssembly = Assembly.Substring(0, firstComma);
+            }
+
+            var hasShortAssembly = !String.IsNullOrWhiteSpace(shortAssembly);
+
             return String.Format(
-                "{0}{1}{2}{3}{4}{5}{6}", Assembly, String.IsNullOrWhiteSpace(Assembly) ? "" : " ",
+                "{0}{1}{2}{3}{4}{5}{6}{7}", 
+                hasShortAssembly ? "[" : "", 
+                shortAssembly ?? "", 
+                hasShortAssembly ? "]" : "",
                 Namespace, String.IsNullOrWhiteSpace(Namespace) ? "" : ".",
                 String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : "/",
-                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : DeclaringTypeName,
+                DeclaringTypeName ?? "",
                 Name
             );
         }
