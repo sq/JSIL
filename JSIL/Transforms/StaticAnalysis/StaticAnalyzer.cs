@@ -766,6 +766,39 @@ namespace JSIL.Transforms {
 
                     ModifiedVariables.Add(v);
                 }
+
+                // Scan over all the invocations performed by this function and see if any of them cause
+                //  a variable to escape
+                foreach (var invocation in Data.Invocations) {
+                    if (invocation.Method != null)
+                        invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
+                    else
+                        invocationSecondPass = null;
+
+                    var thisKvp = invocation.ThisAndVariables.FirstOrDefault(kvp => kvp.Key == "this");
+                    if (thisKvp.Key != "this")
+                        continue;
+
+                    if (thisKvp.Value.Count != 1)
+                        continue;
+
+                    var affectedVariable = thisKvp.Value.Array[thisKvp.Value.Offset];
+                    bool isModified;
+
+                    if (invocationSecondPass != null) {
+                        isModified = invocationSecondPass.ViolatesThisReferenceImmutability ||
+                            invocationSecondPass.ModifiedVariables.Contains("this");
+                    } else {
+                        isModified = true;
+                    }
+
+                    if (isModified) {
+                        if (TraceModifications)
+                            Console.WriteLine("Tagging variable '{0}' as modified because it used as the this-reference in an invocation of {1}", affectedVariable, invocation.Method);
+
+                        ModifiedVariables.Add(affectedVariable);
+                    }
+                }
             }
 
             parms = data.Function.Method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");

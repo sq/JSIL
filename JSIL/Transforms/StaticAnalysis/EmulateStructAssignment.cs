@@ -486,9 +486,11 @@ namespace JSIL.Transforms {
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
                 if (
-                    (rightVarsModified || 
-                    IsCopyNeededForAssignmentTarget(boe.Left) || 
-                    rightVarsAreReferences) &&
+                    (
+                        rightVarsModified || 
+                        IsCopyNeededForAssignmentTarget(boe.Left) || 
+                        rightVarsAreReferences
+                    ) &&
                     !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
                 ) {
                     if (Tracing)
