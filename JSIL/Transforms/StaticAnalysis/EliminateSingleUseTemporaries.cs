@@ -224,7 +224,8 @@ namespace JSIL.Transforms {
                         ) {
                             reason = "touches it with side effects";
                         } else if (
-                            invocationSecondPass.EscapingVariables.Contains(argumentName)
+                            // FIXME: Should this include return?
+                            invocationSecondPass.DoesVariableEscape(argumentName, false)
                         ) {
                             reason = "allows it to escape";
                         }

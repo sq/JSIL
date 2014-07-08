@@ -82,7 +82,7 @@ namespace JSIL.Transforms {
 
             var variable = target as JSVariable;
             if (variable != null)
-                return SecondPass.ModifiedVariables.Contains(variable.Name);
+                return SecondPass.IsVariableModified(variable.Name);
 
             return true;
         }
@@ -189,7 +189,9 @@ namespace JSIL.Transforms {
                 int referenceCount;
                 if (
                     ReferenceCounts.TryGetValue(rightVar.Identifier, out referenceCount) &&
-                    (referenceCount == 1) && !rightVar.IsReference && rightVar.IsParameter &&
+                    (referenceCount == 1) && 
+                    !rightVar.IsReference && 
+                    rightVar.IsParameter &&
                     !SecondPass.VariableAliases.ContainsKey(rightVar.Identifier)
                 ) {
                     if (Tracing)
@@ -217,7 +219,8 @@ namespace JSIL.Transforms {
                 return false;
 
             // We can also eliminate a return value copy if the return value is one of the function's 
-            //  arguments, and we are sure that argument does not need a copy either.
+            //  arguments, and we are sure that argument does not escape (other than through the return
+            //  statement, that is).
             if (secondPass.ResultVariable != null) {
                 var parameters = invokeMethod.Method.Parameters;
                 int parameterIndex = -1;
@@ -233,7 +236,7 @@ namespace JSIL.Transforms {
                 if (parameterIndex < 0)
                     return true;
 
-                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex], out relevantParameter);
+                return secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
             }
  
             return true;
@@ -264,7 +267,7 @@ namespace JSIL.Transforms {
             GenericParameter relevantParameter;
             if (IsCopyNeeded(pair.Value, out relevantParameter)) {
                 if (Tracing)
-                    Console.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
+                    Console.WriteLine("struct copy introduced for object value {0}", pair.Value);
 
                 pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
             }
@@ -272,7 +275,7 @@ namespace JSIL.Transforms {
             VisitChildren(pair);
         }
 
-        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
+        protected bool IsArgumentCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
             if (!IsCopyNeeded(expression, out relevantParameter))
                 return false;
 
@@ -285,12 +288,19 @@ namespace JSIL.Transforms {
             bool modified = true, escapes = true, isResult = false;
 
             if (parameterName != null) {
-                modified = sa.ModifiedVariables.Contains(parameterName);
-                escapes = sa.EscapingVariables.Contains(parameterName);
+                modified = sa.IsVariableModified(parameterName);
+                escapes = sa.DoesVariableEscape(parameterName, true);
                 isResult = sa.ResultVariable == parameterName;
             }
 
-            return modified || (escapes && !isResult);
+            var result = modified || (escapes && !isResult);
+
+            if (!result) {
+                if (Tracing)
+                    Console.WriteLine("argument {0} needs no copy because it isn't modified and doesn't escape");
+            }
+
+            return result;
         }
 
         public void VisitNode (JSNewExpression newexp) {
@@ -356,7 +366,11 @@ namespace JSIL.Transforms {
                         (thisReference is JSReadThroughReferenceExpression);
 
                 thisReferenceNeedsCopy = isMethodInvocation &&
-                    (sa.ModifiedVariables.Contains("this") || sa.EscapingVariables.Contains("this")) &&
+                    (
+                        sa.IsVariableModified("this") || 
+                        // Maybe don't include return here?
+                        sa.DoesVariableEscape("this", true)
+                    ) &&
                     !isWritableInstance;
             }
 
@@ -437,7 +451,7 @@ namespace JSIL.Transforms {
                     parameterName = pd.Name;
 
                 GenericParameter relevantParameter;
-                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter))
+                if (IsArgumentCopyNeeded(sa, parameterName, argument, out relevantParameter))
                 {
                     if (Tracing)
                         Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
@@ -477,12 +491,12 @@ namespace JSIL.Transforms {
             GenericParameter relevantParameter;
 
             if (IsCopyNeeded(boe.Right, out relevantParameter)) {
-                var rightVars = boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>().ToArray();
+                var rightVars = new HashSet<JSVariable>(StaticAnalyzer.ExtractInvolvedVariables(boe.Right));
 
                 // Even if the assignment target is never modified, if the assignment *source*
                 //  gets modified, we need to make a copy here, because the target is probably
                 //  being used as a back-up copy.
-                var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
+                var rightVarsModified = (rightVars.Any((rv) => SecondPass.IsVariableModified(rv.Name)));
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
                 if (

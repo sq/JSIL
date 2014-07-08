@@ -176,6 +176,9 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains(
                 @".IncrementArgumentValue(a.MemberwiseClone())"
             ));
+            Assert.IsFalse(generatedJs.Contains(
+                @"b = $thisType.IncrementArgumentValue(a.MemberwiseClone()).MemberwiseClone()"
+            ), "Return value was cloned inside b assignment (a is already cloned)");
         }
 
         [Test]

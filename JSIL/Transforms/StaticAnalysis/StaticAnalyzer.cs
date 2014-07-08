@@ -71,12 +71,16 @@ namespace JSIL.Transforms {
             } else {
                 var retVar = returnValue as JSVariable;
                 if (retVar != null) {
-                    State.EscapingVariables.Add(retVar.Identifier);
 
-                    if (ReturnsSeen == 1)
+                    if (ReturnsSeen == 1) {
+                        // Don't flag as escaping since this is handled by having a result variable.
                         State.ResultVariable = retVar.Identifier;
-                    else if (State.ResultVariable != retVar.Identifier)
+                    } else if (State.ResultVariable != retVar.Identifier) {
+                        // We have more than one possible result variable so flag both as escaping.
+                        State.EscapingVariables.Add(State.ResultVariable);
                         State.ResultVariable = null;
+                        State.EscapingVariables.Add(retVar.Identifier);
+                    }
                 } else {
                     State.ResultVariable = null;
                 }
@@ -194,15 +198,28 @@ namespace JSIL.Transforms {
                 }
 
                 if (
-                    (boe.Left.SelfAndChildrenRecursive.OfType<JSField>().FirstOrDefault() != null) ||
-                    (boe.Left.SelfAndChildrenRecursive.OfType<JSProperty>().FirstOrDefault() != null)
+                    boe.Left.SelfAndChildrenRecursive.FirstOrDefault((n) =>
+                        (n is JSField) || (n is JSProperty) || (n is JSWriteThroughReferenceExpression)
+                    ) != null
                 ) {
-                    var rightVars = new HashSet<JSVariable>(boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>());
+                    var rightVars = new HashSet<JSVariable>(ExtractExposedVariables(boe.Right));
 
                     foreach (var variable in rightVars)
                         State.EscapingVariables.Add(variable.Identifier);
                 }
             }
+        }
+
+        public static HashSet<JSVariable> ExtractExposedVariables (JSNode containingNode) {
+            var extractor = new VariableExtractor(VariableExtractor.Modes.ExposedVariables);
+            extractor.Visit(containingNode);
+            return extractor.Variables;
+        }
+
+        public static HashSet<JSVariable> ExtractInvolvedVariables (JSNode containingNode) {
+            var extractor = new VariableExtractor(VariableExtractor.Modes.InvolvedVariables);
+            extractor.Visit(containingNode);
+            return extractor.Variables;
         }
 
         public void VisitNode (JSIndexerExpression ie) {
@@ -306,7 +323,7 @@ namespace JSIL.Transforms {
                     if (kvp.Value == null)
                         continue;
 
-                    foreach (var v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>()) {
+                    foreach (var v in ExtractInvolvedVariables(kvp.Value)) {
                         if (!variables.ContainsKey(v.Name))
                             variables[v.Name] = v;
                     }
@@ -327,7 +344,7 @@ namespace JSIL.Transforms {
 
             int i = 0;
             foreach (var kvp in paramsArray) {
-                var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToImmutableArray();
+                var value = new ArraySegment<string>((from v in ExtractInvolvedVariables(kvp.Value) select v.Name).ToArray());
 
                 if ((kvp.Key == null) || String.IsNullOrWhiteSpace(kvp.Key.Name)) {
                     variables.Add(String.Format("#{0}", i++), value);
@@ -699,8 +716,8 @@ namespace JSIL.Transforms {
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
         public readonly HashSet<FieldInfo> MutatedFields;
         public readonly HashSet<HashSet<FieldInfo>> RecursivelyMutatedFields;
-        public readonly HashSet<string> ModifiedVariables;
-        public readonly HashSet<string> EscapingVariables;
+        private readonly HashSet<string> ModifiedVariables;
+        private readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
         public readonly bool ResultIsNew;
         public readonly bool ViolatesThisReferenceImmutability;
@@ -767,36 +784,32 @@ namespace JSIL.Transforms {
                     ModifiedVariables.Add(v);
                 }
 
-                // Scan over all the invocations performed by this function and see if any of them cause
-                //  a variable to escape
                 foreach (var invocation in Data.Invocations) {
                     if (invocation.Method != null)
                         invocationSecondPass = functionCache.GetSecondPass(invocation.Method, Data.Identifier);
                     else
                         invocationSecondPass = null;
 
-                    var thisKvp = invocation.ThisAndVariables.FirstOrDefault(kvp => kvp.Key == "this");
-                    if (thisKvp.Key != "this")
-                        continue;
+                    foreach (var invocationKvp in invocation.ThisAndVariables) {
+                        if (invocationKvp.Value.Count == 0)
+                            continue;
 
-                    if (thisKvp.Value.Count != 1)
-                        continue;
+                        bool modified;
 
-                    var affectedVariable = thisKvp.Value.Array[thisKvp.Value.Offset];
-                    bool isModified;
+                        if (invocationSecondPass != null) {
+                            modified = invocationSecondPass.IsVariableModified(invocationKvp.Key);
+                        } else {
+                            modified = true;
+                        }
 
-                    if (invocationSecondPass != null) {
-                        isModified = invocationSecondPass.ViolatesThisReferenceImmutability ||
-                            invocationSecondPass.ModifiedVariables.Contains("this");
-                    } else {
-                        isModified = true;
-                    }
+                        if ((invocationKvp.Value.Count == 1) && modified) {
+                            var relevantVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
 
-                    if (isModified) {
-                        if (TraceModifications)
-                            Console.WriteLine("Tagging variable '{0}' as modified because it used as the this-reference in an invocation of {1}", affectedVariable, invocation.Method);
+                            if (TraceModifications)
+                                Console.WriteLine("Parameter '{0}::{1}' modified; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, relevantVariable);
 
-                        ModifiedVariables.Add(affectedVariable);
+                            ModifiedVariables.Add(relevantVariable);
+                        }
                     }
                 }
             }
@@ -827,7 +840,8 @@ namespace JSIL.Transforms {
                         bool escapes;
 
                         if (invocationSecondPass != null) {
-                            escapes = invocationSecondPass.EscapingVariables.Contains(invocationKvp.Key);
+                            // FIXME: Ignore return?
+                            escapes = invocationSecondPass.DoesVariableEscape(invocationKvp.Key, true);
                         } else {
                             escapes = true;
                         }
@@ -981,6 +995,26 @@ namespace JSIL.Transforms {
                 return method.Reference.Name;
         }
 
+        public bool IsVariableModified (string variableName) {
+            return ModifiedVariables.Contains(variableName);
+        }
+
+        public bool DoesVariableEscape (string variableName, bool includeReturn) {
+            if (includeReturn && (variableName == ResultVariable))
+                return true;
+
+            return EscapingVariables.Contains(variableName);
+        }
+
+        public int GetNumberOfEscapingVariables (bool includeReturn) {
+            var result = EscapingVariables.Count;
+
+            if (includeReturn && (ResultVariable != null))
+                result += 1;
+
+            return result;
+        }
+
         protected bool DetermineIfPure () {
             foreach (var i in Data.Invocations) {
                 if (i.Method == null)
@@ -1099,6 +1133,34 @@ namespace JSIL.Transforms {
                 return Equals(rhs);
 
             return base.Equals(obj);
+        }
+    }
+
+    internal class VariableExtractor : JSAstVisitor {
+        public enum Modes {
+            ExposedVariables,
+            InvolvedVariables
+        }
+
+        public readonly Modes Mode;
+        public readonly HashSet<JSVariable> Variables = new HashSet<JSVariable>();
+
+        public VariableExtractor (Modes mode) {
+            Mode = mode;
+        }
+
+        public void VisitNode (JSVariable variable) {
+            bool doAdd = true;
+            if (
+                (ParentNode is JSFieldAccess) &&
+                (Mode == Modes.ExposedVariables)
+            )
+                doAdd = false;
+
+            if (doAdd)
+                Variables.Add(variable);
+
+            VisitChildren(variable);
         }
     }
 }

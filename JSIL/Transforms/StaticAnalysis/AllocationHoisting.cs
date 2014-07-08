@@ -116,7 +116,7 @@ namespace JSIL.Transforms {
             return result.Object;
         }
 
-        bool DoesValueEscapeFromInvocation (JSInvocationExpression invocation, JSExpression argumentExpression) {
+        bool DoesValueEscapeFromInvocation (JSInvocationExpression invocation, JSExpression argumentExpression, bool includeReturn) {
             if (
                 (invocation != null) &&
                 (invocation.JSMethod != null) &&
@@ -133,11 +133,11 @@ namespace JSIL.Transforms {
                     if (argumentIndex != null) {
                         var argumentName = methodDef.Parameters[argumentIndex.index].Name;
 
-                        return secondPass.EscapingVariables.Contains(argumentName);
+                        return secondPass.DoesVariableEscape(argumentName, includeReturn);
                     }
                 } else if (secondPass != null) {
                     // HACK for methods that do not have resolvable references. In this case, if NONE of their arguments escape, we're probably still okay.
-                    if (secondPass.EscapingVariables.Count == 0)
+                    if (secondPass.GetNumberOfEscapingVariables(includeReturn) == 0)
                         return false;
                 }
             }
@@ -149,7 +149,7 @@ namespace JSIL.Transforms {
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
             var parentPassByRef = ParentNode as JSPassByReferenceExpression;
             var parentInvocation = Stack.OfType<JSInvocationExpression>().FirstOrDefault();
-            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, naer);
+            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, naer, true);
 
             if (
                 isInsideLoop &&
@@ -176,7 +176,8 @@ namespace JSIL.Transforms {
         public void VisitNode (JSNewPackedArrayElementProxy npaep) {
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
             var parentInvocation = Stack.OfType<JSInvocationExpression>().FirstOrDefault();
-            var doesValueEscape = (parentInvocation != null) && DoesValueEscapeFromInvocation(parentInvocation, npaep);
+            var doesValueEscape = (parentInvocation != null) && 
+                DoesValueEscapeFromInvocation(parentInvocation, npaep, true);
 
             if (
                 isInsideLoop &&
@@ -209,7 +210,7 @@ namespace JSIL.Transforms {
             var isStruct = TypeUtil.IsStruct(type);
             var isInsideLoop = (Stack.Any((node) => node is JSLoopStatement));
             var parentInvocation = ParentNode as JSInvocationExpression;
-            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, newexp);
+            var doesValueEscape = DoesValueEscapeFromInvocation(parentInvocation, newexp, false);
 
             if (isStruct && 
                 isInsideLoop && 
