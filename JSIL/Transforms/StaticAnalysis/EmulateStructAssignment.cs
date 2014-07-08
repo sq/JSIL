@@ -101,7 +101,11 @@ namespace JSIL.Transforms {
             return false;
         }
 
-        protected bool IsCopyNeeded (JSExpression value, out GenericParameter relevantParameter) {
+        protected bool IsCopyNeeded (
+            JSExpression value, 
+            out GenericParameter relevantParameter,
+            bool allowImmutabilityOptimizations = true
+        ) {
             relevantParameter = null;
 
             if ((value == null) || (value.IsNull))
@@ -164,9 +168,8 @@ namespace JSIL.Transforms {
             if (!OptimizeCopies)
                 return true;
 
-            if (IsImmutable(value)) {
+            if (IsImmutable(value) && allowImmutabilityOptimizations)
                 return false;
-            }
 
             var valueDot = value as JSDotExpressionBase;
 
@@ -176,7 +179,7 @@ namespace JSIL.Transforms {
                 return false;
 
             var valueTypeInfo = TypeInfo.GetExisting(valueType);
-            if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable)
+            if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable && allowImmutabilityOptimizations)
                 return false;
             
             // If the expression is a parameter that is only used once and isn't aliased,
@@ -328,6 +331,7 @@ namespace JSIL.Transforms {
                         Stack.OfType<JSCommaExpression>().Any()
                     );
 
+
                 // If a struct is immutable, a method may reassign the this-reference,
                 //  i.e. 'this = otherstruct' successfully.
                 // In this scenario we have to clone the old this-reference, invoke
@@ -336,20 +340,31 @@ namespace JSIL.Transforms {
 
                 thisReferenceNeedsCopyAndReassignment = isMethodInvocation && sa.ViolatesThisReferenceImmutability;
 
+
                 // When invoking a method that mutates a struct's members or lets them escape,
                 //  we need to copy the this-reference if it isn't a local or field.
+
+                var isFieldOrVariable = 
+                    (thisReference is JSFieldAccess) ||
+                        (thisReference is JSVariable);
+
                 thisReferenceNeedsCopy = isMethodInvocation &&
-                    (sa.ModifiedVariables.Contains("this") || sa.EscapingVariables.Contains("this"));
+                    (sa.ModifiedVariables.Contains("this") || sa.EscapingVariables.Contains("this")) &&
+                    !isFieldOrVariable;
             }
 
-            if (thisReferenceNeedsCopyAndReassignment) {
+            GenericParameter relevantParameter;
+            var isCopyNeeded = IsCopyNeeded(thisReference, out relevantParameter, false);
+            if (
+                thisReferenceNeedsCopyAndReassignment && isCopyNeeded
+            ) {
                 if (
                     (thisReference is JSFieldAccess) ||
                     (thisReference is JSVariable)
                 ) {
                     var rre = ParentNode as JSResultReferenceExpression;
                     var cloneExpr = new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
+                        JSOperator.Assignment, thisReference, MakeCopyForExpression(thisReference, relevantParameter), thisReferenceType
                     );
                     var commaExpression = new JSCommaExpression(
                         cloneExpr,
@@ -368,13 +383,14 @@ namespace JSIL.Transforms {
                     }
                 } else {
                     // Huh?
-                    invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
+                    invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
                     VisitChildren(invocation);
                     return;
                 }
-            } else if (thisReferenceNeedsCopy) {
-                invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
+            } else if (thisReferenceNeedsCopy && isCopyNeeded) {
+                invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
                 VisitChildren(invocation);
+                return;
             }
 
             VisitChildren(invocation);
