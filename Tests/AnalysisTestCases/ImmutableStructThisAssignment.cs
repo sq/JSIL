@@ -1,6 +1,8 @@
 ﻿using System;
 
 public static class Program {
+    static ImmutableCustomType ImmutableProperty { get; set; }
+
     public static void Main (string[] args) {
         var ict = new ImmutableCustomType(2);
         var ictCopy = ict;
@@ -10,6 +12,14 @@ public static class Program {
         ict.Naughty(1);
 
         Console.WriteLine("{0} {1}", ict, ictCopy);
+
+        ImmutableProperty = new ImmutableCustomType(3);
+        
+        Console.WriteLine("{0}", ImmutableProperty);
+
+        ImmutableProperty.Naughty(4);
+
+        Console.WriteLine("{0}", ImmutableProperty);
     }
 }
 

@@ -856,6 +856,7 @@ namespace JSIL.Transforms {
                 data.ReassignsThisReference
             ) {
                 ViolatesThisReferenceImmutability = true;
+                ModifiedVariables.Add("this");
             }
 
             MutatedFields = new HashSet<FieldInfo>(

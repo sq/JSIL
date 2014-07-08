@@ -311,51 +311,70 @@ namespace JSIL.Transforms {
             CloneArgumentsIfNecessary(invocation.Parameters, invocation.Arguments, sa);
 
             var thisReference = invocation.ThisReference;
-            if (
-                (thisReference != null) && 
-                (sa != null) && 
-                !(ParentNode is JSCommaExpression) &&
-                !(thisReference is JSStructCopyExpression) &&
-                !(
-                    (ParentNode is JSResultReferenceExpression) &&
-                    Stack.OfType<JSCommaExpression>().Any()
-                ) &&
-                (
-                    sa.ViolatesThisReferenceImmutability /* ||
-                    sa.ModifiedVariables.Contains("this") ||
-                    sa.EscapingVariables.Contains("this") */
-                )
-            ) {
-                // The method we're calling violates immutability so we need to clone the this-reference
-                //  before we call it.
-                var thisReferenceType = thisReference.GetActualType(TypeSystem);
+            var thisReferenceType = thisReference.GetActualType(TypeSystem);
+            var thisReferenceIsStruct = TypeUtil.IsStruct(thisReferenceType) && 
+                !TypeUtil.IsNullable(thisReferenceType);
 
-                if (TypeUtil.IsStruct(thisReferenceType)) {
-                    if ((thisReference is JSVariable) || (thisReference is JSFieldAccess)) {
-                        var rre = ParentNode as JSResultReferenceExpression;
-                        var cloneExpr = new JSBinaryOperatorExpression(
-                            JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
-                        );
-                        var commaExpression = new JSCommaExpression(
-                            cloneExpr,
-                            (rre != null)
-                                ? (JSExpression)new JSResultReferenceExpression(invocation)
-                                : (JSExpression)invocation
-                        );
+            bool thisReferenceNeedsCopy = false;
+            bool thisReferenceNeedsCopyAndReassignment = false;
 
-                        if (rre != null) {
-                            ResultReferenceReplacement = commaExpression;
-                        } else {
-                            ParentNode.ReplaceChild(invocation, commaExpression);
-                            VisitReplacement(commaExpression);
-                        }
+            if (thisReferenceIsStruct) {
+                var isMethodInvocation = (thisReference != null) && 
+                    (sa != null) && 
+                    !(ParentNode is JSCommaExpression) &&
+                    !(thisReference is JSStructCopyExpression) &&
+                    !(
+                        (ParentNode is JSResultReferenceExpression) &&
+                        Stack.OfType<JSCommaExpression>().Any()
+                    );
+
+                // If a struct is immutable, a method may reassign the this-reference,
+                //  i.e. 'this = otherstruct' successfully.
+                // In this scenario we have to clone the old this-reference, invoke
+                //  the method on the clone, and replace the old this-reference with
+                //  the new, modified clone.
+
+                thisReferenceNeedsCopyAndReassignment = isMethodInvocation && sa.ViolatesThisReferenceImmutability;
+
+                // When invoking a method that mutates a struct's members or lets them escape,
+                //  we need to copy the this-reference if it isn't a local or field.
+                thisReferenceNeedsCopy = isMethodInvocation &&
+                    (sa.ModifiedVariables.Contains("this") || sa.EscapingVariables.Contains("this"));
+            }
+
+            if (thisReferenceNeedsCopyAndReassignment) {
+                if (
+                    (thisReference is JSFieldAccess) ||
+                    (thisReference is JSVariable)
+                ) {
+                    var rre = ParentNode as JSResultReferenceExpression;
+                    var cloneExpr = new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
+                    );
+                    var commaExpression = new JSCommaExpression(
+                        cloneExpr,
+                        (rre != null)
+                            ? (JSExpression)new JSResultReferenceExpression(invocation)
+                            : (JSExpression)invocation
+                    );
+
+                    if (rre != null) {
+                        ResultReferenceReplacement = commaExpression;
+                        return;
                     } else {
-                        invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
-                        VisitChildren(invocation);
+                        ParentNode.ReplaceChild(invocation, commaExpression);
+                        VisitReplacement(commaExpression);
+                        return;
                     }
-
+                } else {
+                    // Huh?
+                    invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
+                    VisitChildren(invocation);
                     return;
                 }
+            } else if (thisReferenceNeedsCopy) {
+                invocation.ReplaceChild(thisReference, new JSStructCopyExpression(thisReference));
+                VisitChildren(invocation);
             }
 
             VisitChildren(invocation);

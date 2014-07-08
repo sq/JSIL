@@ -482,7 +482,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void ImmutableStructThisAssignment () {
-            var output = "2 2\r\n1 2";
+            var output = "2 2\r\n1 2\r\n3\r\n3";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\ImmutableStructThisAssignment.cs",
