@@ -794,7 +794,13 @@ namespace JSIL {
             JSMethod method, JSExpression[] arguments, 
             bool @virtual, bool @static
         ) {
-            if (TypeUtil.IsNullable(thisType)) {
+            TypeReference methodType = method.Reference.DeclaringType;
+
+            if (
+                TypeUtil.IsNullable(thisType) || 
+                // HACK: When translating methods of Nullable, thisType is not a generic instance.
+                TypeUtil.IsNullable(methodType)
+            ) {
                 switch (method.Method.Name) {
                     case "get_HasValue":
                         return JSIL.NullableHasValue(thisExpression);
