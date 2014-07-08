@@ -44,8 +44,11 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        private int[] GetParentNodeIndices () {
-            return NodeIndexStack.ToArray();
+        private FunctionAnalysis1stPass.NodeIndices GetParentNodeIndices () {
+            var count = NodeIndexStack.Count;
+            var buffer = ImmutableArrayPool<int>.Allocate(count);
+            NodeIndexStack.CopyTo(buffer.Array, buffer.Offset);
+            return new FunctionAnalysis1stPass.NodeIndices(buffer);
         }
 
         public void VisitNode (JSReturnExpression ret) {
@@ -193,7 +196,7 @@ namespace JSIL.Transforms {
                     State.Assignments.Add(
                         new FunctionAnalysis1stPass.Assignment(
                             GetParentNodeIndices(), StatementIndex, NodeIndex,
-                            variable, uoe, uoe.Operator,
+                            variable.Identifier, uoe, uoe.Operator,
                             variable.GetActualType(TypeSystem), uoe.GetActualType(TypeSystem)
                         )
                     );
@@ -242,7 +245,7 @@ namespace JSIL.Transforms {
                         State.Assignments.Add(
                             new FunctionAnalysis1stPass.Assignment(
                                 GetParentNodeIndices(), StatementIndex, NodeIndex,
-                                leftVar, boe.Right, boe.Operator,
+                                leftVar.Identifier, boe.Right, boe.Operator,
                                 leftType, rightType
                             )
                         );
@@ -275,7 +278,7 @@ namespace JSIL.Transforms {
                 var parentNodeIndices = GetParentNodeIndices();
 
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v, "element modified"
+                    parentNodeIndices, StatementIndex, NodeIndex, v.Identifier, "element modified"
                 ));
             } else {
                 ;
@@ -296,7 +299,7 @@ namespace JSIL.Transforms {
                 ));
             } else if (v != null) {
                 State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                    parentNodeIndices, StatementIndex, NodeIndex, v, "field modified"
+                    parentNodeIndices, StatementIndex, NodeIndex, v.Identifier, "field modified"
                 ));
             }
 
@@ -342,7 +345,7 @@ namespace JSIL.Transforms {
                 // Setter
                 if (v != null) {
                     State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        GetParentNodeIndices(), StatementIndex, NodeIndex, v, "property set"
+                        GetParentNodeIndices(), StatementIndex, NodeIndex, v.Identifier, "property set"
                     ));
                 }
                 /*
@@ -379,13 +382,13 @@ namespace JSIL.Transforms {
             VisitChildren(verbatim);
         }
 
-        private Dictionary<string, string[]> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
-            var variables = new Dictionary<string, string[]>();
+        private Dictionary<string, ArraySegment<string>> ExtractAffectedVariables (JSExpression method, IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> parameters) {
+            var variables = new Dictionary<string, ArraySegment<string>>();
             var paramsArray = parameters.ToArray();
 
             int i = 0;
             foreach (var kvp in paramsArray) {
-                var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToArray();
+                var value = (from v in kvp.Value.SelfAndChildrenRecursive.OfType<JSVariable>() select v.Name).ToImmutableArray();
 
                 if ((kvp.Key == null) || String.IsNullOrWhiteSpace(kvp.Key.Name)) {
                     variables.Add(String.Format("#{0}", i++), value);
@@ -393,9 +396,11 @@ namespace JSIL.Transforms {
                     if (
                         variables.ContainsKey(kvp.Key.Name)
                     ) {
-                        if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute"))
-                            variables[kvp.Key.Name] = variables[kvp.Key.Name].Concat(value).ToArray();
-                        else
+                        if (kvp.Key.CustomAttributes.Any((ca) => ca.AttributeType.Name == "ParamArrayAttribute")) {
+                            var left = variables[kvp.Key.Name];
+                            var right = value;
+                            variables[kvp.Key.Name] = left.ToEnumerable().Concat(right.ToEnumerable()).ToImmutableArray(left.Count + right.Count);
+                        } else
                             throw new InvalidDataException(String.Format(
                                 "Multiple parameters named '{0}' for invocation of '{1}'. Parameter list follows: '{2}'",
                                 kvp.Key.Name, method,
@@ -450,7 +455,7 @@ namespace JSIL.Transforms {
                 State.Assignments.Add(
                     new FunctionAnalysis1stPass.Assignment(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
-                        tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
+                        tcb.CatchVariable.Identifier, new JSNullExpression(), JSOperator.Assignment,
                         tcb.CatchVariable.IdentifierType, tcb.CatchVariable.IdentifierType
                     )
                 );
@@ -502,7 +507,7 @@ namespace JSIL.Transforms {
                 State.Accesses.Add(
                     new FunctionAnalysis1stPass.Access(
                         GetParentNodeIndices(), StatementIndex, NodeIndex,
-                        variable, isControlFlow
+                        variable.Identifier, isControlFlow
                     )
                 );
             } else {
@@ -524,12 +529,30 @@ namespace JSIL.Transforms {
     }
 
     public class FunctionAnalysis1stPass {
+        public struct NodeIndices {
+            public readonly ArraySegment<int> Indices;
+
+            public NodeIndices (ArraySegment<int> indices) {
+                Indices = indices;
+            }
+
+            public int this[int index] {
+                get {
+                    return Indices.Array[Indices.Offset + index];
+                }
+            }
+
+            internal bool Contains (int scopeNodeIndex) {
+                return Array.IndexOf(Indices.Array, scopeNodeIndex, Indices.Offset, Indices.Count) >= 0;
+            }
+        }
+
         public class Item {
-            public readonly int[] ParentNodeIndices;
+            public readonly NodeIndices ParentNodeIndices;
             public readonly int StatementIndex;
             public readonly int NodeIndex;
 
-            public Item (int[] parentNodeIndices, int statementIndex, int nodeIndex) {
+            public Item (NodeIndices parentNodeIndices, int statementIndex, int nodeIndex) {
                 ParentNodeIndices = parentNodeIndices;
                 StatementIndex = statementIndex;
                 NodeIndex = nodeIndex;
@@ -537,12 +560,12 @@ namespace JSIL.Transforms {
         }
 
         public class Access : Item {
-            public readonly JSVariable Source;
+            public readonly string Source;
             public readonly bool IsControlFlow;
 
             public Access (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
-                JSVariable source, bool isControlFlow
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
+                string source, bool isControlFlow
             ) : base (parentNodeIndices, statementIndex, nodeIndex) { 
                 Source = source;
                 IsControlFlow = isControlFlow;
@@ -550,29 +573,35 @@ namespace JSIL.Transforms {
 
             public override string ToString () {
                 if (IsControlFlow)
-                    return String.Format("ControlFlow {0}", Source);
+                    return String.Format("ControlFlow {0})", Source);
                 else
-                    return Source.ToString();
+                    return Source;
             }
         }
 
         public class Assignment : Item {
-            public readonly JSVariable Target;
+            public readonly string Target;
             public readonly JSExpression NewValue;
-            public readonly JSVariable SourceVariable;
+            public readonly string SourceVariable;
             public readonly JSOperator Operator;
             public readonly TypeReference SourceType, TargetType;
             public readonly bool IsConversion;
 
             public Assignment (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable target, JSExpression newValue,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
+                string target, JSExpression newValue,
                 JSOperator @operator,
                 TypeReference targetType, TypeReference sourceType
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Target = target;
                 NewValue = newValue;
-                SourceVariable = newValue as JSVariable;
+
+                var newVariable = newValue as JSVariable;
+                if (newVariable != null)
+                    SourceVariable = newVariable.Identifier;
+                else
+                    SourceVariable = null;
+
                 SourceType = sourceType;
                 TargetType = targetType;
                 Operator = @operator;
@@ -588,7 +617,7 @@ namespace JSIL.Transforms {
             public readonly TypeInfo Type;
 
             public StaticReference (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 TypeInfo type
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 Type = type;
@@ -596,12 +625,12 @@ namespace JSIL.Transforms {
         }
 
         public class SideEffect : Item {
-            public readonly JSVariable Variable;
+            public readonly string Variable;
             public readonly string Type;
 
             public SideEffect (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
-                JSVariable variable, string type
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
+                string variable, string type
             ) : base (parentNodeIndices, statementIndex, nodeIndex) {
                 Variable = variable;
                 Type = type;
@@ -613,7 +642,7 @@ namespace JSIL.Transforms {
             public readonly bool IsRead;
 
             public FieldAccess (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSField field, bool isRead
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 Field = field;
@@ -626,12 +655,12 @@ namespace JSIL.Transforms {
             public readonly string ThisVariable;
             public readonly JSMethod Method;
             public readonly object NonJSMethod;
-            public readonly IDictionary<string, string[]> Variables;
+            public readonly Dictionary<string, ArraySegment<string>> Variables;
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex, 
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex, 
                 JSType type, JSMethod method, object nonJSMethod,
-                IDictionary<string, string[]> variables
+                Dictionary<string, ArraySegment<string>> variables
             )
                 : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
@@ -645,9 +674,9 @@ namespace JSIL.Transforms {
             }
 
             public Invocation (
-                int[] parentNodeIndices, int statementIndex, int nodeIndex,
+                NodeIndices parentNodeIndices, int statementIndex, int nodeIndex,
                 JSVariable thisVariable, JSMethod method, object nonJSMethod,
-                IDictionary<string, string[]> variables
+                Dictionary<string, ArraySegment<string>> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 if (thisVariable != null)
                     ThisVariable = thisVariable.Identifier;
@@ -710,7 +739,7 @@ namespace JSIL.Transforms {
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
         public readonly HashSet<FieldInfo> MutatedFields;
-        public readonly HashSet<FieldInfo>[] RecursivelyMutatedFields;
+        public readonly HashSet<HashSet<FieldInfo>> RecursivelyMutatedFields;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -736,10 +765,10 @@ namespace JSIL.Transforms {
             foreach (var assignment in data.Assignments) {
                 if (assignment.SourceVariable != null) {
                     HashSet<string> aliases;
-                    if (!VariableAliases.TryGetValue(assignment.SourceVariable.Identifier, out aliases))
-                        VariableAliases[assignment.SourceVariable.Identifier] = aliases = new HashSet<string>();
+                    if (!VariableAliases.TryGetValue(assignment.SourceVariable, out aliases))
+                        VariableAliases[assignment.SourceVariable] = aliases = new HashSet<string>();
 
-                    aliases.Add(assignment.Target.Identifier);
+                    aliases.Add(assignment.Target);
                 }
             }
 
@@ -794,7 +823,7 @@ namespace JSIL.Transforms {
                         invocationSecondPass = null;
 
                     foreach (var invocationKvp in invocation.Variables) {
-                        if (invocationKvp.Value.Length == 0)
+                        if (invocationKvp.Value.Count == 0)
                             continue;
 
                         bool escapes;
@@ -805,7 +834,7 @@ namespace JSIL.Transforms {
                             escapes = true;
 
                         if (escapes) {
-                            if (invocationKvp.Value.Length > 1) {
+                            if (invocationKvp.Value.Count > 1) {
                                 // FIXME: Is this right?
                                 // Multiple variables -> a binary operator expression or an invocation.
                                 // In either case, it should be impossible for any of them to escape without being flagged otherwise.
@@ -818,7 +847,7 @@ namespace JSIL.Transforms {
 
                                 continue;
                             } else {
-                                var escapingVariable = invocationKvp.Value[0];
+                                var escapingVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
 
                                 if (TraceEscapes)
                                     Console.WriteLine("Parameter '{0}::{1}' escapes; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, escapingVariable);
@@ -885,7 +914,7 @@ namespace JSIL.Transforms {
                     recursivelyMutatedFields.Add(rrmf);
             }
 
-            RecursivelyMutatedFields = recursivelyMutatedFields.ToArray();
+            RecursivelyMutatedFields = recursivelyMutatedFields;
 
             Trace(data.Function.Method.Reference.FullName);
         }

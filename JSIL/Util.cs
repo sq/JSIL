@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using Mono.Cecil;
+
+using TypeInfo = JSIL.Internal.TypeInfo;
 
 namespace JSIL.Internal {
     public enum EscapingMode {
@@ -22,6 +26,21 @@ namespace JSIL.Internal {
     }
 
     public static class Util {
+        public static bool IsGenericClosure(this MethodReference member) {
+            if (member.HasGenericParameters && member.HasGeneratedName()) {
+                var definition = member as MethodDefinition;
+
+                if (definition != null) {
+                    var index = member.Name.IndexOf(">");
+                    var result = definition.CustomAttributes.Any(x => x.AttributeType.Name == "CompilerGeneratedAttribute") && 
+                        (index > -1) && 
+                        (member.Name.Substring(index + 1, 1) == "b");
+                    return result;
+                }
+            }
+            return false;
+        }
+
         public static readonly HashSet<string> ReservedWords = new HashSet<string> {
             "break", "do", "instanceof", "typeof",
             "case", "else", "new", "var",
@@ -765,6 +784,220 @@ namespace JSIL.Internal {
 
         public int GetHashCode (HashedString obj) {
             return obj.HashCode;
+        }
+    }
+
+    public static class ImmutableArrayPool<T> {
+        private class State {
+            public readonly T[] Buffer;
+            public int ElementsUsed;
+
+            public State (int capacity) {
+                Buffer = new T[capacity];
+
+                ElementsUsed = 0;
+            }
+        }
+
+        // The large object heap threshold is roughly 85KB so we set our block size small.
+        //  this ensures that our blocks start in gen0 and can get collected early, instead
+        //  of spending their entire life on the large object heap.
+        // This also reduces waste in cases where some but not all of the buffers expire.
+        public const int MaxSizeBytes = 1 * 1024;
+
+        public static readonly int Capacity;
+        public static readonly ArraySegment<T> Empty = new ArraySegment<T>(new T[0]);
+
+        private readonly static ThreadLocal<State> ThreadLocal = new ThreadLocal<State>();
+
+        static ImmutableArrayPool () {
+            // Assume heap reference
+            int itemSize = Environment.Is64BitProcess 
+                ? 8 
+                : 4;
+
+            try {
+                // If it's a blittable type, estimate its in-memory size
+                if (!typeof(T).IsClass)
+                    itemSize = Marshal.SizeOf(typeof(T));
+            } catch {
+                // Non-blittable struct. Make a rough estimate of size (conservative) so we try to stay below LOH threshold.
+                itemSize = 32;
+            }
+
+            Capacity = MaxSizeBytes / itemSize;
+        }
+
+        public static ArraySegment<T> Allocate (int count) {
+            if (count == 0)
+                return Empty;
+
+            if (count > Capacity)
+                return new ArraySegment<T>(new T[count], 0, count);
+
+            var data = ThreadLocal.Value;
+
+            bool usedUpElements = false;
+            bool allocateNew = (data == null) ||
+                (usedUpElements = (data.ElementsUsed >= Capacity - count));
+
+            if (allocateNew) {
+                data = ThreadLocal.Value = new State(Capacity);
+                usedUpElements = false;
+            }
+
+            if (usedUpElements)
+                data.ElementsUsed = 0;
+
+            var offset = data.ElementsUsed;
+            data.ElementsUsed += count;
+
+            return new ArraySegment<T>(data.Buffer, offset, count);
+        }
+
+        public static ArraySegment<T> Elements (T a) {
+            var result = Allocate(1);
+            result.Array[result.Offset + 0] = a;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b) {
+            var result = Allocate(2);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b, T c) {
+            var result = Allocate(3);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            result.Array[result.Offset + 2] = c;
+            return result;
+        }
+
+        public static ArraySegment<T> Elements (T a, T b, T c, T d) {
+            var result = Allocate(4);
+            result.Array[result.Offset + 0] = a;
+            result.Array[result.Offset + 1] = b;
+            result.Array[result.Offset + 2] = c;
+            result.Array[result.Offset + 3] = d;
+            return result;
+        }
+    }
+
+    public static class ImmutableArrayPoolExtensions {
+#if TARGETTING_FX_4_5
+        public static ArraySegment<T> ToEnumerable<T> (this ArraySegment<T> aseg) {
+            return aseg;
+        }
+#else
+        public struct ArraySegmentEnumerable<T> : IEnumerable<T> {
+            public struct Enumerator : IEnumerator<T> {
+                public readonly ArraySegment<T> ArraySegment;
+                private int Index;
+
+                public Enumerator (ArraySegment<T> aseg) {
+                    ArraySegment = aseg;
+                    Index = -1;
+                }
+
+                public bool MoveNext () {
+                    Index += 1;
+                    return (Index < ArraySegment.Count);
+                }
+
+                public T Current {
+                    get {
+                        return ArraySegment.Array[ArraySegment.Offset + Index];
+                    }
+                }
+
+                public void Reset () {
+                    Index = -1;
+                }
+
+                public void Dispose () {
+                }
+
+                object System.Collections.IEnumerator.Current {
+                    get { 
+                        return Current; 
+                    }
+                }
+            }
+
+            public readonly ArraySegment<T> ArraySegment;
+
+            public ArraySegmentEnumerable (ArraySegment<T> aseg) {
+                ArraySegment = aseg;
+            }
+
+            public Enumerator GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+
+            IEnumerator<T> IEnumerable<T>.GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator () {
+                return new Enumerator(ArraySegment);
+            }
+        }
+
+        public static ArraySegmentEnumerable<T> ToEnumerable<T> (this ArraySegment<T> aseg) {
+            return new ArraySegmentEnumerable<T>(aseg);
+        }
+#endif
+
+        public static ArraySegment<T> ToImmutableArray<T> (this IEnumerable<T> enumerable) {
+            var collection = enumerable as ICollection<T>;
+#if TARGETTING_FX_4_5
+            var readOnlyCollection = enumerable as IReadOnlyCollection<T>;
+#endif
+            var array = enumerable as T[];
+
+            if (collection != null) {
+                var count = collection.Count;
+                var buffer = ImmutableArrayPool<T>.Allocate(count);
+                collection.CopyTo(buffer.Array, buffer.Offset);
+                return buffer;
+#if TARGETTING_FX_4_5
+            } else if (readOnlyCollection != null) {
+                return ToImmutableArray(enumerable, readOnlyCollection.Count);
+#endif
+            } else if (array != null) {
+                return new ArraySegment<T>(array);
+            } else {
+                // Slow path =[
+                array = enumerable.ToArray();
+                return new ArraySegment<T>(array);
+            }
+        }
+
+        public static ArraySegment<T> ToImmutableArray<T> (this IEnumerable<T> enumerable, int maximumCount) {
+            int count = maximumCount;
+            var buffer = ImmutableArrayPool<T>.Allocate(maximumCount);
+
+            using (var e = enumerable.GetEnumerator()) {
+                for (var i = 0; i < count; i++) {
+                    if (!e.MoveNext()) {
+                        count = i;
+                        break;
+                    }
+
+                    buffer.Array[i + buffer.Offset] = e.Current;
+                }
+
+                if (e.MoveNext())
+                    throw new ArgumentException("Enumerable was longer", "maximumCount");
+            }
+
+            if (buffer.Array == null)
+                return ImmutableArrayPool<T>.Empty;
+            else
+                return new ArraySegment<T>(buffer.Array, buffer.Offset, count);
         }
     }
 }

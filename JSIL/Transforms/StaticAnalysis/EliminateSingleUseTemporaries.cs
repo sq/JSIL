@@ -143,16 +143,16 @@ namespace JSIL.Transforms {
                 if (VariablesExemptedFromEffectivelyConstantStatus.Contains(v.Identifier))
                     return false;
 
-                var sourceAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
+                var sourceAssignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.Target) select a).ToArray();
                 if (sourceAssignments.Length < 1)
                     return v.IsParameter;
 
-                var sourceAccesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                var sourceAccesses = (from a in FirstPass.Accesses where v.Identifier.Equals(a.Source) select a).ToArray();
                 if (sourceAccesses.Length < 1)
                     return false;
 
-                var targetAssignmentIndices = (from a in FirstPass.Assignments where target.Equals(a.Target) select a.StatementIndex);
-                var targetAccessIndices = (from a in FirstPass.Accesses where target.Equals(a.Source) select a.StatementIndex).ToArray();
+                var targetAssignmentIndices = (from a in FirstPass.Assignments where target.Identifier.Equals(a.Target) select a.StatementIndex);
+                var targetAccessIndices = (from a in FirstPass.Accesses where target.Identifier.Equals(a.Source) select a.StatementIndex).ToArray();
                 var targetUseIndices = targetAccessIndices.Concat(targetAssignmentIndices).ToArray();
 
                 if (sourceAssignments.Length == 1) {
@@ -202,7 +202,7 @@ namespace JSIL.Transforms {
 
                 if (invocationSecondPass == null) {
                     foreach (var kvp in invocation.Variables) {
-                        foreach (var variableName in kvp.Value) {
+                        foreach (var variableName in kvp.Value.ToEnumerable()) {
                             if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                 if (TraceLevel >= 2)
                                     Console.WriteLine("Exempting variable '{0}' from effectively constant status because it is passed to {1} (no static analysis data)", variableName, invocation.Method ?? invocation.NonJSMethod);
@@ -220,17 +220,17 @@ namespace JSIL.Transforms {
 
                         if (
                             (invocationSecondPass.Data != null) &&
-                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable.Identifier == argumentName)
+                            invocationSecondPass.Data.SideEffects.Any((se) => se.Variable == argumentName)
                         ) {
                             reason = "touches it with side effects";
-                        } else if (                            
+                        } else if (
                             invocationSecondPass.EscapingVariables.Contains(argumentName)
                         ) {
                             reason = "allows it to escape";
                         }
 
                         if (reason != null) {
-                            foreach (var variableName in kvp.Value) {
+                            foreach (var variableName in kvp.Value.ToEnumerable()) {
                                 if (ShouldExemptVariableFromEffectivelyConstantStatus(variableName)) {
                                     if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                         if (TraceLevel >= 2)
@@ -287,9 +287,9 @@ namespace JSIL.Transforms {
                 if (v.IsThis || v.IsParameter)
                     continue;
 
-                var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
-                var reassignments = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
-                var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                var assignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.Target) select a).ToArray();
+                var reassignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.SourceVariable) select a).ToArray();
+                var accesses = (from a in FirstPass.Accesses where v.Identifier.Equals(a.Source) select a).ToArray();
                 var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
                 var unsafeInvocations = FilterInvocations(invocations);
                 var isPassedByReference = FirstPass.VariablesPassedByRef.Contains(v.Name);
@@ -297,7 +297,7 @@ namespace JSIL.Transforms {
                 if (assignments.FirstOrDefault() == null) {
                     if ((accesses.Length == 0) && (invocations.Length == 0) && (reassignments.Length == 0) && !isPassedByReference) {
                         if (TraceLevel >= 1)
-                            Console.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
+                            Console.WriteLine("Eliminating {0} because it is never used.", v);
 
                         if (!DryRun) {
                             EliminatedVariables.Add(v);
@@ -308,7 +308,7 @@ namespace JSIL.Transforms {
                         }
                     } else {
                         if (TraceLevel >= 2)
-                            Console.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
+                            Console.WriteLine("Never found an initial assignment for {0}.", v);
                     }
 
                     continue;
@@ -320,28 +320,28 @@ namespace JSIL.Transforms {
 
                 if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it is passed by reference.", v);
 
                     continue;
                 }
 
                 if (unsafeInvocations.Length > 1) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it multiple times that are not provably safe.", v));
+                        Console.WriteLine("Cannot eliminate {0}; methods are invoked on it multiple times that are not provably safe.", v);
 
                     continue;
                 }
 
                 if ((from a in accesses where a.IsControlFlow select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it participates in control flow.", v);
 
                     continue;
                 }
 
                 if (assignments.Length > 1) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it is reassigned.", v);
 
                     continue;
                 }
@@ -350,21 +350,21 @@ namespace JSIL.Transforms {
                 var replacement = replacementAssignment.NewValue;
                 if (replacement.SelfAndChildrenRecursive.Contains(v)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
+                        Console.WriteLine("Cannot eliminate {0}; it contains a self-reference.", v);
 
                     continue;
                 }
 
-                var copies = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
+                var copies = (from a in FirstPass.Assignments where v.Identifier.Equals(a.SourceVariable) select a).ToArray();
                 if (
                     (copies.Length + accesses.Length) > 1
                 ) {
                     if (replacement is JSLiteral) {
                         if (TraceLevel >= 5)
-                            Console.WriteLine(String.Format("Skipping veto of elimination for {0} because it is a literal.", v));
+                            Console.WriteLine("Skipping veto of elimination for {0} because it is a literal.", v);
                     } else {
                         if (TraceLevel >= 2)
-                            Console.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
+                            Console.WriteLine("Cannot eliminate {0}; it is used multiple times.", v);
 
                         continue;
                     }
@@ -372,7 +372,7 @@ namespace JSIL.Transforms {
 
                 if (!IsEffectivelyConstant(v, replacement)) {
                     if (TraceLevel >= 2)
-                        Console.WriteLine(String.Format("Cannot eliminate {0}; {1} is not a constant expression.", v, replacement));
+                        Console.WriteLine("Cannot eliminate {0}; {1} is not a constant expression.", v, replacement);
 
                     continue;
                 }
@@ -441,7 +441,7 @@ namespace JSIL.Transforms {
                             (invocationSecondPass == null) ||
                             (invocationSecondPass.MutatedFields == null)
                         ) {
-                            if (invocation.Variables.Any((kvp) => kvp.Value.Contains(v.Identifier))) {
+                            if (invocation.Variables.Any((kvp) => kvp.Value.ToEnumerable().Contains(v.Identifier))) {
                                 if (TraceLevel >= 2)
                                     Console.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use with it as an argument", v, invocation.Method ?? invocation.NonJSMethod));
 

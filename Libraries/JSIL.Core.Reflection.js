@@ -574,6 +574,17 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Reflection.MethodBase", function ($) {
+    $.RawMethod(false, "InitResolvedSignature",
+      function InitResolvedSignature() {
+        if (this.resolvedSignature === undefined) {
+          this._data.resolvedSignature = this._data.signature.Resolve(this.Name);
+          if (this._data.signature.genericArgumentValues !== undefined) {
+            this._data.resolvedSignature = this._data.resolvedSignature.ResolvePositionalGenericParameters(this._data.signature.genericArgumentValues)
+          }
+        }
+      }
+    );
+  
     $.Method({Static:false, Public:false}, "GetParameterTypes", 
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])), 
       function GetParameterTypes () {
@@ -730,21 +741,18 @@ $jsilcore.$MethodGetParameters = function (method) {
 
   if (typeof (result) === "undefined") {
     result = method._cachedParameters = [];
+    method.InitResolvedSignature();
 
-    var argumentTypes = method._data.signature.argumentTypes;
+    var argumentTypes = method._data.resolvedSignature.argumentTypes;
     var parameterInfos = method._data.parameterInfo;
     var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
 
     if (argumentTypes) {
       for (var i = 0; i < argumentTypes.length; i++) {
-        var argumentType = JSIL.ResolveTypeReference(
-          argumentTypes[i], method._typeObject.__Context__
-        )[1];
-
         var parameterInfo = parameterInfos[i] || null;
 
         // FIXME: Missing non-type information
-        var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentType, i]);
+        var pi = JSIL.CreateInstanceOfType(tParameterInfo, "$fromArgumentTypeAndPosition", [argumentTypes[i], i]);
         if (parameterInfo)
           pi.$populateWithParameterInfo(parameterInfo);
 
@@ -756,7 +764,7 @@ $jsilcore.$MethodGetParameters = function (method) {
   return result;
 };
 
-JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) { 
   $.Method({Static: false, Public: true }, "GetParameters", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterInfo")]), [], [])),
     function GetParameters () {
@@ -767,18 +775,10 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
   $.Method({Static:false, Public:true }, "get_ReturnType", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
     function get_ReturnType () {
-      if (!this._data.signature.returnType)
-        return $jsilcore.System.Void.__Type__;
-
-      var result = this._cachedReturnType;
-
-      if (typeof (result) === "undefined") {
-        result = this._cachedReturnType = JSIL.ResolveTypeReference(
-          this._data.signature.returnType, this._typeObject.__Context__
-        )[1];
-      }
-
-      return result;
+       if (!this._data.signature.returnType)
+        return $jsilcore.System.Void.__Type__;	  
+      this.InitResolvedSignature();
+      return this._data.resolvedSignature.returnType;
     }
   );
 
@@ -834,7 +834,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
         parameters = parameters.slice();
         for (var i = 0; i < parametersCount; i++) {
           if (parameters[i] === null && parameterTypes[i].IsValueType)
-            parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
+            parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
         }
       }
 
@@ -868,6 +868,7 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
       info.__Overrides__ = this.__Overrides__;
 
       info._data = {};
+	  info._data.parameterInfo = this._data.parameterInfo;
 
       if (this._data.genericSignature)
         info._data.genericSignature = this._data.genericSignature;
@@ -877,6 +878,27 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
 
       ofCache[cacheKey]  = info;
       return info;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethod",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethod() {
+      return this._data.signature.genericArgumentNames.length !== 0;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_IsGenericMethodDefinition",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined;
+    }
+  );
+
+  $.Method({Public: true , Static: false}, "get_ContainsGenericParameters",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethodDefinition() {
+      return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
     }
   );
 });
@@ -939,6 +961,7 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
     $.Property({Public: true , Static: false, Virtual: true }, "IsPublic");
     $.Property({Public: true , Static: false, Virtual: true }, "IsStatic");
     $.Property({Public: true , Static: false, Virtual: true }, "IsSpecialName");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
@@ -961,29 +984,67 @@ JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethod");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethodDefinition");
+    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
     $.Property({Public: true , Static: false}, "ReturnType");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Method;
+      }
+    );	
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.ConstructorInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Constructor;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.FieldInfo", true, [], function ($) {
     $.Property({Public: true , Static: false}, "FieldType");
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Field;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Event;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false, Virtual: true }, "MemberType");
+    $.Method({Public: true , Static: false, Virtual: true }, "get_MemberType", 
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.MemberTypes")), 
+      function get_MemberType(){
+        return $jsilcore.System.Reflection.MemberTypes.Property;
+      }
+    );
 });
 
 JSIL.MakeClass("System.Object", "System.Reflection.Assembly", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (publicInterface, fullName) {
-    this.__PublicInterface__ = publicInterface;
-    this.__FullName__ = fullName;
+    JSIL.SetValueProperty(this, "__PublicInterface__", publicInterface);
+    JSIL.SetValueProperty(this, "__FullName__", fullName);
   });
 
   $.Method({Static:true , Public:true }, "op_Equality", 
@@ -1327,3 +1388,17 @@ JSIL.ImplementExternals("System.Reflection.EventInfo", function ($) {
     }
   );
 });
+
+JSIL.MakeEnum(
+  "System.Reflection.MemberTypes", true, {
+    Constructor: 1, 
+    Event: 2, 
+    Field: 4, 
+    Method: 8, 
+    Property: 16, 
+    TypeInfo: 32, 
+    Custom: 64, 
+    NestedType: 128, 
+    All: 191
+  }, true
+);

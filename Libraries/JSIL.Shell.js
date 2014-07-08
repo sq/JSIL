@@ -150,9 +150,9 @@ JSIL.Shell.TagObject = function (obj, tag) {
   }
 };
 
-JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args) {
+JSIL.Shell.TestPrologue = function (timeoutDuration, assemblyName, typeName, methodName, args, throwOnUnimplementedExternals) {
   return function runTestCase (dateNow) {
-    JSIL.ThrowOnUnimplementedExternals = true;
+    JSIL.ThrowOnUnimplementedExternals = throwOnUnimplementedExternals;
 
     timeout(timeoutDuration);
 

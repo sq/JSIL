@@ -13,6 +13,8 @@ using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
 
+using TypeInfo = JSIL.Internal.TypeInfo;
+
 namespace JSIL {
     public class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;
@@ -26,6 +28,7 @@ namespace JSIL {
         internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
+        private readonly Dictionary<string, JSIndirectVariable> IndirectVariables = new Dictionary<string, JSIndirectVariable>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -83,7 +86,7 @@ namespace JSIL {
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
 
-            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem, TypeInfo);
+            SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -211,7 +214,7 @@ namespace JSIL {
             return new JSUntranslatableStatement(node.GetType().Name);
         }
 
-        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
+        public List<JSExpression> Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
             var result = new List<JSExpression>();
             ParameterDefinition parameter;
 
@@ -248,10 +251,10 @@ namespace JSIL {
                 throw new InvalidDataException(errorString.ToString());
             }
 
-            return result.ToArray();
+            return result;
         }
 
-        public JSExpression[] Translate (IEnumerable<ILExpression> values) {
+        public List<JSExpression> Translate (IEnumerable<ILExpression> values) {
             var result = new List<JSExpression>();
             StringBuilder errorString = null;
 
@@ -273,13 +276,7 @@ namespace JSIL {
             if (errorString != null)
                 throw new InvalidDataException(errorString.ToString());
 
-            return result.ToArray();
-        }
-
-        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
-            return (
-                from p in parameters select JSVariable.New(p, function)
-            ).ToArray();
+            return result;
         }
 
         protected bool NeedToRenameVariable (string name, TypeReference type) {
@@ -481,6 +478,15 @@ namespace JSIL {
             return newExpression;
         }
 
+        private JSIndirectVariable MakeIndirectVariable (string name) {
+            JSIndirectVariable result;
+
+            if (!IndirectVariables.TryGetValue(name, out result))
+                IndirectVariables.Add(name, result = new JSIndirectVariable(Variables, name, ThisMethodReference));
+
+            return result;
+        }
+
         protected JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
@@ -533,6 +539,10 @@ namespace JSIL {
             switch (method.Method.Member.FullName) {
                 // Doing this replacement here enables more elimination of temporary variables
                 case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle,System.RuntimeTypeHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle,System.RuntimeTypeHandle)":
                     return arguments.First();
 
                 case "T JSIL.Builtins::CreateNamedFunction(System.String,System.String[],System.String,System.Object)":
@@ -631,7 +641,7 @@ namespace JSIL {
                 }
 
                 case "System.Object JSIL.Builtins::get_This()":
-                    return new JSIndirectVariable(Variables, "this", ThisMethodReference);
+                    return MakeIndirectVariable("this");
 
                 case "System.Boolean JSIL.Builtins::get_IsJavascript()":
                     return new JSBooleanLiteral(true);
@@ -982,16 +992,26 @@ namespace JSIL {
             ) {
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
-                bool shouldAutoCast = 
+                bool shouldAutoCast = (
                     AutoCastingState.Peek() ||
                     (
                         // Comparisons between value types still need a cast.
                         !TypeUtil.IsReferenceType(expression.ExpectedType) || 
                         !TypeUtil.IsReferenceType(expression.InferredType)
-                    );
+                    )
+                );
+
+                bool specialNullableCast = (
+                    TypeUtil.IsNullable(expression.ExpectedType) ||
+                    TypeUtil.IsNullable(expression.InferredType) ||
+                    (expression.Code == ILCode.ValueOf)
+                );
 
                 if (shouldAutoCast) {
-                    return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                    if (specialNullableCast)
+                        return new JSNullableCastExpression(result, new JSType(expression.ExpectedType));
+                    else
+                        return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
                 } else {
                     // FIXME: Should this be JSChangeTypeExpression to preserve type information?
                     // I think not, because a lot of these ExpectedTypes are wrong.
@@ -1047,7 +1067,7 @@ namespace JSIL {
                     (FieldReference)cond.Arguments[0].Operand,
                     binderMethod.Name,
                     targetType,
-                    arguments
+                    arguments.ToArray()
                 );
 
                 result = new JSNullStatement();
@@ -1280,19 +1300,27 @@ namespace JSIL {
         }
 
         protected bool UnwrapValueOfExpression (ref JSExpression expression) {
-            var valueOf = expression as JSValueOfNullableExpression;
-            if (valueOf != null) {
-                expression = valueOf.Expression;
-                return true;
-            }
-
-            var cast = expression as JSCastExpression;
-            if (cast != null) {
-                var temp = cast.Expression;
-                if (UnwrapValueOfExpression(ref temp)) {
-                    expression = JSCastExpression.New(temp, cast.NewType, TypeSystem);
+            while (true) {
+                var valueOf = expression as JSValueOfNullableExpression;
+                if (valueOf != null) {
+                    // Don't iterate.
+                    expression = valueOf.Expression;
                     return true;
                 }
+
+                var cast = expression as JSCastExpression;
+                if (cast != null) {
+                    expression = cast.Expression;
+                    continue;
+                }
+
+                var ncast = expression as JSNullableCastExpression;
+                if (ncast != null) {
+                    // HACK: We want to preserve the semantics here, but act as if we unwrapped successfully.
+                    return true;
+                }
+
+                break;
             }
 
             return false;
@@ -1376,9 +1404,12 @@ namespace JSIL {
             var innerType = TypeUtil.DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
-            if (innerTypeGit != null)
+            if (innerTypeGit != null) {
+                if (inner is JSValueOfNullableExpression)
+                    return inner;
+
                 return new JSValueOfNullableExpression(inner);
-            else
+            } else
                 return new JSUntranslatableExpression(node);
         }
 
@@ -1702,6 +1733,35 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
+            if (node.ExpectedType != null && TypeUtil.IsIntegral(node.ExpectedType)) {
+                var left = TranslateNode(node.Arguments[0]);
+                var right = TranslateNode(node.Arguments[1]);
+                var leftType = left.GetActualType(TypeSystem);
+                var rightType = right.GetActualType(TypeSystem);
+
+                // FIXME: This may be too strict.
+                // We do this to ensure that certain multiply operations don't erroneously get replaced with imul, like
+                //  (int)(float * int)
+                // If this is too strict then we will fail to use imul in scenarios where we should have. :(
+                if (
+                    TypeUtil.IsIntegral(leftType) &&
+                    TypeUtil.IsIntegral(rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, node.ExpectedType)
+                ) {
+
+                    if (node.ExpectedType.FullName == "System.UInt32")
+                        return new JSUInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+                    else if (node.ExpectedType.FullName == "System.Int32")
+                        return new JSInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+
+                }
+            }
+
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
@@ -1848,15 +1908,15 @@ namespace JSIL {
             bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
 
             if (RenamedVariables.TryGetValue(variable, out renamed)) {
-                return new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
+                return MakeIndirectVariable(renamed.Identifier);
             } else if (
                 !isThis &&
                 Variables.TryGetValue(escapedName, out theVariable)
             ) {
                 // Handle cases where the variable's identifier must be escaped (like @this)
-                return new JSIndirectVariable(Variables, theVariable.Name, ThisMethodReference);
+                return MakeIndirectVariable(theVariable.Name);
             } else {
-                return new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+                return MakeIndirectVariable(variable.Name);
             }
         }
 
@@ -2364,7 +2424,7 @@ namespace JSIL {
             }
         }
 
-        protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
+        protected JSExpression Translate_NullCoalescing (ILExpression node) {
             return JSIL.Coalesce(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
@@ -2735,19 +2795,24 @@ namespace JSIL {
             var arguments = Translate(node.Arguments, constructor.Parameters, false);
 
             if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
-                return Translate_Newobj_Delegate(node, constructor, arguments);
+                return Translate_Newobj_Delegate(node, constructor, arguments.ToArray());
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
-                    constructor.DeclaringType.GetElementType(), arguments
+                    constructor.DeclaringType.GetElementType(), arguments.ToArray()
                 );
+            } else if (TypeUtil.IsNullable(constructor.DeclaringType)) {
+                if (arguments.Count == 0)
+                    return new JSNullLiteral(constructor.DeclaringType);
+                else
+                    return arguments[0];
             }
 
             var methodInfo = GetMethod(constructor);
             if ((methodInfo == null) || methodInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, methodInfo, arguments);
+                return new JSIgnoredMemberReference(true, methodInfo, arguments.ToArray());
 
             var result = new JSNewExpression(
-                constructor.DeclaringType, constructor, methodInfo, arguments
+                constructor.DeclaringType, constructor, methodInfo, arguments.ToArray()
             );
 
             return Translate_ConstructorReplacement(constructor, methodInfo, result);
@@ -2766,7 +2831,7 @@ namespace JSIL {
 
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
             var at = _arrayType as ArrayType;
-            var initializer = new JSArrayExpression(at, Translate(node.Arguments));
+            var initializer = new JSArrayExpression(at, Translate(node.Arguments).ToArray());
             int rank = 0;
             if (at != null)
                 rank = at.Rank;
@@ -2913,12 +2978,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
             var methodInfo = GetMethod(method);
-            return new JSMethod(method, methodInfo, MethodTypes);
+            return new JSMethodOfExpression(method, methodInfo, MethodTypes);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
             var fieldInfo = GetField(field);
-            return new JSField(field, fieldInfo);
+            return new JSFieldOfExpression(field, fieldInfo);
         }
 
         public static bool NeedsExplicitThis (
@@ -3022,7 +3087,7 @@ namespace JSIL {
                     thisExpression = arguments[0];
                 }
 
-                arguments = arguments.Skip(1).ToArray();
+                arguments = arguments.Skip(1).ToList();
 
                 var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
@@ -3040,8 +3105,8 @@ namespace JSIL {
             }
 
             var result = DoMethodReplacement(
-                new JSMethod(method, methodInfo, MethodTypes), 
-                thisExpression, arguments, false, 
+                new JSMethod(method, methodInfo, MethodTypes),
+                thisExpression, arguments.ToArray(), false, 
                 !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
@@ -3150,7 +3215,7 @@ namespace JSIL {
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
-            return callSite.Translate(this, invocationArguments);
+            return callSite.Translate(this, invocationArguments.ToArray());
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {

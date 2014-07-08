@@ -23,10 +23,10 @@ namespace JSIL.Internal {
         TypeInfo GetExisting (TypeIdentifier type);
         IMemberInfo Get (MemberReference member);
 
-        ProxyInfo[] GetProxies (TypeDefinition type);
+        ArraySegment<ProxyInfo> GetProxies (TypeDefinition type);
 
         void CacheProxyNames (MemberReference member);
-        bool TryGetProxyNames (TypeReference type, out string[] result);
+        bool TryGetProxyNames (TypeReference type, out ArraySegment<string> result);
 
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
@@ -428,8 +428,8 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly InterfaceToken[] Interfaces;
-        private RecursiveInterfaceToken[] _AllInterfacesRecursive = null;
+        public readonly ArraySegment<InterfaceToken> Interfaces;
+        private ArraySegment<RecursiveInterfaceToken> _AllInterfacesRecursive;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -438,7 +438,7 @@ namespace JSIL.Internal {
 
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
-        public readonly ProxyInfo[] Proxies;
+        public readonly ArraySegment<ProxyInfo> Proxies;
 
         public readonly MethodSignatureCollection MethodSignatures;
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
@@ -454,7 +454,6 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
-        public readonly bool IsStubOnly;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -464,9 +463,11 @@ namespace JSIL.Internal {
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
+        protected bool _IsStubOnly;
         protected bool _MethodGroupsInitialized = false;
 
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+        protected List<NamedMethodSignature> DeferredStaticMethodSignatureSetUpdates = new List<NamedMethodSignature>();
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
@@ -526,7 +527,7 @@ namespace JSIL.Internal {
                     throw new InvalidDataException(errorString.ToString());
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
                 if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceNone) {
@@ -544,7 +545,8 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Proxy.JSProxy") && !IsProxy)
                 Metadata.Remove("JSIL.Proxy.JSProxy");
 
-            Interfaces = interfaces.ToArray();
+            // FIXME: Using ImmutableArrayPool here can leak.
+            Interfaces = new ArraySegment<InterfaceToken>(interfaces.ToArray());
 
             _IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.Namespace, false) || 
@@ -561,7 +563,7 @@ namespace JSIL.Internal {
                 Replacement = null;
             }
 
-            IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
+            _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
@@ -631,7 +633,7 @@ namespace JSIL.Internal {
                 IsFlagsEnum = Metadata.HasAttribute("System.FlagsAttribute");
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 var seenMethods = new HashSet<MethodDefinition>();
 
                 foreach (var property in proxy.Properties.Values) {
@@ -744,8 +746,11 @@ namespace JSIL.Internal {
                 }
             }
 
-            //DeferredMethodSignatureSetUpdates.Clear();
-            //DeferredMethodSignatureSetUpdates = null;
+            foreach (var nms in DeferredStaticMethodSignatureSetUpdates)
+            {
+                var set = MethodSignatures.GetOrCreateFor(nms.Name);
+                set.Add(nms);
+            }
         }
 
         public bool IsFullyInitialized {
@@ -791,19 +796,20 @@ namespace JSIL.Internal {
         /// All interfaces implemented by this type and its base types.
         /// Does not include interfaces implemented by those interfaces.
         /// </summary>
-        public RecursiveInterfaceToken[] AllInterfacesRecursive {
+        public ArraySegment<RecursiveInterfaceToken> AllInterfacesRecursive {
             get {
-                if (_AllInterfacesRecursive == null) {
+                if (_AllInterfacesRecursive.Array == null) {
                     var list = new List<RecursiveInterfaceToken>();
-                    var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
+                    var types = SelfAndBaseTypesRecursive.Reverse();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces)
+                        foreach (var @interface in type.Interfaces.ToEnumerable())
                             list.Add(new RecursiveInterfaceToken(type, @interface));
 
-                    _AllInterfacesRecursive = list
+                    // FIXME: Using ImmutableArrayPool here can leak.
+                    _AllInterfacesRecursive = new ArraySegment<RecursiveInterfaceToken>(list
                         .Distinct(new RecursiveInterfaceTokenComparer())
-                        .ToArray();
+                        .ToArray());
                 }
 
                 return _AllInterfacesRecursive;
@@ -873,6 +879,24 @@ namespace JSIL.Internal {
                 }
 
                 return _IsExternal;
+            }
+        }
+
+        public bool IsStubOnly
+        {
+            get
+            {
+                if (_FullyInitialized)
+                    return _IsStubOnly;
+
+                if (Definition.DeclaringType != null)
+                {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsStubOnly)
+                        return true;
+                }
+
+                return _IsStubOnly;
             }
         }
 
@@ -1121,6 +1145,12 @@ namespace JSIL.Internal {
             return defaultResult;
         }
 
+        public static bool IsLambdaMethodName(string shortName)
+        {
+            var m = MangledNameRegex.Match(shortName);
+            return m.Success && shortName[m.Groups[2].Index] == 'b';
+        }
+
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
@@ -1136,8 +1166,12 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
-
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
             return (MethodInfo)result;
         }
 
@@ -1151,7 +1185,12 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
 
             return (MethodInfo)result;
         }
@@ -1168,8 +1207,12 @@ namespace JSIL.Internal {
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
-
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
 
             return (MethodInfo)result;
         }
@@ -1250,6 +1293,7 @@ namespace JSIL.Internal {
                 return;
 
             _IsIgnored = IsIgnored;
+            _IsStubOnly = IsStubOnly;
             _FullyInitialized = true;
         }
     }
@@ -1427,7 +1471,7 @@ namespace JSIL.Internal {
 
         protected MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            T member, ProxyInfo[] proxies, 
+            T member, ArraySegment<ProxyInfo> proxies, 
             bool isIgnored, bool isExternal, ProxyInfo sourceProxy
         ) {
             Identifier = identifier;
@@ -1445,8 +1489,8 @@ namespace JSIL.Internal {
             Member = member;
             Metadata = new MetadataCollection(member);
 
-            if (proxies != null)
-            foreach (var proxy in proxies) {
+            if (proxies.Array != null)
+            foreach (var proxy in proxies.ToEnumerable()) {
                 ICustomAttributeProvider proxyMember;
 
                 if (proxy.GetMember(identifier, out proxyMember)) {
@@ -1614,7 +1658,7 @@ namespace JSIL.Internal {
 
         public FieldInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            FieldDefinition field, ProxyInfo[] proxies,
+            FieldDefinition field, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, field, proxies, 
@@ -1663,7 +1707,7 @@ namespace JSIL.Internal {
 
         public PropertyInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            PropertyDefinition property, ProxyInfo[] proxies, 
+            PropertyDefinition property, ArraySegment<ProxyInfo> proxies, 
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, property, proxies, 
@@ -1703,7 +1747,7 @@ namespace JSIL.Internal {
     public class EventInfo : MemberInfo<EventDefinition> {
         public EventInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            EventDefinition evt, ProxyInfo[] proxies,
+            EventDefinition evt, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, evt, proxies, false, false, sourceProxy
@@ -1746,7 +1790,7 @@ namespace JSIL.Internal {
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies,
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base (
             parent, identifier, method, proxies,
@@ -1761,11 +1805,12 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
         }
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies, 
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies, 
             PropertyInfo property, ProxyInfo sourceProxy
         ) : base (
             parent, identifier, method, proxies,
@@ -1782,6 +1827,7 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
 
             if (property != null)
                 Metadata.Update(property.Metadata, false);
@@ -1789,7 +1835,7 @@ namespace JSIL.Internal {
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies, 
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies, 
             EventInfo evt, ProxyInfo sourceProxy
         ) : base(
             parent, identifier, method, proxies,
@@ -1805,6 +1851,7 @@ namespace JSIL.Internal {
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
 
             if (evt != null)
                 Metadata.Update(evt.Metadata, false);
@@ -1911,6 +1958,12 @@ namespace JSIL.Internal {
                 _IsOverloadedRecursive = null;
                 _MethodGroup = value;
             }
+        }
+
+        public bool IsLambda
+        {
+            get;
+            private set;
         }
 
         public string GetName (bool stripGenericSuffix) {

@@ -41,7 +41,7 @@ namespace JSIL.Transforms {
                     var variableName = variable.Name;
                     var accesses = (
                         from a in FirstPass.Accesses
-                        where a.Source.Name == variableName
+                        where a.Source == variableName
                         select a
                     );
 
@@ -70,7 +70,7 @@ namespace JSIL.Transforms {
                 (condInvocation != null) && 
                 (condInvocation.JSMethod != null) &&
                 (condInvocation.JSMethod.Identifier == "MoveNext") &&
-                (condInvocation.JSMethod.Method.DeclaringType.Interfaces.Any((ii) => ii.Info.FullName == "System.Collections.IEnumerator")) &&
+                (condInvocation.JSMethod.Method.DeclaringType.Interfaces.ToEnumerable().Any((ii) => ii.Info.FullName == "System.Collections.IEnumerator")) &&
                 ((enumeratorVariable = condInvocation.ThisReference as JSVariable) != null)
             ) {
                 var enumeratorType = condInvocation.JSMethod.Method.DeclaringType;

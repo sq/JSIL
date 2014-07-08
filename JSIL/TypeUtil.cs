@@ -325,7 +325,7 @@ namespace JSIL {
                 return true;
 
             if (
-                (typedef != null) && (typedef.BaseType != null) &&
+                (typedef.BaseType != null) &&
                 (
                     (typedef.BaseType.FullName == "System.Delegate") ||
                     (typedef.BaseType.FullName == "System.MulticastDelegate")

@@ -40,6 +40,12 @@ namespace JSIL.Proxies {
         public static Type GetType (string typeName, bool throwOnFail, bool ignoreCase) {
             throw new NotImplementedException();
         }
+
+        [JSReplacement("$this === $other")]
+        public virtual bool IsEquivalentTo(Type other)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     [JSProxy(

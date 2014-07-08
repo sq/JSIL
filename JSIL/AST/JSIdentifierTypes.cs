@@ -214,6 +214,14 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSFieldOfExpression : JSField
+    {
+        public JSFieldOfExpression(FieldReference reference, FieldInfo field)
+            : base(reference, field)
+        {
+        }
+    }
+
     public class JSProperty : JSIdentifier {
         public readonly MemberReference Reference;
         public readonly PropertyInfo Property;
@@ -344,6 +352,17 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+    }
+
+    public class JSCachedMethod : JSMethod {
+        public readonly int Index;
+
+        public JSCachedMethod (
+            MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments, int index
+        ) : base (reference, method, methodTypes, genericArguments) {
+            Index = index;
         }
     }
 

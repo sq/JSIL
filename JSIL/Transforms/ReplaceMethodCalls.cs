@@ -147,36 +147,29 @@ namespace JSIL.Transforms {
                             VisitReplacement(boe);
 
                             break;
-                        case "GetValueOrDefault":
-                            var isNull = new JSBinaryOperatorExpression(
-                                JSOperator.Equal, ie.ThisReference, @null, TypeSystem.Boolean
-                            );
 
-                            JSTernaryOperatorExpression ternary;
-                            if (ie.Arguments.Count == 0) {
-                                ternary = new JSTernaryOperatorExpression(
-                                    isNull, @default, ie.ThisReference, type.Type
-                                );
-                            } else {
-                                ternary = new JSTernaryOperatorExpression(
-                                    isNull, ie.Arguments[0], ie.ThisReference, type.Type
-                                );
-                            }
+                        case "GetValueOrDefault": {
+                            var replacement = JSIL.ValueOfNullableOrDefault(
+                                ie.ThisReference,
+                                (ie.Arguments.Count == 0)
+                                    ? @default
+                                    : ie.Arguments[0]
+                            );
 
                             if (ParentNode is JSResultReferenceExpression) {
                                 // HACK: Replacing the invocation inside a result reference is incorrect, so we need to walk up the stack
                                 //  and replace the result reference with the ternary instead.
-                                _ResultReferenceReplacement = ternary;
+                                _ResultReferenceReplacement = replacement;
                             } else {
-                                ParentNode.ReplaceChild(ie, ternary);
-                                VisitReplacement(ternary);
+                                ParentNode.ReplaceChild(ie, replacement);
+                                VisitReplacement(replacement);
                             }
 
                             break;
+                        }
+
                         case "get_HasValue": {
-                            var replacement = new JSBinaryOperatorExpression(
-                                JSOperator.NotEqual, ie.ThisReference, @null, TypeSystem.Boolean
-                            );
+                            var replacement = JSIL.NullableHasValue(ie.ThisReference);
                             if (ParentNode is JSResultReferenceExpression) {
                                 _ResultReferenceReplacement = replacement;
                             } else {
@@ -186,20 +179,25 @@ namespace JSIL.Transforms {
 
                             break;
                         }
-                        case "get_Value":
+
+                        case "get_Value": {
+                            var replacement = JSIL.ValueOfNullable(ie.ThisReference);
                             if (ParentNode is JSResultReferenceExpression) {
-                                _ResultReferenceReplacement = ie.ThisReference;
+                                _ResultReferenceReplacement = replacement;
                             } else {
-                                ParentNode.ReplaceChild(ie, ie.ThisReference);
-                                VisitReplacement(ie.ThisReference);
+                                ParentNode.ReplaceChild(ie, replacement);
+                                VisitReplacement(replacement);
                             }
 
                             break;
+                        }
+
                         case "Equals":
                             JSBinaryOperatorExpression equality = new JSBinaryOperatorExpression(JSOperator.Equal, ie.ThisReference, ie.Parameters.First().Value, type.Type);
                             ParentNode.ReplaceChild(ie, equality);
                             VisitReplacement(equality);
                             break;
+
                         default:
                             throw new NotImplementedException(method.Method.Member.FullName);
                     }
@@ -366,19 +364,20 @@ namespace JSIL.Transforms {
                 var @null = JSLiteral.Null(targetType);
 
                 switch (pa.Property.Property.Member.Name) {
-                    case "HasValue":
-                        var replacement = new JSBinaryOperatorExpression(
-                            JSOperator.NotEqual, pa.Target, @null, TypeSystem.Boolean
-                        );
+                    case "HasValue": {
+                        var replacement = JSIL.NullableHasValue(pa.Target);
                         ParentNode.ReplaceChild(pa, replacement);
                         VisitReplacement(replacement);
 
                         break;
-                    case "Value":
-                        ParentNode.ReplaceChild(pa, pa.Target);
-                        VisitReplacement(pa.Target);
+                    }
+                    case "Value": {
+                        var replacement = JSIL.ValueOfNullable(pa.Target);
+                        ParentNode.ReplaceChild(pa, replacement);
+                        VisitReplacement(replacement);
 
                         break;
+                    }
                     default:
                         throw new NotImplementedException(pa.Property.Property.Member.FullName);
                 }

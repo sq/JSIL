@@ -855,9 +855,9 @@ namespace JSIL.Tests {
         [Test]
         public void SpuriousIntegerHints () {
             var output = "0F0F\r\n7773";
-            var generatedJs = GetJavascript(
+            var generatedJs = GenericTest(
                 @"SpecialTestCases\SpuriousIntegerHints.cs",
-                output
+                output, output
             );
 
             try {
@@ -1054,6 +1054,24 @@ namespace JSIL.Tests {
             }
             catch
             {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void DoubleFloatCasts () {
+            var output = "1.0 1.0\r\n2 2.5\r\n1 1.5\r\n10101010101.01010\r\ntruncated";
+            var testFile = @"SpecialTestCases\DoubleFloatCasts.cs";
+            GenericTest(testFile, output, output);
+
+            var generatedJs = GetJavascript(testFile);
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("$Cast"));
+                Assert.IsTrue(generatedJs.Contains("Math.fround"));
+            } catch {
                 Console.WriteLine(generatedJs);
 
                 throw;

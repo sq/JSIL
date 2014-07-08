@@ -2,22 +2,25 @@
 
 public static class Program {
     public static void Main (string[] args) {
-        Console.WriteLine("Signed");
         {
-            int x = int.MinValue;
-            x = x * x;
+            byte x = 100;
+            x -= 150;
             Console.WriteLine(x);
         }
         {
-            int x = int.MaxValue;
-            x = x * x;
+            byte x = 100;
+            x += 200;
             Console.WriteLine(x);
         }
 
-        Console.WriteLine("Unsigned");
         {
-            uint x = uint.MaxValue;
-            x = x * x;
+            ushort x = 100;
+            x -= 150;
+            Console.WriteLine(x);
+        }
+        {
+            ushort x = 65500;
+            x += 200;
             Console.WriteLine(x);
         }
     }

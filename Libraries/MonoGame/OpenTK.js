@@ -215,7 +215,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true }, "get_IsExiting", 
     new JSIL.MethodSignature($.Boolean, [], []), 
     function get_IsExiting () {
-      throw new Error('Not implemented');
+      return false;
     }
   );
 

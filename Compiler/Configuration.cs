@@ -44,6 +44,7 @@ namespace JSIL.Compiler {
         public string FileOutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
+        public Dictionary<string, object> AnalyzerSettings = new Dictionary<string, object>();
         public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
 
         public override void MergeInto (JSIL.Translator.Configuration result) {
@@ -70,6 +71,9 @@ namespace JSIL.Compiler {
 
             foreach (var kvp in ProfileSettings)
                 cc.ProfileSettings[kvp.Key] = kvp.Value;
+
+            foreach (var kvp in AnalyzerSettings)
+                cc.AnalyzerSettings[kvp.Key] = kvp.Value;
 
             foreach (var kvp in CustomVariables)
                 cc.CustomVariables[kvp.Key] = kvp.Value;

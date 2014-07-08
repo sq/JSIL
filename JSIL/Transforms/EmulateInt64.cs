@@ -77,7 +77,7 @@ namespace JSIL.Transforms
             var opType = uoe.ActualType;
             if (IsLongOrULong(exType) && IsLongOrULong(opType)) //exType == TypeSystem.Int64 && opType == TypeSystem.Int64)
             {
-                string verb = null;
+                string verb;
                 switch (uoe.Operator.Token)
                 {
                     case "-":
@@ -90,14 +90,11 @@ namespace JSIL.Transforms
                         throw new NotSupportedException();
                 }
 
-                if (verb != null)
-                {
-                    var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
-                    var replacement = JSInvocationExpression.InvokeStatic(exType, method, new[] { uoe.Expression }, true);
-                    ParentNode.ReplaceChild(uoe, replacement);
-                    VisitReplacement(replacement);
-                    return;
-                }
+                var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
+                var replacement = JSInvocationExpression.InvokeStatic(exType, method, new[] { uoe.Expression }, true);
+                ParentNode.ReplaceChild(uoe, replacement);
+                VisitReplacement(replacement);
+                return;
             }
 
             VisitChildren(uoe);

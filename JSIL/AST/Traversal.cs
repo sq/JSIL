@@ -23,6 +23,9 @@ namespace JSIL.Ast.Traversal {
                 TypeToData[i] = new JSNodeTraversalData(JSNode.NodeTypes[i]);
         }
 
+#if TARGETTING_FX_4_5
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public static JSNodeTraversalData Get (int nodeTypeId) {
             return TypeToData[nodeTypeId];
         }

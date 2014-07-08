@@ -246,17 +246,17 @@ namespace JSIL.Internal {
                 return true;
             }
 
-            string[] proxyTargets;
+            ArraySegment<string> proxyTargets;
             if (
                 typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(rhs.FullName)
+                (proxyTargets.Array != null) &&
+                proxyTargets.ToEnumerable().Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
                 typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(lhs.FullName)
+                (proxyTargets.Array != null) &&
+                proxyTargets.ToEnumerable().Contains(lhs.FullName)
             ) {
                 return true;
             }

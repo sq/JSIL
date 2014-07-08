@@ -155,6 +155,7 @@ namespace JSIL.Transforms {
                 (value is JSPassByReferenceExpression) ||
                 (value is JSNewBoxedVariable) ||
                 (value is JSDefaultValueLiteral) ||
+                (value is JSFieldOfExpression) ||
                 ((iae != null) && ((iae.Target is JSNewExpression) || (iae.Target is JSDefaultValueLiteral)))
             ) {
                 return false;
