@@ -117,6 +117,7 @@ $jsilxna.textCache = new $jsilxna.ImageCache(
 
 
 $jsilxna.get2DContext = function get2DContext (canvas, enableWebGL) {
+  var result = null;
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
@@ -167,7 +168,7 @@ $jsilxna.get2DContext = function get2DContext (canvas, enableWebGL) {
 
     if ($jsilxna.workingWebGL) {
       WebGL2D.enable(canvas);
-      return canvas.getContext("webgl-2d");
+      result = canvas.getContext("webgl-2d");
     } else {
       var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead. " + extraMessage;
       if (window.console && (typeof (window.console.error) === "function"))
@@ -177,7 +178,13 @@ $jsilxna.get2DContext = function get2DContext (canvas, enableWebGL) {
     }
   }
 
-  return canvas.getContext("2d");
+  if (!result)
+    result = canvas.getContext("2d");
+
+  if (!result)
+    throw new Error("Failed to initialize HTML5 Canvas.");
+
+  return result;
 };
 
 $jsilxna.channelNames = ["_r", "_g", "_b", "_a"];

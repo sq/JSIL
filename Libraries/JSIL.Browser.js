@@ -59,7 +59,10 @@ JSIL.Browser.CanvasService.prototype.applySize = function (element, desiredWidth
 JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
 
-  if (arguments.length === 2)
+  if (
+    (typeof (desiredWidth) !== "undefined") &&
+    (typeof (desiredHeight) !== "undefined")
+  )  
     this.applySize(e, desiredWidth | 0, desiredHeight | 0, true);
   
   return e;

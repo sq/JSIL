@@ -69,7 +69,10 @@ JSIL.Host.getFileTime = function () {
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var svc = JSIL.Host.getService("canvas");
 
-  if (arguments.length === 2)
+  if (
+    (typeof (desiredWidth) !== "undefined") &&
+    (typeof (desiredHeight) !== "undefined")
+  )  
     return svc.get(desiredWidth, desiredHeight);
   else
     return svc.get();
