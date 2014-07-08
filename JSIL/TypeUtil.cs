@@ -100,7 +100,12 @@ namespace JSIL {
         {
           bool isImmutable = false;
           TypeDefinition typeDef = type.Resolve();
-          if (typeDef.CustomAttributes.Count > 0)
+          if (typeDef == null)
+          {
+            return false;
+          }
+          if (typeDef.CustomAttributes != null &&
+              typeDef.CustomAttributes.Count > 0)
           { // check the attribute first
             isImmutable = typeDef.CustomAttributes.FirstOrDefault(ca => ca.AttributeType.FullName == "JSIL.Meta.JSImmutable") != null;
           }
