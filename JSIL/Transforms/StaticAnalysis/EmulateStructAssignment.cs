@@ -15,7 +15,8 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
         public const bool TraceElidedCopies = false;
-        public const bool TraceInsertedCopies = true;
+        public const bool TraceInsertedCopies = false;
+        public const bool TracePostOptimizedCopies = false;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
@@ -201,23 +202,6 @@ namespace JSIL.Transforms {
                     return false;
                 }
             }
-
-            var rightInvocation = value as JSInvocationExpression;
-            if (rightInvocation == null)
-                return true;
-
-            var invokeMethod = rightInvocation.JSMethod;
-            if (invokeMethod == null)
-                return true;
-
-            var secondPass = GetSecondPass(invokeMethod);
-            if (secondPass == null)
-                return true;
-
-            // If this expression is the return value of a function invocation, we can eliminate struct
-            //  copies if the return value is a 'new' expression.
-            if (secondPass.ResultIsNew)
-                return false;
  
             return true;
         }
@@ -468,6 +452,8 @@ namespace JSIL.Transforms {
                 return;
             }
 
+            bool doPostOptimization = false;
+
             GenericParameter relevantParameter;
 
             if (IsCopyNeeded(boe.Right, out relevantParameter)) {
@@ -490,6 +476,7 @@ namespace JSIL.Transforms {
                     if (TraceInsertedCopies)
                         Console.WriteLine(String.Format("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right));
 
+                    doPostOptimization = true;
                     boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
                     if (TraceElidedCopies)
@@ -501,6 +488,81 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+
+            if (doPostOptimization)
+                PostOptimizeAssignment(boe, boe.Right);
+        }
+
+        void PostOptimizeAssignment (JSBinaryOperatorExpression boe, JSExpression rhs) {
+            var rhsCopy = rhs as JSStructCopyExpression;
+            if (rhsCopy == null)
+                return;
+
+            var expr = rhsCopy.Struct;
+            var rre = expr as JSResultReferenceExpression;
+            if (rre != null)
+                expr = rre.Referent;
+
+            var invocation = expr as JSInvocationExpression;
+            if (invocation == null)
+                return;
+
+            var invokeMethod = invocation.JSMethod;
+            if (invokeMethod == null)
+                return;
+
+            var secondPass = GetSecondPass(invokeMethod);
+            if (secondPass == null)
+                return;
+
+            bool eliminateCopy = false;
+            string eliminateReason = null;
+
+            if (secondPass.ResultIsNew) {
+                // If this expression is the return value of a function invocation, we can eliminate struct
+                //  copies if the return value is a 'new' expression.
+                eliminateCopy = true;
+                eliminateReason = "Result is new";
+            } else if (secondPass.ResultVariable != null) {
+                // We can also eliminate a return value copy if the return value is one of the function's 
+                //  arguments, and we are sure that argument does not escape (other than through the return
+                //  statement, that is).
+                
+                var parameters = invokeMethod.Method.Parameters;
+                int parameterIndex = -1;
+
+                for (var i = 0; i < parameters.Length; i++) {
+                    if (parameters[i].Name != secondPass.ResultVariable)
+                        continue;
+
+                    parameterIndex = i;
+                    break;
+                }
+
+                if (parameterIndex >= 0) {
+                    GenericParameter relevantParameter;
+                    var innerValue = invocation.Arguments[parameterIndex];
+                    var icn = IsCopyNeeded(innerValue, out relevantParameter);
+                    var escapes = secondPass.DoesVariableEscape(secondPass.ResultVariable, false);
+                    var modified = secondPass.IsVariableModified(secondPass.ResultVariable);
+
+                    var isAlreadyCopied = innerValue is JSStructCopyExpression;
+
+                    if (isAlreadyCopied || !escapes) {
+                        eliminateCopy = true;
+                        eliminateReason = "Result was already copied as part of argument list";
+                    } else {
+                        Console.WriteLine("< {0}: {1} > icn:{2} escapes:{3} modified:{4}, alreadyCopied: {5}", parameters[parameterIndex].Name, innerValue, icn, escapes, modified, isAlreadyCopied);
+                    }
+                }
+            }
+
+            if (eliminateCopy) {
+                if (TracePostOptimizedCopies)
+                    Console.WriteLine("Post-optimized assignment {0} because {1}", boe, eliminateReason);
+
+                boe.ReplaceChild(rhsCopy, rhsCopy.Struct);
+            }
         }
 
         public void VisitNode (JSNewBoxedVariable nbv) {

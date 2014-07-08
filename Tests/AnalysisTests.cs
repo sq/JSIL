@@ -264,12 +264,9 @@ namespace JSIL.Tests {
             );
 
             Console.WriteLine(generatedJs);
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnArgument\(" +
-                @"\$thisType.ReturnIncrementedArgument\(\$thisType.ReturnArgument\(a\)." +
-                @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
-            ));
+
+            var cloneCount = Regex.Matches(generatedJs, @".MemberwiseClone\(\)").Count;
+            Assert.AreEqual(1, cloneCount, "Expected 1 struct clone");
         }
 
         [Test]
