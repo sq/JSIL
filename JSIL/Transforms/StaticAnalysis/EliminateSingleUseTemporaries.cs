@@ -201,7 +201,7 @@ namespace JSIL.Transforms {
                 var invocationSecondPass = GetSecondPass(invocation.Method);
 
                 if (invocationSecondPass == null) {
-                    foreach (var kvp in invocation.Variables) {
+                    foreach (var kvp in invocation.ThisAndVariables) {
                         foreach (var variableName in kvp.Value.ToEnumerable()) {
                             if (!VariablesExemptedFromEffectivelyConstantStatus.Contains(variableName)) {
                                 if (TraceLevel >= 2)
@@ -214,7 +214,7 @@ namespace JSIL.Transforms {
 
                 } else {
 
-                    foreach (var kvp in invocation.Variables) {
+                    foreach (var kvp in invocation.ThisAndVariables) {
                         var argumentName = kvp.Key;
                         string reason = null;
 
@@ -441,7 +441,7 @@ namespace JSIL.Transforms {
                             (invocationSecondPass == null) ||
                             (invocationSecondPass.MutatedFields == null)
                         ) {
-                            if (invocation.Variables.Any((kvp) => kvp.Value.ToEnumerable().Contains(v.Identifier))) {
+                            if (invocation.ThisAndVariables.Any((kvp) => kvp.Value.ToEnumerable().Contains(v.Identifier))) {
                                 if (TraceLevel >= 2)
                                     Console.WriteLine(String.Format("Cannot eliminate {0}; a method call without field mutation data ({1}) is invoked between its initialization and use with it as an argument", v, invocation.Method ?? invocation.NonJSMethod));
 

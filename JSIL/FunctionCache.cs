@@ -199,10 +199,34 @@ namespace JSIL {
             }
         }
 
+        private FunctionAnalysis2ndPass CreateSecondPassForKnownMethod (FunctionAnalysis1stPass firstPass) {
+            return new FunctionAnalysis2ndPass(this, firstPass, true);
+        }
+
+        private FunctionAnalysis2ndPass CreateSecondPassForOverridableMethod (MethodInfo method, FunctionAnalysis1stPass firstPass) {
+            // TODO: Update static analysis to utilize overridable method information?
+            //  We can probably assert in some cases that the call always has the same target.
+
+            // return new FunctionAnalysis2ndPass(this, firstPass, false);
+
+            return new FunctionAnalysis2ndPass(this, method);
+        }
+
+        private FunctionAnalysis2ndPass CreateSecondPassForAbstractMethod (MethodInfo method) {
+            return new FunctionAnalysis2ndPass(this, method);
+        }
+
         private FunctionAnalysis2ndPass _GetOrCreateSecondPass (Entry entry) {
-            if ((entry.SecondPass == null) && (entry.Expression != null)) {
-                if (entry.SecondPass == null)
-                    entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+            if (
+                (entry.SecondPass == null) && 
+                (entry.Expression != null)
+            ) {
+                if (entry.Definition.IsAbstract)
+                    entry.SecondPass = CreateSecondPassForAbstractMethod(entry.Info);
+                else if (entry.Definition.IsVirtual)
+                    entry.SecondPass = CreateSecondPassForOverridableMethod(entry.Info, entry.FirstPass);
+                else
+                    entry.SecondPass = CreateSecondPassForKnownMethod(entry.FirstPass);
             }
 
             return entry.SecondPass;

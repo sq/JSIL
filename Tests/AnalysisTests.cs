@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,6 +9,16 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class AnalysisTests : GenericTestFixture {
+        protected override Translator.Configuration MakeConfiguration () {
+            var result = base.MakeConfiguration();
+            
+            // HACK: Ease static analysis debugging
+            if (Debugger.IsAttached)
+                result.UseThreads = false;
+
+            return result;
+        }
+
         [Test]
         public void FieldAssignmentDetection () {
             var output = "ct=1, mc=(a=0 b=0)\r\nct=1, mc=(a=2 b=1)\r\nct=3, mc=(a=2 b=1)";
@@ -721,6 +732,30 @@ namespace JSIL.Tests {
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\Issue395.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void Issue494_ByValue () {
+            string output = "0";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue494.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void Issue494_ByRef () {
+            string output = "1";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue494_2.cs",
                 output, output
             );
 

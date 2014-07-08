@@ -169,20 +169,15 @@ namespace JSIL.Transforms {
 
         protected JSVariable ExtractAffectedVariable (JSExpression expression) {
             var variable = expression as JSVariable;
+            var dot = expression as JSDotExpressionBase;
+            var reference = expression as JSReferenceExpression;
 
-            if (variable != null)
-                return variable;
+            if (dot != null)
+                variable = ExtractAffectedVariable(dot.Target);
+            else if (reference != null)
+                variable = ExtractAffectedVariable(reference.Referent);
 
-            JSDotExpressionBase dot = expression as JSDotExpressionBase;
-            while (dot != null) {
-                variable = dot.Target as JSVariable;
-                if (variable != null)
-                    return variable;
-
-                dot = dot.Target as JSDotExpressionBase;
-            }
-
-            return null;
+            return variable;
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
@@ -423,6 +418,7 @@ namespace JSIL.Transforms {
             var method = ie.JSMethod;
 
             if (thisVar != null) {
+                // TODO: Only flag as modified if invoked method is not pure?
                 ModifiedVariable(thisVar);
 
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
@@ -652,7 +648,8 @@ namespace JSIL.Transforms {
 
         public class Invocation : Item {
             public readonly JSType ThisType;
-            public readonly string ThisVariable;
+            private readonly string[] _ThisVariable;
+
             public readonly JSMethod Method;
             public readonly object NonJSMethod;
             public readonly Dictionary<string, ArraySegment<string>> Variables;
@@ -664,7 +661,7 @@ namespace JSIL.Transforms {
             )
                 : base(parentNodeIndices, statementIndex, nodeIndex) {
                 ThisType = type;
-                ThisVariable = null;
+                _ThisVariable = null;
                 Method = method;
                 if (method == null)
                     NonJSMethod = nonJSMethod;
@@ -679,9 +676,9 @@ namespace JSIL.Transforms {
                 Dictionary<string, ArraySegment<string>> variables
             ) : base(parentNodeIndices, statementIndex, nodeIndex) {
                 if (thisVariable != null)
-                    ThisVariable = thisVariable.Identifier;
+                    _ThisVariable = new[] { thisVariable.Identifier };
                 else
-                    ThisVariable = null;
+                    _ThisVariable = null;
 
                 ThisType = null;
                 Method = method;
@@ -690,6 +687,27 @@ namespace JSIL.Transforms {
                 else
                     NonJSMethod = null;
                 Variables = variables;
+            }
+
+            public string ThisVariable {
+                get {
+                    if (_ThisVariable != null)
+                        return _ThisVariable[0];
+                    else
+                        return null;
+                }
+            }
+
+            public IEnumerable<KeyValuePair<string, ArraySegment<string>>> ThisAndVariables {
+                get {
+                    if (_ThisVariable != null)
+                        yield return new KeyValuePair<string, ArraySegment<string>>(
+                            "this", new ArraySegment<string>(_ThisVariable)
+                        );
+
+                    foreach (var v in Variables)
+                        yield return v;
+                }
             }
         }
 
@@ -745,15 +763,21 @@ namespace JSIL.Transforms {
         public readonly string ResultVariable;
         public readonly bool ResultIsNew;
         public readonly bool ViolatesThisReferenceImmutability;
+        public readonly bool IsSealed;
 
         public readonly FunctionCache FunctionCache;
         public readonly FunctionAnalysis1stPass Data;
 
-        public FunctionAnalysis2ndPass (FunctionCache functionCache, FunctionAnalysis1stPass data) {
+        public FunctionAnalysis2ndPass (
+            FunctionCache functionCache, 
+            FunctionAnalysis1stPass data, 
+            bool isSealed
+        ) {
             FunctionAnalysis2ndPass invocationSecondPass;
 
             FunctionCache = functionCache;
             Data = data;
+            IsSealed = isSealed;
 
             if (data.Function.Method.Method.Metadata.HasAttribute("JSIsPure"))
                 _IsPure = true;
@@ -812,7 +836,7 @@ namespace JSIL.Transforms {
                         EscapingVariables.Add(s);
                 }
             } else {
-                EscapingVariables = Data.EscapingVariables;
+                EscapingVariables = new HashSet<string>(Data.EscapingVariables);
 
                 // Scan over all the invocations performed by this function and see if any of them cause
                 //  a variable to escape
@@ -822,37 +846,38 @@ namespace JSIL.Transforms {
                     else
                         invocationSecondPass = null;
 
-                    foreach (var invocationKvp in invocation.Variables) {
+                    foreach (var invocationKvp in invocation.ThisAndVariables) {
                         if (invocationKvp.Value.Count == 0)
                             continue;
 
                         bool escapes;
 
-                        if (invocationSecondPass != null)
+                        if (invocationSecondPass != null) {
                             escapes = invocationSecondPass.EscapingVariables.Contains(invocationKvp.Key);
-                        else
+                        } else {
                             escapes = true;
+                        }
 
-                        if (escapes) {
-                            if (invocationKvp.Value.Count > 1) {
-                                // FIXME: Is this right?
-                                // Multiple variables -> a binary operator expression or an invocation.
-                                // In either case, it should be impossible for any of them to escape without being flagged otherwise.
+                        if (invocationKvp.Value.Count > 1) {
+                            // FIXME: Is this right?
+                            // Multiple variables -> a binary operator expression or an invocation.
+                            // In either case, it should be impossible for any of them to escape without being flagged otherwise.
 
+                            if (escapes && TraceEscapes)
+                                Console.WriteLine(
+                                    "Parameter '{0}::{1}' escapes but it is a composite so we are not flagging variables {2}",
+                                    GetMethodName(invocation.Method), invocationKvp.Key, String.Join(", ", invocationKvp.Value)
+                                );
+
+                            continue;
+                        } else {
+                            var relevantVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
+
+                            if (escapes) {
                                 if (TraceEscapes)
-                                    Console.WriteLine(
-                                        "Parameter '{0}::{1}' escapes but it is a composite so we are not flagging variables {2}",
-                                        GetMethodName(invocation.Method), invocationKvp.Key, String.Join(", ", invocationKvp.Value)
-                                    );
+                                    Console.WriteLine("Parameter '{0}::{1}' escapes; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, relevantVariable);
 
-                                continue;
-                            } else {
-                                var escapingVariable = invocationKvp.Value.Array[invocationKvp.Value.Offset];
-
-                                if (TraceEscapes)
-                                    Console.WriteLine("Parameter '{0}::{1}' escapes; flagging variable '{2}'", GetMethodName(invocation.Method), invocationKvp.Key, escapingVariable);
-
-                                Data.EscapingVariables.Add(escapingVariable);
+                                EscapingVariables.Add(relevantVariable);
                             }
                         }
                     }
@@ -929,6 +954,8 @@ namespace JSIL.Transforms {
                 ModifiedVariables = new HashSet<string>(GetAttributeArguments<string>(parms));
             } else if (!_IsPure) {
                 ModifiedVariables = new HashSet<string>(from p in method.Parameters select p.Name);
+                if (!method.IsStatic)
+                    ModifiedVariables.Add("this");
             } else {
                 ModifiedVariables = new HashSet<string>();
             }
@@ -938,6 +965,8 @@ namespace JSIL.Transforms {
                 EscapingVariables = new HashSet<string>(GetAttributeArguments<string>(parms));
             } else if (!_IsPure) {
                 EscapingVariables = new HashSet<string>(from p in method.Parameters select p.Name);
+                if (!method.IsStatic)
+                    EscapingVariables.Add("this");
             } else {
                 EscapingVariables = new HashSet<string>();
             }

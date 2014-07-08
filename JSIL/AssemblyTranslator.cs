@@ -1749,16 +1749,16 @@ namespace JSIL {
                 );
                 JSFunctionExpression function;
 
-                if (ShouldSkipMember(method)) {
-                    FunctionCache.CreateNull(methodInfo, method, identifier);
-                    return null;
-                }
-
                 if (FunctionCache.TryGetExpression(identifier, out function)) {
                     return function;
                 }
 
-                if (methodInfo.IsExternal) {
+                bool skip = 
+                    ShouldSkipMember(method) ||
+                    methodInfo.IsExternal ||
+                    methodInfo.IsAbstract;
+                
+                if (skip) {
                     FunctionCache.CreateNull(methodInfo, method, identifier);
                     return null;
                 }

@@ -1776,10 +1776,11 @@ namespace JSIL.Internal {
         public readonly string[] GenericParameterNames;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
-        public readonly bool IsGeneric;
+        public readonly bool IsAbstract;
         public readonly bool IsConstructor;
-        public readonly bool IsVirtual;
+        public readonly bool IsGeneric;
         public readonly bool IsSealed;
+        public readonly bool IsVirtual;
 
         protected NamedMethodSignature _Signature = null;
 
@@ -1801,11 +1802,12 @@ namespace JSIL.Internal {
         ) {
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
-            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsGeneric = method.HasGenericParameters;
             IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
         }
 
         public MethodInfo (
@@ -1823,11 +1825,12 @@ namespace JSIL.Internal {
             Property = property;
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
-            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsGeneric = method.HasGenericParameters;
             IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
 
             if (property != null)
                 Metadata.Update(property.Metadata, false);
@@ -1847,11 +1850,12 @@ namespace JSIL.Internal {
             Event = evt;
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
-            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsGeneric = method.HasGenericParameters;
             IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
 
             if (evt != null)
                 Metadata.Update(evt.Metadata, false);
