@@ -19,6 +19,10 @@ namespace JSIL {
             if (ts != null)
                 return ts.ElementType;
 
+            // HACK
+            if (type.FullName == "System.Void")
+                return type;
+
             if (throwOnFail)
                 throw new ArgumentException("Has no ElementType", "type");
             else

@@ -2016,6 +2016,10 @@ namespace JSIL.Ast {
             if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false) && !force)
                 return inner;
 
+            // HACK: Propagate null expressions without meddling.
+            if (inner.IsNull)
+                return inner;
+
             if (
                 (rankCurrent == rankNew) && 
                 (rankCurrent > 0)

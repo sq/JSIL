@@ -808,8 +808,6 @@ namespace JSIL {
                     case "get_Value":
                         return JSIL.ValueOfNullable(thisExpression);
                 }
-            } else if (thisType.FullName.IndexOf("Nullable`1") >= 0) {
-                Debugger.Break();
             }
 
             return null;
