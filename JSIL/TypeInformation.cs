@@ -1492,7 +1492,7 @@ namespace JSIL.Internal {
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
 
-            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference);
+            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference) || (member is FieldReference && (member as FieldReference).FieldType.IsPointer);
             IsExternal = isExternal;
             IsFromProxy = sourceProxy != null;
             SourceProxy = sourceProxy;
