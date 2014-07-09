@@ -258,7 +258,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (methodDefenition != null)
             {
                 var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(methodDefenition);
-                if (methodInfo.IsIgnored && !methodInfo.IsLambda)
+                if (methodInfo.IsIgnored)
                 {
                     return true;
                 }

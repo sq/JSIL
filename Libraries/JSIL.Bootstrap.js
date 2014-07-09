@@ -472,14 +472,16 @@ JSIL.MulticastDelegate.New = function (delegates) {
 };
 
 JSIL.MakeDelegate("System.Action", true, []);
-JSIL.MakeDelegate("System.Action`1", true, ["T"]);
-JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
-JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
+JSIL.MakeDelegate("System.Action`1", true, ["in T"]);
+JSIL.MakeDelegate("System.Action`2", true, ["in T1", "in T2"]);
+JSIL.MakeDelegate("System.Action`3", true, ["in T1", "in T2", "in T3"]);
 
-JSIL.MakeDelegate("System.Func`1", true, ["TResult"]);
-JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"]);
-JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"]);
-JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
+JSIL.MakeDelegate("System.Func`1", true, ["out TResult"]);
+JSIL.MakeDelegate("System.Func`2", true, ["in T", "out TResult"]);
+JSIL.MakeDelegate("System.Func`3", true, ["in T1", "in T2", "out TResult"]);
+JSIL.MakeDelegate("System.Func`4", true, ["in T1", "in T2", "in T3", "out TResult"]);
+
+JSIL.MakeDelegate("System.Predicate`1", true, ["in T"]);
 
 JSIL.ImplementExternals(
   "System.Exception", function ($) {

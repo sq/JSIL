@@ -6,45 +6,6 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
-    // Represents a copy of another JSFunctionExpression with the this-reference replaced
-    [JSAstIgnoreInheritedMembers]
-    public class JSLambda : JSLiteralBase<JSFunctionExpression> {
-        [JSAstTraverse(0)]
-        public readonly JSExpression This;
-        public readonly bool UseBind;
-
-        public JSLambda (JSFunctionExpression function, JSExpression @this, bool useBind)
-            : base(function) {
-            if (@this == null)
-                throw new ArgumentNullException("this");
-
-            This = @this;
-            UseBind = useBind;
-        }
-
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Value.GetActualType(typeSystem);
-        }
-
-        public override bool IsConstant {
-            get {
-                return Value.IsConstant;
-            }
-        }
-
-        public override bool IsNull {
-            get {
-                return Value.IsNull;
-            }
-        }
-
-        public override bool HasGlobalStateDependency {
-            get {
-                return Value.HasGlobalStateDependency;
-            }
-        }
-    }
-
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
         public int? CachedTypeIndex;
 

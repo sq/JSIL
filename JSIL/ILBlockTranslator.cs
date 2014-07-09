@@ -2756,56 +2756,6 @@ namespace JSIL {
             if (methodDot != null) {
                 methodMember = methodDot.Member as JSMethod;
 
-                if (methodMember != null) {
-                    var methodDef = methodMember.Method.Member;
-
-                    bool compilerGenerated = methodDef.IsCompilerGeneratedOrIsInCompilerGeneratedClass();
-                    bool emitInline = (
-                            methodDef.IsPrivate && compilerGenerated
-                        ) || (
-                            compilerGenerated &&
-                            TypeUtil.TypesAreEqual(
-                                thisArg.GetActualType(TypeSystem),
-                                methodDef.DeclaringType
-                            )
-                        ) || (
-                            methodMember.Method.IsIgnored
-                        );
-
-                    if (emitInline) {
-                        JSFunctionExpression function;
-                        // It's possible that the method we're using wasn't initially translated/analyzed because it's
-                        //  a compiler-generated method or part of a compiler generated type
-                        if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
-                            function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
-                        }
-
-                        if (function == null) {
-                            return new JSUntranslatableExpression(node);
-                        }
-
-                        var thisArgVar = thisArg as JSVariable;
-
-                        // If the closure references the outer 'this' variable, we need to explicitly bind it to the
-                        //  closure's local 'this' reference (by setting useBind to true to use Function.bind).
-                        // It is also possible for the this-reference to be a variable with a name that collides with
-                        //  the name of a local variable within the closure. The solution in this case is the same:
-                        //  we make it the closure's local 'this' reference using Function.bind.
-                        if (
-                            (thisArgVar != null) &&
-                            (thisArgVar.IsThis || function.AllVariables.ContainsKey(thisArgVar.Name))
-                        ) {
-                            return new JSLambda(function, thisArgVar, true);
-                        }
-
-                        return new JSLambda(
-                            function, thisArg, !(
-                                thisArg.IsNull || thisArg is JSNullLiteral
-                            )
-                        );
-                    }
-                }
-
                 var ma = methodDot as JSMethodAccess;
 
                 if (ma != null) {

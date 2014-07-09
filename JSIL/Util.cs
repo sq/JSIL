@@ -26,21 +26,6 @@ namespace JSIL.Internal {
     }
 
     public static class Util {
-        public static bool IsGenericClosure(this MethodReference member) {
-            if (member.HasGenericParameters && member.HasGeneratedName()) {
-                var definition = member as MethodDefinition;
-
-                if (definition != null) {
-                    var index = member.Name.IndexOf(">");
-                    var result = definition.CustomAttributes.Any(x => x.AttributeType.Name == "CompilerGeneratedAttribute") && 
-                        (index > -1) && 
-                        (member.Name.Substring(index + 1, 1) == "b");
-                    return result;
-                }
-            }
-            return false;
-        }
-
         public static readonly HashSet<string> ReservedWords = new HashSet<string> {
             "break", "do", "instanceof", "typeof",
             "case", "else", "new", "var",
