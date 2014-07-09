@@ -34,31 +34,16 @@ namespace JSIL.Transforms {
             if (!IsCacheable(type))
                 return null;
 
-            bool mapArraysToSystemArray = false;
+            GenericTypeIdentifier? identifier = GenericTypeIdentifier.Create(type);
 
-            while (type is ByReferenceType)
-                type = ((ByReferenceType)type).ElementType;
-
-            var resolved = TypeUtil.GetTypeDefinition(type, mapArraysToSystemArray);
-            if (resolved == null)
+            if (identifier == null)
+            {
                 return null;
-
-            var at = type as ArrayType;
-
-            TypeDefinition[] arguments;
-            var git = type as GenericInstanceType;
-
-            if (git != null) {
-                arguments = (from a in git.GenericArguments select TypeUtil.GetTypeDefinition(a, mapArraysToSystemArray)).ToArray();
-            } else {
-                arguments = new TypeDefinition[0];
             }
 
-            var identifier = new GenericTypeIdentifier(resolved, arguments, (at != null) ? at.Rank : 0);
-
             CachedTypeRecord record;
-            if (!CachedTypes.TryGetValue(identifier, out record))
-                CachedTypes.Add(identifier, record = new CachedTypeRecord(type, NextID++));
+            if (!CachedTypes.TryGetValue(identifier.Value, out record))
+                CachedTypes.Add(identifier.Value, record = new CachedTypeRecord(type, NextID++));
 
             return new JSCachedType(type, record.Index);
         }

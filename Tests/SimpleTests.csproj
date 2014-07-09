@@ -377,6 +377,7 @@
     <None Include="SimpleTestCases\NullableCloneParameter_Issue316.cs" />
     <None Include="SimpleTestCases\NullableModification_Issue361.cs" />
     <None Include="SimpleTestCases\NullableNullAccess.cs" />
+    <None Include="SimpleTestCases\SignatureCacheDoubleGeneric_Issue547.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
