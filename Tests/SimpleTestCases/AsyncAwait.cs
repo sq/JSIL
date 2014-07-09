@@ -6,7 +6,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        var source1 = new TaskCompletionSource<object>();
+        var source1 = new TaskCompletionSource<string>();
         var source2 = new TaskCompletionSource<object>();
         var signal = new ManualResetEventSlim(false);
 
@@ -23,7 +23,7 @@ public static class Program
         );
 
         Console.WriteLine("Main: Delay 1 complete");
-        source1.TrySetResult(string.Empty);
+        source1.TrySetResult("Result 1");
 
         Console.WriteLine("Main: Delay 2 complete");
         source2.TrySetResult(string.Empty);
@@ -31,10 +31,10 @@ public static class Program
         signal.Wait();
     }
 
-    public static async Task<string> AsyncMethod(Task task1, Task task2)
+    public static async Task<string> AsyncMethod(Task<string> task1, Task task2)
     {
-        await task1;
-        Console.WriteLine("After delay 1");
+        var result1 = await task1;
+        Console.WriteLine("After delay 1: " + result1);
         await task2;
         Console.WriteLine("After delay 2");
         return "AsyncMethod result";
