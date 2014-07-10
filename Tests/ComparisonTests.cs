@@ -8,6 +8,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using JSIL.Internal;
+using JSIL.Translator;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
@@ -301,6 +302,7 @@ namespace JSIL.Tests {
                     @"TestCases\EnumNullableArithmetic.cs",
                     @"TestCases\EnumAnonymousMethod.cs",
                     @"TestCases\CompareFlagsEnums.cs",
+                    @"TestCases\EnumClone.cs"
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
@@ -510,16 +512,6 @@ namespace JSIL.Tests {
         }
 
         #region Folders
-
-        [Test]
-        [TestCaseSource("SimpleTestCasesSource")]
-        public void SimpleTestCases (object[] parameters) {
-            RunSingleComparisonTestCase(parameters);
-        }
-
-        protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
-            return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
-        }
 
         [Test]
         [TestCaseSource("JSTestCasesSource")]

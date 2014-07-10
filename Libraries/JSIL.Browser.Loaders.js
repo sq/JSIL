@@ -444,7 +444,7 @@ function $makeXNBAssetLoader (key, typeName) {
           var assetName = getAssetName(filename, true);
           var parsedTypeName = JSIL.ParseTypeName(typeName);    
           var type = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
-          allAssets[key] = JSIL.CreateInstanceOfType(type, [assetName, result]);
+          allAssets[key] = JSIL.CreateInstanceOfType(type, "_ctor", [assetName, result]);
         };
         onDoneLoading(finisher); 
       } else {

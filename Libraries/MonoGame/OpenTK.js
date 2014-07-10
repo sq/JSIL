@@ -90,7 +90,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
       // FIXME
     }
@@ -192,14 +192,14 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Exit", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Exit () {
       throw new Error('Not implemented');
     }
@@ -215,7 +215,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true }, "get_IsExiting", 
     new JSIL.MethodSignature($.Boolean, [], []), 
     function get_IsExiting () {
-      throw new Error('Not implemented');
+      return false;
     }
   );
 
@@ -329,14 +329,14 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   */
 
   $.Method({Static:false, Public:true , Virtual:true }, "MakeCurrent", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function MakeCurrent () {
       // FIXME
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Run", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Run () {
       throw new Error('Not implemented');
     }
@@ -399,7 +399,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "SwapBuffers", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function SwapBuffers () {
       // FIXME
     }
@@ -414,7 +414,7 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
       throw new Error('Not implemented');
     }
@@ -524,14 +524,14 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Close", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Close () {
       throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       throw new Error('Not implemented');
     }
@@ -689,7 +689,7 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "ProcessEvents", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function ProcessEvents () {
       throw new Error('Not implemented');
     }
@@ -846,7 +846,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:true , Public:true }, "Assert", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Assert () {
       throw new Error('Not implemented');
     }
@@ -867,7 +867,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       // FIXME
     }
@@ -953,7 +953,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "LoadAll", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function LoadAll () {
       throw new Error('Not implemented');
     }
@@ -972,7 +972,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Context");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Context");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.get_Implementation", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.IGraphicsContext"), [], []), 
@@ -980,7 +980,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Implementation");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Implementation");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.GetAddress", 
     new JSIL.MethodSignature($mgasms[2].TypeRef("System.IntPtr"), [$.String], []), 
@@ -988,7 +988,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "GetAddress");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "GetAddress");
 
 /*
   $.Method({Static:true , Public:true }, "set_DirectRendering", 
@@ -1028,7 +1028,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
 */
 
   $.Method({Static:false, Public:true , Virtual:true }, "SwapBuffers", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function SwapBuffers () {
       throw new Error('Not implemented');
     }
@@ -1051,7 +1051,7 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:false}, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
     }
   );
@@ -1147,7 +1147,7 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true }, "RestoreResolution", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function RestoreResolution () {
       // FIXME
     }
@@ -1274,7 +1274,7 @@ JSIL.ImplementExternals("OpenTK.Input.KeyboardDevice", function ($) {
     });
 
     $.Method({Static:false, Public:false}, ".ctor", 
-      new JSIL.MethodSignature(null, [], []),
+      JSIL.MethodSignature.Void,
       function ctor () {
         this.PriorState = [];
         this.CurrentState = [];

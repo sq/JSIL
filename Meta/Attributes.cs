@@ -185,4 +185,20 @@ namespace JSIL.Meta {
     [AttributeUsage(AttributeTargets.Method)]
     public class JSAllowPackedArrayArgumentsAttribute : Attribute {
     }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate |
+    AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field)]
+    public class JSDeadCodeEleminationEntryPoint : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
+    public class JSDeadCodeEleminationClassEntryPoint : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
+    public class JSDeadCodeEleminationHierarchyEntryPoint : Attribute
+    {
+    }
 }

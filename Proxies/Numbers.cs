@@ -7,8 +7,8 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         new [] { 
-            typeof(SByte), typeof(Int16), typeof(Int32), typeof(Int64), 
-            typeof(Byte), typeof(UInt16), typeof(UInt32), typeof(UInt64) 
+            typeof(SByte), typeof(Int16), typeof(Int32), 
+            typeof(Byte), typeof(UInt16), typeof(UInt32)
         },
         JSProxyMemberPolicy.ReplaceDeclared
     )]
@@ -75,6 +75,33 @@ namespace JSIL.Proxies {
 
         [JSReplacement("JSIL.CompareValues($this, $rhs)")]
         public int CompareTo (AnyType rhs) {
+            throw new InvalidOperationException();
+        }
+    }
+
+    [JSProxy(
+        new[] { 
+            typeof(UInt64), typeof(Int64)
+        },
+        JSProxyMemberPolicy.ReplaceDeclared
+    )]
+    public abstract class LargeIntegerProxy {
+        [JSReplacement("($this).toString()")]
+        public string ToString () {
+            return base.ToString();
+        }
+
+        // FIXME
+        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format)")]
+        [JSReplacement("($this).toString()")]
+        public string ToString (string format) {
+            throw new InvalidOperationException();
+        }
+
+        // FIXME
+        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format, $formatProvider)")]
+        [JSReplacement("($this).toString()")]
+        public string ToString (string format, IFormatProvider formatProvider) {
             throw new InvalidOperationException();
         }
     }

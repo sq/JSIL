@@ -51,6 +51,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void EnumCasts () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\EnumCasts.cs"
+            )) {
+                test.Run();
+            }
+        }
+
+        [Test]
         public void Sieve () {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Sieve.cs"
@@ -173,7 +182,7 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyVsField () {
             using (var test = MakeTest(
-                @"PerformanceTestCases\PropertyVsField.cs"                
+                @"PerformanceTestCases\PropertyVsField.cs"
             )) {
                 long elapsedcs;
 
@@ -186,6 +195,18 @@ namespace JSIL.Tests {
                         return cfg;
                     }
                 ));
+            }
+        }
+
+        [Test]
+        public void BaseMethodCalls () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\BaseMethodCalls.cs"
+            )) {
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
     }

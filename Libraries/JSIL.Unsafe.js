@@ -241,7 +241,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "Free", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Free () {
       // FIXME: Unpin?
     }
@@ -292,22 +292,52 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function MemoryRange_ctor (buffer) {
       this.buffer = buffer;
-      this.viewCache = JSIL.CreateDictionaryObject(null);
+
+      if (typeof (Map) !== "undefined") {
+        this.viewCache = new Map();
+        this.viewCacheIsMap = true;
+      } else {
+        this.viewCache = JSIL.CreateDictionaryObject(null);
+        this.viewCacheIsMap = false;
+      }
+
+      this.viewCacheByElementType = JSIL.CreateDictionaryObject(null);
+    }
+  );
+
+  $.RawMethod(false, "getCachedView",
+    function MemoryRange_getCachedView (key) {
+      if (this.viewCacheIsMap) {
+        return this.viewCache.get(key);
+      } else {
+        var ctorKey = key.name || String(key.constructor);
+        return this.viewCache[ctorKey];
+      }
+    }
+  );
+
+  $.RawMethod(false, "setCachedView",
+    function MemoryRange_setCachedView (key, value) {
+      if (this.viewCacheIsMap) {
+        this.viewCache.set(key, value);
+      } else {
+        var ctorKey = key.name || String(key.constructor);
+        this.viewCache[ctorKey] = value;
+      }
     }
   );
 
   $.RawMethod(false, "storeExistingView",
     function MemoryRange_storeExistingView (view) {
       var arrayCtor = Object.getPrototypeOf(view);
-      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
 
-      if (
-        this.viewCache[ctorKey] && 
-        (this.viewCache[ctorKey] !== view)
-      )
-        JSIL.RuntimeError("A different view is already stored for this element type");
-
-      this.viewCache[ctorKey] = view;
+      var cachedView = this.getCachedView(arrayCtor);
+      if (cachedView) {
+        if (cachedView !== view)
+          JSIL.RuntimeError("A different view is already stored for this element type");
+      } else {
+        this.setCachedView(arrayCtor, view);
+      }
     }
   );
 
@@ -317,11 +347,11 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (!arrayCtor)
         return null;
 
-      var ctorKey = arrayCtor.name || String(arrayCtor.constructor);
-
-      var result = this.viewCache[ctorKey];
-      if (!result)
-        result = this.viewCache[ctorKey] = new arrayCtor(this.buffer);
+      var result = this.getCachedView(arrayCtor);
+      if (!result) {
+        result = new arrayCtor(this.buffer);
+        this.setCachedView(arrayCtor, result);
+      }
 
       return result;
     }
@@ -408,8 +438,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
 
   $.RawMethod(false, "asView",
     function Pointer_asView (elementType, sizeInBytes) {
-      if (typeof (sizeInBytes) !== "number")
-        sizeInBytes = (this.memoryRange.buffer.byteLength - this.offsetInBytes) | 0;
+      var underlyingBufferSize = (this.memoryRange.buffer.byteLength - this.offsetInBytes) | 0;
+
+      // FIXME: Maybe make this null instead? Int-only is probably better.
+      sizeInBytes = sizeInBytes | 0;
+      if (sizeInBytes === -1)
+        sizeInBytes = underlyingBufferSize;
 
       var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(elementType.__Type__, true);
       var offsetInElements = (this.offsetBytes / arrayCtor.BYTES_PER_ELEMENT) | 0;
@@ -420,8 +454,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       if ((sizeInBytes % arrayCtor.BYTES_PER_ELEMENT) !== 0)
         JSIL.RuntimeError("Size must be an integral multiple of element size");
 
-      var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
+      // Where possible, return a cached view to avoid creating garbage.
+      // FIXME: Maybe don't even apply the size constraint here?
+      if ((offsetInElements === 0) && (sizeInBytes === underlyingBufferSize))
+        return this.memoryRange.getView(elementType.__Type__, true);
 
+      var view = new arrayCtor(this.memoryRange.buffer, offsetInElements, sizeInElements);
       return view;
     }
   );

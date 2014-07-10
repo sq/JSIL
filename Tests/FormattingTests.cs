@@ -810,10 +810,10 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(
-                    generatedJs.Contains("\"U\", \"B`1\").in()"), "B`1.U missing variance indicator"
+                    generatedJs.Contains("\"U\").in()"), "B`1.U missing variance indicator"
                 );
                 Assert.IsTrue(
-                    generatedJs.Contains("\"V\", \"C`1\").out()"), "C`1.V missing variance indicator"
+                    generatedJs.Contains("\"V\").out()"), "C`1.V missing variance indicator"
                 );
                 Assert.IsTrue(
                     generatedJs.Contains("\"in U\""), "U name missing variance indicator"
@@ -855,9 +855,9 @@ namespace JSIL.Tests {
         [Test]
         public void SpuriousIntegerHints () {
             var output = "0F0F\r\n7773";
-            var generatedJs = GetJavascript(
+            var generatedJs = GenericTest(
                 @"SpecialTestCases\SpuriousIntegerHints.cs",
-                output
+                output, output
             );
 
             try {
@@ -1002,11 +1002,76 @@ namespace JSIL.Tests {
                     generatedJs.Contains("\"Program+InnerGenericClass`1\""),
                     "Inner class should be named in Outer+Inner format");
                 Assert.IsTrue(
-                    generatedJs.Contains("JSIL.GenericParameter(\"T\", \"Program+InnerGenericClass`1\")"),
-                    "Generic parameter for inner class should reference class with correct name");
+                    generatedJs.Contains("$.GenericParameter(\"T\")"),
+                    "Generic parameter for inner class should reference class via $");
             }
             catch
             {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void PreventFastMethodDispatcherIfHideBase_Issue368()
+        {
+            var output = "";
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs",
+                output
+                );
+
+            try
+            {
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.Method();"),
+                    "Base.Method should not used fast dispatcher as it may be hidden by Derived.Method");
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.MethodWithParameter1();"),
+                    "Base.MethodWithParameter1 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter1");
+                Assert.IsFalse(
+                    generatedJs.Contains("bas.MethodWithParameter2();"),
+                    "Base.MethodWithParameter2 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter2");
+
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.Method();"),
+                    "Derived.Method should not used fast dispatcher as it is hidden by Base.Method");
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.MethodWithParameter1();"),
+                    "Derived.MethodWithParameter1 should not used fast dispatcher as it is hidden by Base.MethodWithParameter1");
+                Assert.IsFalse(
+                    generatedJs.Contains("derived.MethodWithParameter2();"),
+                    "Derived.MethodWithParameter2 should not used fast dispatcher as it is hidden by Base.MethodWithParameter2");
+
+                Assert.IsTrue(
+                    generatedJs.Length - generatedJs.Replace("bas.AnotherMethod();", string.Empty).Length == "bas.AnotherMethod();".Length * 2,
+                    "Base.AnotherMethod should use fast dispatcher");
+                Assert.IsTrue(
+                    generatedJs.Contains("derived.AnotherMethod();"),
+                    "Base.AnotherMethod should use fast dispatcher even if called on Dervided instance");
+
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void DoubleFloatCasts () {
+            var output = "1.0 1.0\r\n2 2.5\r\n1 1.5\r\n10101010101.01010\r\ntruncated";
+            var testFile = @"SpecialTestCases\DoubleFloatCasts.cs";
+            GenericTest(testFile, output, output);
+
+            var generatedJs = GetJavascript(testFile);
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("$Cast"));
+                Assert.IsTrue(generatedJs.Contains("Math.fround"));
+            } catch {
                 Console.WriteLine(generatedJs);
 
                 throw;

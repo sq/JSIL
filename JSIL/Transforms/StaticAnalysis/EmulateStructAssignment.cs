@@ -14,7 +14,10 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : StaticAnalysisJSAstVisitor {
-        public const bool Tracing = false;
+        public const bool TraceElidedCopies = false;
+        public const bool TraceInsertedCopies = false;
+        public const bool TracePostOptimizedCopies = false;
+        public const bool TracePostOptimizeDecisions = false;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly CLRSpecialIdentifiers CLR;
@@ -23,6 +26,7 @@ namespace JSIL.Transforms {
         public readonly bool OptimizeCopies;
 
         private FunctionAnalysis2ndPass SecondPass = null;
+        private JSExpression ResultReferenceReplacement = null;
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
@@ -44,8 +48,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsImmutable (JSExpression target) {
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
+            target = JSReferenceExpression.Strip(target);
 
             var fieldAccess = target as JSFieldAccess;
             if (fieldAccess != null) {
@@ -70,25 +73,23 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            target = JSReferenceExpression.Strip(target);
+
             if (!OptimizeCopies)
                 return true;
 
             if (IsImmutable(target))
                 return false;
 
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
-
             var variable = target as JSVariable;
             if (variable != null)
-                return SecondPass.ModifiedVariables.Contains(variable.Name);
+                return SecondPass.IsVariableModified(variable.Name);
 
             return true;
         }
 
         protected bool IsCopyAlwaysUnnecessaryForAssignmentTarget (JSExpression target) {
-            while (target is JSReferenceExpression)
-                target = ((JSReferenceExpression)target).Referent;
+            target = JSReferenceExpression.Strip(target);
 
             var targetDot = target as JSDotExpressionBase;
 
@@ -100,14 +101,17 @@ namespace JSIL.Transforms {
             return false;
         }
 
-        protected bool IsCopyNeeded (JSExpression value, out GenericParameter relevantParameter) {
+        protected bool IsCopyNeeded (
+            JSExpression value, 
+            out GenericParameter relevantParameter,
+            bool allowImmutabilityOptimizations = true
+        ) {
             relevantParameter = null;
 
             if ((value == null) || (value.IsNull))
                 return false;
 
-            while (value is JSReferenceExpression)
-                value = ((JSReferenceExpression)value).Referent;
+            value = JSReferenceExpression.Strip(value);
 
             var sce = value as JSStructCopyExpression;
             if (sce != null)
@@ -115,6 +119,7 @@ namespace JSIL.Transforms {
 
             var valueType = value.GetActualType(TypeSystem);
             var valueTypeDerefed = TypeUtil.DereferenceType(valueType) ?? valueType;
+
             var cte = value as JSChangeTypeExpression;
             var cast = value as JSCastExpression;
 
@@ -143,6 +148,9 @@ namespace JSIL.Transforms {
                 relevantParameter = (valueTypeDerefed as GenericParameter);
             }
 
+            if (value is JSValueOfNullableExpression)
+                return true;
+
             if (IsTypeExcludedFromCopies(valueType)) 
                 return false;
 
@@ -154,6 +162,7 @@ namespace JSIL.Transforms {
                 (value is JSPassByReferenceExpression) ||
                 (value is JSNewBoxedVariable) ||
                 (value is JSDefaultValueLiteral) ||
+                (value is JSFieldOfExpression) ||
                 ((iae != null) && ((iae.Target is JSNewExpression) || (iae.Target is JSDefaultValueLiteral)))
             ) {
                 return false;
@@ -162,9 +171,8 @@ namespace JSIL.Transforms {
             if (!OptimizeCopies)
                 return true;
 
-            if (IsImmutable(value)) {
+            if (IsImmutable(value) && allowImmutabilityOptimizations)
                 return false;
-            }
 
             var valueDot = value as JSDotExpressionBase;
 
@@ -174,7 +182,7 @@ namespace JSIL.Transforms {
                 return false;
 
             var valueTypeInfo = TypeInfo.GetExisting(valueType);
-            if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable)
+            if ((valueTypeInfo != null) && valueTypeInfo.IsImmutable && allowImmutabilityOptimizations)
                 return false;
             
             // If the expression is a parameter that is only used once and isn't aliased,
@@ -184,51 +192,16 @@ namespace JSIL.Transforms {
                 int referenceCount;
                 if (
                     ReferenceCounts.TryGetValue(rightVar.Identifier, out referenceCount) &&
-                    (referenceCount == 1) && !rightVar.IsReference && rightVar.IsParameter &&
+                    (referenceCount == 1) && 
+                    !rightVar.IsReference && 
+                    rightVar.IsParameter &&
                     !SecondPass.VariableAliases.ContainsKey(rightVar.Identifier)
                 ) {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
+                    if (TraceElidedCopies)
+                        Console.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
 
                     return false;
                 }
-            }
-
-            var rightInvocation = value as JSInvocationExpression;
-            if (rightInvocation == null)
-                return true;
-
-            var invokeMethod = rightInvocation.JSMethod;
-            if (invokeMethod == null)
-                return true;
-
-            var secondPass = GetSecondPass(invokeMethod);
-            if (secondPass == null)
-                return true;
-
-            // If this expression is the return value of a function invocation, we can eliminate struct
-            //  copies if the return value is a 'new' expression.
-            if (secondPass.ResultIsNew)
-                return false;
-
-            // We can also eliminate a return value copy if the return value is one of the function's 
-            //  arguments, and we are sure that argument does not need a copy either.
-            if (secondPass.ResultVariable != null) {
-                var parameters = invokeMethod.Method.Parameters;
-                int parameterIndex = -1;
-
-                for (var i = 0; i < parameters.Length; i++) {
-                    if (parameters[i].Name != secondPass.ResultVariable)
-                        continue;
-
-                    parameterIndex = i;
-                    break;
-                }
-
-                if (parameterIndex < 0)
-                    return true;
-
-                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex], out relevantParameter);
             }
  
             return true;
@@ -258,8 +231,8 @@ namespace JSIL.Transforms {
         public void VisitNode (JSPairExpression pair) {
             GenericParameter relevantParameter;
             if (IsCopyNeeded(pair.Value, out relevantParameter)) {
-                if (Tracing)
-                    Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
+                if (TraceInsertedCopies)
+                    Console.WriteLine("struct copy introduced for object value {0}", pair.Value);
 
                 pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
             }
@@ -267,7 +240,7 @@ namespace JSIL.Transforms {
             VisitChildren(pair);
         }
 
-        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
+        protected bool IsArgumentCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
             if (!IsCopyNeeded(expression, out relevantParameter))
                 return false;
 
@@ -280,12 +253,19 @@ namespace JSIL.Transforms {
             bool modified = true, escapes = true, isResult = false;
 
             if (parameterName != null) {
-                modified = sa.ModifiedVariables.Contains(parameterName);
-                escapes = sa.EscapingVariables.Contains(parameterName);
+                modified = sa.IsVariableModified(parameterName);
+                escapes = sa.DoesVariableEscape(parameterName, true);
                 isResult = sa.ResultVariable == parameterName;
             }
 
-            return modified || (escapes && !isResult);
+            var result = modified || (escapes && !isResult);
+
+            if (!result) {
+                if (TraceElidedCopies)
+                    Console.WriteLine("argument {0} needs no copy because it isn't modified and doesn't escape");
+            }
+
+            return result;
         }
 
         public void VisitNode (JSNewExpression newexp) {
@@ -309,31 +289,114 @@ namespace JSIL.Transforms {
             CloneArgumentsIfNecessary(invocation.Parameters, invocation.Arguments, sa);
 
             var thisReference = invocation.ThisReference;
-            if (
-                (thisReference != null) && 
-                (sa != null) && 
-                sa.ViolatesThisReferenceImmutability && 
-                !(ParentNode is JSCommaExpression)
-            ) {
-                // The method we're calling violates immutability so we need to clone the this-reference
-                //  before we call it.
-                var thisReferenceType = thisReference.GetActualType(TypeSystem);
-                if (TypeUtil.IsStruct(thisReferenceType)) {
-                    if (!(thisReference is JSVariable) && !(thisReference is JSFieldAccess))
-                        throw new NotImplementedException("Unsupported invocation of method that reassigns this within an immutable struct: " + invocation);
+            var thisReferenceType = thisReference.GetActualType(TypeSystem);
+            var thisReferenceIsStruct = TypeUtil.IsStruct(thisReferenceType) && 
+                !TypeUtil.IsNullable(thisReferenceType);
 
-                    var cloneExpr = new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, thisReference, new JSStructCopyExpression(thisReference), thisReferenceType
+            bool thisReferenceNeedsCopy = false;
+            bool thisReferenceNeedsCopyAndReassignment = false;
+
+            if (thisReferenceIsStruct) {
+                var isMethodInvocation = (thisReference != null) && 
+                    (sa != null) && 
+                    !(ParentNode is JSCommaExpression) &&
+                    !(thisReference is JSStructCopyExpression) &&
+                    !(
+                        (ParentNode is JSResultReferenceExpression) &&
+                        Stack.OfType<JSCommaExpression>().Any()
                     );
-                    var commaExpression = new JSCommaExpression(cloneExpr, invocation);
 
-                    ParentNode.ReplaceChild(invocation, commaExpression);
-                    VisitReplacement(commaExpression);
-                    return;
-                }
+
+                // If a struct is immutable, a method may reassign the this-reference,
+                //  i.e. 'this = otherstruct' successfully.
+                // In this scenario we have to clone the old this-reference, invoke
+                //  the method on the clone, and replace the old this-reference with
+                //  the new, modified clone.
+
+                thisReferenceNeedsCopyAndReassignment = isMethodInvocation && sa.ViolatesThisReferenceImmutability;
+
+
+                // When invoking a method that mutates a struct's members or lets them escape,
+                //  we need to copy the this-reference if it isn't writable.
+
+                // FIXME: We're white-listing writable targets, but we probably want to blacklist
+                //  non-writable targets instead, so that if a fn's result is new we don't clone it
+                //  to use it as a this-reference.
+
+                // FIXME: Handle pointers, replace x.get().foo() with some sort of comma expr,
+                //  like ($x = x.get(), $x.foo(), x.set($x)) ?
+                var isWritableInstance = 
+                    (thisReference is JSFieldAccess) ||
+                        (thisReference is JSVariable) ||
+                        (thisReference is JSReadThroughReferenceExpression);
+
+                thisReferenceNeedsCopy = isMethodInvocation &&
+                    (
+                        sa.IsVariableModified("this") || 
+                        // Maybe don't include return here?
+                        sa.DoesVariableEscape("this", true)
+                    ) &&
+                    (!isWritableInstance);
             }
 
-            VisitChildren(invocation);
+            GenericParameter relevantParameter;
+            var isCopyNeeded = IsCopyNeeded(thisReference, out relevantParameter, false);
+            if (
+                thisReferenceNeedsCopyAndReassignment && isCopyNeeded
+            ) {
+                if (TraceInsertedCopies)
+                    Console.WriteLine("Cloning this-reference because method reassigns this: {0}", invocation);
+
+                if (
+                    (thisReference is JSFieldAccess) ||
+                    (thisReference is JSVariable)
+                ) {
+                    var rre = ParentNode as JSResultReferenceExpression;
+                    var cloneExpr = new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, thisReference, MakeCopyForExpression(thisReference, relevantParameter), thisReferenceType
+                    );
+                    var commaExpression = new JSCommaExpression(
+                        cloneExpr,
+                        (rre != null)
+                            ? (JSExpression)new JSResultReferenceExpression(invocation)
+                            : (JSExpression)invocation
+                    );
+
+                    if (rre != null) {
+                        ResultReferenceReplacement = commaExpression;
+                        return;
+                    } else {
+                        ParentNode.ReplaceChild(invocation, commaExpression);
+                        VisitReplacement(commaExpression);
+                        return;
+                    }
+                } else {
+                    // Huh?
+                    invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
+                    VisitChildren(invocation);
+                    return;
+                }
+            } else if (thisReferenceNeedsCopy && isCopyNeeded) {
+                if (TraceInsertedCopies)
+                    Console.WriteLine("Cloning this-reference because method mutates this and this-reference is not field/local: {0}", invocation);
+
+                invocation.ReplaceChild(thisReference, MakeCopyForExpression(thisReference, relevantParameter));
+                VisitChildren(invocation);
+                return;
+            }
+
+            VisitChildren(invocation);            
+        }
+
+        public void VisitNode (JSResultReferenceExpression rre) {
+            VisitChildren(rre);
+
+            if (ResultReferenceReplacement != null) {
+                var newRre = ResultReferenceReplacement;
+                ResultReferenceReplacement = null;
+                ParentNode.ReplaceChild(rre, newRre);
+                VisitReplacement(newRre);
+            }
         }
 
         private void CloneArgumentsIfNecessary(
@@ -353,17 +416,17 @@ namespace JSIL.Transforms {
                     parameterName = pd.Name;
 
                 GenericParameter relevantParameter;
-                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter))
+                if (IsArgumentCopyNeeded(sa, parameterName, argument, out relevantParameter))
                 {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
+                    if (TraceInsertedCopies)
+                        Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     argumentValues[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
                 else
                 {
-                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
-                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
+                    if (TraceElidedCopies && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
+                        Console.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
                 }
             }
         }
@@ -374,8 +437,8 @@ namespace JSIL.Transforms {
 
                 GenericParameter relevantParameter;
                 if (IsCopyNeeded(argument, out relevantParameter)) {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument argument #{0}: {1}", i, argument));
+                    if (TraceInsertedCopies)
+                        Console.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
@@ -390,37 +453,159 @@ namespace JSIL.Transforms {
                 return;
             }
 
+            bool doPostOptimization = false;
+
             GenericParameter relevantParameter;
 
             if (IsCopyNeeded(boe.Right, out relevantParameter)) {
-                var rightVars = boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>().ToArray();
+                var rightVars = new HashSet<JSVariable>(StaticAnalyzer.ExtractInvolvedVariables(boe.Right));
 
                 // Even if the assignment target is never modified, if the assignment *source*
                 //  gets modified, we need to make a copy here, because the target is probably
                 //  being used as a back-up copy.
-                var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
+                var rightVarsModified = (rightVars.Any((rv) => SecondPass.IsVariableModified(rv.Name)));
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
                 if (
-                    (rightVarsModified || 
-                    IsCopyNeededForAssignmentTarget(boe.Left) || 
-                    rightVarsAreReferences) &&
+                    (
+                        rightVarsModified || 
+                        IsCopyNeededForAssignmentTarget(boe.Left) || 
+                        rightVarsAreReferences
+                    ) &&
                     !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
                 ) {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+                    if (TraceInsertedCopies)
+                        Console.WriteLine(String.Format("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right));
 
+                    doPostOptimization = true;
                     boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
+                    if (TraceElidedCopies)
+                        Console.WriteLine(String.Format("struct copy elided for assignment {0} = {1}", boe.Left, boe.Right));
                 }
             } else {
-                if (Tracing)
-                    Debug.WriteLine(String.Format("no copy needed for assignment rhs {0}", boe.Right));
+                if (TraceElidedCopies && TypeUtil.IsStruct(boe.Right.GetActualType(TypeSystem)))
+                    Console.WriteLine(String.Format("no copy needed for assignment {0} = {1}", boe.Left, boe.Right));
             }
 
             VisitChildren(boe);
+
+            if (doPostOptimization)
+                PostOptimizeAssignment(boe, boe.Right);
+        }
+
+        void PostOptimizeAssignment (JSBinaryOperatorExpression boe, JSExpression rhs) {
+            var rhsCopy = rhs as JSStructCopyExpression;
+            if (rhsCopy == null)
+                return;
+
+            var expr = rhsCopy.Struct;
+            var rre = expr as JSResultReferenceExpression;
+            if (rre != null)
+                expr = rre.Referent;
+
+            var invocation = expr as JSInvocationExpression;
+            if (invocation == null)
+                return;
+
+            var invokeMethod = invocation.JSMethod;
+            if (invokeMethod == null)
+                return;
+
+            var invocationSecondPass = GetSecondPass(invokeMethod);
+            if (invocationSecondPass == null)
+                return;
+
+            bool eliminateCopy = false;
+            string eliminateReason = null;
+
+            if (invocationSecondPass.ResultIsNew) {
+                // If this expression is the return value of a function invocation, we can eliminate struct
+                //  copies if the return value is a 'new' expression.
+                eliminateCopy = true;
+                eliminateReason = "Result is new";
+            } else if (invocationSecondPass.ResultVariable != null) {
+                // We can also eliminate a return value copy if the return value is one of the function's 
+                //  arguments, and we are sure that argument does not escape (other than through the return
+                //  statement, that is).
+                
+                var parameters = invokeMethod.Method.Parameters;
+                int parameterIndex = -1;
+
+                for (var i = 0; i < parameters.Length; i++) {
+                    if (parameters[i].Name != invocationSecondPass.ResultVariable)
+                        continue;
+
+                    parameterIndex = i;
+                    break;
+                }
+
+                // We found a single parameter that acts as the result of this function call.
+                if (parameterIndex >= 0) {
+                    GenericParameter relevantParameter;
+                    var innerValue = invocation.Arguments[parameterIndex];
+
+                    // Identify any local variables that are a dependency of the result parameter.
+                    var localVariableDependencies = StaticAnalyzer.ExtractInvolvedVariables(
+                        innerValue,
+                        (n) =>
+                            // If a variable is inside a copy expression we can ignore it as a dependency.
+                            // The copy ensures that the dependency is resolved at the time of invocation.
+                            (n is JSStructCopyExpression) ||
+                            // If a variable is inside an invocation expression we can ignore it as a dependency.
+                            // Dependency resolution would have occurred for the invocation already.
+                            (n is JSInvocationExpression)
+                    );
+
+                    // Was the result parameter already copied when invoking the function?
+                    // If so, we can eliminate the copy of the result because all dependencies have been resolved.
+                    // Note that this is separate from the variable dependency extraction above -
+                    //  if an invocation has multiple variable dependencies, the above merely narrows them down
+                    //  while this detects cases where there are effectively *no* dependencies of any kind.
+                    // This also detects cases where the argument is the result of an invocation or property access
+                    //  and the result was copied.
+                    var isAlreadyCopied = innerValue is JSStructCopyExpression;
+
+                    var dependenciesModified = localVariableDependencies.Any(iv => SecondPass.IsVariableModified(iv.Name));
+
+                    var copyNeededForTarget = IsCopyNeededForAssignmentTarget(boe.Left);
+
+                    var escapes = invocationSecondPass.DoesVariableEscape(invocationSecondPass.ResultVariable, false);
+                    var modified = invocationSecondPass.IsVariableModified(invocationSecondPass.ResultVariable);
+
+                    var traceMessage = (Action)(() => {
+                        if (TracePostOptimizeDecisions)
+                            Console.WriteLine(
+                                "< {0}: {1} > escapes:{2} modified:{3} copyNeededForTarget({4}):{5} inputsModified:{6}", 
+                                parameters[parameterIndex].Name, innerValue, escapes, modified, boe.Left, copyNeededForTarget, dependenciesModified
+                            );
+                    });
+
+                    if (isAlreadyCopied) {
+                        eliminateCopy = true;
+                        eliminateReason = "Result was already copied as part of argument list";
+                    } else if (!escapes && !dependenciesModified) {
+                        if (!copyNeededForTarget) {
+                            eliminateCopy = true;
+                            eliminateReason = "Target does not require a copy and other criteria are met";
+                        } else if (!modified) {
+                            eliminateCopy = true;
+                            eliminateReason = "Input not modified, doesn't escape, no dependency changes";
+                        }
+
+                        traceMessage();
+                    } else {
+                        traceMessage();
+                    }
+                }
+            }
+
+            if (eliminateCopy) {
+                if (TracePostOptimizedCopies)
+                    Console.WriteLine("Post-optimized assignment {0} because {1}", boe, eliminateReason);
+
+                boe.ReplaceChild(rhsCopy, rhsCopy.Struct);
+            }
         }
 
         public void VisitNode (JSNewBoxedVariable nbv) {
@@ -428,8 +613,8 @@ namespace JSIL.Transforms {
 
             var initialValue = nbv.InitialValue;
             var initialValueDerefed = initialValue;
-            while (initialValueDerefed is JSReferenceExpression)
-                initialValueDerefed = ((JSReferenceExpression)initialValueDerefed).Referent;
+            initialValueDerefed = JSReferenceExpression.Strip(initialValueDerefed);
+
             var initialValueType = initialValueDerefed.GetActualType(TypeSystem);
 
             if (
@@ -441,6 +626,27 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(nbv);
+        }
+
+        public void VisitNode (JSWriteThroughReferenceExpression wtre) {
+            var rightType = wtre.GetActualType(TypeSystem);
+            GenericParameter relevantParameter;
+
+            if (
+                IsStructOrGenericParameter(rightType) &&
+                IsCopyNeeded(wtre.Right, out relevantParameter)
+            ) {
+                if (TraceInsertedCopies)
+                    Console.WriteLine(String.Format("struct copy introduced for write-through-reference rhs {0}", wtre));
+
+                var replacement = new JSWriteThroughReferenceExpression(
+                    (JSVariable)wtre.Left, MakeCopyForExpression(wtre.Right, relevantParameter)
+                );
+                ParentNode.ReplaceChild(wtre, replacement);
+                VisitReplacement(replacement);
+            } else {
+                VisitChildren(wtre);
+            }
         }
 
         protected JSStructCopyExpression MakeCopyForExpression (JSExpression expression, GenericParameter relevantParameter) {

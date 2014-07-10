@@ -47,8 +47,8 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
       var compositeTypeObject = JSIL.CreateDictionaryObject($.Type);
       compositePublicInterface = JSIL.CreateDictionaryObject(JSIL.Reference);
 
-      compositePublicInterface.__Type__ = compositeTypeObject;
-      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
+      JSIL.SetValueProperty(compositePublicInterface, "__Type__", compositeTypeObject);
+      JSIL.SetValueProperty(compositeTypeObject, "__PublicInterface__", compositePublicInterface);
       compositeTypeObject.__IsByRef__ = true;
 
       var toStringImpl = function (context) {
@@ -65,7 +65,9 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
       JSIL.SetValueProperty(compositePublicInterface.prototype, "toString", toStringImpl);
       JSIL.SetValueProperty(compositeTypeObject, "toString", toStringImpl);
 
-      compositePublicInterface.__FullName__ = compositeTypeObject.__FullName__ = typeName;
+      JSIL.SetValueProperty(compositePublicInterface, "__FullName__", typeName);
+      JSIL.SetValueProperty(compositeTypeObject, "__FullName__", typeName);
+      
       JSIL.SetTypeId(
         compositePublicInterface, compositeTypeObject, (
           $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]"

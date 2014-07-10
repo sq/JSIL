@@ -162,7 +162,10 @@ namespace JSIL.Tests {
                 "DerivedClass.Method1\r\nDerivedClass.Method2\r\nDerivedClass2.Method1\r\nDerivedClass2.Method2",
                 "BaseClassProxy.Method1\r\nDerivedClassProxy.Method2\r\nBaseClassProxy.Method1\r\nDerivedClass2.Method2"
             );
+        }
 
+        [Test]
+        public void ProxiedMethodInheritance2 () {
             GenericTest(
                 @"SpecialTestCases\ProxiedMethodInheritance2.cs",
                 "DerivedClass.Method1\r\nBaseClass.Method2\r\nDerivedClass.Method1\r\nDerivedClass2.Method2",

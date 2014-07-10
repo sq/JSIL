@@ -32,7 +32,7 @@ JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
   $.RawMethod(false, "$coreCtor", coreCtor);
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     coreCtor
   );
 
@@ -42,7 +42,7 @@ JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Show", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Show () {
       // FIXME
     }
@@ -226,7 +226,7 @@ JSIL.ImplementExternals("System.Windows.Forms.Form", function ($) {
 
 JSIL.ImplementExternals("System.Windows.Forms.ListBox", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.$coreCtor();
       this._items = new $wfasms[12].System.Windows.Forms.ListBox_ObjectCollection ();
@@ -257,7 +257,7 @@ JSIL.ImplementExternals("System.Windows.Forms.ListBox", function ($) {
 
 JSIL.ImplementExternals("System.Windows.Forms.StatusBar", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.$coreCtor();
       this._panels = new $wfasms[12].System.Windows.Forms.StatusBar_StatusBarPanelCollection ();
@@ -274,7 +274,7 @@ JSIL.ImplementExternals("System.Windows.Forms.StatusBar", function ($) {
 
 JSIL.ImplementExternals("System.Windows.Forms.TabControl", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.$coreCtor();
       this._tabPages = new $wfasms[12].System.Windows.Forms.TabControl_TabPageCollection ();
@@ -375,7 +375,7 @@ JSIL.ImplementExternals("System.Windows.Forms.MenuItem", function ($) {
   var $thisType = $.publicInterface;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       // FIXME
     }

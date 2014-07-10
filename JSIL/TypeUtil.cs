@@ -7,9 +7,28 @@ using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
+using Mono.CSharp;
+using TypeDefinition = Mono.Cecil.TypeDefinition;
 
 namespace JSIL {
     public static class TypeUtil {
+        public static TypeReference GetElementType (TypeReference type, bool throwOnFail) {
+            type = StripModifiers(type);
+
+            var ts = type as TypeSpecification;
+            if (ts != null)
+                return ts.ElementType;
+
+            // HACK
+            if (type.FullName == "System.Void")
+                return type;
+
+            if (throwOnFail)
+                throw new ArgumentException("Has no ElementType", "type");
+            else
+                return null;
+        }
+
         public static string GetLocalName (TypeDefinition type) {
             var result = new List<string>();
             result.Add(type.Name);
@@ -284,7 +303,7 @@ namespace JSIL {
                 return true;
 
             if (
-                (typedef != null) && (typedef.BaseType != null) &&
+                (typedef.BaseType != null) &&
                 (
                     (typedef.BaseType.FullName == "System.Delegate") ||
                     (typedef.BaseType.FullName == "System.MulticastDelegate")
@@ -435,13 +454,89 @@ namespace JSIL {
             return false;
         }
 
+        private static bool ScopesMatch (TypeReference lhs, TypeReference rhs) {
+            if (
+                (lhs.DeclaringType != null) ||
+                (rhs.DeclaringType != null)
+            ) {
+                return TypesAreEqual(lhs.DeclaringType, rhs.DeclaringType);
+            }
+
+            var sLhs = GetActualScope(lhs);
+            var sRhs = GetActualScope(rhs);
+
+            if (sLhs == sRhs)
+                return true;
+            else if (
+                (sLhs.StartsWith(sRhs) && 
+                    (sLhs.EndsWith(".dll") || sLhs.EndsWith(".exe"))
+                ) || 
+                (sRhs.StartsWith(sLhs) && 
+                    (sRhs.EndsWith(".dll") || sRhs.EndsWith(".exe"))
+                )
+            )
+                return true;
+
+            return false;
+        }
+
+        private static string GetActualScope (TypeReference tr) {
+            var result = tr.Scope.Name;
+            if (result == "CommonLanguageRuntimeLibrary")
+                result = "mscorlib";
+
+            return result;
+        }
+
+        public static bool TypesAreTriviallyEqual (TypeReference lhs, TypeReference rhs, out bool shallowMatch) {
+            var tTr = typeof(TypeReference);
+            var tTd = typeof(TypeDefinition);
+
+            shallowMatch = (lhs.Name == rhs.Name) &&
+                    (lhs.Namespace == rhs.Namespace) &&
+                    ScopesMatch(lhs, rhs);
+
+            if (
+                (
+                    (lhs.GetType() == tTr) ||
+                    (lhs.GetType() == tTd)
+                ) && (
+                    (rhs.GetType() == tTr) ||
+                    (rhs.GetType() == tTd)
+                )
+            ) {
+                if (shallowMatch)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool? SubtypeElementComparison<T> (TypeReference lhs, TypeReference rhs, bool strictEquality) 
+            where T : TypeSpecification
+        {
+            var tLhs = lhs as T;
+            var tRhs = rhs as T;
+
+            if ((tLhs != null) || (tRhs != null)) {
+                if ((tLhs == null) || (tRhs == null))
+                    return false;
+
+                return TypesAreEqual(tLhs.ElementType, tRhs.ElementType, strictEquality);
+            }
+
+            return null;
+        }
+
         public static bool TypesAreEqual (TypeReference target, TypeReference source, bool strictEquality = false) {
+            bool shallowMatch;
+
             if (target == source)
                 return true;
             else if ((target == null) || (source == null))
                 return (target == source);
-
-            bool result;
+            else if (TypesAreTriviallyEqual(source, target, out shallowMatch))
+                return true;
 
             int targetDepth, sourceDepth;
             FullyDereferenceType(target, out targetDepth);
@@ -499,20 +594,7 @@ namespace JSIL {
 
                 return true;
             }
-
-            var targetArray = target as ArrayType;
-            var sourceArray = source as ArrayType;
-
-            if ((targetArray != null) || (sourceArray != null)) {
-                if ((targetArray == null) || (sourceArray == null))
-                    return false;
-
-                if (targetArray.Rank != sourceArray.Rank)
-                    return false;
-
-                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, strictEquality);
-            }
-
+            
             var targetGit = target as GenericInstanceType;
             var sourceGit = source as GenericInstanceType;
 
@@ -538,40 +620,45 @@ namespace JSIL {
                 return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, strictEquality);
             }
 
-            if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
-                result = false;
-            else if (target.IsPointer != source.IsPointer)
-                result = false;
-            else if (target.IsFunctionPointer != source.IsFunctionPointer)
-                result = false;
-            else if (target.IsPinned != source.IsPinned)
-                result = false;
-            else {
-                if (
-                    (target.Name == source.Name) &&
-                    (target.Namespace == source.Namespace) &&
-                    (target.Module == source.Module) &&
-                    TypesAreEqual(target.DeclaringType, source.DeclaringType, strictEquality)
-                )
-                    return true;
-
-                var dTarget = GetTypeDefinition(target);
-                var dSource = GetTypeDefinition(source);
-
-                if (Equals(dTarget, dSource) && (dSource != null))
-                    result = true;
-                else if (Equals(target, source))
-                    result = true;
-                else if (
-                    (dTarget != null) && (dSource != null) &&
-                    (dTarget.FullName == dSource.FullName)
-                )
-                    result = true;
-                else
-                    result = false;
+            var areEqualArray =
+                SubtypeElementComparison<ArrayType>(target, source, strictEquality);
+            if (areEqualArray.HasValue) {                
+                return areEqualArray.Value && (
+                    ((ArrayType)target).Rank == ((ArrayType)source).Rank
+                );
             }
 
-            return result;
+            var areEqualBR =
+                SubtypeElementComparison<ByReferenceType>(target, source, strictEquality);
+            if (areEqualBR.HasValue)
+                return areEqualBR.Value;
+
+            var areEqualP =
+                SubtypeElementComparison<PointerType>(target, source, strictEquality);
+            if (areEqualP.HasValue)
+                return areEqualP.Value;
+
+            var areEqualOM =
+                SubtypeElementComparison<OptionalModifierType>(target, source, strictEquality);
+            if (areEqualOM.HasValue)
+                return areEqualOM.Value;
+
+            var areEqualRM =
+                SubtypeElementComparison<RequiredModifierType>(target, source, strictEquality);
+            if (areEqualRM.HasValue)
+                return areEqualRM.Value;
+
+            var areEqualFP =
+                SubtypeElementComparison<FunctionPointerType>(target, source, strictEquality);
+            if (areEqualFP.HasValue)
+                return areEqualFP.Value;
+
+            areEqualP =
+                SubtypeElementComparison<PinnedType>(target, source, strictEquality);
+            if (areEqualP.HasValue)
+                return areEqualP.Value;
+
+            return shallowMatch;
         }
 
         public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {
@@ -610,7 +697,7 @@ namespace JSIL {
                 if (
                     (targetGit != null) &&
                     (targetGit.Name == "IEnumerable`1") &&
-                    (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
+                    (targetGit.GenericArguments.FirstOrDefault() == ((ArrayType)source).ElementType)
                 )
                     return true;
             }
@@ -746,7 +833,7 @@ namespace JSIL {
         }
 
         public static bool IsPositionalGenericParameter (GenericParameter gp) {
-            return gp.Name.StartsWith("!!") || gp.Name.StartsWith("!");
+            return gp.Name[0] == '!';
         }
 
         public static bool ExpandPositionalGenericParameters (TypeReference type, out TypeReference expanded) {

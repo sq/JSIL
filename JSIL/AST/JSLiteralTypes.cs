@@ -6,45 +6,6 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
-    // Represents a copy of another JSFunctionExpression with the this-reference replaced
-    [JSAstIgnoreInheritedMembers]
-    public class JSLambda : JSLiteralBase<JSFunctionExpression> {
-        [JSAstTraverse(0)]
-        public readonly JSExpression This;
-        public readonly bool UseBind;
-
-        public JSLambda (JSFunctionExpression function, JSExpression @this, bool useBind)
-            : base(function) {
-            if (@this == null)
-                throw new ArgumentNullException("this");
-
-            This = @this;
-            UseBind = useBind;
-        }
-
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Value.GetActualType(typeSystem);
-        }
-
-        public override bool IsConstant {
-            get {
-                return Value.IsConstant;
-            }
-        }
-
-        public override bool IsNull {
-            get {
-                return Value.IsNull;
-            }
-        }
-
-        public override bool HasGlobalStateDependency {
-            get {
-                return Value.HasGlobalStateDependency;
-            }
-        }
-    }
-
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
         public int? CachedTypeIndex;
 
@@ -304,16 +265,16 @@ namespace JSIL.Ast {
     }
 
     public class JSVerbatimLiteral : JSLiteral {
-        public readonly MethodReference OriginalMethod;
+        public readonly string Description;
         public readonly TypeReference Type;
         public readonly string Expression;
         public readonly IDictionary<string, JSExpression> Variables;
         public readonly bool IsConstantIfArgumentsAre;
 
-        public JSVerbatimLiteral (MethodReference originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null, bool isConstantIfArgumentsAre = false)
+        public JSVerbatimLiteral (string description, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null, bool isConstantIfArgumentsAre = false)
             : base(GetValues(variables)) {
 
-            OriginalMethod = originalMethod;
+            Description = description;
             Type = type;
             Expression = expression;
             Variables = variables;
@@ -364,7 +325,7 @@ namespace JSIL.Ast {
                 variablesText = String.Join(", ", (from kvp in Variables select String.Format("{0}={1}", kvp.Key, kvp.Value)).ToArray());
 
             return String.Format(
-                "Verbatim {0} ({1})", OriginalMethod.Name,
+                "Verbatim {0} ({1})", Description,
                 variablesText
             );
         }

@@ -1,5 +1,7 @@
-﻿#pragma warning disable 0420
-
+﻿using System.Collections;
+using System.Collections.Concurrent;
+using Mono.CSharp;
+#pragma warning disable 0420
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -185,13 +187,58 @@ namespace JSIL.Internal {
         }
     }
 
-    public class MethodSignatureSet : IDisposable {
+    public class MethodSignatureSet : IDisposable, IEnumerable<MethodSignature> {
+        public struct SignatureEnumerator : IEnumerator<MethodSignature> {
+            private readonly string Name;
+            private readonly IEnumerator<KeyValuePair<NamedMethodSignature, Count>> Enumerator;
+
+            private MethodSignature _Current;
+
+            internal SignatureEnumerator (IEnumerator<KeyValuePair<NamedMethodSignature, Count>> enumerator, string name) {
+                Enumerator = enumerator;
+                Name = name;
+                _Current = null;
+            }
+
+            public MethodSignature Current {
+                get { return _Current; }
+            }
+
+            public void Dispose () {
+                Enumerator.Dispose();
+            }
+
+            object System.Collections.IEnumerator.Current {
+                get { return _Current; }
+            }
+
+            public bool MoveNext () {
+                while (Enumerator.MoveNext()) {
+                    var current = Enumerator.Current.Key;
+                    if (current.Name == Name) {
+                        _Current = current.Signature;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            public void Reset () {
+                Enumerator.Reset();
+            }
+        }
+
         public class Count {
             public volatile int Value;
+
+            public Count (int value) {
+                Value = value;
+            }
         }
 
         private volatile int _Count = 0;
-        private readonly Dictionary<NamedMethodSignature, Count> Counts;
+        private readonly ConcurrentDictionary<NamedMethodSignature, Count> Counts; 
         private readonly string Name;
 
         internal MethodSignatureSet (MethodSignatureCollection collection, string name) {
@@ -199,11 +246,16 @@ namespace JSIL.Internal {
             Name = name;
         }
 
-        public MethodSignature[] Signatures {
-            get {
-                lock (Counts)
-                    return (from k in Counts.Keys where k.Name == this.Name select k.Signature).ToArray();
-            }
+        public SignatureEnumerator GetEnumerator () {
+            return new SignatureEnumerator(Counts.GetEnumerator(), Name);
+        }
+
+        IEnumerator<MethodSignature> IEnumerable<MethodSignature>.GetEnumerator () {
+            return GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator () {
+            return GetEnumerator();
         }
 
         public void Dispose () {
@@ -213,22 +265,16 @@ namespace JSIL.Internal {
             // if (signature.Name != Name)
             //     throw new InvalidOperationException();
 
-            Count c;
-
-            lock (Counts) {
-                if (!Counts.TryGetValue(signature, out c))
-                    Counts.Add(signature, c = new Count());
-            }
-
+            var c = new Count(0);
+            c = Counts.GetOrAdd(signature, c);
             Interlocked.Increment(ref c.Value);
             Interlocked.Increment(ref _Count);
         }
 
         public int GetCountOf (NamedMethodSignature signature) {
             Count result;
-            lock (Counts)
-                if (Counts.TryGetValue(signature, out result))
-                    return result.Value;
+            if (Counts.TryGetValue(signature, out result))
+                return result.Value;
 
             return 0;
         }
@@ -243,11 +289,10 @@ namespace JSIL.Internal {
             get {
                 int result = 0;
 
-                lock (Counts)
-                    foreach (var key in Counts.Keys) {
-                        if (key.Name == this.Name)
-                            result += 1;
-                    }
+                foreach (var kvp in Counts) {
+                    if (kvp.Key.Name == Name)
+                        result += 1;
+                }
 
                 return result;
             }
@@ -258,13 +303,13 @@ namespace JSIL.Internal {
         const int InitialCapacity = 32;
 
         internal readonly Dictionary<string, MethodSignatureSet> Sets;
-        internal readonly Dictionary<NamedMethodSignature, MethodSignatureSet.Count> Counts;
+        internal readonly ConcurrentDictionary<NamedMethodSignature, MethodSignatureSet.Count> Counts;
 
         public MethodSignatureCollection () {
             Sets = new Dictionary<string, MethodSignatureSet>(InitialCapacity, StringComparer.Ordinal);
 
-            Counts = new Dictionary<NamedMethodSignature, MethodSignatureSet.Count>(
-                InitialCapacity, new NamedMethodSignature.Comparer()
+            Counts = new ConcurrentDictionary<NamedMethodSignature, MethodSignatureSet.Count>(
+                new NamedMethodSignature.Comparer()
             );
         }
 

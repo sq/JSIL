@@ -112,14 +112,17 @@ namespace JSIL.Internal {
         }
 
         public bool RunUntilCompletion () {
+            const int lockTimeoutMs = 250;
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
             TrackedLockCollection.DeadlockInfo deadlock;
-            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
+            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock, timeoutMs: lockTimeoutMs);
 
-            if (!lockResult) {
-                Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
+            if (!lockResult.Success) {
+                if (deadlock != null)
+                    Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
+
                 return false;
             }
 
@@ -186,6 +189,10 @@ namespace JSIL.Internal {
 
             Enqueue(IntroduceVariableDeclarationsAndReferences);
 
+            // Important to run this before static analysis. Otherwise var, declaration and ctor 
+            //  call can end up split, making a variable appear to get modified.
+            Enqueue(FixupStructConstructorInvocations);
+
             Enqueue(EliminateTemporaries);
 
             Enqueue(EmulateInt64);
@@ -213,8 +220,6 @@ namespace JSIL.Internal {
             Enqueue(DeoptimizeSwitchStatements);
 
             Enqueue(CollapseNulls);
-
-            Enqueue(FixupStructConstructorInvocations);
 
             Enqueue(EliminateTemporaries);
 

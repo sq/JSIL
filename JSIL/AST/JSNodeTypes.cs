@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -165,13 +166,13 @@ namespace JSIL.Ast {
         [JSAstTraverse(0)]
         static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
             JSExpression expr = (JSExpression)parent;
-            if (index >= expr.Values.Length) {
+            var values = expr.Values;
+            if (index >= values.Length) {
                 node = null;
                 name = null;
                 return false;
             } else {
-                node = expr.Values[index];
-
+                node = values[index];
                 name = expr.GetValueName(index) ?? "Values";
 
                 return true;

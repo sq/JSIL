@@ -157,6 +157,22 @@ namespace JSIL.Ast {
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Type);
         }
+
+        public static TypeReference ExtractType (JSExpression expression) {
+            while (expression != null) {
+                var pii = expression as JSPublicInterfaceOfExpression;
+                var jst = expression as JSType;
+
+                if (pii != null)
+                    expression = pii.Inner;
+                else if (jst != null)
+                    return jst.Type;
+                else
+                    return null;
+            }
+
+            return null;
+        }
     }
 
     public class JSTypeReference : JSType {
@@ -211,6 +227,14 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+    }
+
+    public class JSFieldOfExpression : JSField
+    {
+        public JSFieldOfExpression(FieldReference reference, FieldInfo field)
+            : base(reference, field)
+        {
         }
     }
 
@@ -344,6 +368,17 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+    }
+
+    public class JSCachedMethod : JSMethod {
+        public readonly int Index;
+
+        public JSCachedMethod (
+            MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments, int index
+        ) : base (reference, method, methodTypes, genericArguments) {
+            Index = index;
         }
     }
 

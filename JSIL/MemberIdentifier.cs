@@ -35,6 +35,7 @@ namespace JSIL.Internal {
             Event = 3,
         }
 
+        public readonly bool IsStatic;
         public readonly MemberType Type;
         public readonly string Name;
         public readonly TypeReference ReturnType;
@@ -67,6 +68,7 @@ namespace JSIL.Internal {
         }
 
         public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
+            IsStatic = !mr.HasThis;
             Type = MemberType.Method;
             Name = newName ?? mr.Name;
             ReturnType = mr.ReturnType;
@@ -94,12 +96,16 @@ namespace JSIL.Internal {
 
             var pd = pr.Resolve();
             if (pd != null) {
+                IsStatic = !pd.HasThis;
                 if (pd.GetMethod != null) {
                     ParameterTypes = GetParameterTypes(pd.GetMethod.Parameters);
                 } else if (pd.SetMethod != null) {
                     ParameterTypes = GetParameterTypes(pd.SetMethod.Parameters)
                         .Take(pd.SetMethod.Parameters.Count - 1).ToArray();
                 }
+            } else {
+                // FIXME
+                IsStatic = false;
             }
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
@@ -113,6 +119,14 @@ namespace JSIL.Internal {
             ParameterTypes = null;
             ti.CacheProxyNames(fr);
 
+            var resolved = fr.Resolve();
+            if (resolved != null) {
+                IsStatic = resolved.IsStatic;
+            } else {
+                // FIXME
+                IsStatic = false;
+            }
+
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
@@ -124,10 +138,28 @@ namespace JSIL.Internal {
             ParameterTypes = null;
             ti.CacheProxyNames(er);
 
+            var ed = er.Resolve();
+            if (ed != null) {
+                if (ed.AddMethod != null) {
+                    IsStatic = ed.AddMethod.IsStatic;
+                } else if (ed.RemoveMethod != null) {
+                    IsStatic = ed.RemoveMethod.IsStatic;
+                } else {
+                    // FIXME
+                    IsStatic = false;
+                }
+            } else {
+                // FIXME
+                IsStatic = false;
+            }
+
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
+            if (parameters.Count == 0)
+                return null;
+
             if (parameters.Count == 1) {
                 var p = parameters[0];
                 for (int c = p.CustomAttributes.Count, i = 0; i < c; i++) {
@@ -165,10 +197,14 @@ namespace JSIL.Internal {
         }
 
         public static bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
+            bool shallowMatch;
+
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)
                 return false;
+            else if (TypeUtil.TypesAreTriviallyEqual(lhs, rhs, out shallowMatch))
+                return true;
 
             var lhsReference = lhs as ByReferenceType;
             var rhsReference = rhs as ByReferenceType;
@@ -210,17 +246,17 @@ namespace JSIL.Internal {
                 return true;
             }
 
-            string[] proxyTargets;
+            ArraySegment<string> proxyTargets;
             if (
-                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(rhs.FullName)
+                typeInfo.TryGetProxyNames(lhs, out proxyTargets) &&
+                (proxyTargets.Array != null) &&
+                proxyTargets.ToEnumerable().Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(lhs.FullName)
+                typeInfo.TryGetProxyNames(rhs, out proxyTargets) &&
+                (proxyTargets.Array != null) &&
+                proxyTargets.ToEnumerable().Contains(lhs.FullName)
             ) {
                 return true;
             }
@@ -237,16 +273,19 @@ namespace JSIL.Internal {
                 return true;
              */
 
+            if (IsStatic != rhs.IsStatic)
+                return false;
+
             if (Type != rhs.Type)
+                return false;
+
+            if (GenericArgumentCount != rhs.GenericArgumentCount)
                 return false;
 
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
             if (!TypesAreEqual(typeInfo, ReturnType, rhs.ReturnType))
-                return false;
-
-            if (GenericArgumentCount != rhs.GenericArgumentCount)
                 return false;
 
             if ((ParameterTypes == AnyParameterTypes) || (rhs.ParameterTypes == AnyParameterTypes)) {

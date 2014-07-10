@@ -5,7 +5,7 @@ JSIL is a compiler that transforms .NET applications and libraries from their na
 
 For live demos and code samples, [visit the website](http://jsil.org).
 
-For help on getting started using JSILc, see [the wiki](https://github.com/kevingadd/JSIL/wiki).
+For help on getting started using JSILc, see [the wiki](https://github.com/sq/JSIL/wiki).
 
 License
 =======

@@ -545,6 +545,13 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
         return s;
     });
 
+    $.Method({ Static: false, Public: true }, "ToString",
+      new JSIL.MethodSignature("System.String", []),
+      function UInt64_ToString () {
+        return this.toString();
+      }
+    );
+
     // Not present in mscorlib
     $.Method({ Static: false, Public: true }, "ToHex",
     new JSIL.MethodSignature("System.String", []),
@@ -869,6 +876,13 @@ JSIL.ImplementExternals("System.Int64", function ($) {
         s += mscorlib.System.UInt64.prototype.toString.apply(a);
         return s;
     });
+
+    $.Method({ Static: false, Public: true }, "ToString",
+      new JSIL.MethodSignature("System.String", []),
+      function Int64_ToString () {
+        return this.toString();
+      }
+    );
 
     // Not present in mscorlib
     $.Method({ Static: true, Public: false }, "FromInt32",

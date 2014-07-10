@@ -163,6 +163,30 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void InvocationChildNames () {
+            var ie = JSInvocationExpression.InvokeMethod(
+                new JSStringIdentifier("Method"),
+                new JSStringIdentifier("ThisReference"),
+                new JSExpression[] {
+                    new JSStringIdentifier("Argument")
+                }
+            );
+
+            var pairs = new List<KeyValuePair<JSNode, string>>();
+            using (var e = ie.Children.EnumeratorTemplate)
+            while (e.MoveNext())
+                pairs.Add(new KeyValuePair<JSNode, string>(e.Current, e.CurrentName));
+
+            Assert.AreEqual(4, pairs.Count);
+
+            Assert.AreEqual(ie.Method, pairs[1].Key);
+            Assert.AreEqual("Method", pairs[1].Value);
+
+            Assert.AreEqual(ie.ThisReference, pairs[2].Key);
+            Assert.AreEqual("ThisReference", pairs[2].Value);
+        }
+
+        [Test]
         public void NodeSelfAndChildren () {
             var de = new JSDotExpression(JSLiteral.New(1), new JSStringIdentifier("2"));
             var boe = new JSBinaryOperatorExpression(JSOperator.Add, JSLiteral.New(1), JSLiteral.New(2), T1);

@@ -122,16 +122,16 @@ namespace JSIL {
         }
 
         public JSNewArrayElementReference NewElementReference (JSExpression target, JSExpression index) {
-            var arrayType = target.GetActualType(TypeSystem);
+            var arrayType = TypeUtil.DereferenceType(target.GetActualType(TypeSystem));
             TypeReference resultType;
 
             if (PackedArrayUtil.IsPackedArrayType(arrayType)) {
                 resultType = new ByReferenceType(
                     PackedArrayUtil.GetElementType(arrayType)
                 );
-            } else if (TypeUtil.IsArray(TypeUtil.DereferenceType(arrayType))) {
+            } else if (TypeUtil.IsArray(arrayType)) {
                 resultType = new ByReferenceType(
-                    arrayType.GetElementType()
+                    TypeUtil.GetElementType(arrayType, true)
                 );
             } else {
                 throw new ArgumentException("Cannot create a reference to an element of a value of type '" + arrayType.FullName + "'", target.ToString());
@@ -167,11 +167,8 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("Coalesce", expectedType),
-                new[] { left, right }, true
-            );
+        public JSExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
+            return new JSNullCoalesceExpression(left, right, expectedType);
         }
 
         public JSInvocationExpression ObjectEquals (JSExpression left, JSExpression right) {
@@ -197,13 +194,28 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression ValueOfNullable (JSExpression nullableExpression) {
+        public JSExpression NullableHasValue (JSExpression nullableExpression) {
+            return new JSBinaryOperatorExpression(
+                JSOperator.NotEqual, 
+                nullableExpression, new JSNullLiteral(TypeSystem.Object), 
+                TypeSystem.Boolean
+            );
+        }
+
+        public JSExpression ValueOfNullable (JSExpression nullableExpression) {
+            if (nullableExpression is JSValueOfNullableExpression)
+                return nullableExpression;
+
+            return new JSValueOfNullableExpression(nullableExpression);
+        }
+
+        public JSExpression ValueOfNullableOrDefault (JSExpression nullableExpression, JSExpression defaultValue) {
             var valueType = nullableExpression.GetActualType(TypeSystem);
             valueType = TypeUtil.StripNullable(valueType);
 
             return JSInvocationExpression.InvokeStatic(
-                Dot("ValueOfNullable", valueType),
-                new[] { nullableExpression }, true
+                Dot("Nullable_ValueOrDefault", valueType),
+                new[] { nullableExpression, defaultValue }, true
             );
         }
 
@@ -227,7 +239,7 @@ namespace JSIL {
 
             return JSInvocationExpression.InvokeStatic(
                 Dot(new JSFakeMethod("StackAlloc", pointerType, new[] { TypeSystem.Int32, TypeSystem.Object }, MethodTypes)),
-                new[] { sizeInBytes, new JSType(pointerType.GetElementType()) }
+                new[] { sizeInBytes, new JSType(TypeUtil.GetElementType(pointerType, true)) }
             );
         }
 

@@ -74,7 +74,7 @@ JSIL.GL.fillTemporaryIndexBuffer = function (ctx, mode, count, type, indices) {
     buffer = state.temporaryIndexBuffer = ctx.createBuffer();
 
   // FIXME: Limit length of view
-  var view = indices.pinnedPointer.asView($jsilcore.System.Byte);
+  var view = indices.pinnedPointer.asView($jsilcore.System.Byte, -1);
   ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, buffer);
   ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
@@ -94,7 +94,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   ctx.bindBuffer(ctx.ARRAY_BUFFER, state.temporaryVertexBuffer);
 
   // FIXME: Limit length of view
-  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte);
+  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte, -1);
   ctx.bufferData(ctx.ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
   for (var i = 0, l = elements.get_Count(); i < l; i++) {
@@ -443,7 +443,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:true }, "Flush", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Flush () {
       var ctx = JSIL.GL.getContext();
       ctx.flush();
@@ -612,7 +612,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
 
       if (!nullPixels) {
         // FIXME: Do we have to compute exact size here and limit the view?
-        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte);
+        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte, -1);
       }
 
       ctx.texImage2D(
@@ -772,7 +772,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:false}, "Finish", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Finish () {
       var ctx = JSIL.GL.getContext();
       ctx.finish();

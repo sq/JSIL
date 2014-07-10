@@ -13,6 +13,8 @@ using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
 
+using TypeInfo = JSIL.Internal.TypeInfo;
+
 namespace JSIL {
     public class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;
@@ -26,6 +28,7 @@ namespace JSIL {
         internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
+        private readonly Dictionary<string, JSIndirectVariable> IndirectVariables = new Dictionary<string, JSIndirectVariable>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -83,7 +86,7 @@ namespace JSIL {
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
 
-            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem, TypeInfo);
+            SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -211,7 +214,7 @@ namespace JSIL {
             return new JSUntranslatableStatement(node.GetType().Name);
         }
 
-        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
+        public List<JSExpression> Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
             var result = new List<JSExpression>();
             ParameterDefinition parameter;
 
@@ -248,10 +251,10 @@ namespace JSIL {
                 throw new InvalidDataException(errorString.ToString());
             }
 
-            return result.ToArray();
+            return result;
         }
 
-        public JSExpression[] Translate (IEnumerable<ILExpression> values) {
+        public List<JSExpression> Translate (IEnumerable<ILExpression> values) {
             var result = new List<JSExpression>();
             StringBuilder errorString = null;
 
@@ -273,13 +276,7 @@ namespace JSIL {
             if (errorString != null)
                 throw new InvalidDataException(errorString.ToString());
 
-            return result.ToArray();
-        }
-
-        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
-            return (
-                from p in parameters select JSVariable.New(p, function)
-            ).ToArray();
+            return result;
         }
 
         protected bool NeedToRenameVariable (string name, TypeReference type) {
@@ -453,7 +450,7 @@ namespace JSIL {
                     var isConstantIfArgumentsAre = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSIsPure");
 
                     var result = new JSVerbatimLiteral(
-                        method, (string)parms[0].Value, argsDict, resultType, isConstantIfArgumentsAre
+                        method.Name, (string)parms[0].Value, argsDict, resultType, isConstantIfArgumentsAre
                     );
 
                     return PackedArrayUtil.FilterInvocationResult(
@@ -481,7 +478,16 @@ namespace JSIL {
             return newExpression;
         }
 
-        protected JSExpression DoMethodReplacement (
+        private JSIndirectVariable MakeIndirectVariable (string name) {
+            JSIndirectVariable result;
+
+            if (!IndirectVariables.TryGetValue(name, out result))
+                IndirectVariables.Add(name, result = new JSIndirectVariable(Variables, name, ThisMethodReference));
+
+            return result;
+        }
+
+        internal JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
         ) {
@@ -530,143 +536,20 @@ namespace JSIL {
             if (methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, new[] { thisExpression }.Concat(arguments).ToArray());
 
-            switch (method.Method.Member.FullName) {
-                // Doing this replacement here enables more elimination of temporary variables
-                case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
-                    return arguments.First();
+            JSExpression result = DoNonJSILMethodReplacement(method, arguments);
+            if (result != null) 
+                return result;
 
-                case "T JSIL.Builtins::CreateNamedFunction(System.String,System.String[],System.String,System.Object)":
-                    JSExpression closureArg = null;
-                    if (arguments.Length > 3)
-                        closureArg = arguments[3];
+            result = DoJSILMethodReplacement(
+                method.Method.DeclaringType.FullName, 
+                method.Method.Name, 
+                method.GenericArguments,
+                arguments, false
+            );
+            if (result != null)
+                return result;
 
-                    return JSIL.CreateNamedFunction(
-                        method.GenericArguments.First(), arguments[0], arguments[1], arguments[2], closureArg
-                    );
-
-                case "System.Object JSIL.Builtins::Eval(System.String)":
-                    return JSInvocationExpression.InvokeStatic(
-                        JS.eval, arguments
-                    );
-
-                case "System.Boolean JSIL.Builtins::IsTruthy(System.Object)":
-                    return new JSUnaryOperatorExpression(JSOperator.LogicalNot, new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean), TypeSystem.Boolean);
-
-                case "System.Boolean JSIL.Builtins::IsFalsy(System.Object)":
-                    return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
-
-                case "System.Object JSIL.Verbatim::Expression(System.String)":
-                case "System.Object JSIL.Verbatim::Expression(System.String,System.Object[])": {
-                    var expression = arguments[0] as JSStringLiteral;
-                    if (expression == null)
-                        throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
-
-                    JSExpression commaFirstClause = null;
-                    IDictionary<string, JSExpression> argumentsDict = null;
-
-                    if (arguments.Length > 1) {
-                        var argumentsExpression = arguments[1];
-                        var argumentsArray = argumentsExpression as JSNewArrayExpression;
-
-                        // The array is static so we need to pull elements out of it after assigning it a name.
-                        // FIXME: Only handles up to 40 elements.
-                        if (argumentsArray == null) {
-                            var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
-                            var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
-                            var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
-
-                            commaFirstClause = temporaryAssignment;
-
-                            argumentsDict = new Dictionary<string, JSExpression>();
-
-                            for (var i = 0; i < 40; i++)
-                                argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSLiteral.New(i)));
-                        } else {
-                            var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
-
-                            if (argumentsArrayExpression == null)
-                                throw new NotImplementedException("Literal array must have values");
-
-                            argumentsDict = new Dictionary<string, JSExpression>();
-
-                            int i = 0;
-                            foreach (var value in argumentsArrayExpression.Values) {
-                                argumentsDict.Add(String.Format("{0}", i), value);
-
-                                i += 1;
-                            }
-                        }
-                    }
-
-                    var verbatimLiteral = new JSVerbatimLiteral(
-                        method.Reference, expression.Value, argumentsDict
-                    );
-
-                    if (commaFirstClause != null)
-                        return new JSCommaExpression(commaFirstClause, verbatimLiteral);
-                    else
-                        return verbatimLiteral;
-                }
-
-                case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
-                    var expression = arguments[0] as JSStringLiteral;
-                    if (expression != null)
-                        return new JSDotExpression(
-                            JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object)
-                        );
-                    else
-                        return new JSIndexerExpression(
-                            JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
-                        );
-                }
-
-                case "System.Object JSIL.JSLocal::get_Item(System.String)": {
-                    var expression = arguments[0] as JSStringLiteral;
-                    if (expression == null)
-                        throw new InvalidOperationException("JSLocal must recieve a string literal as an index");
-
-                    return new JSStringIdentifier(expression.Value, TypeSystem.Object);
-                }
-
-                case "System.Object JSIL.Builtins::get_This()":
-                    return new JSIndirectVariable(Variables, "this", ThisMethodReference);
-
-                case "System.Boolean JSIL.Builtins::get_IsJavascript()":
-                    return new JSBooleanLiteral(true);
-
-                case "System.Object JSIL.Services::Get(System.String,System.Boolean)": {
-                    if (arguments.Length != 2)
-                        throw new InvalidOperationException("JSIL.Services.Get must receive two arguments");
-
-                    var serviceName = arguments[0];
-                    var shouldThrow = arguments[1];
-
-                    return JSInvocationExpression.InvokeStatic(
-                        new JSRawOutputIdentifier(TypeSystem.Object, "JSIL.Host.getService"),
-                        new[] { 
-                            serviceName, 
-                            new JSUnaryOperatorExpression(JSOperator.LogicalNot, shouldThrow, TypeSystem.Boolean) 
-                        }, true
-                    );
-                }
-
-                case "System.Void JSIL.Profiling::TagJSExpression(System.String)": {
-                    var expression = arguments[0] as JSStringLiteral;
-                    if (expression == null)
-                        throw new InvalidOperationException("JSIL.Profiling.TagJSExpression must recieve a string literal as an argument");
-
-                    var actualExpression = String.Format(
-                        "JSIL.Shell.TagObject({0}, {1})",
-                        expression.Value, Util.EscapeString(expression.Value)
-                    );
-
-                    return new JSVerbatimLiteral(
-                        method.Reference, actualExpression, null, null
-                    );
-                }
-            }
-
-            JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
+            result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
             if (result == null) {
                 if (@static)
                     result = JSInvocationExpression.InvokeStatic(method.Reference.DeclaringType, method, arguments);
@@ -683,6 +566,201 @@ namespace JSIL {
             );
 
             return result;
+        }
+
+        internal JSExpression DoJSILBuiltinsMethodReplacement (
+            string methodName,
+            IEnumerable<TypeReference> genericArguments,
+            JSExpression[] arguments,
+            bool forDynamic
+        ) {
+            switch (methodName) {
+                case "CreateNamedFunction`1": {
+                    JSExpression closureArg = null;
+                    if (arguments.Length > 3)
+                        closureArg = arguments[3];
+
+                    return JSIL.CreateNamedFunction(
+                        genericArguments.First(), arguments[0], arguments[1], arguments[2], closureArg
+                    );
+                }
+
+                case "Eval":
+                    return JSInvocationExpression.InvokeStatic(
+                        JS.eval, arguments
+                    );
+
+                case "IsTruthy":
+                    return new JSUnaryOperatorExpression(
+                        JSOperator.LogicalNot, 
+                        new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean), 
+                        TypeSystem.Boolean
+                    );
+
+                case "IsFalsy":
+                    return new JSUnaryOperatorExpression(JSOperator.LogicalNot, arguments.First(), TypeSystem.Boolean);
+
+                case "get_This":
+                    return MakeIndirectVariable("this");
+
+                case "get_IsJavascript":
+                    return new JSBooleanLiteral(true);
+            }
+
+            return null;
+        }
+
+        internal JSExpression DoJSILMethodReplacement (
+            string typeName,
+            string methodName, 
+            IEnumerable<TypeReference> genericArguments, 
+            JSExpression[] arguments,
+            bool forDynamic
+        ) {
+            switch (typeName) {
+                case "JSIL.Builtins":
+                    return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments, forDynamic);
+
+                case "JSIL.Verbatim": {
+                    if (methodName == "Expression") {
+                        var expression = arguments[0] as JSStringLiteral;
+                        if (expression == null)
+                            throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
+
+                        JSExpression commaFirstClause = null;
+                        IDictionary<string, JSExpression> argumentsDict = null;
+
+                        if (arguments.Length > 1) {
+                            var argumentsExpression = arguments[1];
+                            var argumentsArray = argumentsExpression as JSNewArrayExpression;
+
+                            if (forDynamic) {
+                                // This call was made dynamically, so the parameters are not an array.
+
+                                argumentsDict = new Dictionary<string, JSExpression>();
+
+                                for (var i = 0; i < (arguments.Length - 1); i++)
+                                    argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
+                            } else if (argumentsArray == null) {
+                                // The array is static so we need to pull elements out of it after assigning it a name.
+                                // FIXME: Only handles up to 40 elements.
+                                var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
+                                var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
+                                var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
+
+                                commaFirstClause = temporaryAssignment;
+
+                                argumentsDict = new Dictionary<string, JSExpression>();
+
+                                for (var i = 0; i < 40; i++)
+                                    argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSLiteral.New(i)));
+                            } else {
+                                var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
+
+                                if (argumentsArrayExpression == null)
+                                    throw new NotImplementedException("Literal array must have values");
+
+                                argumentsDict = new Dictionary<string, JSExpression>();
+
+                                int i = 0;
+                                foreach (var value in argumentsArrayExpression.Values) {
+                                    argumentsDict.Add(String.Format("{0}", i), value);
+
+                                    i += 1;
+                                }
+                            }
+                        }
+
+                        var verbatimLiteral = new JSVerbatimLiteral(
+                            methodName, expression.Value, argumentsDict
+                        );
+
+                        if (commaFirstClause != null)
+                            return new JSCommaExpression(commaFirstClause, verbatimLiteral);
+                        else
+                            return verbatimLiteral;
+                    }
+                    break;
+                }
+
+                case "JSIL.JSGlobal": {
+                    if (methodName == "get_Item") {
+                        var expression = arguments[0] as JSStringLiteral;
+                        if (expression != null)
+                            return new JSDotExpression(
+                                JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object)
+                            );
+                        else
+                            return new JSIndexerExpression(
+                                JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
+                            );
+                    }
+                    break;
+                }
+
+                case "JSIL.JSLocal": {
+                    if (methodName == "get_Item") {
+                        var expression = arguments[0] as JSStringLiteral;
+                        if (expression == null)
+                            throw new InvalidOperationException("JSLocal must recieve a string literal as an index");
+
+                        return new JSStringIdentifier(expression.Value, TypeSystem.Object);
+                    }
+                    break;
+                }
+
+                case "JSIL.Services": {
+                    if (methodName == "Get") {
+                        if (arguments.Length != 2)
+                            throw new InvalidOperationException("JSIL.Services.Get must receive two arguments");
+
+                        var serviceName = arguments[0];
+                        var shouldThrow = arguments[1];
+
+                        return JSInvocationExpression.InvokeStatic(
+                            new JSRawOutputIdentifier(TypeSystem.Object, "JSIL.Host.getService"),
+                            new[] {
+                                serviceName,
+                                new JSUnaryOperatorExpression(JSOperator.LogicalNot, shouldThrow, TypeSystem.Boolean)
+                            }, true
+                        );
+                    }
+                    break;
+                }
+
+                case "JSIL.Profiling": {
+                    if (methodName == "TagJSExpression") {
+                        var expression = arguments[0] as JSStringLiteral;
+                        if (expression == null)
+                            throw new InvalidOperationException("JSIL.Profiling.TagJSExpression must recieve a string literal as an argument");
+
+                        var actualExpression = String.Format(
+                            "JSIL.Shell.TagObject({0}, {1})",
+                            expression.Value, Util.EscapeString(expression.Value)
+                        );
+
+                        return new JSVerbatimLiteral(
+                            methodName, actualExpression, null, null
+                        );
+                    }
+                    break;
+                }
+            }
+
+            return null;
+        }
+
+        internal JSExpression DoNonJSILMethodReplacement (JSMethod method, JSExpression[] arguments) {
+            switch (method.Method.Member.FullName) {
+                // Doing this replacement here enables more elimination of temporary variables
+                case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle)":
+                case "System.Reflection.MethodBase System.Reflection.MethodBase::GetMethodFromHandle(System.RuntimeMethodHandle,System.RuntimeTypeHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle)":
+                case "System.Reflection.FieldInfo System.Reflection.FieldInfo::GetFieldFromHandle(System.RuntimeFieldHandle,System.RuntimeTypeHandle)":
+                    return arguments.First();
+            }
+            return null;
         }
 
         protected JSExpression Translate_PropertyCall (
@@ -713,19 +791,28 @@ namespace JSIL {
                 }
 
                 return new JSVerbatimLiteral(
-                    method.Reference, (string)parms[0].Value, argsDict, propertyInfo.ReturnType
+                    method.Reference.Name, (string)parms[0].Value, argsDict, propertyInfo.ReturnType
                 );
             }
 
-            var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
-            Func<bool, JSExpression> generate = (tq) => {
-                var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
+            var thisType = thisExpression.GetActualType(TypeSystem);
+            var propertyReplacement = DoPropertyReplacement(thisExpression, thisType, method, arguments, @virtual, @static);
+            if (propertyReplacement != null)
+                return propertyReplacement;
 
-                if ((method.Reference.DeclaringType is GenericInstanceType) && !method.Reference.HasThis) {
+            Func<bool, JSExpression> generate = (tq) => {
+                var actualThis = @static 
+                    ? new JSType(method.Method.DeclaringType.Definition) 
+                    : thisExpression;
+
+                if (
+                    (method.Reference.DeclaringType is GenericInstanceType) && 
+                    !method.Reference.HasThis
+                )
                     actualThis = new JSType(method.Reference.DeclaringType);
-                }
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
+
                     return new JSPropertyAccess(
                         actualThis, new JSProperty(method.Reference, propertyInfo), 
                         false, tq, 
@@ -733,6 +820,7 @@ namespace JSIL {
                         @virtual
                     );
                 } else {
+
                     if (arguments.Length == 0) {
                         throw new InvalidOperationException(String.Format(
                             "The property setter '{0}' was invoked without arguments",
@@ -756,11 +844,41 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.Method.Member.HasThis) {
-                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual)
+
+                if (
+                    !TypeUtil.TypesAreEqual(
+                        method.Method.DeclaringType.Definition, 
+                        TypeUtil.GetTypeDefinition(thisType)
+                    ) && !@virtual
+                )
                     return generate(true);
             }
 
             return generate(false);
+        }
+
+        private JSExpression DoPropertyReplacement (
+            JSExpression thisExpression, TypeReference thisType, 
+            JSMethod method, JSExpression[] arguments, 
+            bool @virtual, bool @static
+        ) {
+            TypeReference methodType = method.Reference.DeclaringType;
+
+            if (
+                TypeUtil.IsNullable(thisType) || 
+                // HACK: When translating methods of Nullable, thisType is not a generic instance.
+                TypeUtil.IsNullable(methodType)
+            ) {
+                switch (method.Method.Name) {
+                    case "get_HasValue":
+                        return JSIL.NullableHasValue(thisExpression);
+
+                    case "get_Value":
+                        return JSIL.ValueOfNullable(thisExpression);
+                }
+            }
+
+            return null;
         }
 
         protected bool ContainsLabels (ILNode root) {
@@ -863,8 +981,7 @@ namespace JSIL {
             }
 
             var translated = TranslateNode(toTranslate);
-            while (translated is JSReferenceExpression)
-                translated = ((JSReferenceExpression)translated).Referent;
+            translated = JSReferenceExpression.Strip(translated);
 
             var boe = translated as JSBinaryOperatorExpression;
 
@@ -980,16 +1097,26 @@ namespace JSIL {
             ) {
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
-                bool shouldAutoCast = 
+                bool shouldAutoCast = (
                     AutoCastingState.Peek() ||
                     (
                         // Comparisons between value types still need a cast.
                         !TypeUtil.IsReferenceType(expression.ExpectedType) || 
                         !TypeUtil.IsReferenceType(expression.InferredType)
-                    );
+                    )
+                );
+
+                bool specialNullableCast = (
+                    TypeUtil.IsNullable(expression.ExpectedType) ||
+                    TypeUtil.IsNullable(expression.InferredType) ||
+                    (expression.Code == ILCode.ValueOf)
+                );
 
                 if (shouldAutoCast) {
-                    return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                    if (specialNullableCast)
+                        return new JSNullableCastExpression(result, new JSType(expression.ExpectedType));
+                    else
+                        return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
                 } else {
                     // FIXME: Should this be JSChangeTypeExpression to preserve type information?
                     // I think not, because a lot of these ExpectedTypes are wrong.
@@ -1045,7 +1172,7 @@ namespace JSIL {
                     (FieldReference)cond.Arguments[0].Operand,
                     binderMethod.Name,
                     targetType,
-                    arguments
+                    arguments.ToArray()
                 );
 
                 result = new JSNullStatement();
@@ -1278,19 +1405,27 @@ namespace JSIL {
         }
 
         protected bool UnwrapValueOfExpression (ref JSExpression expression) {
-            var valueOf = expression as JSValueOfNullableExpression;
-            if (valueOf != null) {
-                expression = valueOf.Expression;
-                return true;
-            }
-
-            var cast = expression as JSCastExpression;
-            if (cast != null) {
-                var temp = cast.Expression;
-                if (UnwrapValueOfExpression(ref temp)) {
-                    expression = JSCastExpression.New(temp, cast.NewType, TypeSystem);
+            while (true) {
+                var valueOf = expression as JSValueOfNullableExpression;
+                if (valueOf != null) {
+                    // Don't iterate.
+                    expression = valueOf.Expression;
                     return true;
                 }
+
+                var cast = expression as JSCastExpression;
+                if (cast != null) {
+                    expression = cast.Expression;
+                    continue;
+                }
+
+                var ncast = expression as JSNullableCastExpression;
+                if (ncast != null) {
+                    // HACK: We want to preserve the semantics here, but act as if we unwrapped successfully.
+                    return true;
+                }
+
+                break;
             }
 
             return false;
@@ -1374,9 +1509,12 @@ namespace JSIL {
             var innerType = TypeUtil.DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
-            if (innerTypeGit != null)
+            if (innerTypeGit != null) {
+                if (inner is JSValueOfNullableExpression)
+                    return inner;
+
                 return new JSValueOfNullableExpression(inner);
-            else
+            } else
                 return new JSUntranslatableExpression(node);
         }
 
@@ -1491,10 +1629,7 @@ namespace JSIL {
 
                     if ((trueNull != null) && (newBoe != null)) {
                         var operandLhs = newBoe.Left;
-                        if (operandLhs is JSResultReferenceExpression)
-                            operandLhs = ((JSResultReferenceExpression)operandLhs).Referent;
-                        else if (operandLhs is JSReferenceExpression)
-                            operandLhs = ((JSReferenceExpression)operandLhs).Referent;
+                        operandLhs = JSReferenceExpression.Strip(operandLhs);
 
                         result = new JSBinaryOperatorExpression(
                             JSOperator.Assignment, operandLhs,
@@ -1700,6 +1835,35 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul (ILExpression node) {
+            if (TypeUtil.IsIntegral(node.ExpectedType ?? node.InferredType)) {
+                var left = TranslateNode(node.Arguments[0]);
+                var right = TranslateNode(node.Arguments[1]);
+                var leftType = left.GetActualType(TypeSystem);
+                var rightType = right.GetActualType(TypeSystem);
+
+                // FIXME: This may be too strict.
+                // We do this to ensure that certain multiply operations don't erroneously get replaced with imul, like
+                //  (int)(float * int)
+                // If this is too strict then we will fail to use imul in scenarios where we should have. :(
+                if (
+                    TypeUtil.IsIntegral(leftType) &&
+                    TypeUtil.IsIntegral(rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, rightType) &&
+                    TypeUtil.TypesAreEqual(leftType, node.ExpectedType)
+                ) {
+
+                    if (node.ExpectedType.FullName == "System.UInt32")
+                        return new JSUInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+                    else if (node.ExpectedType.FullName == "System.Int32")
+                        return new JSInt32MultiplyExpression(
+                            left, right, TypeSystem
+                        );
+
+                }
+            }
+
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
@@ -1846,15 +2010,15 @@ namespace JSIL {
             bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
 
             if (RenamedVariables.TryGetValue(variable, out renamed)) {
-                return new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
+                return MakeIndirectVariable(renamed.Identifier);
             } else if (
                 !isThis &&
                 Variables.TryGetValue(escapedName, out theVariable)
             ) {
                 // Handle cases where the variable's identifier must be escaped (like @this)
-                return new JSIndirectVariable(Variables, theVariable.Name, ThisMethodReference);
+                return MakeIndirectVariable(theVariable.Name);
             } else {
-                return new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+                return MakeIndirectVariable(variable.Name);
             }
         }
 
@@ -2057,7 +2221,7 @@ namespace JSIL {
 
             var referenceType = reference.GetActualType(TypeSystem);
             if (referenceType.IsPointer) {
-                return new JSReadThroughPointerExpression(reference, referenceType.GetElementType());
+                return new JSReadThroughPointerExpression(reference, TypeUtil.GetElementType(referenceType, true));
             } else {
                 if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                     WarningFormatFunction("unsupported reference type for ldobj: {0}", node.Arguments[0]);
@@ -2283,7 +2447,7 @@ namespace JSIL {
         private JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType, bool getReference) {
             var expectedType = elementType ?? node.InferredType ?? node.ExpectedType;
             var target = TranslateNode(node.Arguments[0]);
-            if (target.IsNull)
+            if (target.IsNull || target is JSIgnoredMemberReference || target is JSIgnoredTypeReference)
                 return target;
 
             var targetType = target.GetActualType(TypeSystem);
@@ -2362,7 +2526,7 @@ namespace JSIL {
             }
         }
 
-        protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
+        protected JSExpression Translate_NullCoalescing (ILExpression node) {
             return JSIL.Coalesce(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
@@ -2660,56 +2824,6 @@ namespace JSIL {
             if (methodDot != null) {
                 methodMember = methodDot.Member as JSMethod;
 
-                if (methodMember != null) {
-                    var methodDef = methodMember.Method.Member;
-
-                    bool compilerGenerated = methodDef.IsCompilerGeneratedOrIsInCompilerGeneratedClass();
-                    bool emitInline = (
-                            methodDef.IsPrivate && compilerGenerated
-                        ) || (
-                            compilerGenerated &&
-                            TypeUtil.TypesAreEqual(
-                                thisArg.GetActualType(TypeSystem),
-                                methodDef.DeclaringType
-                            )
-                        ) || (
-                            methodMember.Method.IsIgnored
-                        );
-
-                    if (emitInline) {
-                        JSFunctionExpression function;
-                        // It's possible that the method we're using wasn't initially translated/analyzed because it's
-                        //  a compiler-generated method or part of a compiler generated type
-                        if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
-                            function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
-                        }
-
-                        if (function == null) {
-                            return new JSUntranslatableExpression(node);
-                        }
-
-                        var thisArgVar = thisArg as JSVariable;
-
-                        // If the closure references the outer 'this' variable, we need to explicitly bind it to the
-                        //  closure's local 'this' reference (by setting useBind to true to use Function.bind).
-                        // It is also possible for the this-reference to be a variable with a name that collides with
-                        //  the name of a local variable within the closure. The solution in this case is the same:
-                        //  we make it the closure's local 'this' reference using Function.bind.
-                        if (
-                            (thisArgVar != null) &&
-                            (thisArgVar.IsThis || function.AllVariables.ContainsKey(thisArgVar.Name))
-                        ) {
-                            return new JSLambda(function, thisArgVar, true);
-                        }
-
-                        return new JSLambda(
-                            function, thisArg, !(
-                                thisArg.IsNull || thisArg is JSNullLiteral
-                            )
-                        );
-                    }
-                }
-
                 var ma = methodDot as JSMethodAccess;
 
                 if (ma != null) {
@@ -2733,19 +2847,24 @@ namespace JSIL {
             var arguments = Translate(node.Arguments, constructor.Parameters, false);
 
             if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
-                return Translate_Newobj_Delegate(node, constructor, arguments);
+                return Translate_Newobj_Delegate(node, constructor, arguments.ToArray());
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
-                    constructor.DeclaringType.GetElementType(), arguments
+                    TypeUtil.GetElementType(constructor.DeclaringType, true), arguments.ToArray()
                 );
+            } else if (TypeUtil.IsNullable(constructor.DeclaringType)) {
+                if (arguments.Count == 0)
+                    return new JSNullLiteral(constructor.DeclaringType);
+                else
+                    return arguments[0];
             }
 
             var methodInfo = GetMethod(constructor);
             if ((methodInfo == null) || methodInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, methodInfo, arguments);
+                return new JSIgnoredMemberReference(true, methodInfo, arguments.ToArray());
 
             var result = new JSNewExpression(
-                constructor.DeclaringType, constructor, methodInfo, arguments
+                constructor.DeclaringType, constructor, methodInfo, arguments.ToArray()
             );
 
             return Translate_ConstructorReplacement(constructor, methodInfo, result);
@@ -2763,11 +2882,12 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
-            var at = _arrayType as ArrayType;
-            var initializer = new JSArrayExpression(at, Translate(node.Arguments));
+            int temp;
+            var at = (ArrayType)TypeUtil.FullyDereferenceType(_arrayType, out temp);
+            var initializer = new JSArrayExpression(at, Translate(node.Arguments).ToArray());
+
             int rank = 0;
-            if (at != null)
-                rank = at.Rank;
+            rank = at.Rank;
 
             if (TypeUtil.TypesAreEqual(TypeSystem.Object, at) && rank < 2)
                 return initializer;
@@ -2795,9 +2915,7 @@ namespace JSIL {
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var translated = TranslateNode(node.Arguments[i]);
-
-                while (translated is JSReferenceExpression)
-                    translated = ((JSReferenceExpression)translated).Referent;
+                translated = JSReferenceExpression.Strip(translated);
 
                 var invocation = (JSInvocationExpression)translated;
 
@@ -2827,9 +2945,7 @@ namespace JSIL {
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var translated = TranslateNode(node.Arguments[i]);
-
-                while (translated is JSReferenceExpression)
-                    translated = ((JSReferenceExpression)translated).Referent;
+                translated = JSReferenceExpression.Strip(translated);
 
                 var boe = translated as JSBinaryOperatorExpression;
                 var ie = translated as JSInvocationExpression;
@@ -2837,9 +2953,7 @@ namespace JSIL {
 
                 if (boe != null) {
                     var left = boe.Left;
-
-                    while (left is JSReferenceExpression)
-                        left = ((JSReferenceExpression)left).Referent;
+                    left = JSReferenceExpression.Strip(left);
 
                     var leftDot = left as JSDotExpressionBase;
 
@@ -2911,12 +3025,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
             var methodInfo = GetMethod(method);
-            return new JSMethod(method, methodInfo, MethodTypes);
+            return new JSMethodOfExpression(method, methodInfo, MethodTypes);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
             var fieldInfo = GetField(field);
-            return new JSField(field, fieldInfo);
+            return new JSFieldOfExpression(field, fieldInfo);
         }
 
         public static bool NeedsExplicitThis (
@@ -3020,7 +3134,7 @@ namespace JSIL {
                     thisExpression = arguments[0];
                 }
 
-                arguments = arguments.Skip(1).ToArray();
+                arguments = arguments.Skip(1).ToList();
 
                 var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
@@ -3038,8 +3152,8 @@ namespace JSIL {
             }
 
             var result = DoMethodReplacement(
-                new JSMethod(method, methodInfo, MethodTypes), 
-                thisExpression, arguments, false, 
+                new JSMethod(method, methodInfo, MethodTypes),
+                thisExpression, arguments.ToArray(), false, 
                 !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
@@ -3148,7 +3262,7 @@ namespace JSIL {
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
-            return callSite.Translate(this, invocationArguments);
+            return callSite.Translate(this, invocationArguments.ToArray());
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {

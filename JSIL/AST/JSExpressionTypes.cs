@@ -273,7 +273,7 @@ namespace JSIL.Ast {
                     referent = PackedArrayUtil.GetItem(targetType, targetTypeInfo, aer.Array, aer.Index, jsil.MethodTypes, proxy: true);
                     return true;
                 } else {
-                    referent = new JSIndexerExpression(aer.Array, aer.Index, aer.ReferenceType.GetElementType());
+                    referent = new JSIndexerExpression(aer.Array, aer.Index, TypeUtil.GetElementType(aer.ReferenceType, true));
                     return true;
                 }
             }
@@ -359,9 +359,7 @@ namespace JSIL.Ast {
             }
 
             if (mref != null) {
-                var referent = mref.Referent;
-                while (referent is JSReferenceExpression)
-                    referent = ((JSReferenceExpression)referent).Referent;
+                var referent = Strip(mref.Referent);
 
                 var dot = referent as JSDotExpressionBase;
 
@@ -432,6 +430,19 @@ namespace JSIL.Ast {
             } else {
                 return new JSReferenceExpression(referent);
             }
+        }
+
+        public static JSExpression Strip (JSExpression expression) {
+            do {
+                var re = expression as JSReferenceExpression;
+
+                if (re != null)
+                    expression = re.Referent;
+                else
+                    break;
+            } while (true);
+
+            return expression;
         }
 
         public JSExpression Referent {
@@ -757,6 +768,31 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSMethodOfExpression : JSMethod
+    {
+        public JSMethodOfExpression(MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments = null)
+            : base(reference, method, methodTypes, genericArguments)
+        {
+        }
+
+        public override bool HasGlobalStateDependency
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override bool IsConstant
+        {
+            get
+            {
+                return true;
+            }
+        }
+    }
+
     public class JSPublicInterfaceOfExpression : JSExpression {
         public JSPublicInterfaceOfExpression (JSExpression inner)
             : base(inner) {
@@ -963,6 +999,14 @@ namespace JSIL.Ast {
         public JSIndexerExpression (JSExpression target, JSExpression index, TypeReference elementType = null)
             : base(target, index) {
 
+            if (
+                (elementType != null) &&
+                elementType.HasGenericParameters &&
+                !(elementType is GenericInstanceType)
+            ) {
+                Debugger.Break();
+            }
+
             ElementType = elementType;
         }
 
@@ -972,11 +1016,7 @@ namespace JSIL.Ast {
 
             var targetType = DeReferenceType(Target.GetActualType(typeSystem));
 
-            var at = targetType as ArrayType;
-            if (at != null)
-                return at.ElementType;
-            else
-                return base.GetActualType(typeSystem);
+            return TypeUtil.GetElementType(targetType, true);
         }
 
         public JSExpression Target {
@@ -1513,7 +1553,7 @@ namespace JSIL.Ast {
         }
 
         public static JSExpression UnpackArrayInitializer (TypeReference arrayType, byte[] data) {
-            var elementType = TypeUtil.DereferenceType(arrayType).GetElementType();
+            var elementType = TypeUtil.GetElementType(TypeUtil.DereferenceType(arrayType), true);
             JSExpression[] values;
 
             using (var ms = new MemoryStream(data, false))
@@ -1744,7 +1784,9 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {        
+    public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
+        public readonly bool CanSimplify = true;
+
         static JSBinaryOperatorExpression () {
             SetValueNames(
                 typeof(JSBinaryOperatorExpression),
@@ -1756,16 +1798,19 @@ namespace JSIL.Ast {
         /// <summary>
         /// Construct a binary operator expression with an explicit expected type.
         /// </summary>
-        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType)
-            : base(
-                op, actualType, lhs, rhs
-                ) {
+        public JSBinaryOperatorExpression (
+            JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, bool canSimplify = true
+        ) : base(
+            op, actualType, lhs, rhs
+        ) {
+            CanSimplify = canSimplify;
         }
 
-        protected JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, params JSExpression[] extraValues)
-            : base(
-                op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
-                ) {
+        protected JSBinaryOperatorExpression (
+            JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType, params JSExpression[] extraValues
+        ) : base(
+            op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
+        ) {
         }
 
         public JSExpression Left {
@@ -1971,6 +2016,10 @@ namespace JSIL.Ast {
             if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false) && !force)
                 return inner;
 
+            // HACK: Propagate null expressions without meddling.
+            if (inner.IsNull)
+                return inner;
+
             if (
                 (rankCurrent == rankNew) && 
                 (rankCurrent > 0)
@@ -2016,8 +2065,7 @@ namespace JSIL.Ast {
                     var originalInner = inner;
                     var originalInnerType = originalInner.GetActualType(typeSystem);
 
-                    while (inner is JSReferenceExpression)
-                        inner = ((JSReferenceExpression)inner).Referent;
+                    inner = JSReferenceExpression.Strip(inner);
 
                     var innerType = inner.GetActualType(typeSystem);
                     var indexer = inner as JSIndexerExpression;
@@ -2029,7 +2077,7 @@ namespace JSIL.Ast {
                     } else if ((originalInnerType is ByReferenceType) &&
                         TypeUtil.IsNumeric(innerType) &&
                         (newType is PointerType) &&
-                        TypeUtil.IsNumeric(newType.GetElementType())
+                        TypeUtil.IsNumeric(TypeUtil.GetElementType(newType, true))
                     ) {
                         // Handle cast of primitive& to primitive* (reinterpret single value as an array of some other fundamental type)
                         return new JSPinValueExpression(inner, newType);
@@ -2089,15 +2137,44 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTruncateExpression : JSExpression {
-        public JSTruncateExpression (JSExpression inner) 
-            : base (inner) {
+    public class JSNullableCastExpression : JSExpression {
+        public JSNullableCastExpression (JSExpression inner, JSType targetType)
+            : base (inner, targetType) {
         }
 
         public JSExpression Expression {
             get {
                 return Values[0];
             }
+        }
+
+        public JSType TargetType {
+            get {
+                return (JSType)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return TargetType.Type;
+        }
+    }
+
+    // FIXME: Derive from JSCastExpression?
+    public abstract class JSSpecialNumericCastExpression : JSExpression {
+        protected JSSpecialNumericCastExpression (JSExpression inner)
+            : base(inner) {
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+    }
+
+    public class JSTruncateExpression : JSSpecialNumericCastExpression {
+        public JSTruncateExpression (JSExpression inner) 
+            : base (inner) {
         }
 
         public override bool HasGlobalStateDependency {
@@ -2124,6 +2201,74 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("(int){0}", Expression);
+        }
+    }
+
+    public class JSIntegerToFloatExpression : JSSpecialNumericCastExpression {
+        public readonly TypeReference NewType;
+
+        public JSIntegerToFloatExpression (JSExpression inner, TypeReference newType)
+            : base(inner) {
+
+            NewType = newType;
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return NewType;
+        }
+
+        public override string ToString () {
+            return String.Format("({0}){1}", NewType.Name, Expression);
+        }
+    }
+
+    public class JSDoubleToFloatExpression : JSSpecialNumericCastExpression {
+        public JSDoubleToFloatExpression (JSExpression inner)
+            : base(inner) {
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Single;
+        }
+
+        public override string ToString () {
+            return String.Format("(float){0}", Expression);
         }
     }
 
@@ -2157,7 +2302,11 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Expression.GetActualType(typeSystem);
+            int temp;
+            var innerType = TypeUtil.FullyDereferenceType(Expression.GetActualType(typeSystem), out temp);
+
+            var innerTypeGit = (GenericInstanceType)innerType;
+            return innerTypeGit.GenericArguments[0];
         }
 
         public override string ToString () {
@@ -2320,16 +2469,17 @@ namespace JSIL.Ast {
 
         public JSVariable Variable {
             get {
-                return (JSVariable)Values[0];
+                // FIXME: Why is this not a variable sometimes??
+                return Values[0] as JSVariable;
             }
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return DeReferenceType(Variable.GetActualType(typeSystem), true);
+            return DeReferenceType(Values[0].GetActualType(typeSystem), true);
         }
 
         public override string ToString () {
-            return String.Format("{0}.get()", Variable);
+            return String.Format("{0}.get()", Values[0]);
         }
     }
 
@@ -2392,14 +2542,14 @@ namespace JSIL.Ast {
             while (true) {
                 var cte = e as JSChangeTypeExpression;
                 var cast = e as JSCastExpression;
-                var truncation = e as JSTruncateExpression;
+                var specialNumericCast = e as JSSpecialNumericCastExpression;
 
                 if (cte != null)
                     e = cte.Expression;
                 else if (cast != null)
                     e = cast.Expression;
-                else if (truncation != null)
-                    e = truncation.Expression;
+                else if (specialNumericCast != null)
+                    e = specialNumericCast.Expression;
                 else
                     break;
             }
@@ -2525,7 +2675,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             var pointerType = Pointer.GetActualType(typeSystem);
-            return pointerType.GetElementType();
+            return TypeUtil.GetElementType(pointerType, true);
         }
 
         public override string ToString () {
@@ -2901,6 +3051,44 @@ namespace JSIL.Ast {
             get {
                 return Values[2];
             }
+        }
+    }
+
+    public class JSUInt32MultiplyExpression : JSBinaryOperatorExpression {
+        public JSUInt32MultiplyExpression (JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
+            : base(JSOperator.Multiply, lhs, rhs, typeSystem.UInt32, canSimplify: false) {
+        }
+    }
+
+    public class JSInt32MultiplyExpression : JSBinaryOperatorExpression {
+        public JSInt32MultiplyExpression (JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
+            : base(JSOperator.Multiply, lhs, rhs, typeSystem.Int32, canSimplify: false) {
+        }
+    }
+
+    public class JSNullCoalesceExpression : JSExpression {
+        public readonly TypeReference ResultType;
+
+        public JSNullCoalesceExpression (JSExpression lhs, JSExpression rhs, TypeReference resultType)
+            : base(lhs, rhs) {
+
+            ResultType = resultType;
+        }
+
+        public JSExpression Left {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Right {
+            get {
+                return Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ResultType;
         }
     }
 }

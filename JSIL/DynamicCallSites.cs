@@ -178,6 +178,19 @@ namespace JSIL {
                     memberName += "`" + TypeArguments.Length;
                 }
 
+                var thisArgumentKnownType = JSType.ExtractType(thisArgument);
+                if (thisArgumentKnownType != null) {
+                    var replacement = translator.DoJSILMethodReplacement(
+                        thisArgumentKnownType.FullName, memberName, 
+                        // FIXME 
+                        null,
+                        argumentValues,
+                        true
+                    );
+                    if (replacement != null)
+                        return replacement;
+                }
+
                 return JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod(
                         memberName, returnType, 
