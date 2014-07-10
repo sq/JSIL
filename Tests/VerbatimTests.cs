@@ -78,5 +78,13 @@ namespace JSIL.Tests {
                 "hello\r\n7"
             );
         }
+
+        [Test]
+        public void VerbatimDynamic () {
+            var js = GetJavascript(
+                @"SpecialTestCases\Issue548.cs",
+                "{}"
+            );
+        }
     }
 }
