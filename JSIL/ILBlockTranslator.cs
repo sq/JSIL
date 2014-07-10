@@ -487,7 +487,7 @@ namespace JSIL {
             return result;
         }
 
-        protected JSExpression DoMethodReplacement (
+        internal JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
         ) {
@@ -544,7 +544,7 @@ namespace JSIL {
                 method.Method.DeclaringType.FullName, 
                 method.Method.Name, 
                 method.GenericArguments,
-                arguments
+                arguments, false
             );
             if (result != null)
                 return result;
@@ -568,10 +568,11 @@ namespace JSIL {
             return result;
         }
 
-        private JSExpression DoJSILBuiltinsMethodReplacement (
+        internal JSExpression DoJSILBuiltinsMethodReplacement (
             string methodName,
             IEnumerable<TypeReference> genericArguments,
-            JSExpression[] arguments
+            JSExpression[] arguments,
+            bool forDynamic
         ) {
             switch (methodName) {
                 case "CreateNamedFunction`1": {
@@ -609,15 +610,16 @@ namespace JSIL {
             return null;
         }
 
-        private JSExpression DoJSILMethodReplacement(
+        internal JSExpression DoJSILMethodReplacement (
             string typeName,
             string methodName, 
             IEnumerable<TypeReference> genericArguments, 
-            JSExpression[] arguments
+            JSExpression[] arguments,
+            bool forDynamic
         ) {
             switch (typeName) {
                 case "JSIL.Builtins":
-                    return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments);
+                    return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments, forDynamic);
 
                 case "JSIL.Verbatim": {
                     if (methodName == "Expression") {
@@ -632,9 +634,16 @@ namespace JSIL {
                             var argumentsExpression = arguments[1];
                             var argumentsArray = argumentsExpression as JSNewArrayExpression;
 
-                            // The array is static so we need to pull elements out of it after assigning it a name.
-                            // FIXME: Only handles up to 40 elements.
-                            if (argumentsArray == null) {
+                            if (forDynamic) {
+                                // This call was made dynamically, so the parameters are not an array.
+
+                                argumentsDict = new Dictionary<string, JSExpression>();
+
+                                for (var i = 0; i < (arguments.Length - 1); i++)
+                                    argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
+                            } else if (argumentsArray == null) {
+                                // The array is static so we need to pull elements out of it after assigning it a name.
+                                // FIXME: Only handles up to 40 elements.
                                 var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
                                 var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
                                 var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
@@ -741,7 +750,7 @@ namespace JSIL {
             return null;
         }
 
-        private JSExpression DoNonJSILMethodReplacement(JSMethod method, JSExpression[] arguments) {
+        internal JSExpression DoNonJSILMethodReplacement (JSMethod method, JSExpression[] arguments) {
             switch (method.Method.Member.FullName) {
                 // Doing this replacement here enables more elimination of temporary variables
                 case "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)":

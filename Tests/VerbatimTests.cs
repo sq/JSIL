@@ -83,7 +83,7 @@ namespace JSIL.Tests {
         public void VerbatimDynamic () {
             var js = GetJavascript(
                 @"SpecialTestCases\Issue548.cs",
-                "{}"
+                "{\"obj1\":\"{}\"}"
             );
         }
     }

@@ -157,6 +157,22 @@ namespace JSIL.Ast {
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Type);
         }
+
+        public static TypeReference ExtractType (JSExpression expression) {
+            while (expression != null) {
+                var pii = expression as JSPublicInterfaceOfExpression;
+                var jst = expression as JSType;
+
+                if (pii != null)
+                    expression = pii.Inner;
+                else if (jst != null)
+                    return jst.Type;
+                else
+                    return null;
+            }
+
+            return null;
+        }
     }
 
     public class JSTypeReference : JSType {
