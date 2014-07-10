@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -51,6 +52,36 @@ namespace JSIL.Proxies.Bcl
     [JSStubOnly]
     public static class System_Console
     {
+    }
+
+
+    [JSProxy(typeof(EventArgs), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    public class System_EventArgs
+    {
+        [JSExternal]
+        [JSReplaceConstructor]
+        public System_EventArgs()
+        {
+        }
+    }
+
+    [JSProxy(typeof(PropertyChangedEventArgs), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    public class System_ComponentModel_PropertyChangedEventArgs
+    {
+        [JSExternal]
+        [JSReplaceConstructor]
+        public System_ComponentModel_PropertyChangedEventArgs(string propertyName)
+        {
+        }
+
+        public string PropertyName
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 
     [JSProxy(typeof(Debug), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]

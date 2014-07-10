@@ -95,6 +95,15 @@ namespace JSIL.Proxies.Bcl
             }
         }
 
+        public static CultureInfo InvariantCulture
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public static CultureInfo CurrentCulture
         {
             [JSExternal]
