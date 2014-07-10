@@ -543,7 +543,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter`1", functio
   );
 
   $.Method({ Static: false, Public: true }, "GetResult",
-    new JSIL.MethodSignature(null, [], []),
+    new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.TaskAwaiter`1"), [], []),
     function GetResult() {
       if (!this._task.get_IsCompleted()) {
         throw new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Exception"), [$jsilcore.TypeRef("System.String")]).Construct("TaskNotCompleted");
