@@ -1218,33 +1218,6 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public void VisitNode (JSLambda lambda) {
-            var replaceThis = !lambda.UseBind;
-
-            if (
-                (lambda.This == null) ||
-                lambda.This.IsNull ||
-                (lambda.This is JSNullLiteral)
-            )
-                replaceThis = false;
-
-            if (replaceThis)
-                ThisReplacementStack.Push(lambda.This);
-
-            Visit(lambda.Value);
-
-            if (lambda.UseBind) {
-                Output.Dot();
-                Output.WriteRaw("bind");
-                Output.LPar();
-                Visit(lambda.This);
-                Output.RPar();
-            } else {
-                if (replaceThis)
-                    ThisReplacementStack.Pop();
-            }
-        }
-
         public void VisitNode (JSFunctionExpression function) {
             var oldCurrentMethod = Output.CurrentMethod;
 
@@ -1256,12 +1229,7 @@ namespace JSIL {
 
             Output.OpenFunction(
                 function.DisplayName,
-                o => {
-                    var remove = ((function.Method != null) && function.Method.Reference.IsGenericClosure())
-                        ? function.Parameters.Where(x => function.Method.Reference.GenericParameters.Any(y => x.Name == y.Name)) 
-                        : Enumerable.Empty<JSVariable>();
-                    o.WriteParameterList(function.Parameters.Except(remove));
-                } 
+                (o) => o.WriteParameterList(function.Parameters) 
             );
 
             if (function.TemporaryVariableCount > 0) {

@@ -296,7 +296,7 @@ namespace JSIL.Internal {
         public ModuleInfo (ModuleDefinition module) {
             Metadata = new MetadataCollection(module);
 
-            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName, false) ||
+            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore");
         }
     }
@@ -610,8 +610,8 @@ namespace JSIL.Internal {
             Interfaces = new ArraySegment<InterfaceToken>(interfaces.ToArray());
 
             _IsIgnored = module.IsIgnored ||
-                IsIgnoredName(type.Namespace, false) || 
-                IsIgnoredName(type.Name, false) ||
+                IsIgnoredName(type.Namespace) || 
+                IsIgnoredName(type.Name) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
@@ -1077,9 +1077,9 @@ namespace JSIL.Internal {
         );
 
         static readonly Regex IgnoredKeywordRegex = new Regex(
-            @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
+            @"\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__DynamicSite|__CachedAnonymousMethodDelegate", 
+            @"__DynamicSite", 
             RegexOptions.Compiled
         );
 
@@ -1147,9 +1147,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public static bool IsIgnoredName (string shortName, bool isField) {
-            bool defaultResult = false;
-
+        public static bool IsIgnoredName (string shortName) {
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
                     var length = m2.Length;
@@ -1160,56 +1158,20 @@ namespace JSIL.Internal {
                         (shortName[index + 1] == '_')
                     ) {
                         switch (m2.Value) {
-                            case "__BackingField":
-                            case "__DisplayClass":
-                                return false;
-
                             case "__DynamicSite":
                             case "__SiteContainer":
                                 return true;
 
-                            case "__CachedAnonymousMethodDelegate":
-                                if (isField)
-                                    return true;
-                                break;
+                            default:
+                                return false;
                         }
-                    } else if (
-                        (length >= 4) &&
-                        (shortName[index] == 'C') && 
-                        (shortName[index + 1] == 'S') &&
-                        (shortName[index + 2] == '$') &&
-                        (shortName[index + 3] == '<')
-                    ) {
-                        if (!isField)
-                            return true;
                     } else {
-                        defaultResult = true;
+                        return true;
                     }
                 }
             }
 
-            var m = MangledNameRegex.Match(shortName);
-            if (m.Success) {
-                switch (shortName[m.Groups[2].Index]) {
-                    case 'b':
-                        // Lambda
-                        return true;
-                    case 'c':
-                        // Class
-                        return false;
-                    case 'd':
-                        // Enumerator
-                        return false;
-                }
-            }
-
-            return defaultResult;
-        }
-
-        public static bool IsLambdaMethodName(string shortName)
-        {
-            var m = MangledNameRegex.Match(shortName);
-            return m.Success && shortName[m.Groups[2].Index] == 'b';
+            return false;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
@@ -1541,7 +1503,7 @@ namespace JSIL.Internal {
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
 
-            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference) || (member is FieldReference && (member as FieldReference).FieldType.IsPointer);
+            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name) || (member is FieldReference && (member as FieldReference).FieldType.IsPointer);
             IsExternal = isExternal;
             IsFromProxy = sourceProxy != null;
             SourceProxy = sourceProxy;
@@ -1866,7 +1828,6 @@ namespace JSIL.Internal {
             IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
             IsGeneric = method.HasGenericParameters;
-            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
         }
@@ -1889,7 +1850,6 @@ namespace JSIL.Internal {
             IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
             IsGeneric = method.HasGenericParameters;
-            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
 
@@ -1914,7 +1874,6 @@ namespace JSIL.Internal {
             IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
             IsGeneric = method.HasGenericParameters;
-            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
 
@@ -2023,12 +1982,6 @@ namespace JSIL.Internal {
                 _IsOverloadedRecursive = null;
                 _MethodGroup = value;
             }
-        }
-
-        public bool IsLambda
-        {
-            get;
-            private set;
         }
 
         public string GetName (bool stripGenericSuffix) {
