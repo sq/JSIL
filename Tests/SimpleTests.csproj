@@ -380,6 +380,9 @@
     <None Include="SimpleTestCases\NullableNullAccess.cs" />
     <None Include="SimpleTestCases\SignatureCacheDoubleGeneric_Issue547.cs" />
     <None Include="SimpleTestCases\Issue504_2.cs" />
+    <None Include="SimpleTestCases\DelegateRemoveAdvancedWithLambda_Issue541.cs" />
+    <None Include="SimpleTestCases\LambdaInStateMachine1_Issue544.cs" />
+    <None Include="SimpleTestCases\LambdaInStateMachine2_Issue544.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
