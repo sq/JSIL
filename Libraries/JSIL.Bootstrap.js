@@ -350,12 +350,21 @@ $jsilcore.$RemoveDelegate = function (lhs, rhs) {
     return null;
 
   var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  var rightList = $jsilcore.$GetInvocationList(rhs);
 
-  for (var i = 0; i < newList.length; i++) {
-    var item = newList[i];
-    if ($jsilcore.$AreDelegatesEqual(item, rhs)) {
-      newList.splice(i, 1);
-      break;
+  if (newList.length >= rightList.length) {
+    for (var i = newList.length - rightList.length; i >= 0; i--) {
+      var equal = true;
+      for (var j = 0; j < rightList.length; j++) {
+        if (!$jsilcore.$AreDelegatesEqual(newList[i + j], rightList[j])) {
+          equal = false;
+          break;
+        }
+      }
+      if (equal) {
+        newList.splice(i, rightList.length);
+        break;
+      }
     }
   }
 

@@ -235,6 +235,7 @@
     <None Include="SimpleTestCases\FloatArrayInitializer.cs" />
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess.cs" />
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess2.cs" />
+    <None Include="SimpleTestCases\DelegateRemove.cs" />
     <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SimpleTestCases\DecimalCast.cs" />
     <None Include="SimpleTestCases\DecimalCopy.cs" />
