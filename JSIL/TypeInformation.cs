@@ -179,15 +179,64 @@ namespace JSIL.Internal {
         }
     }
 
-    public struct GenericTypeIdentifier {
+    public struct GenericTypeIdentifier
+    {
         public readonly TypeIdentifier Type;
-        public readonly TypeIdentifier[] Arguments;
+        public readonly GenericTypeIdentifier[] Arguments;
         public readonly int ArrayRank;
 
-        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments, int arrayRank) {
-            Type = new TypeIdentifier(type);
-            Arguments = (from a in arguments select new TypeIdentifier(a)).ToArray();
+        public GenericTypeIdentifier(TypeIdentifier type, IEnumerable<GenericTypeIdentifier> arguments, int arrayRank)
+        {
+            Type = type;
+            Arguments = arguments.ToArray();
             ArrayRank = arrayRank;
+        }
+
+        public static GenericTypeIdentifier? Create(TypeReference type)
+        {
+            bool mapArraysToSystemArray = false;
+
+            while (type is ByReferenceType)
+                type = ((ByReferenceType)type).ElementType;
+
+            var resolved = TypeUtil.GetTypeDefinition(type, mapArraysToSystemArray);
+
+            if (resolved == null)
+            {
+                return null;
+            }
+
+            var at = type as ArrayType;
+            var git = type as GenericInstanceType;
+
+            IEnumerable<GenericTypeIdentifier> children;
+            if (git != null)
+            {
+                var childrenList = new GenericTypeIdentifier[git.GenericArguments.Count];
+                for (int i = 0; i < git.GenericArguments.Count; i++)
+                {
+                    var child = Create(git.GenericArguments[i]);
+                    if (child == null)
+                    {
+                        return null;
+                    }
+
+                    childrenList[i] = child.Value;
+                }
+
+                children = childrenList;
+            }
+            else
+            {
+                children = Enumerable.Empty<GenericTypeIdentifier>();
+            }
+
+            var identifier = new GenericTypeIdentifier(
+                new TypeIdentifier(resolved),
+                children,
+                (at != null) ? at.Rank : 0);
+
+            return identifier;
         }
 
         public bool Equals (GenericTypeIdentifier rhs) {
