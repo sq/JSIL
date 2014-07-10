@@ -209,6 +209,16 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
     }
   );
 
+  $.Method({Static: true, Public: true}, "get_InvariantCulture",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], []),
+    function() {
+      if (typeof this.m_invariantCultureInfo == 'undefined') {
+         this.m_invariantCultureInfo = new System.Globalization.CultureInfo('', false);
+      }
+      return this.m_invariantCultureInfo;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Clone", 
     (new JSIL.MethodSignature($.Object, [], [])), 
     function get_Name () {
