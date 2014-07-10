@@ -939,24 +939,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
       break;
   }
 
-  var indexOfImpl = function List_IndexOf (value) {
-    for (var i = 0, l = this._size; i < l; i++) {
-      if (JSIL.ObjectEquals(this._items[i], value))
-        return i;
-    }
-
-    return -1;
-  };
-
-  var findIndexImpl = function List_FindIndex (predicate) {
-    for (var i = 0, l = this._size; i < l; i++) {
-      if (predicate(this._items[i]))
-        return i;
-    }
-
-    return -1;
-  };
-
   $.Method({Static:false, Public:true }, ".ctor", 
     JSIL.MethodSignature.Void,
     function () {
@@ -982,10 +964,63 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
+  var indexOfImpl = function List_IndexOf (value) {
+    for (var i = 0, l = this._size; i < l; i++) {
+      if (JSIL.ObjectEquals(this._items[i], value))
+        return i;
+    }
+
+    return -1;
+  };
+
+  var findIndexImpl = function List_FindIndex (predicate) {
+    for (var i = 0, l = this._size; i < l; i++) {
+      if (predicate(this._items[i]))
+        return i;
+    }
+
+    return -1;
+  };
+
   var addImpl = function (item) {
     this.InsertItem(this._size, item);
     return this._size;
   };
+
+  var rangeCheckImpl = function (index, size) {
+    return (index >= 0) && (size > index);
+  }
+
+  var getItemImpl = function (index) {
+    if (rangeCheckImpl(index, this._size))
+      return this._items[index];
+    else
+      throw new System.ArgumentOutOfRangeException("index");
+  };
+
+  var removeImpl = function (item) {
+    var index = this._items.indexOf(item);
+    if (index === -1)
+      return false;
+
+    this.RemoveAt(index);
+    return true;
+  };
+
+  var getEnumeratorType = function (self) {
+    if (self.$enumeratorType)
+      return self.$enumeratorType;
+
+    var T = getT(self);
+    return self.$enumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(T);
+  };
+
+  var getEnumeratorImpl = function () {
+    var enumeratorType = getEnumeratorType(this);
+
+    return new enumeratorType(this);
+  };
+
 
   switch (type) {
     case "ArrayList":
@@ -1002,15 +1037,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
       );
       break;
   }
-
-  $.Method(
-	  // A method doesn't have to be public to implement an interface
-	  {Static: false, Public: false }, 
-	  // Passing null for the name makes the method anonymous
-	  null,
-	  new JSIL.MethodSignature($.Int32, [$.Object], []),
-	  addImpl
-  ).Overrides("System.Collections.IList", "Add");
 
   $.Method({Static:false, Public:true }, "AddRange", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
@@ -1130,28 +1156,52 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  var rangeCheckImpl = function (index, size) {
-    return (index >= 0) && (size > index);
-  }
-
-  var getItemImpl = function (index) {
-    if (rangeCheckImpl(index, this._size))
-      return this._items[index];
-    else
-      throw new System.ArgumentOutOfRangeException("index");
-  };
-
   $.Method({Static:false, Public:true }, "get_Item", 
     new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []), 
     getItemImpl
   );
 
-  if (type != "ArrayList")
+  if (type != "ArrayList") {
+    $.Method(
+      {Static: false, Public: false }, null,
+      new JSIL.MethodSignature($.Int32, [$.Object], []),
+      addImpl
+    ).Overrides("System.Collections.IList", "Add");
+
     $.Method({Static:false, Public:true }, null, 
       new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Int32")], []), 
       getItemImpl
     )
       .Overrides("System.Collections.IList", "get_Item");
+
+    $.Method({Static: false, Public: true }, null,
+      new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), $.Object], []), 
+      function (index, value) {
+        if (rangeCheckImpl(index, this._size))
+          this.SetItem(index, this.T.$Cast(value));
+        else
+          throw new System.ArgumentOutOfRangeException("index");
+      }
+    )      
+      .Overrides("System.Collections.IList", "set_Item");
+
+    $.Method({Static: false, Public: false}, null,
+      new JSIL.MethodSignature(null, [$.Int32, $.Object], []),
+      function (index, item) {
+          this.InsertItem(index, item);
+        }
+    ).Overrides("System.Collections.IList", "Insert");
+
+    $.Method({Static:false,Public:false}, null,
+      new JSIL.MethodSignature($.Int32, [$.Object], []),
+      indexOfImpl
+    ).Overrides("System.Collections.IList", "IndexOf");
+
+    $.Method({Static: false, Public: false}, null,
+      new JSIL.MethodSignature(null, [$.Object], []),
+      removeImpl
+    ).Overrides("System.Collections.IList", "Remove");
+  }
 
   $.Method({Static: false, Public: true }, "set_Item",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
@@ -1162,32 +1212,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
         throw new System.ArgumentOutOfRangeException("index");
     }
   );
-
-  if (type != "ArrayList")
-    $.Method({Static: false, Public: true }, null,
-      new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), $.Object], []), 
-      function (index, value) {
-        if (rangeCheckImpl(index, this._size))
-          this.SetItem(index, this.T.$Cast(value));
-        else
-          throw new System.ArgumentOutOfRangeException("index");
-      }
-    )      
-      .Overrides("System.Collections.IList", "get_Item");
-
-  var getEnumeratorType = function (self) {
-    if (self.$enumeratorType)
-      return self.$enumeratorType;
-
-    var T = getT(self);
-    return self.$enumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(T);
-  };
-
-  var getEnumeratorImpl = function () {
-    var enumeratorType = getEnumeratorType(this);
-
-    return new enumeratorType(this);
-  };
 
   switch (type) {
     case "List":
@@ -1232,31 +1256,10 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({Static: false, Public: false}, null,
-	  new JSIL.MethodSignature(null, [$.Int32, $.Object], []),
-	  function (index, item) {
-        this.InsertItem(index, item);
-      }
-  ).Overrides("System.Collections.IList", "Insert");
-
   $.Method({Static:false, Public:true }, "IndexOf", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [T], []),
     indexOfImpl
   );
-
-  $.Method({Static:false,Public:false}, null,
-	  new JSIL.MethodSignature($.Int32, [$.Object], []),
-	  indexOfImpl
-	  ).Overrides("System.Collections.IList", "IndexOf");
-
-  var removeImpl = function (item) {
-    var index = this._items.indexOf(item);
-    if (index === -1)
-      return false;
-
-    this.RemoveAt(index);
-    return true;
-  };
 
   switch (type) {
     case "ArrayList":
@@ -1273,11 +1276,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
       );
       break;
   }
-
-  $.Method({Static: false, Public: false}, null,
-	  new JSIL.MethodSignature(null, [$.Object], []),
-	  removeImpl
-	  ).Overrides("System.Collections.IList", "Remove");
 
   $.Method({Static:false, Public:true }, "RemoveAll", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
