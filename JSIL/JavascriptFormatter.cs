@@ -491,7 +491,13 @@ namespace JSIL.Internal {
 
                         if (resolved != null) {
                             if (resolved != gp) {
-                                TypeReference(resolved, context);
+                                context.Push();
+                                context.SignatureMethod = null;
+                                try {
+                                    TypeReference(resolved, context);
+                                } finally {
+                                    context.Pop();
+                                }
                                 return;
                             } else {
                                 TypeIdentifier(resolved, context, false);
