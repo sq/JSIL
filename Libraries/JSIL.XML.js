@@ -631,6 +631,12 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
 
   $.RawMethod(false, "$setCurrentNode", function (node, state) {
     this._current = node;
+    // Index of next attribute to be fetched using LocalName/Prefix/Value
+    // when fetchMode is 'attrs'
+    this.currentAttributeIndex = 0;
+    // Fetch mode can be 'attrs' or 'element'. It is switched when calling funcs
+    // MoveToNextAttribute and MoveToElement
+    this.fetchMode = 'element';
     this._state = state;
 
     if ((typeof (node) === "undefined") || (node === null)) {
@@ -775,8 +781,13 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "MoveToElement", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function MoveToElement () {
-      // FIXME
-      return true;
+        if (this.fetchMode == 'attrs') {
+          this.fetchMode = 'element';
+          this.currentAttributeIndex = 0;
+          // true if position has been "changed"
+          return true;
+        }
+        return false;
     }
   );
 
@@ -791,8 +802,20 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "MoveToNextAttribute", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function MoveToNextAttribute () {
-      // FIXME
-      return false;
+      if (this.fetchMode == 'element') {
+          if (this._current.attributes.length != 0) {
+            this.fetchMode = 'attrs';
+            this.currentAttributeIndex = 0;
+            return true;
+          } else
+            return false;
+      } else {
+          if (this.currentAttributeIndex + 1 < this._current.attributes.length) {
+            this.currentAttributeIndex++;
+            return true;
+          } else
+            return false;
+      }
     }
   );
 
@@ -1038,9 +1061,12 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "get_Name", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Name () {
-      if (this._current !== null)
-        return this._current.tagName || null;
-
+      if (this._current !== null) {
+          if (this.fetchMode == 'element')
+            return this._current.tagName || null;
+          else if (this.fetchMode == 'attrs')
+            return this._current.attributes.item(this.currentAttributeIndex).name;
+      }
       return null;
     }
   );
@@ -1048,9 +1074,12 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "get_LocalName", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_LocalName () {
-      if (this._current !== null)
-        return this._current.localName || null;
-
+      if (this._current !== null) {
+          if (this.fetchMode == 'element')
+            return this._current.localName || null;
+          else if (this.fetchMode == 'attrs')
+            return this._current.attributes.item(this.currentAttributeIndex).localName;
+      }
       return null;
     }
   );
@@ -1058,9 +1087,12 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "get_NamespaceURI", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_NamespaceURI () {
-      if (this._current !== null)
-        return this._current.namespaceURI || "";
-
+      if (this._current !== null) {
+          if (this.fetchMode == 'element')
+            return this._current.namespaceURI || "";
+          else if (this.fetchMode == 'attrs')
+            return this._current.attributes.item(this.currentAttributeIndex).namespaceURI;
+      }
       return "";
     }
   );
@@ -1068,9 +1100,25 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "get_Value", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Value () {
-      if (this._current !== null)
-        return this._current.nodeValue || null;
+      if (this._current !== null) {
+          if (this.fetchMode == 'element')
+            return this._current.nodeValue || null;
+          else if (this.fetchMode == 'attrs')
+            return this._current.attributes.item(this.currentAttributeIndex).value;
+      }
+      return null;
+    }
+  );
 
+  $.Method({Static:false, Public:true }, "get_Prefix",
+    (new JSIL.MethodSignature($.String, [], [])),
+    function get_Value () {
+      if (this._current !== null) {
+          if (this.fetchMode == 'element')
+            return this._current.prefix || '';
+          else if (this.fetchMode == 'attrs')
+            return this._current.attributes.item(this.currentAttributeIndex).prefix || '';
+      }
       return null;
     }
   );
@@ -1094,6 +1142,14 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       return 0;
     }
   );
+
+    $.Method({Static:false, Public:true}, "get_HasAttributes",
+            (new JSIL.MethodSignature($.Boolean, [], [])),
+            function get_HasAttributes() {
+                if (this._current == null) return false;
+                return (this.currentAttributeIndex < this._current.attributes.length);
+            }
+    );
 
   var getAttributeByName = function GetAttribute (name) {
     if (this._current.hasAttribute && this._current.hasAttribute(name))
