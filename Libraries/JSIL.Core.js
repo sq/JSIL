@@ -3073,9 +3073,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
       if (!iface)
         JSIL.RuntimeError(
-          "Member '" + member._descriptor.EscapedName + 
-          "' overrides nonexistent interface of type '" + typeObject.__FullName__ + 
-          "' with index '" + override.interfaceNameOrReference + "'"
+          "Member '" + typeObject.__FullName__ + 
+          "::" + member._descriptor.EscapedName + 
+          "' overrides nonexistent interface member '" + 
+          override.interfaceNameOrReference + 
+          "::" + override.interfaceMemberName + "'"
         );
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
