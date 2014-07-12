@@ -46,6 +46,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\UnsafeIntPerformanceComparison.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 Console.WriteLine(test.RunJavascript(null, MakeUnsafeConfiguration));
             }
         }
@@ -64,6 +66,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Sieve.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -76,6 +80,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Vector3.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -88,6 +94,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\FuseePackedVertices.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -100,6 +108,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\OverloadedMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -112,6 +122,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\OverloadedConstructors.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -124,6 +136,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\UncachedOverloadedMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -136,6 +150,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\InterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -148,6 +164,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\GenericInterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -160,6 +178,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -172,6 +192,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\RectangleIntersects.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -184,6 +206,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\PropertyVsField.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -203,6 +227,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\BaseMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
