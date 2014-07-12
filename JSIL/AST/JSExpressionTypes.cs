@@ -2916,10 +2916,12 @@ namespace JSIL.Ast {
 
     public class JSNewBoxedVariable : JSExpression {
         public readonly TypeReference ValueType;
+        public readonly bool SuppressClone;
 
-        public JSNewBoxedVariable (JSExpression initialValue, TypeReference valueType)
+        public JSNewBoxedVariable (JSExpression initialValue, TypeReference valueType, bool suppressClone = false)
             : base (initialValue) {
             ValueType = valueType;
+            SuppressClone = suppressClone;
         }
 
         public JSExpression InitialValue {

@@ -2624,6 +2624,15 @@ namespace JSIL {
             }
         }
 
+        protected JSExpression Translate_Unbox(ILExpression node, TypeReference targetType)
+        {
+            var value = TranslateNode(node.Arguments[0]);
+
+            var result = JSCastExpression.New(value, targetType, TypeSystem);
+
+            return new JSNewBoxedVariable(result, targetType, true);
+        }
+
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 

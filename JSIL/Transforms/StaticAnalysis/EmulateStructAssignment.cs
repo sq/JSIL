@@ -624,7 +624,7 @@ namespace JSIL.Transforms {
 
             var initialValueType = initialValueDerefed.GetActualType(TypeSystem);
 
-            if (
+            if (!nbv.SuppressClone &&
                 IsCopyNeeded(nbv.InitialValue, out relevantParameter) &&
                 // We don't need to make a copy if the source value is a reference (like T& this)
                 !((initialValueType) != null && initialValueType.IsByReference)
