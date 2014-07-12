@@ -687,7 +687,7 @@ namespace JSIL.Internal {
                 (context != null) &&
                 (context.EnclosingType != null)
             ) {
-                if (TypeUtil.TypesAreEqual(type, context.EnclosingType)) {
+                if (TypeUtil.TypesAreEqual(type, context.EnclosingType, true)) {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {
