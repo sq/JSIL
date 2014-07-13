@@ -640,7 +640,9 @@ namespace JSIL {
                 case "System.Single":
                     // fround only affects locals at present.
                     // FIXME: Does this mean a forced float->double upconvert when it could be omitted by the VM?
-                    if (targetIsLocal)
+                    if (isLoad)
+                        Output.WriteRaw("+");
+                    else if (targetIsLocal)
                         Output.WriteRaw("Math.fround(");
                     else
                         Output.WriteRaw("+(");
@@ -648,7 +650,10 @@ namespace JSIL {
                     return;
 
                 case "System.Double":
-                    Output.WriteRaw("+(");
+                    if (isLoad)
+                        Output.WriteRaw("+");
+                    else
+                        Output.WriteRaw("+(");
                     return;
             }
 
@@ -704,10 +709,23 @@ namespace JSIL {
                     break;
 
                 case "System.Single":
-                case "System.Double":
-                    Output.WriteRaw(")");
+                    // fround only affects locals at present.
+                    // FIXME: Does this mean a forced float->double upconvert when it could be omitted by the VM?
+                    if (isLoad)
+                        return;
+                    else if (targetIsLocal)
+                        Output.WriteRaw(")");
+                    else
+                        Output.WriteRaw(")");
 
-                    break;
+                    return;
+
+                case "System.Double":
+                    if (isLoad)
+                        return;
+                    else
+                        Output.WriteRaw(")");
+                    return;
             }
         }
 
@@ -1747,6 +1765,7 @@ namespace JSIL {
             var doTypeHint = !(value is JSOperatorExpressionBase) &&
                 !(value is JSSpecialNumericCastExpression) &&
                 !(value is JSLiteral) &&
+                !(value is JSCastExpression) &&
                 NeedTypeHintForLoad(type) &&
                 ShouldDoOptionalTruncation(type);
 
@@ -1776,6 +1795,19 @@ namespace JSIL {
                 );
 
             bool parens = NeedParensForBinaryOperator(bop);
+            var parentBop = ParentNode as JSBinaryOperatorExpression;
+            if (
+                !needsTruncation &&
+                (
+                    (ParentNode is JSInvocationExpressionBase) ||
+                    (ParentNode is JSCastExpression) ||
+                    (
+                        (parentBop != null) &&
+                        (parentBop.Operator is JSAssignmentOperator)
+                    )
+                )
+            )
+                parens = false;
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)

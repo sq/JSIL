@@ -83,7 +83,7 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(generatedJs.Contains(".TryGetValue"));
 
-                Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < args.length; i = "), "Was not a for loop with an increment");
+                Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < (args.length | 0); i = "), "Was not a for loop with an increment");
 
                 Assert.IsTrue(generatedJs.Contains("switch (text)"), "Didn't find switch (text)");
                 Assert.IsTrue(generatedJs.Contains("case \"howdy\""), "Didn't find string cases");
@@ -393,7 +393,7 @@ namespace JSIL.Tests {
                 );
                 bool foundIf = (m != null) && m.Success;
 
-                Assert.IsTrue(foundElse || foundIf);
+                Assert.IsTrue(foundElse || foundIf, "Looked for else or if");
 
                 if (foundElse) {
                     Assert.IsTrue(m.Value.Contains("continue $labelgroup0;"), "If block true clause left empty when hoisting out label");
