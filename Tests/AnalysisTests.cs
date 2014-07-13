@@ -409,17 +409,16 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Assert.IsTrue(generatedJs.Contains("var x = "));
-            Assert.IsTrue(generatedJs.Contains("var y = "));
-            Assert.IsTrue(
-                generatedJs.Contains("/ 8) | 0) * 8") ||
-                (
-                    generatedJs.Contains("(Math.imul(") &&
-                    generatedJs.Contains("/ 8) | 0), 8) | 0")
-                )
-            );
-
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.IsTrue(generatedJs.Contains("var x = "));
+                Assert.IsTrue(generatedJs.Contains("var y = "));
+                Assert.IsTrue(
+                    generatedJs.Contains("| 0) / 8) | 0), 8)") &&
+                    generatedJs.Contains("Math.imul(")
+                );
+            } finally {
+                Console.WriteLine(generatedJs);
+            }
         }
 
         [Test]
