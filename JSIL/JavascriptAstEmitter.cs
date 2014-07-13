@@ -643,12 +643,12 @@ namespace JSIL {
                     if (targetIsLocal)
                         Output.WriteRaw("Math.fround(");
                     else
-                        Output.WriteRaw("+");
+                        Output.WriteRaw("+(");
 
                     return;
 
                 case "System.Double":
-                    Output.WriteRaw("+");
+                    Output.WriteRaw("+(");
                     return;
             }
 
@@ -704,9 +704,8 @@ namespace JSIL {
                     break;
 
                 case "System.Single":
-                    // fround only affects locals at present.
-                    if (targetIsLocal)
-                        Output.WriteRaw(")");
+                case "System.Double":
+                    Output.WriteRaw(")");
 
                     break;
             }
@@ -715,18 +714,30 @@ namespace JSIL {
         public void VisitNode (JSTruncateExpression te) {
             var expressionType = te.Expression.GetActualType(TypeSystem);
 
-            WriteTruncationPrefixForType(expressionType);
+            WriteTruncationPrefixForType(te.GetActualType(TypeSystem));
 
             Output.LPar();
             Visit(te.Expression);
             Output.RPar();
 
-            WriteTruncationForType(expressionType);
+            WriteTruncationForType(te.GetActualType(TypeSystem));
         }
 
         public void VisitNode (JSIntegerToFloatExpression itfe) {
+            var needParens = !(
+                (itfe.Expression is JSVariable) ||
+                (itfe.Expression is JSLiteral)
+            );
+
             Output.WriteRaw("+");
+
+            if (needParens)
+                Output.LPar();
+
             Visit(itfe.Expression);
+
+            if (needParens)
+                Output.RPar();
         }
 
         public void VisitNode (JSDoubleToFloatExpression itfe) {
@@ -872,14 +883,15 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNumberLiteral number) {
+            var s = number.ToString();
             if (number.OriginalType.FullName == "System.Single") {
                 // FIXME: Fround?
-                if (!number.ToString().Contains("."))
+                if (!s.Contains(".") && !s.Contains("e") && !s.Contains("E"))
                     Output.WriteRaw("+");
 
                 Output.Value((float)number.Value);
             } else {
-                if (!number.ToString().Contains("."))
+                if (!s.Contains(".") && !s.Contains("e") && !s.Contains("E"))
                     Output.WriteRaw("+");
 
                 Output.Value(number.Value);
@@ -1686,12 +1698,12 @@ namespace JSIL {
             if (bop.Operator == JSOperator.Divide) {
                 // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
-                    (
-                        (
-                            TypeUtil.IsIntegralOrPointer(leftType) ||
-                            TypeUtil.IsIntegralOrPointer(rightType)
-                        ) && TypeUtil.IsIntegralOrPointer(resultType)
-                    ) || ShouldDoOptionalTruncation(resultType);
+                   (
+                        TypeUtil.IsIntegralOrPointer(leftType) ||
+                        TypeUtil.IsIntegralOrPointer(rightType)
+                    ) ||
+                    TypeUtil.IsIntegralOrPointer(resultType) || 
+                    ShouldDoOptionalTruncation(resultType);
             }
 
             if (
@@ -1723,7 +1735,10 @@ namespace JSIL {
         }
 
         private void VisitAndMaybeHintLoad (JSExpression value, bool targetIsLocal = false) {
-            if (ValueIsNonParameterVariable(value)) {
+            if (
+                ValueIsNonParameterVariable(value) ||
+                value is JSLiteral
+            ) {
                 Visit(value);
                 return;
             }
@@ -1751,7 +1766,15 @@ namespace JSIL {
 
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
-            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
+
+            bool needsTruncation = 
+                NeedTruncationForBinaryOperator(bop, resultType) &&
+                // If we're doing a special cast afterwards, and this isn't a divide, we can skip result truncation
+                (
+                    (bop.Operator == JSOperator.Divide) ||
+                    !(ParentNode is JSSpecialNumericCastExpression)
+                );
+
             bool parens = NeedParensForBinaryOperator(bop);
 
             if (needsTruncation) {
@@ -1839,15 +1862,23 @@ namespace JSIL {
         public void VisitNode (JSTernaryOperatorExpression ternary) {
             Output.LPar();
 
+            Output.NewLine();
             Visit(ternary.Condition);
+
+            Output.Indent();
+            Output.NewLine();
 
             Output.WriteRaw(" ? ");
             Visit(ternary.True);
 
+            Output.NewLine();
+
             Output.WriteRaw(" : ");
             Visit(ternary.False);
 
+            Output.Unindent();
             Output.RPar();
+            Output.NewLine();
         }
 
         public void VisitNode (JSNewArrayExpression newarray) {
