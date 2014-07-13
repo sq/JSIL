@@ -1455,46 +1455,54 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
-  var blitSinglePixel = function (context, originalImage, width, height, colorR, colorG, colorB, colorA) {
-    colorR /= 255;
-    colorG /= 255;
-    colorB /= 255;
-    colorA /= 255;
+  var blitSinglePixel = function InternalDraw_BlitSinglePixel (
+    context, originalImage, 
+    width, height, 
+    colorR, colorG, colorB, colorA
+  ) {
+    colorR = (colorR | 0) / +255;
+    colorG = (colorG | 0) / +255;
+    colorB = (colorB | 0) / +255;
+    colorA = (colorA | 0) / +255;
 
     var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
     var topLeftPixel = topLeftPixelText.split(",");
 
-    var unpremultiplyFactor = 1 / colorA;
+    var unpremultiplyFactor = +1 / colorA;
 
     var imageColor = "rgba(" + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[0]) * colorR * unpremultiplyFactor) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[1]) * colorG * unpremultiplyFactor) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[2]) * colorB * unpremultiplyFactor) + ", " + 
       (parseFloat(topLeftPixel[3]) * colorA) + 
     ")";
 
     context.globalAlpha = colorA;
     context.fillStyle = imageColor;
     context.fillRect(
-      0, 0, width, height
+      0, 0, width | 0, height | 0
     );
   };
 
-  var blitChannels = function (
+  var blitChannels = function InternalDraw_BlitChannels (
     context, channels, 
     sourceX, sourceY, sourceW, sourceH, 
     width, height, 
     colorR, colorG, colorB, colorA
   ) {
-    var alpha = colorA / 255;
+    colorR = (colorR | 0) / +255;
+    colorG = (colorG | 0) / +255;
+    colorB = (colorB | 0) / +255;
+    colorA = (colorA | 0) / +255;
 
-    sourceX += channels.xOffset;
-    sourceY += channels.yOffset;
+    sourceX += channels.xOffset | 0;
+    sourceY += channels.yOffset | 0;
 
     var compositeOperation = context.globalCompositeOperation;
+
     if (compositeOperation !== "lighter") {
       context.globalCompositeOperation = "source-over";
-      context.globalAlpha = alpha;
+      context.globalAlpha = colorA;
       context.drawImage(
         channels.a, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1504,7 +1512,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     context.globalCompositeOperation = "lighter";
 
     if (colorR > 0) {
-      context.globalAlpha = colorR / 255;
+      context.globalAlpha = colorR;
       context.drawImage(
         channels.r, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1512,7 +1520,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
 
     if (colorG > 0) {
-      context.globalAlpha = colorG / 255;
+      context.globalAlpha = colorG;
       context.drawImage(
         channels.g, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1520,13 +1528,186 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
 
     if (colorB > 0) {
-      context.globalAlpha = colorB / 255;
+      context.globalAlpha = colorB;
       context.drawImage(
         channels.b, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
       );
     }
   };
+
+  $.RawMethod(false, "InternalDraw$SetupAndExecute",
+    function InternalDraw_SetupAndExecute (
+      context,
+      texture, textureWidth, textureHeight,
+      originalImage, image,
+      positionX, positionY, width, height,
+      scaleX, scaleY,
+      sourceX, sourceY, sourceW, sourceH,
+      originX, originY,
+      rotation, color, effects
+    ) {
+      if (sourceX < 0) {
+        sourceW += sourceX;
+        sourceX = 0;
+      }
+      if (sourceY < 0) {
+        sourceH += sourceY;
+        sourceY = 0;
+      }
+
+      var maxWidth = (textureWidth - sourceX), 
+        maxHeight = (textureHeight - sourceY);
+
+      if (sourceW > maxWidth) 
+        sourceW = maxWidth;
+      if (sourceH > maxHeight) 
+        sourceH = maxHeight;
+
+      var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
+      var isWebGL = this.isWebGL;
+      var channels = null;
+
+      var colorA = color.a | 0;
+      if (colorA < 1)
+        return;
+
+      var colorR = color.r | 0, 
+        colorG = color.g | 0, 
+        colorB = color.b | 0;
+
+      if (!isSinglePixel && !isWebGL) {
+        // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
+        if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
+          channels = $jsilxna.getImageChannels(image, texture.id);
+        }
+      }
+
+      // Negative width/height cause an exception in Firefox
+      if (width < 0) {
+        scaleX *= -1;
+        width = -width;
+      }
+      if (height < 0) {
+        scaleY *= -1;
+        height = -height;
+      }
+
+      this.InternalDraw$ApplyTransform(
+        context,
+        +positionX, +positionY,
+        +rotation,
+        +scaleX, +scaleY,
+        +originX, +originY
+      );
+
+      if (effects) {
+        var e = effects.value;
+        this.InternalDraw$ApplySpriteEffect(context, e, +width, +height);
+      }      
+
+      if (
+        (width > 0) && (height > 0) && 
+        (sourceW > 0) && (sourceH > 0)
+      ) {
+        this.InternalDraw$Execute(
+          context,
+          isSinglePixel, isWebGL,
+          originalImage, image, channels, 
+          sourceX, sourceY, sourceW, sourceH,
+          width, height,
+          colorR, colorG, colorB, colorA
+        );
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ApplyTransform",
+    function InternalDraw_ApplyTransform (
+      context,
+      positionX, positionY,
+      rotation,
+      scaleX, scaleY,
+      originX, originY
+    ) {
+      context.translate(+positionX, +positionY);
+      context.rotate(+rotation);
+      context.scale(+scaleX, +scaleY);
+      context.translate(-originX, -originY);
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ApplySpriteEffect",
+    function InternalDraw_ApplySpriteEffect (context, e, width, height) {
+      if (e & this.flipHorizontally) {
+        context.translate(+width, 0);
+        context.scale(-1, 1);
+      }
+
+      if (e & this.flipVertically) {
+        context.translate(0, +height);
+        context.scale(1, -1);
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ExecuteDebugDraw",
+    function InternalDraw_ExecuteDebugDraw (context, width, height) {
+      if ($drawDebugRects) {
+        context.fillStyle = "rgba(255, 0, 0, 0.33)";
+        context.fillRect(
+          0, 0, width, height
+        );
+      }
+
+      if ($drawDebugBoxes) {
+        context.strokeStyle = "rgba(255, 255, 0, 0.66)";
+        context.strokeRect(
+          0, 0, width, height
+        );
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$Execute",
+    function InternalDraw_Execute (
+      context,
+      isSinglePixel, isWebGL,
+      originalImage, image, channels, 
+      sourceX, sourceY, sourceW, sourceH,
+      width, height,
+      colorR, colorG, colorB, colorA
+    ) {
+      this.InternalDraw$ExecuteDebugDraw(
+        context,
+        width, height
+      );
+
+      if (isSinglePixel) {
+        blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
+      } else if (channels !== null) {
+        blitChannels(
+          context, channels, 
+          sourceX, sourceY, sourceW, sourceH, 
+          width, height, 
+          colorR, colorG, colorB, colorA
+        );
+      } else if (this.isWebGL) {
+        context.drawImage(
+          image, sourceX, sourceY, sourceW, sourceH, 
+          0, 0, width, height, 
+          colorR / 255, colorG / 255, colorB / 255, colorA / 255
+        );
+      } else {
+        if (colorA < 255)
+          context.globalAlpha = colorA / 255;
+
+        this.$canvasDrawImage(
+          image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
+        );
+      }
+    }
+  );
 
   $.RawMethod(false, "InternalDraw", 
     function SpriteBatch_InternalDraw (
@@ -1551,114 +1732,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var image = texture.image;
       var originalImage = image;
       var context = this.device.context;
-
-      if (sourceX < 0) {
-        sourceW += sourceX;
-        sourceX = 0;
-      }
-      if (sourceY < 0) {
-        sourceH += sourceY;
-        sourceY = 0;
-      }
-
-      var maxWidth = texture.get_Width() - sourceX, maxHeight = texture.get_Height() - sourceY;
-
-      if (sourceW > maxWidth) 
-        sourceW = maxWidth;
-      if (sourceH > maxHeight) 
-        sourceH = maxHeight;
-
-      var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
-      var channels = null;
-
-      var colorA = color.a;
-      if (colorA < 1)
-        return;
-
-      var colorR = color.r, colorG = color.g, colorB = color.b;
-
-      if (!isSinglePixel && !this.isWebGL) {
-        // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
-        if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
-          channels = $jsilxna.getImageChannels(image, texture.id);
-        }
-      }
+      var textureWidth = texture.get_Width() | 0;
+      var textureHeight = texture.get_Height() | 0;
 
       this.$save();
 
-      context.translate(positionX, positionY);
-      context.rotate(rotation);
-      context.scale(scaleX, scaleY);
-
-      // Negative width/height cause an exception in Firefox
-      if (width < 0) {
-        context.scale(-1, 1);
-        width = -width;
-      }
-      if (height < 0) {
-        context.scale(1, -1);
-        height = -height;
-      }
-
-      context.translate(-originX, -originY);
-
-      if (effects) {
-        var e = effects.value;
-        
-        if (e & this.flipHorizontally) {
-          context.translate(width, 0);
-          context.scale(-1, 1);
-        }
-
-        if (e & this.flipVertically) {
-          context.translate(0, height);
-          context.scale(1, -1);
-        }
-      }      
-
-      // 0x0 blits cause an exception in IE
-      if (
-        (width > 0) && (height > 0) && 
-        (sourceW > 0) && (sourceH > 0)
-      ) {
-        if ($drawDebugRects) {
-          context.fillStyle = "rgba(255, 0, 0, 0.33)";
-          context.fillRect(
-            0, 0, width, height
-          );
-        }
-
-        if ($drawDebugBoxes) {
-          context.strokeStyle = "rgba(255, 255, 0, 0.66)";
-          context.strokeRect(
-            0, 0, width, height
-          );
-        }
-
-        if (isSinglePixel) {
-          blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
-        } else if (channels !== null) {
-          blitChannels(
-            context, channels, 
-            sourceX, sourceY, sourceW, sourceH, 
-            width, height, 
-            colorR, colorG, colorB, colorA
-          );
-        } else if (this.isWebGL) {
-          context.drawImage(
-            image, sourceX, sourceY, sourceW, sourceH, 
-            0, 0, width, height, 
-            colorR / 255, colorG / 255, colorB / 255, colorA / 255
-          );
-        } else {
-          if (colorA < 255)
-            context.globalAlpha = colorA / 255;
-
-          this.$canvasDrawImage(
-            image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
-          );
-        }
-      }
+      this.InternalDraw$SetupAndExecute(
+        context,
+        texture, textureWidth, textureHeight,
+        originalImage, image,
+        positionX, positionY, width, height,
+        scaleX, scaleY,
+        sourceX, sourceY, sourceW, sourceH,
+        originX, originY,
+        rotation, color, effects
+      );
 
       this.$restore();
     }
