@@ -709,7 +709,10 @@ function onLoad () {
 
   setControlsEnabled(true);
 
-  document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
+  try {
+    document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
+  } catch (exc) {
+  }
 
   githubLoginCode = $.cookie("githubAccessToken") || null;
 

@@ -74,6 +74,7 @@ Skeletons/*.js
 Corlib/*.js
 Corlib/*.nlp
 /Try/obj
+/Try/OAuth.cs
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs
 *.jsillog

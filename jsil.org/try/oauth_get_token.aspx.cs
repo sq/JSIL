@@ -47,8 +47,8 @@ public partial class GetTokenPage : System.Web.UI.Page {
         try {
             var serviceUri = "https://github.com/login/oauth/access_token";
             var nvc = new NameValueCollection {
-                {"client_id", OAuth.ClientID},
-                {"client_secret", OAuth.Secret},
+                {"client_id", JSIL.Try.OAuth.ClientID},
+                {"client_secret", JSIL.Try.OAuth.Secret},
                 {"code", temporaryCode}
             };
 

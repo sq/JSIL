@@ -7,21 +7,17 @@
   <body>    
     <div id="throbber" title="Loading. Please wait..."></div>
 
-    <script src="http://jsil.org/try/Libraries/ES5.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Core.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Core.Types.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Core.Reflection.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.References.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Unsafe.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Host.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.Int64.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.DateTime.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.Text.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.Resources.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Bootstrap.Linq.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/JSIL.Browser.js" type="text/javascript"></script>
-    <script src="http://jsil.org/try/Libraries/System.Drawing.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      var jsilConfig = {
+        winForms: true,
+        systemDrawing: true,
+
+        scriptRoot: "",
+        libraryRoot: "Libraries/",
+        fileRoot: "",
+      };
+    </script>
+    <script src="http://jsil.org/try/Libraries/JSIL.js" type="text/javascript"></script>
 
     <script src="output_frame.js" type="text/javascript"></script>
 
