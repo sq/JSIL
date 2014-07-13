@@ -1095,5 +1095,21 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void MgDxtDecode () {
+            var testFile = @"SpecialTestCases\MgDxtDecode.cs";
+
+            var generatedJs = GetJavascript(testFile);
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("var temp = ((Math.imul"), "ILSpy suppressed imul");
+                // FIXME: I think there's another error here to test for.
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

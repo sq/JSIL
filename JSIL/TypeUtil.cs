@@ -137,6 +137,31 @@ namespace JSIL {
             }
         }
 
+        public static bool? IsSigned (TypeReference type) {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType) {
+                case MetadataType.IntPtr:
+                case MetadataType.SByte:
+                case MetadataType.Int16:
+                case MetadataType.Int32:
+                case MetadataType.Int64:
+                case MetadataType.Single:
+                case MetadataType.Double:
+                    return true;
+
+                case MetadataType.Byte:
+                case MetadataType.UInt16:
+                case MetadataType.UInt32:
+                case MetadataType.UInt64:
+                case MetadataType.UIntPtr:
+                    return false;
+
+                default:
+                    return null;
+            }
+        }
+
         public static bool IsIntegral (TypeReference type) {
             type = DereferenceType(type);
 

@@ -224,6 +224,7 @@
     <None Include="TestCases\EnumClone.cs" />
     <None Include="SpecialTestCases\Issue548.cs" />
     <None Include="SpecialTestCases\MgTextureReader.cs" />
+    <None Include="SpecialTestCases\MgDxtDecode.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

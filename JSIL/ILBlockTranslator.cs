@@ -406,6 +406,38 @@ namespace JSIL {
                 return new JSUntranslatableExpression(node);
 
             var resultType = node.InferredType ?? node.ExpectedType;
+            var leftType = lhs.GetActualType(TypeSystem);
+            var rightType = rhs.GetActualType(TypeSystem);
+
+            if (
+                TypeUtil.IsIntegral(leftType) && 
+                TypeUtil.IsIntegral(rightType) &&
+                TypeUtil.IsIntegral(resultType) &&
+                !(op is JSBitwiseOperator)
+            ) {
+                var sizeofLeft = TypeUtil.SizeOfType(leftType);
+                var sizeofRight = TypeUtil.SizeOfType(rightType);
+                TypeReference largestType;
+
+                if (sizeofLeft > sizeofRight) 
+                    largestType = leftType;
+                else
+                    largestType = rightType;
+
+                var sizeofInferred = (node.InferredType != null)
+                    ? TypeUtil.SizeOfType(node.InferredType)
+                    : 0;
+                var sizeofExpected = (node.ExpectedType != null)
+                    ? TypeUtil.SizeOfType(node.ExpectedType)
+                    : 0;
+
+                if (TypeUtil.SizeOfType(largestType) > Math.Max(sizeofInferred, sizeofExpected)) {
+                    // HACK: ILSpy's completely broken type inference strikes again.
+                    // FIXME: Get the sign right?
+                    resultType = largestType;
+                }
+            }
+
             var result = new JSBinaryOperatorExpression(
                 op, lhs, rhs, resultType
             );
@@ -1841,33 +1873,64 @@ namespace JSIL {
             );
         }
 
+        private TypeReference DetermineOutputTypeForMultiply (JSExpression left, JSExpression right) {
+            var leftType = left.GetActualType(TypeSystem);
+            var rightType = right.GetActualType(TypeSystem);
+            var leftIsIntegral = TypeUtil.IsIntegral(leftType);
+            var rightIsIntegral = TypeUtil.IsIntegral(rightType);
+
+            if (!leftIsIntegral || !rightIsIntegral)
+                return null;
+
+            var sizeofLeft = TypeUtil.SizeOfType(leftType);
+            var sizeofRight = TypeUtil.SizeOfType(rightType);
+
+            var largerType = (sizeofLeft > sizeofRight)
+                ? leftType
+                : rightType;
+
+            if (TypeUtil.IsSigned(leftType) != TypeUtil.IsSigned(rightType)) {
+                // Promote up to Int64 if signs don't match, just in case.
+                return TypeSystem.Int64;
+            } else if (TypeUtil.SizeOfType(largerType) < 4) {
+                // Muls are always at least int32.
+                if (TypeUtil.IsSigned(largerType).Value) {
+                    return TypeSystem.Int32;
+                } else {
+                    return TypeSystem.UInt32;
+                }
+            } else {
+                // Otherwise, return the largest type.
+                return largerType;
+            }
+        }
+
         protected JSExpression Translate_Mul (ILExpression node) {
-            if (TypeUtil.IsIntegral(node.ExpectedType ?? node.InferredType)) {
+            var ilSpySays = node.ExpectedType ?? node.InferredType;
+            if (TypeUtil.IsIntegral(ilSpySays)) {
                 var left = TranslateNode(node.Arguments[0]);
                 var right = TranslateNode(node.Arguments[1]);
-                var leftType = left.GetActualType(TypeSystem);
-                var rightType = right.GetActualType(TypeSystem);
+
+                var outputType = DetermineOutputTypeForMultiply(
+                    left, right
+                );
 
                 // FIXME: This may be too strict.
                 // We do this to ensure that certain multiply operations don't erroneously get replaced with imul, like
                 //  (int)(float * int)
                 // If this is too strict then we will fail to use imul in scenarios where we should have. :(
-                if (
-                    TypeUtil.IsIntegral(leftType) &&
-                    TypeUtil.IsIntegral(rightType) &&
-                    TypeUtil.TypesAreEqual(leftType, rightType) &&
-                    TypeUtil.TypesAreEqual(leftType, node.ExpectedType)
-                ) {
+                if (outputType != null) {
+                    switch (outputType.FullName) {
+                        case "System.UInt32":
+                            return new JSUInt32MultiplyExpression(
+                                left, right, TypeSystem
+                            );
 
-                    if (node.ExpectedType.FullName == "System.UInt32")
-                        return new JSUInt32MultiplyExpression(
-                            left, right, TypeSystem
-                        );
-                    else if (node.ExpectedType.FullName == "System.Int32")
-                        return new JSInt32MultiplyExpression(
-                            left, right, TypeSystem
-                        );
-
+                        case "System.Int32":
+                            return new JSInt32MultiplyExpression(
+                                left, right, TypeSystem
+                            );
+                    }
                 }
             }
 
@@ -1875,11 +1938,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Mul_Ovf (ILExpression node) {
-            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Multiply), TypeSystem);
+            return JSOverflowCheckExpression.New(Translate_Mul(node), TypeSystem);
         }
 
         protected JSExpression Translate_Mul_Ovf_Un (ILExpression node) {
-            return JSOverflowCheckExpression.New(Translate_BinaryOp(node, JSOperator.Multiply), TypeSystem);
+            return JSOverflowCheckExpression.New(Translate_Mul(node), TypeSystem);
         }
 
         protected JSExpression Translate_Div (ILExpression node) {
