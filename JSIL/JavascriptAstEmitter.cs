@@ -359,8 +359,15 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPropertyAccess pa) {
+            var resultType = pa.GetActualType(TypeSystem);
+            var needsTruncation = false;
             var parens = (pa.Target is JSNumberLiteral) ||
                 (pa.Target is JSIntegerLiteral);
+
+            if (needsTruncation) {
+                WriteTruncationForType(resultType);
+                Output.LPar();
+            }
 
             if (parens)
                 Output.LPar();
@@ -389,6 +396,11 @@ namespace JSIL {
                 }
 
                 Visit(pa.Member);
+            }
+
+            if (needsTruncation) {
+                WriteTruncationForType(resultType);
+                Output.RPar();
             }
         }
 
@@ -658,9 +670,7 @@ namespace JSIL {
 
         public void VisitNode (JSIntegerToFloatExpression itfe) {
             Output.WriteRaw("+");
-            Output.LPar();
             Visit(itfe.Expression);
-            Output.RPar();
         }
 
         public void VisitNode (JSDoubleToFloatExpression itfe) {
@@ -806,10 +816,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNumberLiteral number) {
-            if (number.OriginalType.FullName == "System.Single")
+            if (number.OriginalType.FullName == "System.Single") {
+                Output.WriteRaw("+");
                 Output.Value((float)number.Value);
-            else
+            } else {
+                Output.WriteRaw("+");
                 Output.Value(number.Value);
+            }
         }
 
         public void VisitNode (JSBooleanLiteral b) {
@@ -1599,7 +1612,7 @@ namespace JSIL {
 
             return false;
         }
-
+        
         private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
             var leftType = bop.Left.GetActualType(TypeSystem);
             var rightType = bop.Right.GetActualType(TypeSystem);
