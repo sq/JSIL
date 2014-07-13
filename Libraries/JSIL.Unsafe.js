@@ -1278,7 +1278,18 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetTo
     // Unroll small copies when size is known
     if ((typeof (sizeOrSizeToken) === "number") && (sizeOrSizeToken <= unrollThreshold)) {
       for (var i = 0; i < sizeOrSizeToken; i++) {
-        body.push("  " + destToken + "[(" + destOffsetToken + " + " + i + ") | 0] = " + sourceToken + "[(" + sourceOffsetToken + " + " + i + ") | 0];");
+        var localDest, localSource;
+        if (typeof (destOffsetToken) === "number")
+          localDest = i;
+        else
+          localDest = "(" + destOffsetToken + " + " + i + ") | 0";
+
+        if (typeof (sourceOffsetToken) === "number")
+          localSource = i;
+        else
+          localSource = "(" + sourceOffsetToken + " + " + i + ") | 0";
+        
+        body.push("  " + destToken + "[" + localDest + "] = " + sourceToken + "[" + localSource + "];");
       }
       body.push("");
     } else {
@@ -1426,7 +1437,10 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
 
     if (makeSetter) {
       adapterSource.push("nativeView[0] = value;");
-      adapterSource.push("bytes.set(clampedByteView, offset);");
+      JSIL.$EmitMemcpyIntrinsic(
+        adapterSource, "bytes", "clampedByteView", 0, "offset", nativeView.BYTES_PER_ELEMENT
+      );
+      // adapterSource.push("bytes.set(clampedByteView, offset);");
 
       return JSIL.CreateNamedFunction(
         typeObject.__FullName__ + ".Proxy.set_" + field.name, ["value"],
