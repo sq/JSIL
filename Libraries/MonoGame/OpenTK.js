@@ -194,14 +194,12 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
     JSIL.MethodSignature.Void, 
     function Dispose () {
-      throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Exit", 
     JSIL.MethodSignature.Void, 
     function Exit () {
-      throw new Error('Not implemented');
     }
   );
 
