@@ -59,13 +59,17 @@
       function runScript () {
         if (scriptAlreadyRan) {
           setTimeout(function () {
-            var newUrl = window.location.origin + 
+            var newUrl = window.location.protocol + 
+              "//" +
               window.location.pathname + 
               "?autoRun" +
               window.location.hash;
 
-            window.location.replace(newUrl);
-          }, 25);
+            if (window.location.href === newUrl)
+              window.location.reload(true);
+            else
+              window.location.replace(newUrl);
+          }, 1);
           return;
         }
 
