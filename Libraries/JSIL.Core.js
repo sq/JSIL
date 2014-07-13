@@ -2746,7 +2746,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       }
 
       if ((genericSignature !== null) && (genericSignature.get_Hash() != signature.get_Hash())) {
-        var newName = signature.GetKey(descriptor.EscapedName);
+        var newName = signature.GetNamedKey(descriptor.EscapedName, true);
 
         var methodReference = JSIL.$FindMethodBodyInTypeChain(typeObject, descriptor.Static, oldName, false);
         if (!methodReference)
@@ -2952,7 +2952,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var signatureQualifiedName = null;
 
       if (signature) {
-        signatureQualifiedName = signature.GetKey(qualifiedName);
+        signatureQualifiedName = signature.GetNamedKey(qualifiedName, true);
       }
 
       if (signature 
@@ -2984,7 +2984,9 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
           } else {
             var implementation = matchingMethods[0];
 
-            var sourceQualifiedName = implementation._data.signature.GetKey(implementation._descriptor.EscapedName);
+            var sourceQualifiedName = implementation._data.signature.GetNamedKey(
+              implementation._descriptor.EscapedName, true
+            );
 
             if (trace)
               console.log(typeName + "::" + signatureQualifiedName + " (" + iface + ") = " + sourceQualifiedName);
@@ -3081,7 +3083,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         );
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
-      var key = member._data.signature.GetKey(interfaceQualifiedName);
+      var key = member._data.signature.GetNamedKey(interfaceQualifiedName, true);
 
       var missingIndex = missingMembers.indexOf(key);
       if (missingIndex >= 0)
@@ -3646,7 +3648,7 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
   //  and then use that as the method group.
   var makeSingleMethodGroup = function (id, group, offset) {
     var singleMethod = group.list[0];
-    var key = singleMethod.GetKey(methodEscapedName);
+    var key = singleMethod.GetNamedKey(methodEscapedName, true);
     var unrenamedKey = key;
 
     if (typeof (renamedMethods[key]) === "string")
@@ -4014,7 +4016,7 @@ JSIL.$CreateMethodMembranes = function (typeObject, publicInterface) {
     // FIXME: I'm not sure this is right for open generic methods.
     // I think it might be looking up the old open form of the method signature
     //  instead of the closed form.
-    var key = method._data.signature.GetKey(method._descriptor.EscapedName);
+    var key = method._data.signature.GetNamedKey(method._descriptor.EscapedName, true);
 
     var useMembrane = isStatic && 
       ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
@@ -6169,8 +6171,8 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
       if (!m.data.signature)
         return false;
 
-      var sig1 = m.data.signature.GetKey(m.descriptor.EscapedName, includeReturnType);
-      var sig2 = data.signature.GetKey(descriptor.EscapedName, includeReturnType);
+      var sig1 = m.data.signature.GetNamedKey(m.descriptor.EscapedName, includeReturnType);
+      var sig2 = data.signature.GetNamedKey(descriptor.EscapedName, includeReturnType);
 
       return (sig1 == sig2);
     });
@@ -6457,7 +6459,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
-  var mangledName = signature.GetKey(descriptor.EscapedName);
+  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
 
   var impl = this.externals;
 
@@ -6560,7 +6562,7 @@ JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
-  var mangledName = signature.GetKey(descriptor.EscapedName);
+  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
 
@@ -6617,7 +6619,7 @@ JSIL.InterfaceBuilder.prototype.MakeEventAccessors = function (_descriptor, name
 JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name, signature) {
   var descriptor = this.ParseDescriptor({Public: true, Static: false}, name, signature);
 
-  var mangledName = signature.GetKey(descriptor.EscapedName);
+  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
 
   var fn = null;
 
@@ -6682,18 +6684,51 @@ JSIL.SignatureBase = function () {
   JSIL.RuntimeError("Abstract base class");
 };
 
-JSIL.SignatureBase.prototype.GetKey = function (name, includeReturnType) {
-  if ((name === this._lastKeyName) && (includeReturnType !== false))
-    return this._lastKey;
-
-  var result = (name + this.get_Hash(includeReturnType));
+JSIL.SignatureBase.prototype.GetNamedKey$CacheMiss = function (name, includeReturnType) {
+  var result = name + "" + this.get_Hash(includeReturnType);
 
   if (includeReturnType !== false) {
-    this._lastKeyName = name;
+    this._lastKeyName = null;
     this._lastKey = result;
   }
 
   return result;
+};
+
+JSIL.SignatureBase.prototype.GetNamedKey = function (name, includeReturnType) {
+  if (!name)
+    return this.GetUnnamedKey(includeReturnType);
+  else if ((name === this._lastKeyName) && (includeReturnType !== false))
+    return this._lastKey;
+
+  return this.GetNamedKey$CacheMiss(name, includeReturnType);
+};
+
+JSIL.SignatureBase.prototype.GetUnnamedKey$CacheMiss = function (includeReturnType) {
+  var result = this.get_Hash(includeReturnType);
+
+  if (includeReturnType !== false) {
+    this._lastKeyName = null;
+    this._lastKey = result;
+  }
+
+  return result;
+};
+
+JSIL.SignatureBase.prototype.GetUnnamedKey = function (includeReturnType) {
+  if ((!this._lastKeyName) && (includeReturnType !== false))
+    return this._lastKey;
+
+  return this.GetUnnamedKey$CacheMiss(includeReturnType);
+};
+
+JSIL.SignatureBase.prototype.GetKey = function (name, includeReturnType) {
+  if (arguments.length === 2)
+    return this.GetNamedKey(name, includeReturnType);
+  else if (arguments.length === 1)
+    return this.GetNamedKey(name, true);
+  else
+    return this.GetUnnamedKey(true);  
 };
 
 JSIL.SignatureBase.prototype.ResolveTypeReference = function (typeReference) {
@@ -6704,7 +6739,7 @@ JSIL.SignatureBase.prototype.LookupMethod = function (context, name) {
   if (!context)
     JSIL.RuntimeError("Attempting to invoke method named '" + name + "' on null/undefined object");
 
-  var key = this.GetKey(name);
+  var key = this.GetNamedKey(name, false);
 
   var method = context[key];
   if (typeof (method) !== "function") {
@@ -6838,7 +6873,7 @@ JSIL.MethodSignature.prototype.Resolve = function (name) {
 
   return new JSIL.ResolvedMethodSignature(
     this,
-    this.GetKey(name),
+    this.GetNamedKey(name, true),
     resolvedReturnType, 
     argTypes
   );
@@ -7025,7 +7060,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
   };
 
   var emitCacheMissInvocation = function (indentation) {
-    body.push(indentation + "var methodKey = this.GetKey(name);");
+    body.push(indentation + "var methodKey = this.GetNamedKey(name, true);");
     body.push(indentation + "this.$InlineCacheMiss('" + callMethodName + "', name, methodKey);");
     emitDefaultInvocation(indentation);
   };
@@ -7081,7 +7116,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     }
 
   } else {
-    body.push("var methodKey = this.GetKey(name);");
+    body.push("var methodKey = this.GetNamedKey(name, true);");
     emitDefaultInvocation("");
   }
 
@@ -7101,7 +7136,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName) {
 
   // FIXME: Is this correct? I think having all instances of a given unique signature
   //  share the same IC is probably correct.
-  var cacheKey = callMethodName + "$" + this.GetKey();
+  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
   var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
   if (cachedResult)
     return cachedResult;
@@ -7133,7 +7168,7 @@ JSIL.MethodSignature.prototype.$InlineCacheMiss = function (callMethodName, name
 };
 
 JSIL.MethodSignature.prototype.$RecompileInlineCache = function (callMethodName) {
-  var cacheKey = callMethodName + "$" + this.GetKey();
+  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
   var newFunction = this.$MakeInlineCacheBody(callMethodName);
 
   JSIL.MethodSignature.$CallMethodCache[cacheKey] = newFunction;
@@ -7256,7 +7291,7 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
 
   if (typeObject.__IsStruct__ && argumentNames.length === 0) {
   } else {
-    ctorKey = this.GetKey("_ctor");
+    ctorKey = this.GetNamedKey("_ctor", true);
     if (!proto[ctorKey]) {
       if (!proto["_ctor"])
         JSIL.RuntimeError("No method named '_ctor' found");
@@ -7449,7 +7484,7 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
   var variantInvocationCandidates = null;
 
   if (!this.methodKey) {
-    this.methodKey = this.signature.GetKey(this.qualifiedName);
+    this.methodKey = this.signature.GetNamedKey(this.qualifiedName, true);
   }
 
   if (this.variantGenericArguments.length) {
@@ -8562,7 +8597,7 @@ JSIL.ObjectEquals = function (lhs, rhs) {
       break;
 
     case "object":
-      var key = JSIL.GetEqualsSignature().GetKey("Object_Equals");
+      var key = JSIL.GetEqualsSignature().GetNamedKey("Object_Equals", true);
       var fn = lhs[key];
 
       if (fn)
@@ -9238,7 +9273,7 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
       record.interface, signature.openSignature, record.interface.__PublicInterface__
     );
 
-    var candidate = variantSignature.GetKey(qualifiedMethodName);
+    var candidate = variantSignature.GetNamedKey(qualifiedMethodName, true);
 
     if (trace)
       System.Console.WriteLine("Candidate (distance {0}): {1}", record.distance, candidate);
@@ -9367,7 +9402,7 @@ JSIL.$GetMethodImplementation = function (method, target) {
   if (isInterface)
     key = method._descriptor.EscapedName;
   else if (method._data.signature)
-    key = method._data.signature.GetKey(method._descriptor.EscapedName);
+    key = method._data.signature.GetNamedKey(method._descriptor.EscapedName, true);
   else
     key = method._data.mangledName || method._descriptor.EscapedName;
 
