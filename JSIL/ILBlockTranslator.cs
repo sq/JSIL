@@ -383,8 +383,10 @@ namespace JSIL {
 
             // Detect attempts to perform pointer arithmetic on a local variable.
             // (ldloca produces a reference, not a pointer, so the previous check won't catch this.)
-            if ((node.Arguments[0].Code == ILCode.Ldloca) &&
-                !(op is JSAssignmentOperator))
+            if (
+                (node.Arguments[0].Code == ILCode.Ldloca) &&
+                !(op is JSAssignmentOperator)
+            )
                 return new JSUntranslatableExpression(node);
 
             JSExpression lhs, rhs;
@@ -2237,7 +2239,7 @@ namespace JSIL {
                 targetVariable = targetChangeType.Expression as JSVariable;
 
             var targetType = target.GetActualType(TypeSystem);
-            if (targetType.IsPointer)
+            if (targetType.IsPointer && !valueType.IsPointer)
                 return new JSWriteThroughPointerExpression(target, value, valueType);
 
             if (targetVariable != null) {

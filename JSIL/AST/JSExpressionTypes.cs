@@ -2074,10 +2074,13 @@ namespace JSIL.Ast {
                     var innerType = inner.GetActualType(typeSystem);
                     var indexer = inner as JSIndexerExpression;
                     var elementRef = inner as JSNewArrayElementReference;
+
                     if (indexer != null) {
                         return new JSPinExpression(indexer.Target, indexer.Index, newType);
+
                     } else if (elementRef != null) {
                         return new JSPinExpression(elementRef.Array, elementRef.Index, newType);
+
                     } else if ((originalInnerType is ByReferenceType) &&
                         TypeUtil.IsNumeric(innerType) &&
                         (newType is PointerType) &&
@@ -2085,8 +2088,10 @@ namespace JSIL.Ast {
                     ) {
                         // Handle cast of primitive& to primitive* (reinterpret single value as an array of some other fundamental type)
                         return new JSPinValueExpression(inner, newType);
+
                     } else if (TypeUtil.IsArray(innerType)) {
                         return new JSPinExpression(inner, null, newType);
+
                     } else if (TypeUtil.IsIntegral(innerType)) {
                         var literal = inner as JSIntegerLiteral;
                         if (literal != null) {
@@ -2097,8 +2102,10 @@ namespace JSIL.Ast {
                         } else {
                             return new JSUntranslatableExpression("Conversion of non-constant integral expression '" + inner + "' to pointer");
                         }
+
                     } else if (PackedArrayUtil.IsPackedArrayType(innerType)) {
                         return new JSPinExpression(inner, null, newType);
+
                     } else {
                         return new JSUntranslatableExpression("Conversion of expression '" + inner + "' to pointer");
                     }
@@ -2329,6 +2336,7 @@ namespace JSIL.Ast {
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
             var cte = inner as JSChangeTypeExpression;
+            var literal = inner as JSIntegerLiteral;
             JSChangeTypeExpression result;
 
             if (cte != null) {
@@ -2342,7 +2350,9 @@ namespace JSIL.Ast {
             var innerType = inner.GetActualType(typeSystem);
             if (TypeUtil.TypesAreEqual(newType, innerType))
                 return inner;
-            else
+            else if ((literal != null) && TypeUtil.IsPointer(newType)) {
+                return new JSPointerLiteral(literal.Value, newType);
+            } else
                 return result;
         }
 
@@ -2622,6 +2632,12 @@ namespace JSIL.Ast {
                 actualType, offsetInBytes, 
                 JSPointerExpressionUtil.OffsetFromBytesToElements(offsetInBytes, actualType)
             ) {
+        }
+
+        public JSExpression Pointer {
+            get {
+                return Values[0];
+            }
         }
 
         public JSExpression OffsetInBytes {

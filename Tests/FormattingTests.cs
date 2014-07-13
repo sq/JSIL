@@ -383,13 +383,13 @@ namespace JSIL.Tests {
 
                 var m = Regex.Match(
                     generatedJs,
-                    @"if \(this.i \>\= this.count\) \{[^}]*\} else \{"
+                    @"if \(\(this.i \| 0\) \>\= \(this.count \| 0\)\) \{[^}]*\} else \{"
                 );
                 bool foundElse = (m != null) && m.Success;
 
                 m = Regex.Match(
                     generatedJs,
-                    @"if \(this.i \< this.count\) \{[^}]*\}"
+                    @"if \(\(this.i \| 0\) \< \(this.count \| 0\)\) \{[^}]*\}"
                 );
                 bool foundIf = (m != null) && m.Success;
 

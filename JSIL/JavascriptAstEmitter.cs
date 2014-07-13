@@ -1783,6 +1783,17 @@ namespace JSIL {
         public void VisitNode (JSBinaryOperatorExpression bop) {
             var resultType = bop.GetActualType(TypeSystem);
 
+            if (
+                TypeUtil.IsPointer(resultType) &&
+                !(bop.Operator is JSAssignmentOperator)
+            ) {
+                Output.WriteRaw("JSIL.UntranslatableInstruction");
+                Output.LPar();
+                Output.Value("Pointer arithmetic: " + bop);
+                Output.RPar();
+                return;
+            }
+
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
 
@@ -2167,8 +2178,8 @@ namespace JSIL {
 
             bool needsParens =
                 (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
-                (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+                (CountOfMatchingSubtrees<JSOperatorExpressionBase>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSLiteral>(new[] { invocation.ThisReference }) > 0);
 
             Action thisRef = () => {
                 if (needsParens)

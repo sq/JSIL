@@ -66,8 +66,8 @@ namespace JSIL.Transforms {
             return boe;
         }
 
-        public static JSBinaryOperatorExpression DeconstructMutationAssignment (
-            JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
+        public static JSExpression DeconstructMutationAssignment (
+            JSNode parentNode, JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
         ) {
             var assignmentOperator = boe.Operator as JSAssignmentOperator;
             if (assignmentOperator == null)
@@ -87,18 +87,27 @@ namespace JSIL.Transforms {
                 leftType
             );
 
-            return ConvertReadExpressionToWriteExpression(newBoe, typeSystem);
+            var result = ConvertReadExpressionToWriteExpression(newBoe, typeSystem);
+            if (parentNode is JSExpressionStatement) {
+                return result;
+            } else {
+                var comma = new JSCommaExpression(
+                    newBoe, boe.Left
+                );
+                return comma;
+            }
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var resultType = boe.GetActualType(TypeSystem);
             var resultIsIntegral = TypeUtil.Is32BitIntegral(resultType);
+            var resultIsPointer = TypeUtil.IsPointer(resultType);
 
             JSExpression replacement;
 
             if (
-                resultIsIntegral &&
-                ((replacement = DeconstructMutationAssignment(boe, TypeSystem, resultType)) != null)
+                (resultIsIntegral || resultIsPointer) &&
+                ((replacement = DeconstructMutationAssignment(ParentNode, boe, TypeSystem, resultType)) != null)
             ) {
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);

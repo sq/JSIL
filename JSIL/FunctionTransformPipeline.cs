@@ -241,11 +241,11 @@ namespace JSIL.Internal {
 
             Enqueue(IntroducePackedArrays);
 
-            Enqueue(FixupPointerArithmetic);
-
             // If integer arithmetic hinting is enabled, we need to decompose mutation operators
             //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
             Enqueue(DecomposeMutationOperators);
+
+            Enqueue(FixupPointerArithmetic);
 
             Enqueue(HoistAllocations);
 

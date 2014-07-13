@@ -59,6 +59,10 @@ namespace JSIL.Transforms {
                 var replacement = new JSReadThroughPointerExpression(newPointer, rtpe.ElementType, offset);
                 ParentNode.ReplaceChild(rtpe, replacement);
                 VisitReplacement(replacement);
+            } else if (JSPointerExpressionUtil.UnwrapExpression(rtpe.Pointer) is JSBinaryOperatorExpression) {
+                var replacement = new JSUntranslatableExpression("Read through confusing pointer " + rtpe.Pointer);
+                ParentNode.ReplaceChild(rtpe, replacement);
+                VisitReplacement(replacement);
             } else {
                 VisitChildren(rtpe);
             }
@@ -69,6 +73,10 @@ namespace JSIL.Transforms {
 
             if (ExtractOffsetFromPointerExpression(wtpe.Left, TypeSystem, out newPointer, out offset)) {
                 var replacement = new JSWriteThroughPointerExpression(newPointer, wtpe.Right, wtpe.ActualType, offset);
+                ParentNode.ReplaceChild(wtpe, replacement);
+                VisitReplacement(replacement);
+            } else if (JSPointerExpressionUtil.UnwrapExpression(wtpe.Pointer) is JSBinaryOperatorExpression) {
+                var replacement = new JSUntranslatableExpression("Write through confusing pointer " + wtpe.Pointer);
                 ParentNode.ReplaceChild(wtpe, replacement);
                 VisitReplacement(replacement);
             } else {
@@ -144,6 +152,8 @@ namespace JSIL.Transforms {
         }
 
         public static bool ExtractOffsetFromPointerExpression (JSExpression pointer, TypeSystem typeSystem, out JSExpression newPointer, out JSExpression offset) {
+            pointer = JSPointerExpressionUtil.UnwrapExpression(pointer);
+
             offset = null;
             newPointer = pointer;
 
@@ -151,21 +161,35 @@ namespace JSIL.Transforms {
             if (boe == null)
                 return false;
 
-            var rightType = boe.Right.GetActualType(typeSystem);
+            if (boe.Right.IsNull)
+                return false;
+
+            var right = JSPointerExpressionUtil.UnwrapExpression(pointer);
+
+            var rightType = right.GetActualType(typeSystem);
             var resultType = boe.GetActualType(typeSystem);
 
             if (!resultType.IsPointer)
                 return false;
 
-            if (!TypeUtil.IsIntegral(rightType))
+            if (
+                !TypeUtil.IsIntegral(rightType) &&
+                // Adding pointers together shouldn't be valid but ILSpy generates it. Pfft.
+                !TypeUtil.IsPointer(rightType)
+            )
                 return false;
 
-            if (boe.Operator != JSOperator.Add)
+            if (boe.Operator == JSOperator.Subtract) {
+                newPointer = boe.Left;
+                offset = new JSUnaryOperatorExpression(JSOperator.Negation, right, rightType);
+                return true;
+            } else if (boe.Operator == JSOperator.Add) {
+                newPointer = boe.Left;
+                offset = right;
+                return true;
+            } else {
                 return false;
-
-            newPointer = boe.Left;
-            offset = boe.Right;
-            return true;
+            }
         }
     }
 }

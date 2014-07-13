@@ -356,6 +356,13 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
+                if (replacement.SelfAndChildrenRecursive.OfType<JSBinaryOperatorExpression>().Any(boe => boe.Operator is JSAssignmentOperator)) {
+                    if (TraceLevel >= 2)
+                        Console.WriteLine("Cannot eliminate {0}; it contains an assignment.", v);
+
+                    continue;
+                }
+
                 var copies = (from a in FirstPass.Assignments where v.Identifier.Equals(a.SourceVariable) select a).ToArray();
                 if (
                     (copies.Length + accesses.Length) > 1
