@@ -6740,7 +6740,7 @@ JSIL.SignatureBase.prototype.LookupMethod = function (context, name) {
   if (!context)
     JSIL.RuntimeError("Attempting to invoke method named '" + name + "' on null/undefined object");
 
-  var key = this.GetNamedKey(name, false);
+  var key = this.GetNamedKey(name, true);
 
   var method = context[key];
   if (typeof (method) !== "function") {
