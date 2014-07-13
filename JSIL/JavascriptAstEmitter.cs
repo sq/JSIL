@@ -504,10 +504,8 @@ namespace JSIL {
             Output.Identifier(addElements ? "addElements" : "add");
             Output.LPar();
             Visit(delta);
-            if (pae.MutateInPlace) {
-                Output.Comma();
-                Output.Value(pae.MutateInPlace);
-            }
+            Output.Comma();
+            Output.Value(pae.MutateInPlace);
             Output.RPar();
         }
 

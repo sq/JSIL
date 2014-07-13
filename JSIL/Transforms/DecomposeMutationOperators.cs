@@ -106,7 +106,7 @@ namespace JSIL.Transforms {
             JSExpression replacement;
 
             if (
-                (resultIsIntegral || resultIsPointer) &&
+                (resultIsIntegral) &&
                 ((replacement = DeconstructMutationAssignment(ParentNode, boe, TypeSystem, resultType)) != null)
             ) {
                 ParentNode.ReplaceChild(boe, replacement);
