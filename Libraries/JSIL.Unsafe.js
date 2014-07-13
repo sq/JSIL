@@ -358,7 +358,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   );
 });
 
-JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
+JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
   var shiftTable = [];
   for (var i = 0; i < 256; i++) {
     shiftTable[i] = (Math.log(i) / Math.LN2) | 0;
@@ -471,7 +471,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
         this.offsetInElements = this.offsetInBytes >> this.shift;
       } else {
         // FIXME: Not generating strongly typed pointers
-        return new JSIL.Pointer(
+        return new JSIL.VoidPointer(
           this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0
         );
       }
@@ -485,7 +485,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
         this.offsetInBytes = (this.offsetInBytes + (offsetInElements << this.shift)) | 0;
       } else {
         // FIXME: Not generating strongly typed pointers
-        return new JSIL.Pointer(
+        return new JSIL.VoidPointer(
           this.memoryRange, this.view, (this.offsetInBytes + (offsetInElements << this.shift)) | 0
         );
       }
@@ -545,6 +545,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, [], function ($) {
       return "<ptr " + this.view + " + " + this.offsetInBytes + ">";
     }
   );
+});
+
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.VoidPointer", true, [], function ($) {
 });
 
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.WordPointer", true, [], function ($) {
@@ -732,7 +735,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       if (modifyInPlace === true) {
         this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
       } else {
-        return new JSIL.Pointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+        return new JSIL.VoidPointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
       }
     }
   );
@@ -1076,7 +1079,7 @@ JSIL.StackAlloc = function (sizeInBytes, elementType) {
   if (!view)
     JSIL.RuntimeError("Unable to stack-allocate arrays of type '" + elementType.__FullName__ + "'");
 
-  return new JSIL.Pointer(memoryRange, view, 0);
+  return new JSIL.VoidPointer(memoryRange, view, 0);
 };
 
 $jsilcore.PointerLiteralMemoryRange = null;

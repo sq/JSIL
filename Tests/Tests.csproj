@@ -387,6 +387,7 @@
     <None Include="UnsafeTestCases\PackedStructArrayArgument.cs" />
     <None Include="UnsafeTestCases\PackedStructArrayNew.cs" />
     <None Include="UnsafeTestCases\CastAddressOfValueToArray.cs" />
+    <None Include="UnsafeTestCases\IgnorePointerFields.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
