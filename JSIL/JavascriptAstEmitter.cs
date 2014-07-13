@@ -603,7 +603,7 @@ namespace JSIL {
             Output.RPar();
         }
 
-        private void WriteTruncationPrefixForType (TypeReference type, bool targetIsLocal = false) {
+        private void WriteTruncationPrefixForType (TypeReference type, bool targetIsLocal = false, bool isLoad = false) {
             int parenCount = 0;
 
             switch (type.FullName) {
@@ -612,7 +612,10 @@ namespace JSIL {
                     break;
 
                 case "System.SByte":
-                    parenCount = 2;
+                    if (isLoad)
+                        parenCount = 1;
+                    else
+                        parenCount = 2;
                     break;
 
                 case "System.UInt16":
@@ -620,7 +623,10 @@ namespace JSIL {
                     break;
 
                 case "System.Int16":
-                    parenCount = 2;
+                    if (isLoad)
+                        parenCount = 1;
+                    else
+                        parenCount = 2;
                     break;
 
                 case "System.UInt32":
@@ -659,22 +665,34 @@ namespace JSIL {
                 return false;
         }
 
-        private void WriteTruncationForType (TypeReference type, bool targetIsLocal = false) {
+        private void WriteTruncationForType (TypeReference type, bool targetIsLocal = false, bool isLoad = false) {
             switch (type.FullName) {
                 case "System.Byte":
-                    Output.WriteRaw(" & 0xFF)");
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" & 0xFF)");
                     break;
 
                 case "System.SByte":
-                    Output.WriteRaw(" + 0x80 & 0xFF) - 0x80)");
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" + 0x80 & 0xFF) - 0x80)");
                     break;
 
                 case "System.UInt16":
-                    Output.WriteRaw(" & 0xFFFF)");
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" & 0xFFFF)");
                     break;
 
                 case "System.Int16":
-                    Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000)");
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000)");
                     break;
 
                 case "System.UInt32":
@@ -704,8 +722,6 @@ namespace JSIL {
             Output.RPar();
 
             WriteTruncationForType(expressionType);
-
-            Output.RPar();
         }
 
         public void VisitNode (JSIntegerToFloatExpression itfe) {
@@ -1687,10 +1703,14 @@ namespace JSIL {
             ) {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
+                var interiorIsIntegral = TypeUtil.IsIntegralOrPointer(leftType) &&
+                    TypeUtil.IsIntegralOrPointer(rightType);
+                var resultIsIntegral = TypeUtil.IsIntegralOrPointer(resultType);
+
+                if (!interiorIsIntegral && !resultIsIntegral)
+                    return false;
+
                 return
-                    TypeUtil.IsIntegralOrPointer(leftType) &&
-                    TypeUtil.IsIntegralOrPointer(rightType) &&
-                    TypeUtil.IsIntegralOrPointer(resultType) || 
                     ShouldDoOptionalTruncation(resultType);
             }
 
@@ -1716,13 +1736,13 @@ namespace JSIL {
                 ShouldDoOptionalTruncation(type);
 
             if (doTypeHint) {
-                WriteTruncationPrefixForType(type, targetIsLocal);
+                WriteTruncationPrefixForType(type, targetIsLocal, true);
             }
 
             Visit(value);
 
             if (doTypeHint) {
-                WriteTruncationForType(type, targetIsLocal);
+                WriteTruncationForType(type, targetIsLocal, true);
             }
         }
 
