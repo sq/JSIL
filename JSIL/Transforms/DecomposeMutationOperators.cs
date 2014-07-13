@@ -18,6 +18,19 @@ namespace JSIL.Transforms {
             TypeInfo = typeInfo;
         }
 
+        public static JSExpression MakeLhsForAssignment (JSExpression rhs) {
+            var fa = rhs as JSFieldAccess;
+            var pa = rhs as JSPropertyAccess;
+            if ((fa != null) && (fa.IsWrite == false))
+                return new JSFieldAccess(fa.ThisReference, fa.Field, true);
+            else if ((pa != null) && (pa.IsWrite == false))
+                return new JSPropertyAccess(
+                    pa.ThisReference, pa.Property, true, pa.TypeQualified, pa.OriginalType, pa.OriginalMethod, pa.IsVirtualCall
+                );
+
+            return rhs;
+        }
+
         private JSBinaryOperatorExpression MakeUnaryMutation (
             JSExpression expressionToMutate, JSBinaryOperator mutationOperator,
             TypeReference type
@@ -28,7 +41,7 @@ namespace JSIL.Transforms {
             );
             var assignment = new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                expressionToMutate, newValue, type
+                MakeLhsForAssignment(expressionToMutate), newValue, type
             );
 
             return assignment;
@@ -67,7 +80,7 @@ namespace JSIL.Transforms {
             var leftType = boe.Left.GetActualType(typeSystem);
 
             var newBoe = new JSBinaryOperatorExpression(
-                JSOperator.Assignment, boe.Left,
+                JSOperator.Assignment, MakeLhsForAssignment(boe.Left),
                 new JSBinaryOperatorExpression(
                     replacementOperator, boe.Left, boe.Right, intermediateType
                 ),

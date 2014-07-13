@@ -921,8 +921,12 @@ namespace JSIL.Ast {
     }
 
     public class JSFieldAccess : JSDotExpressionBase {
-        public JSFieldAccess (JSExpression thisReference, JSField field)
+        public readonly bool IsWrite;
+
+        public JSFieldAccess (JSExpression thisReference, JSField field, bool isWrite)
             : base(thisReference, field) {
+
+            IsWrite = isWrite;
         }
 
         public JSExpression ThisReference {

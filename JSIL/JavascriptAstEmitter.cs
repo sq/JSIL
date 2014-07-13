@@ -355,19 +355,15 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFieldAccess fa) {
+            var resultType = fa.GetActualType(TypeSystem);
+
             VisitDotExpression(fa);
         }
 
         public void VisitNode (JSPropertyAccess pa) {
             var resultType = pa.GetActualType(TypeSystem);
-            var needsTruncation = false;
             var parens = (pa.Target is JSNumberLiteral) ||
                 (pa.Target is JSIntegerLiteral);
-
-            if (needsTruncation) {
-                WriteTruncationForType(resultType);
-                Output.LPar();
-            }
 
             if (parens)
                 Output.LPar();
@@ -396,11 +392,6 @@ namespace JSIL {
                 }
 
                 Visit(pa.Member);
-            }
-
-            if (needsTruncation) {
-                WriteTruncationForType(resultType);
-                Output.RPar();
             }
         }
 
@@ -612,52 +603,101 @@ namespace JSIL {
             Output.RPar();
         }
 
-        private int GetParenCountForTruncation (TypeReference type) {
-            switch (type.FullName) {
-                case "System.SByte":
-                case "System.Int16":
-                    return 2;
+        private void WriteTruncationPrefixForType (TypeReference type, bool targetIsLocal = false) {
+            int parenCount = 0;
 
-                default:
-                    return 1;
-            }
-        }
-
-        private void WriteTruncationForType (TypeReference type) {
             switch (type.FullName) {
                 case "System.Byte":
-                    Output.WriteRaw(" & 0xFF");
+                    parenCount = 1;
                     break;
 
                 case "System.SByte":
-                    Output.WriteRaw(" + 0x80 & 0xFF) - 0x80");
+                    parenCount = 2;
                     break;
 
                 case "System.UInt16":
-                    Output.WriteRaw(" & 0xFFFF");
+                    parenCount = 1;
                     break;
 
                 case "System.Int16":
-                    Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000");
+                    parenCount = 2;
                     break;
 
                 case "System.UInt32":
-                    Output.WriteRaw(" >>> 0");
+                    parenCount = 1;
                     break;
 
                 case "System.Int32":
-                default:
-                    Output.WriteRaw(" | 0");
+                    parenCount = 1;
+                    break;
+
+                case "System.Single":
+                    // fround only affects locals at present.
+                    // FIXME: Does this mean a forced float->double upconvert when it could be omitted by the VM?
+                    if (targetIsLocal)
+                        Output.WriteRaw("Math.fround(");
+                    else
+                        Output.WriteRaw("+");
+
+                    return;
+
+                case "System.Double":
+                    Output.WriteRaw("+");
+                    return;
+            }
+
+            for (var i = 0; i < parenCount; i++)
+                Output.WriteRaw("(");
+        }
+
+        private bool ShouldDoOptionalTruncation (TypeReference type) {
+            if (TypeUtil.IsIntegral(type))
+                return Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true);
+            else if (TypeUtil.IsFloatingPoint(type))
+                return Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true);
+            else
+                return false;
+        }
+
+        private void WriteTruncationForType (TypeReference type, bool targetIsLocal = false) {
+            switch (type.FullName) {
+                case "System.Byte":
+                    Output.WriteRaw(" & 0xFF)");
+                    break;
+
+                case "System.SByte":
+                    Output.WriteRaw(" + 0x80 & 0xFF) - 0x80)");
+                    break;
+
+                case "System.UInt16":
+                    Output.WriteRaw(" & 0xFFFF)");
+                    break;
+
+                case "System.Int16":
+                    Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000)");
+                    break;
+
+                case "System.UInt32":
+                    Output.WriteRaw(" >>> 0)");
+                    break;
+
+                case "System.Int32":
+                    Output.WriteRaw(" | 0)");
+                    break;
+
+                case "System.Single":
+                    // fround only affects locals at present.
+                    if (targetIsLocal)
+                        Output.WriteRaw(")");
+
                     break;
             }
         }
 
         public void VisitNode (JSTruncateExpression te) {
             var expressionType = te.Expression.GetActualType(TypeSystem);
-            var parenCount = GetParenCountForTruncation(expressionType);
 
-            for (var i = 0; i < parenCount; i++)
-                Output.LPar();
+            WriteTruncationPrefixForType(expressionType);
 
             Output.LPar();
             Visit(te.Expression);
@@ -817,10 +857,15 @@ namespace JSIL {
 
         public void VisitNode (JSNumberLiteral number) {
             if (number.OriginalType.FullName == "System.Single") {
-                Output.WriteRaw("+");
+                // FIXME: Fround?
+                if (!number.ToString().Contains("."))
+                    Output.WriteRaw("+");
+
                 Output.Value((float)number.Value);
             } else {
-                Output.WriteRaw("+");
+                if (!number.ToString().Contains("."))
+                    Output.WriteRaw("+");
+
                 Output.Value(number.Value);
             }
         }
@@ -1482,16 +1527,6 @@ namespace JSIL {
             if (ret.Value != null) {
                 Output.Space();
 
-                var resultType = ret.Value.GetActualType(TypeSystem);
-                if (
-                    Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
-                    TypeUtil.IsFloatingPoint(resultType) &&
-                    !(resultType is ByReferenceType) &&
-                    !(ret.Value is JSSpecialNumericCastExpression)
-                ) {
-                    Output.WriteRaw("+");
-                }
-
                 Visit(ret.Value);
             }
         }
@@ -1537,12 +1572,11 @@ namespace JSIL {
 
         public void VisitNode (JSUnaryOperatorExpression uop) {
             var resultType = uop.GetActualType(TypeSystem);
-            bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType);
-            var parenCount = GetParenCountForTruncation(resultType);
+            bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType) &&
+                ShouldDoOptionalTruncation(resultType);
 
             if (needsTruncation)
-                for (var i = 0; i < parenCount; i++)
-                    Output.LPar();
+                WriteTruncationPrefixForType(resultType);
 
             if (!uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
@@ -1552,10 +1586,8 @@ namespace JSIL {
             if (uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
 
-            if (needsTruncation) {
+            if (needsTruncation)
                 WriteTruncationForType(resultType);
-                Output.RPar();
-            }
         }
 
         private bool NeedParensForBinaryOperator (JSBinaryOperatorExpression bop) {
@@ -1606,8 +1638,26 @@ namespace JSIL {
                 !OverflowCheckStack.Peek()
             ) {
                 return
-                    TypeUtil.Is32BitIntegral(uop.Expression.GetActualType(TypeSystem)) &&
-                    TypeUtil.Is32BitIntegral(resultType);
+                    TypeUtil.IsIntegral(uop.Expression.GetActualType(TypeSystem)) &&
+                    TypeUtil.IsIntegral(resultType);
+            }
+
+            return false;
+        }
+
+        private bool NeedTypeHintForLoad (
+            TypeReference resultType
+        ) {
+            if (
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
+                TypeUtil.IsIntegral(resultType)
+            ) {
+                return true;
+            } else if (
+                Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
+                TypeUtil.IsFloatingPoint(resultType)
+            ) {
+                return true;
             }
 
             return false;
@@ -1635,9 +1685,9 @@ namespace JSIL {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
                 return
-                    TypeUtil.Is32BitIntegralOrIntPtr(leftType) &&
-                    TypeUtil.Is32BitIntegralOrIntPtr(rightType) &&
-                    TypeUtil.Is32BitIntegralOrIntPtr(resultType);
+                    TypeUtil.IsIntegralOrPointer(leftType) &&
+                    TypeUtil.IsIntegralOrPointer(rightType) &&
+                    TypeUtil.IsIntegralOrPointer(resultType);
             }
 
             return false;
@@ -1648,9 +1698,9 @@ namespace JSIL {
 
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
-            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
+            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType) &&
+                ShouldDoOptionalTruncation(resultType);
             bool parens = NeedParensForBinaryOperator(bop);
-            var parenCount = GetParenCountForTruncation(resultType);
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
@@ -1663,8 +1713,7 @@ namespace JSIL {
             parens |= needsCast;
 
             if (needsTruncation)
-                for (var i = 0; i < parenCount; i++)
-                    Output.LPar();
+                WriteTruncationPrefixForType(resultType);
 
             if (parens)
                 Output.LPar();
@@ -1681,25 +1730,29 @@ namespace JSIL {
                 Output.NewLine();
             }
 
-            if (
-                Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
-                (bop.Operator is JSAssignmentOperator) &&
-                TypeUtil.IsFloatingPoint(resultType) &&
-                !(resultType is ByReferenceType) &&
-                !(bop.Right is JSSpecialNumericCastExpression)
-            ) {
-                Output.WriteRaw("+");
+            var rightType = bop.Right.GetActualType(TypeSystem);
+            var doRightTypeHint = (bop.Operator is JSAssignmentOperator) &&
+                !(bop.Right is JSOperatorExpressionBase) &&
+                !(bop.Right is JSSpecialNumericCastExpression) &&
+                !(bop.Right is JSLiteral) &&
+                NeedTypeHintForLoad(rightType) &&
+                ShouldDoOptionalTruncation(resultType);
+
+            if (doRightTypeHint) {
+                WriteTruncationPrefixForType(resultType, bop.Left is JSVariable);
             }
 
             Visit(bop.Right);
 
+            if (doRightTypeHint) {
+                WriteTruncationForType(resultType, bop.Left is JSVariable);
+            }
+
             if (parens)
                 Output.RPar();
 
-            if (needsTruncation) {
+            if (needsTruncation)
                 WriteTruncationForType(resultType);
-                Output.RPar();
-            }
         }
 
         public void VisitNode (JSUInt32MultiplyExpression ume) {

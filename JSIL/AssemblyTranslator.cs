@@ -2086,7 +2086,8 @@ namespace JSIL {
                         JSOperator.Assignment,
                         new JSFieldAccess(
                             thisParameter,
-                            new JSField(field, fieldInfo)
+                            new JSField(field, fieldInfo),
+                            true
                         ),
                         defaultValue,
                         fieldInfo.FieldType

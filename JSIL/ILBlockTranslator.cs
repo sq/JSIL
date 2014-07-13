@@ -1632,7 +1632,8 @@ namespace JSIL {
                         operandLhs = JSReferenceExpression.Strip(operandLhs);
 
                         result = new JSBinaryOperatorExpression(
-                            JSOperator.Assignment, operandLhs,
+                            JSOperator.Assignment, 
+                            DecomposeMutationOperators.MakeLhsForAssignment(operandLhs),
                             translated, translated.GetActualType(TypeSystem)
                         );
                         return result;
@@ -1709,12 +1710,15 @@ namespace JSIL {
                 } else if (op == null) {
                     // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
                     result = new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, boe.Left,
+                        JSOperator.Assignment, 
+                        DecomposeMutationOperators.MakeLhsForAssignment(boe.Left),
                         boe, boe.ActualType
                     );
                 } else {
                     result = new JSBinaryOperatorExpression(
-                        op, boe.Left, boe.Right, boe.ActualType
+                        op, 
+                        DecomposeMutationOperators.MakeLhsForAssignment(boe.Left), boe.Right, 
+                        boe.ActualType
                     );
                 }
             } else if ((invocation != null) && (invocation.Arguments[0] is JSReferenceExpression)) {
@@ -1729,7 +1733,8 @@ namespace JSIL {
 
                 result = new JSBinaryOperatorExpression(
                     JSOperator.Assignment,
-                    lhs, invocation, invocation.GetActualType(TypeSystem)
+                    DecomposeMutationOperators.MakeLhsForAssignment(lhs), 
+                    invocation, invocation.GetActualType(TypeSystem)
                 );
             } else {
                 throw new NotImplementedException(String.Format("Compound assignments of this type not supported: '{0}'", node));
@@ -2074,7 +2079,7 @@ namespace JSIL {
                 return new JSIgnoredTypeReference(true, valueType);
 
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, jsv,
+                JSOperator.Assignment, DecomposeMutationOperators.MakeLhsForAssignment(jsv),
                 value, valueType
             );
         }
@@ -2095,36 +2100,18 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
-            var fieldInfo = GetField(field);
-            if (fieldInfo == null)
-                return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
-            else if (TypeUtil.IsIgnoredType(fieldInfo.FieldType) || fieldInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, fieldInfo);
+            var result = Translate_FieldAbstract(node, field, false);
 
-            JSExpression result = new JSFieldAccess(
-                new JSType(field.DeclaringType),
-                new JSField(field, fieldInfo)
-            );
-
-            if (CopyOnReturn(fieldInfo.FieldType))
+            if (CopyOnReturn(field.FieldType))
                 result = JSReferenceExpression.New(result);
 
             return result;
         }
 
         protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
-            var fieldInfo = GetField(field);
-            if (fieldInfo == null)
-                return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
-            else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, fieldInfo);
+            var result = Translate_FieldAbstract(node, field, false);
 
-            return new JSMemberReferenceExpression(
-                new JSFieldAccess(
-                    new JSType(field.DeclaringType),
-                    new JSField(field, fieldInfo)
-                )
-            );
+            return new JSMemberReferenceExpression(result);
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
@@ -2132,40 +2119,61 @@ namespace JSIL {
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                Translate_Ldsfld(node, field),
+                DecomposeMutationOperators.MakeLhsForAssignment(Translate_FieldAbstract(node, field, true)),
                 rhs,
                 rhs.GetActualType(TypeSystem)
             );
         }
 
-        protected JSExpression Translate_Ldfld (ILExpression node, FieldReference field) {
-            var firstArg = node.Arguments[0];
-            var translated = TranslateNode(firstArg);
+        protected JSExpression Translate_FieldAbstract (ILExpression expr, FieldReference field, bool isWrite) {
+            JSExpression thisExpression = null;
+            ILExpression firstArgExpr;
+            if (
+                (expr.Code == ILCode.Ldsfld) ||
+                (expr.Code == ILCode.Ldsflda) ||
+                (expr.Code == ILCode.Stsfld)
+            ) {
+                var mr = (MemberReference)expr.Operand;
+                thisExpression = new JSType(mr.DeclaringType);
+            } else {
+                firstArgExpr = expr.Arguments[0];
+                var firstArg = TranslateNode(firstArgExpr);
+
+                if (IsInvalidThisExpression(firstArgExpr)) {
+                    if (!JSReferenceExpression.TryDereference(JSIL, firstArg, out thisExpression)) {
+                        if (!firstArg.IsNull)
+                            WarningFormatFunction("Accessing {0} without a reference as this.", field.FullName);
+
+                        thisExpression = firstArg;
+                    }
+                } else {
+                    thisExpression = firstArg;
+                }
+            }
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
-            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredExpression))
+            if (
+                (thisExpression.IsNull) && 
+                !(thisExpression is JSUntranslatableExpression) && 
+                !(thisExpression is JSIgnoredExpression)
+            )
                 return new JSNullExpression();
 
             var fieldInfo = GetField(field);
             if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, fieldInfo, translated);
-
-            JSExpression thisExpression;
-            if (IsInvalidThisExpression(firstArg)) {
-                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
-                    if (!translated.IsNull)
-                        WarningFormatFunction("Accessing {0} without a reference as this.", field.FullName);
-
-                    thisExpression = translated;
-                }
-            } else {
-                thisExpression = translated;
-            }
+                return new JSIgnoredMemberReference(true, fieldInfo, thisExpression);
 
             JSExpression result = new JSFieldAccess(
                 thisExpression,
-                new JSField(field, fieldInfo)
+                new JSField(field, fieldInfo),
+                isWrite
             );
+
+            return result;
+        }
+
+        protected JSExpression Translate_Ldfld (ILExpression node, FieldReference field) {
+            var result = Translate_FieldAbstract(node, field, false);
 
             if (CopyOnReturn(field.FieldType))
                 result = JSReferenceExpression.New(result);
@@ -2178,35 +2186,13 @@ namespace JSIL {
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                Translate_Ldfld(node, field),
+                DecomposeMutationOperators.MakeLhsForAssignment(Translate_FieldAbstract(node, field, true)),
                 rhs, rhs.GetActualType(TypeSystem)
             );
         }
 
         protected JSExpression Translate_Ldflda (ILExpression node, FieldReference field) {
-            var firstArg = node.Arguments[0];
-            var translated = TranslateNode(firstArg);
-
-            var fieldInfo = GetField(field);
-            if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
-                return new JSIgnoredMemberReference(true, fieldInfo, translated);
-
-            JSExpression thisExpression;
-            if (IsInvalidThisExpression(firstArg)) {
-                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
-                    if (!translated.IsNull)
-                        Translator.WarningFormat("Accessing {0} without a reference as this.", field.FullName);
-
-                    thisExpression = translated;
-                }
-            } else {
-                thisExpression = translated;
-            }
-
-            return new JSMemberReferenceExpression(new JSFieldAccess(
-                thisExpression,
-                new JSField(field, fieldInfo)
-            ));
+            return new JSMemberReferenceExpression(Translate_FieldAbstract(node, field, false));
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
@@ -2270,7 +2256,9 @@ namespace JSIL {
             }
 
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType ?? value.GetActualType(TypeSystem)
+                JSOperator.Assignment, 
+                DecomposeMutationOperators.MakeLhsForAssignment(target), value, 
+                node.InferredType ?? node.ExpectedType ?? value.GetActualType(TypeSystem)
             );
         }
 
