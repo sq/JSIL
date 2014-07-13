@@ -370,6 +370,26 @@ namespace JSIL {
             return reference;
         }
 
+        public static TypeReference StripPointerOrReference (TypeReference reference) {
+            bool unwrapped = false;
+            do {
+                var pt = reference as PointerType;
+                var brt = reference as ByReferenceType;
+
+                if (pt != null) {
+                    reference = pt.ElementType;
+                    unwrapped = true;
+                } else if (brt != null) {
+                    reference = brt.ElementType;
+                    unwrapped = true;
+                } else {
+                    unwrapped = false;
+                }
+            } while (unwrapped);
+
+            return reference;
+        }
+
         public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool mapAllArraysToSystemArray = true) {
             if (typeRef == null)
                 return null;

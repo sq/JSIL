@@ -13,8 +13,8 @@ namespace JSIL.Transforms {
             public readonly int Index;
 
             public CachedTypeRecord (TypeReference type, int index) {
-                while (type is PointerType)
-                    type = ((PointerType)type).ElementType;
+                type = TypeUtil.StripModifiers(type);
+                type = TypeUtil.StripPointerOrReference(type);
 
                 Type = type;
                 Index = index;
@@ -70,6 +70,9 @@ namespace JSIL.Transforms {
                 return false;
 
             if (TypeUtil.IsOpenType(type))
+                return false;
+
+            if ((type is ByReferenceType) || (type is PointerType))
                 return false;
 
             return true;
