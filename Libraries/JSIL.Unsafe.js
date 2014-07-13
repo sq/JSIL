@@ -1425,10 +1425,11 @@ JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
 };
 
 JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, makeSetter) {
+  var fieldOffset = field.offsetBytes | 0;
+  var fieldSize = field.sizeBytes | 0;
+
   if (nativeView) {
     var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
-    var fieldOffset = field.offsetBytes | 0;
-    var fieldSize = field.sizeBytes | 0;
 
     var adapterSource = [
       "var bytes = this.$bytes;",
@@ -1478,13 +1479,28 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
       );
     } else {
       var unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(field.type);
+      var unmarshaller = JSIL.$GetStructUnmarshaller(field.type);
+      var cachedInstanceKey = "this.cached$" + field.name;
 
-      adapterSource.push("return new unmarshalConstructor(this.$bytes, offset);");
+      // FIXME: Is this going to work consistently?
+      var template = JSIL.CreateInstanceOfType(field.type, null);
+
+
+      adapterSource.push("var cachedInstance = " + cachedInstanceKey + ";");
+      adapterSource.push("if (cachedInstance !== null) {");
+      adapterSource.push("  unmarshaller(cachedInstance, this.$bytes, offset);");
+      adapterSource.push("  return cachedInstance;");
+      adapterSource.push("}");
+      adapterSource.push("");
+      adapterSource.push("return " + cachedInstanceKey + " = new unmarshalConstructor(this.$bytes, offset);");
 
       return JSIL.CreateNamedFunction(
         typeObject.__FullName__ + ".Proxy.get_" + field.name, [],
         adapterSource.join("\n"),
-        { unmarshalConstructor: unmarshalConstructor }
+        { 
+          unmarshaller: unmarshaller, 
+          unmarshalConstructor: unmarshalConstructor 
+        }
       );
     }
     
@@ -1503,6 +1519,11 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
 
+  var constructorBody = [];
+  constructorBody.push("this.$bytes = bytes;");
+  constructorBody.push("this.$offset = offsetInBytes | 0;");
+  constructorBody.push("");
+
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
     var offset = field.offsetBytes;
@@ -1516,6 +1537,7 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
       var nativeView = marshallingScratchBuffer.getView(field.type, false);
       getter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, false);
       setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true);
+      constructorBody.push("this.cached$" + field.name + " = null;");
     }
 
     // FIXME: The use of get/set functions here will really degrade performance in some JS engines
@@ -1530,10 +1552,10 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
     );
   }      
 
-  var constructor = function ElementProxy (bytes, offsetInBytes) {
-    this.$bytes = bytes;
-    this.$offset = offsetInBytes | 0;
-  };
+  var constructor = JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".Proxy._ctor", ["bytes", "offsetInBytes"],
+    constructorBody.join("\n"), null
+  );
 
   elementProxyPrototype.retarget = function (array, offsetInElements) {
     this.$bytes = array.bytes;
