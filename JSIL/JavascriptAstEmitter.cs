@@ -1670,15 +1670,18 @@ namespace JSIL {
             if (bop.Operator == JSOperator.Divide) {
                 // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
-                    (TypeUtil.IsIntegralOrPointer(leftType) ||
-                    TypeUtil.IsIntegralOrPointer(rightType)) &&
-                    TypeUtil.IsIntegralOrPointer(resultType);
+                    (
+                        (
+                            TypeUtil.IsIntegralOrPointer(leftType) ||
+                            TypeUtil.IsIntegralOrPointer(rightType)
+                        ) && TypeUtil.IsIntegralOrPointer(resultType)
+                    ) || ShouldDoOptionalTruncation(resultType);
             }
 
             if (
                 !(bop.Operator is JSAssignmentOperator) &&
+                // Elide
                 !(bop.Operator is JSBitwiseOperator) &&
-                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
                 // Truncation needs to happen after overflow checks, not before, because... yeah.
                 !OverflowCheckStack.Peek()
             ) {
@@ -1687,10 +1690,40 @@ namespace JSIL {
                 return
                     TypeUtil.IsIntegralOrPointer(leftType) &&
                     TypeUtil.IsIntegralOrPointer(rightType) &&
-                    TypeUtil.IsIntegralOrPointer(resultType);
+                    TypeUtil.IsIntegralOrPointer(resultType) || 
+                    ShouldDoOptionalTruncation(resultType);
             }
 
             return false;
+        }
+
+        private bool ValueIsNonParameterVariable (JSExpression value) {
+            var jsv = value as JSVariable;
+            return (jsv != null) && !jsv.IsParameter;
+        }
+
+        private void VisitAndMaybeHintLoad (JSExpression value, bool targetIsLocal = false) {
+            if (ValueIsNonParameterVariable(value)) {
+                Visit(value);
+                return;
+            }
+
+            var type = value.GetActualType(TypeSystem);
+            var doTypeHint = !(value is JSOperatorExpressionBase) &&
+                !(value is JSSpecialNumericCastExpression) &&
+                !(value is JSLiteral) &&
+                NeedTypeHintForLoad(type) &&
+                ShouldDoOptionalTruncation(type);
+
+            if (doTypeHint) {
+                WriteTruncationPrefixForType(type, targetIsLocal);
+            }
+
+            Visit(value);
+
+            if (doTypeHint) {
+                WriteTruncationForType(type, targetIsLocal);
+            }
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
@@ -1698,8 +1731,7 @@ namespace JSIL {
 
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
-            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType) &&
-                ShouldDoOptionalTruncation(resultType);
+            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
             bool parens = NeedParensForBinaryOperator(bop);
 
             if (needsTruncation) {
@@ -1718,7 +1750,18 @@ namespace JSIL {
             if (parens)
                 Output.LPar();
 
-            Visit(bop.Left);
+            bool targetIsLocal = false;
+
+            if (bop.Operator is JSAssignmentOperator)
+                targetIsLocal = ValueIsNonParameterVariable(bop.Left);
+            else if (Stack.OfType<JSInvocationExpressionBase>().Any())
+                targetIsLocal = true;
+
+            if (bop.Operator is JSAssignmentOperator)
+                Visit(bop.Left);
+            else
+                VisitAndMaybeHintLoad(bop.Left, targetIsLocal);
+
             Output.Space();
             Output.WriteRaw(bop.Operator.Token);
             Output.Space();
@@ -1730,23 +1773,7 @@ namespace JSIL {
                 Output.NewLine();
             }
 
-            var rightType = bop.Right.GetActualType(TypeSystem);
-            var doRightTypeHint = (bop.Operator is JSAssignmentOperator) &&
-                !(bop.Right is JSOperatorExpressionBase) &&
-                !(bop.Right is JSSpecialNumericCastExpression) &&
-                !(bop.Right is JSLiteral) &&
-                NeedTypeHintForLoad(rightType) &&
-                ShouldDoOptionalTruncation(resultType);
-
-            if (doRightTypeHint) {
-                WriteTruncationPrefixForType(resultType, bop.Left is JSVariable);
-            }
-
-            Visit(bop.Right);
-
-            if (doRightTypeHint) {
-                WriteTruncationForType(resultType, bop.Left is JSVariable);
-            }
+            VisitAndMaybeHintLoad(bop.Right, targetIsLocal);
 
             if (parens)
                 Output.RPar();
