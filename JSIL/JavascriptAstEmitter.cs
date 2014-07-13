@@ -591,7 +591,9 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPinValueExpression pinValue) {
+            Output.NewLine();
             Output.Comment("WARNING: Mutating the result pointer will not mutate the input value.");
+            Output.NewLine();
             Output.WriteRaw("JSIL.PinValueAndGetPointer");
             Output.LPar();
             Visit(pinValue.Value);
@@ -1782,18 +1784,6 @@ namespace JSIL {
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
             var resultType = bop.GetActualType(TypeSystem);
-
-            if (
-                TypeUtil.IsPointer(resultType) &&
-                !(bop.Operator is JSAssignmentOperator)
-            ) {
-                Output.WriteRaw("JSIL.UntranslatableInstruction");
-                Output.LPar();
-                Output.Value("Pointer arithmetic: " + bop);
-                Output.RPar();
-                return;
-            }
-
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
 
@@ -1816,7 +1806,8 @@ namespace JSIL {
                         (parentBop != null) &&
                         (parentBop.Operator is JSAssignmentOperator)
                     )
-                )
+                ) &&
+                !TypeUtil.IsPointer(resultType)
             )
                 parens = false;
 

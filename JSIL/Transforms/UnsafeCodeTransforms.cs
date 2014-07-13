@@ -164,7 +164,7 @@ namespace JSIL.Transforms {
             if (boe.Right.IsNull)
                 return false;
 
-            var right = JSPointerExpressionUtil.UnwrapExpression(pointer);
+            var right = JSPointerExpressionUtil.UnwrapExpression(boe.Right);
 
             var rightType = right.GetActualType(typeSystem);
             var resultType = boe.GetActualType(typeSystem);
