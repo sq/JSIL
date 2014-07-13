@@ -1970,6 +1970,10 @@ namespace JSIL.Ast {
                 () => new JSAsExpression(inner, newType)
             );
         }
+
+        public override string ToString () {
+            return String.Format("({0}) as {1}", base.Expression, base.NewType);
+        }
     }
 
     public class JSCastExpression : JSExpression {

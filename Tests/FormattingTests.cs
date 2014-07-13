@@ -1077,5 +1077,23 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void MgTextureReader () {
+            var testFile = @"SpecialTestCases\MgTextureReader.cs";
+
+            var generatedJs = GetJavascript(testFile);
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("Math.imul(y, pitch) + Math.imul(x, bytesPerPixel)"));
+                Assert.IsTrue(generatedJs.Contains("Math.imul(y, pitch) + Math.imul(x, 4)"));
+                // TODO: Optimize out the double & here?
+                Assert.IsTrue(generatedJs.Contains("((color >> 16) & 255 & 0xFF)"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

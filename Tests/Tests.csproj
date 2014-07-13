@@ -223,6 +223,7 @@
     <None Include="PerformanceTestCases\BaseMethodCalls.cs" />
     <None Include="TestCases\EnumClone.cs" />
     <None Include="SpecialTestCases\Issue548.cs" />
+    <None Include="SpecialTestCases\MgTextureReader.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

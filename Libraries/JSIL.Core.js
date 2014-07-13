@@ -7151,7 +7151,7 @@ JSIL.MethodSignature.prototype.$InlineCacheMiss = function (callMethodName, name
   if (!this.useInlineCache)
     return;
 
-  var inlineCacheCapacity = 4;
+  var inlineCacheCapacity = 2;
 
   if (this.inlineCacheEntries.length >= inlineCacheCapacity) {
     this.inlineCacheTable = null;
@@ -8665,7 +8665,9 @@ JSIL.CloneParameter = function (parameterType, value) {
 
   if (
     parameterType.__IsStruct__ && 
-    (parameterType.__IsNullable__ !== true)
+    (parameterType.__IsNullable__ !== true) &&
+    // We have to check this because of some tricky semantic corner cases :/
+    (value !== null)
   ) {
     return value.MemberwiseClone();
   } else

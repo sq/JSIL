@@ -461,6 +461,28 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
+            var newType = ce.NewType;
+            var oldType = ce.Expression.GetActualType(TypeSystem);
+
+            // Skip calling T.$Cast() for numeric type conversions. Just emit the truncation logic.
+            if (
+                (
+                    TypeUtil.IsIntegral(oldType) ||
+                    TypeUtil.IsFloatingPoint(oldType)
+                ) &&
+                (
+                    TypeUtil.IsIntegral(newType) ||
+                    TypeUtil.IsFloatingPoint(newType)
+                )
+            ) {
+                WriteTruncationPrefixForType(newType, true, false);
+
+                Visit(ce.Expression);
+
+                WriteTruncationForType(newType, true, false);
+                return;
+            }
+
             IncludeTypeParens.Push(false);
             try {
                 WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
@@ -1870,12 +1892,9 @@ namespace JSIL {
 
             Output.WriteRaw(" >>> 0");
             Output.RPar();
-
-            // FIXME: Spit out a >>> 0 here? Probably not needed?
         }
 
         public void VisitNode (JSInt32MultiplyExpression ume) {
-            Output.LPar();
             Output.WriteRaw("Math.imul");
             Output.LPar();
 
@@ -1884,11 +1903,6 @@ namespace JSIL {
             Visit(ume.Right);
 
             Output.RPar();
-
-            Output.WriteRaw(" | 0");
-            Output.RPar();
-
-            // FIXME: Spit out a >>> 0 here? Probably not needed?
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {
