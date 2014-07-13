@@ -2067,6 +2067,10 @@ namespace JSIL {
                 if (n is TNode) {
                     result += 1;
                 } else {
+                    // HACK: !@(%*&)!@FFFF
+                    if (n is JSVariable)
+                        continue;
+
                     foreach (var m in n.AllChildrenRecursive) {
                         if (m is TNode) {
                             result += 1;
