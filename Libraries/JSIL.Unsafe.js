@@ -1280,12 +1280,12 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetTo
       for (var i = 0; i < sizeOrSizeToken; i++) {
         var localDest, localSource;
         if (typeof (destOffsetToken) === "number")
-          localDest = i;
+          localDest = (destOffsetToken + i) | 0;
         else
           localDest = "(" + destOffsetToken + " + " + i + ") | 0";
 
         if (typeof (sourceOffsetToken) === "number")
-          localSource = i;
+          localSource = (sourceOffsetToken + i) | 0;
         else
           localSource = "(" + sourceOffsetToken + " + " + i + ") | 0";
         
@@ -1438,7 +1438,7 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
     if (makeSetter) {
       adapterSource.push("nativeView[0] = value;");
       JSIL.$EmitMemcpyIntrinsic(
-        adapterSource, "bytes", "clampedByteView", 0, "offset", nativeView.BYTES_PER_ELEMENT
+        adapterSource, "bytes", "clampedByteView", "offset", 0, nativeView.BYTES_PER_ELEMENT
       );
       // adapterSource.push("bytes.set(clampedByteView, offset);");
 
