@@ -5501,6 +5501,7 @@ JSIL.EnumValue.prototype.toString = function () {
 
   return this.stringified;
 };
+
 JSIL.EnumValue.prototype.valueOf = function () {
   return this.value;
 }

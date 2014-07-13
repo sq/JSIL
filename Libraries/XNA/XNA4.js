@@ -1505,7 +1505,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var device = this.get_GraphicsDevice();
 
     device.$UpdateViewport();      
-    device.$Clear();
+    device.$Clear(null);
 
     this.Draw(this._gameTime);
 
