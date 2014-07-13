@@ -424,10 +424,10 @@ namespace JSIL {
                 else
                     largestType = rightType;
 
-                var sizeofInferred = (node.InferredType != null)
+                var sizeofInferred = (node.InferredType != null) && TypeUtil.IsIntegral(node.InferredType)
                     ? TypeUtil.SizeOfType(node.InferredType)
                     : 0;
-                var sizeofExpected = (node.ExpectedType != null)
+                var sizeofExpected = (node.ExpectedType != null) && TypeUtil.IsIntegral(node.ExpectedType)
                     ? TypeUtil.SizeOfType(node.ExpectedType)
                     : 0;
 
