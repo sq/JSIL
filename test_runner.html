@@ -31,7 +31,7 @@
     </script>
     <script src="Libraries/JSIL.js" type="text/javascript"></script>
     
-    <label for="scriptname">Test Script To Run:</label> <input type="text" name="scriptname" id="scriptname" value="Tests/SimpleTestCases/If.js"></input><br>
+    <label for="scriptname">Test Script To Run:</label> <input type="text" name="scriptname" id="scriptname" value="Tests/SimpleTestCases/If.cs.out"></input><br>
     <button id="runscript" name="runscript">Run</button>
     
     <hr>
@@ -61,6 +61,7 @@
           setTimeout(function () {
             var newUrl = window.location.protocol + 
               "//" +
+              window.location.host +
               window.location.pathname + 
               "?autoRun" +
               window.location.hash;
@@ -79,12 +80,11 @@
         var scriptname = document.getElementById("scriptname").value;
         window.location.hash = "#" + scriptname;
 
-        contentManifest["TestRunner"] = [
-          ["Script", scriptname]
-        ];
-        onLoad();
-
         setTimeout(function () {
+          contentManifest["TestRunner"] = [
+            ["Script", scriptname]
+          ];
+          onLoad();
           document.getElementById("runscript").disabled = false;
         }, 25);
       }
