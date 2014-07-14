@@ -75,7 +75,7 @@ namespace JSIL.Tests
                             RedirectStandardOutput = true,
                             FileName = "../Upstream/ILAsm/ilasm.exe",
                             Arguments = arguments,
-                            WindowStyle = ProcessWindowStyle.Hidden
+                            CreateNoWindow = true
                         }
                 };
             ilasmProcess.Start();
@@ -94,8 +94,7 @@ namespace JSIL.Tests
                 return results;
             }
 
-            byte[] rawAssembly = File.ReadAllBytes(options.OutputAssembly);
-            results.CompiledAssembly = Assembly.Load(rawAssembly);
+            results.CompiledAssembly = Assembly.LoadFrom(options.OutputAssembly);
             return results;
         }
 
