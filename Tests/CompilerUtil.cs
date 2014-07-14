@@ -54,6 +54,14 @@ namespace JSIL.Tests {
                         return result;
                     };
                     break;
+
+                case ".il":
+                    provider = () =>
+                    {
+                        var result = new CILCodeProvider();
+                        return result;
+                    };
+                    break;
                 default:
                     throw new NotImplementedException("Extension '" + extension + "' cannot be compiled for test cases");
             }
