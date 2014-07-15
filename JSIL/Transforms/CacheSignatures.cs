@@ -314,7 +314,7 @@ namespace JSIL.Transforms {
             int index;
             var record = new CachedSignatureRecord(methodReference, methodSignature, forConstructor);
 
-            if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
+            if ((enclosingFunction.Method != null) && (enclosingFunction.Method.Method != null)) {
                 var functionIdentifier = enclosingFunction.Method.Method.Identifier;
                 CacheSet localSignatureSet;
 
