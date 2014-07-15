@@ -360,6 +360,7 @@
     <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
     <None Include="SimpleTestCases\AsyncAwait.cs" />
+    <None Include="SimpleTestCases\AsyncAwaitException.cs" />
     <None Include="SimpleTestCases\TypedArrayEnumerator_Issue353.cs" />
     <None Include="SimpleTestCases\VarianceCast_Issue443.cs" />
     <None Include="SimpleTestCases\RecursiveTypeConstruction_Issue394.cs" />
