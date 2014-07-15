@@ -786,6 +786,8 @@ namespace JSIL.Internal {
             }
 
             DoDeferredMethodSignatureSetUpdate();
+
+            ValidateMembers();
         }
 
         private void DoDeferredMethodSignatureSetUpdate () {
@@ -1100,29 +1102,14 @@ namespace JSIL.Internal {
             var @class = GetGroup(m, "class", "");
             var name = GetGroup(m, "name", "");
 
-            isBackingField = name.Trim() == "BackingField";
+            isBackingField = 
+                (name.Trim() == "BackingField") && 
+                !String.IsNullOrWhiteSpace(@class);
 
             if (isBackingField) {
                 return String.Format("{0}$value", @class);
             } else {
-                int temp;
-                string result;
-
-                if (int.TryParse(name, out temp))
-                    result = @class;
-                else if (String.IsNullOrWhiteSpace(@class))
-                    result = "$" + name;
-                else
-                    result = @class + "$" + name;
-
-                // <<$$>>__1
-                if ((result == "$") || (result == "$$"))
-                    result += name;
-
-                if (String.IsNullOrWhiteSpace(result))
-                    return null;
-                else 
-                    return result;
+                return null;
             }
         }
 
@@ -1318,6 +1305,20 @@ namespace JSIL.Internal {
             _IsIgnored = IsIgnored;
             _IsStubOnly = IsStubOnly;
             _FullyInitialized = true;
+        }
+
+        private void ValidateMembers () {
+            var seenNames = new HashSet<string>();
+            foreach (var m in Members) {
+                var fi = m.Value as FieldInfo;
+                if (fi == null)
+                    continue;
+
+                if (seenNames.Contains(fi.Name))
+                    throw new InvalidDataException("Type info shows two fields named '" + fi.Name + "' in type '" + Name + "'");
+
+                seenNames.Add(fi.Name);
+            }
         }
     }
 

@@ -5,7 +5,7 @@ using JSIL.Meta;
 
 public static class Program {
     const int BufferSize = 10240;
-    const int IterationCount = 64;
+    const int IterationCount = 320;
 
     public static Vertex[] VerticesN;
     [JSPackedArray]
@@ -26,9 +26,9 @@ public static class Program {
             VerticesP[i] = vertex;
         }
 
-        Console.WriteLine("Array: {0:00000.00}ms", Time(TestArray));
-        Console.WriteLine("Packed Array: {0:00000.00}ms", Time(TestPackedArray));
         Console.WriteLine("Packed Array Alternate: {0:00000.00}ms", Time(TestPackedArrayAlternate));
+        Console.WriteLine("Packed Array: {0:00000.00}ms", Time(TestPackedArray));
+        Console.WriteLine("Array: {0:00000.00}ms", Time(TestArray));
     }
 
     public static int Time (Action func) {

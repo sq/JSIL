@@ -247,12 +247,18 @@ namespace JSIL.Tests {
             );
 
             try {
+                // Welp.
+                /*
                 Assert.IsTrue(generatedJs.Contains("this.i"));
                 Assert.IsTrue(generatedJs.Contains("this.$state"));
                 Assert.IsTrue(generatedJs.Contains("this.$current"));
                 Assert.IsFalse(generatedJs.Contains(".$li$g"));
                 Assert.IsFalse(generatedJs.Contains(".$l$g1__state"));
                 Assert.IsFalse(generatedJs.Contains(".$l$g2__current"));
+                 */
+                Assert.IsTrue(generatedJs.Contains(".$li$g"));
+                Assert.IsTrue(generatedJs.Contains(".$l$g1__state"));
+                Assert.IsTrue(generatedJs.Contains(".$l$g2__current"));
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -383,13 +389,13 @@ namespace JSIL.Tests {
 
                 var m = Regex.Match(
                     generatedJs,
-                    @"if \(\(this.i \| 0\) \>\= \(this.count \| 0\)\) \{[^}]*\} else \{"
+                    @"if \(\(this.(\$li\$g5__1|i) \| 0\) \>\= \(this.(\$l\$g3__count|count) \| 0\)\) \{[^}]*\} else \{"
                 );
                 bool foundElse = (m != null) && m.Success;
-
+                
                 m = Regex.Match(
                     generatedJs,
-                    @"if \(\(this.i \| 0\) \< \(this.count \| 0\)\) \{[^}]*\}"
+                    @"if \(\(this.(\$li\$g5__1|i) \| 0\) \< \(this.(\$l\$g3__count|count) \| 0\)\) \{[^}]*\}"
                 );
                 bool foundIf = (m != null) && m.Success;
 
@@ -1109,6 +1115,18 @@ namespace JSIL.Tests {
                 Console.WriteLine(generatedJs);
 
                 throw;
+            }
+        }
+
+        [Test]
+        public void MgDelegateFieldNames () {
+            var testFile = @"BinaryTestCases\MgFuseePackedVertices.exe";
+            var generatedJs = GetJavascript(testFile);
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("$thisType.$mg ==="), "Field names were truncated");
+            } catch {
+                Console.WriteLine(generatedJs);
             }
         }
     }
