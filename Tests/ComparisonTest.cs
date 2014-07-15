@@ -90,7 +90,7 @@ namespace JSIL.Tests {
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs|\\.js)$", "$0.out"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs|\\.js|\\.il)$", "$0.out"
             );
         }
 

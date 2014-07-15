@@ -387,6 +387,7 @@
     <None Include="SimpleTestCases\DelegateRemoveAdvancedWithLambda_Issue541.cs" />
     <None Include="SimpleTestCases\LambdaInStateMachine1_Issue544.cs" />
     <None Include="SimpleTestCases\LambdaInStateMachine2_Issue544.cs" />
+    <None Include="HelloWorld.il" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JSIL\JSIL.csproj">
