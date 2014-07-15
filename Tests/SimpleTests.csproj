@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="SimpleTestCases\Issue538.cs" />
+    <None Include="SimpleTestCases\Issue567.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

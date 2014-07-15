@@ -691,7 +691,13 @@ namespace JSIL.Internal {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {
-                        WriteRaw("$.Type");
+                        if (context.EnclosingMethod != null) {
+                            // $.Type is incorrect for generics because it will be the open form.
+                            // FIXME: Will this work for static methods?
+                            WriteRaw("this.__Type__");
+                        } else {
+                            WriteRaw("$.Type");
+                        }
                         return;
                     }
                 }
