@@ -7565,8 +7565,15 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInf
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
-  // Important so ICs don't get mixed up.
-  this.signature = signature.Clone(true);
+
+  if (signature) {
+    // Important so ICs don't get mixed up.
+    this.signature = signature.Clone(true);
+  } else {
+    // FIXME: Why the hell does this happen?
+    this.signature = null;
+  }
+
   this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
