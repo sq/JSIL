@@ -2725,8 +2725,12 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
           typeObject, genericSignature, resolveContext
         );
 
-        if (!signature && throwOnFail) {
-          JSIL.RuntimeError("Failed to resolve generic signature", genericSignature);
+        if (!signature) {
+          if (throwOnFail) {
+            JSIL.RuntimeError("Failed to resolve generic signature", genericSignature);
+          } else {
+            signature = genericSignature;
+          }
         }
       }
 
