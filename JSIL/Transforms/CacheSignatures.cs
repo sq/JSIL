@@ -271,8 +271,11 @@ namespace JSIL.Transforms {
             if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
-            if ((method != null) && method.DeclaringType.IsInterface)
-                CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+            if ((method != null) && method.DeclaringType.IsInterface) {
+                // HACK
+                if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType))
+                    CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+            }
 
             if ((jsm != null) && (method != null) && isOverloaded)
                 CacheSignature(jsm.Reference, method.Signature, false);
