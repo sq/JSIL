@@ -5196,8 +5196,6 @@ JSIL.MakeType = function (typeArgs, initializer) {
     // Without this, the generated constructor won't behave correctly for 0-argument construction
     typeObject.__IsStruct__ = !isReferenceType;
 
-    var typeBuilder = new JSIL.TypeBuilder(typeObject);
-
     var ctorFunction = null;
     if (genericArguments && genericArguments.length) {
       ctorFunction = function OpenType () {
@@ -5207,8 +5205,9 @@ JSIL.MakeType = function (typeArgs, initializer) {
       ctorFunction = JSIL.MakeTypeConstructor(typeObject, maxConstructorArguments);
     }
 
-    typeBuilder.setConstructor(ctorFunction);
-    staticClassObject = typeBuilder.getPublicInterface();
+    staticClassObject = ctorFunction;
+    JSIL.SetValueProperty(typeObject, "__PublicInterface__", staticClassObject);
+    JSIL.SetValueProperty(staticClassObject, "__Type__", typeObject);    
 
     typeObject.__MaxConstructorArguments__ = maxConstructorArguments;
 
@@ -5291,7 +5290,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     var inited = false;
 
-    typeBuilder.declareConstant("toString", true, function TypePublicInterface_ToString () {
+    JSIL.SetValueProperty(staticClassObject, "toString", function TypePublicInterface_ToString () {
       return "<" + fullName + " Public Interface>";
     });
 

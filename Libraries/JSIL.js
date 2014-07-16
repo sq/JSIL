@@ -194,9 +194,7 @@ var $jsilloaderstate = {
 
   if (config.typedObjects || false) {
     environment.loadScript(libraryRoot + "typedobjects.js");
-    environment.loadScript(libraryRoot + "JSIL.TypeBuilder.ES7.js");
-  } else {
-    environment.loadScript(libraryRoot + "JSIL.TypeBuilder.js");
+    environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
   }
 
   environment.loadScript(libraryRoot + "JSIL.Core.js");
