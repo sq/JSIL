@@ -6792,7 +6792,7 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   }
 
   this.recompileCount = 0;
-  this.useInlineCache = JSIL.EnableSignatureInlineCaches;
+  this.useInlineCache = JSIL.MethodSignature.EnableInlineCaches;
   this.inlineCacheEntries = [];
   this.isInterfaceSignature = false;
 };
@@ -6862,17 +6862,17 @@ JSIL.MethodSignature.Action = function (argumentType) {
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "Call", 
-  function () { return this.$MakeCallMethod("Call", null); }, true, false
+  function () { return this.$MakeCallMethod("Call", null, null); }, true, false
 );
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "CallStatic", 
-  function () { return this.$MakeCallMethod("CallStatic", null); }, true, false
+  function () { return this.$MakeCallMethod("CallStatic", null, null); }, true, false
 );
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "CallVirtual", 
-  function () { return this.$MakeCallMethod("CallVirtual", null); }, true, false
+  function () { return this.$MakeCallMethod("CallVirtual", null, null); }, true, false
 );
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
@@ -6988,11 +6988,11 @@ if (false) {
 
 // Control whether generated ICs check argument & generic argument counts.
 // Shouldn't ever be necessary, but it's a useful debugging tool.
-JSIL.CheckArgumentCount = false;
-JSIL.CheckGenericArgumentCount = false;
-JSIL.EnableSignatureInlineCaches = true;
+JSIL.MethodSignature.CheckArgumentCount = true;
+JSIL.MethodSignature.CheckGenericArgumentCount = true;
+JSIL.MethodSignature.EnableInlineCaches = true;
 
-JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey) {
+JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey, fallbackMethod) {
   // Welcome to optimization hell! Enjoy your stay.
 
   var returnType = this.returnType;
@@ -7078,7 +7078,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   var body = [];
 
   // Check the # of provided arguments to detect an invalid invocation.
-  if (JSIL.CheckArgumentCount) {
+  if (JSIL.MethodSignature.CheckArgumentCount) {
     body.push("var argc = arguments.length | 0;");
     body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ")");
     body.push("  JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
@@ -7087,7 +7087,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   // If the function accepts generic arguments, we need to do a check to ensure
   //  that the appropriate # of arguments were passed.
   if (genericArgumentNames.length > 0) {
-    if (JSIL.CheckGenericArgumentCount) {
+    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
       body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
       body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
     }
@@ -7096,7 +7096,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   } else {
     // If it doesn't accept them, and we're in validation mode, insert a check.
     // This wastes cycles normally so we don't always want to put it in there.
-    if (JSIL.CheckGenericArgumentCount) {
+    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
       body.push("if (ga && ga.length > 0)");
       body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
       body.push("");
@@ -7115,12 +7115,27 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       ? methodLookupArg + "[" + methodKeyToken + "].call"
       : methodLookupArg + "[" + methodKeyToken + "]";
 
-    JSIL.MethodSignature.$EmitInvocation(
-      body, methodName, thisReferenceExpression, 
-      (!!returnType) ? "return " : "", 
-      argumentTypes, genericArgumentNames,
-      false, indentation
-    );
+    if (fallbackMethod) {
+      body.push(indentation + "  var methodReference = " + methodName + ";");
+      body.push(indentation + "  if (!methodReference) {");
+      body.push(indentation + "    methodReference = fallbackMethod(this.typeObject, this, thisReference)");
+      body.push(indentation + "  }");
+      body.push("");
+
+      JSIL.MethodSignature.$EmitInvocation(
+        body, "methodReference.call", "thisReference", 
+        (!!returnType) ? "return " : "", 
+        argumentTypes, genericArgumentNames,
+        false, indentation + "  "
+      );
+    } else {
+      JSIL.MethodSignature.$EmitInvocation(
+        body, methodName, thisReferenceExpression, 
+        (!!returnType) ? "return " : "", 
+        argumentTypes, genericArgumentNames,
+        false, indentation
+      );
+    }
   };
 
   var getMethodKeyLookup = function () {
@@ -7160,6 +7175,9 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   };
 
   if (this.useInlineCache) {
+    if (fallbackMethod)
+      JSIL.RuntimeError("Inline caching does not support fallback methods");
+
     if (isInterfaceCall) {
       nameIdentifier = "null";
       body.push("var typeId = thisReference.__ThisTypeId__;");
@@ -7214,15 +7232,19 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   }
 
   var joinedBody = body.join("\r\n");
+  var closure = null;
+  if (fallbackMethod)
+    closure = { fallbackMethod: fallbackMethod };
 
   return JSIL.CreateNamedFunction(
     functionName,
     argumentNames,
-    joinedBody
+    joinedBody,
+    closure
   );
 };
 
-JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, knownMethodKey) {
+JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, knownMethodKey, fallbackMethod) {
   // FIXME: Is this correct? I think having all instances of a given unique signature
   //  share the same IC is probably correct.
   var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
@@ -7233,7 +7255,11 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, known
       return cachedResult;
   }
 
-  var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey);
+  // Not worth the trouble.
+  if (fallbackMethod)
+    this.useInlineCache = false;
+
+  var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey, fallbackMethod);
 
   if (JSIL.MethodSignature.$CallMethodCache) {
     JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
@@ -7673,7 +7699,18 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
         ? "CallVariantInterface"
         : "CallInterface";
 
-    return this.signature.$MakeCallMethod(callType, this.methodKey);
+    var fallbackMethod = this.fallbackMethod;
+    Object.defineProperty(
+      this, "fallbackMethod",
+      { 
+        value: fallbackMethod,
+        writable: false,
+        writeable: false,
+        configurable: false
+      }
+    );
+
+    return this.signature.$MakeCallMethod(callType, this.methodKey, fallbackMethod);
   } else {
     return function () {
       JSIL.RuntimeError("Cannot invoke method '" + this.methodName + "' of open generic interface '" + this.typeObject.__FullName__ + "'");
