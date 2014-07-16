@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
 
-if (!$jsilcore)  
+if (typeof ($jsilcore) === "undefined")  
   throw new Error("JSIL.Core is required");
 
 JSIL.$StructSizeOverrides = {

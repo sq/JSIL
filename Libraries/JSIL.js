@@ -231,9 +231,10 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "Polyfills.js");
   environment.loadScript(libraryRoot + "mersenne.js");
 
-  if (config.typedObjects || false) {
+  var useTypedObjects = config.typedObjects || false;
+
+  if (useTypedObjects) {
     environment.loadScript(libraryRoot + "typedobjects.js");
-    environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
   }
 
   environment.loadScript(libraryRoot + "JSIL.Core.js");
@@ -256,6 +257,10 @@ var $jsilloaderstate = {
   
   if (config.interpreter || environment.getUserSetting("interpreter"))
     environment.loadScript(libraryRoot + "JSIL.ExpressionInterpreter.js");  
+
+  if (useTypedObjects) {
+    environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
+  }
 
   if (config.testFixture || environment.getUserSetting("testFixture"))
     environment.loadScript(libraryRoot + "JSIL.TestFixture.js");
