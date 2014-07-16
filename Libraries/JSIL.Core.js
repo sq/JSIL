@@ -6788,11 +6788,22 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   }
 
   this.recompileCount = 0;
-  this.useInlineCache = true;
+  this.useInlineCache = JSIL.EnableSignatureInlineCaches;
   this.inlineCacheEntries = [];
+  this.isInterfaceSignature = false;
 };
 
 JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
+
+JSIL.MethodSignature.prototype.Clone = function (isInterfaceSignature) {
+  var result = new JSIL.MethodSignature(
+    this.returnType, this.argumentTypes, this.genericArgumentNames,
+    this.context, this.openSignature, this.genericArgumentValues
+  );
+
+  result.isInterfaceSignature = isInterfaceSignature;
+  return result;
+};
 
 JSIL.SetLazyValueProperty(JSIL.MethodSignature, "Void", function () {
   return new JSIL.MethodSignature(null, null, null);
@@ -6975,6 +6986,7 @@ if (false) {
 // Shouldn't ever be necessary, but it's a useful debugging tool.
 JSIL.CheckArgumentCount = false;
 JSIL.CheckGenericArgumentCount = false;
+JSIL.EnableSignatureInlineCaches = true;
 
 JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey) {
   // Welcome to optimization hell! Enjoy your stay.
@@ -7043,11 +7055,21 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
 
   this.recompileCount += 1;
 
-  var functionName = (isInterfaceCall ? "InterfaceMethod" : "MethodSignature") +
-      "." + callMethodName +
+  var functionName = (isInterfaceCall ? "InterfaceMethod" : "MethodSignature") + 
+      "." + callMethodName;
+
+  if (knownMethodKey && (callMethodName === "CallInterface")) {
+    // Generate straightforward closure names for non-variant interface methods.
+    functionName += "_" + 
+      knownMethodKey;
+  } else {
+    functionName += 
       "$" + genericArgumentNames.length + 
-      "$" + argumentTypes.length +
-      "$compile_" + this.recompileCount;   
+      "$" + argumentTypes.length;
+  }
+
+  if (this.useInlineCache)
+    functionName += "$inlineCache" + this.recompileCount;   
 
   var body = [];
 
@@ -7222,10 +7244,10 @@ JSIL.MethodSignatureInlineCacheEntry = function (name, typeId, methodKey) {
   this.methodKey = methodKey;
 };
 
-JSIL.MethodSignatureInlineCacheEntry.prototype.equals = function (rhs) {
-  return (this.name === rhs.name) &&
-    (this.typeId === rhs.typeId) &&
-    (this.methodKey === rhs.methodKey);
+JSIL.MethodSignatureInlineCacheEntry.prototype.equals = function (name, typeId, methodKey) {
+  return (this.name === name) &&
+    (this.typeId === typeId) &&
+    (this.methodKey === methodKey);
 };
 
 JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey) {
@@ -7241,15 +7263,18 @@ JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodNa
 
     this.$RecompileInlineCache(target, callMethodName);
   } else {
-    var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
     for (var i = 0; i < numEntries; i++) {
       var entry = this.inlineCacheEntries[i];
 
       // Our caller is an expired inline cache function.
-      if (entry.equals(newEntry))
+      if (entry.equals(name, typeId, methodKey)) {
+        // Some bugs cause this to happen over and over so perf sucks.
+        // JSIL.RuntimeError("Inline cache miss w/ pending recompile.");
         return;
+      }
     }
 
+    var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
     this.inlineCacheEntries.push(newEntry);
     this.$RecompileInlineCache(target, callMethodName);
   }
@@ -7264,7 +7289,7 @@ JSIL.MethodSignature.prototype.$RecompileInlineCache = function (target, callMet
   }
 
   // HACK
-  var propertyName = (callMethodName === "CallInterface")
+  var propertyName = this.isInterfaceSignature
     ? "Call"
     : callMethodName;
   JSIL.SetValueProperty(target, propertyName, newFunction); 
@@ -7540,7 +7565,8 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInf
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
-  this.signature = signature;
+  // Important so ICs don't get mixed up.
+  this.signature = signature.Clone(true);
   this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
