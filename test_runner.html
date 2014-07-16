@@ -59,12 +59,13 @@
       function runScript () {
         if (scriptAlreadyRan) {
           setTimeout(function () {
+            var newHash = "#" + document.getElementById("scriptname").value;
             var newUrl = window.location.protocol + 
               "//" +
               window.location.host +
               window.location.pathname + 
               "?autoRun" +
-              window.location.hash;
+              newHash;
 
             if (window.location.href === newUrl)
               window.location.reload(true);
