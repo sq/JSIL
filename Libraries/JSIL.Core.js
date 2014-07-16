@@ -7653,12 +7653,14 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference, name) {
 JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference) {
   var variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
 
-  for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
-    var candidate = variantInvocationCandidates[i];
+  if (variantInvocationCandidates) {
+    for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
+      var candidate = variantInvocationCandidates[i];
 
-    var variantResult = thisReference[candidate];
-    if (variantResult)
-      return candidate;
+      var variantResult = thisReference[candidate];
+      if (variantResult)
+        return candidate;
+    }
   }
 
   return this.methodKey;
