@@ -231,7 +231,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "Polyfills.js");
   environment.loadScript(libraryRoot + "mersenne.js");
 
-  var useTypedObjects = config.typedObjects || false;
+  var useTypedObjects = config.typedObjects || true;
 
   if (useTypedObjects) {
     environment.loadScript(libraryRoot + "typedobjects.js");

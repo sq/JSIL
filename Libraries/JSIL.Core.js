@@ -1215,6 +1215,10 @@ JSIL.DeclareNamespace("Property");
 // Implemented in JSIL.Host.js
 JSIL.DeclareNamespace("JSIL.Host", false);
 
+JSIL.DeclareNamespace("JSIL.ES7", false);
+// Implemented in JSIL.TypedObjects.js
+JSIL.DeclareNamespace("JSIL.ES7.TypedObjects", false);
+
 JSIL.UnmaterializedReference = function (targetExpression) {
   JSIL.Host.abort(new Error("A reference to expression '" + targetExpression + "' could not be translated."));
 };
@@ -4573,6 +4577,16 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
 
   JSIL.InitializeType(typeObject);
 
+  // If ES7 typed objects are enabled, before running any cctors,
+  //  attempt to construct the ES7 type descriptor.
+  if (
+    JSIL.ES7.TypedObjects.Enabled &&
+    // HACK: We don't want to do this while initializing anything under the System namespace.
+    (typeObject.__FullName__.indexOf("System.") !== 0)
+  ) {
+    JSIL.ES7.TypedObjects.GetES7TypeObject(typeObject);
+  }
+
   if (typeObject.__RanCctors__)
     return;
 
@@ -5350,7 +5364,21 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   ctorBody.push("}");
   ctorBody.push("");
 
-  ctorBody.push("fieldInitializer(this);");
+  if (
+    (JSIL.ES7.TypedObjects.Enabled === true) &&
+    typeObject.__IsStruct__
+  ) {
+    ctorBody.push("var self = this;");
+    ctorBody.push("if (typeObject.__ES7Constructor__) {");
+    ctorBody.push("  self = new (typeObject.__ES7Constructor__)();");
+    ctorBody.push("} else {");
+    ctorBody.push("  fieldInitializer(self);");
+    ctorBody.push("}");
+  } else {
+    ctorBody.push("var self = this;");
+    ctorBody.push("fieldInitializer(self);");
+  }
+
   ctorBody.push("");
 
   // Only generate specialized dispatch if we know the number of arguments.
@@ -5360,14 +5388,14 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
     ctorBody.push("var argc = arguments.length | 0;");
 
     var cases = [
-      { key: 0, code: (typeObject.__IsStruct__ ? "return;" : "return this._ctor();") }
+      { key: 0, code: (typeObject.__IsStruct__ ? "return self;" : "return self._ctor();") }
     ];
 
     for (var i = 1; i < (numPositionalArguments + 1); i++)
       argumentNames.push("arg" + (i - 1));
 
     for (var i = 1; i < (numPositionalArguments + 1); i++) {
-      var line = "return this._ctor(";
+      var line = "return self._ctor(";
       for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
         line += argumentNames[j];
         if (j == jMax - 1)
@@ -5386,12 +5414,12 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
 
   } else if (typeObject.__IsStruct__) {
     ctorBody.push("if (arguments.length === 0)");
-    ctorBody.push("  return;");
+    ctorBody.push("  return self;");
     ctorBody.push("else");
-    ctorBody.push("  return this._ctor.apply(this, arguments);");
+    ctorBody.push("  return self._ctor.apply(self, arguments);");
 
   } else {
-    ctorBody.push("return this._ctor.apply(this, arguments);");
+    ctorBody.push("return self._ctor.apply(self, arguments);");
   }
 
   var result = JSIL.CreateNamedFunction(
@@ -5490,6 +5518,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
       typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(null);
     }
 
+    typeObject.__ES7Constructor__ = null;
     typeObject.__IsArray__ = false;
     typeObject.__IsNullable__ = fullName.indexOf("System.Nullable`1") === 0;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
