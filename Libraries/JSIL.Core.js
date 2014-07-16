@@ -3542,6 +3542,12 @@ JSIL.$MakeMemberCopier = function (typeObject, publicInterface) {
 };
 
 JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
+  if (typeObject.__ES7Constructor__) {
+    // HACK: new T(source) should always do a bitwise copy of the source
+    //  typed object in ES7, so it does exactly what we want.
+    return typeObject.__ES7Constructor__;
+  }
+
   var prototype = publicInterface.prototype;
   var context = {
     prototype: prototype
@@ -5342,6 +5348,34 @@ JSIL.$MakeOptimizedNumericSwitch = function (output, variableName, cases, defaul
   }
 };
 
+JSIL.EmitFieldInitializerInvocation = function (body, typeObject, closure) {
+  if (!closure.typeObject)
+    throw new Error("Closure must have a typeObject");
+
+  if (!Object.hasOwnProperty.call(closure, "fieldInitializer"))
+    throw new Error("Closure must have a fieldInitializer property");
+
+  if (
+    (JSIL.ES7.TypedObjects.Enabled === true) &&
+    typeObject.__IsStruct__
+  ) {
+    body.push("var self = this;");
+    body.push("if (typeObject.__ES7Constructor__) {");
+    body.push("  self = new (typeObject.__ES7Constructor__)();");
+    body.push("} else {");
+
+    if (closure.fieldInitializer)
+      body.push("  fieldInitializer(self);");
+
+    body.push("}");
+  } else {
+    body.push("var self = this;");
+
+    if (closure.fieldInitializer)
+      body.push("fieldInitializer(self);");
+  }
+};
+
 JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   if (typeObject.__IsClosed__ === false) {
     return function () {
@@ -5364,20 +5398,7 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
   ctorBody.push("}");
   ctorBody.push("");
 
-  if (
-    (JSIL.ES7.TypedObjects.Enabled === true) &&
-    typeObject.__IsStruct__
-  ) {
-    ctorBody.push("var self = this;");
-    ctorBody.push("if (typeObject.__ES7Constructor__) {");
-    ctorBody.push("  self = new (typeObject.__ES7Constructor__)();");
-    ctorBody.push("} else {");
-    ctorBody.push("  fieldInitializer(self);");
-    ctorBody.push("}");
-  } else {
-    ctorBody.push("var self = this;");
-    ctorBody.push("fieldInitializer(self);");
-  }
+  JSIL.EmitFieldInitializerInvocation(ctorBody, typeObject, ctorClosure);
 
   ctorBody.push("");
 
@@ -5388,14 +5409,14 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
     ctorBody.push("var argc = arguments.length | 0;");
 
     var cases = [
-      { key: 0, code: (typeObject.__IsStruct__ ? "return self;" : "return self._ctor();") }
+      { key: 0, code: (typeObject.__IsStruct__ ? "self;" : "self._ctor();") }
     ];
 
     for (var i = 1; i < (numPositionalArguments + 1); i++)
       argumentNames.push("arg" + (i - 1));
 
     for (var i = 1; i < (numPositionalArguments + 1); i++) {
-      var line = "return self._ctor(";
+      var line = "self._ctor(";
       for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
         line += argumentNames[j];
         if (j == jMax - 1)
@@ -5416,11 +5437,14 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
     ctorBody.push("if (arguments.length === 0)");
     ctorBody.push("  return self;");
     ctorBody.push("else");
-    ctorBody.push("  return self._ctor.apply(self, arguments);");
+    ctorBody.push("  self._ctor.apply(self, arguments);");
 
   } else {
-    ctorBody.push("return self._ctor.apply(self, arguments);");
+    ctorBody.push("self._ctor.apply(self, arguments);");
   }
+
+  ctorBody.push("");
+  ctorBody.push("return self;");
 
   var result = JSIL.CreateNamedFunction(
     typeObject.__FullName__, argumentNames,
@@ -8060,9 +8084,10 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
 
   var proto = publicInterface.prototype;
 
+  closure.typeObject = typeObject;
   closure.fieldInitializer = JSIL.GetFieldInitializer(typeObject);
 
-  body.push("fieldInitializer(this);");
+  JSIL.EmitFieldInitializerInvocation(body, typeObject, closure);
 
   var ctorKey = "_ctor";
 
@@ -8077,10 +8102,13 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
     }
 
     JSIL.MethodSignature.$EmitInvocation(
-      body, "this['" + ctorKey + "']", null, 
-      "return ", argumentNames
+      body, "self['" + ctorKey + "']", null, 
+      "", argumentNames
     );
   }
+
+  body.push("");
+  body.push("return self;");
 
   var result = JSIL.CreateNamedFunction(
     typeObject.__FullName__ + "." + ctorKey,    
@@ -8739,10 +8767,10 @@ JSIL.CreateInstanceOfTypeRecord = function (
 
   // FIXME: I think this runs the field initializer twice? :(
   var fi = JSIL.GetFieldInitializer(type);
-  if (fi) {
-    closure.fieldInitializer = fi;
-    constructorBody.push("fieldInitializer(this);");
-  }
+  closure.typeObject = type;
+  closure.fieldInitializer = fi;
+
+  JSIL.EmitFieldInitializerInvocation(constructorBody, type, closure);
 
   if ((constructorName === null) && (constructor === null)) {
   } else {
@@ -8761,9 +8789,11 @@ JSIL.CreateInstanceOfTypeRecord = function (
 
     if (constructor) {
       closure.actualConstructor = constructor;
-      constructorBody.push("return actualConstructor.apply(this, argv);");
+      constructorBody.push("actualConstructor.apply(self, argv);");
     }
   }
+
+  constructorBody.push("return self;");
 
   this.instanceConstructor = JSIL.CreateNamedFunction(
     type.__FullName__ + ".CreateInstanceOfType",
