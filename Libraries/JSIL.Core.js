@@ -6787,9 +6787,9 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentValues = genericArgumentValues;
   }
 
+  this.recompileCount = 0;
   this.useInlineCache = true;
   this.inlineCacheEntries = [];
-  this.inlineCacheTable = JSIL.CreateDictionaryObject(null);
 };
 
 JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
@@ -6847,17 +6847,17 @@ JSIL.MethodSignature.Action = function (argumentType) {
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "Call", 
-  function () { return this.$MakeCallMethod("Call"); }, true, false
+  function () { return this.$MakeCallMethod("Call", null); }, true, false
 );
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "CallStatic", 
-  function () { return this.$MakeCallMethod("CallStatic"); }, true, false
+  function () { return this.$MakeCallMethod("CallStatic", null); }, true, false
 );
 
 JSIL.SetLazyValueProperty(
   JSIL.MethodSignature.prototype, "CallVirtual", 
-  function () { return this.$MakeCallMethod("CallVirtual"); }, true, false
+  function () { return this.$MakeCallMethod("CallVirtual", null); }, true, false
 );
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
@@ -6961,11 +6961,24 @@ JSIL.MethodSignature.$EmitInvocation = function (
   body.push(indentation + ");");
 };
 
-JSIL.MethodSignature.$CallMethodCache = JSIL.CreateDictionaryObject(null);
 
+// Used as a global cache for generated invocation method bodies.
+// Caching them reduces memory usage but probably ruins type info, so we're not
+// going to do it by default.
+if (false) {
+  JSIL.MethodSignature.$CallMethodCache = JSIL.CreateDictionaryObject(null);
+} else {
+  JSIL.MethodSignature.$CallMethodCache = null;
+}
+
+// Control whether generated ICs check argument & generic argument counts.
+// Shouldn't ever be necessary, but it's a useful debugging tool.
+JSIL.CheckArgumentCount = false;
 JSIL.CheckGenericArgumentCount = false;
 
-JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) {
+JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey) {
+  // Welcome to optimization hell! Enjoy your stay.
+
   var returnType = this.returnType;
   var argumentTypes = this.argumentTypes;
   var genericArgumentNames = this.genericArgumentNames;
@@ -6973,28 +6986,43 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
   var argumentNames;
   var methodLookupArg, thisReferenceArg;
   var suffix;
+  var isInterfaceCall = false;
 
+  // We're generating an optimized inline cache that handles method dispatch for
+  //  four different types of calls. They all have similar but distinct semantics.
   switch (callMethodName) {
     case "CallStatic":
+      // Invoking a static method of a given type. There's no this-reference.
+      // methodSource is the public interface of the type, we can call off it directly.
       thisReferenceArg = methodLookupArg = "methodSource";
       argumentNames = ["methodSource", "name", "ga"];
       break;
+
     case "Call":
+      // Invoking a specific method against a specific object instance.
+      // The 
       thisReferenceArg = "thisReference";
       methodLookupArg = "methodSource";
       argumentNames = ["methodSource", "name", "ga", "thisReference"];
       break;
+
     case "CallVirtual":
       suffix = "Virtual";
       thisReferenceArg = methodLookupArg = "thisReference";
       argumentNames = ["name", "ga", "thisReference"];
       break;
-    // HACK
+
     case "CallInterface":
-      this.useInlineCache = false;
+    case "CallVariantInterface":
+      // Interface calls that are non-variant don't need an IC. Their target is constant.
+      if (callMethodName === "CallInterface")
+        this.useInlineCache = false;
+
+      isInterfaceCall = true;
       thisReferenceArg = methodLookupArg = "thisReference";
       argumentNames = ["thisReference", "ga"];
       break;
+
     default:
       JSIL.RuntimeError("Invalid callMethodName");
   }
@@ -7013,20 +7041,25 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     argumentCheckOperator = "<";
   }
 
-  var functionName = (callMethodName === "CallInterface" ? "InterfaceMethod" : "MethodSignature") +
+  this.recompileCount += 1;
+
+  var functionName = (isInterfaceCall ? "InterfaceMethod" : "MethodSignature") +
       "." + callMethodName +
       "$" + genericArgumentNames.length + 
-      "$" + argumentTypes.length;   
+      "$" + argumentTypes.length +
+      "$compile_" + this.recompileCount;   
 
   var body = [];
-  body.push("var argc = arguments.length | 0;");
-  body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ") JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
 
-  if (callMethodName === "CallInterface") {
-    body.push("var method = this.LookupMethod(" + methodLookupArg + ");");
-    body.push("");
+  // Check the # of provided arguments to detect an invalid invocation.
+  if (JSIL.CheckArgumentCount) {
+    body.push("var argc = arguments.length | 0;");
+    body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ")");
+    body.push("  JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
   }
 
+  // If the function accepts generic arguments, we need to do a check to ensure
+  //  that the appropriate # of arguments were passed.
   if (genericArgumentNames.length > 0) {
     if (JSIL.CheckGenericArgumentCount) {
       body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
@@ -7035,6 +7068,8 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     body.push("JSIL.ResolveTypeArgumentArray(ga);");
     body.push("");
   } else {
+    // If it doesn't accept them, and we're in validation mode, insert a check.
+    // This wastes cycles normally so we don't always want to put it in there.
     if (JSIL.CheckGenericArgumentCount) {
       body.push("if (ga && ga.length > 0)");
       body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
@@ -7047,10 +7082,12 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
   if (methodLookupArg !== thisReferenceArg)
     thisReferenceExpression = thisReferenceArg;
 
-  var emitDefaultInvocation = function (indentation) {
-    var methodName = thisReferenceExpression
-      ? methodLookupArg + "[methodKey].call"
-      : methodLookupArg + "[methodKey]";
+  var emitDefaultInvocation = function (indentation, methodKeyToken) {
+    // For every invocation type other than Call, the this-reference will
+    //  automatically bind thanks to JS call semantics.
+    var methodName = (callMethodName === "Call")
+      ? methodLookupArg + "[" + methodKeyToken + "].call"
+      : methodLookupArg + "[" + methodKeyToken + "]";
 
     JSIL.MethodSignature.$EmitInvocation(
       body, methodName, thisReferenceExpression, 
@@ -7060,39 +7097,72 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     );
   };
 
-  var emitCacheMissInvocation = function (indentation) {
-    body.push(indentation + "var methodKey = this.GetNamedKey(name, true);");
-    body.push(indentation + "this.$InlineCacheMiss('" + callMethodName + "', name, methodKey);");
-    emitDefaultInvocation(indentation);
+  var getMethodKeyLookup = function () {
+    if (isInterfaceCall) {
+      if (callMethodName === "CallVariantInterface") {
+        return "this.LookupVariantMethodKey(thisReference)";
+      } else if (knownMethodKey) {
+        return "\"" + knownMethodKey + "\"";
+      } else {
+        return "this.methodKey";
+      }
+    } else {
+      return "this.GetNamedKey(name, true)";
+    }
   };
 
-  if (callMethodName === "CallInterface") {
-    JSIL.MethodSignature.$EmitInvocation(
-      body, "method.call", thisReferenceArg, 
-      (!!returnType) ? "return " : "", 
-      argumentTypes, genericArgumentNames,
-      true, "  "
+  var nameIdentifier = "name";
+
+  var emitCacheMissInvocation = function (indentation) {
+    var typeIdExpression = 
+      isInterfaceCall
+        ? "typeId"
+        : "null";
+    var cacheMissMethod = 
+      isInterfaceCall
+        ? "this.signature.$InlineCacheMiss(this, '"
+        : "this.$InlineCacheMiss(this, '";
+
+    body.push(indentation + "var methodKey = " + getMethodKeyLookup() + ";");
+    body.push(
+      indentation + cacheMissMethod +  
+      callMethodName + "', " +
+      nameIdentifier + ", " + 
+      typeIdExpression + ", methodKey);"
     );
-  } else if (this.useInlineCache) {
-    if (this.inlineCacheEntries.length > 0) {
-      body.push("var methodIndex = this.inlineCacheTable[name] | 0;")
+    emitDefaultInvocation(indentation, "methodKey");
+  };
+
+  if (this.useInlineCache) {
+    if (isInterfaceCall) {
+      nameIdentifier = "null";
+      body.push("var typeId = thisReference.__ThisTypeId__;");
     }
 
     for (var i = 0, l = this.inlineCacheEntries.length; i < l; i++) {
-      var currentName = this.inlineCacheEntries[i][0];
-      var currentKey = this.inlineCacheEntries[i][1];
-
-      if (i === 0)
-        body.push("switch (methodIndex) {");
-
-      this.inlineCacheTable[currentName] = (i + 1) | 0;
+      var entry = this.inlineCacheEntries[i];
 
       // FIXME: Can the key end up with a single quote in it, or a backslash?
-      body.push("  case " + (i + 1) + ":");
+      var conditionString = 
+        isInterfaceCall
+          ? "typeId === \"" + entry.typeId + "\""
+          : "name === \"" + entry.name + "\"";
 
-      var methodName = thisReferenceExpression
-        ? methodLookupArg + "['" + currentKey + "'].call"
-        : methodLookupArg + "['" + currentKey + "']";
+      body.push(
+        (
+          (i == 0)
+            ? "if ("
+            : "} else if ("
+        ) +
+        conditionString +
+        ") {"
+      );
+
+      // For every invocation type other than Call, the this-reference will
+      //  automatically bind thanks to JS call semantics.
+      var methodName = (callMethodName === "Call")
+        ? methodLookupArg + "['" + entry.methodKey + "'].call"
+        : methodLookupArg + "['" + entry.methodKey + "']";
 
       JSIL.MethodSignature.$EmitInvocation(
         body, methodName, thisReferenceExpression, 
@@ -7101,14 +7171,11 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
         false, "    "
       );
 
-      if (!returnType)
-        body.push("    break;");
-
       body.push("  ");
     }
 
     if (this.inlineCacheEntries.length >= 1) {
-      body.push("  default: ");
+      body.push("} else {");
       emitCacheMissInvocation("    ");
       body.push("  ");
       body.push("}");
@@ -7117,8 +7184,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
     }
 
   } else {
-    body.push("var methodKey = this.GetNamedKey(name, true);");
-    emitDefaultInvocation("");
+    emitDefaultInvocation("", getMethodKeyLookup());
   }
 
   var joinedBody = body.join("\r\n");
@@ -7130,50 +7196,78 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName) 
   );
 };
 
-JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName) {
-  // TODO: Investigate caching these closures keyed off (callMethodType, (returnType ? 1 : 0), genericArgumentNames.length, argumentTypes.length)
-  // Caching them might impair performance because the arguments to each closure would no longer be monomorphic,
-  //  but it might pay for itself given the reduced memory usage.
-
+JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, knownMethodKey) {
   // FIXME: Is this correct? I think having all instances of a given unique signature
   //  share the same IC is probably correct.
   var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
-  var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
-  if (cachedResult)
-    return cachedResult;
 
-  var result = this.$MakeInlineCacheBody(callMethodName);
-  JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
+  if (JSIL.MethodSignature.$CallMethodCache) {
+    var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
+    if (cachedResult)
+      return cachedResult;
+  }
+
+  var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey);
+
+  if (JSIL.MethodSignature.$CallMethodCache) {
+    JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
+  }
+
   return result;
 };
 
-JSIL.MethodSignature.prototype.$InlineCacheMiss = function (callMethodName, name, methodKey) {
+JSIL.MethodSignatureInlineCacheEntry = function (name, typeId, methodKey) {
+  this.name = name;
+  this.typeId = typeId;
+  this.methodKey = methodKey;
+};
+
+JSIL.MethodSignatureInlineCacheEntry.prototype.equals = function (rhs) {
+  return (this.name === rhs.name) &&
+    (this.typeId === rhs.typeId) &&
+    (this.methodKey === rhs.methodKey);
+};
+
+JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey) {
   if (!this.useInlineCache)
     return;
 
-  var inlineCacheCapacity = 2;
+  var inlineCacheCapacity = 3;
+  var numEntries = this.inlineCacheEntries.length | 0;
 
-  if (this.inlineCacheEntries.length >= inlineCacheCapacity) {
-    this.inlineCacheTable = null;
+  if (numEntries >= inlineCacheCapacity) {
     this.inlineCacheEntries = null;
     this.useInlineCache = false;
 
-    this.$RecompileInlineCache(callMethodName);
-  } else if (typeof (this.inlineCacheTable[name]) !== "number") {
-    this.inlineCacheEntries.push([name, methodKey]);
-
-    this.$RecompileInlineCache(callMethodName);
+    this.$RecompileInlineCache(target, callMethodName);
   } else {
-    // Running a function that hasn't recompiled yet.
+    var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
+    for (var i = 0; i < numEntries; i++) {
+      var entry = this.inlineCacheEntries[i];
+
+      // Our caller is an expired inline cache function.
+      if (entry.equals(newEntry))
+        return;
+    }
+
+    this.inlineCacheEntries.push(newEntry);
+    this.$RecompileInlineCache(target, callMethodName);
   }
 };
 
-JSIL.MethodSignature.prototype.$RecompileInlineCache = function (callMethodName) {
-  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
-  var newFunction = this.$MakeInlineCacheBody(callMethodName);
+JSIL.MethodSignature.prototype.$RecompileInlineCache = function (target, callMethodName) {
+  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);  
+  var newFunction = this.$MakeInlineCacheBody(callMethodName, target.methodKey || null);
 
-  JSIL.MethodSignature.$CallMethodCache[cacheKey] = newFunction;
-  JSIL.SetValueProperty(this, callMethodName, newFunction); 
+  if (JSIL.MethodSignature.$CallMethodCache) {
+    JSIL.MethodSignature.$CallMethodCache[cacheKey] = newFunction;
+  }
+
+  // HACK
+  var propertyName = (callMethodName === "CallInterface")
+    ? "Call"
+    : callMethodName;
+  JSIL.SetValueProperty(target, propertyName, newFunction); 
 };
 
 JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
@@ -7446,12 +7540,15 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInf
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
-  this.methodKey = null;
   this.signature = signature;
   this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
   this.fallbackMethod = JSIL.$PickFallbackMethodForInterfaceMethod(typeObject, methodName, signature);
+
+  JSIL.SetLazyValueProperty(this, "methodKey", function () {
+    return this.signature.GetNamedKey(this.qualifiedName, true);
+  });
 };
 
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
@@ -7477,67 +7574,67 @@ JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisRe
   return result;
 };
 
-JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference) {
-  if (!thisReference)
-    JSIL.RuntimeError("Attempting to invoke interface method named '" + this.methodName + "' on null/undefined object");
+JSIL.InterfaceMethod.prototype.MethodLookupFailed = function (thisReference) {
+  var variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
 
-  var result = null;
-  var variantInvocationCandidates = null;
+  var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
+    this.typeObject.__FullName__ + "' is not implemented by object " + 
+    thisReference + "\n";
 
-  if (!this.methodKey) {
-    this.methodKey = this.signature.GetNamedKey(this.qualifiedName, true);
-  }
+  if (variantInvocationCandidates) {
+    errorString += "(Looked for key(s): '";
+    errorString += this.methodKey + "'";
 
-  if (this.variantGenericArguments.length) {
-    variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
-
-    if (variantInvocationCandidates)
     for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
       var candidate = variantInvocationCandidates[i];
-
-      result = thisReference[candidate];
-      if (result)
-        break;
+      errorString += ", \n'" + candidate + "'";
     }
 
-    if (!result)
-      result = thisReference[this.methodKey];
+    errorString += ")";
   } else {
-    result = thisReference[this.methodKey];
+    errorString += "(Looked for key '" + this.methodKey + "')";
   }
 
-  if (!result && this.fallbackMethod) {
-    result = this.fallbackMethod(this.typeObject, this.signature, thisReference);
+  JSIL.RuntimeError(errorString);
+};
+
+JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference, name) {
+  var methodKey;
+  if (this.variantGenericArguments.length > 0) {
+    methodKey = this.LookupVariantMethodKey(thisReference);
+  } else {
+    methodKey = this.methodKey;
   }
 
-  if (!result) {
-    var errorString = "Method '" + this.signature.toString(this.methodName) + "' of interface '" + 
-      this.typeObject.__FullName__ + "' is not implemented by object " + 
-      thisReference + "\n";
-
-    if (variantInvocationCandidates) {
-      errorString += "(Looked for key(s): '";
-      errorString += this.methodKey + "'";
-
-      for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
-        var candidate = variantInvocationCandidates[i];
-        errorString += ", \n'" +candidate + "'";
-      }
-
-      errorString += ")";
-    } else {
-      errorString += "(Looked for key '" + this.methodKey + "')";
-    }
-
-    JSIL.RuntimeError(errorString);
-  }
+  var result = thisReference[methodKey];
+  if (!result)
+    this.MethodLookupFailed(thisReference);
 
   return result;
 };
 
+JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference) {
+  var variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
+
+  for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
+    var candidate = variantInvocationCandidates[i];
+
+    var variantResult = thisReference[candidate];
+    if (variantResult)
+      return candidate;
+  }
+
+  return this.methodKey;
+};
+
 JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
   if (this.typeObject.__IsClosed__ && this.signature.IsClosed) {
-    return this.signature.$MakeCallMethod("CallInterface");
+    var callType = 
+      (this.variantGenericArguments.length > 0)
+        ? "CallVariantInterface"
+        : "CallInterface";
+
+    return this.signature.$MakeCallMethod(callType, this.methodKey);
   } else {
     return function () {
       JSIL.RuntimeError("Cannot invoke method '" + this.methodName + "' of open generic interface '" + this.typeObject.__FullName__ + "'");
