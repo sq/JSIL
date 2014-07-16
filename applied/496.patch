@@ -1,0 +1,167 @@
+From 1fa90be2413ed03b3d66c547062aeafd5a701a56 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 20 May 2014 00:19:43 -0700
+Subject: [PATCH] Interface methods reflection call. Fix #484.
+
+---
+ Libraries/JSIL.Core.Reflection.js                  | 10 ++++----
+ Libraries/JSIL.Core.js                             |  4 +++
+ .../ReflectionGenericMethodInvoke.cs               | 29 +++++++++++-----------
+ .../ReflectionInterfaceMethodInvoke.cs             | 29 ++++++++++++++++++++++
+ Tests/Tests.csproj                                 |  1 +
+ 5 files changed, 53 insertions(+), 20 deletions(-)
+ create mode 100644 Tests/SimpleTestCases/ReflectionInterfaceMethodInvoke.cs
+
+diff --git a/Libraries/JSIL.Core.Reflection.js b/Libraries/JSIL.Core.Reflection.js
+index f0a2ed9..2f82b17 100644
+--- a/Libraries/JSIL.Core.Reflection.js
++++ b/Libraries/JSIL.Core.Reflection.js
+@@ -826,16 +826,16 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+       var parametersCount = 0;
+       if (parameters !== null)
+         parametersCount = parameters.length;
+-
++
+       if (parameterTypes.length !== parametersCount)
+         throw new System.Exception("Parameters count mismatch.");
+ 
+-      if (parameters !== null) {
++      if (parameters !== null) {
+         parameters = parameters.slice();
+-        for (var i = 0; i < parametersCount; i++) {
++        for (var i = 0; i < parametersCount; i++) {
+           if (parameters[i] === null && parameterTypes[i].IsValueType)
+-            parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
+-        }
++            parameters[i] = JSIL.CreateInstanceOfType(parameterTypes[i]);
++        }
+       }
+ 
+       return impl.apply(obj, parameters);
+diff --git a/Libraries/JSIL.Core.js b/Libraries/JSIL.Core.js
+index 969f4ff..76f8661 100644
+--- a/Libraries/JSIL.Core.js
++++ b/Libraries/JSIL.Core.js
+@@ -9262,8 +9262,12 @@ JSIL.$GetMethodImplementation = function (method, target) {
+   if (method._data.signature.genericArgumentValues) {
+     if (isStatic) {
+        return result.apply(method.DeclaringType.__PublicInterface__, method._data.signature.genericArgumentValues).bind(method.DeclaringType.__PublicInterface__);
++    } else if (result instanceof JSIL.InterfaceMethod) {
++      return function(methodArgs) { return result.Call(this, method._data.signature.genericArgumentValues, methodArgs) };
+     }
+     return result.apply(target, method._data.signature.genericArgumentValues);
++  } else if (result instanceof JSIL.InterfaceMethod) {
++    return function(methodArgs) { return result.Call(this, methodArgs); };
+   }
+   return result;
+ };
+diff --git a/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs b/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
+index cdf6c8e..a7ad416 100644
+--- a/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
++++ b/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
+@@ -1,9 +1,9 @@
+ ﻿using System;
+-using System.Reflection;
+-
+-public static class Program
+-{
+-    public static void Main(string[] args)
++using System.Reflection;
++
++public static class Program
++{
++    public static void Main(string[] args)
+     {
+         Console.WriteLine(Class1.GetGenericMethodInfo() == Class2.GetGenericMethodInfo() ? "true" : "false");
+ 
+@@ -39,8 +39,7 @@ public static void Main(string[] args)
+         actionInt = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), obj, mi);
+         actionInt(11);
+ 
+-        // TODO: Implement interface method reflection invoke
+-        /*obj = new NonGeneric();
++        obj = new NonGeneric();
+         mi = typeof(INonGeneric).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(string) });
+         mi.Invoke(obj, new object[] { "TestString12" });
+         actionStr = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), obj, mi);
+@@ -70,16 +69,16 @@ public static void Main(string[] args)
+         mi = typeof(IGeneric<string>).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(int) });
+         mi.Invoke(obj, new object[] { 22 });
+         actionInt = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), obj, mi);
+-        actionInt(23);*/
+-    }
+-
++        actionInt(23);
++    }
++
+     public static void StaticGenericMethod<T>(T input)
+     {
+         Console.WriteLine(typeof(T).Name);
+         Console.WriteLine(input);
+-    }
+-}
+-
++    }
++}
++
+ public interface INonGeneric
+ {
+     void InstanceGenericMethod<T>(T input);
+@@ -131,5 +130,5 @@ public static MethodInfo GetGenericMethodInfo()
+     {
+         return typeof(Generic<string>).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(string) });
+     }
+-}
+-
++}
++
+diff --git a/Tests/SimpleTestCases/ReflectionInterfaceMethodInvoke.cs b/Tests/SimpleTestCases/ReflectionInterfaceMethodInvoke.cs
+new file mode 100644
+index 0000000..aa3fc36
+--- /dev/null
++++ b/Tests/SimpleTestCases/ReflectionInterfaceMethodInvoke.cs
+@@ -0,0 +1,29 @@
++﻿using System;
++using System.Reflection;
++
++public static class Program
++{
++    public static void Main(string[] args)
++    {
++        var obj = new NonGeneric();
++        var mi = typeof(INonGeneric).GetMethod("InstanceMethod");
++        mi.Invoke(obj, new object[] { });
++        var action = (Action)Delegate.CreateDelegate(typeof(Action), obj, mi);
++        action();
++    }
++}
++
++public interface INonGeneric
++{
++    void InstanceMethod();
++}
++
++public class NonGeneric : INonGeneric
++{
++    private readonly string _field = "field";
++
++    public void InstanceMethod()
++    {
++        Console.WriteLine(_field);
++    }
++}
+diff --git a/Tests/Tests.csproj b/Tests/Tests.csproj
+index 31edce7..6bf4860 100644
+--- a/Tests/Tests.csproj
++++ b/Tests/Tests.csproj
+@@ -856,6 +856,7 @@
+     <None Include="SimpleTestCases\Issue364_2.cs" />
+     <None Include="SimpleTestCases\Issue364_3.cs" />
+     <None Include="SimpleTestCases\Issue368.cs" />
++    <None Include="SimpleTestCases\ReflectionInterfaceMethodInvoke.cs" />
+     <None Include="SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs" />
+     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
+     <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+-- 
+1.9.3
+

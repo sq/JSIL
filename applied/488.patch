@@ -1,0 +1,3167 @@
+From 5bf59e233e5e7ce2a804b7eeacd65738d0abedfe Mon Sep 17 00:00:00 2001
+From: ZimM <fearcatalyst@gmail.com>
+Date: Mon, 10 Mar 2014 00:42:59 +0200
+Subject: [PATCH 01/15] Fixed List.Remove Added StringBuilder.Append(Object)
+
+---
+ Libraries/JSIL.Bootstrap.Text.js | 8 ++++++++
+ Libraries/JSIL.Bootstrap.js      | 3 ++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/Libraries/JSIL.Bootstrap.Text.js b/Libraries/JSIL.Bootstrap.Text.js
+index 971a896..61b14ab 100644
+--- a/Libraries/JSIL.Bootstrap.Text.js
++++ b/Libraries/JSIL.Bootstrap.Text.js
+@@ -1527,6 +1527,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
+   );
+ 
+   $.Method({Static:false, Public:true }, "Append", 
++    (new JSIL.MethodSignature($.Type, [$.Object], [])), 
++    function Append (value) {
++      var string = value.toString();
++      appendString(this, string, 0, string.length, 1);
++    }
++  );
++
++  $.Method({Static:false, Public:true }, "Append", 
+     (new JSIL.MethodSignature($.Type, [$.String], [])), 
+     function Append (value) {
+       appendString(this, value, 0, value.length, 1);
+diff --git a/Libraries/JSIL.Bootstrap.js b/Libraries/JSIL.Bootstrap.js
+index 3c357b8..b3d6e3a 100644
+--- a/Libraries/JSIL.Bootstrap.js
++++ b/Libraries/JSIL.Bootstrap.js
+@@ -1166,7 +1166,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
+     if (index === -1)
+       return false;
+ 
+-    return this.RemoveAt(index);
++    this.RemoveAt(index);
++    return true;
+   };
+ 
+   switch (type) {
+-- 
+1.9.3
+
+
+From 25a4027e6e9ce98d4ae929e647ec230fd483f50a Mon Sep 17 00:00:00 2001
+From: ZimM <fearcatalyst@gmail.com>
+Date: Mon, 10 Mar 2014 19:57:52 +0200
+Subject: [PATCH 02/15] Added dumb analyzer plugin API Added basic dead code
+ elimination plugin
+
+---
+ .gitignore                                         |   2 +
+ Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs | 111 ++++++++
+ .../Analyzers/DeadCodeAnalyzer/Configuration.cs    |  23 ++
+ .../Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs |  64 +++++
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 295 +++++++++++++++++++++
+ .../DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj  |  88 ++++++
+ .../DeadCodeAnalyzer/Properties/AssemblyInfo.cs    |  35 +++
+ Compiler/Analyzers/DeadCodeAnalyzer/TypeMapStep.cs | 281 ++++++++++++++++++++
+ Compiler/Compiler.csproj                           |   2 +
+ Compiler/Configuration.cs                          |   4 +
+ Compiler/Extensibility/IAnalyzer.cs                |  13 +
+ Compiler/Extensibility/ICompilerExtension.cs       |   4 +
+ Compiler/Extensibility/IProfile.cs                 |   2 +-
+ Compiler/Program.cs                                |  94 +++++--
+ JSIL.sln                                           |   2 +
+ JSIL/AssemblyTranslator.cs                         |  44 +++
+ JSIL_NoXNA.sln                                     |   2 +
+ 17 files changed, 1045 insertions(+), 21 deletions(-)
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/Configuration.cs
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/Properties/AssemblyInfo.cs
+ create mode 100644 Compiler/Analyzers/DeadCodeAnalyzer/TypeMapStep.cs
+ create mode 100644 Compiler/Extensibility/IAnalyzer.cs
+ create mode 100644 Compiler/Extensibility/ICompilerExtension.cs
+
+diff --git a/.gitignore b/.gitignore
+index ee5e71c..9a63ceb 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,6 +7,8 @@ _ReSharper.*
+ Compiler/obj
+ Compiler/Profiles/*/obj
+ Compiler/Profiles/*/bin
++Compiler/Analyzers/*/obj
++Compiler/Analyzers/*/bin
+ JSIL/obj
+ JSIL/bin
+ Meta/obj
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs b/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
+new file mode 100644
+index 0000000..755b26e
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
+@@ -0,0 +1,111 @@
++//
++// Annotations.cs
++//
++// Author:
++//   Jb Evain (jbevain@novell.com)
++//
++// (C) 2007 Novell, Inc.
++//
++// Permission is hereby granted, free of charge, to any person obtaining
++// a copy of this software and associated documentation files (the
++// "Software"), to deal in the Software without restriction, including
++// without limitation the rights to use, copy, modify, merge, publish,
++// distribute, sublicense, and/or sell copies of the Software, and to
++// permit persons to whom the Software is furnished to do so, subject to
++// the following conditions:
++//
++// The above copyright notice and this permission notice shall be
++// included in all copies or substantial portions of the Software.
++//
++// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++//
++
++using System.Collections.Generic;
++using Mono.Cecil;
++
++namespace Mono.Linker {
++    public class AnnotationStore {
++        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> base_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
++        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> override_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
++        private readonly Dictionary<IMemberDefinition, List<MethodDefinition>> preserved_methods = new Dictionary<IMemberDefinition, List<MethodDefinition>>();
++
++        public void AddOverride(MethodDefinition @base, MethodDefinition @override) {
++            List<MethodDefinition> methods = GetOverrides(@base);
++            if (methods == null) {
++                methods = new List<MethodDefinition>();
++                override_methods[@base] = methods;
++            }
++
++            methods.Add(@override);
++        }
++
++        public List<MethodDefinition> GetOverrides(MethodDefinition method) {
++            List<MethodDefinition> overrides;
++            if (override_methods.TryGetValue(method, out overrides)) {
++                return overrides;
++            }
++
++            return null;
++        }
++
++        public void AddBaseMethod(MethodDefinition method, MethodDefinition @base) {
++            List<MethodDefinition> methods = GetBaseMethods(method);
++            if (methods == null) {
++                methods = new List<MethodDefinition>();
++                base_methods[method] = methods;
++            }
++
++            methods.Add(@base);
++        }
++
++        public List<MethodDefinition> GetBaseMethods(MethodDefinition method) {
++            List<MethodDefinition> bases;
++            if (base_methods.TryGetValue(method, out bases)) {
++                return bases;
++            }
++
++            return null;
++        }
++
++        public List<MethodDefinition> GetPreservedMethods(TypeDefinition type) {
++            return GetPreservedMethods(type as IMemberDefinition);
++        }
++
++        public void AddPreservedMethod(TypeDefinition type, MethodDefinition method) {
++            AddPreservedMethod(type as IMemberDefinition, method);
++        }
++
++        public List<MethodDefinition> GetPreservedMethods(MethodDefinition method) {
++            return GetPreservedMethods(method as IMemberDefinition);
++        }
++
++        public void AddPreservedMethod(MethodDefinition key, MethodDefinition method) {
++            AddPreservedMethod(key as IMemberDefinition, method);
++        }
++
++        private List<MethodDefinition> GetPreservedMethods(IMemberDefinition definition) {
++            List<MethodDefinition> preserved;
++            if (preserved_methods.TryGetValue(definition, out preserved)) {
++                return preserved;
++            }
++
++            return null;
++        }
++
++        private void AddPreservedMethod(IMemberDefinition definition, MethodDefinition method) {
++            List<MethodDefinition> methods = GetPreservedMethods(definition);
++            if (methods == null) {
++                methods = new List<MethodDefinition>();
++                preserved_methods[definition] = methods;
++            }
++
++            methods.Add(method);
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/Configuration.cs b/Compiler/Analyzers/DeadCodeAnalyzer/Configuration.cs
+new file mode 100644
+index 0000000..8f9f784
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/Configuration.cs
+@@ -0,0 +1,23 @@
++﻿using System;
++using System.Collections;
++using System.Collections.Generic;
++using System.Linq;
++using System.Text;
++
++namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
++    public class Configuration {
++        public bool? DeadCodeElimination;
++        public IList<string> WhiteList;
++    
++        public Configuration(Dictionary<string, object> configuration) {
++            DeadCodeElimination = configuration.ContainsKey("DeadCodeElimination") &&
++                                  configuration["DeadCodeElimination"] is bool &&
++                                  ((bool) configuration["DeadCodeElimination"]);
++    
++            if (configuration.ContainsKey("WhiteList") &&
++                configuration["WhiteList"] is IList) {
++                WhiteList = ((IList) configuration["WhiteList"]).Cast<string>().ToList();
++            }
++        }
++    }
++}
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+new file mode 100644
+index 0000000..1431a7a
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+@@ -0,0 +1,64 @@
++﻿using System;
++using System.Collections.Generic;
++using System.Linq;
++using Mono.Cecil;
++
++namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
++    public class DeadCodeAnalyzer : IAnalyzer {
++        private readonly DeadCodeInfoProvider deadCodeInfo;
++        private IEnumerable<MethodDefinition> entrypoints;
++
++        private Compiler.Configuration compilerConfiguration;
++        private Configuration Configuration;
++
++        public DeadCodeAnalyzer() {
++            deadCodeInfo = new DeadCodeInfoProvider();
++        }
++
++        public void SetConfiguration(Compiler.Configuration configuration) {
++            compilerConfiguration = configuration;
++
++            if (configuration.AnalyzerSettings != null && configuration.AnalyzerSettings.ContainsKey("DeadCodeAnalyzer")) {
++                Configuration = new Configuration((Dictionary<string, object>) configuration.AnalyzerSettings["DeadCodeAnalyzer"]);
++            }
++
++            if (Configuration.DeadCodeElimination.GetValueOrDefault(false)) {
++                Console.WriteLine("// Using dead code elimination (experimental). Turn " +
++                                  "DeadCodeElimination off and report an issue if you encounter problems !");
++            
++                deadCodeInfo.SetConfiguration(Configuration);
++            }
++
++        }
++
++        public void AddAssemblies(AssemblyDefinition[] assemblies) {
++             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
++                return;
++
++            entrypoints = from assembly in assemblies
++                          from modules in assembly.Modules
++                          where modules.EntryPoint != null
++                          select modules.EntryPoint;
++
++            deadCodeInfo.AddAssemblies(assemblies);
++        }
++
++        public void Analyze() {
++            if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
++                return;
++
++            foreach (MethodDefinition method in entrypoints) {
++                deadCodeInfo.WalkMethod(method);
++            }
++
++            deadCodeInfo.ResolveVirtualMethods();
++        }
++
++        public bool MemberCanBeSkipped(MemberReference member) {
++             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
++                return false;
++
++            return !deadCodeInfo.IsUsed(member);
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+new file mode 100644
+index 0000000..9b8d5b5
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -0,0 +1,295 @@
++﻿using System;
++using System.Collections;
++using System.Collections.Generic;
++using System.Linq;
++using System.Text.RegularExpressions;
++using ICSharpCode.NRefactory.Utils;
++using Mono.Cecil;
++using Mono.Cecil.Cil;
++using Mono.Linker.Steps;
++
++namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
++    public class DeadCodeInfoProvider {
++        private readonly List<AssemblyDefinition> assemblies;
++        private readonly List<FieldDefinition> fields;
++        private readonly List<MethodDefinition> methods;
++        private readonly List<TypeDefinition> types;
++
++        private readonly TypeMapStep typeMapStep = new TypeMapStep();
++        private Configuration configuration;
++
++        public DeadCodeInfoProvider() {
++            types = new List<TypeDefinition>();
++            methods = new List<MethodDefinition>();
++            fields = new List<FieldDefinition>();
++            assemblies = new List<AssemblyDefinition>();
++        }
++
++        public void SetConfiguration(Configuration configuration) {
++            if (configuration == null)
++                return;
++
++            this.configuration = configuration;
++        }
++
++        public bool IsUsed(MemberReference member) {
++            if (member is TypeReference) {
++                TypeDefinition typeDefinition = member as TypeDefinition;
++                if (typeDefinition != null && typeDefinition.IsInterface)
++                    return true; // HACK: always include interfaces
++
++                return types.Contains(member);
++            }
++            if (member is MethodReference) {
++                return methods.Contains(member);
++            }
++            if (member is FieldReference) {
++                return fields.Contains(member);
++            }
++
++            throw new ArgumentException("Unexpected member reference type");
++        }
++
++        public void WalkMethod(MethodDefinition method) {
++            if (!AddMethod(method)) {
++                return;
++            }
++
++            List<Instruction> foundInstructions = (from instruction in method.Body.Instructions
++                                                   where method.HasBody && method.Body.Instructions != null && instruction.Operand != null
++                                                   select instruction).ToList();
++
++            IEnumerable<TypeDefinition> typesFound = from instruction in foundInstructions
++                                                     let tRef = instruction.Operand as TypeReference
++                                                     where tRef != null
++                                                     let tRefResolved = tRef.Resolve()
++                                                     where tRefResolved != null
++                                                     select tRefResolved;
++
++            IEnumerable<MethodDefinition> methodsFound = from instruction in foundInstructions
++                                                         let mRef = instruction.Operand as MethodReference
++                                                         where mRef != null && mRef.DeclaringType != null
++                                                         let mRefResolved = mRef.Resolve()
++                                                         where mRefResolved != null
++                                                         select mRefResolved;
++
++            IEnumerable<FieldDefinition> fieldsFound = from instruction in foundInstructions
++                                                       let fRef = instruction.Operand as FieldReference
++                                                       where fRef != null && fRef.FieldType != null
++                                                       let fRefResolved = fRef.Resolve()
++                                                       where fRefResolved != null
++                                                       select fRefResolved;
++
++            foreach (TypeDefinition typeDefinition in typesFound) {
++                AddType(typeDefinition);
++            }
++
++            foreach (FieldDefinition fieldDefinition in fieldsFound) {
++                AddField(fieldDefinition);
++            }
++
++            foreach (MethodDefinition methodDefinition in methodsFound) {
++                if (methodDefinition != method) {
++                    WalkMethod(methodDefinition);
++                }
++            }
++        }
++
++        public void ResolveVirtualMethods() {
++            for (int i = 0; i < methods.Count; i++) {
++                MethodDefinition method = methods[i];
++                if (method.IsVirtual)
++                    ResolveVirtualMethod(method);
++            }
++        }
++
++        private void ResolveVirtualMethod(MethodDefinition method) {
++            List<MethodDefinition> overrides = new List<MethodDefinition>();
++            GetAllOverrides(method, overrides);
++            foreach (MethodDefinition methodDefinition in overrides) {
++                if (IsUsed(methodDefinition.DeclaringType)) {
++                    WalkMethod(methodDefinition);
++                }
++            }
++        }
++
++        private void AddType(TypeReference type) {
++            if (type == null) {
++                return;
++            }
++
++            TypeDefinition resolvedType = type.Resolve();
++
++            if (resolvedType != null && !types.Contains(resolvedType)) {
++                types.Add(resolvedType);
++
++                if (resolvedType.HasCustomAttributes) {
++                    foreach (CustomAttribute attribute in resolvedType.CustomAttributes) {
++                        if (attribute.HasConstructorArguments)
++                            WalkMethod(attribute.Constructor.Resolve());
++                    }
++                }
++
++                // HACK: force analyze static constructor
++                MethodDefinition cctor = resolvedType.Methods.FirstOrDefault((m) => m.Name == ".cctor");
++                if ((cctor != null) && (cctor.HasBody)) {
++                    WalkMethod(cctor);
++                }
++            }
++        }
++
++        private bool AddMethod(MethodReference method) {
++            if (method == null) {
++                return false;
++            }
++
++            MethodDefinition resolvedMethod = method.Resolve();
++            AddType(resolvedMethod.DeclaringType);
++            AddType(resolvedMethod.ReturnType);
++
++            if (resolvedMethod.HasBody && !methods.Contains(resolvedMethod)) {
++                methods.Add(resolvedMethod);
++
++                //if (resolvedMethod.HasCustomAttributes) {
++                //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
++                //        AddType(attribute.AttributeType);
++                //    }
++                //}
++
++                return true;
++            }
++
++            return false;
++        }
++
++        private void AddField(FieldReference field) {
++            if (field == null) {
++                return;
++            }
++
++            FieldDefinition resolvedField = field.Resolve();
++
++            if (!fields.Contains(resolvedField)) {
++                fields.Add(resolvedField);
++            }
++        }
++
++        public void AddAssemblies(AssemblyDefinition[] assemblies) {
++            ModuleDefinition[] modules = (from assembly in assemblies
++                                          from module in assembly.Modules
++                                          select module).ToArray();
++
++            foreach (ModuleDefinition module in modules) {
++                typeMapStep.ProcessModule(module);
++
++                foreach (var type in module.Types) {
++                    ProcessWhitelist(type);
++                }
++            }
++            this.assemblies.AddRange(assemblies);
++        }
++
++        private bool IsMemberWhiteListed(MemberReference member) {
++            if (configuration.WhiteList == null)
++                return false;
++
++            foreach (var whiteListItem in configuration.WhiteList) {
++                if (Regex.IsMatch(member.FullName, whiteListItem, RegexOptions.IgnoreCase))
++                    return true;
++            }
++
++            return false;
++        }
++
++        private void ProcessWhitelist(MemberReference member) {
++            if (member is TypeReference) {
++                TypeDefinition type = (member as TypeReference).Resolve();
++                
++                if (type != null) {
++                    if (IsMemberWhiteListed(type))
++                        AddType(type);
++
++                    if (type.HasNestedTypes) {
++                        foreach (var nestedType in type.NestedTypes) {
++                            ProcessWhitelist(nestedType);
++                        }
++                    }
++                    if (type.HasMethods) {
++                        foreach (var method in type.Methods) {
++                            if (IsMemberWhiteListed(method))
++                                ProcessWhitelist(method);
++                        }
++                    }
++                }
++
++                return;
++            }
++            if (member is MethodReference) {
++                if (IsMemberWhiteListed(member))
++                    WalkMethod(member as MethodDefinition);
++
++                return;
++            }
++            if (member is FieldReference) {
++                if (IsMemberWhiteListed(member))
++                    AddField(member as FieldReference);
++
++                return;
++            }
++
++            throw new ArgumentException("Unexpected member reference type");
++        }
++
++        private void GetAllOverrides(MethodDefinition method, List<MethodDefinition> deepOverrides) {
++            if (method == null)
++                return;
++
++            List<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
++
++            if (overrides == null)
++                return;
++
++            deepOverrides.AddRange(overrides);
++            foreach (MethodDefinition overrideMethod in overrides) {
++                GetAllOverrides(overrideMethod, deepOverrides);
++            }
++        }
++
++        private static IEnumerable<TypeDefinition> FindDerivedTypes(TypeDefinition type, IEnumerable<ModuleDefinition> assemblies) {
++            foreach (ModuleDefinition module in assemblies) {
++                foreach (TypeDefinition td in TreeTraversal.PreOrder(module.Types, t => t.NestedTypes)) {
++                    if (type.IsInterface && td.HasInterfaces) {
++                        foreach (TypeReference typeRef in td.Interfaces) {
++                            if (IsSameType(typeRef, type)) {
++                                yield return td;
++                            }
++                        }
++                    } else if (!type.IsInterface && td.BaseType != null && IsSameType(td.BaseType, type)) {
++                        yield return td;
++                    }
++                }
++            }
++        }
++
++        private static bool IsSameType(TypeReference typeRef, TypeDefinition type) {
++            if (typeRef.FullName == type.FullName) {
++                return true;
++            }
++            if (typeRef.Name != type.Name || type.Namespace != typeRef.Namespace) {
++                return false;
++            }
++            if (typeRef.IsNested || type.IsNested) {
++                if (!typeRef.IsNested || !type.IsNested || !IsSameType(typeRef.DeclaringType, type.DeclaringType)) {
++                    return false;
++                }
++            }
++            var genericTypeRef = typeRef as GenericInstanceType;
++            if (genericTypeRef != null || type.HasGenericParameters) {
++                if (genericTypeRef == null || !type.HasGenericParameters || genericTypeRef.GenericArguments.Count != type.GenericParameters.Count) {
++                    return false;
++                }
++            }
++            return true;
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+new file mode 100644
+index 0000000..49f3b50
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+@@ -0,0 +1,88 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <PropertyGroup>
++    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
++    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
++    <ProductVersion>8.0.30703</ProductVersion>
++    <SchemaVersion>2.0</SchemaVersion>
++    <ProjectGuid>{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}</ProjectGuid>
++    <OutputType>Library</OutputType>
++    <AppDesignerFolder>Properties</AppDesignerFolder>
++    <RootNamespace>JSIL.DCE</RootNamespace>
++    <AssemblyName>JSIL.Analysis.DCE</AssemblyName>
++    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
++    <TargetFrameworkProfile>
++    </TargetFrameworkProfile>
++    <FileAlignment>512</FileAlignment>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
++    <PlatformTarget>x86</PlatformTarget>
++    <DebugSymbols>true</DebugSymbols>
++    <DebugType>full</DebugType>
++    <Optimize>false</Optimize>
++    <OutputPath>..\..\..\bin\</OutputPath>
++    <DefineConstants>DEBUG;TRACE</DefineConstants>
++    <ErrorReport>prompt</ErrorReport>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
++    <PlatformTarget>x86</PlatformTarget>
++    <DebugType>pdbonly</DebugType>
++    <Optimize>true</Optimize>
++    <OutputPath>bin\Release\</OutputPath>
++    <DefineConstants>TRACE</DefineConstants>
++    <ErrorReport>prompt</ErrorReport>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <PropertyGroup>
++    <StartupObject />
++  </PropertyGroup>
++  <ItemGroup>
++    <Reference Include="System" />
++    <Reference Include="System.Core" />
++    <Reference Include="System.Xml.Linq" />
++    <Reference Include="System.Data.DataSetExtensions" />
++    <Reference Include="Microsoft.CSharp" />
++    <Reference Include="System.Data" />
++    <Reference Include="System.Xml" />
++  </ItemGroup>
++  <ItemGroup>
++    <Compile Include="Annotations.cs" />
++    <Compile Include="Configuration.cs" />
++    <Compile Include="DeadCodeInfoProvider.cs" />
++    <Compile Include="TypeMapStep.cs" />
++    <Compile Include="DeadCodeAnalyzer.cs" />
++    <Compile Include="Properties\AssemblyInfo.cs" />
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="..\..\Compiler.csproj">
++      <Project>{C7BF4561-20DD-4E49-8B5A-4E8AF032C47A}</Project>
++      <Name>Compiler</Name>
++    </ProjectReference>
++    <ProjectReference Include="..\..\..\JSIL\JSIL.csproj">
++      <Project>{DA03D241-B70C-44D7-A465-3CEB5A9416AE}</Project>
++      <Name>JSIL</Name>
++    </ProjectReference>
++    <ProjectReference Include="..\..\..\Upstream\ILSpy\ICSharpCode.Decompiler\ICSharpCode.Decompiler.csproj">
++      <Project>{984CC812-9470-4A13-AFF9-CC44068D666C}</Project>
++      <Name>ICSharpCode.Decompiler</Name>
++    </ProjectReference>
++    <ProjectReference Include="..\..\..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
++      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
++      <Name>Mono.Cecil</Name>
++    </ProjectReference>
++    <ProjectReference Include="..\..\..\Upstream\ILSpy\NRefactory\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
++      <Project>{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}</Project>
++      <Name>ICSharpCode.NRefactory</Name>
++    </ProjectReference>
++  </ItemGroup>
++  <ItemGroup />
++  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
++  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
++       Other similar extension points exist, see Microsoft.Common.targets.
++  <Target Name="BeforeBuild">
++  </Target>
++  <Target Name="AfterBuild">
++  </Target>
++  -->
++</Project>
+\ No newline at end of file
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/Properties/AssemblyInfo.cs b/Compiler/Analyzers/DeadCodeAnalyzer/Properties/AssemblyInfo.cs
+new file mode 100644
+index 0000000..eb7309d
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/Properties/AssemblyInfo.cs
+@@ -0,0 +1,35 @@
++﻿using System.Reflection;
++using System.Runtime.CompilerServices;
++using System.Runtime.InteropServices;
++
++// General Information about an assembly is controlled through the following 
++// set of attributes. Change these attribute values to modify the information
++// associated with an assembly.
++[assembly: AssemblyTitle("Dead code analyzer")]
++[assembly: AssemblyDescription(".NET assembly dead code analyzer for JSIL")]
++[assembly: AssemblyConfiguration("")]
++[assembly: AssemblyCompany("")]
++[assembly: AssemblyProduct("Dead code analyzer")]
++[assembly: AssemblyCopyright("Copyright ©  2014")]
++[assembly: AssemblyTrademark("")]
++[assembly: AssemblyCulture("")]
++
++// Setting ComVisible to false makes the types in this assembly not visible 
++// to COM components.  If you need to access a type in this assembly from 
++// COM, set the ComVisible attribute to true on that type.
++[assembly: ComVisible(false)]
++
++// The following GUID is for the ID of the typelib if this project is exposed to COM
++[assembly: Guid("8d203439-f730-4ea9-aff7-a2885947080a")]
++
++// Version information for an assembly consists of the following four values:
++//
++//      Major Version
++//      Minor Version 
++//      Build Number
++//      Revision
++//
++// You can specify all the values or you can default the Build and Revision Numbers 
++// by using the '*' as shown below:
++// [assembly: AssemblyVersion("1.0.*")]
++[assembly: AssemblyVersion("0.1.0.0")]
+\ No newline at end of file
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/TypeMapStep.cs b/Compiler/Analyzers/DeadCodeAnalyzer/TypeMapStep.cs
+new file mode 100644
+index 0000000..6dbad8f
+--- /dev/null
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/TypeMapStep.cs
+@@ -0,0 +1,281 @@
++//
++// TypeMapStep.cs
++//
++// Author:
++//   Jb Evain (jbevain@novell.com)
++//
++// (C) 2009 Novell, Inc.
++//
++// Permission is hereby granted, free of charge, to any person obtaining
++// a copy of this software and associated documentation files (the
++// "Software"), to deal in the Software without restriction, including
++// without limitation the rights to use, copy, modify, merge, publish,
++// distribute, sublicense, and/or sell copies of the Software, and to
++// permit persons to whom the Software is furnished to do so, subject to
++// the following conditions:
++//
++// The above copyright notice and this permission notice shall be
++// included in all copies or substantial portions of the Software.
++//
++// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++//
++
++using System.Collections.Generic;
++using Mono.Cecil;
++
++namespace Mono.Linker.Steps {
++
++    public class TypeMapStep {
++        public readonly AnnotationStore Annotations = new AnnotationStore();
++
++        public void ProcessModule(ModuleDefinition module) {
++            foreach (TypeDefinition type in module.Types)
++                MapType(type);
++        }
++
++        protected virtual void MapType(TypeDefinition type) {
++            MapVirtualMethods(type);
++            MapInterfaceMethodsInTypeHierarchy(type);
++
++            if (!type.HasNestedTypes) {
++                return;
++            }
++
++            foreach (TypeDefinition nested in type.NestedTypes)
++                MapType(nested);
++        }
++
++        private void MapInterfaceMethodsInTypeHierarchy(TypeDefinition type) {
++            if (!type.HasInterfaces) {
++                return;
++            }
++
++            foreach (TypeReference @interface in type.Interfaces) {
++                TypeDefinition iface = @interface.Resolve();
++                if (iface == null || !iface.HasMethods) {
++                    continue;
++                }
++
++                foreach (MethodDefinition method in iface.Methods) {
++                    if (TryMatchMethod(type, method) != null) {
++                        continue;
++                    }
++
++                    MethodDefinition @base = GetBaseMethodInTypeHierarchy(type, method);
++                    if (@base == null) {
++                        continue;
++                    }
++
++                    Annotations.AddPreservedMethod(type, @base);
++                }
++            }
++        }
++
++        private void MapVirtualMethods(TypeDefinition type) {
++            if (!type.HasMethods) {
++                return;
++            }
++
++            foreach (MethodDefinition method in type.Methods) {
++                if (!method.IsVirtual) {
++                    continue;
++                }
++
++                MapVirtualMethod(method);
++
++                if (method.HasOverrides) {
++                    MapOverrides(method);
++                }
++            }
++        }
++
++        private void MapVirtualMethod(MethodDefinition method) {
++            MapVirtualBaseMethod(method);
++            MapVirtualInterfaceMethod(method);
++        }
++
++        private void MapVirtualBaseMethod(MethodDefinition method) {
++            MethodDefinition @base = GetBaseMethodInTypeHierarchy(method);
++            if (@base == null) {
++                return;
++            }
++
++            AnnotateMethods(@base, method);
++        }
++
++        private void MapVirtualInterfaceMethod(MethodDefinition method) {
++            foreach (MethodDefinition @base in GetBaseMethodsInInterfaceHierarchy(method))
++                AnnotateMethods(@base, method);
++        }
++
++        private void MapOverrides(MethodDefinition method) {
++            foreach (MethodReference override_ref in method.Overrides) {
++                MethodDefinition @override = override_ref.Resolve();
++                if (@override == null) {
++                    continue;
++                }
++
++                AnnotateMethods(@override, method);
++            }
++        }
++
++        private void AnnotateMethods(MethodDefinition @base, MethodDefinition @override) {
++            Annotations.AddBaseMethod(@override, @base);
++            Annotations.AddOverride(@base, @override);
++        }
++
++        public static MethodDefinition GetBaseMethodInTypeHierarchy(MethodDefinition method) {
++            return GetBaseMethodInTypeHierarchy(method.DeclaringType, method);
++        }
++
++        public static MethodDefinition GetBaseMethodInTypeHierarchy(TypeDefinition type, MethodDefinition method) {
++            TypeDefinition @base = GetBaseType(type);
++            while (@base != null) {
++                MethodDefinition base_method = TryMatchMethod(@base, method);
++                if (base_method != null) {
++                    return base_method;
++                }
++
++                @base = GetBaseType(@base);
++            }
++
++            return null;
++        }
++
++        public static IEnumerable<MethodDefinition> GetBaseMethodsInInterfaceHierarchy(MethodDefinition method) {
++            return GetBaseMethodsInInterfaceHierarchy(method.DeclaringType, method);
++        }
++
++        public static IEnumerable<MethodDefinition> GetBaseMethodsInInterfaceHierarchy(TypeDefinition type, MethodDefinition method) {
++            if (!type.HasInterfaces) {
++                yield break;
++            }
++
++            foreach (TypeReference interface_ref in type.Interfaces) {
++                TypeDefinition @interface = interface_ref.Resolve();
++                if (@interface == null) {
++                    continue;
++                }
++
++                MethodDefinition base_method = TryMatchMethod(@interface, method);
++                if (base_method != null) {
++                    yield return base_method;
++                }
++
++                foreach (MethodDefinition @base in GetBaseMethodsInInterfaceHierarchy(@interface, method))
++                    yield return @base;
++            }
++        }
++
++        public static MethodDefinition TryMatchMethod(TypeDefinition type, MethodDefinition method) {
++            if (!type.HasMethods) {
++                return null;
++            }
++
++            foreach (MethodDefinition candidate in type.Methods)
++                if (MethodMatch(candidate, method)) {
++                    return candidate;
++                }
++
++            return null;
++        }
++
++        public static bool MethodMatch(MethodDefinition candidate, MethodDefinition method) {
++            if (!candidate.IsVirtual) {
++                return false;
++            }
++
++            if (candidate.Name != method.Name) {
++                return false;
++            }
++
++            if (!TypeMatch(candidate.ReturnType, method.ReturnType)) {
++                return false;
++            }
++
++            if (candidate.Parameters.Count != method.Parameters.Count) {
++                return false;
++            }
++
++            for (int i = 0; i < candidate.Parameters.Count; i++) {
++                if (!TypeMatch(candidate.Parameters[i].ParameterType, method.Parameters[i].ParameterType)) {
++                    return false;
++                }
++            }
++
++            return true;
++        }
++
++        public static bool TypeMatch(IModifierType a, IModifierType b) {
++            if (!TypeMatch(a.ModifierType, b.ModifierType)) {
++                return false;
++            }
++
++            return TypeMatch(a.ElementType, b.ElementType);
++        }
++
++        public static bool TypeMatch(TypeSpecification a, TypeSpecification b) {
++            if (a is GenericInstanceType) {
++                return TypeMatch((GenericInstanceType) a, (GenericInstanceType) b);
++            }
++
++            if (a is IModifierType) {
++                return TypeMatch((IModifierType) a, (IModifierType) b);
++            }
++
++            return TypeMatch(a.ElementType, b.ElementType);
++        }
++
++        public static bool TypeMatch(GenericInstanceType a, GenericInstanceType b) {
++            if (!TypeMatch(a.ElementType, b.ElementType)) {
++                return false;
++            }
++
++            if (a.GenericArguments.Count != b.GenericArguments.Count) {
++                return false;
++            }
++
++            if (a.GenericArguments.Count == 0) {
++                return true;
++            }
++
++            for (int i = 0; i < a.GenericArguments.Count; i++) {
++                if (!TypeMatch(a.GenericArguments[i], b.GenericArguments[i])) {
++                    return false;
++                }
++            }
++
++            return true;
++        }
++
++        public static bool TypeMatch(TypeReference a, TypeReference b) {
++            if (a is GenericParameter) {
++                return true;
++            }
++
++            if (a is TypeSpecification || b is TypeSpecification) {
++                if (a.GetType() != b.GetType()) {
++                    return false;
++                }
++
++                return TypeMatch((TypeSpecification) a, (TypeSpecification) b);
++            }
++
++            return a.FullName == b.FullName;
++        }
++
++        public static TypeDefinition GetBaseType(TypeDefinition type) {
++            if (type == null || type.BaseType == null) {
++                return null;
++            }
++
++            return type.BaseType.Resolve();
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/Compiler/Compiler.csproj b/Compiler/Compiler.csproj
+index bf35c6e..1de5874 100644
+--- a/Compiler/Compiler.csproj
++++ b/Compiler/Compiler.csproj
+@@ -88,6 +88,8 @@
+     <Compile Include="..\Upstream\Options.cs" />
+     <Compile Include="BuildGroup.cs" />
+     <Compile Include="Configuration.cs" />
++    <Compile Include="Extensibility\ICompilerExtension.cs" />
++    <Compile Include="Extensibility\IAnalyzer.cs" />
+     <Compile Include="Profiles\Base.cs" />
+     <Compile Include="Profiles\ContentManifestWriter.cs" />
+     <Compile Include="Profiles\CopiedOutputGatherer.cs" />
+diff --git a/Compiler/Configuration.cs b/Compiler/Configuration.cs
+index 2c1bcf0..5ad96bf 100644
+--- a/Compiler/Configuration.cs
++++ b/Compiler/Configuration.cs
+@@ -44,6 +44,7 @@ public sealed class SolutionBuildConfiguration {
+         public string FileOutputDirectory;
+         public string Profile;
+         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
++        public Dictionary<string, object> AnalyzerSettings = new Dictionary<string, object>();
+         public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
+ 
+         public override void MergeInto (JSIL.Translator.Configuration result) {
+@@ -71,6 +72,9 @@ public sealed class SolutionBuildConfiguration {
+             foreach (var kvp in ProfileSettings)
+                 cc.ProfileSettings[kvp.Key] = kvp.Value;
+ 
++            foreach (var kvp in AnalyzerSettings)
++                cc.AnalyzerSettings[kvp.Key] = kvp.Value;
++
+             foreach (var kvp in CustomVariables)
+                 cc.CustomVariables[kvp.Key] = kvp.Value;
+ 
+diff --git a/Compiler/Extensibility/IAnalyzer.cs b/Compiler/Extensibility/IAnalyzer.cs
+new file mode 100644
+index 0000000..2f5e70e
+--- /dev/null
++++ b/Compiler/Extensibility/IAnalyzer.cs
+@@ -0,0 +1,13 @@
++﻿using Mono.Cecil;
++
++namespace JSIL.Compiler.Extensibility {
++    public interface IAnalyzer : ICompilerExtension {
++        void SetConfiguration (Configuration configuration);
++
++        void AddAssemblies(AssemblyDefinition[] assemblies);
++
++        void Analyze();
++
++        bool MemberCanBeSkipped(MemberReference member);
++    }
++}
+\ No newline at end of file
+diff --git a/Compiler/Extensibility/ICompilerExtension.cs b/Compiler/Extensibility/ICompilerExtension.cs
+new file mode 100644
+index 0000000..5b97edb
+--- /dev/null
++++ b/Compiler/Extensibility/ICompilerExtension.cs
+@@ -0,0 +1,4 @@
++﻿namespace JSIL.Compiler.Extensibility {
++    public interface ICompilerExtension {
++    }
++}
+diff --git a/Compiler/Extensibility/IProfile.cs b/Compiler/Extensibility/IProfile.cs
+index aa888f6..02fdeb3 100644
+--- a/Compiler/Extensibility/IProfile.cs
++++ b/Compiler/Extensibility/IProfile.cs
+@@ -4,7 +4,7 @@
+ using System.Text;
+ 
+ namespace JSIL.Compiler.Extensibility {
+-    public interface IProfile {
++    public interface IProfile : ICompilerExtension {
+         bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
+ 
+         SolutionBuilder.BuildResult ProcessBuildResult (
+diff --git a/Compiler/Program.cs b/Compiler/Program.cs
+index f48da39..11d9461 100644
+--- a/Compiler/Program.cs
++++ b/Compiler/Program.cs
+@@ -166,14 +166,16 @@ where kvp.Filename.EndsWith(".exe")
+ 
+         static Configuration ParseCommandLine (
+             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
+-            Dictionary<string, IProfile> profiles,
++            Dictionary<string, IProfile> profiles, Dictionary<string, IAnalyzer> analyzers,
+             AssemblyCache assemblyCache
+         ) {
+             var baseConfig = new Configuration();
+             var commandLineConfig = new Configuration();
+             IProfile defaultProfile = new Profiles.Default();
+             var profileAssemblies = new List<string>();
++            var analyzerAssemblies = new List<string>();
+             bool[] autoloadProfiles = new bool[] { true };
++            bool[] autoloadAnalyzers = new bool[] { true };
+             string[] newDefaultProfile = new string[] { null };
+             List<string> filenames;
+ 
+@@ -280,32 +282,35 @@ AssemblyCache assemblyCache
+                         "JSIL.Profiles.*.dll"
+                     ));
+ 
++                if (autoloadAnalyzers[0])
++                    analyzerAssemblies.AddRange(Directory.GetFiles(
++                        GetJSILDirectory(), 
++                        "JSIL.Analysis.*.dll"
++                    ));
++
+                 foreach (var filename in profileAssemblies) {
+                     var fullPath = Path.GetFullPath(filename);
+ 
+                     try {
+-                        var assembly = Assembly.LoadFile(fullPath);
+-
+-                        foreach (var type in assembly.GetTypes()) {
+-                            if (
+-                                type.FindInterfaces(
+-                                    (interfaceType, o) => interfaceType == (Type)o, typeof(IProfile)
+-                                ).Length != 1
+-                            )
+-                                continue;
+-
+-                            var ctor = type.GetConstructor(
+-                                BindingFlags.Public | BindingFlags.Instance,
+-                                null, System.Type.EmptyTypes, null
+-                            );
+-                            var profileInstance = (IProfile)ctor.Invoke(new object[0]);
+-
+-                            profiles.Add(type.Name, profileInstance);
+-                        }
++                        IProfile profileInstance = CreateExtensionInstance<IProfile>(fullPath);
++                        if (profileInstance != null)
++                            profiles.Add(profileInstance.GetType().Name, profileInstance);
+                     } catch (Exception exc) {
+                         Console.Error.WriteLine("Warning: Failed to load profile '{0}': {1}", filename, exc);
+                     }
+                 }
++
++                foreach (var filename in analyzerAssemblies) {
++                    var fullPath = Path.GetFullPath(filename);
++
++                    try {
++                        IAnalyzer analyzerInstance = CreateExtensionInstance<IAnalyzer>(fullPath);
++                        if (analyzerInstance != null)
++                            analyzers.Add(analyzerInstance.GetType().Name, analyzerInstance);
++                    } catch (Exception exc) {
++                        Console.Error.WriteLine("Warning: Failed to load analyzer '{0}': {1}", filename, exc);
++                    }
++                }
+             }
+ 
+             var commandLineConfigFilenames =
+@@ -501,6 +506,29 @@ select LoadConfiguration(fn)).ToArray()
+             return commandLineConfig;
+         }
+ 
++        internal static T CreateExtensionInstance<T>(string fullPath) where T : ICompilerExtension {
++            var assembly = Assembly.LoadFile(fullPath);
++
++            foreach (var type in assembly.GetTypes()) {
++                if (
++                    type.FindInterfaces(
++                        (interfaceType, o) => interfaceType == (Type)o, typeof(T)
++                    ).Length != 1
++                )
++                    continue;
++
++                var ctor = type.GetConstructor(
++                    BindingFlags.Public | BindingFlags.Instance,
++                    null, System.Type.EmptyTypes, null
++                );
++                var profileInstance = (T)ctor.Invoke(new object[0]);
++
++                return profileInstance;
++            }
++
++            return default(T);
++        }
++
+         internal static string GetJSILDirectory () {
+             return Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
+         }
+@@ -582,11 +610,12 @@ select LoadConfiguration(fn)).ToArray()
+ 
+             var buildGroups = new List<BuildGroup>();
+             var profiles = new Dictionary<string, IProfile>();
++            var analyzers = new Dictionary<string, IAnalyzer>();
+             var manifest = new AssemblyManifest();
+             var assemblyCache = new AssemblyCache();
+             var processedAssemblies = new HashSet<string>();
+ 
+-            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, assemblyCache);
++            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, assemblyCache);
+ 
+             if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
+                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
+@@ -651,11 +680,36 @@ select LoadConfiguration(fn)).ToArray()
+                     localConfig.Assemblies.Proxies.Clear();
+                     localConfig.Assemblies.Proxies.AddRange(newProxies);
+ 
++                    foreach (var analyzer in analyzers.Values) {
++                        analyzer.SetConfiguration(localConfig);
++                    }
++
+                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
+                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
+                         translator.IgnoredMethod += (methodName, variableNames) =>
+                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
+ 
++                        translator.AssembliesLoaded += definitions => {
++                                foreach (var analyzer in analyzers.Values) {
++                                    analyzer.AddAssemblies(definitions);
++                                }
++                            };
++
++                        translator.AnalyzeStarted += () => {
++                                foreach (var analyzer in analyzers.Values) {
++                                    analyzer.Analyze();
++                                }
++                            };
++
++                        translator.MemberCanBeSkipped += member => {
++                                foreach (var analyzer in analyzers.Values) {
++                                    if (analyzer.MemberCanBeSkipped(member))
++                                        return true;
++                                }
++
++                                return false;
++                            }; 
++
+                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                         if (localConfig.OutputDirectory == null)
+                             throw new Exception("No output directory was specified!");
+diff --git a/JSIL.sln b/JSIL.sln
+index fc54967..29290c9 100644
+--- a/JSIL.sln
++++ b/JSIL.sln
+@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL", "JSIL\JSIL.csproj",
+ 		{3B2A5653-EC97-4001-BB9B-D90F1AF2C371} = {3B2A5653-EC97-4001-BB9B-D90F1AF2C371}
+ 	EndProjectSection
+ EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.DeadCodeAnalyzer", "Compiler\Analyzers\DeadCodeAnalyzer\JSIL.DeadCodeAnalyzer.csproj", "{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}"
++EndProject
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.Decompiler", "Upstream\ILSpy\ICSharpCode.Decompiler\ICSharpCode.Decompiler.csproj", "{984CC812-9470-4A13-AFF9-CC44068D666C}"
+ EndProject
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.NRefactory", "Upstream\ILSpy\NRefactory\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj", "{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}"
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index 337febb..49bec2a 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -68,6 +68,10 @@ struct MethodToAnalyze {
+         public event Action<string> Warning;
+         public event Action<string, string[]> IgnoredMethod;
+ 
++        public event Action<AssemblyDefinition[]> AssembliesLoaded;
++        public event Action AnalyzeStarted;
++        public event Func<MemberReference, bool> MemberCanBeSkipped;
++
+         internal readonly TypeInfoProvider _TypeInfoProvider;
+ 
+         protected bool OwnsAssemblyCache;
+@@ -404,6 +408,13 @@ struct MethodToAnalyze {
+             var assemblies = LoadAssembly(assemblyPath);
+             var parallelOptions = GetParallelOptions();
+ 
++            if (AssembliesLoaded != null)
++                AssembliesLoaded(assemblies);
++
++            if (AnalyzeStarted != null) {
++                AnalyzeStarted();
++            }
++
+             if (scanForProxies)
+                 _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
+ 
+@@ -1016,6 +1027,13 @@ JavascriptFormatter output
+             return true;
+         }
+ 
++        protected bool ShouldSkipMember(MemberReference member) {
++            if (MemberCanBeSkipped != null)
++                return MemberCanBeSkipped(member);
++
++            return false;
++        }
++
+         protected void DeclareType (
+             DecompilerContext context, TypeDefinition typedef, 
+             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+@@ -1027,6 +1045,9 @@ JavascriptFormatter output
+             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                 return;
+ 
++            if (ShouldSkipMember(typedef))
++                return;
++
+             if (declaredTypes.Contains(typedef))
+                 return;
+ 
+@@ -1298,6 +1319,9 @@ JavascriptFormatter output
+         }
+ 
+         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
++            if (ShouldSkipMember(typedef))
++                return false;
++
+             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
+             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy || typeInfo.IsExternal)
+                 return false;
+@@ -1455,6 +1479,9 @@ JavascriptFormatter output
+             }
+ 
+             foreach (var method in methodsToTranslate) {
++                if (ShouldSkipMember(method))
++                    continue;
++
+                 // We translate the static constructor explicitly later, and inject field initialization
+                 if (method.Name == ".cctor")
+                     continue;
+@@ -1497,6 +1524,9 @@ JavascriptFormatter output
+             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
+ 
+             foreach (var method in methodsToTranslate) {
++                if (ShouldSkipMember(method))
++                    continue;
++
+                 // We translate the static constructor explicitly later, and inject field initialization
+                 if (method.Name == ".cctor")
+                     continue;
+@@ -1600,6 +1630,11 @@ JavascriptFormatter output
+                 );
+                 JSFunctionExpression function;
+ 
++                if (ShouldSkipMember(method)) {
++                    FunctionCache.CreateNull(methodInfo, method, identifier);
++                    return null;
++                }
++
+                 if (FunctionCache.TryGetExpression(identifier, out function)) {
+                     return function;
+                 }
+@@ -1831,6 +1866,9 @@ JavascriptFormatter output
+             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
+             bool cctorContext, JSRawOutputIdentifier dollar, JSStringIdentifier fieldSelfIdentifier
+         ) {
++            if (ShouldSkipMember(field))
++                return null;
++
+             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
+             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
+                 return null;
+@@ -2295,6 +2333,9 @@ JavascriptFormatter output
+                 output.Indent();
+ 
+                 foreach (var attribute in member.CustomAttributes) {
++                    if (ShouldSkipMember(attribute.AttributeType))
++                        continue;
++
+                     output.NewLine();
+                     output.Dot();
+                     output.Identifier("Attribute");
+@@ -2353,6 +2394,9 @@ JavascriptFormatter output
+                 out isExternal, out isReplaced, out methodIsProxied
+             );
+ 
++            if(ShouldSkipMember(method))
++                return false;
++
+             if (isExternal) {
+                 if (isReplaced)
+                     return false;
+diff --git a/JSIL_NoXNA.sln b/JSIL_NoXNA.sln
+index d5e91b8..8ba1002 100644
+--- a/JSIL_NoXNA.sln
++++ b/JSIL_NoXNA.sln
+@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Proxies.4.0", "Proxies\Prox
+ EndProject
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Try", "Try\Try.csproj", "{2869EA5F-86D6-4075-8539-61AA1FE94066}"
+ EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.DeadCodeAnalyzer", "Compiler\Analyzers\DeadCodeAnalyzer\JSIL.DeadCodeAnalyzer.csproj", "{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}"
++EndProject
+ Global
+ 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+ 		Debug|Any CPU = Debug|Any CPU
+-- 
+1.9.3
+
+
+From fd29d2ba53f5a70ef53003158ba3fbd5a9f24694 Mon Sep 17 00:00:00 2001
+From: ZimM <fearcatalyst@gmail.com>
+Date: Mon, 10 Mar 2014 20:27:45 +0200
+Subject: [PATCH 03/15] Moved DeadCodeInfoProvider configuration setup Fixed
+ DeadCodeAnalyzer.AddAssemblies overwriting entrypoints from previous call
+
+---
+ .../Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs | 22 ++++++++++++----------
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 13 ++++---------
+ .../DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj  |  2 +-
+ 3 files changed, 17 insertions(+), 20 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+index 1431a7a..5df48b4 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+@@ -5,14 +5,15 @@
+ 
+ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
+     public class DeadCodeAnalyzer : IAnalyzer {
+-        private readonly DeadCodeInfoProvider deadCodeInfo;
+-        private IEnumerable<MethodDefinition> entrypoints;
++        private readonly List<MethodDefinition> entrypoints;
++        private DeadCodeInfoProvider deadCodeInfo;
+ 
+         private Compiler.Configuration compilerConfiguration;
+         private Configuration Configuration;
+ 
+         public DeadCodeAnalyzer() {
+-            deadCodeInfo = new DeadCodeInfoProvider();
++            
++            entrypoints = new List<MethodDefinition>();
+         }
+ 
+         public void SetConfiguration(Compiler.Configuration configuration) {
+@@ -24,21 +25,22 @@ public class DeadCodeAnalyzer : IAnalyzer {
+ 
+             if (Configuration.DeadCodeElimination.GetValueOrDefault(false)) {
+                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +
+-                                  "DeadCodeElimination off and report an issue if you encounter problems !");
++                                  "DeadCodeElimination off and report an issue if you encounter problems!");
+             
+-                deadCodeInfo.SetConfiguration(Configuration);
++                deadCodeInfo = new DeadCodeInfoProvider(Configuration);
+             }
+-
+         }
+ 
+         public void AddAssemblies(AssemblyDefinition[] assemblies) {
+              if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+                 return;
+ 
+-            entrypoints = from assembly in assemblies
+-                          from modules in assembly.Modules
+-                          where modules.EntryPoint != null
+-                          select modules.EntryPoint;
++            var foundEntrypoints = from assembly in assemblies
++                                   from modules in assembly.Modules
++                                   where modules.EntryPoint != null
++                                   select modules.EntryPoint;
++
++            entrypoints.AddRange(foundEntrypoints);
+ 
+             deadCodeInfo.AddAssemblies(assemblies);
+         }
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index 9b8d5b5..d80f79d 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -16,22 +16,17 @@ public class DeadCodeInfoProvider {
+         private readonly List<TypeDefinition> types;
+ 
+         private readonly TypeMapStep typeMapStep = new TypeMapStep();
+-        private Configuration configuration;
++        private readonly Configuration configuration;
++
++        public DeadCodeInfoProvider(Configuration configuration) {
++            this.configuration = configuration;
+ 
+-        public DeadCodeInfoProvider() {
+             types = new List<TypeDefinition>();
+             methods = new List<MethodDefinition>();
+             fields = new List<FieldDefinition>();
+             assemblies = new List<AssemblyDefinition>();
+         }
+ 
+-        public void SetConfiguration(Configuration configuration) {
+-            if (configuration == null)
+-                return;
+-
+-            this.configuration = configuration;
+-        }
+-
+         public bool IsUsed(MemberReference member) {
+             if (member is TypeReference) {
+                 TypeDefinition typeDefinition = member as TypeDefinition;
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+index 49f3b50..431b614 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+@@ -8,7 +8,7 @@
+     <ProjectGuid>{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}</ProjectGuid>
+     <OutputType>Library</OutputType>
+     <AppDesignerFolder>Properties</AppDesignerFolder>
+-    <RootNamespace>JSIL.DCE</RootNamespace>
++    <RootNamespace>JSIL.Compiler.Extensibility.DeadCodeAnalyzer</RootNamespace>
+     <AssemblyName>JSIL.Analysis.DCE</AssemblyName>
+     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+     <TargetFrameworkProfile>
+-- 
+1.9.3
+
+
+From bb51df204d975f1ab501497d48d2d15a64287252 Mon Sep 17 00:00:00 2001
+From: ZimM <fearcatalyst@gmail.com>
+Date: Tue, 11 Mar 2014 00:48:32 +0200
+Subject: [PATCH 04/15] DCE optimizations
+
+---
+ Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs | 34 ++++-----
+ .../Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs | 13 +++-
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 81 ++++++++++++----------
+ 3 files changed, 74 insertions(+), 54 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs b/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
+index 755b26e..3af9b25 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/Annotations.cs
+@@ -31,22 +31,22 @@
+ 
+ namespace Mono.Linker {
+     public class AnnotationStore {
+-        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> base_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
+-        private readonly Dictionary<MethodDefinition, List<MethodDefinition>> override_methods = new Dictionary<MethodDefinition, List<MethodDefinition>>();
+-        private readonly Dictionary<IMemberDefinition, List<MethodDefinition>> preserved_methods = new Dictionary<IMemberDefinition, List<MethodDefinition>>();
++        private readonly Dictionary<MethodDefinition, HashSet<MethodDefinition>> base_methods = new Dictionary<MethodDefinition, HashSet<MethodDefinition>>();
++        private readonly Dictionary<MethodDefinition, HashSet<MethodDefinition>> override_methods = new Dictionary<MethodDefinition, HashSet<MethodDefinition>>();
++        private readonly Dictionary<IMemberDefinition, HashSet<MethodDefinition>> preserved_methods = new Dictionary<IMemberDefinition, HashSet<MethodDefinition>>();
+ 
+         public void AddOverride(MethodDefinition @base, MethodDefinition @override) {
+-            List<MethodDefinition> methods = GetOverrides(@base);
++            HashSet<MethodDefinition> methods = GetOverrides(@base);
+             if (methods == null) {
+-                methods = new List<MethodDefinition>();
++                methods = new HashSet<MethodDefinition>();
+                 override_methods[@base] = methods;
+             }
+ 
+             methods.Add(@override);
+         }
+ 
+-        public List<MethodDefinition> GetOverrides(MethodDefinition method) {
+-            List<MethodDefinition> overrides;
++        public HashSet<MethodDefinition> GetOverrides(MethodDefinition method) {
++            HashSet<MethodDefinition> overrides;
+             if (override_methods.TryGetValue(method, out overrides)) {
+                 return overrides;
+             }
+@@ -55,17 +55,17 @@ public class AnnotationStore {
+         }
+ 
+         public void AddBaseMethod(MethodDefinition method, MethodDefinition @base) {
+-            List<MethodDefinition> methods = GetBaseMethods(method);
++            HashSet<MethodDefinition> methods = GetBaseMethods(method);
+             if (methods == null) {
+-                methods = new List<MethodDefinition>();
++                methods = new HashSet<MethodDefinition>();
+                 base_methods[method] = methods;
+             }
+ 
+             methods.Add(@base);
+         }
+ 
+-        public List<MethodDefinition> GetBaseMethods(MethodDefinition method) {
+-            List<MethodDefinition> bases;
++        public HashSet<MethodDefinition> GetBaseMethods(MethodDefinition method) {
++            HashSet<MethodDefinition> bases;
+             if (base_methods.TryGetValue(method, out bases)) {
+                 return bases;
+             }
+@@ -73,7 +73,7 @@ public class AnnotationStore {
+             return null;
+         }
+ 
+-        public List<MethodDefinition> GetPreservedMethods(TypeDefinition type) {
++        public HashSet<MethodDefinition> GetPreservedMethods(TypeDefinition type) {
+             return GetPreservedMethods(type as IMemberDefinition);
+         }
+ 
+@@ -81,7 +81,7 @@ public class AnnotationStore {
+             AddPreservedMethod(type as IMemberDefinition, method);
+         }
+ 
+-        public List<MethodDefinition> GetPreservedMethods(MethodDefinition method) {
++        public HashSet<MethodDefinition> GetPreservedMethods(MethodDefinition method) {
+             return GetPreservedMethods(method as IMemberDefinition);
+         }
+ 
+@@ -89,8 +89,8 @@ public class AnnotationStore {
+             AddPreservedMethod(key as IMemberDefinition, method);
+         }
+ 
+-        private List<MethodDefinition> GetPreservedMethods(IMemberDefinition definition) {
+-            List<MethodDefinition> preserved;
++        private HashSet<MethodDefinition> GetPreservedMethods(IMemberDefinition definition) {
++            HashSet<MethodDefinition> preserved;
+             if (preserved_methods.TryGetValue(definition, out preserved)) {
+                 return preserved;
+             }
+@@ -99,9 +99,9 @@ public class AnnotationStore {
+         }
+ 
+         private void AddPreservedMethod(IMemberDefinition definition, MethodDefinition method) {
+-            List<MethodDefinition> methods = GetPreservedMethods(definition);
++            HashSet<MethodDefinition> methods = GetPreservedMethods(definition);
+             if (methods == null) {
+-                methods = new List<MethodDefinition>();
++                methods = new HashSet<MethodDefinition>();
+                 preserved_methods[definition] = methods;
+             }
+ 
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+index 5df48b4..0c6cb88 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+@@ -1,5 +1,6 @@
+ ﻿using System;
+ using System.Collections.Generic;
++using System.Diagnostics;
+ using System.Linq;
+ using Mono.Cecil;
+ 
+@@ -11,8 +12,9 @@ public class DeadCodeAnalyzer : IAnalyzer {
+         private Compiler.Configuration compilerConfiguration;
+         private Configuration Configuration;
+ 
++        private Stopwatch stopwatchElapsed;
++
+         public DeadCodeAnalyzer() {
+-            
+             entrypoints = new List<MethodDefinition>();
+         }
+ 
+@@ -35,11 +37,13 @@ public class DeadCodeAnalyzer : IAnalyzer {
+              if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+                 return;
+ 
++            stopwatchElapsed = new Stopwatch();
++            stopwatchElapsed.Start();
++
+             var foundEntrypoints = from assembly in assemblies
+                                    from modules in assembly.Modules
+                                    where modules.EntryPoint != null
+                                    select modules.EntryPoint;
+-
+             entrypoints.AddRange(foundEntrypoints);
+ 
+             deadCodeInfo.AddAssemblies(assemblies);
+@@ -49,11 +53,16 @@ public class DeadCodeAnalyzer : IAnalyzer {
+             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+                 return;
+ 
++            stopwatchElapsed.Start();
++
+             foreach (MethodDefinition method in entrypoints) {
+                 deadCodeInfo.WalkMethod(method);
+             }
+ 
+             deadCodeInfo.ResolveVirtualMethods();
++
++            stopwatchElapsed.Stop();
++            Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
+         }
+ 
+         public bool MemberCanBeSkipped(MemberReference member) {
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index d80f79d..c010cb9 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -1,6 +1,7 @@
+ ﻿using System;
+ using System.Collections;
+ using System.Collections.Generic;
++using System.Diagnostics;
+ using System.Linq;
+ using System.Text.RegularExpressions;
+ using ICSharpCode.NRefactory.Utils;
+@@ -10,21 +11,31 @@
+ 
+ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
+     public class DeadCodeInfoProvider {
+-        private readonly List<AssemblyDefinition> assemblies;
+-        private readonly List<FieldDefinition> fields;
+-        private readonly List<MethodDefinition> methods;
+-        private readonly List<TypeDefinition> types;
++        private readonly HashSet<AssemblyDefinition> assemblies;
++        private readonly HashSet<FieldDefinition> fields;
++        private readonly HashSet<MethodDefinition> methods;
++        private readonly HashSet<TypeDefinition> types;
+ 
+         private readonly TypeMapStep typeMapStep = new TypeMapStep();
+         private readonly Configuration configuration;
++        private readonly List<Regex> whiteListCache; 
+ 
+         public DeadCodeInfoProvider(Configuration configuration) {
+             this.configuration = configuration;
+ 
+-            types = new List<TypeDefinition>();
+-            methods = new List<MethodDefinition>();
+-            fields = new List<FieldDefinition>();
+-            assemblies = new List<AssemblyDefinition>();
++            types = new HashSet<TypeDefinition>();
++            methods = new HashSet<MethodDefinition>();
++            fields = new HashSet<FieldDefinition>();
++            assemblies = new HashSet<AssemblyDefinition>();
++
++            if (configuration.WhiteList != null &
++                configuration.WhiteList.Count > 0) {
++                whiteListCache = new List<Regex>(configuration.WhiteList.Count);
++                foreach (var pattern in configuration.WhiteList) {
++                    Regex compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
++                    whiteListCache.Add(compiledRegex);
++                }
++            }
+         }
+ 
+         public bool IsUsed(MemberReference member) {
+@@ -91,15 +102,18 @@ public class DeadCodeInfoProvider {
+         }
+ 
+         public void ResolveVirtualMethods() {
+-            for (int i = 0; i < methods.Count; i++) {
+-                MethodDefinition method = methods[i];
++            MethodDefinition[] tempMethods = new MethodDefinition[methods.Count];
++            methods.CopyTo(tempMethods);
++
++            for (int i = 0; i < tempMethods.Length; i++) {
++                MethodDefinition method = tempMethods[i];
+                 if (method.IsVirtual)
+                     ResolveVirtualMethod(method);
+             }
+         }
+ 
+         private void ResolveVirtualMethod(MethodDefinition method) {
+-            List<MethodDefinition> overrides = new List<MethodDefinition>();
++            HashSet<MethodDefinition> overrides = new HashSet<MethodDefinition>();
+             GetAllOverrides(method, overrides);
+             foreach (MethodDefinition methodDefinition in overrides) {
+                 if (IsUsed(methodDefinition.DeclaringType)) {
+@@ -115,9 +129,7 @@ public class DeadCodeInfoProvider {
+ 
+             TypeDefinition resolvedType = type.Resolve();
+ 
+-            if (resolvedType != null && !types.Contains(resolvedType)) {
+-                types.Add(resolvedType);
+-
++            if (resolvedType != null && types.Add(resolvedType)) {
+                 if (resolvedType.HasCustomAttributes) {
+                     foreach (CustomAttribute attribute in resolvedType.CustomAttributes) {
+                         if (attribute.HasConstructorArguments)
+@@ -142,9 +154,7 @@ public class DeadCodeInfoProvider {
+             AddType(resolvedMethod.DeclaringType);
+             AddType(resolvedMethod.ReturnType);
+ 
+-            if (resolvedMethod.HasBody && !methods.Contains(resolvedMethod)) {
+-                methods.Add(resolvedMethod);
+-
++            if (resolvedMethod.HasBody && methods.Add(resolvedMethod)) {
+                 //if (resolvedMethod.HasCustomAttributes) {
+                 //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
+                 //        AddType(attribute.AttributeType);
+@@ -164,39 +174,40 @@ public class DeadCodeInfoProvider {
+ 
+             FieldDefinition resolvedField = field.Resolve();
+ 
+-            if (!fields.Contains(resolvedField)) {
+-                fields.Add(resolvedField);
+-            }
++            fields.Add(resolvedField);
+         }
+ 
+         public void AddAssemblies(AssemblyDefinition[] assemblies) {
+-            ModuleDefinition[] modules = (from assembly in assemblies
+-                                          from module in assembly.Modules
+-                                          select module).ToArray();
+-
++            IEnumerable<ModuleDefinition> modules = from assembly in assemblies
++                                                    from module in assembly.Modules
++                                                    select module;
++            
+             foreach (ModuleDefinition module in modules) {
+                 typeMapStep.ProcessModule(module);
+ 
+-                foreach (var type in module.Types) {
+-                    ProcessWhitelist(type);
++                if (whiteListCache.Count > 0) {
++                    foreach (var type in module.Types) {
++                        ProcessWhiteList(type);
++                    }
+                 }
+             }
+-            this.assemblies.AddRange(assemblies);
++
++            this.assemblies.UnionWith(assemblies);
+         }
+ 
+         private bool IsMemberWhiteListed(MemberReference member) {
+             if (configuration.WhiteList == null)
+                 return false;
+ 
+-            foreach (var whiteListItem in configuration.WhiteList) {
+-                if (Regex.IsMatch(member.FullName, whiteListItem, RegexOptions.IgnoreCase))
++            foreach (var regex in whiteListCache) {
++                if (regex.IsMatch(member.FullName))
+                     return true;
+             }
+ 
+             return false;
+         }
+ 
+-        private void ProcessWhitelist(MemberReference member) {
++        private void ProcessWhiteList(MemberReference member) {
+             if (member is TypeReference) {
+                 TypeDefinition type = (member as TypeReference).Resolve();
+                 
+@@ -206,13 +217,13 @@ public class DeadCodeInfoProvider {
+ 
+                     if (type.HasNestedTypes) {
+                         foreach (var nestedType in type.NestedTypes) {
+-                            ProcessWhitelist(nestedType);
++                            ProcessWhiteList(nestedType);
+                         }
+                     }
+                     if (type.HasMethods) {
+                         foreach (var method in type.Methods) {
+                             if (IsMemberWhiteListed(method))
+-                                ProcessWhitelist(method);
++                                ProcessWhiteList(method);
+                         }
+                     }
+                 }
+@@ -235,16 +246,16 @@ public class DeadCodeInfoProvider {
+             throw new ArgumentException("Unexpected member reference type");
+         }
+ 
+-        private void GetAllOverrides(MethodDefinition method, List<MethodDefinition> deepOverrides) {
++        private void GetAllOverrides(MethodDefinition method, HashSet<MethodDefinition> deepOverrides) {
+             if (method == null)
+                 return;
+ 
+-            List<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
++            HashSet<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
+ 
+             if (overrides == null)
+                 return;
+ 
+-            deepOverrides.AddRange(overrides);
++            deepOverrides.UnionWith(overrides);
+             foreach (MethodDefinition overrideMethod in overrides) {
+                 GetAllOverrides(overrideMethod, deepOverrides);
+             }
+-- 
+1.9.3
+
+
+From 1554403d8541ed28797c562974b1361efb9a5d52 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Wed, 14 May 2014 18:58:10 -0700
+Subject: [PATCH 05/15] DCE: Generic support, fixed virtual method, interface
+ and arguments processing. Added some meta attributes for dead code
+ elemination.
+
+--HG--
+extra : source : 21d98b02d6f6b02dcda345e332f03c471817b101
+extra : amend_source : 1597ae6e492ab00e087247784f6fe5c8d3e038b1
+---
+ .../Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs |   6 +-
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 174 ++++++++++++++++++---
+ JSIL/AssemblyTranslator.cs                         |  12 +-
+ Meta/Attributes.cs                                 |  16 ++
+ 4 files changed, 186 insertions(+), 22 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+index 0c6cb88..8707d1e 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+@@ -24,6 +24,10 @@ public class DeadCodeAnalyzer : IAnalyzer {
+             if (configuration.AnalyzerSettings != null && configuration.AnalyzerSettings.ContainsKey("DeadCodeAnalyzer")) {
+                 Configuration = new Configuration((Dictionary<string, object>) configuration.AnalyzerSettings["DeadCodeAnalyzer"]);
+             }
++            else
++            {
++                Configuration = new Configuration(new Dictionary<string, object>());
++            }
+ 
+             if (Configuration.DeadCodeElimination.GetValueOrDefault(false)) {
+                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +
+@@ -59,7 +63,7 @@ public class DeadCodeAnalyzer : IAnalyzer {
+                 deadCodeInfo.WalkMethod(method);
+             }
+ 
+-            deadCodeInfo.ResolveVirtualMethods();
++            deadCodeInfo.ResolveVirtualMethodsCycle();
+ 
+             stopwatchElapsed.Stop();
+             Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index c010cb9..b171838 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -56,28 +56,27 @@ public class DeadCodeInfoProvider {
+             throw new ArgumentException("Unexpected member reference type");
+         }
+ 
+-        public void WalkMethod(MethodDefinition method) {
+-            if (!AddMethod(method)) {
++        public void WalkMethod(MethodReference methodReference) {
++            if (!AddMethod(methodReference))
++            {
+                 return;
+             }
+ 
++            var method = methodReference.Resolve();
++
+             List<Instruction> foundInstructions = (from instruction in method.Body.Instructions
+                                                    where method.HasBody && method.Body.Instructions != null && instruction.Operand != null
+                                                    select instruction).ToList();
+ 
+-            IEnumerable<TypeDefinition> typesFound = from instruction in foundInstructions
++            IEnumerable<TypeReference> typesFound = from instruction in foundInstructions
+                                                      let tRef = instruction.Operand as TypeReference
+                                                      where tRef != null
+-                                                     let tRefResolved = tRef.Resolve()
+-                                                     where tRefResolved != null
+-                                                     select tRefResolved;
++                                                     select tRef;
+ 
+-            IEnumerable<MethodDefinition> methodsFound = from instruction in foundInstructions
++            IEnumerable<MethodReference> methodsFound = from instruction in foundInstructions
+                                                          let mRef = instruction.Operand as MethodReference
+                                                          where mRef != null && mRef.DeclaringType != null
+-                                                         let mRefResolved = mRef.Resolve()
+-                                                         where mRefResolved != null
+-                                                         select mRefResolved;
++                                                         select mRef;
+ 
+             IEnumerable<FieldDefinition> fieldsFound = from instruction in foundInstructions
+                                                        let fRef = instruction.Operand as FieldReference
+@@ -86,7 +85,8 @@ public class DeadCodeInfoProvider {
+                                                        where fRefResolved != null
+                                                        select fRefResolved;
+ 
+-            foreach (TypeDefinition typeDefinition in typesFound) {
++            foreach (TypeReference typeDefinition in typesFound)
++            {
+                 AddType(typeDefinition);
+             }
+ 
+@@ -94,13 +94,26 @@ public class DeadCodeInfoProvider {
+                 AddField(fieldDefinition);
+             }
+ 
+-            foreach (MethodDefinition methodDefinition in methodsFound) {
++            foreach (MethodReference methodDefinition in methodsFound)
++            {
+                 if (methodDefinition != method) {
+                     WalkMethod(methodDefinition);
+                 }
+             }
+         }
+ 
++        public void ResolveVirtualMethodsCycle()
++        {
++            var inintialMemberCount = 0;
++            var endMemberCount = 0;
++            do
++            {
++                inintialMemberCount = fields.Count + methods.Count + types.Count;
++                ResolveVirtualMethods();
++                endMemberCount = fields.Count + methods.Count + types.Count;
++            } while (endMemberCount != inintialMemberCount);
++        }
++
+         public void ResolveVirtualMethods() {
+             MethodDefinition[] tempMethods = new MethodDefinition[methods.Count];
+             methods.CopyTo(tempMethods);
+@@ -127,19 +140,54 @@ public class DeadCodeInfoProvider {
+                 return;
+             }
+ 
+-            TypeDefinition resolvedType = type.Resolve();
++            TypeDefinition resolvedType;
++
++            if (type.IsGenericInstance)
++            {
++                var genericType = (GenericInstanceType)type;
++                foreach (var genericArgument in genericType.GenericArguments)
++                {
++                    resolvedType = genericArgument.Resolve();
++
++                    if (resolvedType != null)
++                    {
++                        AddType(resolvedType);
++                    }
++                }
++            }
++
++            resolvedType = type.Resolve();
++
++            if (resolvedType != null)
++            {
++                AddType(resolvedType);
++            }
++        }
++
++        private void AddType(TypeDefinition resolvedType)
++        {
++            if (resolvedType == null)
++            {
++                return;
++            }
++
++            AddType(resolvedType.BaseType);
+ 
+-            if (resolvedType != null && types.Add(resolvedType)) {
+-                if (resolvedType.HasCustomAttributes) {
+-                    foreach (CustomAttribute attribute in resolvedType.CustomAttributes) {
++            if (types.Add(resolvedType))
++            {
++                if (resolvedType.HasCustomAttributes)
++                {
++                    foreach (CustomAttribute attribute in resolvedType.CustomAttributes)
++                    {
+                         if (attribute.HasConstructorArguments)
+                             WalkMethod(attribute.Constructor.Resolve());
+                     }
+                 }
+ 
+                 // HACK: force analyze static constructor
+-                MethodDefinition cctor = resolvedType.Methods.FirstOrDefault((m) => m.Name == ".cctor");
+-                if ((cctor != null) && (cctor.HasBody)) {
++                MethodDefinition cctor = resolvedType.Methods.FirstOrDefault(m => m.Name == ".cctor");
++                if (cctor != null && cctor.HasBody)
++                {
+                     WalkMethod(cctor);
+                 }
+             }
+@@ -150,11 +198,30 @@ public class DeadCodeInfoProvider {
+                 return false;
+             }
+ 
++            if (method.IsGenericInstance)
++            {
++                var genericMethod = (GenericInstanceMethod)method;
++                foreach (var genericParameter in genericMethod.GenericArguments)
++                {
++                    AddType(genericParameter);
++                }
++            }
++
+             MethodDefinition resolvedMethod = method.Resolve();
++
++            if (resolvedMethod == null)
++            {
++                return false;
++            }
++
+             AddType(resolvedMethod.DeclaringType);
+             AddType(resolvedMethod.ReturnType);
++            foreach (var parameterDefinition in resolvedMethod.Parameters)
++            {
++                AddType(parameterDefinition.ParameterType);
++            }
+ 
+-            if (resolvedMethod.HasBody && methods.Add(resolvedMethod)) {
++            if (methods.Add(resolvedMethod) && resolvedMethod.HasBody) {
+                 //if (resolvedMethod.HasCustomAttributes) {
+                 //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
+                 //        AddType(attribute.AttributeType);
+@@ -172,6 +239,7 @@ public class DeadCodeInfoProvider {
+                 return;
+             }
+ 
++            AddType(field.FieldType);
+             FieldDefinition resolvedField = field.Resolve();
+ 
+             fields.Add(resolvedField);
+@@ -204,6 +272,74 @@ public class DeadCodeInfoProvider {
+                     return true;
+             }
+ 
++            IEnumerable<CustomAttribute> customAttributes = null;
++
++            if (member is TypeReference)
++            {
++                TypeDefinition type = ((TypeReference)member).Resolve();
++                if (type != null)
++                {
++                    customAttributes = type.CustomAttributes;
++                }
++            }
++            else if (member is MethodReference)
++            {
++                MethodDefinition method = ((MethodReference) member).Resolve();
++                if (method != null)
++                {
++                    customAttributes = method.CustomAttributes;
++                }
++            }
++            else if (member is FieldReference)
++            {
++                FieldDefinition field = ((FieldReference)member).Resolve();
++                if (field != null)
++                {
++                    customAttributes = field.CustomAttributes;
++                }
++            }
++
++            if (customAttributes != null && customAttributes.Any(item => item.AttributeType.Name == "JSDeadCodeEleminationEntryPoint"))
++            {
++                return true;
++            }
++
++            TypeReference declaringType = null;
++            if (member is TypeReference)
++            {
++                declaringType = ((TypeReference)member).DeclaringType;
++            }
++            else if (member is MethodReference)
++            {
++                declaringType = ((MethodReference) member).DeclaringType;
++            }
++            else if (member is FieldReference)
++            {
++                declaringType = ((FieldReference)member).DeclaringType;
++            }
++
++            if (declaringType != null)
++            {
++                var declaringTypeDefenition = declaringType.Resolve();
++                if (declaringTypeDefenition != null && declaringTypeDefenition.CustomAttributes.Any(item => item.AttributeType.Name == "JSDeadCodeEleminationClassEntryPoint"))
++                {
++                    return true;
++                }
++
++                while (declaringTypeDefenition != null)
++                {
++                    if (declaringTypeDefenition.CustomAttributes.Any(
++                            item => item.AttributeType.Name == "JSDeadCodeEleminationHierarchyEntryPoint"))
++                    {
++                        return true;
++                    }
++
++                    declaringTypeDefenition = declaringTypeDefenition.BaseType != null
++                                                  ? declaringTypeDefenition.BaseType.Resolve()
++                                                  : null;
++                }
++            }
++
+             return false;
+         }
+ 
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index 57a801c..357bd38 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -873,8 +873,12 @@ JavascriptFormatter output
+ 
+             bool isFirst = true;
+             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
+-                foreach (var m in methodGroup) {
++                foreach (var m in methodGroup) {
++                    if (ShouldSkipMember(m))
++                        continue;
++
+                     var methodInfo = _TypeInfoProvider.GetMethod(m);
++
+                     if ((methodInfo == null) || methodInfo.IsIgnored)
+                         continue;
+ 
+@@ -1035,7 +1039,11 @@ JavascriptFormatter output
+             return true;
+         }
+ 
+-        protected bool ShouldSkipMember(MemberReference member) {
++        protected bool ShouldSkipMember(MemberReference member)
++        {
++            if (member is MethodReference && member.Name == ".cctor")
++                return false;
++
+             if (MemberCanBeSkipped != null)
+                 return MemberCanBeSkipped(member);
+ 
+diff --git a/Meta/Attributes.cs b/Meta/Attributes.cs
+index ef26c60..ef942fc 100644
+--- a/Meta/Attributes.cs
++++ b/Meta/Attributes.cs
+@@ -185,4 +185,20 @@ public class JSPackedArrayReturnValueAttribute : Attribute {
+     [AttributeUsage(AttributeTargets.Method)]
+     public class JSAllowPackedArrayArgumentsAttribute : Attribute {
+     }
++
++    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate |
++    AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field)]
++    public class JSDeadCodeEleminationEntryPoint : Attribute
++    {
++    }
++
++    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
++    public class JSDeadCodeEleminationClassEntryPoint : Attribute
++    {
++    }
++
++    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
++    public class JSDeadCodeEleminationHierarchyEntryPoint : Attribute
++    {
++    }
+ }
+-- 
+1.9.3
+
+
+From 62d8135f5eac89eed79ecc32b12e3f6027077030 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Wed, 14 May 2014 20:02:21 -0700
+Subject: [PATCH 06/15] Added JSIL.DeadCodeAnalyzer to sln build
+
+--HG--
+extra : source : 04cb51b3b0585c56bae9d950f3d3eb324ff077cd
+---
+ JSIL.sln       | 6 ++++++
+ JSIL_NoXNA.sln | 6 ++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/JSIL.sln b/JSIL.sln
+index 29290c9..dd559c9 100644
+--- a/JSIL.sln
++++ b/JSIL.sln
+@@ -172,6 +172,12 @@ Global
+ 		{99D82424-C7FB-4D78-AEC6-700DE220580F}.Release|Any CPU.ActiveCfg = Release|x86
+ 		{99D82424-C7FB-4D78-AEC6-700DE220580F}.Release|x86.ActiveCfg = Release|x86
+ 		{99D82424-C7FB-4D78-AEC6-700DE220580F}.Release|x86.Build.0 = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.Build.0 = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.Build.0 = Release|x86
+ 	EndGlobalSection
+ 	GlobalSection(SolutionProperties) = preSolution
+ 		HideSolutionNode = FALSE
+diff --git a/JSIL_NoXNA.sln b/JSIL_NoXNA.sln
+index 8ba1002..1a9cadd 100644
+--- a/JSIL_NoXNA.sln
++++ b/JSIL_NoXNA.sln
+@@ -139,6 +139,12 @@ Global
+ 		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|Any CPU.ActiveCfg = Release|x86
+ 		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|x86.ActiveCfg = Release|x86
+ 		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|x86.Build.0 = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.Build.0 = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.Build.0 = Release|x86
+ 	EndGlobalSection
+ 	GlobalSection(SolutionProperties) = preSolution
+ 		HideSolutionNode = FALSE
+-- 
+1.9.3
+
+
+From b7ee8bb090146a463669f6b9f4d5b1f0f1bd431e Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Wed, 14 May 2014 20:17:56 -0700
+Subject: [PATCH 07/15] Second try to fix .sln to include DCE in default
+ msbuild build
+
+--HG--
+extra : amend_source : 77210f27378709d75c18862549c628bb1360bb6b
+---
+ JSIL.sln       | 2 ++
+ JSIL_NoXNA.sln | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/JSIL.sln b/JSIL.sln
+index dd559c9..7efacce 100644
+--- a/JSIL.sln
++++ b/JSIL.sln
+@@ -173,9 +173,11 @@ Global
+ 		{99D82424-C7FB-4D78-AEC6-700DE220580F}.Release|x86.ActiveCfg = Release|x86
+ 		{99D82424-C7FB-4D78-AEC6-700DE220580F}.Release|x86.Build.0 = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.Build.0 = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.ActiveCfg = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.Build.0 = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.Build.0 = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.ActiveCfg = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.Build.0 = Release|x86
+ 	EndGlobalSection
+diff --git a/JSIL_NoXNA.sln b/JSIL_NoXNA.sln
+index 1a9cadd..48635b2 100644
+--- a/JSIL_NoXNA.sln
++++ b/JSIL_NoXNA.sln
+@@ -140,9 +140,11 @@ Global
+ 		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|x86.ActiveCfg = Release|x86
+ 		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|x86.Build.0 = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|Any CPU.Build.0 = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.ActiveCfg = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Debug|x86.Build.0 = Debug|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.ActiveCfg = Release|x86
++		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|Any CPU.Build.0 = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.ActiveCfg = Release|x86
+ 		{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}.Release|x86.Build.0 = Release|x86
+ 	EndGlobalSection
+-- 
+1.9.3
+
+
+From 94634a9551f19e2f150c1a3ea9eada40c6df48d0 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Wed, 14 May 2014 20:29:41 -0700
+Subject: [PATCH 08/15] Fixed output path for DCE release mode
+
+---
+ Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+index 431b614..b7c9964 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/JSIL.DeadCodeAnalyzer.csproj
+@@ -29,7 +29,7 @@
+     <PlatformTarget>x86</PlatformTarget>
+     <DebugType>pdbonly</DebugType>
+     <Optimize>true</Optimize>
+-    <OutputPath>bin\Release\</OutputPath>
++    <OutputPath>..\..\..\bin\</OutputPath>
+     <DefineConstants>TRACE</DefineConstants>
+     <ErrorReport>prompt</ErrorReport>
+     <WarningLevel>4</WarningLevel>
+-- 
+1.9.3
+
+
+From ccc9cef3694be5831423fba495eb2d799c224d9f Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Fri, 16 May 2014 17:51:30 -0700
+Subject: [PATCH 09/15] Removed hack for preserving all interfaces.
+
+--HG--
+extra : source : 4e31d58a2af09b73c2de77756116bc8158a0d6d4
+---
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 27 ++++++++++++----------
+ JSIL/AssemblyTranslator.cs                         | 12 ++++++----
+ 2 files changed, 22 insertions(+), 17 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index b171838..8954eb2 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -1,7 +1,5 @@
+ ﻿using System;
+-using System.Collections;
+ using System.Collections.Generic;
+-using System.Diagnostics;
+ using System.Linq;
+ using System.Text.RegularExpressions;
+ using ICSharpCode.NRefactory.Utils;
+@@ -39,18 +37,23 @@ public class DeadCodeInfoProvider {
+         }
+ 
+         public bool IsUsed(MemberReference member) {
+-            if (member is TypeReference) {
+-                TypeDefinition typeDefinition = member as TypeDefinition;
+-                if (typeDefinition != null && typeDefinition.IsInterface)
+-                    return true; // HACK: always include interfaces
+-
+-                return types.Contains(member);
++            var typeReference = member as TypeReference;
++            if (typeReference != null)
++            {
++                var defenition = typeReference.Resolve();
++                return types.Contains(defenition);
+             }
+-            if (member is MethodReference) {
+-                return methods.Contains(member);
++
++            var methodReference = member as MethodReference;
++            if (methodReference != null) {
++                var defenition = methodReference.Resolve();
++                return methods.Contains(defenition);
+             }
+-            if (member is FieldReference) {
+-                return fields.Contains(member);
++
++            var fieldReference = member as FieldReference;
++            if (fieldReference != null) {
++                var defenition = fieldReference.Resolve();
++                return fields.Contains(defenition);
+             }
+ 
+             throw new ArgumentException("Unexpected member reference type");
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index 357bd38..bcc79bf 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -873,8 +873,8 @@ JavascriptFormatter output
+ 
+             bool isFirst = true;
+             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
+-                foreach (var m in methodGroup) {
+-                    if (ShouldSkipMember(m))
++                foreach (var m in methodGroup) {
++                    if (ShouldSkipMember(m))
+                         continue;
+ 
+                     var methodInfo = _TypeInfoProvider.GetMethod(m);
+@@ -1039,9 +1039,9 @@ JavascriptFormatter output
+             return true;
+         }
+ 
+-        protected bool ShouldSkipMember(MemberReference member)
+-        {
+-            if (member is MethodReference && member.Name == ".cctor")
++        protected bool ShouldSkipMember(MemberReference member)
++        {
++            if (member is MethodReference && member.Name == ".cctor")
+                 return false;
+ 
+             if (MemberCanBeSkipped != null)
+@@ -1600,6 +1600,8 @@ protected bool ShouldSkipMember(MemberReference member)
+                         continue;
+                     if (interfaces[i].ImplementedInterface.Info.IsIgnored)
+                         continue;
++                    if (ShouldSkipMember(interfaces[i].ImplementedInterface.Reference))
++                        continue;
+ 
+                     var @interface = interfaces[i].ImplementedInterface.Reference;
+ 
+-- 
+1.9.3
+
+
+From a82b7682933d365d97985238e4ea1d98bb303664 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sat, 17 May 2014 00:17:53 -0700
+Subject: [PATCH 10/15] Dirty solution for DCE interop with IsExternal flag.
+
+--HG--
+extra : source : 0c45b2c5ff8c3c22d6d308904e297fb54e5e58b4
+---
+ .../Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs | 27 ++++++++++++----------
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 20 ++++++++++++++--
+ Compiler/Extensibility/IAnalyzer.cs                |  2 +-
+ Compiler/Program.cs                                |  2 +-
+ JSIL/AssemblyTranslator.cs                         |  2 +-
+ JSIL/TypeInformation.cs                            |  2 +-
+ 6 files changed, 37 insertions(+), 18 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+index 8707d1e..29c2318 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeAnalyzer.cs
+@@ -6,7 +6,7 @@
+ 
+ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
+     public class DeadCodeAnalyzer : IAnalyzer {
+-        private readonly List<MethodDefinition> entrypoints;
++        private readonly List<AssemblyDefinition> assemblyDefinitions;
+         private DeadCodeInfoProvider deadCodeInfo;
+ 
+         private Compiler.Configuration compilerConfiguration;
+@@ -15,7 +15,7 @@ public class DeadCodeAnalyzer : IAnalyzer {
+         private Stopwatch stopwatchElapsed;
+ 
+         public DeadCodeAnalyzer() {
+-            entrypoints = new List<MethodDefinition>();
++            assemblyDefinitions = new List<AssemblyDefinition>();
+         }
+ 
+         public void SetConfiguration(Compiler.Configuration configuration) {
+@@ -41,25 +41,28 @@ public class DeadCodeAnalyzer : IAnalyzer {
+              if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+                 return;
+ 
++            assemblyDefinitions.AddRange(assemblies);
++        }
++
++        public void Analyze(TypeInfoProvider typeInfoProvider) {
++            if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
++                return;
++
++            deadCodeInfo.TypeInfoProvider = typeInfoProvider;
++
+             stopwatchElapsed = new Stopwatch();
+             stopwatchElapsed.Start();
+ 
+-            var foundEntrypoints = from assembly in assemblies
++            var foundEntrypoints = from assembly in assemblyDefinitions
+                                    from modules in assembly.Modules
+                                    where modules.EntryPoint != null
+                                    select modules.EntryPoint;
+-            entrypoints.AddRange(foundEntrypoints);
+ 
+-            deadCodeInfo.AddAssemblies(assemblies);
+-        }
+-
+-        public void Analyze() {
+-            if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+-                return;
++            deadCodeInfo.AddAssemblies(assemblyDefinitions);
+ 
+-            stopwatchElapsed.Start();
+ 
+-            foreach (MethodDefinition method in entrypoints) {
++            foreach (MethodDefinition method in foundEntrypoints)
++            {
+                 deadCodeInfo.WalkMethod(method);
+             }
+ 
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index 8954eb2..435a62d 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -3,6 +3,7 @@
+ using System.Linq;
+ using System.Text.RegularExpressions;
+ using ICSharpCode.NRefactory.Utils;
++using JSIL.Internal;
+ using Mono.Cecil;
+ using Mono.Cecil.Cil;
+ using Mono.Linker.Steps;
+@@ -36,6 +37,8 @@ public class DeadCodeInfoProvider {
+             }
+         }
+ 
++        internal TypeInfoProvider TypeInfoProvider { get; set; }
++
+         public bool IsUsed(MemberReference member) {
+             var typeReference = member as TypeReference;
+             if (typeReference != null)
+@@ -197,7 +200,7 @@ private void AddType(TypeDefinition resolvedType)
+         }
+ 
+         private bool AddMethod(MethodReference method) {
+-            if (method == null) {
++            if (method == null || method.DeclaringType.IsArray) {
+                 return false;
+             }
+ 
+@@ -230,6 +233,11 @@ private void AddType(TypeDefinition resolvedType)
+                 //        AddType(attribute.AttributeType);
+                 //    }
+                 //}
++                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(method);
++                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
++                {
++                    return false;
++                }
+ 
+                 return true;
+             }
+@@ -248,7 +256,7 @@ private void AddType(TypeDefinition resolvedType)
+             fields.Add(resolvedField);
+         }
+ 
+-        public void AddAssemblies(AssemblyDefinition[] assemblies) {
++        public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies) {
+             IEnumerable<ModuleDefinition> modules = from assembly in assemblies
+                                                     from module in assembly.Modules
+                                                     select module;
+@@ -365,6 +373,14 @@ private void AddType(TypeDefinition resolvedType)
+                                 ProcessWhiteList(method);
+                         }
+                     }
++                    if (type.HasFields)
++                    {
++                        foreach (var field in type.Fields)
++                        {
++                            if (IsMemberWhiteListed(field))
++                                ProcessWhiteList(field);
++                        }
++                    }
+                 }
+ 
+                 return;
+diff --git a/Compiler/Extensibility/IAnalyzer.cs b/Compiler/Extensibility/IAnalyzer.cs
+index 2f5e70e..c13eea5 100644
+--- a/Compiler/Extensibility/IAnalyzer.cs
++++ b/Compiler/Extensibility/IAnalyzer.cs
+@@ -6,7 +6,7 @@ public interface IAnalyzer : ICompilerExtension {
+ 
+         void AddAssemblies(AssemblyDefinition[] assemblies);
+ 
+-        void Analyze();
++        void Analyze(TypeInfoProvider typeInfoProvider);
+ 
+         bool MemberCanBeSkipped(MemberReference member);
+     }
+diff --git a/Compiler/Program.cs b/Compiler/Program.cs
+index 11d9461..fe983a8 100644
+--- a/Compiler/Program.cs
++++ b/Compiler/Program.cs
+@@ -697,7 +697,7 @@ select LoadConfiguration(fn)).ToArray()
+ 
+                         translator.AnalyzeStarted += () => {
+                                 foreach (var analyzer in analyzers.Values) {
+-                                    analyzer.Analyze();
++                                    analyzer.Analyze(translator._TypeInfoProvider);
+                                 }
+                             };
+ 
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index bcc79bf..46fdcbd 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -74,7 +74,7 @@ struct MethodToAnalyze {
+         public event Action AnalyzeStarted;
+         public event Func<MemberReference, bool> MemberCanBeSkipped;
+ 
+-        internal readonly TypeInfoProvider _TypeInfoProvider;
++        public readonly TypeInfoProvider _TypeInfoProvider;
+ 
+         protected bool OwnsAssemblyCache;
+         protected bool OwnsTypeInfoProvider;
+diff --git a/JSIL/TypeInformation.cs b/JSIL/TypeInformation.cs
+index 06e0252..a671e6b 100644
+--- a/JSIL/TypeInformation.cs
++++ b/JSIL/TypeInformation.cs
+@@ -1447,7 +1447,7 @@ public abstract class MemberInfo<T> : IMemberInfo
+             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
+                 _IsIgnored = true;
+ 
+-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
++            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement") || Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
+                 IsExternal = true;
+ 
+             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
+-- 
+1.9.3
+
+
+From 26d516898f231616d931c80e8208d83849e071c7 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sat, 17 May 2014 22:00:18 -0700
+Subject: [PATCH 11/15] Fix inner type declaration after DCE: we still may need
+ inner type.
+
+--HG--
+extra : source : 8411d1a8b5dff28eb9dbb6130dea31fea79c3dcc
+---
+ JSIL/AssemblyTranslator.cs | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index 46fdcbd..f07de6f 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -1061,11 +1061,28 @@ protected bool ShouldSkipMember(MemberReference member)
+             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                 return;
+ 
+-            if (ShouldSkipMember(typedef))
++            if (declaredTypes.Contains(typedef))
+                 return;
+ 
+-            if (declaredTypes.Contains(typedef))
++            if (ShouldSkipMember(typedef))
++            {
++                declaredTypes.Add(typedef);
++                // We still may need to declare inner types.
++                astEmitter.ReferenceContext.Push();
++                astEmitter.ReferenceContext.EnclosingType = typedef;
++
++                try
++                {
++                    foreach (var nestedTypeDef in typedef.NestedTypes)
++                        DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
++                }
++                finally
++                {
++                    astEmitter.ReferenceContext.Pop();
++                }
++
+                 return;
++            }
+ 
+             if (typeInfo.IsStubOnly)
+             {
+-- 
+1.9.3
+
+
+From 67d39407b400a2fc0273be995f7cd7f3e5eadd1a Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sat, 17 May 2014 23:03:34 -0700
+Subject: [PATCH 12/15] Fixed stub processing for DCE removed classes.
+
+--HG--
+extra : amend_source : 9d9193c42670444828a3b74f6c6fc15e713b6213
+---
+ JSIL/AssemblyTranslator.cs | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/JSIL/AssemblyTranslator.cs b/JSIL/AssemblyTranslator.cs
+index f07de6f..76f3c98 100644
+--- a/JSIL/AssemblyTranslator.cs
++++ b/JSIL/AssemblyTranslator.cs
+@@ -1064,6 +1064,11 @@ protected bool ShouldSkipMember(MemberReference member)
+             if (declaredTypes.Contains(typedef))
+                 return;
+ 
++            if (typeInfo.IsStubOnly)
++            {
++                stubbed = true;
++            }
++
+             if (ShouldSkipMember(typedef))
+             {
+                 declaredTypes.Add(typedef);
+@@ -1084,11 +1089,6 @@ protected bool ShouldSkipMember(MemberReference member)
+                 return;
+             }
+ 
+-            if (typeInfo.IsStubOnly)
+-            {
+-                stubbed = true;
+-            }
+-
+             // This type is defined in JSIL.Core so we don't want to cause a name collision.
+             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
+                 declaredTypes.Add(typedef);
+-- 
+1.9.3
+
+
+From 26256da5f223528f2ce82388850f96b76f69826d Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sun, 18 May 2014 00:31:44 -0700
+Subject: [PATCH 13/15] Finished IsIgnored/IsExternal/IsStubOnly attributes
+ procesing for methods in DCE.
+
+---
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 110 ++++++++++++++++++++-
+ JSIL/TypeInformation.cs                            |  40 +++++++-
+ 2 files changed, 145 insertions(+), 5 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index 435a62d..49d91e9 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -199,11 +199,117 @@ private void AddType(TypeDefinition resolvedType)
+             }
+         }
+ 
++        private bool IsIgnored(TypeReference type)
++        {
++            if (type == null)
++            {
++                return false;
++            }
++
++            var typeDefenition = type.Resolve();
++            if (typeDefenition != null)
++            {
++                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
++                if (typeInformation.IsIgnored)
++                {
++                    return true;
++                }
++            }
++
++            if (type.IsGenericInstance)
++            {
++                var genericType = (GenericInstanceType) type;
++                if (genericType.GenericArguments.Any(IsIgnored))
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
++        private bool IsIgnored(MethodReference method)
++        {
++            var methodDefenition = method.Resolve();
++            if (methodDefenition != null)
++            {
++                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(methodDefenition);
++                if (methodInfo.IsIgnored && !methodInfo.IsLambda)
++                {
++                    return true;
++                }
++            }
++
++            if (method.IsGenericInstance)
++            {
++                var genericMethod = (GenericInstanceMethod) method;
++                if (genericMethod.GenericArguments.Any(IsIgnored))
++                {
++                    return true;
++                }
++            }
++
++            if (method.IsGenericInstance || method.DeclaringType.IsGenericInstance)
++            {
++                if (IsIgnored(method.DeclaringType))
++                {
++                    return true;
++                }
++
++                if (IsIgnored(method.ReturnType))
++                {
++                    return true;
++                }
++
++                if (method.Parameters.Any(parameterDefinition => IsIgnored(parameterDefinition.ParameterType)))
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
++        private bool IsStubOrExternal(TypeReference type)
++        {
++            var typeDefenition = type.Resolve();
++            if (typeDefenition != null)
++            {
++                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
++                if (typeInformation.IsExternal || typeInformation.IsStubOnly)
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
++        private bool IsStubOrExternal(MethodReference method)
++        {
++            var methodDefenition = method.Resolve();
++            if (methodDefenition != null)
++            {
++                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(methodDefenition);
++                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
+         private bool AddMethod(MethodReference method) {
+             if (method == null || method.DeclaringType.IsArray) {
+                 return false;
+             }
+ 
++            if (IsIgnored(method))
++            {
++                return false;
++            }
++
+             if (method.IsGenericInstance)
+             {
+                 var genericMethod = (GenericInstanceMethod)method;
+@@ -233,8 +339,8 @@ private void AddType(TypeDefinition resolvedType)
+                 //        AddType(attribute.AttributeType);
+                 //    }
+                 //}
+-                var methodInfo = TypeInfoProvider.GetMemberInformation<MethodInfo>(method);
+-                if (methodInfo.IsExternal || methodInfo.DeclaringType.IsExternal || methodInfo.DeclaringType.IsStubOnly)
++                
++                if (IsStubOrExternal(method))
+                 {
+                     return false;
+                 }
+diff --git a/JSIL/TypeInformation.cs b/JSIL/TypeInformation.cs
+index a671e6b..7e38b1b 100644
+--- a/JSIL/TypeInformation.cs
++++ b/JSIL/TypeInformation.cs
+@@ -450,7 +450,6 @@ public class TypeInfo {
+         public readonly bool IsInterface;
+         public readonly bool IsImmutable;
+         public readonly string Replacement;
+-        public readonly bool IsStubOnly;
+ 
+         // Matches JSIL runtime name escaping rules
+         public readonly string LocalName;
+@@ -460,6 +459,7 @@ public class TypeInfo {
+         protected bool _FullyInitialized = false;
+         protected bool _IsIgnored = false;
+         protected bool _IsExternal = false;
++        protected bool _IsStubOnly;
+         protected bool _MethodGroupsInitialized = false;
+ 
+         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+@@ -557,7 +557,7 @@ public class TypeInfo {
+                 Replacement = null;
+             }
+ 
+-            IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
++            _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
+ 
+             if (baseClass != null)
+                 _IsIgnored |= baseClass.IsIgnored;
+@@ -865,6 +865,24 @@ public class TypeInfo {
+             }
+         }
+ 
++        public bool IsStubOnly
++        {
++            get
++            {
++                if (_FullyInitialized)
++                    return _IsStubOnly;
++
++                if (Definition.DeclaringType != null)
++                {
++                    var dt = Source.GetExisting(Definition.DeclaringType);
++                    if ((dt != null) && dt.IsStubOnly)
++                        return true;
++                }
++
++                return _IsStubOnly;
++            }
++        }
++
+         protected static bool ShouldNeverReplace (CustomAttribute ca) {
+             return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace";
+         }
+@@ -1110,6 +1128,12 @@ protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberIn
+             return defaultResult;
+         }
+ 
++        public static bool IsLambdaMethodName(string shortName)
++        {
++            var m = MangledNameRegex.Match(shortName);
++            return m.Success && shortName[m.Groups[2].Index] == 'b';
++        }
++
+         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
+             IMemberInfo result;
+             var identifier = new MemberIdentifier(this.Source, method);
+@@ -1239,6 +1263,7 @@ protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberIn
+                 return;
+ 
+             _IsIgnored = IsIgnored;
++            _IsStubOnly = IsStubOnly;
+             _FullyInitialized = true;
+         }
+     }
+@@ -1447,7 +1472,7 @@ public abstract class MemberInfo<T> : IMemberInfo
+             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
+                 _IsIgnored = true;
+ 
+-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement") || Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
++            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                 IsExternal = true;
+ 
+             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
+@@ -1750,6 +1775,7 @@ ProxyInfo sourceProxy
+             IsConstructor = method.Name == ".ctor";
+             IsVirtual = method.IsVirtual;
+             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
++            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+         }
+ 
+         public MethodInfo (
+@@ -1771,6 +1797,7 @@ ProxyInfo sourceProxy
+             IsConstructor = method.Name == ".ctor";
+             IsVirtual = method.IsVirtual;
+             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
++            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+ 
+             if (property != null)
+                 Metadata.Update(property.Metadata, false);
+@@ -1794,6 +1821,7 @@ ProxyInfo sourceProxy
+             IsConstructor = method.Name == ".ctor";
+             IsVirtual = method.IsVirtual;
+             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
++            IsLambda = _IsIgnored && TypeInfo.IsLambdaMethodName(Name);
+ 
+             if (evt != null)
+                 Metadata.Update(evt.Metadata, false);
+@@ -1902,6 +1930,12 @@ ProxyInfo sourceProxy
+             }
+         }
+ 
++        public bool IsLambda
++        {
++            get;
++            private set;
++        }
++
+         public string GetName (bool stripGenericSuffix) {
+             var cn = ChangedName;
+             if (cn != null)
+-- 
+1.9.3
+
+
+From 006cc53c14c88f0cf7070036cac6111ea69e4327 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sun, 18 May 2014 02:51:05 -0700
+Subject: [PATCH 14/15] DCE/IsIgnored: We really need check only generic
+ parameters, not return type or arguments.
+
+---
+ Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index 49d91e9..b9d6569 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -249,22 +249,12 @@ private bool IsIgnored(MethodReference method)
+                 }
+             }
+ 
+-            if (method.IsGenericInstance || method.DeclaringType.IsGenericInstance)
++            if (method.DeclaringType.IsGenericInstance)
+             {
+                 if (IsIgnored(method.DeclaringType))
+                 {
+                     return true;
+                 }
+-
+-                if (IsIgnored(method.ReturnType))
+-                {
+-                    return true;
+-                }
+-
+-                if (method.Parameters.Any(parameterDefinition => IsIgnored(parameterDefinition.ParameterType)))
+-                {
+-                    return true;
+-                }
+             }
+ 
+             return false;
+-- 
+1.9.3
+
+
+From 8a133acbb8764fc88a13bcd1b5301ca6ee28f79c Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Sun, 18 May 2014 03:15:39 -0700
+Subject: [PATCH 15/15] DCE: Ignorance for field/type support.
+
+---
+ .../DeadCodeAnalyzer/DeadCodeInfoProvider.cs       | 43 +++++++++++++---------
+ 1 file changed, 26 insertions(+), 17 deletions(-)
+
+diff --git a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+index b9d6569..2ee29ec 100644
+--- a/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
++++ b/Compiler/Analyzers/DeadCodeAnalyzer/DeadCodeInfoProvider.cs
+@@ -142,7 +142,8 @@ public void ResolveVirtualMethodsCycle()
+         }
+ 
+         private void AddType(TypeReference type) {
+-            if (type == null) {
++            if (type == null || IsIgnored(type))
++            {
+                 return;
+             }
+ 
+@@ -228,6 +229,29 @@ private bool IsIgnored(TypeReference type)
+             return false;
+         }
+ 
++        private bool IsIgnored(FieldReference field)
++        {
++            var fieldDefenition = field.Resolve();
++            if (fieldDefenition != null)
++            {
++                var fieldInfo = TypeInfoProvider.GetMemberInformation<FieldInfo>(fieldDefenition);
++                if (fieldInfo.IsIgnored)
++                {
++                    return true;
++                }
++            }
++
++            if (field.DeclaringType.IsGenericInstance)
++            {
++                if (IsIgnored(field.DeclaringType))
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
+         private bool IsIgnored(MethodReference method)
+         {
+             var methodDefenition = method.Resolve();
+@@ -260,21 +284,6 @@ private bool IsIgnored(MethodReference method)
+             return false;
+         }
+ 
+-        private bool IsStubOrExternal(TypeReference type)
+-        {
+-            var typeDefenition = type.Resolve();
+-            if (typeDefenition != null)
+-            {
+-                var typeInformation = TypeInfoProvider.GetTypeInformation(type);
+-                if (typeInformation.IsExternal || typeInformation.IsStubOnly)
+-                {
+-                    return true;
+-                }
+-            }
+-
+-            return false;
+-        }
+-
+         private bool IsStubOrExternal(MethodReference method)
+         {
+             var methodDefenition = method.Resolve();
+@@ -342,7 +351,7 @@ private bool IsStubOrExternal(MethodReference method)
+         }
+ 
+         private void AddField(FieldReference field) {
+-            if (field == null) {
++            if (field == null || IsIgnored(field)) {
+                 return;
+             }
+ 
+-- 
+1.9.3
+

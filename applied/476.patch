@@ -1,0 +1,224 @@
+From a71bcaf16b87abd07ec7c56ee2fd174fc3a0beb0 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 6 May 2014 14:36:57 -0700
+Subject: [PATCH 1/2] Possible fix for incorrect selecting method
+ FastOverloadDispatch (#368)
+
+---
+ JSIL/TypeInformation.cs                            | 12 +++-
+ Tests/FormattingTests.cs                           | 47 +++++++++++++
+ ...eventFastMethodDispatcherIfHideBase_Issue368.cs | 77 ++++++++++++++++++++++
+ Tests/Tests.csproj                                 |  1 +
+ 4 files changed, 135 insertions(+), 2 deletions(-)
+ create mode 100644 Tests/SpecialTestCases/PreventFastMethodDispatcherIfHideBase_Issue368.cs
+
+diff --git a/JSIL/TypeInformation.cs b/JSIL/TypeInformation.cs
+index 06e0252..899a931 100644
+--- a/JSIL/TypeInformation.cs
++++ b/JSIL/TypeInformation.cs
+@@ -731,10 +731,18 @@ public class TypeInfo {
+                     var set = ms.GetOrCreateFor(nms.Name);
+                     set.Add(nms);
+                 }
++
++                foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
++                    if (t != this)
++                    {
++                        var set = MethodSignatures.GetOrCreateFor(nms.Name);
++                        set.Add(nms);
++                    }
++                }
+             }
+ 
+-            DeferredMethodSignatureSetUpdates.Clear();
+-            DeferredMethodSignatureSetUpdates = null;
++            //DeferredMethodSignatureSetUpdates.Clear();
++            //DeferredMethodSignatureSetUpdates = null;
+         }
+ 
+         public bool IsFullyInitialized {
+diff --git a/Tests/FormattingTests.cs b/Tests/FormattingTests.cs
+index 596f389..90f23b4 100644
+--- a/Tests/FormattingTests.cs
++++ b/Tests/FormattingTests.cs
+@@ -1012,5 +1012,52 @@ public void InnerClassNameFormatting_Issue352()
+                 throw;
+             }
+         }
++
++        [Test]
++        public void PreventFastMethodDispatcherIfHideBase_Issue368()
++        {
++            var output = "";
++            var generatedJs = GetJavascript(
++                @"SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs",
++                output
++                );
++
++            try
++            {
++                Assert.IsFalse(
++                    generatedJs.Contains("bas.Method();"),
++                    "Base.Method should not used fast dispatcher as it may be hidden by Derived.Method");
++                Assert.IsFalse(
++                    generatedJs.Contains("bas.MethodWithParameter1();"),
++                    "Base.MethodWithParameter1 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter1");
++                Assert.IsFalse(
++                    generatedJs.Contains("bas.MethodWithParameter2();"),
++                    "Base.MethodWithParameter2 should not used fast dispatcher as it may be hidden by Derived.MethodWithParameter2");
++
++                Assert.IsFalse(
++                    generatedJs.Contains("derived.Method();"),
++                    "Derived.Method should not used fast dispatcher as it is hidden by Base.Method");
++                Assert.IsFalse(
++                    generatedJs.Contains("derived.MethodWithParameter1();"),
++                    "Derived.MethodWithParameter1 should not used fast dispatcher as it is hidden by Base.MethodWithParameter1");
++                Assert.IsFalse(
++                    generatedJs.Contains("derived.MethodWithParameter2();"),
++                    "Derived.MethodWithParameter2 should not used fast dispatcher as it is hidden by Base.MethodWithParameter2");
++
++                Assert.IsTrue(
++                    generatedJs.Length - generatedJs.Replace("bas.AnotherMethod();", string.Empty).Length == "bas.AnotherMethod();".Length * 2,
++                    "Base.AnotherMethod should use fast dispatcher");
++                Assert.IsTrue(
++                    generatedJs.Contains("derived.AnotherMethod();"),
++                    "Base.AnotherMethod should use fast dispatcher even if called on Dervided instance");
++
++            }
++            catch
++            {
++                Console.WriteLine(generatedJs);
++
++                throw;
++            }
++        }
+     }
+ }
+diff --git a/Tests/SpecialTestCases/PreventFastMethodDispatcherIfHideBase_Issue368.cs b/Tests/SpecialTestCases/PreventFastMethodDispatcherIfHideBase_Issue368.cs
+new file mode 100644
+index 0000000..001ea06
+--- /dev/null
++++ b/Tests/SpecialTestCases/PreventFastMethodDispatcherIfHideBase_Issue368.cs
+@@ -0,0 +1,77 @@
++﻿using System;
++
++public static class Program
++{
++    public static void Main(string[] args)
++    {
++        var br = new BaseResult();
++        var dr = new DerivedResult();
++
++        var bas = new Base();
++        var derived = new Derived();
++
++        bas.Method();
++        bas.AnotherMethod();
++        bas.MethodWithParameter1(br);
++        bas.MethodWithParameter1(dr);
++        bas.MethodWithParameter2(dr);
++
++        bas = derived;
++        bas.Method();
++        bas.AnotherMethod();
++        bas.MethodWithParameter1(br);
++        bas.MethodWithParameter1(dr);
++        bas.MethodWithParameter2(dr);
++
++        derived.Method();
++        derived.AnotherMethod();
++        derived.MethodWithParameter1(br);
++        derived.MethodWithParameter1(dr);
++        derived.MethodWithParameter2(br);
++        derived.MethodWithParameter2(dr);
++    }
++}
++
++public class Base
++{
++    public BaseResult Method()
++    {
++        return null;
++    }
++
++    public void MethodWithParameter1(BaseResult r1)
++    {
++    }
++
++    public void MethodWithParameter2(DerivedResult r1)
++    {
++    }
++
++    public void AnotherMethod()
++    {
++    }
++}
++
++public class Derived : Base
++{
++    public DerivedResult Method()
++    {
++        return null;
++    }
++
++    public void MethodWithParameter1(DerivedResult r1)
++    {
++    }
++
++    public void MethodWithParameter2(BaseResult r1)
++    {
++    }
++}
++
++public class BaseResult
++{
++}
++
++public class DerivedResult : BaseResult
++{
++}
+diff --git a/Tests/Tests.csproj b/Tests/Tests.csproj
+index 6a839ab..525df7d 100644
+--- a/Tests/Tests.csproj
++++ b/Tests/Tests.csproj
+@@ -853,6 +853,7 @@
+     <None Include="SimpleTestCases\Issue364_1.cs" />
+     <None Include="SimpleTestCases\Issue364_2.cs" />
+     <None Include="SimpleTestCases\Issue364_3.cs" />
++    <None Include="SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs" />
+   </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\JSIL\JSIL.csproj">
+-- 
+1.9.3
+
+
+From 6ac294ef52dd6ab4017346735c52efe005e6de9f Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 6 May 2014 15:45:49 -0700
+Subject: [PATCH 2/2] Fix order of check this to skip adding MethodSignatures
+ twice.
+
+---
+ JSIL/TypeInformation.cs | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/JSIL/TypeInformation.cs b/JSIL/TypeInformation.cs
+index 899a931..bb31d39 100644
+--- a/JSIL/TypeInformation.cs
++++ b/JSIL/TypeInformation.cs
+@@ -732,9 +732,8 @@ public class TypeInfo {
+                     set.Add(nms);
+                 }
+ 
+-                foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
+-                    if (t != this)
+-                    {
++                if (t != this) {
++                    foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
+                         var set = MethodSignatures.GetOrCreateFor(nms.Name);
+                         set.Add(nms);
+                     }
+-- 
+1.9.3
+

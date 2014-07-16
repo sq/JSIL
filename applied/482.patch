@@ -1,0 +1,140 @@
+From 42089d6c88be9e56e20b5b4cba58fc783a482878 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Mon, 12 May 2014 22:34:51 -0700
+Subject: [PATCH 1/3] Fixed problem with calling interface generic method with
+ generic arguments #348. Test added.
+
+---
+ Libraries/JSIL.Core.js                             |  3 +++
+ ...faceGenericCallWithGenericParameter_Issue348.cs | 28 ++++++++++++++++++++++
+ Tests/Tests.csproj                                 |  1 +
+ 3 files changed, 32 insertions(+)
+ create mode 100644 Tests/SimpleTestCases/InterfaceGenericCallWithGenericParameter_Issue348.cs
+
+diff --git a/Libraries/JSIL.Core.js b/Libraries/JSIL.Core.js
+index dfe624f..39aeb3b 100644
+--- a/Libraries/JSIL.Core.js
++++ b/Libraries/JSIL.Core.js
+@@ -8972,6 +8972,9 @@ JSIL.$DoTypesMatch = function (expected, type) {
+   if (expected === null)
+     return (type === null);
+ 
++  if (expected instanceof JSIL.PositionalGenericParameter && type instanceof JSIL.PositionalGenericParameter && expected.index === type.index)
++    return true;
++  
+   if (expected === type)
+     return true;
+ 
+diff --git a/Tests/SimpleTestCases/InterfaceGenericCallWithGenericParameter_Issue348.cs b/Tests/SimpleTestCases/InterfaceGenericCallWithGenericParameter_Issue348.cs
+new file mode 100644
+index 0000000..9ec0d76
+--- /dev/null
++++ b/Tests/SimpleTestCases/InterfaceGenericCallWithGenericParameter_Issue348.cs
+@@ -0,0 +1,28 @@
++﻿using System;
++
++public static class Program
++{
++    public static void Main(string[] args)
++    {
++        GetClass().GenericMethod(1);
++        GetClass().GenericMethod(new object());
++    }
++
++    public static IInterfaceWithGeneric GetClass()
++    {
++        return new ClassWithGeneric();
++    }
++}
++
++public interface IInterfaceWithGeneric
++{
++    void GenericMethod<T>(T item);
++}
++
++public class ClassWithGeneric : IInterfaceWithGeneric
++{
++    public void GenericMethod<T>(T item)
++    {
++        Console.WriteLine(typeof(T));
++    }
++}
+\ No newline at end of file
+diff --git a/Tests/Tests.csproj b/Tests/Tests.csproj
+index 6a839ab..43c82c7 100644
+--- a/Tests/Tests.csproj
++++ b/Tests/Tests.csproj
+@@ -853,6 +853,7 @@
+     <None Include="SimpleTestCases\Issue364_1.cs" />
+     <None Include="SimpleTestCases\Issue364_2.cs" />
+     <None Include="SimpleTestCases\Issue364_3.cs" />
++    <None Include="InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+   </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\JSIL\JSIL.csproj">
+-- 
+1.9.3
+
+
+From 421552ca9502c3fa4b087ad5bb831e9fc186b4cf Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Mon, 12 May 2014 22:49:29 -0700
+Subject: [PATCH 2/3] Changed order of checks.
+
+---
+ Libraries/JSIL.Core.js | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Libraries/JSIL.Core.js b/Libraries/JSIL.Core.js
+index 39aeb3b..c3de713 100644
+--- a/Libraries/JSIL.Core.js
++++ b/Libraries/JSIL.Core.js
+@@ -8971,9 +8971,6 @@ JSIL.$PickFallbackMethodForInterfaceMethod = function (interfaceObject, methodNa
+ JSIL.$DoTypesMatch = function (expected, type) {
+   if (expected === null)
+     return (type === null);
+-
+-  if (expected instanceof JSIL.PositionalGenericParameter && type instanceof JSIL.PositionalGenericParameter && expected.index === type.index)
+-    return true;
+   
+   if (expected === type)
+     return true;
+@@ -8981,6 +8978,9 @@ JSIL.$DoTypesMatch = function (expected, type) {
+   if (expected.__FullName__ === "System.Array")
+     return type.__IsArray__;
+ 
++  if (expected instanceof JSIL.PositionalGenericParameter && type instanceof JSIL.PositionalGenericParameter && expected.index === type.index)
++    return true;
++
+   return false;
+ }
+ 
+-- 
+1.9.3
+
+
+From 9de9cfce828f28f312745cbe3c4c145da941c8cf Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 13 May 2014 02:10:46 -0700
+Subject: [PATCH 3/3] Fixed test path.
+
+---
+ Tests/Tests.csproj | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Tests/Tests.csproj b/Tests/Tests.csproj
+index 43c82c7..2d34299 100644
+--- a/Tests/Tests.csproj
++++ b/Tests/Tests.csproj
+@@ -853,7 +853,7 @@
+     <None Include="SimpleTestCases\Issue364_1.cs" />
+     <None Include="SimpleTestCases\Issue364_2.cs" />
+     <None Include="SimpleTestCases\Issue364_3.cs" />
+-    <None Include="InterfaceGenericCallWithGenericParameter_Issue348.cs" />
++    <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+   </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\JSIL\JSIL.csproj">
+-- 
+1.9.3
+

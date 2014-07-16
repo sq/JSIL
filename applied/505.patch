@@ -1,0 +1,85 @@
+From dff52ad3c09ffee36e8838692bda8ad934fdf3c2 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 27 May 2014 02:31:24 -0700
+Subject: [PATCH] Do not add MethodSignatures to parent/child types for static
+ methods and constructors.
+
+--HG--
+extra : amend_source : 7b7bf1aef5f00c950d5592eb59695c684dee061b
+---
+ JSIL/TypeInformation.cs | 31 ++++++++++++++++++++++++-------
+ 1 file changed, 24 insertions(+), 7 deletions(-)
+
+diff --git a/JSIL/TypeInformation.cs b/JSIL/TypeInformation.cs
+index bb31d39..6b9dc29 100644
+--- a/JSIL/TypeInformation.cs
++++ b/JSIL/TypeInformation.cs
+@@ -463,6 +463,7 @@ public class TypeInfo {
+         protected bool _MethodGroupsInitialized = false;
+ 
+         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
++        protected List<NamedMethodSignature> DeferredStaticMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+ 
+         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
+             Identifier = identifier;
+@@ -740,8 +741,11 @@ public class TypeInfo {
+                 }
+             }
+ 
+-            //DeferredMethodSignatureSetUpdates.Clear();
+-            //DeferredMethodSignatureSetUpdates = null;
++            foreach (var nms in DeferredStaticMethodSignatureSetUpdates)
++            {
++                var set = MethodSignatures.GetOrCreateFor(nms.Name);
++                set.Add(nms);
++            }
+         }
+ 
+         public bool IsFullyInitialized {
+@@ -1132,8 +1136,12 @@ protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberIn
+             if (!Members.TryAdd(identifier, result))
+                 throw new InvalidOperationException();
+ 
+-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+-
++            if (method.IsStatic || method.IsConstructor) {
++                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
++            else {
++                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
+             return (MethodInfo)result;
+         }
+ 
+@@ -1147,7 +1155,12 @@ protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberIn
+             if (!Members.TryAdd(identifier, result))
+                 throw new InvalidOperationException();
+ 
+-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            if (method.IsStatic || method.IsConstructor) {
++                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
++            else {
++                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
+ 
+             return (MethodInfo)result;
+         }
+@@ -1164,8 +1177,12 @@ protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberIn
+ 
+             if (method.Name == ".cctor")
+                 StaticConstructor = method;
+-
+-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            if (method.IsStatic || method.IsConstructor) {
++                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
++            else {
++                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
++            }
+ 
+             return (MethodInfo)result;
+         }
+-- 
+1.9.3
+

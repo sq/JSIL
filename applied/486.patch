@@ -1,0 +1,225 @@
+From e296e62bbab5c095ceb5e4e155e39f03088de704 Mon Sep 17 00:00:00 2001
+From: ik <igor@kiselev.spb.ru>
+Date: Tue, 13 May 2014 13:50:56 -0700
+Subject: [PATCH] Implemented MethodInfo properties: IsGenericMethod,
+ IsGenericMethodDefinition, ContainsGenericParameters
+
+--HG--
+extra : source : 9222085b9c9dfa40a82df5afc7d823df7fa93961
+---
+ Libraries/JSIL.Core.Reflection.js                  | 24 ++++++
+ .../ReflectionGenericMethodInfoProperties.cs       | 98 ++++++++++++++++++++++
+ .../ReflectionGenericMethodInvoke.cs               | 24 +++---
+ Tests/Tests.csproj                                 |  1 +
+ 4 files changed, 135 insertions(+), 12 deletions(-)
+ create mode 100644 Tests/SimpleTestCases/ReflectionGenericMethodInfoProperties.cs
+
+diff --git a/Libraries/JSIL.Core.Reflection.js b/Libraries/JSIL.Core.Reflection.js
+index f0a2ed9..56e1e45 100644
+--- a/Libraries/JSIL.Core.Reflection.js
++++ b/Libraries/JSIL.Core.Reflection.js
+@@ -879,6 +879,27 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+       return info;
+     }
+   );
++
++  $.Method({Public: true , Static: false}, "get_IsGenericMethod",
++    new JSIL.MethodSignature($.Type, []),
++    function get_IsGenericMethod() {
++      return this._data.signature.genericArgumentNames.length !== 0;
++    }
++  );
++
++  $.Method({Public: true , Static: false}, "get_IsGenericMethodDefinition",
++    new JSIL.MethodSignature($.Type, []),
++    function get_IsGenericMethodDefinition() {
++      return this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined;
++    }
++  );
++
++  $.Method({Public: true , Static: false}, "get_ContainsGenericParameters",
++    new JSIL.MethodSignature($.Type, []),
++    function get_IsGenericMethodDefinition() {
++      return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
++    }
++  );
+ });
+ 
+ JSIL.ImplementExternals(
+@@ -961,6 +982,9 @@ JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
+ });
+ 
+ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
++    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethod");
++    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericMethodDefinition");
++    $.Property({Public: true , Static: false, Virtual: true }, "ContainsGenericParameters");
+ });
+ 
+ JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
+diff --git a/Tests/SimpleTestCases/ReflectionGenericMethodInfoProperties.cs b/Tests/SimpleTestCases/ReflectionGenericMethodInfoProperties.cs
+new file mode 100644
+index 0000000..0d87303
+--- /dev/null
++++ b/Tests/SimpleTestCases/ReflectionGenericMethodInfoProperties.cs
+@@ -0,0 +1,98 @@
++﻿using System;
++using System.Reflection;
++
++public static class Program
++{
++    public static void Main(string[] args)
++    {
++        Write(typeof(NonGeneric).GetMethod("NonGenericMethod"));
++        Write(typeof(NonGeneric).GetMethod("GenericMethod"));
++        Write(typeof(NonGeneric).GetMethod("GenericMethod").MakeGenericMethod(new [] {typeof(string)}));
++
++        Write(typeof(Generic1<,>).GetMethod("NonGenericMethod"));
++        Write(typeof(Generic1<,>).GetMethod("GenericMethodBoth"));
++        Write(typeof(Generic1<,>).GetMethod("GenericMethodFirst"));
++        Write(typeof(Generic1<,>).GetMethod("GenericMethodSecond"));
++        Write(typeof(Generic1<,>).GetMethod("GenericMethodExternal"));
++        Write(typeof(Generic1<,>).GetMethod("GenericMethodExternal").MakeGenericMethod(new[] { typeof(string) }));
++
++        Write(typeof(Generic2<>).BaseType.GetMethod("NonGenericMethod"));
++        Write(typeof(Generic2<>).BaseType.GetMethod("GenericMethodBoth"));
++        Write(typeof(Generic2<>).BaseType.GetMethod("GenericMethodFirst"));
++        Write(typeof(Generic2<>).BaseType.GetMethod("GenericMethodSecond"));
++        Write(typeof(Generic2<>).BaseType.GetMethod("GenericMethodExternal"));
++        Write(typeof(Generic2<>).BaseType.GetMethod("GenericMethodExternal").MakeGenericMethod(new[] { typeof(string) }));
++
++        Write(typeof(Generic2<>).GetMethod("NonGenericMethodDerived"));
++        Write(typeof(Generic2<>).GetMethod("GenericMethodDerived"));
++        Write(typeof(Generic2<>).GetMethod("GenericMethodExternalDerived"));
++        Write(typeof(Generic2<>).GetMethod("GenericMethodExternalDerived").MakeGenericMethod(new[] { typeof(string) }));
++
++        Write(typeof(Generic2<int>).BaseType.GetMethod("NonGenericMethod"));
++        Write(typeof(Generic2<int>).BaseType.GetMethod("GenericMethodBoth"));
++        Write(typeof(Generic2<int>).BaseType.GetMethod("GenericMethodFirst"));
++        Write(typeof(Generic2<int>).BaseType.GetMethod("GenericMethodSecond"));
++        Write(typeof(Generic2<int>).BaseType.GetMethod("GenericMethodExternal"));
++        Write(typeof(Generic2<int>).BaseType.GetMethod("GenericMethodExternal").MakeGenericMethod(new[] { typeof(string) }));
++
++        Write(typeof(Generic2<int>).GetMethod("NonGenericMethodDerived"));
++        Write(typeof(Generic2<int>).GetMethod("GenericMethodDerived"));
++        Write(typeof(Generic2<int>).GetMethod("GenericMethodExternalDerived"));
++        Write(typeof(Generic2<int>).GetMethod("GenericMethodExternalDerived").MakeGenericMethod(new[] { typeof(string) }));
++
++        Write(typeof(Generic2<>).MakeGenericType(new Type[] { typeof(Generic2<>) }).GetMethod("NonGenericMethodDerived"));
++    }
++
++
++    public static void Write(MethodInfo methodInfo)
++    {
++        Console.WriteLine("IsGenericMethod: {0}", methodInfo.IsGenericMethod);
++        Console.WriteLine("IsGenericMethodDefinition: {0}", methodInfo.IsGenericMethodDefinition);
++        Console.WriteLine("ContainsGenericParameters: {0}", methodInfo.ContainsGenericParameters);
++        Console.WriteLine();
++    }
++ }
++
++
++public class NonGeneric 
++{
++    public void GenericMethod<T>(T input)
++    {
++    }
++
++    public void NonGenericMethod(string input)
++    {
++    }
++}
++
++public class Generic1<T,V>
++{
++    public void NonGenericMethod()
++    {
++    }
++    public void GenericMethodBoth(T input, V input2)
++    {
++    }
++    public void GenericMethodFirst(T input)
++    {
++    }
++    public void GenericMethodSecond(T input)
++    {
++    }
++    public void GenericMethodExternal<U>(U input)
++    {
++    }
++}
++
++public class Generic2<V> : Generic1<string, V>
++{
++    public void NonGenericMethodDerived()
++    {
++    }
++    public void GenericMethodDerived(V input)
++    {
++    }
++    public void GenericMethodExternalDerived<U>(U input)
++    {
++    }
++}
+diff --git a/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs b/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
+index cdf6c8e..287eb6a 100644
+--- a/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
++++ b/Tests/SimpleTestCases/ReflectionGenericMethodInvoke.cs
+@@ -1,9 +1,9 @@
+ ﻿using System;
+-using System.Reflection;
+-
+-public static class Program
+-{
+-    public static void Main(string[] args)
++using System.Reflection;
++
++public static class Program
++{
++    public static void Main(string[] args)
+     {
+         Console.WriteLine(Class1.GetGenericMethodInfo() == Class2.GetGenericMethodInfo() ? "true" : "false");
+ 
+@@ -71,15 +71,15 @@ public static void Main(string[] args)
+         mi.Invoke(obj, new object[] { 22 });
+         actionInt = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), obj, mi);
+         actionInt(23);*/
+-    }
+-
++    }
++
+     public static void StaticGenericMethod<T>(T input)
+     {
+         Console.WriteLine(typeof(T).Name);
+         Console.WriteLine(input);
+-    }
+-}
+-
++    }
++}
++
+ public interface INonGeneric
+ {
+     void InstanceGenericMethod<T>(T input);
+@@ -131,5 +131,5 @@ public static MethodInfo GetGenericMethodInfo()
+     {
+         return typeof(Generic<string>).GetMethod("InstanceGenericMethod").MakeGenericMethod(new[] { typeof(string) });
+     }
+-}
+-
++}
++
+diff --git a/Tests/Tests.csproj b/Tests/Tests.csproj
+index a9ec91c..6e42189 100644
+--- a/Tests/Tests.csproj
++++ b/Tests/Tests.csproj
+@@ -855,6 +855,7 @@
+     <None Include="SimpleTestCases\Issue364_3.cs" />
+     <None Include="SimpleTestCases\Issue368.cs" />
+     <None Include="SpecialTestCases\PreventFastMethodDispatcherIfHideBase_Issue368.cs" />
++    <None Include="SimpleTestCases\ReflectionGenericMethodInfoProperties.cs" />
+     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />
+     <None Include="SimpleTestCases\InterfaceGenericCallWithGenericParameter_Issue348.cs" />
+     <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
+-- 
+1.9.3
+

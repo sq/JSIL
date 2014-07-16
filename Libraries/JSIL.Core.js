@@ -7300,6 +7300,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         false, "    "
       );
 
+      body.push("  break;");
       body.push("  ");
     }
 
