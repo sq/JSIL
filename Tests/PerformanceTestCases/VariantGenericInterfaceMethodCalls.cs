@@ -8,8 +8,9 @@ public static class Program {
     const int IterationCount = 256;
 
     public static unsafe void Main () {
-        Console.WriteLine("Generic Interface: {0:00000.00}ms", Time(TestGenericInterface));
-        Console.WriteLine("Variant Generic Interface: {0:00000.00}ms", Time(TestVariantGenericInterface));
+        Console.WriteLine("Non-Variant Generic Interface, Non-Variant Call: {0:00000.00}ms", Time(TestNonVariantGenericInterface));
+        Console.WriteLine("    Variant Generic Interface, Non-Variant Call: {0:00000.00}ms", Time(TestVariantGenericInterface));
+        Console.WriteLine("    Variant Generic Interface,     Variant Call: {0:00000.00}ms", Time(TestVariantGenericInterfaceVariance));
     }
 
     public static int Time (Func<string> func) {
@@ -26,7 +27,17 @@ public static class Program {
         return ended - started;
     }
 
-    public static string TestGenericInterface () {
+    public static string TestNonVariantGenericInterface () {
+        string result = null;
+        IDumbWorkerNonVariant<string> obj = new DumbWorkerObject();
+
+        for (int i = 0; i < InnerIterationCount; i++)
+            result = obj.DoWork();
+
+        return result;
+    }
+
+    public static string TestVariantGenericInterface () {
         string result = null;
         IDumbWorker<string> obj = new DumbWorkerObject();
 
@@ -36,7 +47,7 @@ public static class Program {
         return result;
     }
 
-    public static string TestVariantGenericInterface () {
+    public static string TestVariantGenericInterfaceVariance () {
         object result = null;
         var obj = (IDumbWorker<object>)new DumbWorkerObject();
 
@@ -47,11 +58,15 @@ public static class Program {
     }
 }
 
+public interface IDumbWorkerNonVariant<T> {
+    T DoWork ();
+}
+
 public interface IDumbWorker<out T> {
     T DoWork ();
 }
 
-public class DumbWorkerObject : IDumbWorker<string> {
+public class DumbWorkerObject : IDumbWorker<string>, IDumbWorkerNonVariant<string> {
     const int CharCount = 128;
 
     public readonly string Prefix;
