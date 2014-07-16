@@ -234,7 +234,8 @@ var $jsilloaderstate = {
   var useTypedObjects = config.typedObjects || true;
 
   if (useTypedObjects) {
-    environment.loadScript(libraryRoot + "typedobjects.js");
+    // HACK: This currently requires you to junction Libraries/ES7 to Upstream/es7-structs
+    environment.loadScript(libraryRoot + "ES7/lib/typedobjects.js");
   }
 
   environment.loadScript(libraryRoot + "JSIL.Core.js");

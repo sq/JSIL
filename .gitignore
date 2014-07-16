@@ -110,4 +110,4 @@ pingme.txt
 /Tests/EmscriptenTestCases/common/common.obj
 /Tests/EmscriptenTestCases/common.js.map
 desktop.ini
-/httpd
+/httpd/Libraries/ES7
