@@ -79,9 +79,8 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject) {
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
 
   var result = new TypedObjects.StructType(
-    descriptor
+    descriptor, objectProto
   );
-  result.prototype = objectProto;
 
   JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = result;
   jsilTypeObject.__ES7Constructor__ = result;

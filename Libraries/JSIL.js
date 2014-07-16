@@ -231,7 +231,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "Polyfills.js");
   environment.loadScript(libraryRoot + "mersenne.js");
 
-  var useTypedObjects = config.typedObjects || true;
+  var useTypedObjects = config.typedObjects || false;
 
   if (useTypedObjects) {
     // HACK: This currently requires you to junction Libraries/ES7 to Upstream/es7-structs
