@@ -5409,18 +5409,18 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
     ctorBody.push("var argc = arguments.length | 0;");
 
     var cases = [
-      { key: 0, code: (typeObject.__IsStruct__ ? "self;" : "self._ctor();") }
+      { key: 0, code: (typeObject.__IsStruct__ ? "return self;" : "return self._ctor() || self;") }
     ];
 
     for (var i = 1; i < (numPositionalArguments + 1); i++)
       argumentNames.push("arg" + (i - 1));
 
     for (var i = 1; i < (numPositionalArguments + 1); i++) {
-      var line = "self._ctor(";
+      var line = "return self._ctor(";
       for (var j = 0, jMax = Math.min(argumentNames.length, i); j < jMax; j++) {
         line += argumentNames[j];
         if (j == jMax - 1)
-          line += ");";
+          line += ") || self;";
         else
           line += ", ";
       }
@@ -5437,10 +5437,10 @@ JSIL.MakeTypeConstructor = function (typeObject, maxConstructorArguments) {
     ctorBody.push("if (arguments.length === 0)");
     ctorBody.push("  return self;");
     ctorBody.push("else");
-    ctorBody.push("  self._ctor.apply(self, arguments);");
+    ctorBody.push("  return self._ctor.apply(self, arguments) || self;");
 
   } else {
-    ctorBody.push("self._ctor.apply(self, arguments);");
+    ctorBody.push("return self._ctor.apply(self, arguments) || self;");
   }
 
   ctorBody.push("");
@@ -7465,13 +7465,17 @@ JSIL.MethodSignature.$EmitInvocation = function (
   body, callText, 
   thisReferenceArg, prefix, 
   argumentTypes, genericArgumentNames, 
-  isInterface, indentation
+  isInterface, indentation,
+  suffix
 ) {
   var comma;
   var needsBindingForm = false;
 
   if (typeof (indentation) !== "string")
     indentation = "  ";
+
+  if (typeof (suffix) !== "string")
+    suffix = "";
 
   if (genericArgumentNames)
     comma = (genericArgumentNames.length + argumentTypes.length) > 0 ? "," : "";
@@ -7497,7 +7501,7 @@ JSIL.MethodSignature.$EmitInvocation = function (
     body.push(indentation + "  arg" + i + comma);
   }
 
-  body.push(indentation + ");");
+  body.push(indentation + ")" + suffix + ";");
 };
 
 
@@ -8101,9 +8105,11 @@ JSIL.ConstructorSignature.prototype.$MakeBoundConstructor = function (argumentNa
         ctorKey = "_ctor";
     }
 
+    // FIXME: This is totally the wrong use of this function
     JSIL.MethodSignature.$EmitInvocation(
       body, "self['" + ctorKey + "']", null, 
-      "", argumentNames
+      "return ", argumentNames, null, 
+      false, null, " || self"
     );
   }
 
@@ -8789,7 +8795,7 @@ JSIL.CreateInstanceOfTypeRecord = function (
 
     if (constructor) {
       closure.actualConstructor = constructor;
-      constructorBody.push("actualConstructor.apply(self, argv);");
+      constructorBody.push("return actualConstructor.apply(self, argv) || self;");
     }
   }
 
