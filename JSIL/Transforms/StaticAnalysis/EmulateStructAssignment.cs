@@ -303,7 +303,7 @@ namespace JSIL.Transforms {
             bool thisReferenceNeedsCopy = false;
             bool thisReferenceNeedsCopyAndReassignment = false;
 
-            if (thisReferenceIsStruct) {
+            if (thisReferenceIsStruct && !invocation.SuppressThisClone) {
                 var isMethodInvocation = (thisReference != null) && 
                     (sa != null) && 
                     !(ParentNode is JSCommaExpression) &&

@@ -523,7 +523,7 @@ namespace JSIL {
 
         internal JSExpression DoMethodReplacement (
             JSMethod method, JSExpression thisExpression, 
-            JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
+            JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis, bool suppressThisClone
         ) {
             var methodInfo = method.Method;
 
@@ -590,7 +590,7 @@ namespace JSIL {
                 else if (explicitThis)
                     result = JSInvocationExpression.InvokeBaseMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
                 else
-                    result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
+                    result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments, suppressThisClone: suppressThisClone);
             }
 
             result = PackedArrayUtil.FilterInvocationResult(
@@ -3178,12 +3178,14 @@ namespace JSIL {
             JSExpression thisExpression;
 
             bool explicitThis = false;
+            bool suppressThisClone = false;
 
             if (method.HasThis) {
                 var firstArg =  node.Arguments.First();
 
                 if (IsInvalidThisExpression(firstArg)) {
-                    if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression)) {
+                    if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression))
+                    {
                         if (arguments[0].IsNull)
                             thisExpression = arguments[0];
                         else
@@ -3191,6 +3193,9 @@ namespace JSIL {
                                 "The method '{0}' was invoked on a value type, but the this-reference was not a reference: {1}",
                                 method, node.Arguments[0]
                             ));
+                    } else {
+                        suppressThisClone = arguments[0] is JSNewBoxedVariable &&
+                                            ((JSNewBoxedVariable)arguments[0]).SuppressClone;
                     }
                 } else {
                     thisExpression = arguments[0];
@@ -3216,7 +3221,8 @@ namespace JSIL {
             var result = DoMethodReplacement(
                 new JSMethod(method, methodInfo, MethodTypes),
                 thisExpression, arguments.ToArray(), false, 
-                !method.HasThis, explicitThis || methodInfo.IsConstructor
+                !method.HasThis, explicitThis || methodInfo.IsConstructor,
+                suppressThisClone
             );
 
             if (CopyOnReturn(result.GetActualType(TypeSystem)))
@@ -3286,7 +3292,7 @@ namespace JSIL {
             var result = DoMethodReplacement(
                new JSMethod(method, methodInfo, MethodTypes), 
                thisExpression, translatedArguments, true, 
-               false, explicitThis
+               false, explicitThis, false
             );
 
             if (CopyOnReturn(result.GetActualType(TypeSystem)))
