@@ -7228,26 +7228,63 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       body.push("var typeId = thisReference.__ThisTypeId__;");
     }
 
-    // Generate the 'if (...) { a } else if (...) { b } else { default }' chain for the IC.
+    // Generate the lookup switch for the IC, along with IC management code.
     for (var i = 0, l = this.inlineCacheEntries.length; i < l; i++) {
       var entry = this.inlineCacheEntries[i];
 
       // Check to see if the cache entry matches. Note that the condition depends
       //  on whether this is an interface method IC.
       // FIXME: Can the key end up with a single quote in it, or a backslash?
-      var conditionString = 
+      var conditionExpression = 
         isInterfaceCall
-          ? "typeId === \"" + entry.typeId + "\""
-          : "name === \"" + entry.name + "\"";
+          ? "\"" + entry.typeId + "\""
+          : "\"" + entry.name + "\"";
+
+      // So, you might be asking yourself... why a switch block keyed on the name?
+      // It's a good question. The first IC implementation built a name -> index
+      //  dictionary, and looked up the name in the dictionary to choose the method
+      //  to call. This was a performance improvement.
+      // The key observation, however, is that the value of these ICs is actually for
+      //  inlining. If the call target is known, inlining can occur more easily,
+      //  and once a method is inlining lots of cool new optimizations become possible.
+      // In an ideal world, *both* this IC *and* the call target will be inlined,
+      //  so we want to design the IC to make this possible and make it *fast*.
+      // The old table lookup is not particularly optimizer-friendly. Even if it inlined
+      //  the IC, it wouldn't have any easy way to know that the table lookup
+      //  was constant.
+      // Replacing the table lookup with a switch (or if statements, even) keyed on
+      //  the name/typeId means that once inlined, the IC looks like this:
+      //
+      //  function ic (name /* = 'knownName' */, ...) {
+      //    if (name === 'knownName' /* true */) {
+      //      ...
+      //    } else if (name === 'otherKnownName' /* false */) {
+      //    ...
+      //
+      // Thanks to the inline, the JIT now has all the information it needs to
+      //  *completely* optimize out the IC. It can kill all the false branch
+      //  conditions and it's only left with the true branch - which calls a specific
+      //  known method directly on the provided this-reference.
+      // In most scenarios the method name being passed into the IC is a constant,
+      //  so it's fairly likely that inlining can happen and that it will optimize this way.
+      // Finally, in testing switch statements were not found to be any slower than
+      //  if statements, so we generate an if statement. The generated code is denser
+      //  and clearer, which is nice, and it makes it less work for the JIT to figure
+      //  out that it can use a jump table or whatever it likes in the case where
+      //  we aren't optimized out entirely.
+
+      if (i === 0) {
+        body.push(
+          "switch (" +
+          (isInterfaceCall
+            ? "typeId"
+            : "name") +
+          ") {"
+        );
+      }
 
       body.push(
-        (
-          (i == 0)
-            ? "if ("
-            : "} else if ("
-        ) +
-        conditionString +
-        ") {"
+        "  case " + conditionExpression + ": "
       );
 
       // For every invocation type other than Call, the this-reference will
@@ -7269,10 +7306,10 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
 
 
     if (this.inlineCacheEntries.length >= 1) {
-      body.push("} else {");
+      body.push("  default: ");
       emitCacheMissInvocation("    ");
-      body.push("  ");
       body.push("}");
+      body.push("");
     } else {
       emitCacheMissInvocation("");
     }
