@@ -429,8 +429,10 @@ JSIL.AssignTypeId = function (assembly, typeName) {
   var key = assembly.__AssemblyId__ + "$" + typeName;
   var result = JSIL.$AssignedTypeIds[key];
 
-  if (typeof (result) !== "string")
-    result = JSIL.$AssignedTypeIds[key] = String(++(JSIL.$NextTypeId));
+  if (typeof (result) !== "string") {
+    result = String(++(JSIL.$NextTypeId));
+    JSIL.$AssignedTypeIds[key] = result;
+  }
   
   return result;
 };
