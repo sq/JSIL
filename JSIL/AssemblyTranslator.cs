@@ -1458,6 +1458,20 @@ namespace JSIL {
                     output.Comma();
                     output.NewLine();
 
+                    if (typedef.IsAbstract) {
+                        output.WriteRaw("IsAbstract: ");
+                        output.Value(typedef.IsAbstract);
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    if (typedef.IsSealed) {
+                        output.WriteRaw("IsSealed: ");
+                        output.Value(typedef.IsSealed);
+                        output.Comma();
+                        output.NewLine();
+                    }
+
                     if (typedef.HasGenericParameters) {
                         output.WriteRaw("GenericParameters: ");
                         output.OpenBracket();

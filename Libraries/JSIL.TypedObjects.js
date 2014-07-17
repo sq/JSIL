@@ -73,10 +73,15 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
   var objectProto = jsilTypeObject.__PublicInterface__.prototype;
 
   var canHaveSimpleBackingStore =
-    jsilTypeObject.__IsStruct__ ||
     (
-      !jsilTypeObject.__BaseType__ ||
-      (jsilTypeObject.__BaseType__.__FullName__ === "System.Object")
+      jsilTypeObject.__IsStruct__ ||
+      (
+        (
+          !jsilTypeObject.__BaseType__ ||
+          (jsilTypeObject.__BaseType__.__FullName__ === "System.Object")
+        ) &&
+        jsilTypeObject.__IsSealed__
+      )
     );
 
   var eligible =
