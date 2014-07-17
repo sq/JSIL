@@ -5527,18 +5527,22 @@ JSIL.MakeType = function (typeArgs, initializer) {
       publicInterface: staticClassObject
     };
 
+    typeObject.__NumDerivedTypes__ = 0;
     if (fullName !== "System.Object") {
-      JSIL.SetValueProperty(typeObject, "__BaseType__", JSIL.ResolveTypeReference(baseType, assembly)[1]);
+      var baseTypeObject = JSIL.ResolveTypeReference(baseType, assembly)[1];
 
-      var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
-      var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || $jsilcore.ArrayNull;
+      baseTypeObject.__NumDerivedTypes__ += 1;
+      JSIL.SetValueProperty(typeObject, "__BaseType__", baseTypeObject);
+
+      var baseTypeName = baseTypeObject.__FullName__ || baseType.toString();
+      var baseTypeInterfaces = baseTypeObject.__Interfaces__ || $jsilcore.ArrayNull;
 
       // HACK: We can't do this check before creating the constructor, because recursion. UGH.
       typeObject.__IsStruct__ = typeObject.__IsStruct__ && (baseTypeName === "System.ValueType");
-      typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
+      typeObject.__InheritanceDepth__ = (baseTypeObject.__InheritanceDepth__ || 0) + 1;
       typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
-      typeObject.__ExternalMethods__ = Array.prototype.slice.call(typeObject.__BaseType__.__ExternalMethods__ || $jsilcore.ArrayNull);
-      typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__BaseType__.__RenamedMethods__ || null);
+      typeObject.__ExternalMethods__ = Array.prototype.slice.call(baseTypeObject.__ExternalMethods__ || $jsilcore.ArrayNull);
+      typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(baseTypeObject.__RenamedMethods__ || null);
     } else {
       JSIL.SetValueProperty(typeObject, "__BaseType__", null);
 

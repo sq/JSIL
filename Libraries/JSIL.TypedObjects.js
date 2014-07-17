@@ -80,7 +80,10 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
           !jsilTypeObject.__BaseType__ ||
           (jsilTypeObject.__BaseType__.__FullName__ === "System.Object")
         ) &&
-        jsilTypeObject.__IsSealed__
+        (
+          jsilTypeObject.__IsSealed__ ||
+          (jsilTypeObject.__NumDerivedTypes__ === 0)
+        )
       )
     );
 
