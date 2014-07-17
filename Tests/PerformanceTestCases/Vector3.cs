@@ -5,7 +5,9 @@ using JSIL.Meta;
 
 public static class Program {
     const int BufferSize = 8192;
-    const int IterationCount = 320;
+    // const int IterationCount = 320;
+    // Too slow with ES7 typed objects prototype
+    const int IterationCount = 8;
 
     public static Vector3d[] Vectors = new Vector3d[BufferSize];
     [JSPackedArray]
