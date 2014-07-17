@@ -392,6 +392,7 @@
     <None Include="SimpleTestCases\LambdaInStateMachine1_Issue544.cs" />
     <None Include="SimpleTestCases\LambdaInStateMachine2_Issue544.cs" />
     <None Include="SimpleTestCases\HelloWorld.il" />
+    <None Include="SimpleTestCases\Issue579.cs" />
     <None Include="SimpleTestCases\Unbox_Issue569.il" />
     <None Include="SimpleTestCases\Unbox_Issue569_Complex.il" />
   </ItemGroup>

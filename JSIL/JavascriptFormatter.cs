@@ -813,8 +813,13 @@ namespace JSIL.Internal {
 
         protected bool EmitThisForParameter (GenericParameter gp) {
             var tr = gp.Owner as TypeReference;
-            if (tr != null)
+            if (tr != null
+                && (CurrentMethod == null
+                || (CurrentMethod.DeclaringType.GenericParameters != null
+                && CurrentMethod.DeclaringType.GenericParameters.Any(p => p.Name == gp.Name))))
+            {
                 return true;
+            }
 
             return false;
         }
