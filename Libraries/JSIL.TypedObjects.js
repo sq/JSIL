@@ -7,6 +7,7 @@ if (typeof ($jsilcore) === "undefined")
   throw new Error("JSIL.Core is required");
 
 JSIL.ES7.TypedObjects.Enabled = true;
+JSIL.ES7.TypedObjects.Trace = false;
 
 JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
   var cache = JSIL.CreateDictionaryObject(null);
@@ -89,6 +90,7 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
 
   var eligible =
     !jsilTypeObject.__IsNativeType__ &&
+    !jsilTypeObject.__IsRuntimeInternalType__ &&
     canHaveSimpleBackingStore &&
     // Not using ES7 backing stores for structs with a custom copy operation,
     //  since this implies that their set of fields varies.
@@ -115,7 +117,8 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
 
   JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = result;
 
-  JSIL.Host.logWriteLine("ES7 typed object backing store enabled for " + jsilTypeObject.__FullName__);
+  if (JSIL.ES7.TypedObjects.Trace)
+    JSIL.Host.logWriteLine("ES7 typed object backing store enabled for " + jsilTypeObject.__FullName__);
 
   return result;
 };

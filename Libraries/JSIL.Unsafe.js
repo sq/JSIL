@@ -522,6 +522,8 @@ JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], functio
 });
 
 JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
+  $.SetValue("__IsRuntimeInternalType__", true);
+
   $.RawMethod(false, ".ctor",
     function MemoryRange_ctor (buffer, offset, length) {
       this.buffer = buffer;
@@ -609,6 +611,8 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
+  $.SetValue("__IsRuntimeInternalType__", true);
+
   var shiftTable = [];
   for (var i = 0; i < 256; i++) {
     shiftTable[i] = (Math.log(i) / Math.LN2) | 0;
@@ -1190,6 +1194,8 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.PackedStructArrayElementReference", true,
 });
 
 JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function ($) {
+  $.SetValue("__IsRuntimeInternalType__", true);
+
   var T = new JSIL.GenericParameter("T", "JSIL.PackedStructArray");
   var TRef = JSIL.Reference.Of(T);
 
