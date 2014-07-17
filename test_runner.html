@@ -85,14 +85,21 @@
           contentManifest["TestRunner"] = [
             ["Script", scriptname]
           ];
+
           onLoad();
+
           document.getElementById("runscript").disabled = false;
         }, 25);
       }
 
       function runMain () {
         JSIL.Host.logWriteLine("// Test output begins here //");
-        var elapsed = runTestCase(function () { }, Date.now);
+        try {
+          var elapsed = runTestCase(function () { }, Date.now);
+        } catch (exc) {
+          JSIL.Host.logWriteLine("// Uncaught exception: " + exc + "\r\n" + exc.stack);
+          throw exc;
+        }
         JSIL.Host.logWriteLine("// Test output ends here //");
         JSIL.Host.logWriteLine("// Test completed in " + (elapsed / 1000) + " second(s)");
       }
