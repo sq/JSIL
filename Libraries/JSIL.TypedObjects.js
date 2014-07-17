@@ -8,11 +8,10 @@ if (typeof ($jsilcore) === "undefined")
 
 JSIL.ES7.TypedObjects.Enabled = true;
 
-JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "TypeCache", function () {
+JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
   var cache = JSIL.CreateDictionaryObject(null);
   var cacheSet = function (nativeType, es7Type) {
     cache[nativeType.__Type__.__TypeId__] = es7Type;
-    nativeType.__Type__.__ES7Constructor__ = es7Type;
   };
 
   var system = $jsilcore.System;
@@ -35,6 +34,8 @@ JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "TypeCache", function () {
   return cache;
 });
 
+JSIL.ES7.TypedObjects.TypeCache = JSIL.CreateDictionaryObject(null);
+
 JSIL.ES7.TypedObjects.CreateES7TypeDescriptor = function (jsilTypeObject) {
   var descriptor = Object.create(null);
   var fields = Array.prototype.slice.call(JSIL.GetFieldList(jsilTypeObject));
@@ -44,7 +45,7 @@ JSIL.ES7.TypedObjects.CreateES7TypeDescriptor = function (jsilTypeObject) {
 
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
-    var fieldType = JSIL.ES7.TypedObjects.GetES7TypeObject(field.type);
+    var fieldType = JSIL.ES7.TypedObjects.GetES7TypeObject(field.type, false);
 
     if (!fieldType) {
       return JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = null;
@@ -56,16 +57,31 @@ JSIL.ES7.TypedObjects.CreateES7TypeDescriptor = function (jsilTypeObject) {
   return descriptor;
 };
 
-JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject) {
+JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOnly) {
+  var result = JSIL.ES7.TypedObjects.BuiltInTypes[jsilTypeObject.__TypeId__];
+  if (result) {
+    if (userDefinedOnly)
+      return null;
+    else
+      return result;
+  }
+
   var result = JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__];
   if (result)
     return result;
 
   var objectProto = jsilTypeObject.__PublicInterface__.prototype;
 
+  var canHaveSimpleBackingStore =
+    jsilTypeObject.__IsStruct__ ||
+    (
+      !jsilTypeObject.__BaseType__ ||
+      (jsilTypeObject.__BaseType__.__FullName__ === "System.Object")
+    );
+
   var eligible =
-    // Only using ES7 backing stores for structs, right now.
-    jsilTypeObject.__IsStruct__ &&
+    !jsilTypeObject.__IsNativeType__ &&
+    canHaveSimpleBackingStore &&
     // Not using ES7 backing stores for structs with a custom copy operation,
     //  since this implies that their set of fields varies.
     // FIXME: We should probably eliminate *all* of these from the JSIL runtime.
@@ -73,8 +89,12 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject) {
 
   // For anything that isn't a struct, just represent it as a normal heap reference.
   // I think we can use 'object' here instead of any... I might be wrong.
-  if (!eligible)
-    return TypedObjects.object;
+  if (!eligible) {
+    if (userDefinedOnly)
+      return null;
+    else
+      return TypedObjects.object;
+  }
 
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
 
@@ -86,7 +106,6 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject) {
   );
 
   JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = result;
-  jsilTypeObject.__ES7Constructor__ = result;
 
   JSIL.Host.logWriteLine("ES7 typed object backing store enabled for " + jsilTypeObject.__FullName__);
 

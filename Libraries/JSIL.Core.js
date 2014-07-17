@@ -4592,7 +4592,7 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
     // HACK: We don't want to do this while initializing anything under the System namespace.
     (typeObject.__FullName__.indexOf("System.") !== 0)
   ) {
-    JSIL.ES7.TypedObjects.GetES7TypeObject(typeObject);
+    typeObject.__ES7Constructor__ = JSIL.ES7.TypedObjects.GetES7TypeObject(typeObject, true);
   }
 
   if (typeObject.__RanCctors__)
@@ -5358,18 +5358,19 @@ JSIL.EmitFieldInitializerInvocation = function (body, typeObject, closure) {
     throw new Error("Closure must have a fieldInitializer property");
 
   if (
-    (JSIL.ES7.TypedObjects.Enabled === true) &&
-    typeObject.__IsStruct__
+    (JSIL.ES7.TypedObjects.Enabled === true)
   ) {
     body.push("var self = this;");
     body.push("if (typeObject.__ES7Constructor__) {");
     body.push("  self = new (typeObject.__ES7Constructor__)();");
-    body.push("} else {");
-
-    if (closure.fieldInitializer)
-      body.push("  fieldInitializer(self);");
-
     body.push("}");
+
+    if (closure.fieldInitializer) {
+      body.push("");
+      body.push("fieldInitializer(self);");
+    }
+
+    body.push("");
   } else {
     body.push("var self = this;");
 

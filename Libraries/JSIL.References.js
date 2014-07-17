@@ -10,6 +10,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var types = {};
 
   $.SetValue("__IsReference__", true);
+  $.SetValue("__IsNativeType__", true);
 
   var checkType = function Reference_CheckType (value) {
     var type = this;
@@ -107,6 +108,8 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.BoxedVariable", true, [], function ($) {
+  $.SetValue("__IsNativeType__", true);
+
   $.RawMethod(false, ".ctor",
     function BoxedVariable_ctor (value) {
       this.$value = value;
@@ -127,6 +130,8 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.BoxedVariable", true, [], function ($) {
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
+  $.SetValue("__IsNativeType__", true);
+
   $.RawMethod(false, ".ctor",
     function MemberReference_ctor (object, memberName) {
       this.object = object;
@@ -148,6 +153,8 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) 
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.ArrayElementReference", true, [], function ($) {
+  $.SetValue("__IsNativeType__", true);
+  
   $.RawMethod(false, ".ctor",
     function ArrayElementReference_ctor (array, index) {
       this.array = array;
