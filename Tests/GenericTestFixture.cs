@@ -409,6 +409,7 @@ namespace JSIL.Tests {
                 .Concat(Directory.GetFiles(testPath, "*.fs"))
                 .Concat(Directory.GetFiles(testPath, "*.js"))
                 .Concat(Directory.GetFiles(testPath, "*.il"))
+                .Concat(Directory.GetFiles(testPath, "*.cpp"))
                 .OrderBy((s) => s).ToArray();
 
             string commonFile = null;
@@ -468,6 +469,8 @@ namespace JSIL.Tests {
                     return result + " (JavaScript)";
                 case ".il":
                     return result + " (CIL)";
+                case ".cpp":
+                    return result + " (C++/CLI)";
                 default:
                     return result;
             }
