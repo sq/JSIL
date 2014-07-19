@@ -89,6 +89,8 @@
     <None Include="SimpleTestCases\Issue198.fs" />
     <None Include="SimpleTestCases\Issue173.cs" />
     <None Include="SimpleTestCases\StructHoistingInComplexLoop.cs" />
+    <None Include="SimpleTestCases\StructPassedToGeneric_Issue494_1.cs" />
+    <None Include="SimpleTestCases\StructPassedToGeneric_Issue494_2.cs" />
     <None Include="SimpleTestCases\RefDouble.cs" />
     <None Include="SimpleTestCases\Issue205.cs" />
     <None Include="SimpleTestCases\NullableStructRef.cs" />
