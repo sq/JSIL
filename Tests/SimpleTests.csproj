@@ -70,6 +70,8 @@
   <ItemGroup>
     <None Include="SimpleTestCases\Issue538.cs" />
     <None Include="SimpleTestCases\Issue567.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\Issue585.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\Issue578.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
