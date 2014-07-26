@@ -72,6 +72,8 @@
     <None Include="SimpleTestCases\Issue567.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Issue585.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Issue578.cs" />
+    <None Include="SimpleTestCasesForStubbedBcl\Issue578.cs" />
+    <None Include="SimpleTestCasesForStubbedBcl\Issue585.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
