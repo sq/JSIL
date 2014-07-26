@@ -11,6 +11,7 @@ JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 JSIL.DeclareNamespace("System.Diagnostics");
 JSIL.DeclareNamespace("System.Collections.Generic");
+JSIL.DeclareNamespace("System.Collections.ObjectModel");
 
 // HACK: Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
