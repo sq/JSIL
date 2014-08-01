@@ -580,7 +580,7 @@ namespace JSIL {
 
                 if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
                     tw.WriteLine();
-                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
+                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { window['contentManifest'] = {}; };");
                     tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
                     foreach (var fe in result.OrderedFiles) {
