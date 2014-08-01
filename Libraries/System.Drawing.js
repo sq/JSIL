@@ -432,4 +432,265 @@ JSIL.ImplementExternals("System.Drawing.Rectangle", function ($) {
       this.y = value;
     }
   );
+
+});
+
+JSIL.ImplementExternals("System.Drawing.SizeF", function ($) {
+  $.RawMethod(true, ".cctor2", function () {
+    System.Drawing.SizeF.prototype.width = 0;
+    System.Drawing.SizeF.prototype.height = 0;
+    System.Drawing.SizeF.Empty = new System.Drawing.SizeF();
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Single, $.Single], [])), 
+    function _ctor (width, height) {
+      this.width = width;
+      this.height = height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Height () {
+      return this.height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Width () {
+      return this.width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Height", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Height (value) {
+      this.height = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Width", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Width (value) {
+      this.width = value;
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "Object.Equals",
+    new JSIL.MethodSignature(System.Boolean, [System.Object]),
+    function SizeF_Equals (rhs) {
+        return this.Width === rhs.Width && this.Height === rhs.Height;
+  });
+
+  $.Method({ Static: true, Public: true }, "op_Inequality",
+        (new JSIL.MethodSignature(System.Boolean, [$.Type, $.Type], [])),
+        function SizeF_op_Inequality (a, b) {
+          return !(a.Width === b.Width && a.Height === b.Height);
+  });
+
+});
+
+JSIL.ImplementExternals("System.Drawing.PointF", function ($) {
+  $.RawMethod(true, ".cctor2", function () {
+    System.Drawing.PointF.prototype.x = 0;
+    System.Drawing.PointF.prototype.y = 0;
+    System.Drawing.PointF.Empty = new System.Drawing.PointF();
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Single, $.Single], [])), 
+    function _ctor (x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_X", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_X () {
+      return this.x;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Y", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Y () {
+      return this.y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_X", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_X (value) {
+      this.x = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Y", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Y (value) {
+      this.y = value;
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "Object.Equals",
+    new JSIL.MethodSignature(System.Boolean, [System.Object]),
+    function PointF_Equals (rhs) {
+        return this.X === rhs.X && this.Y === rhs.Y;
+  });
+
+  $.Method({ Static: true, Public: true }, "op_Inequality",
+        (new JSIL.MethodSignature(System.Boolean, [$.Type, $.Type], [])),
+        function PointF_op_Inequality (a, b) {
+          return !(a.X === b.X && a.Y === b.Y);
+  });
+
+});
+
+JSIL.ImplementExternals("System.Drawing.RectangleF", function ($) {
+  $.RawMethod(true, ".cctor2", function () {
+    System.Drawing.RectangleF.Empty = new System.Drawing.RectangleF();
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function _ctor (x, y, width, height) {
+      this.x = x;
+      this.y = y;
+      this.width = width;
+      this.height = height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$sdasms[11].TypeRef("System.Drawing.PointF"), $sdasms[11].TypeRef("System.Drawing.SizeF")], [])), 
+    function _ctor (location, size) {
+      this.x = location.X;
+      this.y = location.Y;
+      this.width = size.Width;
+      this.height = size.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Location", 
+    (new JSIL.MethodSignature($sdasms[11].TypeRef("System.Drawing.PointF"), [], [])), 
+    function get_Location () {
+      return new System.Drawing.PointF(this.X, this.Y);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Location", 
+    (new JSIL.MethodSignature(null, [$sdasms[11].TypeRef("System.Drawing.PointF")], [])), 
+    function set_Location (value) {
+      this.x = value.X;
+      this.y = value.Y;
+    }
+  );
+
+
+  $.Method({Static:false, Public:true }, "get_Size", 
+    (new JSIL.MethodSignature($sdasms[11].TypeRef("System.Drawing.SizeF"), [], [])), 
+    function get_Size () {
+      return new System.Drawing.SizeF(this.width, this.height);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Size", 
+    (new JSIL.MethodSignature(null, [$sdasms[11].TypeRef("System.Drawing.SizeF")], [])), 
+    function set_Size (value) {
+      this.height = value.Height;
+      this.width = value.Width;
+    }
+  );
+
+
+  $.Method({Static:false, Public:true }, "get_Bottom", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Bottom () {
+      return this.y + this.height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Height () {
+      return this.height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Left () {
+      return this.x;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Right () {
+      return this.x + this.width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Top", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Top () {
+      return this.y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Width () {
+      return this.width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_X", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_X () {
+      return this.x;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Y", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Y () {
+      return this.y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Height", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Height (value) {
+      this.height = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Width", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Width (value) {
+      this.width = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_X", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_X (value) {
+      this.x = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Y", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Y (value) {
+      this.y = value;
+    }
+  );
+
 });
