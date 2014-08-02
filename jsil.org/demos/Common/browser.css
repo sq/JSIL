@@ -43,7 +43,7 @@ body {
 #welcomeMessage a {
 	color: #BFBFFF;
 }
-#fullscreenButton, #loadButton, #quitButton {
+#fullscreenButton, #loadButton {
 	position: absolute;	
 	z-index: 90;
 }
@@ -122,6 +122,6 @@ body {
 	display: inline-block;
 	width: 4em;
 }
-#stats, #stats span, #stats span span, #loadingProgress, #progressBar, #progressText, #fullscreenButton, #quitButton, #loadButton, #welcomeMessage, #canvas {
+#stats, #stats span, #stats span span, #loadingProgress, #progressBar, #progressText, #fullscreenButton, #loadButton, #welcomeMessage, #canvas {
 	cursor: default;
 }

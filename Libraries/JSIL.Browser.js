@@ -870,7 +870,7 @@ function finishLoading () {
     } else {
       initIfNeeded();
 
-      updateProgressBar("Starting game", null, 1, 1);
+      updateProgressBar("Starting", null, 1, 1);
 
       var allFailures = $jsilloaderstate.loadFailures.concat(state.assetLoadFailures);
 
@@ -1052,7 +1052,6 @@ function beginLoading () {
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
   var fullscreenButton = document.getElementById("fullscreenButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var stats = document.getElementById("stats");
   
@@ -1098,7 +1097,6 @@ function browserFinishedLoadingCallback (loadFailures) {
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
   var fullscreenButton = document.getElementById("fullscreenButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var stats = document.getElementById("stats");
   
@@ -1111,9 +1109,6 @@ function browserFinishedLoadingCallback (loadFailures) {
     JSIL.Host.logWriteLine("done.");
   }
   try {     
-    if (quitButton)
-      quitButton.style.display = "";
-
     if (fullscreenButton && canGoFullscreen)
       fullscreenButton.style.display = "";
 
@@ -1141,11 +1136,6 @@ function browserFinishedLoadingCallback (loadFailures) {
     if (loadingProgress)
       loadingProgress.style.display = "none";
   }
-};
-
-function quitGame () {
-  Microsoft.Xna.Framework.Game.ForceQuit();
-  document.getElementById("quitButton").style.display = "none";
 };
 
 var canGoFullscreen = false;
@@ -1302,20 +1292,12 @@ function onLoad () {
 
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var fullscreenButton = document.getElementById("fullscreenButton");
   var statsElement = document.getElementById("stats");
 
   if (log)
     log.value = "";
-  
-  if (quitButton) {
-    quitButton.style.display = "none";
-    quitButton.addEventListener(
-      "click", quitGame, true
-    );
-  }
 
   if (statsElement)
     statsElement.style.display = "none";

@@ -27,12 +27,6 @@ a, a:visited {
 	left: 539px;
 	top: 320px;
 }
-#quitButton {
-	width: 32px;
-	height: 32px;
-	left: 1284px;
-	top: 2px;
-}
 #loadingProgress {
 	width: 600px;
 	height: 40px;
