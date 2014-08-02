@@ -508,5 +508,25 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void CanForceTranslationOfTypeInStubbedAssembly () {
+            var generatedJs = GenericIgnoreTest(
+                @"SpecialTestCases\TranslateTypeInStubbedAssembly.cs",
+                "",
+                "method 'void Main(System.String[])' of type 'Program'",
+                new[] { ".*" }
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.IsFalse(
+                generatedJs.Contains("This shouldn't be translated!")
+            );
+            Assert.IsTrue(
+                generatedJs.Contains("This should be translated!"),
+                "Method was stubbed"
+            );
+        }
     }
 }

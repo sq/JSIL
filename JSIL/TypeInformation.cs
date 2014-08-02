@@ -515,6 +515,7 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
+        public readonly int UnstubbableMemberCount = 0;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -524,7 +525,8 @@ namespace JSIL.Internal {
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
-        protected bool _IsStubOnly;
+        protected bool _IsStubOnly = false;
+        protected bool _IsUnstubbable = false;
         protected bool _MethodGroupsInitialized = false;
 
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
@@ -625,6 +627,12 @@ namespace JSIL.Internal {
             }
 
             _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
+            _IsUnstubbable = Metadata.HasAttribute("JSIL.Meta.JSNeverStub");
+
+            if (_IsUnstubbable) {
+                _IsStubOnly = false;
+                _IsExternal = false;
+            }
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
@@ -788,6 +796,8 @@ namespace JSIL.Internal {
             DoDeferredMethodSignatureSetUpdate();
 
             ValidateMembers();
+
+            UnstubbableMemberCount = Members.Count(m => m.Value.IsUnstubbable);
         }
 
         private void DoDeferredMethodSignatureSetUpdate () {
@@ -927,6 +937,13 @@ namespace JSIL.Internal {
                 }
 
                 return _IsIgnored;
+            }
+        }
+
+        public bool IsUnstubbable {
+            get {
+                // FIXME: Need GetExisting logic?
+                return _IsUnstubbable;
             }
         }
 
@@ -1469,6 +1486,7 @@ namespace JSIL.Internal {
         bool IsStatic { get; }
         bool IsFromProxy { get; }
         bool IsIgnored { get; }
+        bool IsUnstubbable { get; }
         JSReadPolicy ReadPolicy { get; }
         JSWritePolicy WritePolicy { get; }
         JSInvokePolicy InvokePolicy { get; }
@@ -1486,6 +1504,7 @@ namespace JSIL.Internal {
         public readonly bool IsExternal;
         public readonly bool IsFromProxy;
         protected readonly bool _IsIgnored;
+        protected readonly bool _IsUnstubbable;
         protected readonly JSReadPolicy _ReadPolicy;
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
@@ -1529,6 +1548,11 @@ namespace JSIL.Internal {
 
             if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
                 IsExternal = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSNeverStub")) {
+                _IsUnstubbable = true;
+                IsExternal = false;
+            }
 
             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
             if (parms != null) {
@@ -1597,6 +1621,13 @@ namespace JSIL.Internal {
 
         MetadataCollection IMemberInfo.Metadata {
             get { return Metadata; }
+        }
+
+        public bool IsUnstubbable {
+            get {
+                return _IsUnstubbable ||
+                    DeclaringType.IsUnstubbable;
+            }
         }
 
         public virtual bool IsIgnored {

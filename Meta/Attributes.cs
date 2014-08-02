@@ -201,4 +201,8 @@ namespace JSIL.Meta {
     public class JSDeadCodeEleminationHierarchyEntryPoint : Attribute
     {
     }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method)]
+    public class JSNeverStub : Attribute {
+    }
 }

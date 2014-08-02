@@ -765,7 +765,7 @@ namespace JSIL {
                             if ((mi == null) || (mi.IsIgnored))
                                 continue;
 
-                            if (isStubbed) {
+                            if (isStubbed && !mi.IsUnstubbable) {
                                 var isProperty = mi.DeclaringProperty != null;
 
                                 if (!(isProperty && m.IsCompilerGenerated()))
@@ -1120,6 +1120,7 @@ namespace JSIL {
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
             var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
+            var externals = new List<Action<JavascriptAstEmitter, JavascriptFormatter>>();
 
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
@@ -1249,15 +1250,13 @@ namespace JSIL {
                     }
                 }
 
-                if (!makingSkeletons) {
-                    output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
-                    output.NewLine();
-                    output.NewLine();
+                output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
+                output.NewLine();
+                output.NewLine();
 
-                    output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                    output.Indent();
-                    output.NewLine();
-                }
+                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                output.Indent();
+                output.NewLine();
 
                 JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
@@ -1267,13 +1266,7 @@ namespace JSIL {
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
-                if (makingSkeletons) {
-                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
-                    output.LPar();
-
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-
-                } else if (isStatic) {
+                if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
@@ -1400,10 +1393,23 @@ namespace JSIL {
                     astEmitter.ReferenceContext.Pop();
                 }
 
-                if (!makingSkeletons) {
-                    output.Unindent();
-                    output.WriteRaw("})();");
-                    output.NewLine();
+                output.Unindent();
+                output.WriteRaw("})();");
+                output.NewLine();
+
+                if ((externals.Count > 0) && makingSkeletons) {
+                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
+                    output.LPar();
+
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
+
+                    foreach (var e in externals) {
+                        e(astEmitter, output);
+                        output.NewLine();
+                    }
+
+                    output.RPar();
+                    output.Semicolon(true);
                 }
 
                 output.NewLine();
@@ -1422,7 +1428,10 @@ namespace JSIL {
                 return false;
 
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
-            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy || typeInfo.IsExternal)
+            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                return false;
+
+            if (typeInfo.IsExternal && typeInfo.UnstubbableMemberCount == 0)
                 return false;
 
             if (typedef.IsInterface)
@@ -1500,10 +1509,8 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return new Cachers(typeCacher, signatureCacher, baseMethodCacher);
 
-            if (!makingSkeletons) {
-                output.WriteRaw("var $, $thisType");
-                output.Semicolon(true);
-            }
+            output.WriteRaw("var $, $thisType");
+            output.Semicolon(true);
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToList();
 
@@ -2543,7 +2550,7 @@ namespace JSIL {
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
                 !methodInfo.IsExternal && !isReplaced;
 
-            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
         }
 
         protected bool ShouldTranslateMethodBody (
