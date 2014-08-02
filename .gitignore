@@ -99,3 +99,5 @@ Corlib/*.nlp
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
 *.out
+*.pdb
+pingme.txt
