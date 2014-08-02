@@ -1120,7 +1120,6 @@ namespace JSIL {
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
             var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-            var externals = new List<Action<JavascriptAstEmitter, JavascriptFormatter>>();
 
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
@@ -1254,9 +1253,11 @@ namespace JSIL {
                 output.NewLine();
                 output.NewLine();
 
-                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                output.Indent();
-                output.NewLine();
+                if (!makingSkeletons) {
+                    output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                    output.Indent();
+                    output.NewLine();
+                }
 
                 JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
@@ -1266,7 +1267,13 @@ namespace JSIL {
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
-                if (isStatic) {
+                if (makingSkeletons) {
+                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
+                    output.LPar();
+
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
+
+                } else if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
@@ -1393,23 +1400,10 @@ namespace JSIL {
                     astEmitter.ReferenceContext.Pop();
                 }
 
-                output.Unindent();
-                output.WriteRaw("})();");
-                output.NewLine();
-
-                if ((externals.Count > 0) && makingSkeletons) {
-                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
-                    output.LPar();
-
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-
-                    foreach (var e in externals) {
-                        e(astEmitter, output);
-                        output.NewLine();
-                    }
-
-                    output.RPar();
-                    output.Semicolon(true);
+                if (!makingSkeletons) {
+                    output.Unindent();
+                    output.WriteRaw("})();");
+                    output.NewLine();
                 }
 
                 output.NewLine();
@@ -1509,8 +1503,10 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return new Cachers(typeCacher, signatureCacher, baseMethodCacher);
 
-            output.WriteRaw("var $, $thisType");
-            output.Semicolon(true);
+            if (!makingSkeletons) {
+                output.WriteRaw("var $, $thisType");
+                output.Semicolon(true);
+            }
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToList();
 

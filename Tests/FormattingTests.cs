@@ -1129,9 +1129,5 @@ namespace JSIL.Tests {
                 Console.WriteLine(generatedJs);
             }
         }
-
-        [Test]
-        public void ForceTranslationOfStubbedClass () {
-        }
     }
 }
