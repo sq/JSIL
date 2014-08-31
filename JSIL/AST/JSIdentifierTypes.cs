@@ -18,22 +18,42 @@ namespace JSIL.Ast {
         public override string Identifier {
             get { return Text; }
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSRawOutputIdentifier : JSIdentifier {
-        public readonly Action<JavascriptFormatter> Emitter;
+        public readonly string Format;
+        public readonly object[] Arguments;
 
-        public JSRawOutputIdentifier (Action<JavascriptFormatter> emitter, TypeReference type)
+        public JSRawOutputIdentifier (TypeReference type, string format, params object[] arguments)
             : base(type) {
 
             if (type == null)
                 throw new ArgumentNullException("type");
 
-            Emitter = emitter;
+            Format = format;
+            Arguments = arguments;
         }
 
         public override string Identifier {
-            get { return Emitter.ToString(); }
+            get {
+                if ((Arguments != null) && (Arguments.Length > 0))
+                    return String.Format(Format, Arguments);
+                else
+                    return Format;
+            }
+        }
+
+        public void WriteTo (JavascriptFormatter output) {
+            if ((Arguments != null) && (Arguments.Length > 0))
+                output.WriteRaw(Format, Arguments);
+            else
+                output.WriteRaw(Format);
         }
     }
 
@@ -41,10 +61,16 @@ namespace JSIL.Ast {
         public JSNamespace (string name)
             : base(name) {
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSAssembly : JSIdentifier {
-        new public readonly AssemblyDefinition Assembly;
+        public readonly AssemblyDefinition Assembly;
 
         public JSAssembly (AssemblyDefinition assembly) {
             if (assembly == null)
@@ -64,6 +90,12 @@ namespace JSIL.Ast {
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Assembly);
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSReflectionAssembly : JSAssembly {
@@ -74,10 +106,18 @@ namespace JSIL.Ast {
         public override JSLiteral ToLiteral () {
             throw new InvalidOperationException();
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     public class JSType : JSIdentifier {
-        new public readonly TypeReference Type;
+        public readonly TypeReference Type;
+
+        string _cachedIdentifier = null;
 
         public JSType (TypeReference type) {
             if (type == null)
@@ -87,7 +127,12 @@ namespace JSIL.Ast {
         }
 
         public override string Identifier {
-            get { return Type.FullName; }
+            get { 
+                if (_cachedIdentifier == null)
+                    _cachedIdentifier = Util.DemangleCecilTypeName(Type.FullName);
+
+                return _cachedIdentifier;
+            }
         }
 
         public override bool HasGlobalStateDependency {
@@ -111,6 +156,22 @@ namespace JSIL.Ast {
 
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Type);
+        }
+
+        public static TypeReference ExtractType (JSExpression expression) {
+            while (expression != null) {
+                var pii = expression as JSPublicInterfaceOfExpression;
+                var jst = expression as JSType;
+
+                if (pii != null)
+                    expression = pii.Inner;
+                else if (jst != null)
+                    return jst.Type;
+                else
+                    return null;
+            }
+
+            return null;
         }
     }
 
@@ -160,6 +221,21 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Field.ReturnType;
         }
+
+        // FIXME: Is this right?
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+    }
+
+    public class JSFieldOfExpression : JSField
+    {
+        public JSFieldOfExpression(FieldReference reference, FieldInfo field)
+            : base(reference, field)
+        {
+        }
     }
 
     public class JSProperty : JSIdentifier {
@@ -193,9 +269,10 @@ namespace JSIL.Ast {
                 return Property.ReturnType;
         }
 
+        // FIXME: Is this right?
         public override bool IsConstant {
             get {
-                return false;
+                return true;
             }
         }
     }
@@ -286,6 +363,23 @@ namespace JSIL.Ast {
 
             CachedGenericArguments = newCachedGenericArguments;
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+    }
+
+    public class JSCachedMethod : JSMethod {
+        public readonly int Index;
+
+        public JSCachedMethod (
+            MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments, int index
+        ) : base (reference, method, methodTypes, genericArguments) {
+            Index = index;
+        }
     }
 
     [JSAstIgnoreInheritedMembers]
@@ -337,6 +431,12 @@ namespace JSIL.Ast {
                 ReturnType, ParameterTypes, typeSystem
             );
         }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
     }
 
     [JSAstIgnoreInheritedMembers]
@@ -365,10 +465,7 @@ namespace JSIL.Ast {
 
             Function = function;
 
-            if (defaultValue != null)
-                DefaultValue = defaultValue;
-            else
-                DefaultValue = new JSDefaultValueLiteral(type);
+            DefaultValue = defaultValue ?? new JSDefaultValueLiteral(type);
         }
 
         public override string Identifier {
@@ -434,7 +531,7 @@ namespace JSIL.Ast {
             var defaultValueText = "";
 
             if (!DefaultValue.IsNull && !(DefaultValue is JSDefaultValueLiteral))
-                defaultValueText = String.Format(" := {0}", DefaultValue.ToString());
+                defaultValueText = String.Format(" := {0}", DefaultValue);
 
             if (IsReference)
                 return String.Format("<{0} {1}{2}>", IdentifierType, Identifier, defaultValueText);
@@ -706,6 +803,10 @@ namespace JSIL.Ast {
                 else
                     return base.Equals(obj);
             }
+        }
+
+        public override int GetHashCode() {
+            return Identifier.GetHashCode();
         }
 
         public override string ToString () {

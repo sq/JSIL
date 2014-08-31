@@ -202,10 +202,15 @@ namespace JSIL.Tests {
         }
 
         private CompileResult RunComparisonTest (
-            string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
-            List<string> failureList = null, string commonFile = null, bool shouldRunJs = true, AssemblyCache asmCache = null,
-            Func<Configuration> makeConfiguration = null, Action<Exception> onTranslationFailure = null,
-            string compilerOptions = ""
+            string filename, string[] stubbedAssemblies = null, 
+            TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
+            List<string> failureList = null, string commonFile = null, 
+            bool shouldRunJs = true, AssemblyCache asmCache = null,
+            Func<Configuration> makeConfiguration = null, 
+            Action<Exception> onTranslationFailure = null,
+            bool throwOnUnimplementedExternals = true,
+            string compilerOptions = "",
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             CompileResult result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
@@ -229,20 +234,31 @@ namespace JSIL.Tests {
                     result = test.CompileResult;
 
                     if (shouldRunJs) {
-                        test.Run(makeConfiguration: makeConfiguration, onTranslationFailure: onTranslationFailure);
+                        test.Run(
+                            makeConfiguration: makeConfiguration, 
+                            throwOnUnimplementedExternals: throwOnUnimplementedExternals, 
+                            onTranslationFailure: onTranslationFailure,
+                            initializeTranslator: initializeTranslator
+                        );
                     } else {
                         string js;
                         long elapsed;
                         try {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            test.GenerateJavascript(new string[0], out js, out elapsed, makeConfiguration, onTranslationFailure);
+                            test.GenerateJavascript(
+                                new string[0], out js, out elapsed, 
+                                makeConfiguration, 
+                                throwOnUnimplementedExternals, 
+                                onTranslationFailure,
+                                initializeTranslator
+                            );
 
                             Console.WriteLine("generated");
 
                             if (errorCheckPredicate != null) {
                                 errorCheckPredicate(csOutput, js);
                             }
-                        } catch (Exception _exc) {
+                        } catch (Exception) {
                             Console.WriteLine("error");
                             throw;
                         }
@@ -351,8 +367,10 @@ namespace JSIL.Tests {
         protected CompileResult RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
+            bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null,
-            string compilerOptions = ""
+            string compilerOptions = "",
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -363,8 +381,10 @@ namespace JSIL.Tests {
                 return RunComparisonTest(
                     (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
                     makeConfiguration: makeConfiguration,
+                    throwOnUnimplementedExternals: throwOnUnimplementedExternals,
                     onTranslationFailure: onTranslationFailure,
-                    compilerOptions: compilerOptions
+                    compilerOptions: compilerOptions,
+                    initializeTranslator: initializeTranslator
                 );
             } finally {
                 if ((bool)parameters[4]) {
@@ -379,9 +399,16 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
+            if (!Directory.Exists(testPath)) {
+                Console.WriteLine("WARNING: Folder {0} doesn't exist.", testPath);
+                yield break;
+            }
+
             var testNames = Directory.GetFiles(testPath, "*.cs")
                 .Concat(Directory.GetFiles(testPath, "*.vb"))
                 .Concat(Directory.GetFiles(testPath, "*.fs"))
+                .Concat(Directory.GetFiles(testPath, "*.js"))
+                .Concat(Directory.GetFiles(testPath, "*.il"))
                 .OrderBy((s) => s).ToArray();
 
             string commonFile = null;
@@ -437,6 +464,10 @@ namespace JSIL.Tests {
                     return result + " (VB)";
                 case ".fs":
                     return result + " (F#)";
+                case ".js":
+                    return result + " (JavaScript)";
+                case ".il":
+                    return result + " (CIL)";
                 default:
                     return result;
             }

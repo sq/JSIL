@@ -25,7 +25,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
   );
 
   $.Method({Static:false, Public:true }, "Update", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Update () {
     }
   );
@@ -133,7 +133,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Pause", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Pause () {
       this.$gc();
 
@@ -145,7 +145,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Play", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Play () {
       this.$gc();
 
@@ -226,7 +226,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Resume", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Resume () {
       this.$gc();
 
@@ -250,7 +250,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       this.Stop();
       this.$gc();
@@ -377,7 +377,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
   );
 
   $.Method({Static:true , Public:true }, "Stop", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function MediaPlayer_Stop () {
       if (Microsoft.Xna.Framework.Media.MediaPlayer.currentSong)
         Microsoft.Xna.Framework.Media.MediaPlayer.currentSong.pause();
@@ -422,7 +422,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   });
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       this.Dispose(true);
     }
@@ -499,7 +499,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   );
 
   $.Method({Static:false, Public:true }, "Pause", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Pause () {
       if (this.instance !== null)
         this.instance.pause();
@@ -507,7 +507,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   );
 
   $.Method({Static:false, Public:true }, "Play", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Play () {
       this.$CreateInstanceIfNeeded();
       this.instance.play();
@@ -515,7 +515,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   );
 
   $.Method({Static:false, Public:true }, "Resume", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Resume () {
       if (this.instance !== null)
         this.instance.resume();
@@ -566,7 +566,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
   );
 
   $.Method({Static:false, Public:true }, "Stop", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Stop () {
       return this.Stop(true);
     }

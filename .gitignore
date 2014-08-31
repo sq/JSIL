@@ -7,6 +7,8 @@ _ReSharper.*
 Compiler/obj
 Compiler/Profiles/*/obj
 Compiler/Profiles/*/bin
+Compiler/Analyzers/*/obj
+Compiler/Analyzers/*/bin
 JSIL/obj
 JSIL/bin
 Meta/obj
@@ -17,12 +19,12 @@ Proxies/obj
 Proxies/bin
 Proxies/XNA/obj
 Proxies/XNA/bin
+Proxies/BCL/obj
 Examples/simpleray
 Examples/bin
 /bin
 UpgradeLog.XML
 _UpgradeReport_Files
-Tests/*Cases/*.js
 /Proxies/XNA4/bin
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
@@ -44,6 +46,7 @@ Tests/*Cases/*.js
 /jsil.org/demos/Lumberjack/Content
 /jsil.org/demos/Lumberjack/Files
 /jsil.org/demos/Lumberjack/*.js
+/jsil.org/demos/Lumberjack/*.ico
 /jsil.org/demos/WebGL/*.js
 /jsil.org/demos/WebGL/Page.cs
 /jsil.org/demos/WebGL/Files/*
@@ -65,11 +68,13 @@ Tests/*Cases/*.js
 /Upstream/FFMPEG/*.exe
 /Upstream/FFMPEG/licenses
 /Upstream/OggEnc/*.exe
-/Upstream/XapParse/obj
-/Upstream/XapParse/bin
+/Upstream/xapparse/obj
+/Upstream/xapparse/bin
 Skeletons/*.js
 Corlib/*.js
+Corlib/*.nlp
 /Try/obj
+/Try/OAuth.cs
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs
 *.jsillog
@@ -93,3 +98,6 @@ Corlib/*.js
 /Upstream/OpenTKBindingGenerator
 /Upstream/OpenTKHeaderParser
 *.RuntimeProfile
+*.out
+*.pdb
+pingme.txt

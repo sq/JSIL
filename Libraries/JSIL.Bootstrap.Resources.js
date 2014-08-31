@@ -126,7 +126,7 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
   });
 
   $.Method({Static:false, Public:true }, "Close", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Close () {
     }
   );
@@ -138,14 +138,14 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
     }
   );
 
   $.RawMethod(false, "$get", function (key, ignoreCase) {
     if (ignoreCase)
-      throw new Error("Case insensitive resource fetches not implemented");
+      JSIL.RuntimeError("Case insensitive resource fetches not implemented");
 
     var result = this._resources[key];
     if (!result)
@@ -206,6 +206,16 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
     function _ctor (name, useUserOverride) {
       this.m_name = name;
       this.m_useUserOverride = useUserOverride;
+    }
+  );
+
+  $.Method({Static: true, Public: true}, "get_InvariantCulture",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], []),
+    function() {
+      if (typeof this.m_invariantCultureInfo == 'undefined') {
+         this.m_invariantCultureInfo = new System.Globalization.CultureInfo('', false);
+      }
+      return this.m_invariantCultureInfo;
     }
   );
 

@@ -13,6 +13,7 @@ namespace JSIL.Tests {
         Configuration MakeUnsafeConfiguration () {
             var cfg = MakeConfiguration();
             cfg.CodeGenerator.EnableUnsafeCode = true;
+            cfg.CodeGenerator.AggressivelyUseElementProxies = true;
             return cfg;
         }
 
@@ -45,7 +46,18 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\UnsafeIntPerformanceComparison.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 Console.WriteLine(test.RunJavascript(null, MakeUnsafeConfiguration));
+            }
+        }
+
+        [Test]
+        public void EnumCasts () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\EnumCasts.cs"
+            )) {
+                test.Run();
             }
         }
 
@@ -54,6 +66,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Sieve.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -66,6 +80,22 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\Vector3.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null, makeConfiguration: MakeUnsafeConfiguration));
+            }
+        }
+
+        [Test]
+        public void FuseePackedVertices () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\FuseePackedVertices.cs"
+            )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -78,6 +108,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\OverloadedMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -90,6 +122,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\OverloadedConstructors.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -102,6 +136,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\UncachedOverloadedMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -114,6 +150,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\InterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -126,6 +164,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\GenericInterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -138,6 +178,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\VariantGenericInterfaceMethodCalls.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -150,6 +192,8 @@ namespace JSIL.Tests {
             using (var test = MakeTest(
                 @"PerformanceTestCases\RectangleIntersects.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -160,8 +204,10 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyVsField () {
             using (var test = MakeTest(
-                @"PerformanceTestCases\PropertyVsField.cs"                
+                @"PerformanceTestCases\PropertyVsField.cs"
             )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
                 long elapsedcs;
 
                 Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
@@ -173,6 +219,20 @@ namespace JSIL.Tests {
                         return cfg;
                     }
                 ));
+            }
+        }
+
+        [Test]
+        public void BaseMethodCalls () {
+            using (var test = MakeTest(
+                @"PerformanceTestCases\BaseMethodCalls.cs"
+            )) {
+                Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+
+                long elapsedcs;
+
+                Console.WriteLine("C#:\r\n{0}", test.RunCSharp(null, out elapsedcs));
+                Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
     }
@@ -207,6 +267,8 @@ namespace JSIL.Tests {
             Assert.IsTrue(data[expression].IsSingleton, expression + " is not a singleton");
         }
 
+        // FIXME: Latest js.exe breaks this test.
+        [Ignore]
         [Test]
         public void PointerMethodsAreSingletons () {
             using (var test = MakeTest(@"PerformanceTestCases\PointerMethodsAreSingletons.cs")) {
@@ -219,7 +281,7 @@ namespace JSIL.Tests {
                     AssertIsSingleton(data, "pBuffer.setElement");
                     // FIXME: Fails. Something about this function makes SpiderMonkey unhappy :-(
                     AssertIsSingleton(data, "Program.TestInlineAccess");
-                } catch (Exception exc) {
+                } catch (Exception) {
                     data.Dump(Console.Out);
                     throw;
                 }

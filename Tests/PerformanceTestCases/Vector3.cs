@@ -29,6 +29,7 @@ public static class Program {
         Console.WriteLine("ManuallyPackedStructs: {0:00000.00}ms", Time(TestManuallyPackedStructs));
         Console.WriteLine("PackedStructs: {0:00000.00}ms", Time(TestPackedStructs));
         Console.WriteLine("PackedStructPointers: {0:00000.00}ms", Time(TestPackedStructPointers));
+        Console.WriteLine("PackedStructPointers (TemporaryCopy): {0:00000.00}ms", Time(TestPackedStructPointerTemporaryCopy));
     }
 
     public static int Time (Func<Vector3d> func) {
@@ -75,6 +76,22 @@ public static class Program {
 
         for (int i = 0; i < BufferSize; i++) {
             sum += PackedVectors[i];
+        }
+
+        return sum;
+    }
+
+    public static unsafe Vector3d TestPackedStructPointerTemporaryCopy () {
+        Vector3d sum = new Vector3d();
+
+        fixed (Vector3d* pStructs = PackedVectors) {
+            var pCurrent = pStructs;
+
+            for (int i = 0; i < BufferSize; i++) {
+                var temporary = *pCurrent;
+                pCurrent++;
+                sum += temporary;
+            }
         }
 
         return sum;

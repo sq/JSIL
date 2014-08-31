@@ -117,7 +117,7 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
 
       case '.':
         if (containsDecimal)
-          throw new Error("Multiple decimal places in format string");
+          JSIL.RuntimeError("Multiple decimal places in format string");
         else
           containsDecimal = true;
 
@@ -302,11 +302,11 @@ JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatPr
         break;
 
       case 'x':
-        result = formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+        result = formatInteger(value >>> 0, 16, valueFormat.substr(1)).toLowerCase();
         break;
 
       case 'X':
-        result = formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+        result = formatInteger(value >>> 0, 16, valueFormat.substr(1)).toUpperCase();
         break;
 
       case 'f':
@@ -321,7 +321,7 @@ JSIL.NumberToFormattedString = function (value, alignment, valueFormat, formatPr
         break;
 
       default:
-        throw new Error("Unsupported format string: " + valueFormat);
+        JSIL.RuntimeError("Unsupported format string: " + valueFormat);
 
     }
 
@@ -688,7 +688,7 @@ JSIL.EscapeJSRegex = function (regexText) {
 
 JSIL.SplitString = function (str, separators, options) {
   if (options && options.value)
-    throw new Error("StringSplitOptions other than None are not implemented");
+    JSIL.RuntimeError("StringSplitOptions other than None are not implemented");
 
   if (!separators) {
     // Whitespace characters from Unicode 6.0
@@ -718,6 +718,10 @@ JSIL.SplitString = function (str, separators, options) {
 
 JSIL.JoinStrings = function (separator, strings) {
   return strings.join(separator);
+};
+
+JSIL.JoinEnumerable = function (separator, values) {
+  return JSIL.JoinStrings(separator, JSIL.EnumerableToArray(values));
 };
 
 JSIL.ConcatString = function (/* ...values */) {
@@ -761,7 +765,7 @@ $jsilcore.charCodeAt = function fixedCharCodeAt (str, idx) {
     hi = code;
     low = str.charCodeAt(idx+1);  
     if (isNaN(low))
-      throw new Error("High surrogate not followed by low surrogate");
+      JSIL.RuntimeError("High surrogate not followed by low surrogate");
 
     return ((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;  
   }
@@ -846,7 +850,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
       return {
         write: function (byte) {
           if (i >= outputBytes.length)
-            throw new Error("End of buffer");
+            JSIL.RuntimeError("End of buffer");
 
           outputBytes[i] = byte;
           i++;
@@ -1146,7 +1150,7 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   var UTF8NotAChar         = 0xFFFF;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.emitBOM = false;
       this.throwOnInvalid = false;
@@ -1288,7 +1292,7 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
 
       if (hasError || (characters === false)) {
         if (this.throwOnInvalid)
-          throw new Error("Invalid character in UTF8 text");
+          JSIL.RuntimeError("Invalid character in UTF8 text");
         else
           result += this.fallbackCharacter;
       } else
@@ -1326,7 +1330,7 @@ JSIL.ImplementExternals("System.Text.UnicodeEncoding", function ($) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.bigEndian = false;
       this.emitBOM = true;
@@ -1437,7 +1441,7 @@ JSIL.ImplementExternals("System.Text.UnicodeEncoding", function ($) {
 
       if (hasError) {
         if (this.throwOnInvalid)
-          throw new Error("Invalid character in UTF16 text");
+          JSIL.RuntimeError("Invalid character in UTF16 text");
         else
           result += this.fallbackCharacter;
       }
@@ -1453,7 +1457,7 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.UnicodeEncoding", true, [], 
 JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this._str = "";
     }
@@ -1519,6 +1523,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     function Append (value, startIndex, charCount) {
       for (var i = 0; i < charCount; i++)
         this._str += value[startIndex + i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Object], [])), 
+    function Append (value) {
+      var string = value.toString();
+      appendString(this, string, 0, string.length, 1);
     }
   );
 
@@ -1799,7 +1811,7 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
   var makeRegex = function (pattern, options) {
     var tRegexOptions = system.System.Text.RegularExpressions.RegexOptions;
     if ((options & tRegexOptions.ECMAScript) === 0) {
-      throw new Error("Non-ECMAScript regexes are not currently supported.");
+      JSIL.RuntimeError("Non-ECMAScript regexes are not currently supported.");
     }
 
     var flags = "g";
@@ -2061,16 +2073,42 @@ JSIL.ImplementExternals("System.Char", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "IsLetter", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsLetter (c) {
+      // FIXME: Unicode
+      var charCode = c.charCodeAt(0);
+      return (
+        ((charCode >= 65) && (charCode <= 90)) ||
+        ((charCode >= 97) && (charCode <= 122)));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "IsLetterOrDigit", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsLetterOrDigit (c) {
+      return $jsilcore.System.Char.IsLetter(c) || $jsilcore.System.Char.IsDigit(c);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "IsSurrogate", 
+    new JSIL.MethodSignature($.Boolean, [$.Char], []), 
+    function IsSurrogate (c) {
+      var charCode = c.charCodeAt(0);
+      return (charCode >= 0xD800) && (charCode <= 0xDFFF);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "IsWhiteSpace", 
     new JSIL.MethodSignature($.Boolean, [$.Char], []), 
     function IsWhiteSpace (c) {
       // FIXME: Unicode
       var charCode = c.charCodeAt(0);
-      return 
+      return (
         ((charCode >= 0x09) && (charCode <= 0x13)) || 
         (charCode === 0x20) ||
         (charCode === 0xA0) || 
-        (charCode === 0x85);
+        (charCode === 0x85));
     }
   );
 });

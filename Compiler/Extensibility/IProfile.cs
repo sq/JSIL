@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace JSIL.Compiler.Extensibility {
-    public interface IProfile {
+    public interface IProfile : ICompilerExtension {
         bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
         SolutionBuilder.BuildResult ProcessBuildResult (

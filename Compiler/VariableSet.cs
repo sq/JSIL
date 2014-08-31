@@ -97,10 +97,10 @@ namespace JSIL.Compiler {
             if (!requireExists)
                 return result;
 
-            if (File.Exists(result) || Directory.Exists(result))
+            if ((result != null) && (File.Exists(result) || Directory.Exists(result)))
                 return result;
             else
-                throw new FileNotFoundException(result);
+                throw new FileNotFoundException(result ?? path);
         }
 
         public VariableSet Clone () {

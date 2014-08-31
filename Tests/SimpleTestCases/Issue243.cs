@@ -2,27 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public static class Program { 
+public static class Program {
     public static void Main (string[] args) {
-        int outermostValue = 5;
-        var sourceItems = new int[] { 1, 2, 4 };
+        var result = ClosureDelegate(
+            10,
+            item => ClosureDelegate(100, item2 => item));
 
-        var result =
-            sourceItems.SelectMany(
-                item => {
-                    var outerValue = item + outermostValue;
-                    var resultItems = new int[] { outerValue, item * 2 };
+        Console.WriteLine(result);
+    }
 
-                    return resultItems.Select(
-                        (i) => i + outerValue
-                    );
-                }
-            );
-
-        var resultArray = result.ToArray();
-        Console.WriteLine(resultArray.Length);
-
-        foreach (var item in resultArray)
-            Console.WriteLine(item);
+    public static int ClosureDelegate (int input, Func<int, int> func) {
+        return func(input);
     }
 }

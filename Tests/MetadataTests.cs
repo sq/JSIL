@@ -162,7 +162,10 @@ namespace JSIL.Tests {
                 "DerivedClass.Method1\r\nDerivedClass.Method2\r\nDerivedClass2.Method1\r\nDerivedClass2.Method2",
                 "BaseClassProxy.Method1\r\nDerivedClassProxy.Method2\r\nBaseClassProxy.Method1\r\nDerivedClass2.Method2"
             );
+        }
 
+        [Test]
+        public void ProxiedMethodInheritance2 () {
             GenericTest(
                 @"SpecialTestCases\ProxiedMethodInheritance2.cs",
                 "DerivedClass.Method1\r\nBaseClass.Method2\r\nDerivedClass.Method1\r\nDerivedClass2.Method2",
@@ -258,8 +261,8 @@ namespace JSIL.Tests {
                 "A B RenamedEnum"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MyEnum"));
-            Assert.IsTrue(generatedJs.Contains("RenamedEnum"));
+            Assert.IsFalse(generatedJs.Contains("\"MyEnum\""));
+            Assert.IsTrue(generatedJs.Contains("\"RenamedEnum\""));
         }
 
         [Test]
@@ -504,6 +507,64 @@ namespace JSIL.Tests {
 
                 throw;
             }
+        }
+
+        [Test]
+        public void CanForceTranslationOfTypeInStubbedAssembly () {
+            var generatedJs = GenericIgnoreTest(
+                @"SpecialTestCases\TranslateTypeInStubbedAssembly.cs",
+                "",
+                "method 'void Main(System.String[])' of type 'Program'",
+                new[] { ".*" }
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.IsFalse(
+                generatedJs.Contains("This shouldn't be translated!")
+            );
+            Assert.IsTrue(
+                generatedJs.Contains("This should be translated!"),
+                "Method was stubbed"
+            );
+        }
+
+        [Test]
+        public void CanForceTranslationOfMethodInStubbedAssembly () {
+            var generatedJs = GenericIgnoreTest(
+                @"SpecialTestCases\TranslateMethodInStubbedAssembly.cs",
+                "",
+                "method 'void Main(System.String[])' of type 'Program'",
+                new[] { ".*" }
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.IsFalse(
+                generatedJs.Contains("This shouldn't be translated!")
+            );
+            Assert.IsTrue(
+                generatedJs.Contains("This should be translated!"),
+                "Method was stubbed"
+            );
+        }
+
+        [Test]
+        public void CanForceTranslationOfMethodInStubbedType () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\TranslateMethodInStubbedType.cs",
+                ""
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.IsFalse(
+                generatedJs.Contains("This shouldn't be translated!")
+            );
+            Assert.IsTrue(
+                generatedJs.Contains("This should be translated!"),
+                "Method was stubbed"
+            );
         }
     }
 }

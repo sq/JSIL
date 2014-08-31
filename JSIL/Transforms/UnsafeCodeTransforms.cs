@@ -6,16 +6,50 @@ using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class UnsafeCodeTransforms : JSAstVisitor {
+        public readonly Configuration Configuration;
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
 
-        public UnsafeCodeTransforms (TypeSystem typeSystem, MethodTypeFactory methodTypes) {
+        public UnsafeCodeTransforms (
+            Configuration configuration,
+            TypeSystem typeSystem, 
+            MethodTypeFactory methodTypes
+        ) {
+            Configuration = configuration;
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
+        }
+
+        public void VisitNode (JSResultReferenceExpression rre) {
+            var invocation = (rre.Referent as JSInvocationExpression);
+
+            // When passing a packed array element directly to a function, use a proxy instead.
+            // This allows hoisting to operate when the call is inside a loop, and it reduces GC pressure (since we basically make the struct unpack occur on-demand).
+            if (
+                (ParentNode is JSInvocationExpression) &&
+                (invocation != null) &&
+                (invocation.JSMethod != null) &&
+                invocation.JSMethod.Reference.FullName.Contains("JSIL.Runtime.IPackedArray") &&
+                invocation.JSMethod.Reference.FullName.Contains("get_Item(") &&
+                Configuration.CodeGenerator.AggressivelyUseElementProxies.GetValueOrDefault(false)
+            ) {
+                var elementType = invocation.GetActualType(TypeSystem);
+                var replacement = new JSNewPackedArrayElementProxy(
+                    invocation.ThisReference, invocation.Arguments.First(),
+                    elementType
+                );
+
+                ParentNode.ReplaceChild(rre, replacement);
+                VisitReplacement(replacement);
+                return;
+            }
+
+            VisitChildren(rre);
         }
 
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
@@ -23,6 +57,10 @@ namespace JSIL.Transforms {
 
             if (ExtractOffsetFromPointerExpression(rtpe.Pointer, TypeSystem, out newPointer, out offset)) {
                 var replacement = new JSReadThroughPointerExpression(newPointer, rtpe.ElementType, offset);
+                ParentNode.ReplaceChild(rtpe, replacement);
+                VisitReplacement(replacement);
+            } else if (JSPointerExpressionUtil.UnwrapExpression(rtpe.Pointer) is JSBinaryOperatorExpression) {
+                var replacement = new JSUntranslatableExpression("Read through confusing pointer " + rtpe.Pointer);
                 ParentNode.ReplaceChild(rtpe, replacement);
                 VisitReplacement(replacement);
             } else {
@@ -35,6 +73,10 @@ namespace JSIL.Transforms {
 
             if (ExtractOffsetFromPointerExpression(wtpe.Left, TypeSystem, out newPointer, out offset)) {
                 var replacement = new JSWriteThroughPointerExpression(newPointer, wtpe.Right, wtpe.ActualType, offset);
+                ParentNode.ReplaceChild(wtpe, replacement);
+                VisitReplacement(replacement);
+            } else if (JSPointerExpressionUtil.UnwrapExpression(wtpe.Pointer) is JSBinaryOperatorExpression) {
+                var replacement = new JSUntranslatableExpression("Write through confusing pointer " + wtpe.Pointer);
                 ParentNode.ReplaceChild(wtpe, replacement);
                 VisitReplacement(replacement);
             } else {
@@ -64,9 +106,9 @@ namespace JSIL.Transforms {
             var rightPointer = boe.Right as JSPointerLiteral;
             if (!(boe.Operator is JSAssignmentOperator)) {
                 if (leftPointer != null)
-                    boe.ReplaceChild(boe.Left, JSIntegerLiteral.New(leftPointer.Value));
+                    boe.ReplaceChild(boe.Left, JSLiteral.New(leftPointer.Value));
                 if (rightPointer != null)
-                    boe.ReplaceChild(boe.Right, JSIntegerLiteral.New(rightPointer.Value));
+                    boe.ReplaceChild(boe.Right, JSLiteral.New(rightPointer.Value));
             }
 
             JSExpression replacement = null;
@@ -110,6 +152,8 @@ namespace JSIL.Transforms {
         }
 
         public static bool ExtractOffsetFromPointerExpression (JSExpression pointer, TypeSystem typeSystem, out JSExpression newPointer, out JSExpression offset) {
+            pointer = JSPointerExpressionUtil.UnwrapExpression(pointer);
+
             offset = null;
             newPointer = pointer;
 
@@ -117,22 +161,35 @@ namespace JSIL.Transforms {
             if (boe == null)
                 return false;
 
-            var leftType = boe.Left.GetActualType(typeSystem);
-            var rightType = boe.Right.GetActualType(typeSystem);
+            if (boe.Right.IsNull)
+                return false;
+
+            var right = JSPointerExpressionUtil.UnwrapExpression(boe.Right);
+
+            var rightType = right.GetActualType(typeSystem);
             var resultType = boe.GetActualType(typeSystem);
 
             if (!resultType.IsPointer)
                 return false;
 
-            if (!TypeUtil.IsIntegral(rightType))
+            if (
+                !TypeUtil.IsIntegral(rightType) &&
+                // Adding pointers together shouldn't be valid but ILSpy generates it. Pfft.
+                !TypeUtil.IsPointer(rightType)
+            )
                 return false;
 
-            if (boe.Operator != JSOperator.Add)
+            if (boe.Operator == JSOperator.Subtract) {
+                newPointer = boe.Left;
+                offset = new JSUnaryOperatorExpression(JSOperator.Negation, right, rightType);
+                return true;
+            } else if (boe.Operator == JSOperator.Add) {
+                newPointer = boe.Left;
+                offset = right;
+                return true;
+            } else {
                 return false;
-
-            newPointer = boe.Left;
-            offset = boe.Right;
-            return true;
+            }
         }
     }
 }

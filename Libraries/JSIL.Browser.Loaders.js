@@ -64,7 +64,7 @@ function doXHR (uri, asBinary, onComplete) {
   needCORS = needCORS && !sameHost;
 
   if (location.protocol === "file:") {
-    var errorText = "Loading assets from file:// is not possible in modern web browsers. You must host your application/game on a web server.";
+    var errorText = "Loading assets from file:// is not possible in modern web browsers. You must host your application on a web server.";
 
     if (console && console.error) {
       console.error(errorText + "\nFailed to load: " + uri);
@@ -82,7 +82,7 @@ function doXHR (uri, asBinary, onComplete) {
         req = new XDomainRequest();
       } else {
         if (!warnedAboutCORS) {
-          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not appear to have it. Loading may fail.");
+          JSIL.Host.logWriteLine("WARNING: This application requires support for CORS, and your browser does not appear to have it. Loading may fail.");
           warnedAboutCORS = true;
         }
 
@@ -355,14 +355,14 @@ var assetLoaders = {
         e.crossOrigin = "";
       } else if (hasCORSXhr && ($blobBuilderInfo.hasBlobBuilder || $blobBuilderInfo.hasBlobCtor)) {
         if (!warnedAboutCORSImage) {
-          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images. Using workaround...");
+          JSIL.Host.logWriteLine("WARNING: This application requires support for CORS, and your browser does not support it for images. Using workaround...");
           warnedAboutCORSImage = true;
         }
 
         return loadImageCORSHack(filename, data, onError, onDoneLoading);
       } else {
         if (!warnedAboutCORSImage) {
-          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it.");
+          JSIL.Host.logWriteLine("WARNING: This application requires support for CORS, and your browser does not support it.");
           warnedAboutCORSImage = true;
         }
 
@@ -444,7 +444,7 @@ function $makeXNBAssetLoader (key, typeName) {
           var assetName = getAssetName(filename, true);
           var parsedTypeName = JSIL.ParseTypeName(typeName);    
           var type = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
-          allAssets[key] = JSIL.CreateInstanceOfType(type, [assetName, result]);
+          allAssets[key] = JSIL.CreateInstanceOfType(type, "_ctor", [assetName, result]);
         };
         onDoneLoading(finisher); 
       } else {

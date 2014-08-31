@@ -25,12 +25,12 @@ namespace JSIL.Internal {
     }
 
     public class AssemblyResolver : BaseAssemblyResolver, IDisposable {
-        private static readonly byte[] PCLPublicKeyToken = new byte[] {
+        private static readonly byte[] PCLPublicKeyToken = {
             124, 236, 133, 215,
             190, 167, 121, 142
         };
 
-        private static readonly byte[] BCLPublicKeyToken = new byte[] {
+        private static readonly byte[] BCLPublicKeyToken = {
             183, 122, 92, 86,
             25, 52, 224, 137
         };
@@ -43,10 +43,7 @@ namespace JSIL.Internal {
             Configuration = configuration;
 
             OwnsCache = (cache == null);
-            if (cache != null)
-                Cache = cache;
-            else
-                Cache = new AssemblyCache();
+            Cache = cache ?? new AssemblyCache();
 
             foreach (var dir in dirs)
                 AddSearchDirectory(dir);
@@ -65,12 +62,13 @@ namespace JSIL.Internal {
 
             var bclName = new AssemblyNameReference(
                 name.Name,
-                // FIXME: Hard-coding 4.0 is probably a mistake
-                new Version(4, 0, 0, 0)
-            );
-
-            bclName.Culture = name.Culture;
-            bclName.PublicKeyToken = BCLPublicKeyToken;
+                // FIXME: Is this right? It was 4.0 before, but that's definitely wrong.
+                //  This should pick the highest appropriate version from the GAC.
+                null
+            ) {
+                Culture = name.Culture,
+                PublicKeyToken = BCLPublicKeyToken
+            };
 
             return bclName;
         }
@@ -81,7 +79,7 @@ namespace JSIL.Internal {
             foreach (var kvp in Configuration.Assemblies.Redirects) {
                 if (Regex.IsMatch(name.FullName, kvp.Key, RegexOptions.IgnoreCase)) {
                     redirectedFrom = name.FullName;
-                    return new AssemblyNameReference(kvp.Value, null);
+                    return AssemblyNameReference.Parse(kvp.Value);
                 }
             }
 
@@ -149,14 +147,16 @@ namespace JSIL.Internal {
             public readonly int HashCode;
 
             public readonly string Namespace;
+            public readonly string Module;
             public readonly string Name;
             public readonly string DeclaringTypeName;
 
             public Key (TypeReference tr) {
                 Namespace = tr.Namespace;
+                Module = tr.Module.Name;
                 Name = tr.Name;
 
-                HashCode = Namespace.GetHashCode() ^ Name.GetHashCode();
+                HashCode = Namespace.GetHashCode() ^ Name.GetHashCode() ^ Module.GetHashCode();
 
                 if (tr.DeclaringType != null) {
                     DeclaringTypeName = tr.DeclaringType.FullName;
@@ -167,7 +167,7 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (Key rhs) {
-                return (Namespace == rhs.Namespace) &&
+                return (Namespace == rhs.Namespace) && (Module == rhs.Module) &&
                     (DeclaringTypeName == rhs.DeclaringTypeName) &&
                     (Name == rhs.Name);
             }
@@ -237,10 +237,10 @@ namespace JSIL.Internal {
         public static MethodReference RebindMethod (MethodReference method, TypeReference newDeclaringType, TypeReference newReturnType = null) {
             var result = new MethodReference(
                 method.Name, newReturnType ?? method.ReturnType, newDeclaringType
-            );
-
-            result.HasThis = method.HasThis;
-            result.ExplicitThis = method.ExplicitThis;
+            ) {
+                HasThis = method.HasThis,
+                ExplicitThis = method.ExplicitThis
+            };
 
             // TODO: Copy more attributes?
 

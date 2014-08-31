@@ -13,7 +13,6 @@ namespace JSIL.Ast {
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
-            return;
         }
 
         public override string ToString () {
@@ -23,7 +22,6 @@ namespace JSIL.Ast {
 
     public class JSNoOpStatement : JSStatement {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
-            return;
         }
 
         public override string ToString () {
@@ -87,7 +85,7 @@ namespace JSIL.Ast {
     public abstract class JSLoopStatement : JSBlockStatement {
         public int? Index;
 
-        public JSLoopStatement () {
+        protected JSLoopStatement () {
             IsControlFlow = true;
         }
 
@@ -417,7 +415,7 @@ namespace JSIL.Ast {
             JSIfStatement result = new JSIfStatement(
                 conditions[0].Key, conditions[0].Value
             );
-            JSIfStatement next = null, current = result;
+            JSIfStatement next, current = result;
 
             for (int i = 1; i < conditions.Length; i++) {
                 var cond = conditions[i].Key;

@@ -29,38 +29,41 @@ JSIL.Browser.CanvasService = function () {
 
 JSIL.Browser.CanvasService.prototype.applySize = function (element, desiredWidth, desiredHeight, isViewport) {
   if (typeof (desiredWidth) !== "number")
-    desiredWidth = element.width;
+    desiredWidth = element.width | 0;
   if (typeof (desiredHeight) !== "number")
-    desiredHeight = element.height;
+    desiredHeight = element.height | 0;
 
   var scaleFactor = jsilConfig.viewportScale;
   if (typeof (scaleFactor) !== "number")
-    scaleFactor = 1.0;
+    scaleFactor = +1.0;
 
   var width, height;
   if (isViewport) {
-    width = Math.ceil(desiredWidth * scaleFactor);
-    height = Math.ceil(desiredHeight * scaleFactor);
+    width = Math.ceil(+desiredWidth * +scaleFactor) | 0;
+    height = Math.ceil(+desiredHeight * +scaleFactor) | 0;
   } else {
-    width = desiredWidth;
-    height = desiredHeight;
+    width = desiredWidth | 0;
+    height = desiredHeight | 0;
   }
 
   element.actualWidth = desiredWidth;
   element.actualHeight = desiredHeight;
 
   if (element.width !== width)
-    element.width = width;
+    element.width = width | 0;
 
   if (element.height !== height)
-    element.height = height;
+    element.height = height | 0;
 }
 
 JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
 
-  if (arguments.length === 2)
-    this.applySize(e, desiredWidth, desiredHeight, true);
+  if (
+    (typeof (desiredWidth) !== "undefined") &&
+    (typeof (desiredHeight) !== "undefined")
+  )  
+    this.applySize(e, desiredWidth | 0, desiredHeight | 0, true);
   
   return e;
 };
@@ -68,7 +71,7 @@ JSIL.Browser.CanvasService.prototype.get = function (desiredWidth, desiredHeight
 JSIL.Browser.CanvasService.prototype.create = function (desiredWidth, desiredHeight) {
   var e = document.createElement("canvas");
   
-  this.applySize(e, desiredWidth, desiredHeight, false);
+  this.applySize(e, desiredWidth | 0, desiredHeight | 0, false);
   
   return e;
 };
@@ -340,6 +343,59 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
 };
 
 
+JSIL.Browser.NativeGamepadService = function (navigator) {
+  if (navigator.webkitGamepads || navigator.mozGamepads || navigator.gamepads) {
+    // use attribute
+
+    this.getter = function () {
+      return navigator.webkitGetGamepads || navigator.mozGetGamepads || navigator.getGamepads;
+    };
+  } else {
+    // use getter function
+
+    this.getter = navigator.webkitGetGamepads || navigator.mozGetGamepads || navigator.getGamepads || null;
+    if (this.getter)
+      this.getter = this.getter.bind(navigator);
+  }
+};
+
+JSIL.Browser.NativeGamepadService.prototype.getState = function () {
+  if (this.getter === null)
+    return null;
+
+  return this.getter();
+};
+
+
+JSIL.Browser.TraceService = function (console) {
+  this.console = console;
+};
+
+JSIL.Browser.TraceService.prototype.write = function (text, category) {
+  if (this.console) {
+    if (arguments.length === 2)
+      this.console.log(category + ": " + text);
+    else if (arguments.length === 1)
+      this.console.log(text);
+  }
+};
+
+JSIL.Browser.TraceService.prototype.information = function (text) {
+  if (this.console)
+    this.console.log(text);
+};
+
+JSIL.Browser.TraceService.prototype.warning = function (text) {
+  if (this.console)
+    this.console.warn(text);
+};
+
+JSIL.Browser.TraceService.prototype.error = function (text) {
+  if (this.console)
+    this.console.error(text);
+};
+
+
 (function () {
   var logSvc = new JSIL.Browser.LogService();
 
@@ -353,7 +409,8 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
     stderr: new JSIL.Browser.WarningService(logSvc),
     tickScheduler: new JSIL.Browser.TickSchedulerService(),
     window: new JSIL.Browser.WindowService(window),
-    history: new JSIL.Browser.HistoryService(window.history)
+    history: new JSIL.Browser.HistoryService(window.history),
+    trace: new JSIL.Browser.TraceService(window.console)
   });
 
   if (typeof (localStorage) !== "undefined")
@@ -362,6 +419,7 @@ JSIL.Browser.GamepadService.prototype.getState = function (index) {
   if ((typeof (Gamepad) !== "undefined") && Gamepad.supported)
     JSIL.Host.registerService("gamepad", new JSIL.Browser.GamepadService(Gamepad));
 
+  JSIL.Host.registerService("nativeGamepad", new JSIL.Browser.NativeGamepadService(navigator));
 })();
 
 
@@ -721,46 +779,58 @@ function finishLoading () {
       JSIL.Initialize();
     }
 
-    if (typeof ($jsilreadonlystorage) !== "undefined") {
-      var prefixedFileRoot;
-
-      if (jsilConfig.fileVirtualRoot[0] !== "/")
-        prefixedFileRoot = "/" + jsilConfig.fileVirtualRoot;
-      else
-        prefixedFileRoot = jsilConfig.fileVirtualRoot;
-
-      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
+    if (state.initFailed) {
+      return;
     }
 
-    JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
-      var root;
-      if (JSIL.GetStorageVolumes) {
-        var volumes = JSIL.GetStorageVolumes();
+    try {
+      if (typeof ($jsilreadonlystorage) !== "undefined") {
+        var prefixedFileRoot;
 
-        if (volumes.length) {
-          root = volumes[0];
-        }
+        if (jsilConfig.fileVirtualRoot[0] !== "/")
+          prefixedFileRoot = "/" + jsilConfig.fileVirtualRoot;
+        else
+          prefixedFileRoot = jsilConfig.fileVirtualRoot;
+
+        $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
       }
 
-      if (!root && typeof(VirtualVolume) === "function") {
-        root = new VirtualVolume("root", "/");
-      }
+      JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
+        var root;
+        if (JSIL.GetStorageVolumes) {
+          var volumes = JSIL.GetStorageVolumes();
 
-      if (root) {
-        if ($jsilbrowserstate.readOnlyStorage) {
-          var trimmedRoot = jsilConfig.fileVirtualRoot.trim();
-
-          if (trimmedRoot !== "/" && trimmedRoot)
-            root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
-          else
-            root = $jsilbrowserstate.readOnlyStorage;
+          if (volumes.length) {
+            root = volumes[0];
+          }
         }
 
-        return root;
-      }
+        if (!root && typeof(VirtualVolume) === "function") {
+          root = new VirtualVolume("root", "/");
+        }
 
-      return null;
-    });
+        if (root) {
+          if ($jsilbrowserstate.readOnlyStorage) {
+            var trimmedRoot = jsilConfig.fileVirtualRoot.trim();
+
+            if (trimmedRoot !== "/" && trimmedRoot)
+              root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+            else
+              root = $jsilbrowserstate.readOnlyStorage;
+          }
+
+          return root;
+        }
+
+        return null;
+      });
+
+      state.initFailed = false;
+    } catch (exc) {
+      state.initFailed = true;
+
+      throw exc;
+    }
   };
 
   while (Date.now() <= endBy) {
@@ -800,7 +870,7 @@ function finishLoading () {
     } else {
       initIfNeeded();
 
-      updateProgressBar("Starting game", null, 1, 1);
+      updateProgressBar("Starting", null, 1, 1);
 
       var allFailures = $jsilloaderstate.loadFailures.concat(state.assetLoadFailures);
 
@@ -982,7 +1052,6 @@ function beginLoading () {
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
   var fullscreenButton = document.getElementById("fullscreenButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var stats = document.getElementById("stats");
   
@@ -1028,7 +1097,6 @@ function browserFinishedLoadingCallback (loadFailures) {
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
   var fullscreenButton = document.getElementById("fullscreenButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var stats = document.getElementById("stats");
   
@@ -1041,9 +1109,6 @@ function browserFinishedLoadingCallback (loadFailures) {
     JSIL.Host.logWriteLine("done.");
   }
   try {     
-    if (quitButton)
-      quitButton.style.display = "";
-
     if (fullscreenButton && canGoFullscreen)
       fullscreenButton.style.display = "";
 
@@ -1071,11 +1136,6 @@ function browserFinishedLoadingCallback (loadFailures) {
     if (loadingProgress)
       loadingProgress.style.display = "none";
   }
-};
-
-function quitGame () {
-  Microsoft.Xna.Framework.Game.ForceQuit();
-  document.getElementById("quitButton").style.display = "none";
 };
 
 var canGoFullscreen = false;
@@ -1232,20 +1292,12 @@ function onLoad () {
 
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
-  var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
   var fullscreenButton = document.getElementById("fullscreenButton");
   var statsElement = document.getElementById("stats");
 
   if (log)
     log.value = "";
-  
-  if (quitButton) {
-    quitButton.style.display = "none";
-    quitButton.addEventListener(
-      "click", quitGame, true
-    );
-  }
 
   if (statsElement)
     statsElement.style.display = "none";

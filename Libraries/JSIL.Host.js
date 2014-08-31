@@ -26,7 +26,7 @@ JSIL.Host.getService = function (key, noThrow) {
     if (noThrow)
       return null;
     else
-      throw new Error("Service '" + key + "' not available");
+      JSIL.RuntimeError("Service '" + key + "' not available");
   }
 
   return svc;
@@ -69,7 +69,10 @@ JSIL.Host.getFileTime = function () {
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var svc = JSIL.Host.getService("canvas");
 
-  if (arguments.length === 2)
+  if (
+    (typeof (desiredWidth) !== "undefined") &&
+    (typeof (desiredHeight) !== "undefined")
+  )  
     return svc.get(desiredWidth, desiredHeight);
   else
     return svc.get();

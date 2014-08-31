@@ -54,17 +54,14 @@ public static class Program
         openWith.Add("dib", "paint.exe");
         openWith.Add("rtf", "wordpad.exe");
 
-        // NOT SUPPORTED BY JSIL:
-        //// The Add method throws an exception if the new key is 
-        //// already in the dictionary.
-        //try
-        //{
-        //    openWith.Add("txt", "winword.exe");
-        //}
-        //catch (ArgumentException)
-        //{
-        //    Console.WriteLine("An element with Key = \"txt\" already exists.");
-        //}
+        try
+        {
+            openWith.Add("txt", "winword.exe");
+        }
+        catch (ArgumentException)
+        {
+            Console.WriteLine("An element with Key = \"txt\" already exists.");
+        }
 
         // The Item property is another name for the indexer, so you 
         // can omit its name when accessing elements. 
@@ -81,18 +78,17 @@ public static class Program
         // adds a new key/value pair.
         openWith["doc"] = "winword.exe";
 
-        // NOT SUPPORTED BY JSIL:
-        //// The indexer throws an exception if the requested key is
-        //// not in the dictionary.
-        //try
-        //{
-        //    Console.WriteLine("For key = \"tif\", value = {0}.", 
-        //        openWith["tif"]);
-        //}
-        //catch (KeyNotFoundException)
-        //{
-        //    Console.WriteLine("Key = \"tif\" is not found.");
-        //}
+        // The indexer throws an exception if the requested key is
+        // not in the dictionary.
+        try
+        {
+            Console.WriteLine("For key = \"tif\", value = {0}.", 
+                openWith["tif"]);
+        }
+        catch (KeyNotFoundException)
+        {
+            Console.WriteLine("Key = \"tif\" is not found.");
+        }
 
         // When a program often has to try keys that turn out not to
         // be in the dictionary, TryGetValue can be a more efficient 
@@ -116,40 +112,39 @@ public static class Program
                 openWith["ht"]);
         }
 
-        //// FAILS WITH JSIL - it prints out "undefined" for all keys and values (either Enumerator or .MemberwiseClone() is not doing its work):
-        //// When you use foreach to enumerate dictionary elements,
-        //// the elements are retrieved as KeyValuePair objects.
-        //Console.WriteLine();
-        //foreach( KeyValuePair<string, string> kvp in openWith )
-        //{
-        //    Console.WriteLine("Key = {0}, Value = {1}", 
-        //        kvp.Key, kvp.Value);
-        //}
+        // FAILS WITH JSIL - it prints out "undefined" for all keys and values (either Enumerator or .MemberwiseClone() is not doing its work):
+        // When you use foreach to enumerate dictionary elements,
+        // the elements are retrieved as KeyValuePair objects.
+        Console.WriteLine();
+        foreach( KeyValuePair<string, string> kvp in openWith )
+        {
+            Console.WriteLine("Key = {0}, Value = {1}", 
+                kvp.Key, kvp.Value);
+        }
 
-        // NOT SUPPORTD BY JSIL (Values and Keys collection:
-        //// To get the values alone, use the Values property.
-        //Dictionary<string, string>.ValueCollection valueColl =
-        //    openWith.Values;
+        // To get the values alone, use the Values property.
+        Dictionary<string, string>.ValueCollection valueColl =
+            openWith.Values;
 
-        //// The elements of the ValueCollection are strongly typed
-        //// with the type that was specified for dictionary values.
-        //Console.WriteLine();
-        //foreach( string s in valueColl )
-        //{
-        //    Console.WriteLine("Value = {0}", s);
-        //}
+        // The elements of the ValueCollection are strongly typed
+        // with the type that was specified for dictionary values.
+        Console.WriteLine();
+        foreach( string s in valueColl )
+        {
+            Console.WriteLine("Value = {0}", s);
+        }
 
-        //// To get the keys alone, use the Keys property.
-        //Dictionary<string, string>.KeyCollection keyColl =
-        //    openWith.Keys;
+        // To get the keys alone, use the Keys property.
+        Dictionary<string, string>.KeyCollection keyColl =
+            openWith.Keys;
 
-        //// The elements of the KeyCollection are strongly typed
-        //// with the type that was specified for dictionary keys.
-        //Console.WriteLine();
-        //foreach( string s in keyColl )
-        //{
-        //    Console.WriteLine("Key = {0}", s);
-        //}
+        // The elements of the KeyCollection are strongly typed
+        // with the type that was specified for dictionary keys.
+        Console.WriteLine();
+        foreach( string s in keyColl )
+        {
+            Console.WriteLine("Key = {0}", s);
+        }
 
         // Use the Remove method to remove a key/value pair.
         Console.WriteLine("\nRemove(\"doc\")");

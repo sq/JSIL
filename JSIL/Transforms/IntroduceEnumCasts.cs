@@ -188,7 +188,7 @@ namespace JSIL.Transforms {
                         return;
 
                     } else {
-                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe.ToString());
+                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe);
                     }
                 }
             }
@@ -206,8 +206,6 @@ namespace JSIL.Transforms {
 
             var eitherIsEnum = leftIsEnum || rightIsEnum;
 
-            var assignmentOperator = boe.Operator as JSAssignmentOperator;
-            JSBinaryOperator replacementOperator;
             JSBinaryOperatorExpression replacement;
 
             if (LogicalOperators.Contains(boe.Operator)) {

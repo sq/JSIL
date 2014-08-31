@@ -74,8 +74,31 @@ namespace JSIL {
             }
         }
 
-        public void VisitNode(JSValueOfNullableExpression node) {
-            Visit(node.Expression);
+        public void VisitNode (JSValueOfNullableExpression node) {
+            if (
+                (ParentNode is JSNullableCastExpression) ||
+                (ParentNode is JSNullCoalesceExpression)
+            ) {
+                Visit(node.Expression);
+            } else {
+                Output.WriteRaw("JSIL.Nullable_Value");
+                Output.LPar();
+
+                Visit(node.Expression);
+
+                Output.RPar();
+            }
+        }
+
+        public void VisitNode (JSNullCoalesceExpression node) {
+            Output.WriteRaw("JSIL.Coalesce");
+            Output.LPar();
+
+            Visit(node.Left);
+            Output.Comma();
+            Visit(node.Right);
+
+            Output.RPar();
         }
 
         public override void VisitNode (JSNode node) {
@@ -332,10 +355,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFieldAccess fa) {
+            var resultType = fa.GetActualType(TypeSystem);
+
             VisitDotExpression(fa);
         }
 
         public void VisitNode (JSPropertyAccess pa) {
+            var resultType = pa.GetActualType(TypeSystem);
             var parens = (pa.Target is JSNumberLiteral) ||
                 (pa.Target is JSIntegerLiteral);
 
@@ -435,6 +461,28 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
+            var newType = ce.NewType;
+            var oldType = ce.Expression.GetActualType(TypeSystem);
+
+            // Skip calling T.$Cast() for numeric type conversions. Just emit the truncation logic.
+            if (
+                (
+                    TypeUtil.IsIntegral(oldType) ||
+                    TypeUtil.IsFloatingPoint(oldType)
+                ) &&
+                (
+                    TypeUtil.IsIntegral(newType) ||
+                    TypeUtil.IsFloatingPoint(newType)
+                )
+            ) {
+                WriteTruncationPrefixForType(newType, true, false);
+
+                Visit(ce.Expression);
+
+                WriteTruncationForType(newType, true, false);
+                return;
+            }
+
             IncludeTypeParens.Push(false);
             try {
                 WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
@@ -451,11 +499,23 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSNullableCastExpression nce) {
+            Output.WriteRaw("JSIL.Nullable_Cast");
+            Output.LPar();
+
+            Visit(nce.Expression);
+            Output.Comma();
+
+            Visit(nce.TargetType);
+
+            Output.RPar();
+        }
+
         public void VisitNode (JSPointerAddExpression pae) {
             JSExpression delta = pae.Delta;
             bool addElements = false;
 
-            var offsetInElements = JSPointerExpressionUtil.OffsetFromBytesToElements(delta, pae.Pointer.GetActualType(TypeSystem).GetElementType());
+            var offsetInElements = JSPointerExpressionUtil.OffsetFromBytesToElements(delta, TypeUtil.GetElementType(pae.Pointer.GetActualType(TypeSystem), true));
             if (offsetInElements != null) {
                 addElements = true;
                 delta = offsetInElements;
@@ -466,10 +526,8 @@ namespace JSIL {
             Output.Identifier(addElements ? "addElements" : "add");
             Output.LPar();
             Visit(delta);
-            if (pae.MutateInPlace) {
-                Output.Comma();
-                Output.Value(pae.MutateInPlace);
-            }
+            Output.Comma();
+            Output.Value(pae.MutateInPlace);
             Output.RPar();
         }
 
@@ -553,7 +611,9 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPinValueExpression pinValue) {
+            Output.NewLine();
             Output.Comment("WARNING: Mutating the result pointer will not mutate the input value.");
+            Output.NewLine();
             Output.WriteRaw("JSIL.PinValueAndGetPointer");
             Output.LPar();
             Visit(pinValue.Value);
@@ -565,28 +625,165 @@ namespace JSIL {
             Output.RPar();
         }
 
-        private void WriteTruncationForType (TypeReference type) {
+        private void WriteTruncationPrefixForType (TypeReference type, bool targetIsLocal = false, bool isLoad = false) {
+            int parenCount = 0;
+
             switch (type.FullName) {
+                case "System.Byte":
+                    parenCount = 1;
+                    break;
+
+                case "System.SByte":
+                    if (isLoad)
+                        parenCount = 1;
+                    else
+                        parenCount = 2;
+                    break;
+
+                case "System.UInt16":
+                    parenCount = 1;
+                    break;
+
+                case "System.Int16":
+                    if (isLoad)
+                        parenCount = 1;
+                    else
+                        parenCount = 2;
+                    break;
+
                 case "System.UInt32":
-                    Output.WriteRaw(" >>> 0");
+                    parenCount = 1;
                     break;
 
                 case "System.Int32":
-                default:
-                    Output.WriteRaw(" | 0");
+                    parenCount = 1;
                     break;
+
+                case "System.Single":
+                    // fround only affects locals at present.
+                    // FIXME: Does this mean a forced float->double upconvert when it could be omitted by the VM?
+                    if (isLoad)
+                        Output.WriteRaw("+");
+                    else if (targetIsLocal)
+                        Output.WriteRaw("Math.fround(");
+                    else
+                        Output.WriteRaw("+(");
+
+                    return;
+
+                case "System.Double":
+                    if (isLoad)
+                        Output.WriteRaw("+");
+                    else
+                        Output.WriteRaw("+(");
+                    return;
+            }
+
+            for (var i = 0; i < parenCount; i++)
+                Output.WriteRaw("(");
+        }
+
+        private bool ShouldDoOptionalTruncation (TypeReference type) {
+            if (TypeUtil.IsIntegral(type))
+                return Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true);
+            else if (TypeUtil.IsFloatingPoint(type))
+                return Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true);
+            else
+                return false;
+        }
+
+        private void WriteTruncationForType (TypeReference type, bool targetIsLocal = false, bool isLoad = false) {
+            switch (type.FullName) {
+                case "System.Byte":
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" & 0xFF)");
+                    break;
+
+                case "System.SByte":
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" + 0x80 & 0xFF) - 0x80)");
+                    break;
+
+                case "System.UInt16":
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" & 0xFFFF)");
+                    break;
+
+                case "System.Int16":
+                    if (isLoad)
+                        Output.WriteRaw(" | 0)");
+                    else
+                        Output.WriteRaw(" + 0x8000 & 0xFFFF) - 0x8000)");
+                    break;
+
+                case "System.UInt32":
+                    Output.WriteRaw(" >>> 0)");
+                    break;
+
+                case "System.Int32":
+                    Output.WriteRaw(" | 0)");
+                    break;
+
+                case "System.Single":
+                    // fround only affects locals at present.
+                    // FIXME: Does this mean a forced float->double upconvert when it could be omitted by the VM?
+                    if (isLoad)
+                        return;
+                    else if (targetIsLocal)
+                        Output.WriteRaw(")");
+                    else
+                        Output.WriteRaw(")");
+
+                    return;
+
+                case "System.Double":
+                    if (isLoad)
+                        return;
+                    else
+                        Output.WriteRaw(")");
+                    return;
             }
         }
 
         public void VisitNode (JSTruncateExpression te) {
-            Output.LPar();
+            var expressionType = te.Expression.GetActualType(TypeSystem);
+
+            WriteTruncationPrefixForType(te.GetActualType(TypeSystem));
+
             Output.LPar();
             Visit(te.Expression);
             Output.RPar();
 
-            var expressionType = te.Expression.GetActualType(TypeSystem);
-            WriteTruncationForType(expressionType);
+            WriteTruncationForType(te.GetActualType(TypeSystem));
+        }
 
+        public void VisitNode (JSIntegerToFloatExpression itfe) {
+            var needParens = !(
+                (itfe.Expression is JSVariable) ||
+                (itfe.Expression is JSLiteral)
+            );
+
+            Output.WriteRaw("+");
+
+            if (needParens)
+                Output.LPar();
+
+            Visit(itfe.Expression);
+
+            if (needParens)
+                Output.RPar();
+        }
+
+        public void VisitNode (JSDoubleToFloatExpression itfe) {
+            Output.WriteRaw("Math.fround");
+            Output.LPar();
+            Visit(itfe.Expression);
             Output.RPar();
         }
 
@@ -649,12 +846,16 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSCachedMethod cachedMethod) {
+            Output.WriteRaw("$BM{0:X2}()", cachedMethod.Index);
+        }
+
         public void VisitNode (JSIdentifier identifier) {
             Output.Identifier(identifier.Identifier);
         }
 
         public void VisitNode (JSRawOutputIdentifier identifier) {
-            identifier.Emitter(Output);
+            identifier.WriteTo(Output);
         }
 
         public void VisitNode (JSCharLiteral ch) {
@@ -669,7 +870,7 @@ namespace JSIL {
             bool parens =
                 (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
 
-            var regex = new Regex(@"(\$\$|\$(?'name'((etypeof|typeof|assemblyof)\([a-zA-Z_]([a-zA-Z0-9_]*)\))|([a-zA-Z_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+            var regex = new Regex(@"(\$\$|\$(?'name'((etypeof|typeof|assemblyof)\([a-zA-Z0-9_]([a-zA-Z0-9_]*)\))|([a-zA-Z0-9_]([a-zA-Z0-9_]*)))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
             if (parens)
                 Output.LPar();
@@ -722,10 +923,19 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNumberLiteral number) {
-            if (number.OriginalType.FullName == "System.Single")
+            var s = number.ToString();
+            if (number.OriginalType.FullName == "System.Single") {
+                // FIXME: Fround?
+                if (!s.Contains(".") && !s.Contains("e") && !s.Contains("E"))
+                    Output.WriteRaw("+");
+
                 Output.Value((float)number.Value);
-            else
+            } else {
+                if (!s.Contains(".") && !s.Contains("e") && !s.Contains("E"))
+                    Output.WriteRaw("+");
+
                 Output.Value(number.Value);
+            }
         }
 
         public void VisitNode (JSBooleanLiteral b) {
@@ -832,16 +1042,20 @@ namespace JSIL {
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (TypeUtil.IsEnum(defaultValue.Value)) {
+                EnumMemberInfo emi;
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
-                if (enumInfo.FirstEnumMember != null) {
+                
+                if (enumInfo.ValueToEnumMember.TryGetValue(0, out emi)) {
                     Output.Identifier(defaultValue.Value, ReferenceContext);
                     Output.Dot();
-                    Output.Identifier(enumInfo.FirstEnumMember.Name);
+                    Output.Identifier(emi.Name);
                 } else {
                     Output.WriteRaw("0");
                 }
             } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
+            } else if (TypeUtil.IsNullable(defaultValue.Value)) {
+                Output.WriteRaw("null");
             } else if (defaultValue.Value.IsGenericParameter) {
                 VisitNode(new JSTernaryOperatorExpression(
                     new JSMemberReferenceExpression(new JSDotExpression(new JSType(defaultValue.Value),
@@ -853,9 +1067,6 @@ namespace JSIL {
                 Output.WriteRaw("null");
             } else {
                 switch (defaultValue.Value.FullName) {
-                    case "System.Nullable`1":
-                        Output.WriteRaw("null");
-                        break;
                     case "System.Single":
                     case "System.Double":
                     case "System.Decimal":
@@ -940,6 +1151,63 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode(JSMethodOfExpression moe)
+        {
+            var methodName = Util.EscapeIdentifier(moe.Method.GetName(true), EscapingMode.MemberIdentifier);
+
+            Output.WriteRaw("JSIL.GetMethodInfo");
+            Output.LPar();
+
+            Output.Identifier(
+                moe.Reference.DeclaringType, ReferenceContext, IncludeTypeParens.Peek()
+            );
+            Output.Comma();
+
+            Output.WriteRaw("\"");
+            Output.Identifier(methodName);
+            Output.WriteRaw("\"");
+            Output.Comma();
+
+            SignatureCacher.WriteSignatureToOutput(
+                Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                moe.Reference, moe.Method.Signature, ReferenceContext, false
+            );
+            Output.Comma();
+
+            Output.Value(moe.Method.IsStatic);
+
+            if (moe.GenericArguments != null && moe.GenericArguments.Any())
+            {
+                Output.Comma();
+                Output.OpenBracket();
+                Output.CommaSeparatedList(moe.GenericArguments, ReferenceContext);
+                Output.CloseBracket();
+            }
+
+            Output.RPar();
+        }
+
+        public void VisitNode(JSFieldOfExpression moe)
+        {
+            var fieldName = Util.EscapeIdentifier(moe.Field.ChangedName ?? moe.Field.Name, EscapingMode.MemberIdentifier);
+
+            Output.WriteRaw("JSIL.GetFieldInfo");
+            Output.LPar();
+
+            Output.Identifier(
+                moe.Reference.DeclaringType, ReferenceContext, IncludeTypeParens.Peek()
+            );
+            Output.Comma();
+
+            Output.WriteRaw("\"");
+            Output.Identifier(fieldName);
+            Output.WriteRaw("\"");
+            Output.Comma();
+
+            Output.Value(moe.Field.IsStatic);
+
+            Output.RPar();
+        }
         public void VisitNode (JSPublicInterfaceOfExpression poe) {
             VisitChildren(poe);
 
@@ -1026,15 +1294,26 @@ namespace JSIL {
         }
 
         public void VisitNode (JSReadThroughPointerExpression rtpe) {
+            string methodName;
+
+            if (rtpe.OffsetInElements != null)
+                methodName = "getElement";
+            else if (rtpe.OffsetInBytes != null)
+                methodName = "getOffset";
+            else if (
+                (ParentNode is JSInvocationExpression) && 
+                TypeUtil.IsStruct(rtpe.ElementType) &&
+                Configuration.CodeGenerator.AggressivelyUseElementProxies.GetValueOrDefault(false)
+            ) {
+                // Like with packed array elements, if we're passing the result of a pointer dereference directly to a function, pass a proxy instead.
+                // If the pointer has been hoisted the proxy will be reused, which reduces GC pressure and allows unpacking to happen on demand.
+                methodName = "getProxy";
+            } else
+                methodName = "get";
+
             Visit(rtpe.Pointer);
             Output.Dot();
-            Output.Identifier(
-                rtpe.OffsetInElements != null
-                    ? "getElement"
-                    : rtpe.OffsetInBytes != null 
-                        ? "getOffset" 
-                        : "get"
-            );
+            Output.Identifier(methodName);
             Output.LPar();
             if (rtpe.OffsetInElements != null)
                 Visit(rtpe.OffsetInElements);
@@ -1065,23 +1344,6 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public void VisitNode (JSLambda lambda) {
-            if (!lambda.UseBind)
-                ThisReplacementStack.Push(lambda.This);
-
-            Visit(lambda.Value);
-
-            if (lambda.UseBind) {
-                Output.Dot();
-                Output.WriteRaw("bind");
-                Output.LPar();
-                Visit(lambda.This);
-                Output.RPar();
-            } else {
-                ThisReplacementStack.Pop();
-            }
-        }
-
         public void VisitNode (JSFunctionExpression function) {
             var oldCurrentMethod = Output.CurrentMethod;
 
@@ -1093,7 +1355,7 @@ namespace JSIL {
 
             Output.OpenFunction(
                 function.DisplayName,
-                (o) => o.WriteParameterList(function.Parameters)
+                (o) => o.WriteParameterList(function.Parameters) 
             );
 
             if (function.TemporaryVariableCount > 0) {
@@ -1333,15 +1595,6 @@ namespace JSIL {
             if (ret.Value != null) {
                 Output.Space();
 
-                var resultType = ret.Value.GetActualType(TypeSystem);
-                if (
-                    Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
-                    TypeUtil.IsFloatingPoint(resultType) &&
-                    !(resultType is ByReferenceType)
-                ) {
-                    Output.WriteRaw("+");
-                }
-
                 Visit(ret.Value);
             }
         }
@@ -1370,7 +1623,6 @@ namespace JSIL {
                     break;
                 default:
                     throw new NotImplementedException("Break statement found outside of switch statement or loop");
-                    break;
             }
         }
 
@@ -1388,10 +1640,11 @@ namespace JSIL {
 
         public void VisitNode (JSUnaryOperatorExpression uop) {
             var resultType = uop.GetActualType(TypeSystem);
-            bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType);
+            bool needsTruncation = NeedTruncationForUnaryOperator(uop, resultType) &&
+                ShouldDoOptionalTruncation(resultType);
 
             if (needsTruncation)
-                Output.LPar();
+                WriteTruncationPrefixForType(resultType);
 
             if (!uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
@@ -1401,10 +1654,8 @@ namespace JSIL {
             if (uop.IsPostfix)
                 Output.WriteRaw(uop.Operator.Token);
 
-            if (needsTruncation) {
+            if (needsTruncation)
                 WriteTruncationForType(resultType);
-                Output.RPar();
-            }
         }
 
         private bool NeedParensForBinaryOperator (JSBinaryOperatorExpression bop) {
@@ -1418,8 +1669,8 @@ namespace JSIL {
                 var fl = (JSForLoop)ParentNode;
                 if (
                     (fl.Condition == bop) ||
-                    (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
-                    (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
+                    (fl.Increment.SelfAndChildrenRecursive.Any(bop.Equals)) ||
+                    (fl.Initializer.SelfAndChildrenRecursive.Any(bop.Equals))
                 ) {
                     return false;
                 }
@@ -1437,7 +1688,7 @@ namespace JSIL {
                 return false;
             else if (ParentNode is JSCommaExpression)
                 return false;
-            else if (ParentNode is JSTruncateExpression)
+            else if (ParentNode is JSSpecialNumericCastExpression)
                 return false;
 
             return true;
@@ -1455,13 +1706,31 @@ namespace JSIL {
                 !OverflowCheckStack.Peek()
             ) {
                 return
-                    TypeUtil.Is32BitIntegral(uop.Expression.GetActualType(TypeSystem)) &&
-                    TypeUtil.Is32BitIntegral(resultType);
+                    TypeUtil.IsIntegral(uop.Expression.GetActualType(TypeSystem)) &&
+                    TypeUtil.IsIntegral(resultType);
             }
 
             return false;
         }
 
+        private bool NeedTypeHintForLoad (
+            TypeReference resultType
+        ) {
+            if (
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
+                TypeUtil.IsIntegral(resultType)
+            ) {
+                return true;
+            } else if (
+                Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
+                TypeUtil.IsFloatingPoint(resultType)
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+        
         private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
             var leftType = bop.Left.GetActualType(TypeSystem);
             var rightType = bop.Right.GetActualType(TypeSystem);
@@ -1469,36 +1738,98 @@ namespace JSIL {
             if (bop.Operator == JSOperator.Divide) {
                 // We need to perform manual truncation to maintain the semantics of C#'s division operator
                 return
-                    (TypeUtil.IsIntegralOrPointer(leftType) ||
-                    TypeUtil.IsIntegralOrPointer(rightType)) &&
-                    TypeUtil.IsIntegralOrPointer(resultType);
+                   (
+                        TypeUtil.IsIntegralOrPointer(leftType) ||
+                        TypeUtil.IsIntegralOrPointer(rightType)
+                    ) ||
+                    TypeUtil.IsIntegralOrPointer(resultType) || 
+                    ShouldDoOptionalTruncation(resultType);
             }
 
             if (
                 !(bop.Operator is JSAssignmentOperator) &&
+                // Elide
                 !(bop.Operator is JSBitwiseOperator) &&
-                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) &&
                 // Truncation needs to happen after overflow checks, not before, because... yeah.
                 !OverflowCheckStack.Peek()
             ) {
                 // If type hinting is enabled, we want to truncate after every binary operator we apply to integer values.
                 // This allows JS runtimes to more easily determine that code is using integers, and omit overflow checks.
+                var interiorIsIntegral = TypeUtil.IsIntegralOrPointer(leftType) &&
+                    TypeUtil.IsIntegralOrPointer(rightType);
+                var resultIsIntegral = TypeUtil.IsIntegralOrPointer(resultType);
+
+                if (!interiorIsIntegral && !resultIsIntegral)
+                    return false;
+
                 return
-                    TypeUtil.Is32BitIntegralOrIntPtr(leftType) &&
-                    TypeUtil.Is32BitIntegralOrIntPtr(rightType) &&
-                    TypeUtil.Is32BitIntegralOrIntPtr(resultType);
+                    ShouldDoOptionalTruncation(resultType);
             }
 
             return false;
         }
 
+        private bool ValueIsNonParameterVariable (JSExpression value) {
+            var jsv = value as JSVariable;
+            return (jsv != null) && !jsv.IsParameter;
+        }
+
+        private void VisitAndMaybeHintLoad (JSExpression value, bool targetIsLocal = false) {
+            if (
+                ValueIsNonParameterVariable(value) ||
+                value is JSLiteral
+            ) {
+                Visit(value);
+                return;
+            }
+
+            var type = value.GetActualType(TypeSystem);
+            var doTypeHint = !(value is JSOperatorExpressionBase) &&
+                !(value is JSSpecialNumericCastExpression) &&
+                !(value is JSLiteral) &&
+                !(value is JSCastExpression) &&
+                NeedTypeHintForLoad(type) &&
+                ShouldDoOptionalTruncation(type);
+
+            if (doTypeHint) {
+                WriteTruncationPrefixForType(type, targetIsLocal, true);
+            }
+
+            Visit(value);
+
+            if (doTypeHint) {
+                WriteTruncationForType(type, targetIsLocal, true);
+            }
+        }
+
         public void VisitNode (JSBinaryOperatorExpression bop) {
             var resultType = bop.GetActualType(TypeSystem);
-
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
-            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
+
+            bool needsTruncation = 
+                NeedTruncationForBinaryOperator(bop, resultType) &&
+                // If we're doing a special cast afterwards, and this isn't a divide, we can skip result truncation
+                (
+                    (bop.Operator == JSOperator.Divide) ||
+                    !(ParentNode is JSSpecialNumericCastExpression)
+                );
+
             bool parens = NeedParensForBinaryOperator(bop);
+            var parentBop = ParentNode as JSBinaryOperatorExpression;
+            if (
+                !needsTruncation &&
+                (
+                    (ParentNode is JSInvocationExpressionBase) ||
+                    (ParentNode is JSCastExpression) ||
+                    (
+                        (parentBop != null) &&
+                        (parentBop.Operator is JSAssignmentOperator)
+                    )
+                ) &&
+                !TypeUtil.IsPointer(resultType)
+            )
+                parens = false;
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
@@ -1511,11 +1842,23 @@ namespace JSIL {
             parens |= needsCast;
 
             if (needsTruncation)
-                Output.LPar();
+                WriteTruncationPrefixForType(resultType);
+
             if (parens)
                 Output.LPar();
 
-            Visit(bop.Left);
+            bool targetIsLocal = false;
+
+            if (bop.Operator is JSAssignmentOperator)
+                targetIsLocal = ValueIsNonParameterVariable(bop.Left);
+            else if (Stack.OfType<JSInvocationExpressionBase>().Any())
+                targetIsLocal = true;
+
+            if (bop.Operator is JSAssignmentOperator)
+                Visit(bop.Left);
+            else
+                VisitAndMaybeHintLoad(bop.Left, targetIsLocal);
+
             Output.Space();
             Output.WriteRaw(bop.Operator.Token);
             Output.Space();
@@ -1527,38 +1870,61 @@ namespace JSIL {
                 Output.NewLine();
             }
 
-            if (
-                Configuration.CodeGenerator.HintDoubleArithmetic.GetValueOrDefault(true) &&
-                (bop.Operator is JSAssignmentOperator) &&
-                TypeUtil.IsFloatingPoint(resultType) &&
-                !(resultType is ByReferenceType)
-            ) {
-                Output.WriteRaw("+");
-            }
-
-            Visit(bop.Right);
+            VisitAndMaybeHintLoad(bop.Right, targetIsLocal);
 
             if (parens)
                 Output.RPar();
 
-            if (needsTruncation) {
+            if (needsTruncation)
                 WriteTruncationForType(resultType);
-                Output.RPar();
-            }
+        }
+
+        public void VisitNode (JSUInt32MultiplyExpression ume) {
+            Output.LPar();
+            Output.WriteRaw("Math.imul");
+            Output.LPar();
+
+            Visit(ume.Left);
+            Output.Comma();
+            Visit(ume.Right);
+
+            Output.RPar();
+
+            Output.WriteRaw(" >>> 0");
+            Output.RPar();
+        }
+
+        public void VisitNode (JSInt32MultiplyExpression ume) {
+            Output.WriteRaw("Math.imul");
+            Output.LPar();
+
+            Visit(ume.Left);
+            Output.Comma();
+            Visit(ume.Right);
+
+            Output.RPar();
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {
             Output.LPar();
 
+            Output.NewLine();
             Visit(ternary.Condition);
+
+            Output.Indent();
+            Output.NewLine();
 
             Output.WriteRaw(" ? ");
             Visit(ternary.True);
 
+            Output.NewLine();
+
             Output.WriteRaw(" : ");
             Visit(ternary.False);
 
+            Output.Unindent();
             Output.RPar();
+            Output.NewLine();
         }
 
         public void VisitNode (JSNewArrayExpression newarray) {
@@ -1695,11 +2061,29 @@ namespace JSIL {
             if (nodes == null)
                 return 0;
 
-            return (from n in nodes
-                    where (n != null) && 
-                          ((n is TNode) ||
-                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null))
-                    select n).Count();
+            int result = 0;
+
+            foreach (var n in nodes) {
+                if (n == null)
+                    continue;
+
+                if (n is TNode) {
+                    result += 1;
+                } else {
+                    // HACK: !@(%*&)!@FFFF
+                    if (n is JSVariable)
+                        continue;
+
+                    foreach (var m in n.AllChildrenRecursive) {
+                        if (m is TNode) {
+                            result += 1;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
 
         protected static bool ArgumentsNeedLineBreak (IList<JSExpression> arguments) {
@@ -1752,7 +2136,7 @@ namespace JSIL {
                 var gaCount = method.GenericParameterNames.Length;
                 int argCount = method.Parameters.Length;
 
-                foreach (var signature in mss.Signatures) {
+                foreach (var signature in mss) {
                     if (
                         (signature.ParameterCount == argCount)
                     )
@@ -1766,19 +2150,21 @@ namespace JSIL {
                             overloadCount += 1;
                         }
                     }
+
+                    // If there's only one overload with this argument count, we don't need to use
+                    //  the expensive overloaded method dispatch path.
+
+                    if (overloadCount >= 2)
+                        return false;
                 }
 
-                // If there's only one overload with this argument count, we don't need to use
-                //  the expensive overloaded method dispatch path.
-                return overloadCount < 2;
+                return true;
             }
 
             return false;
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
-            TypeReference typeOfThisReference = null;
-
             var jsm = invocation.JSMethod;
             MethodInfo method = null;
             if (jsm != null)
@@ -1799,14 +2185,14 @@ namespace JSIL {
 
             bool needsParens =
                 (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
-                (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+                (CountOfMatchingSubtrees<JSOperatorExpressionBase>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSLiteral>(new[] { invocation.ThisReference }) > 0);
 
             Action thisRef = () => {
                 if (needsParens)
                     Output.LPar();
 
-                Visit(invocation.ThisReference);
+                Visit(invocation.ThisReference, "ThisReference");
 
                 if (needsParens)
                     Output.RPar();
@@ -1839,7 +2225,7 @@ namespace JSIL {
 
                     ReferenceContext.InvokingMethod = jsm.Reference;
 
-                    if ((method != null) && method.DeclaringType.IsInterface) {
+                    if (method.DeclaringType.IsInterface) {
                         // runtimeDispatch is always false here.
 
                         Output.Identifier("CallVirtual");
@@ -1856,7 +2242,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -1886,7 +2272,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -1898,7 +2284,7 @@ namespace JSIL {
                         Output.Comma();
                         genericArgs();
                         Output.Comma();
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -1907,7 +2293,7 @@ namespace JSIL {
                     if ((method != null) && method.DeclaringType.IsInterface) {
                         // HACK: Lets you bypass the interface method precise dispatch machinery for better performance.
                         if (runtimeDispatch) {
-                            Visit(invocation.ThisReference);
+                            Visit(invocation.ThisReference, "ThisReference");
                             Output.Dot();
                             Output.Identifier(jsm.Identifier, EscapingMode.MemberIdentifier);
                             Output.LPar();
@@ -1922,7 +2308,7 @@ namespace JSIL {
                             Output.WriteRaw("Call");
 
                             Output.LPar();
-                            Visit(invocation.ThisReference);
+                            Visit(invocation.ThisReference, "ThisReference");
                             Output.Comma();
 
                             genericArgs();
@@ -1938,6 +2324,14 @@ namespace JSIL {
 
                         Visit(invocation.Method);
                         Output.LPar();
+                    } else if (invocation.Method is JSCachedMethod) {
+                        Visit(invocation.Method);
+                        Output.LPar();
+
+                        Visit(invocation.ThisReference, "ThisReference");
+
+                        if (hasArguments)
+                            Output.Comma();
                     } else if (invocation.ExplicitThis) {
                         if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);
@@ -1951,7 +2345,7 @@ namespace JSIL {
                         Output.Identifier("call", EscapingMode.None);
                         Output.LPar();
 
-                        Visit(invocation.ThisReference);
+                        Visit(invocation.ThisReference, "ThisReference");
 
                         if (hasArguments)
                             Output.Comma();
@@ -2058,6 +2452,32 @@ namespace JSIL {
             Visit(naer.Array);
             Output.Comma();
             Visit(naer.Index);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSNewPackedArrayElementProxy npaep) {
+            if (npaep.Array == null) {
+                Output.WriteRaw("JSIL.MakeElementProxy");
+                Output.LPar();
+                Output.Identifier(npaep.ElementType, ReferenceContext, false);
+                Output.WriteRaw(".__Type__");
+                Output.RPar();
+            } else {
+                Visit(npaep.Array);
+                Output.WriteRaw(".GetItemProxy");
+                Output.LPar();
+                Visit(npaep.Index);
+                Output.RPar();
+            }
+        }
+
+        public void VisitNode (JSRetargetPackedArrayElementProxy rpaep) {
+            Visit(rpaep.ElementProxy);
+            Output.WriteRaw(".retarget");
+            Output.LPar();
+            Visit(rpaep.Array);
+            Output.Comma();
+            Visit(rpaep.Index);
             Output.RPar();
         }
     }

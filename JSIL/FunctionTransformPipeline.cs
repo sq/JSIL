@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0162
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -110,14 +112,17 @@ namespace JSIL.Internal {
         }
 
         public bool RunUntilCompletion () {
+            const int lockTimeoutMs = 250;
             bool completed = false;
 
             var entry = Translator.FunctionCache.GetCacheEntry(Identifier);
             TrackedLockCollection.DeadlockInfo deadlock;
-            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock);
+            var lockResult = entry.StaticAnalysisDataLock.TryBlockingEnter(out deadlock, timeoutMs: lockTimeoutMs);
 
-            if (!lockResult) {
-                Console.Error.WriteLine(String.Format("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock));
+            if (!lockResult.Success) {
+                if (deadlock != null)
+                    Console.Error.WriteLine("Failed to lock '{0}' for transform pipeline: {1} {2}", Identifier, lockResult.FailureReason, deadlock);
+
                 return false;
             }
 
@@ -184,6 +189,10 @@ namespace JSIL.Internal {
 
             Enqueue(IntroduceVariableDeclarationsAndReferences);
 
+            // Important to run this before static analysis. Otherwise var, declaration and ctor 
+            //  call can end up split, making a variable appear to get modified.
+            Enqueue(FixupStructConstructorInvocations);
+
             Enqueue(EliminateTemporaries);
 
             Enqueue(EmulateInt64);
@@ -212,8 +221,6 @@ namespace JSIL.Internal {
 
             Enqueue(CollapseNulls);
 
-            Enqueue(FixupStructConstructorInvocations);
-
             Enqueue(EliminateTemporaries);
 
             Enqueue(SimplifyControlFlow);
@@ -234,13 +241,15 @@ namespace JSIL.Internal {
 
             Enqueue(IntroducePackedArrays);
 
-            Enqueue(FixupPointerArithmetic);
-
             // If integer arithmetic hinting is enabled, we need to decompose mutation operators
             //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
             Enqueue(DecomposeMutationOperators);
 
+            Enqueue(FixupPointerArithmetic);
+
             Enqueue(HoistAllocations);
+
+            Enqueue(EliminatePointlessRetargeting);
 
             // HACK: Something about nullables is broken so we have to do this twice. WTF?
             Enqueue(ReplaceMethodCalls);
@@ -258,7 +267,7 @@ namespace JSIL.Internal {
 
         private bool FixupPointerArithmetic () {
             if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
-                new UnsafeCodeTransforms(TypeSystem, MethodTypes).Visit(Function);
+                new UnsafeCodeTransforms(Configuration, TypeSystem, MethodTypes).Visit(Function);
 
             return true;
         }
@@ -305,6 +314,7 @@ namespace JSIL.Internal {
 
         private bool SimplifyControlFlow () {
             if (Configuration.CodeGenerator.EliminateRedundantControlFlow.GetValueOrDefault(true)) {
+                bool shouldInvalidate = false;
                 bool shouldCollapse = false;
                 bool shouldRun = true;
 
@@ -313,12 +323,16 @@ namespace JSIL.Internal {
                     cfs.Visit(Function);
                     shouldRun = cfs.MadeChanges;
                     shouldCollapse |= cfs.MadeChanges;
+                    shouldInvalidate |= cfs.MadeChanges;
                 }
 
                 // HACK: Control flow simplification probably generated lots of nulls, so let's collapse them.
                 // This makes it possible for loop simplification to work right later on.
                 if (shouldCollapse)
                     CollapseNulls();
+
+                if (shouldInvalidate)
+                    FunctionSource.InvalidateFirstPass(Identifier);
             }
 
             return true;
@@ -463,12 +477,22 @@ namespace JSIL.Internal {
         }
 
         private bool HoistAllocations () {
-            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true))
+            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true)) {
                 new HoistAllocations(
                     Identifier, FunctionSource, TypeSystem, MethodTypes
                 ).Visit(Function);
+            }
 
             return true;
+        }
+
+        private bool EliminatePointlessRetargeting () {
+            if (Configuration.CodeGenerator.HoistAllocations.GetValueOrDefault(true))
+                return RunStaticAnalysisDependentTransform(new EliminatePointlessRetargeting(
+                    Identifier, FunctionSource, TypeSystem, MethodTypes
+                ));
+            else
+                return true;
         }
     }
 

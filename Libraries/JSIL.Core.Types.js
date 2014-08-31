@@ -56,14 +56,14 @@ JSIL.ImplementExternals("System.Object", function ($) {
 
 
   $.Method({Static: false, Public: true}, "GetType",
-    new JSIL.MethodSignature("System.Type", [], [], $jsilcore),
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [], $jsilcore),
     function Object_GetType () {
       return this.__ThisType__;
     }
   );
 
   $.Method({Static: false, Public: true}, "Object.Equals",
-    new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore),
+    new JSIL.MethodSignature($.Boolean, [$.Object], [], $jsilcore),
     function Object_Equals (rhs) {
       return this === rhs;
     }
@@ -80,7 +80,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   var currentMemberwiseCloneInvocation = null;
 
   $.Method({Static: false, Public: false}, "MemberwiseClone",
-    new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
+    new JSIL.MethodSignature($.Object, [], [], $jsilcore),
     function Object_MemberwiseClone () {
       var result = null;
 
@@ -107,7 +107,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   );
 
   $.Method({Static: false, Public: true}, "toString",
-    new JSIL.MethodSignature("System.String", [], [], $jsilcore),
+    new JSIL.MethodSignature($.String, [], [], $jsilcore),
     function Object_ToString () {
       return JSIL.GetTypeName(this);
     }
@@ -196,7 +196,7 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
 
 JSIL.MakeInterface(
   "System.IDisposable", true, [], function ($) {
-    $.Method({}, "Dispose", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Dispose", (JSIL.MethodSignature.Void));
   }, []);
 
 JSIL.MakeInterface(
@@ -208,9 +208,20 @@ JSIL.MakeInterface(
   "System.Collections.IEnumerator", true, [], function ($) {
     $.Method({}, "MoveNext", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], [])));
     $.Method({}, "get_Current", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [], [])));
-    $.Method({}, "Reset", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Reset", (JSIL.MethodSignature.Void));
     $.Property({}, "Current");
   }, []);
+
+JSIL.MakeInterface(
+  "System.Collections.IDictionaryEnumerator", true, [], function ($) {
+    $.Method({}, "get_Key", new JSIL.MethodSignature($.Object, [], []));
+    $.Method({}, "get_Value", new JSIL.MethodSignature($.Object, [], []));
+    // FIXME
+    // $.Method({}, "get_Entry", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.DictionaryEntry"), [], []));
+    $.Property({}, "Key");
+    $.Property({}, "Value");
+    $.Property({}, "Entry");
+  }, [$jsilcore.TypeRef("System.Collections.IEnumerator")]);
 
 JSIL.MakeInterface(
   "System.Collections.IEnumerable", true, [], function ($) {
@@ -245,7 +256,7 @@ JSIL.MakeInterface(
     $.Method({}, "set_Item", (new JSIL.MethodSignature(null, [$.Int32, $.Object], [])));
     $.Method({}, "Add", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
     $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [$.Object], [])));
-    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Clear", (JSIL.MethodSignature.Void));
     $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "get_IsFixedSize", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "IndexOf", (new JSIL.MethodSignature($.Int32, [$.Object], [])));
@@ -262,7 +273,7 @@ JSIL.MakeInterface(
     $.Method({}, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])));
     $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
     $.Method({}, "Add", (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
-    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Clear", (JSIL.MethodSignature.Void));
     $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
     $.Method({}, "CopyTo", (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $.Int32], [])));
     $.Method({}, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
@@ -316,7 +327,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
   var of = function Array_Of (elementType) {
     if (typeof (elementType) === "undefined")
-      throw new Error("Attempting to create an array of an undefined type");
+      JSIL.RuntimeError("Attempting to create an array of an undefined type");
 
     var _ = JSIL.ResolveTypeReference(elementType);
     var elementTypePublicInterface = _[0];
@@ -324,7 +335,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
     var elementTypeId = elementTypeObject.__TypeId__;
     if (typeof (elementTypeId) === "undefined")
-      throw new Error("Element type missing type ID");
+      JSIL.RuntimeError("Element type missing type ID");
 
     var compositePublicInterface = types[elementTypeObject.__TypeId__];
 
@@ -333,7 +344,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
       var compositeTypeObject = JSIL.CreateDictionaryObject(typeObject);
       compositePublicInterface = function (size) {
-        throw new Error("Invalid use of Array constructor. Use JSIL.Array.New.");
+        JSIL.RuntimeError("Invalid use of Array constructor. Use JSIL.Array.New.");
       };
       compositePublicInterface.prototype = JSIL.CreatePrototypeObject(publicInterface.prototype);
 
@@ -344,9 +355,12 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       );
       compositePublicInterface.CheckType = publicInterface.CheckType;
 
-      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
-      compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
-      compositeTypeObject.__IsReferenceType__ = true;
+      JSIL.SetValueProperty(compositeTypeObject, "__PublicInterface__", compositePublicInterface);
+      JSIL.SetValueProperty(
+        compositeTypeObject, "__FullName__", 
+        compositeTypeObject.__FullNameWithoutArguments__ = typeName
+      );
+      JSIL.SetValueProperty(compositeTypeObject, "__IsReferenceType__", true);
       compositeTypeObject.__IsArray__ = true;
       compositeTypeObject.__ElementType__ = elementTypeObject;
       compositeTypeObject.__IsClosed__ = Object.getPrototypeOf(compositeTypeObject.__ElementType__) !== JSIL.GenericParameter.prototype;
@@ -553,8 +567,31 @@ JSIL.ImplementExternals("System.Enum", function ($) {
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Attribute", true, [], function ($) {
   $.Method({Static: false, Public: true }, ".ctor",
-    (new JSIL.MethodSignature(null, [], [])),
+    (JSIL.MethodSignature.Void),
     function () {
     }
   );
 });
+
+JSIL.MakeEnum(
+  "System.TypeCode", true, {
+    Empty: 0, 
+    Object: 1, 
+    DBNull: 2, 
+    Boolean: 3, 
+    Char: 4, 
+    SByte: 5, 
+    Byte: 6, 
+    Int16: 7, 
+    UInt16: 8, 
+    Int32: 9, 
+    UInt32: 10, 
+    Int64: 11, 
+    UInt64: 12, 
+    Single: 13, 
+    Double: 14, 
+    Decimal: 15, 
+    DateTime: 16, 
+    String: 18
+  }, false
+);

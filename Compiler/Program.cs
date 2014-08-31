@@ -39,8 +39,6 @@ namespace JSIL.Compiler {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
 
-                var variables = result.ApplyTo(new VariableSet());
-
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
                 result.ContributingPaths = new[] { Path.GetFullPath(filename) };
 
@@ -91,7 +89,7 @@ namespace JSIL.Compiler {
             catch(BadImageFormatException ex)
             {
                 Console.Error.WriteLine("// Invalid .NET Assembly: \"" + fileName + "\".  It will not be loaded.");
-                Console.Error.WriteLine("//     Reason: " + (ex.Message ?? "").Trim().Replace(Environment.NewLine, Environment.NewLine + "// "));
+                Console.Error.WriteLine("//     Reason: " + ex.Message.Trim().Replace(Environment.NewLine, Environment.NewLine + "// "));
                 return null;
             }
         }
@@ -168,14 +166,16 @@ namespace JSIL.Compiler {
 
         static Configuration ParseCommandLine (
             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
-            Dictionary<string, IProfile> profiles,
+            Dictionary<string, IProfile> profiles, Dictionary<string, IAnalyzer> analyzers,
             AssemblyCache assemblyCache
         ) {
             var baseConfig = new Configuration();
             var commandLineConfig = new Configuration();
             IProfile defaultProfile = new Profiles.Default();
             var profileAssemblies = new List<string>();
+            var analyzerAssemblies = new List<string>();
             bool[] autoloadProfiles = new bool[] { true };
+            bool[] autoloadAnalyzers = new bool[] { true };
             string[] newDefaultProfile = new string[] { null };
             List<string> filenames;
 
@@ -240,7 +240,7 @@ namespace JSIL.Compiler {
                         (b) => autoloadProfiles[0] = (b == null)},
                     {"pa=|profileAssembly=",
                         "Loads one or more project profiles from the specified profile assembly. Note that this does not force the profiles to be used.",
-                        (filename) => profileAssemblies.Add(filename)},
+                        profileAssemblies.Add},
                     {"dp=|defaultProfile=",
                         "Overrides the default profile to use for projects by specifying the name of the new default profile.",
                         (profileName) => newDefaultProfile[0] = profileName},
@@ -282,30 +282,33 @@ namespace JSIL.Compiler {
                         "JSIL.Profiles.*.dll"
                     ));
 
+                if (autoloadAnalyzers[0])
+                    analyzerAssemblies.AddRange(Directory.GetFiles(
+                        GetJSILDirectory(), 
+                        "JSIL.Analysis.*.dll"
+                    ));
+
                 foreach (var filename in profileAssemblies) {
                     var fullPath = Path.GetFullPath(filename);
 
                     try {
-                        var assembly = Assembly.LoadFile(fullPath);
-
-                        foreach (var type in assembly.GetTypes()) {
-                            if (
-                                type.FindInterfaces(
-                                    (interfaceType, o) => interfaceType == (Type)o, typeof(IProfile)
-                                ).Length != 1
-                            )
-                                continue;
-
-                            var ctor = type.GetConstructor(
-                                BindingFlags.Public | BindingFlags.Instance,
-                                null, System.Type.EmptyTypes, null
-                            );
-                            var profileInstance = (IProfile)ctor.Invoke(new object[0]);
-
-                            profiles.Add(type.Name, profileInstance);
-                        }
+                        IProfile profileInstance = CreateExtensionInstance<IProfile>(fullPath);
+                        if (profileInstance != null)
+                            profiles.Add(profileInstance.GetType().Name, profileInstance);
                     } catch (Exception exc) {
                         Console.Error.WriteLine("Warning: Failed to load profile '{0}': {1}", filename, exc);
+                    }
+                }
+
+                foreach (var filename in analyzerAssemblies) {
+                    var fullPath = Path.GetFullPath(filename);
+
+                    try {
+                        IAnalyzer analyzerInstance = CreateExtensionInstance<IAnalyzer>(fullPath);
+                        if (analyzerInstance != null)
+                            analyzers.Add(analyzerInstance.GetType().Name, analyzerInstance);
+                    } catch (Exception exc) {
+                        Console.Error.WriteLine("Warning: Failed to load analyzer '{0}': {1}", filename, exc);
                     }
                 }
             }
@@ -343,7 +346,7 @@ namespace JSIL.Compiler {
                 var solutionFullPath = Path.GetFullPath(solution);
                 var solutionDir = Path.GetDirectoryName(solutionFullPath);
 
-                if ((solutionDir == null) || (solutionFullPath == null)) {
+                if (solutionDir == null) {
                     Console.Error.WriteLine("// Can't process solution '{0}' - path seems malformed", solution);
                     continue;
                 }
@@ -372,8 +375,10 @@ namespace JSIL.Compiler {
                     config.SolutionBuilder.LogVerbosity
                 );
 
-                var jss = new JavaScriptSerializer();
-                jss.MaxJsonLength = (1024 * 1024) * 64;
+                var jss = new JavaScriptSerializer {
+                    MaxJsonLength = (1024 * 1024) * 64
+                };
+
                 var buildResultJson = jss.Serialize(buildResult);
                 buildResult = jss.Deserialize<SolutionBuilder.BuildResult>(buildResultJson);
 
@@ -501,6 +506,29 @@ namespace JSIL.Compiler {
             return commandLineConfig;
         }
 
+        internal static T CreateExtensionInstance<T>(string fullPath) where T : ICompilerExtension {
+            var assembly = Assembly.LoadFile(fullPath);
+
+            foreach (var type in assembly.GetTypes()) {
+                if (
+                    type.FindInterfaces(
+                        (interfaceType, o) => interfaceType == (Type)o, typeof(T)
+                    ).Length != 1
+                )
+                    continue;
+
+                var ctor = type.GetConstructor(
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null, System.Type.EmptyTypes, null
+                );
+                var profileInstance = (T)ctor.Invoke(new object[0]);
+
+                return profileInstance;
+            }
+
+            return default(T);
+        }
+
         internal static string GetJSILDirectory () {
             return Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
         }
@@ -539,6 +567,17 @@ namespace JSIL.Compiler {
         ) {
             TypeInfoProvider typeInfoProvider = null;
 
+            Console.Error.WriteLine(
+                "// Using .NET framework {0} in {1} GC mode. Tuned GC {2}.",
+                Environment.Version.ToString(),
+                System.Runtime.GCSettings.IsServerGC ? "server" : "workstation",
+#if TARGETTING_FX_4_5
+                configuration.TuneGarbageCollection.GetValueOrDefault(true) ? "enabled" : "disabled"
+#else
+                "disabled (must be built in .NET 4.5 mode)"
+#endif
+            );
+
             if (
                 configuration.ReuseTypeInfoAcrossAssemblies.GetValueOrDefault(true) && 
                 (CachedTypeInfoProvider != null)
@@ -549,26 +588,22 @@ namespace JSIL.Compiler {
 
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, assemblyCache, 
-                onProxyAssemblyLoaded: (name, classification) => {
-                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name));
-                }
+                onProxyAssemblyLoaded: (name, classification) => 
+                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name))                
             );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
             translator.RunningTransforms += MakeProgressHandler ("Translating ");
             translator.Writing += MakeProgressHandler           ("Writing JS  ");
 
-            translator.AssemblyLoaded += (fn, classification) => {
+            translator.AssemblyLoaded += (fn, classification) =>
                 Console.Error.WriteLine("// Loaded {0} ({1})", ShortenPath(fn), classification);
-            };
             translator.CouldNotLoadSymbols += (fn, ex) => {
             };
-            translator.CouldNotResolveAssembly += (fn, ex) => {
+            translator.CouldNotResolveAssembly += (fn, ex) => 
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);
-            };
-            translator.CouldNotDecompileMethod += (fn, ex) => {
-                Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
-            };
+            translator.CouldNotDecompileMethod += (fn, ex) =>
+                Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex);
 
             if (typeInfoProvider == null) {
                 if (CachedTypeInfoProvider != null)
@@ -586,11 +621,12 @@ namespace JSIL.Compiler {
 
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
+            var analyzers = new Dictionary<string, IAnalyzer>();
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
             var processedAssemblies = new HashSet<string>();
 
-            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, assemblyCache);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, assemblyCache);
 
             if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
@@ -610,7 +646,7 @@ namespace JSIL.Compiler {
                         continue;
                     }
 
-                    string fileConfigPath = null;
+                    string fileConfigPath;
                     var fileConfigSearchDir = Path.GetDirectoryName(filename);
                     var separators = new char[] { '/', '\\' };
 
@@ -655,10 +691,35 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.Clear();
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
+                    foreach (var analyzer in analyzers.Values) {
+                        analyzer.SetConfiguration(localConfig);
+                    }
+
                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
                         translator.IgnoredMethod += (methodName, variableNames) =>
                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
+
+                        translator.AssembliesLoaded += definitions => {
+                                foreach (var analyzer in analyzers.Values) {
+                                    analyzer.AddAssemblies(definitions);
+                                }
+                            };
+
+                        translator.AnalyzeStarted += () => {
+                                foreach (var analyzer in analyzers.Values) {
+                                    analyzer.Analyze(translator._TypeInfoProvider);
+                                }
+                            };
+
+                        translator.MemberCanBeSkipped += member => {
+                                foreach (var analyzer in analyzers.Values) {
+                                    if (analyzer.MemberCanBeSkipped(member))
+                                        return true;
+                                }
+
+                                return false;
+                            }; 
 
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)

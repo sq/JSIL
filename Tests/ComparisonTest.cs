@@ -47,6 +47,7 @@ namespace JSIL.Tests {
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
         public readonly string[] StubbedAssemblies;
+        public readonly string[] JSFilenames;
         public readonly string OutputPath;
         public readonly Assembly Assembly;
         public readonly CompileResult CompileResult;
@@ -89,7 +90,7 @@ namespace JSIL.Tests {
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs)$", "$0.js"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs|\\.js|\\.il)$", "$0.out"
             );
         }
 
@@ -131,6 +132,8 @@ namespace JSIL.Tests {
                 Path.GetFileName(outputPath).Replace(".js", "")
             );
 
+            JSFilenames = null;
+
             switch (extensions[0]) {
                 case ".exe":
                 case ".dll":
@@ -139,6 +142,11 @@ namespace JSIL.Tests {
                         throw new InvalidOperationException("Multiple binary assemblies provided.");
 
                     Assembly = Assembly.LoadFile(fns[0]);
+                    break;
+                case ".js":
+                    JSFilenames = absoluteFilenames.ToArray();
+                    CompileResult = null;
+                    Assembly = null;
                     break;
                 default:
                     CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
@@ -295,10 +303,8 @@ namespace JSIL.Tests {
         }
 
         public static object MetacommentParseValue (string text, Type type) {
-            bool isNullable;
             var tNullable = typeof(Nullable<>);
             if (type.IsGenericType && (type.GetGenericTypeDefinition() == tNullable)) {
-                isNullable = true;
                 type = type.GetGenericArguments()[0];
 
                 if (text == "null")
@@ -356,7 +362,8 @@ namespace JSIL.Tests {
         public TOutput Translate<TOutput> (
             Func<TranslationResult, TOutput> processResult,
             Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             Configuration configuration;
 
@@ -373,6 +380,9 @@ namespace JSIL.Tests {
             TOutput result;
 
             using (var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache)) {
+                if (initializeTranslator != null)
+                    initializeTranslator(translator);
+
                 var assemblyPath = Util.GetPathOfAssembly(Assembly);
                 TranslationResult translationResult = null;
 
@@ -412,20 +422,44 @@ namespace JSIL.Tests {
         public string GenerateJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation,
             Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            bool throwOnUnimplementedExternals = true,
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
+            string translatedJs;
 
-            string translatedJs = Translate(
-                (tr) => tr.WriteToString(), makeConfiguration, onTranslationFailure
-            );
+            if ((Assembly == null) && (JSFilenames != null)) {
+                translatedJs = String.Join(
+                    Environment.NewLine + Environment.NewLine,
+                    from fn in JSFilenames select File.ReadAllText(fn)
+                ) + Environment.NewLine;
+            } else if ((Assembly != null) && (JSFilenames == null)) {
+                translatedJs = Translate(
+                    (tr) => tr.WriteToString(), 
+                    makeConfiguration, 
+                    onTranslationFailure,
+                    initializeTranslator
+                );
+            } else {
+                throw new InvalidDataException("Provided both JS filenames and assembly");
+            }
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
-            var testMethod = GetTestMethod();
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(
-                testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier
-            );
+            string testAssemblyName, testTypeName, testMethodName;
+
+            if (Assembly != null) {
+                var testMethod = GetTestMethod();
+                testAssemblyName = testMethod.Module.Assembly.FullName;
+                testTypeName = testMethod.DeclaringType.FullName;
+                testMethodName = testMethod.Name;
+            } else {
+                MainAcceptsArguments = true;
+                testAssemblyName = "Test";
+                testTypeName = "Program";
+                testMethodName = "Main";
+            }
 
             string argsJson;
 
@@ -439,23 +473,17 @@ namespace JSIL.Tests {
                 if ((args != null) && (args.Length > 0))
                     throw new ArgumentException("Test case does not accept arguments");
 
-                argsJson = "";
+                argsJson = "[]";
             }
 
             var invocationJs = String.Format(
-                "function runTestCase (timeout, dateNow) {{\r\n" +
-                "  JSIL.ThrowOnUnimplementedExternals = true;\r\n" +
-                "  timeout({0});\r\n" +
-                "  var started = dateNow();\r\n" +
-                "  var testAssembly = JSIL.GetAssembly({1}, true);\r\n" +
-                "  testAssembly.{2}.{3}({4});\r\n" +
-                "  var ended = dateNow();\r\n" +
-                "  return (ended - started);\r\n" +
-                "}}",
+                "runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}, \r\n  {5}\r\n);",
                 JavascriptExecutionTimeout,
-                Util.EscapeString(testMethod.Module.Assembly.FullName),
-                declaringType, Util.EscapeIdentifier(testMethod.Name),
-                argsJson
+                Util.EscapeString(testAssemblyName),
+                Util.EscapeString(testTypeName), 
+                Util.EscapeString(testMethodName),
+                argsJson,
+                throwOnUnimplementedExternals ? "true" : "false"
             );
 
             generatedJavascript = translatedJs;
@@ -475,30 +503,49 @@ namespace JSIL.Tests {
 
         public string RunJavascript (
             string[] args, Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             string temp1, temp4, temp5;
             long temp2, temp3;
 
-            return RunJavascript(args, out temp1, out temp2, out temp3, out temp4, out temp5, makeConfiguration, onTranslationFailure);
+            return RunJavascript(
+                args, 
+                out temp1, out temp2, out temp3, out temp4, out temp5, 
+                makeConfiguration, true, onTranslationFailure, initializeTranslator
+            );
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
             Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            bool throwOnUnimplementedExternals = true,
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             string temp1, temp2;
 
-            return RunJavascript(args, out generatedJavascript, out elapsedTranslation, out elapsedJs, out temp1, out temp2, makeConfiguration, onTranslationFailure);
+            return RunJavascript(
+                args, out generatedJavascript, out elapsedTranslation, out elapsedJs, 
+                out temp1, out temp2, 
+                makeConfiguration, throwOnUnimplementedExternals, onTranslationFailure, initializeTranslator
+            );
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
             Func<Configuration> makeConfiguration = null,
-            Action<Exception> onTranslationFailure = null
+            bool throwOnUnimplementedExternals = true,
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
-            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration, onTranslationFailure);
+            var tempFilename = GenerateJavascript(
+                args, out generatedJavascript, out elapsedTranslation, 
+                makeConfiguration, 
+                throwOnUnimplementedExternals, 
+                onTranslationFailure,
+                initializeTranslator
+            );
 
             using (var evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
@@ -508,7 +555,7 @@ namespace JSIL.Tests {
 
                 StartupPrologue = String.Format("contentManifest['Test'] = [['Script', {0}]]; " +
                     "function runMain () {{ " +
-                    "print({1}); try {{ var elapsedTime = runTestCase(timeout, dateNow); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
+                    "print({1}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
                     "}}; shellStartup();",
                     Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),
@@ -586,8 +633,10 @@ namespace JSIL.Tests {
         public void Run (
             string[] args = null, 
             Func<Configuration> makeConfiguration = null, 
+            bool throwOnUnimplementedExternals = true,
             bool dumpJsOnFailure = true,
-            Action<Exception> onTranslationFailure = null
+            Action<Exception> onTranslationFailure = null,
+            Action<AssemblyTranslator> initializeTranslator = null
         ) {
             var signals = new[] {
                     new ManualResetEventSlim(false), new ManualResetEventSlim(false)
@@ -599,25 +648,32 @@ namespace JSIL.Tests {
 
             args = args ?? new string[0];
 
-            ThreadPool.QueueUserWorkItem((_) => {
-                var oldCulture = Thread.CurrentThread.CurrentCulture;
-                try {
-                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-                    outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
-                } catch (Exception ex) {
-                    errors[0] = ex;
-                } finally {
-                    Thread.CurrentThread.CurrentCulture = oldCulture;
-                }
+            if (Assembly != null) {
+                ThreadPool.QueueUserWorkItem((_) => {
+                    var oldCulture = Thread.CurrentThread.CurrentCulture;
+                    try {
+                        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+                        outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
+                    } catch (Exception ex) {
+                        errors[0] = ex;
+                    } finally {
+                        Thread.CurrentThread.CurrentCulture = oldCulture;
+                    }
+                    signals[0].Set();
+                });
+            } else {
+                outputs[0] = "";
                 signals[0].Set();
-            });
+            }
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
                     outputs[1] = RunJavascript(
                         args, out generatedJs[0], out elapsed[1], out elapsed[2], 
                         makeConfiguration: makeConfiguration,
-                        onTranslationFailure: onTranslationFailure
+                        throwOnUnimplementedExternals: throwOnUnimplementedExternals,
+                        onTranslationFailure: onTranslationFailure,
+                        initializeTranslator: initializeTranslator
                     ).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[1] = ex;
@@ -628,13 +684,29 @@ namespace JSIL.Tests {
             signals[0].Wait();
             signals[1].Wait();
 
+            const int truncateThreshold = 4096;
+
+            Action writeJSOutput = () => {
+                Console.WriteLine("// JavaScript output begins //");
+                if (outputs[1].Length > truncateThreshold) {
+                    Console.WriteLine(outputs[1].Substring(0, truncateThreshold));
+                    Console.WriteLine("(truncated)");
+                } else
+                    Console.WriteLine(outputs[1]);
+            };
+
             try {
                 if (errors[0] != null)
                     throw new Exception("C# test failed", errors[0]);
                 else if (errors[1] != null)
                     throw errors[1];
-                else
+                else if (Assembly != null)
                     Assert.AreEqual(outputs[0], outputs[1]);
+                else
+                    Console.WriteLine("// Output validation suppressed (raw JS)");
+
+                if (Assembly == null)
+                    writeJSOutput();
 
                 Console.WriteLine(
                     "passed: CL:{0:0000}ms TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
@@ -648,8 +720,6 @@ namespace JSIL.Tests {
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
-
-                const int truncateThreshold = 4096;
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;
@@ -669,12 +739,7 @@ namespace JSIL.Tests {
                         Console.WriteLine(outputs[0]);
                 }
                 if (outputs[1] != null) {
-                    Console.WriteLine("// JavaScript output begins //");
-                    if (outputs[1].Length > truncateThreshold) {
-                        Console.WriteLine(outputs[1].Substring(0, truncateThreshold));
-                        Console.WriteLine("(truncated)");
-                    } else
-                        Console.WriteLine(outputs[1]);
+                    writeJSOutput();
                 }
 
                 if (dumpJsOnFailure && (generatedJs[0] != null)) {

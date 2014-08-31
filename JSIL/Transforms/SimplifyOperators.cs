@@ -70,29 +70,11 @@ namespace JSIL.Transforms {
                         (nestedUoe.Operator == JSOperator.LogicalNot)
                     ) {
                         var nestedExpression = nestedUoe.Expression;
-                        var nestedUoe2 = nestedExpression as JSUnaryOperatorExpression;
 
-                        if (
-                            (nestedUoe2 != null) &&
-                            (nestedUoe2.Operator == JSOperator.LogicalNot)
-                        ) {
-                            // It's okay to fold '!!!x' into '!x'
-                            ParentNode.ReplaceChild(uoe, nestedUoe2);
-                            VisitReplacement(nestedUoe2);
-                            return;
-                        } else {
-                            // Important not to eliminate '!!x' since it can be used for int-to-bool conversion,
-                            //  unless the value is already a boolean
-                            var nestedExpressionType = nestedExpression.GetActualType(TypeSystem);
+                        ParentNode.ReplaceChild(uoe, nestedExpression);
+                        VisitReplacement(nestedExpression);
 
-                            if (nestedExpressionType.FullName == "System.Boolean") {
-                                ParentNode.ReplaceChild(uoe, nestedExpression);
-                                VisitReplacement(nestedExpression);
-                            } else {
-                                VisitChildren(uoe);
-                            }
-                            return;
-                        }
+                        return;
                     }
                 }
             }
@@ -101,8 +83,12 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
-            JSExpression left, right, nestedLeft;
+            if (!boe.CanSimplify) {
+                VisitChildren(boe);
+                return;
+            }
 
+            JSExpression left, right, nestedLeft;
             if (!JSReferenceExpression.TryDereference(JSIL, boe.Left, out left))
                 left = boe.Left;
             if (!JSReferenceExpression.TryDereference(JSIL, boe.Right, out right))
@@ -119,6 +105,11 @@ namespace JSIL.Transforms {
                 (left.IsConstant || (leftVar != null) || left is JSDotExpressionBase) &&
                 !(ParentNode is JSVariableDeclarationStatement)
             ) {
+                if (!nestedBoe.CanSimplify) {
+                    VisitChildren(boe);
+                    return;
+                }
+
                 JSUnaryOperator prefixOperator;
                 JSAssignmentOperator compoundOperator;
 

@@ -150,18 +150,8 @@ namespace JSIL.Transforms {
                     }
                 }
             } else if ((uoe != null) && (uoe.Operator == JSOperator.LogicalNot)) {
-                var nestedUoe = uoe.Expression as JSUnaryOperatorExpression;
-
-                if (
-                    (nestedUoe != null) &&
-                    (nestedUoe.Operator == JSOperator.LogicalNot)
-                ) {
-                    invocation = nestedUoe.Expression as JSInvocationExpression;
-                    invocationIsInverted = false;
-                } else {
-                    invocation = uoe.Expression as JSInvocationExpression;
-                    invocationIsInverted = true;
-                }
+                invocation = uoe.Expression as JSInvocationExpression;
+                invocationIsInverted = true;
             }
 
             if (

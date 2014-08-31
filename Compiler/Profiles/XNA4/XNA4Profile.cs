@@ -35,7 +35,7 @@ namespace JSIL.Compiler.Profiles {
         ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            ProcessSkippedAssembly(configuration, assemblyPath, result);
+            PostProcessAllTranslatedAssemblies(configuration, assemblyPath, result);
 
             result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()
@@ -47,8 +47,7 @@ namespace JSIL.Compiler.Profiles {
         public override void ProcessSkippedAssembly (
             Configuration configuration, string assemblyPath, TranslationResult result
         ) {
-            ResourceConverter.ConvertResources(configuration, assemblyPath, result);
-            ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
+            PostProcessAssembly(configuration, assemblyPath, result);
         }
 
         public override SolutionBuilder.BuildResult ProcessBuildResult (

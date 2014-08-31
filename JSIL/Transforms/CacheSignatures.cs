@@ -145,6 +145,14 @@ namespace JSIL.Transforms {
         private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
             Func<GenericParameter, bool> filter =
                 (gp) => {
+                    // If the generic parameter can be expanded given the type that declared the method, don't cache locally.
+                    var resolved = MethodSignature.ResolveGenericParameter(gp, method.DeclaringType);
+                    // Note that we have to ensure the resolved type is not generic either. A generic parameter can resolve to a
+                    //  *different* generic parameter, and that is still correct - i.e. SomeMethod<A> calls SomeMethod<B>,
+                    //  in that case resolving B will yield A.
+                    if ((resolved != gp) && (resolved != null) && !TypeUtil.IsOpenType(resolved))
+                        return false;
+
                     var ownerMethod = gp.Owner as MethodReference;
                     if (ownerMethod == null)
                         return true;
@@ -166,9 +174,6 @@ namespace JSIL.Transforms {
                 cacheLocally = true;
             else if (TypeUtil.IsOpenType(method.DeclaringType, filter))
                 cacheLocally = true;
-
-            Dictionary<CachedSignatureRecord, int> signatureSet;
-            int index;
 
             var set = GetCacheSet(cacheLocally);
             var record = new CachedSignatureRecord(method, signature, isConstructor);
@@ -197,13 +202,13 @@ namespace JSIL.Transforms {
         private JSRawOutputIdentifier MakeRawOutputIdentifierForIndex (TypeReference type, int index, bool isSignature) {
             if (isSignature)
                 return new JSRawOutputIdentifier(
-                    (f) => f.WriteRaw("$s{0:X2}", index),
-                    type
+                    type,
+                    "$s{0:X2}", index
                 );
             else
                 return new JSRawOutputIdentifier(
-                    (f) => f.WriteRaw("$im{0:X2}", index),
-                    type
+                    type,
+                    "$im{0:X2}", index
                 );
         }
 
@@ -248,6 +253,11 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode(JSMethodOfExpression methodOf)
+        {
+            CacheSignature(methodOf.Reference, methodOf.Method.Signature, false);
+        }
+
         public void VisitNode (JSInvocationExpression invocation) {
             var jsm = invocation.JSMethod;
             MethodInfo method = null;
@@ -261,8 +271,11 @@ namespace JSIL.Transforms {
             if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
-            if ((method != null) && method.DeclaringType.IsInterface)
-                CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+            if ((method != null) && method.DeclaringType.IsInterface) {
+                // HACK
+                if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType))
+                    CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+            }
 
             if ((jsm != null) && (method != null) && isOverloaded)
                 CacheSignature(jsm.Reference, method.Signature, false);
@@ -304,7 +317,7 @@ namespace JSIL.Transforms {
             int index;
             var record = new CachedSignatureRecord(methodReference, methodSignature, forConstructor);
 
-            if ((enclosingFunction.Method != null) || (enclosingFunction.Method.Method != null)) {
+            if ((enclosingFunction.Method != null) && (enclosingFunction.Method.Method != null)) {
                 var functionIdentifier = enclosingFunction.Method.Method.Identifier;
                 CacheSet localSignatureSet;
 

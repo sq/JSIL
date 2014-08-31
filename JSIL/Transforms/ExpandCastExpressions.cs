@@ -75,9 +75,7 @@ namespace JSIL.Transforms {
                     );
                 } else if (TypeUtil.IsNumeric(targetType)) {
                     if (isNullable) {
-                        newExpression = JSIL.ValueOfNullable(
-                            ce.Expression
-                        );
+                        newExpression = new JSNullableCastExpression(ce.Expression, new JSType(targetType));
                     } else if (
                         ce.Expression is JSCastExpression &&
                         (((JSCastExpression)ce.Expression).Expression.GetActualType(TypeSystem).MetadataType == MetadataType.Int64 ||
@@ -102,7 +100,7 @@ namespace JSIL.Transforms {
                 // C# expressions such as (t is T) (where T is a generic parameter). See issue #150. 
                 // Tested with AsWithGenericParameter.cs
                 newExpression = new JSBinaryOperatorExpression(
-                    JSBinaryOperator.NotEqual,
+                    JSOperator.NotEqual,
                     ce.Expression, new JSNullLiteral(currentType),
                     TypeSystem.Boolean
                 );  
@@ -116,23 +114,11 @@ namespace JSIL.Transforms {
                 //  In this case we want to leave it as-is.
                 (ce.IsCoercion || (currentType.FullName != "System.Object"))
             ) {
-                if (
-                    TypeUtil.IsIntegral(currentType) ||
-                    (currentType.FullName == "System.Boolean")
-                ) {
-                    newExpression = new JSBinaryOperatorExpression(
-                        JSBinaryOperator.NotEqual,
-                        new JSTruncateExpression(ce.Expression),
-                        new JSIntegerLiteral(0, typeof(int)),
-                        TypeSystem.Boolean
-                    );
-                } else {
-                    newExpression = new JSBinaryOperatorExpression(
-                        JSBinaryOperator.NotEqual,
-                        ce.Expression, new JSDefaultValueLiteral(currentType),
-                        TypeSystem.Boolean
-                    );
-                }
+                newExpression = new JSBinaryOperatorExpression(
+                    JSOperator.NotEqual,
+                    ce.Expression, new JSDefaultValueLiteral(currentType),
+                    TypeSystem.Boolean
+                );
             } else if (
                 TypeUtil.IsNumeric(targetType) &&
                 TypeUtil.IsNumeric(currentType) &&
@@ -185,18 +171,24 @@ namespace JSIL.Transforms {
                         new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
                         new[] { ce.Expression },
                         true);
-                }
-                else if (
-                    TypeUtil.IsIntegral(currentType) ||
-                    !TypeUtil.IsIntegral(targetType))
-                {
-                    // Ensure that we don't eliminate casts that reduce the size of a value
-                    if (TypeUtil.SizeOfType(currentType) < TypeUtil.SizeOfType(targetType))
+                } else if (TypeUtil.IsIntegral(currentType)) {
+                    if (!TypeUtil.IsIntegral(targetType)) {
+                        // Integer -> float conversion
+                        newExpression = new JSIntegerToFloatExpression(ce.Expression, targetType);
+                    } else if (TypeUtil.SizeOfType(currentType) < TypeUtil.SizeOfType(targetType)) {
+                        // Widening integer -> integer conversion
                         newExpression = ce.Expression;
-                }
-                else
-                {
+                    } else {
+                        newExpression = null;
+                    }
+                } else if (TypeUtil.IsIntegral(targetType)) {
                     newExpression = new JSTruncateExpression(ce.Expression);
+                } else if (TypeUtil.SizeOfType(targetType) < TypeUtil.SizeOfType(currentType)) {
+                    // Narrowing double -> float conversion
+                    newExpression = new JSDoubleToFloatExpression(ce.Expression);
+                } else {
+                    // Widening float -> double conversion
+                    newExpression = ce.Expression;
                 }
             } else {
                 // newExpression = JSIL.Cast(ce.Expression, targetType);

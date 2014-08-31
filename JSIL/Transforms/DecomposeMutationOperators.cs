@@ -18,6 +18,19 @@ namespace JSIL.Transforms {
             TypeInfo = typeInfo;
         }
 
+        public static JSExpression MakeLhsForAssignment (JSExpression rhs) {
+            var fa = rhs as JSFieldAccess;
+            var pa = rhs as JSPropertyAccess;
+            if ((fa != null) && (fa.IsWrite == false))
+                return new JSFieldAccess(fa.ThisReference, fa.Field, true);
+            else if ((pa != null) && (pa.IsWrite == false))
+                return new JSPropertyAccess(
+                    pa.ThisReference, pa.Property, true, pa.TypeQualified, pa.OriginalType, pa.OriginalMethod, pa.IsVirtualCall
+                );
+
+            return rhs;
+        }
+
         private JSBinaryOperatorExpression MakeUnaryMutation (
             JSExpression expressionToMutate, JSBinaryOperator mutationOperator,
             TypeReference type
@@ -28,7 +41,7 @@ namespace JSIL.Transforms {
             );
             var assignment = new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                expressionToMutate, newValue, type
+                MakeLhsForAssignment(expressionToMutate), newValue, type
             );
 
             return assignment;
@@ -53,8 +66,8 @@ namespace JSIL.Transforms {
             return boe;
         }
 
-        public static JSBinaryOperatorExpression DeconstructMutationAssignment (
-            JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
+        public static JSExpression DeconstructMutationAssignment (
+            JSNode parentNode, JSBinaryOperatorExpression boe, TypeSystem typeSystem, TypeReference intermediateType
         ) {
             var assignmentOperator = boe.Operator as JSAssignmentOperator;
             if (assignmentOperator == null)
@@ -67,25 +80,34 @@ namespace JSIL.Transforms {
             var leftType = boe.Left.GetActualType(typeSystem);
 
             var newBoe = new JSBinaryOperatorExpression(
-                JSOperator.Assignment, boe.Left,
+                JSOperator.Assignment, MakeLhsForAssignment(boe.Left),
                 new JSBinaryOperatorExpression(
                     replacementOperator, boe.Left, boe.Right, intermediateType
                 ),
                 leftType
             );
 
-            return ConvertReadExpressionToWriteExpression(newBoe, typeSystem);
+            var result = ConvertReadExpressionToWriteExpression(newBoe, typeSystem);
+            if (parentNode is JSExpressionStatement) {
+                return result;
+            } else {
+                var comma = new JSCommaExpression(
+                    newBoe, boe.Left
+                );
+                return comma;
+            }
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var resultType = boe.GetActualType(TypeSystem);
             var resultIsIntegral = TypeUtil.Is32BitIntegral(resultType);
+            var resultIsPointer = TypeUtil.IsPointer(resultType);
 
             JSExpression replacement;
 
             if (
-                resultIsIntegral &&
-                ((replacement = DeconstructMutationAssignment(boe, TypeSystem, resultType)) != null)
+                (resultIsIntegral) &&
+                ((replacement = DeconstructMutationAssignment(ParentNode, boe, TypeSystem, resultType)) != null)
             ) {
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
@@ -146,7 +168,7 @@ namespace JSIL.Transforms {
                     return;
 
                 } else {
-                    throw new NotImplementedException("Unary mutation not supported: " + uoe.ToString());
+                    throw new NotImplementedException("Unary mutation not supported: " + uoe);
                 }
             }
 

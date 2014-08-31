@@ -17,16 +17,26 @@ namespace JSIL.Tests {
         public readonly JavaScriptException[] Exceptions;
 
         public JavaScriptEvaluatorException (int exitCode, string stdout, string stderr, JavaScriptException[] exceptions)
-            : base(String.Format(
-                "JavaScript interpreter exited with code {0} after throwing {1} exception(s):\r\n{2}", 
-                exitCode, exceptions.Length,
-                string.Join("\r\n", (from exc in exceptions select exc.ToString()))
-            )) 
+            : base(FormatMessage(exitCode, stderr, exceptions)) 
         {
             ExitCode = exitCode;
             ErrorText = stderr;
             Output = stdout;
             Exceptions = exceptions;
+        }
+
+        private static string FormatMessage (int exitCode, string stderr, JavaScriptException[] exceptions) {
+            if (exceptions.Length == 0)
+                return String.Format(
+                    "JavaScript interpreter exited with code {0}:\r\n{1}",
+                    exitCode, stderr
+                );
+
+            return String.Format(
+                "JavaScript interpreter exited with code {0} after throwing {1} exception(s):\r\n{2}",
+                exitCode, exceptions.Length,
+                string.Join("\r\n", (from exc in exceptions select exc.ToString()))
+            );
         }
     }
 

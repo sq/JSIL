@@ -44,7 +44,7 @@ namespace JSIL.SolutionBuilder {
             // Create an instance of the solution parser. The ctor is internal, hence the second arg.
             var solutionParser = Activator.CreateInstance(tSolutionParser, true);
 
-            var fieldFlags = BindingFlags.Instance | 
+            const BindingFlags fieldFlags = BindingFlags.Instance | 
                 BindingFlags.FlattenHierarchy | 
                 BindingFlags.NonPublic | 
                 BindingFlags.Public;
@@ -105,8 +105,9 @@ namespace JSIL.SolutionBuilder {
             var commandLineArgs = Environment.GetCommandLineArgs();
             if ((commandLineArgs.Length == 3) && (commandLineArgs[1] == "--buildSolution")) {
                 try {
-                    var jss = new JavaScriptSerializer();
-                    jss.MaxJsonLength = 1024 * 1024 * 64;
+                    var jss = new JavaScriptSerializer {
+                        MaxJsonLength = 1024 * 1024 * 64
+                    };
 
                     var pipeId = commandLineArgs[2];
 
@@ -145,8 +146,9 @@ namespace JSIL.SolutionBuilder {
         }
 
         private static BuildResult OutOfProcessBuild (Dictionary<string, object> arguments, int startupTimeoutMs = 5000) {
-            var jss = new JavaScriptSerializer();
-            jss.MaxJsonLength = 1024 * 1024 * 64;
+            var jss = new JavaScriptSerializer {
+                MaxJsonLength = 1024 * 1024 * 64
+            };
 
             var argsJson = jss.Serialize(arguments);
             var pipeId = String.Format("JSIL.Build{0:X4}", (new Random()).Next());
@@ -165,6 +167,8 @@ namespace JSIL.SolutionBuilder {
                     ErrorDialog = false                    
                 };
                 var childProcess = Process.Start(psi);
+                if (childProcess == null)
+                    throw new InvalidOperationException("Failed to start child process");
 
                 var connectedEvent = new ManualResetEventSlim(false);
                 var exitedEvent = new ManualResetEventSlim(false);
@@ -302,7 +306,7 @@ namespace JSIL.SolutionBuilder {
                     hostServices, BuildRequestDataFlags.None
                 );
 
-                Microsoft.Build.Execution.BuildResult result = null;
+                Microsoft.Build.Execution.BuildResult result;
                 try {
                     result = manager.Build(parms, request);
                 } catch (Exception exc) {

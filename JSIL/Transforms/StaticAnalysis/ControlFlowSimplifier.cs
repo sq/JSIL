@@ -174,8 +174,7 @@ namespace JSIL.Transforms {
 
             var lastChildStatement = PreviousLabelledStatement.AllChildrenRecursive
                 .OfType<JSStatement>()
-                .Where((s) => !s.IsNull)
-                .LastOrDefault();
+                .LastOrDefault((s) => !s.IsNull);
 
             var lastEs = lastChildStatement as JSExpressionStatement;
             if ((lastEs != null) &&

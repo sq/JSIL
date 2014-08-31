@@ -117,13 +117,12 @@ namespace JSIL {
                 };
             };
 
-            MakeNullCacheEntry = (id, args) => {
-                return new Entry(id, Locks) {
+            MakeNullCacheEntry = (id, args) =>
+                new Entry(id, Locks) {
                     Info = args.Info,
                     Reference = args.Method,
                     Expression = null
                 };
-            };
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -164,8 +163,10 @@ namespace JSIL {
         }
 
         private static bool TryAcquireStaticAnalysisDataLock (Entry entry, QualifiedMemberIdentifier method) {
-            var result = entry.StaticAnalysisDataLock.TryBlockingEnter(recursive: true);
-            // FIXME: Detect deadlock and throw restart exception
+            const int lockTimeoutMs = 33;
+
+            var result = entry.StaticAnalysisDataLock.TryBlockingEnter(recursive: true, timeoutMs: lockTimeoutMs);
+
             if (!result.Success) {
                 if (result.FailureReason == TrackedLockFailureReason.Deadlock)
                     throw new StaticAnalysisDataTemporarilyUnavailableException(method);
@@ -198,10 +199,30 @@ namespace JSIL {
             }
         }
 
+        private FunctionAnalysis2ndPass CreateSecondPassForKnownMethod (FunctionAnalysis1stPass firstPass) {
+            return new FunctionAnalysis2ndPass(this, firstPass, true);
+        }
+
+        private FunctionAnalysis2ndPass CreateSecondPassForOverridableMethod (MethodInfo method, FunctionAnalysis1stPass firstPass) {
+            // FIXME: Existing code is probably wrong in terms of static analysis for virtual method calls. Welp.
+            return new FunctionAnalysis2ndPass(this, firstPass, false);
+        }
+
+        private FunctionAnalysis2ndPass CreateSecondPassForAbstractMethod (MethodInfo method) {
+            return new FunctionAnalysis2ndPass(this, method);
+        }
+
         private FunctionAnalysis2ndPass _GetOrCreateSecondPass (Entry entry) {
-            if ((entry.SecondPass == null) && (entry.Expression != null)) {
-                if (entry.SecondPass == null)
-                    entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+            if (
+                (entry.SecondPass == null) && 
+                (entry.Expression != null)
+            ) {
+                if (entry.Definition.IsAbstract)
+                    entry.SecondPass = CreateSecondPassForAbstractMethod(entry.Info);
+                else if (entry.Definition.IsVirtual)
+                    entry.SecondPass = CreateSecondPassForOverridableMethod(entry.Info, entry.FirstPass);
+                else
+                    entry.SecondPass = CreateSecondPassForKnownMethod(entry.FirstPass);
             }
 
             return entry.SecondPass;
@@ -290,7 +311,7 @@ namespace JSIL {
     public abstract class TemporarilySuspendTransformPipelineException : Exception {
         public readonly QualifiedMemberIdentifier Identifier;
 
-        public TemporarilySuspendTransformPipelineException (QualifiedMemberIdentifier identifier) {
+        protected TemporarilySuspendTransformPipelineException (QualifiedMemberIdentifier identifier) {
             Identifier = identifier;
         }
     }

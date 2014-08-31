@@ -17,8 +17,10 @@ using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+
 using GenericParameterAttributes = Mono.Cecil.GenericParameterAttributes;
 using MethodInfo = JSIL.Internal.MethodInfo;
+using TypeInfo = JSIL.Internal.TypeInfo;
 
 namespace JSIL {
     public delegate void AssemblyLoadedHandler (string assemblyName, string classification);
@@ -27,6 +29,25 @@ namespace JSIL {
     public delegate void LoadErrorHandler (string name, Exception error);
 
     public class AssemblyTranslator : IDisposable {
+        public struct Cachers {
+            public readonly TypeExpressionCacher Type;
+            public readonly SignatureCacher Signature;
+            public readonly BaseMethodCacher BaseMethod;
+
+            public Cachers (TypeExpressionCacher type, SignatureCacher signature, BaseMethodCacher baseMethod) {
+                if (type == null)
+                    throw new ArgumentNullException("type");
+                else if (signature == null)
+                    throw new ArgumentNullException("signature");
+                else if (baseMethod == null)
+                    throw new ArgumentNullException("baseMethod");
+
+                Type = type;
+                Signature = signature;
+                BaseMethod = baseMethod;
+            }
+        }
+
         struct MethodToAnalyze {
             public readonly MethodDefinition MD;
             public readonly MethodInfo MI;
@@ -43,6 +64,8 @@ namespace JSIL {
         }
 
         public const int LargeMethodThreshold = 20 * 1024;
+
+        public const int DefaultStreamCapacity = 4 * (1024 * 1024);
 
         public readonly Configuration Configuration;
 
@@ -68,7 +91,11 @@ namespace JSIL {
         public event Action<string> Warning;
         public event Action<string, string[]> IgnoredMethod;
 
-        internal readonly TypeInfoProvider _TypeInfoProvider;
+        public event Action<AssemblyDefinition[]> AssembliesLoaded;
+        public event Action AnalyzeStarted;
+        public event Func<MemberReference, bool> MemberCanBeSkipped;
+
+        public readonly TypeInfoProvider _TypeInfoProvider;
 
         protected bool OwnsAssemblyCache;
         protected bool OwnsTypeInfoProvider;
@@ -98,17 +125,13 @@ namespace JSIL {
             AssemblyLoadedHandler onProxyAssemblyLoaded = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
-            Warning = (s) => {
+            Warning = (s) =>
                 Console.Error.WriteLine("// {0}", s);
-            };
 
             Configuration = configuration;
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
-            if (manifest != null)
-                Manifest = manifest;
-            else
-                Manifest = new AssemblyManifest();
+            Manifest = manifest ?? new AssemblyManifest();
 
             if (typeInfoProvider != null) {
                 _TypeInfoProvider = typeInfoProvider;
@@ -135,10 +158,7 @@ namespace JSIL {
             }
 
             OwnsAssemblyCache = (assemblyCache == null);
-            if (assemblyCache != null)
-                AssemblyCache = assemblyCache;
-            else
-                AssemblyCache = new AssemblyCache();
+            AssemblyCache = assemblyCache ?? new AssemblyCache();
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
         }
@@ -153,7 +173,7 @@ namespace JSIL {
                     proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
                 } else {
                     throw new ArgumentOutOfRangeException(
-                        "FrameworkVersion",
+                        "frameworkVersion",
                         String.Format("Framework version '{0}' not supported", frameworkVersion)
                     );
                 }
@@ -297,8 +317,9 @@ namespace JSIL {
             if (assembly == null)
                 throw new FileNotFoundException("Could not load the assembly '" + path + "'");
 
-            var result = new List<AssemblyDefinition>();
-            result.Add(assembly);
+            var result = new List<AssemblyDefinition> {
+                assembly
+            };
 
             if (AssemblyLoaded != null)
                 AssemblyLoaded(path, ClassifyAssembly(assembly));
@@ -341,8 +362,7 @@ namespace JSIL {
                         0, assembliesToLoad.Count, parallelOptions, (i) => {
                             var anr = assembliesToLoad[i];
 
-                            AssemblyDefinition refAssembly = null;
-                            refAssembly = AssemblyLoadErrorWrapper(
+                            var refAssembly = AssemblyLoadErrorWrapper(
                                 readerParameters.AssemblyResolver.Resolve,
                                 anr, readerParameters,
                                 useSymbols, path
@@ -375,18 +395,18 @@ namespace JSIL {
         }
 
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
-            var context = new DecompilerContext(module);
-
-            context.Settings.AsyncAwait = false;
-            context.Settings.YieldReturn = false;
-            context.Settings.AnonymousMethods = true;
-            context.Settings.QueryExpressions = false;
-            context.Settings.LockStatement = false;
-            context.Settings.FullyQualifyAmbiguousTypeNames = true;
-            context.Settings.ForEachStatement = false;
-            context.Settings.ExpressionTrees = false;
-
-            return context;
+            return new DecompilerContext(module) {
+                Settings = {
+                    AsyncAwait = false,
+                    YieldReturn = false,
+                    AnonymousMethods = true,
+                    QueryExpressions = false,
+                    LockStatement = false,
+                    FullyQualifyAmbiguousTypeNames = true,
+                    ForEachStatement = false,
+                    ExpressionTrees = false
+                }
+            };
         }
 
         protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
@@ -400,16 +420,45 @@ namespace JSIL {
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
-            var sw = Stopwatch.StartNew();
+            var originalLatencyMode = System.Runtime.GCSettings.LatencyMode;
 
-            if (Configuration.RunBugChecks.GetValueOrDefault(true))
-                BugChecks.RunBugChecks();
-            else
-                Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+            try {
+#if TARGETTING_FX_4_5
+                if (Configuration.TuneGarbageCollection.GetValueOrDefault(true))
+                    System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
+#endif
+
+                var sw = Stopwatch.StartNew();
+
+                if (Configuration.RunBugChecks.GetValueOrDefault(true))
+                    BugChecks.RunBugChecks();
+                else
+                    Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+
+                var result = TranslateInternal(assemblyPath, scanForProxies);
+
+                sw.Stop();
+                result.Elapsed = sw.Elapsed;
+                return result;
+            } finally {
+                System.Runtime.GCSettings.LatencyMode = originalLatencyMode;
+            }
+        }
+
+        private TranslationResult TranslateInternal (
+            string assemblyPath, bool scanForProxies = true
+        ) {
 
             var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
+
+            if (AssembliesLoaded != null)
+                AssembliesLoaded(assemblies);
+
+            if (AnalyzeStarted != null) {
+                AnalyzeStarted();
+            }
 
             if (scanForProxies)
                 _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
@@ -425,9 +474,11 @@ namespace JSIL {
             }
 
             AnalyzeFunctions(
-                parallelOptions, assemblies, 
+                parallelOptions, assemblies,
                 methodsToAnalyze, pr
             );
+
+            TriggerAutomaticGC();
 
             pr.OnFinished();
 
@@ -437,6 +488,8 @@ namespace JSIL {
 
             RunTransformsOnAllFunctions(parallelOptions, pr, result.Log);
             pr.OnFinished();
+
+            TriggerAutomaticGC();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -459,7 +512,7 @@ namespace JSIL {
                 long existingSize;
 
                 if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                    using (var outputStream = new MemoryStream()) {
+                    using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
                         var context = MakeDecompilerContext(assembly.MainModule);
 
                         try {
@@ -480,7 +533,7 @@ namespace JSIL {
                     lock (result.Assemblies)
                         result.Assemblies.Add(assembly);
                 } else {
-                    Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                    Console.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
 
                     result.AddExistingFile("Script", outputPath, existingSize);
                 }
@@ -497,11 +550,20 @@ namespace JSIL {
                     writeAssembly(i);
             }
 
+            TriggerAutomaticGC();
+
             pr.OnFinished();
 
-            sw.Stop();
-            result.Elapsed = sw.Elapsed;
             return result;
+        }
+
+        private void TriggerAutomaticGC () {
+            if (Configuration.TuneGarbageCollection.GetValueOrDefault(true))
+#if TARGETTING_FX_4_5
+                GC.Collect(2, GCCollectionMode.Optimized, false);
+#else
+                GC.Collect(2, GCCollectionMode.Optimized);
+#endif
         }
 
         public static void GenerateManifest (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
@@ -518,7 +580,7 @@ namespace JSIL {
 
                 if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
                     tw.WriteLine();
-                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
+                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { JSIL.GlobalNamespace.contentManifest = {}; };");
                     tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
                     foreach (var fe in result.OrderedFiles) {
@@ -607,6 +669,8 @@ namespace JSIL {
         protected void RunTransformsOnAllFunctions (ParallelOptions parallelOptions, ProgressReporter pr, StringBuilder log) {
             int i = 0;
 
+            const int autoGcInterval = 256;
+
             Action<QualifiedMemberIdentifier> itemHandler = (id) => {
                 var e = FunctionCache.GetCacheEntry(id);
 
@@ -616,12 +680,18 @@ namespace JSIL {
 
                 var _i = Interlocked.Increment(ref i);
 
+                if ((_i % autoGcInterval) == 0)
+                    TriggerAutomaticGC();
+
                 if (e.Expression == null)
                     return;
 
                 pr.OnProgressChanged(_i, _i + FunctionCache.PendingTransformsQueue.Count);
 
-                RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log);
+                if (RunTransformsOnFunction(id, e.Expression, e.SpecialIdentifiers, log)) {
+                    // Release our SpecialIdentifiers instance so it doesn't leak indefinitely.
+                    // e.SpecialIdentifiers = null;
+                }
             };
 
             while (FunctionCache.PendingTransformsQueue.Count > 0) {
@@ -659,14 +729,12 @@ namespace JSIL {
             }
 
             while (allTypes.Count > 0) {
-                var types = new HashSet<TypeDefinition>(allTypes).ToArray();
+                var types = new HashSet<TypeDefinition>(allTypes).ToList();
                 allTypes.Clear();
 
                 Parallel.For(
-                    0, types.Length, parallelOptions,
-                    () => {
-                        return new List<TypeDefinition>();
-                    },
+                    0, types.Count, parallelOptions,
+                    () => new List<TypeDefinition>(),
                     (i, loopState, typeList) => {
                         var type = types[i];
 
@@ -697,7 +765,7 @@ namespace JSIL {
                             if ((mi == null) || (mi.IsIgnored))
                                 continue;
 
-                            if (isStubbed) {
+                            if (isStubbed && !mi.IsUnstubbable) {
                                 var isProperty = mi.DeclaringProperty != null;
 
                                 if (!(isProperty && m.IsCompilerGenerated()))
@@ -718,11 +786,9 @@ namespace JSIL {
         }
 
         protected bool IsStubbed (AssemblyDefinition assembly) {
-            bool stubbed = false;
             foreach (var sa in Configuration.Assemblies.Stubbed) {
                 if (Regex.IsMatch(assembly.FullName, sa, RegexOptions.IgnoreCase)) {
                     return true;
-                    break;
                 }
             }
 
@@ -841,12 +907,15 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, output, declaredTypes, stubbed);
         }
 
-        protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
+        protected void TranslateInterface (
+            DecompilerContext context, JavascriptAstEmitter astEmitter, 
+            JavascriptFormatter output, TypeDefinition iface
+        ) {
             output.Identifier("JSIL.MakeInterface", EscapingMode.None);
             output.LPar();
             output.NewLine();
             
-            output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(iface.FullName));
             output.Comma();
 
             output.Value(iface.IsPublic);
@@ -858,9 +927,8 @@ namespace JSIL {
 
             output.Comma();
             output.OpenFunction(null, (f) =>
-            {
-                f.Identifier("$");
-            });
+                f.Identifier("$")
+            );
 
             var refContext = new TypeReferenceContext {
                 EnclosingType = iface,
@@ -870,8 +938,12 @@ namespace JSIL {
             bool isFirst = true;
             foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
                 foreach (var m in methodGroup) {
+                    if (ShouldSkipMember(m))
+                        continue;
+
                     var methodInfo = _TypeInfoProvider.GetMethod(m);
-                    if ((methodInfo == null) || ((methodInfo != null) && methodInfo.IsIgnored))
+
+                    if ((methodInfo == null) || methodInfo.IsIgnored)
                         continue;
 
                     output.Identifier("$", EscapingMode.None);
@@ -933,6 +1005,9 @@ namespace JSIL {
             output.CloseBracket();
 
             output.RPar();
+
+            TranslateCustomAttributes(context, iface, iface, astEmitter, output);
+
             output.Semicolon();
             output.NewLine();
         }
@@ -961,7 +1036,7 @@ namespace JSIL {
             output.LPar();
             output.NewLine();
 
-            output.Value(Util.EscapeIdentifier(typeInfo.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
             output.Comma();
 
             output.Value(enm.IsPublic);
@@ -1005,7 +1080,7 @@ namespace JSIL {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
-            output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
+            output.Value(Util.DemangleCecilTypeName(del.FullName));
             output.Comma();
 
             output.Value(del.IsPublic);
@@ -1028,6 +1103,17 @@ namespace JSIL {
             return true;
         }
 
+        protected bool ShouldSkipMember(MemberReference member)
+        {
+            if (member is MethodReference && member.Name == ".cctor")
+                return false;
+
+            if (MemberCanBeSkipped != null)
+                return MemberCanBeSkipped(member);
+
+            return false;
+        }
+
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
@@ -1042,6 +1128,31 @@ namespace JSIL {
             if (declaredTypes.Contains(typedef))
                 return;
 
+            if (typeInfo.IsStubOnly)
+            {
+                stubbed = true;
+            }
+
+            if (ShouldSkipMember(typedef))
+            {
+                declaredTypes.Add(typedef);
+                // We still may need to declare inner types.
+                astEmitter.ReferenceContext.Push();
+                astEmitter.ReferenceContext.EnclosingType = typedef;
+
+                try
+                {
+                    foreach (var nestedTypeDef in typedef.NestedTypes)
+                        DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                }
+                finally
+                {
+                    astEmitter.ReferenceContext.Pop();
+                }
+
+                return;
+            }
+
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
                 declaredTypes.Add(typedef);
@@ -1052,7 +1163,7 @@ namespace JSIL {
                 output.WriteRaw("$jsilcore");
                 output.Comma();
 
-                output.Value(typedef.FullName);
+                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
 
                 output.RPar();
                 output.Semicolon();
@@ -1092,7 +1203,7 @@ namespace JSIL {
                     output.Identifier("JSIL.MakeExternalType", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1101,12 +1212,24 @@ namespace JSIL {
                     output.NewLine();
                     return;
                 } else if (typedef.IsInterface) {
-                    TranslateInterface(context, output, typedef);
+                    output.Comment("interface {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                    output.NewLine();
+                    output.NewLine();
+
+                    TranslateInterface(context, astEmitter, output, typedef);
                     return;
                 } else if (typedef.IsEnum) {
+                    output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                    output.NewLine();
+                    output.NewLine();
+
                     TranslateEnum(context, output, typedef);
                     return;
                 } else if (typeInfo.IsDelegate) {
+                    output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                    output.NewLine();
+                    output.NewLine();
+
                     TranslateDelegate(context, output, typedef, typeInfo);
                     return;
                 }
@@ -1126,20 +1249,21 @@ namespace JSIL {
                     }
                 }
 
+                output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
+                output.NewLine();
+                output.NewLine();
+
                 if (!makingSkeletons) {
                     output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
                     output.Indent();
                     output.NewLine();
                 }
 
-                Action<JavascriptFormatter> dollar = (o) => o.Identifier("$", EscapingMode.None);
+                JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
                 var cachers = EmitTypeMethodExpressions(
                     context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
                 );
-
-                var typeCacher = cachers.Item1;
-                var signatureCacher = cachers.Item2;
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
@@ -1147,13 +1271,13 @@ namespace JSIL {
                     output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
 
                 } else if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
-                    output.Value(typeInfo.FullName);
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
                     output.Value(typedef.IsPublic);
 
@@ -1164,12 +1288,12 @@ namespace JSIL {
                     output.CloseBracket();
 
                 } else {
-                    if (typedef.IsValueType)
-                        output.Identifier("JSIL.MakeStruct", EscapingMode.None);
-                    else
-                        output.Identifier("JSIL.MakeClass", EscapingMode.None);
+                    output.Identifier("JSIL.MakeType", EscapingMode.None);
 
                     output.LPar();
+                    output.OpenBrace();
+
+                    output.WriteRaw("BaseType: ");
 
                     if (baseClass == null) {
                         if (typedef.FullName != "System.Object") {
@@ -1197,17 +1321,46 @@ namespace JSIL {
                     }
 
                     output.Comma();
+                    output.NewLine();
 
-                    output.Value(typeInfo.FullName);
+                    output.WriteRaw("Name: ");
+                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
                     output.Comma();
+                    output.NewLine();
+
+                    output.WriteRaw("IsPublic: ");
                     output.Value(typedef.IsPublic);
-
                     output.Comma();
-                    output.OpenBracket();
-                    if (typedef.HasGenericParameters)
-                        WriteGenericParameterNames(output, typedef.GenericParameters);
-                    output.CloseBracket();
+                    output.NewLine();
 
+                    output.WriteRaw("IsReferenceType: ");
+                    output.Value(!typedef.IsValueType);
+                    output.Comma();
+                    output.NewLine();
+
+                    if (typedef.HasGenericParameters) {
+                        output.WriteRaw("GenericParameters: ");
+                        output.OpenBracket();
+                        WriteGenericParameterNames(output, typedef.GenericParameters);
+                        output.CloseBracket();
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    var constructors = typedef.Methods.Where((m) => m.IsConstructor).ToList();
+                    if ((constructors.Count != 0) || typedef.IsValueType) {
+                        output.WriteRaw("MaximumConstructorArguments: ");
+
+                        if (typedef.IsValueType && (constructors.Count == 0))
+                            output.Value(0);
+                        else
+                            output.Value(constructors.Max((m) => m.Parameters.Count));
+
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    output.CloseBrace(false);
                 }
 
                 astEmitter.ReferenceContext.Push();
@@ -1218,15 +1371,15 @@ namespace JSIL {
                     output.Unindent();
 
                     output.Comma();
-                    output.OpenFunction(null, (f) => {
-                        f.Identifier("$interfaceBuilder");
-                    });
+                    output.OpenFunction(null, (f) => 
+                        f.Identifier("$interfaceBuilder")
+                    );
 
                     TranslateTypeDefinition(
                         context, typedef, 
                         astEmitter, output, 
                         stubbed, dollar, makingSkeletons, 
-                        typeCacher, signatureCacher
+                        cachers
                     );
 
                     output.NewLine();
@@ -1265,8 +1418,14 @@ namespace JSIL {
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
+            if (ShouldSkipMember(typedef))
+                return false;
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
-            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy || typeInfo.IsExternal)
+            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                return false;
+
+            if (typeInfo.IsExternal && typeInfo.UnstubbableMemberCount == 0)
                 return false;
 
             if (typedef.IsInterface)
@@ -1281,7 +1440,7 @@ namespace JSIL {
 
         protected void TranslatePrimitiveDefinition (
             DecompilerContext context, JavascriptFormatter output,
-            TypeDefinition typedef, bool stubbed, Action<JavascriptFormatter> dollar
+            TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
         ) {
             bool isIntegral = false;
             bool isNumeric = false;
@@ -1315,7 +1474,7 @@ namespace JSIL {
             }
 
             var setValue = (Action<string, bool>)((name, value) => {
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 output.Identifier("SetValue", EscapingMode.None);
                 output.LPar();
@@ -1330,28 +1489,31 @@ namespace JSIL {
             setValue("__IsNumeric__", isNumeric);
         }
 
-        protected Tuple<TypeExpressionCacher, SignatureCacher> EmitTypeMethodExpressions (
+        protected Cachers EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
-            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
+            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
             var typeCacher = new TypeExpressionCacher(typedef);
             var signatureCacher = new SignatureCacher(_TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
+            var baseMethodCacher = new BaseMethodCacher(_TypeInfoProvider, typedef);
 
-            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
+            _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
-                return Tuple.Create(typeCacher, signatureCacher);
+                return new Cachers(typeCacher, signatureCacher, baseMethodCacher);
 
             if (!makingSkeletons) {
                 output.WriteRaw("var $, $thisType");
                 output.Semicolon(true);
             }
 
-            var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
+            var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToList();
 
             var cacheTypes = Configuration.CodeGenerator.CacheTypeExpressions.GetValueOrDefault(true);
             var cacheSignatures = Configuration.CodeGenerator.CacheMethodSignatures.GetValueOrDefault(true);
+            // FIXME: This is *incredibly* slow in both V8 and SpiderMonkey presently.
+            var cacheBaseMethods = Configuration.CodeGenerator.CacheBaseMethodHandles.GetValueOrDefault(false);
 
             if (cacheTypes || cacheSignatures) {
                 foreach (var method in methodsToTranslate) {
@@ -1371,6 +1533,8 @@ namespace JSIL {
                         typeCacher.CacheTypesForFunction(functionBody);
                     if (cacheSignatures)
                         signatureCacher.CacheSignaturesForFunction(functionBody);
+                    if (cacheBaseMethods)
+                        baseMethodCacher.CacheMethodsForFunction(functionBody);
                 }
 
                 var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
@@ -1401,6 +1565,21 @@ namespace JSIL {
                     }
                 }
 
+                var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
+                if (bms.Length > 0) {
+                    foreach (var bm in bms) {
+                        output.WriteRaw("var $BM{0:X2} = function () ", bm.Index);
+                        output.OpenBrace();
+                        output.WriteRaw("return ($BM{0:X2} = JSIL.Memoize(", bm.Index);
+                        output.WriteRaw("Function.call.bind(");
+                        output.Identifier(bm.Method.Reference, astEmitter.ReferenceContext, true);
+                        output.WriteRaw("))) ()");
+                        output.Semicolon(true);
+                        output.CloseBrace(false);
+                        output.Semicolon(true);
+                    }
+                }
+
                 var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
                 if (cims.Length > 0) {
                     foreach (var cim in cims) {
@@ -1421,31 +1600,31 @@ namespace JSIL {
                     output.NewLine();
             }
 
+            var cachers = new Cachers(typeCacher, signatureCacher, baseMethodCacher);
+
             foreach (var method in methodsToTranslate) {
+                if (ShouldSkipMember(method))
+                    continue;
+
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
 
                 EmitMethodBody(
                     context, method, method, astEmitter, output,
-                    stubbed, typeCacher, signatureCacher, ref nextDisambiguatedId
+                    stubbed, cachers, ref nextDisambiguatedId
                 );
             }
 
-            return Tuple.Create(typeCacher, signatureCacher);
+            return cachers;
         }
 
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons,
-            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
+            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
+            Cachers cachers
         ) {
-            if (typeCacher == null)
-                throw new ArgumentNullException("typeCacher");
-            if (signatureCacher == null)
-                throw new ArgumentNullException("signatureCacher");
-
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
@@ -1464,6 +1643,9 @@ namespace JSIL {
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
             foreach (var method in methodsToTranslate) {
+                if (ShouldSkipMember(method))
+                    continue;
+
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
@@ -1479,20 +1661,9 @@ namespace JSIL {
                     TranslateProperty(context, astEmitter, output, property, dollar);
             };
 
-            Func<TypeReference, bool> isInterfaceIgnored = (i) => {
-                var interfaceInfo = _TypeInfoProvider.GetTypeInformation(i);
-                if (interfaceInfo != null)
-                    return interfaceInfo.IsIgnored;
-                else
-                    return true;
-            };
-
-            Func<FieldDefinition, bool> isFieldIgnored = (f) => {
-                IMemberInfo memberInfo;
-                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(this._TypeInfoProvider, f), out memberInfo))
-                    return memberInfo.IsIgnored;
-                else
-                    return true;
+            Action translateEvents = () => {
+                foreach (var @event in typedef.Events)
+                    TranslateEvent(context, astEmitter, output, @event, dollar);
             };
 
             if (!makingSkeletons)
@@ -1500,31 +1671,38 @@ namespace JSIL {
                     context, typedef, astEmitter, 
                     output, typeInfo.StaticConstructor, 
                     stubbed, dollar,
-                    typeCacher, signatureCacher
+                    cachers
                 );
 
             if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
                 translateProperties();
             }
 
+            if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Events.Count) > 0)) {
+                translateEvents();
+            }
+
             var interfaces = typeInfo.AllInterfacesRecursive;
-            if (!makingSkeletons && (interfaces.Length > 0)) {
+            if (!makingSkeletons && (interfaces.Count > 0)) {
                 output.NewLine();
 
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 output.Identifier("ImplementInterfaces", EscapingMode.None);
                 output.LPar();
 
                 bool firstInterface = true;
 
-                for (var i = 0; i < interfaces.Length; i++) {
-                    if (interfaces[i].Item1 != typeInfo)
+                for (var i = 0; i < interfaces.Count; i++) {
+                    var elt = interfaces.Array[interfaces.Offset + i];
+                    if (elt.ImplementingType != typeInfo)
                         continue;
-                    if (interfaces[i].Item2.IsIgnored)
+                    if (elt.ImplementedInterface.Info.IsIgnored)
+                        continue;
+                    if (ShouldSkipMember(elt.ImplementedInterface.Reference))
                         continue;
 
-                    var @interface = interfaces[i].Item3;
+                    var @interface = elt.ImplementedInterface.Reference;
 
                     if (firstInterface)
                         firstInterface = false;
@@ -1572,26 +1750,29 @@ namespace JSIL {
                 var identifier = new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
                 );
-                JSFunctionExpression function = null;
+                JSFunctionExpression function;
 
                 if (FunctionCache.TryGetExpression(identifier, out function)) {
                     return function;
                 }
 
-                if (methodInfo.IsExternal) {
+                bool skip = 
+                    ShouldSkipMember(method) ||
+                    methodInfo.IsExternal ||
+                    methodInfo.IsAbstract;
+                
+                if (skip) {
                     FunctionCache.CreateNull(methodInfo, method, identifier);
                     return null;
                 }
 
                 var bodyDef = methodDef;
-                Func<TypeReference, TypeReference> typeReplacer = (originalType) => {
-                    return originalType;
-                };
+                Func<TypeReference, TypeReference> typeReplacer = (originalType) =>
+                    originalType;
 
                 if (methodInfo.IsFromProxy && methodInfo.Member.HasBody) {
                     bodyDef = methodInfo.Member;
 
-                    var actualType = methodInfo.DeclaringType;
                     var sourceProxy = methodInfo.SourceProxy;
                     typeReplacer = (originalType) => {
                         if (TypeUtil.TypesAreEqual(sourceProxy.Definition, originalType))
@@ -1648,7 +1829,7 @@ namespace JSIL {
                     typeReplacer
                 );
 
-                JSBlockStatement body = null;
+                JSBlockStatement body;
                 try {
                     body = translator.Translate();
                 } catch (Exception exc) {
@@ -1760,7 +1941,7 @@ namespace JSIL {
             return allVariables;
         }
 
-        private void RunTransformsOnFunction (
+        private bool RunTransformsOnFunction (
             QualifiedMemberIdentifier memberIdentifier, JSFunctionExpression function,
             SpecialIdentifiers si, StringBuilder log
         ) {
@@ -1771,9 +1952,7 @@ namespace JSIL {
                     this, memberIdentifier, function, si
                 );
 
-            bool completed = false;
-
-            completed = pipeline.RunUntilCompletion();
+            bool completed = pipeline.RunUntilCompletion();
 
             if (completed) {
                 if (pipeline.SuspendCount >= FunctionTransformPipeline.SuspendCountLogThreshold) {
@@ -1787,6 +1966,8 @@ namespace JSIL {
                         );
                 }
             }
+
+            return completed;
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
@@ -1807,13 +1988,16 @@ namespace JSIL {
 
         protected JSExpression TranslateField (
             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
-            bool cctorContext, Action<JavascriptFormatter> dollar, JSStringIdentifier fieldSelfIdentifier
+            bool cctorContext, JSRawOutputIdentifier dollar, JSStringIdentifier fieldSelfIdentifier
         ) {
+            if (ShouldSkipMember(field))
+                return null;
+
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
 
-            var dollarIdentifier = new JSRawOutputIdentifier(dollar, field.DeclaringType);
+            var dollarIdentifier = new JSRawOutputIdentifier(field.DeclaringType, dollar.Format, dollar.Arguments);
             var descriptor = new JSMemberDescriptor(
                 field.IsPublic, field.IsStatic, isReadonly: field.IsInitOnly
             );
@@ -1870,7 +2054,8 @@ namespace JSIL {
                         defaultValue is JSInvocationExpressionBase ||
                         defaultValue is JSNewArrayExpression ||
                         defaultValue is JSEnumLiteral ||
-                        defaultValue is JSCastExpression
+                        defaultValue is JSCastExpression ||
+                        defaultValue is JSTypeOfExpression
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
@@ -1901,10 +2086,11 @@ namespace JSIL {
                         defaultValue = new JSDefaultValueLiteral(fieldInfo.FieldType);
 
                     return new JSBinaryOperatorExpression(
-                        JSBinaryOperator.Assignment,
+                        JSOperator.Assignment,
                         new JSFieldAccess(
                             thisParameter,
-                            new JSField(field, fieldInfo)
+                            new JSField(field, fieldInfo),
+                            true
                         ),
                         defaultValue,
                         fieldInfo.FieldType
@@ -1927,10 +2113,7 @@ namespace JSIL {
                         ), args
                     );
 
-                    JSExpression result = fieldExpression;
-                    var resultType = result.GetActualType(field.Module.TypeSystem);
-
-                    return result;
+                    return fieldExpression;
                 }
             }
         }
@@ -1938,14 +2121,9 @@ namespace JSIL {
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar,
-            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher
+            MethodDefinition cctor, bool stubbed, JSRawOutputIdentifier dollar,
+            Cachers cachers
         ) {
-            if (typeCacher == null)
-                throw new ArgumentNullException("typeCacher");
-            if (signatureCacher == null)
-                throw new ArgumentNullException("signatureCacher");
-
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             var typeSystem = context.CurrentModule.TypeSystem;
             var staticFields = 
@@ -2038,7 +2216,7 @@ namespace JSIL {
                             if (TypeUtil.IsIgnoredType(expectedType))
                                 continue;
 
-                            JSExpression defaultValue = null;
+                            JSExpression defaultValue;
 
                             try {
                                 defaultValue = translator.TranslateNode(ile.Arguments[0]);
@@ -2057,6 +2235,7 @@ namespace JSIL {
 
                                 var newArray = defaultValue as JSNewArrayExpression;
 
+#pragma warning disable 0642
                                 if (
                                     (newArray != null) && (
                                         (newArray.SizeOrArrayInitializer == null) ||
@@ -2066,6 +2245,8 @@ namespace JSIL {
                                     ;
                                 else if (!defaultValue.IsConstant)
                                     continue;
+#pragma warning restore 0642
+
                             } catch (Exception ex) {
                                 // This may fail because we didn't do a full translation.
                                 WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
@@ -2097,7 +2278,7 @@ namespace JSIL {
 
                 // Strip initializations of ignored and external fields from the cctor, since
                 //  they are generated by the compiler
-                var statements = f.Body.Children.OfType<JSExpressionStatement>().ToArray();
+                var statements = f.Body.Children.OfType<JSExpressionStatement>().ToList();
                 foreach (var es in statements) {
                     var boe = es.Expression as JSBinaryOperatorExpression;
                     if (boe == null)
@@ -2170,18 +2351,19 @@ namespace JSIL {
                 EmitAndDefineMethod(
                     context, cctor, cctor, 
                     astEmitter, output, false, dollar, 
-                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                    cachers, ref temp, null, fixupCctor
                 );
             } else if (fieldsToEmit.Length > 0) {
-                var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
-                fakeCctor.DeclaringType = typedef;
+                var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void) {
+                    DeclaringType = typedef
+                };
 
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(this._TypeInfoProvider, fakeCctor);
 
                 lock (typeInfo.Members)
                     typeInfo.Members[identifier] = new Internal.MethodInfo(
-                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], null
+                        typeInfo, identifier, fakeCctor, new ArraySegment<ProxyInfo>(), null
                     );
 
                 output.NewLine();
@@ -2192,7 +2374,7 @@ namespace JSIL {
                 EmitAndDefineMethod(
                     context, fakeCctor, fakeCctor, 
                     astEmitter, output, false, dollar, 
-                    typeCacher, signatureCacher, ref temp, null, fixupCctor
+                    cachers, ref temp, null, fixupCctor
                 );
             }
 
@@ -2203,7 +2385,7 @@ namespace JSIL {
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
                     output, false, dollar, 
-                    typeCacher, signatureCacher, ref temp, extraCctor,
+                    cachers, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -2251,7 +2433,7 @@ namespace JSIL {
             } else {
                 try {
                     return JSLiteral.New(ca.Value as dynamic);
-                } catch (Exception exc) {
+                } catch (Exception) {
                     throw new NotImplementedException(String.Format("Attribute arguments of type '{0}' are not implemented.", ca.Type.FullName));
                 }
             }
@@ -2262,17 +2444,26 @@ namespace JSIL {
             TypeReference declaringType,
             Mono.Cecil.ICustomAttributeProvider member, 
             JavascriptAstEmitter astEmitter, 
-            JavascriptFormatter output
+            JavascriptFormatter output,
+            bool standalone = true
         ) {
             astEmitter.ReferenceContext.Push();
             try {
                 astEmitter.ReferenceContext.EnclosingType = null;
                 astEmitter.ReferenceContext.DefiningType = null;
 
-                output.Indent();
+                if (standalone)
+                    output.Indent();
+
+                bool isFirst = true;
 
                 foreach (var attribute in member.CustomAttributes) {
-                    output.NewLine();
+                    if (ShouldSkipMember(attribute.AttributeType))
+                        continue;
+
+                    if (!isFirst || standalone)
+                        output.NewLine();
+                        
                     output.Dot();
                     output.Identifier("Attribute");
                     output.LPar();
@@ -2295,12 +2486,55 @@ namespace JSIL {
                     }
 
                     output.RPar();
+
+                    isFirst = false;
                 }
 
-                output.Unindent();
+                if (standalone)
+                    output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
+        }
+
+        private void TranslateParameterAttributes (
+            DecompilerContext context,
+            TypeReference declaringType,
+            MethodDefinition method,
+            JavascriptAstEmitter astEmitter,
+            JavascriptFormatter output
+        ) {
+            output.Indent();
+
+            foreach (var parameter in method.Parameters) {
+                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
+                    continue;
+
+                output.NewLine();
+                output.Dot();
+                output.Identifier("Parameter");
+                output.LPar();
+
+                output.Value(parameter.Index);
+                output.Comma();
+
+                output.Value(parameter.Name);
+                output.Comma();
+
+                output.OpenFunction(null, (jf) => jf.Identifier("_"));
+
+                output.Identifier("_");
+
+                TranslateCustomAttributes(context, declaringType, parameter, astEmitter, output, false);
+
+                output.NewLine();
+
+                output.CloseBrace(false);
+
+                output.RPar();
+            }
+
+            output.Unindent();
         }
 
         protected void CreateMethodInformation (
@@ -2312,7 +2546,7 @@ namespace JSIL {
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
                 !methodInfo.IsExternal && !isReplaced;
 
-            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
         }
 
         protected bool ShouldTranslateMethodBody (
@@ -2329,6 +2563,9 @@ namespace JSIL {
                 methodInfo, stubbed,
                 out isExternal, out isReplaced, out methodIsProxied
             );
+
+            if(ShouldSkipMember(method))
+                return false;
 
             if (isExternal) {
                 if (isReplaced)
@@ -2367,13 +2604,13 @@ namespace JSIL {
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher,
+            JSRawOutputIdentifier dollar, Cachers cachers,
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             EmitMethodBody(
                 context, methodRef, method,
-                astEmitter, output, stubbed, typeCacher, signatureCacher, 
+                astEmitter, output, stubbed, cachers,
                 ref nextDisambiguatedId, methodInfo, bodyTransformer
             );
             DefineMethod(
@@ -2384,15 +2621,9 @@ namespace JSIL {
         protected void EmitMethodBody (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, 
-            ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
+            Cachers cachers, ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
-            if (typeCacher == null)
-                throw new ArgumentNullException("typeCacher");
-            if (signatureCacher == null)
-                throw new ArgumentNullException("signatureCacher");
-
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
@@ -2406,17 +2637,12 @@ namespace JSIL {
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            JSFunctionExpression function;
-            try {
-                function = GetFunctionBodyForMethod(
-                    isExternal, methodInfo
-                );
-            } catch (KeyNotFoundException knf) {
-                throw;
-            }
+            JSFunctionExpression function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             // FIXME
-            astEmitter.SignatureCacher = signatureCacher;
+            astEmitter.SignatureCacher = cachers.Signature;
 
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
@@ -2464,7 +2690,7 @@ namespace JSIL {
         protected void DefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
-            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null
+            JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
             if (methodInfo == null)
                 methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -2510,14 +2736,9 @@ namespace JSIL {
                 return;
             }
 
-            JSFunctionExpression function;
-            try {
-                function = GetFunctionBodyForMethod(
-                    isExternal, methodInfo
-                );
-            } catch (KeyNotFoundException knf) {
-                throw;
-            }
+            JSFunctionExpression function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
@@ -2528,7 +2749,7 @@ namespace JSIL {
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
             try {
-                dollar(output);
+                dollar.WriteTo(output);
                 output.Dot();
                 if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
                     output.Identifier("ExternalMethod", EscapingMode.None);
@@ -2584,9 +2805,13 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
 
+                astEmitter.ReferenceContext.AttributesMethod = methodRef;
+
                 TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
 
                 TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+
+                TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
             } finally {
@@ -2612,11 +2837,7 @@ namespace JSIL {
                     output.Identifier("Overrides");
                     output.LPar();
 
-                    var interfaceIndex = typeInfo.AllInterfacesRecursive.TakeWhile(
-                        (tuple) => !TypeUtil.TypesAreEqual(tuple.Item3, @override.InterfaceType)
-                    ).Count();
-
-                    output.Value(interfaceIndex);
+                    output.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);
 
                     output.Comma();
                     output.Value(@override.MemberIdentifier.Name);
@@ -2633,7 +2854,7 @@ namespace JSIL {
         protected void TranslateProperty (
             DecompilerContext context, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
-            PropertyDefinition property, Action<JavascriptFormatter> dollar
+            PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
             var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored)
@@ -2643,7 +2864,7 @@ namespace JSIL {
 
             output.NewLine();
 
-            dollar(output);
+            dollar.WriteTo(output);
             output.Dot();
 
             if (propertyInfo.IsExternal)
@@ -2671,6 +2892,47 @@ namespace JSIL {
             output.Semicolon();
         }
 
+        protected void TranslateEvent (
+            DecompilerContext context,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
+            EventDefinition @event, JSRawOutputIdentifier dollar
+        ) {
+            var eventInfo = _TypeInfoProvider.GetMemberInformation<Internal.EventInfo>(@event);
+            if ((eventInfo == null) || eventInfo.IsIgnored)
+                return;
+
+            var isStatic = (@event.AddMethod ?? @event.RemoveMethod).IsStatic;
+
+            output.NewLine();
+
+            dollar.WriteTo(output);
+            output.Dot();
+
+            if (eventInfo.IsExternal)
+                output.Identifier("ExternalEvent", EscapingMode.None);
+            else if (@event.DeclaringType.HasGenericParameters && isStatic)
+                output.Identifier("GenericEvent", EscapingMode.None);
+            else
+                output.Identifier("Event", EscapingMode.None);
+
+            output.LPar();
+
+            output.MemberDescriptor(eventInfo.IsPublic, eventInfo.IsStatic, eventInfo.IsVirtual);
+
+            output.Comma();
+
+            output.Value(Util.EscapeIdentifier(eventInfo.Name, EscapingMode.String));
+
+            output.Comma();
+            output.TypeReference(@event.EventType, astEmitter.ReferenceContext);
+
+            output.RPar();
+
+            TranslateCustomAttributes(context, @event.DeclaringType, @event, astEmitter, output);
+
+            output.Semicolon();
+        }
+
         public void Dispose () {
             // _TypeInfoProvider.DumpSignatureCollectionStats();
 
@@ -2686,6 +2948,21 @@ namespace JSIL {
         public TypeInfoProvider GetTypeInfoProvider () {
             OwnsTypeInfoProvider = false;
             return _TypeInfoProvider;
+        }
+
+        private SpecialIdentifiers _CachedSpecialIdentifiers;
+        private object _CachedSpecialIdentifiersLock = new object();
+
+        public SpecialIdentifiers GetSpecialIdentifiers (TypeSystem typeSystem) {
+            lock (_CachedSpecialIdentifiersLock) {
+                if (
+                    (_CachedSpecialIdentifiers == null) ||
+                    (_CachedSpecialIdentifiers.TypeSystem != typeSystem)
+                )
+                    _CachedSpecialIdentifiers = new JSIL.SpecialIdentifiers(FunctionCache.MethodTypes, typeSystem, _TypeInfoProvider);
+            }
+
+            return _CachedSpecialIdentifiers;
         }
     }
 }

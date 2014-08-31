@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -75,7 +76,7 @@ namespace JSIL.Ast {
             return TypeIds[nodeType];
         }
 
-        public JSNode () {
+        protected JSNode () {
             TypeId = TypeIds[GetType()];
 
             var td = JSNodeTraversalData.Get(TypeId);
@@ -161,16 +162,17 @@ namespace JSIL.Ast {
                 return _ActualValueNames[index];
         }
 
+        // HACK: This function is invoked via reflection only!
         [JSAstTraverse(0)]
         static bool GetValue (JSNode parent, int index, out JSNode node, out string name) {
             JSExpression expr = (JSExpression)parent;
-            if (index >= expr.Values.Length) {
+            var values = expr.Values;
+            if (index >= values.Length) {
                 node = null;
                 name = null;
                 return false;
             } else {
-                node = expr.Values[index];
-
+                node = values[index];
                 name = expr.GetValueName(index) ?? "Values";
 
                 return true;
@@ -296,21 +298,27 @@ namespace JSIL.Ast {
             return EqualsImpl(obj, false);
         }
 
+        protected int GetHashCodeOfValues () {
+            return Values.Length;
+        }
+
         public override int GetHashCode () {
-            return 0; // :-(
+            // HACK: Can we do better?
+            //  I think this has to return 0 since derived types may actually ignore Values[] in their Equals implementation.
+            // return Values.Length;
+            return 0;
         }
     }
 
     public abstract class JSIdentifier : JSExpression {
         protected readonly TypeReference _IdentifierType;
 
-        public JSIdentifier (TypeReference identifierType = null) {
+        protected JSIdentifier (TypeReference identifierType = null) {
             _IdentifierType = identifierType;
         }
 
         public override bool Equals (object obj) {
             var id = obj as JSIdentifier;
-            var str = obj as string;
 
             if (id != null) {
                 return String.Equals(Identifier, id.Identifier) &&
@@ -344,7 +352,7 @@ namespace JSIL.Ast {
 
         public override bool IsConstant {
             get {
-                return true;
+                return false;
             }
         }
 
@@ -464,6 +472,10 @@ namespace JSIL.Ast {
             var comparer = Comparer<T>.Default;
 
             return comparer.Compare(Value, rhs.Value) == 0;
+        }
+
+        public override int GetHashCode() {
+            return GetType().GetHashCode() ^ Value.GetHashCode();
         }
 
         public override bool IsConstant {

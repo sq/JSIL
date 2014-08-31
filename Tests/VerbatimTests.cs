@@ -16,6 +16,14 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void JSReplacementTypeOfThisStatic () {
+            GenericTest(
+                @"SpecialTestCases\JSReplacementTypeOfThisStatic.cs",
+                "Program", "Program"
+            );
+        }
+
+        [Test]
         public void CustomNamedBuiltins () {
             GenericTest(
                 @"SpecialTestCases\IndexBuiltinByName.cs",
@@ -35,7 +43,7 @@ namespace JSIL.Tests {
         public void BuiltinsThisEvaluatesToJSThis () {
             GenericTest(
                 @"SpecialTestCases\VerbatimThis.cs",
-                "", "Program/CustomType"
+                "", "Program+CustomType"
             );
         }
 
@@ -52,6 +60,30 @@ namespace JSIL.Tests {
             var js = GetJavascript(
                 @"SpecialTestCases\CreateNamedFunction.cs",
                 "3"
+            );
+        }
+
+        [Test]
+        public void VerbatimVariables () {
+            var js = GetJavascript(
+                @"SpecialTestCases\VerbatimVariables.cs",
+                "hello\r\n7"
+            );
+        }
+
+        [Test]
+        public void VerbatimVariablesExistingArray () {
+            var js = GetJavascript(
+                @"SpecialTestCases\VerbatimVariablesExistingArray.cs",
+                "hello\r\n7"
+            );
+        }
+
+        [Test]
+        public void VerbatimDynamic () {
+            var js = GetJavascript(
+                @"SpecialTestCases\Issue548.cs",
+                "{\"obj1\":\"{}\"}"
             );
         }
     }

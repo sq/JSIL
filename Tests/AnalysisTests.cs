@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,6 +9,16 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class AnalysisTests : GenericTestFixture {
+        protected override Translator.Configuration MakeConfiguration () {
+            var result = base.MakeConfiguration();
+            
+            // HACK: Ease static analysis debugging
+            if (Debugger.IsAttached)
+                result.UseThreads = false;
+
+            return result;
+        }
+
         [Test]
         public void FieldAssignmentDetection () {
             var output = "ct=1, mc=(a=0 b=0)\r\nct=1, mc=(a=2 b=1)\r\nct=3, mc=(a=2 b=1)";
@@ -165,6 +176,9 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains(
                 @".IncrementArgumentValue(a.MemberwiseClone())"
             ));
+            Assert.IsFalse(generatedJs.Contains(
+                @"b = $thisType.IncrementArgumentValue(a.MemberwiseClone()).MemberwiseClone()"
+            ), "Return value was cloned inside b assignment (a is already cloned)");
         }
 
         [Test]
@@ -205,12 +219,9 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
 
-            // FIXME: Static analyzer too terrible.
-            /*
             Assert.IsFalse(generatedJs.Contains(
                 @".MemberwiseClone()"
             ), "a value was cloned");
-             */
         }
 
         [Test]
@@ -253,12 +264,9 @@ namespace JSIL.Tests {
             );
 
             Console.WriteLine(generatedJs);
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnArgument\(" +
-                @"\$thisType.ReturnIncrementedArgument\(\$thisType.ReturnArgument\(a\)." +
-                @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
-            ));
+
+            var cloneCount = Regex.Matches(generatedJs, @".MemberwiseClone\(\)").Count;
+            Assert.AreEqual(1, cloneCount, "Expected 1 struct clone");
         }
 
         [Test]
@@ -387,25 +395,30 @@ namespace JSIL.Tests {
         [Test]
         public void PropertyTemporaries () {
             var output = 
-@"Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Right, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Up, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Left, 384)
-Shockwave.WarpTo(72, 80)
-Shockwave.TryMove(Down, 384)";
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Right, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Up, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Left, 384)" + Environment.NewLine +
+"Shockwave.WarpTo(72, 80)" + Environment.NewLine +
+"Shockwave.TryMove(Down, 384)";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\PropertyTemporaries.cs",
                 output, output
             );
 
-            Assert.IsTrue(generatedJs.Contains("var x = "));
-            Assert.IsTrue(generatedJs.Contains("var y = "));
-            Assert.IsTrue(generatedJs.Contains("/ 8) | 0) * 8"));
-
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.IsTrue(generatedJs.Contains("var x = "));
+                Assert.IsTrue(generatedJs.Contains("var y = "));
+                Assert.IsTrue(
+                    generatedJs.Contains("| 0) / 8) | 0), 8)") &&
+                    generatedJs.Contains("Math.imul(")
+                );
+            } finally {
+                Console.WriteLine(generatedJs);
+            }
         }
 
         [Test]
@@ -465,7 +478,7 @@ Shockwave.TryMove(Down, 384)";
 
         [Test]
         public void ImmutableStructThisAssignment () {
-            var output = "2 2\r\n1 2";
+            var output = "2 2\r\n1 2\r\n3\r\n3";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\ImmutableStructThisAssignment.cs",
@@ -677,6 +690,68 @@ Shockwave.TryMove(Down, 384)";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\CopyForTemporaryStructInLoop.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void AsyncAwaitCloning () {
+            // HACK: async/await support not merged to trunk yet
+            var hack = true;
+            string output = hack ? "" : "Continuation:AsyncMethod result";
+
+            var generatedJs = GetJavascript(
+                @"AnalysisTestCases\Issue371.cs",
+                output
+            );
+
+            Console.WriteLine(generatedJs);
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"\/\* ref \*\/ this").Count,
+                0,
+                "this was passed as a reference"
+            );
+
+            Assert.AreEqual(
+                Regex.Matches(generatedJs, @"new JSIL\.BoxedVariable\(this\)").Count,
+                2,
+                "this should have been boxed twice"
+            );
+        }
+
+        [Test]
+        public void Issue395 () {
+            string output = "00";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue395.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void Issue494_ByValue () {
+            string output = "0";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue494.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
+
+        [Test]
+        public void Issue494_ByRef () {
+            string output = "1";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue494_2.cs",
                 output, output
             );
 

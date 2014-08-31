@@ -6,17 +6,17 @@ if (typeof (JSIL) === "undefined")
 var $jsilopentk = JSIL.DeclareAssembly("JSIL.OpenTK");
 
 var $mgasms = new JSIL.AssemblyCollection({
-    0: "Lidgren.Network, Version=2011.3.12.0, Culture=neutral, PublicKeyToken=null", 
-    1: "MonoGame.Framework, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null", 
-    2: "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    3: "OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4", 
-    4: "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    5: "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", 
-    6: "System.Runtime.Serialization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    7: "System.ServiceModel.Internals, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35", 
-    8: "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
-    9: "Tao.Sdl, Version=1.2.13.0, Culture=neutral, PublicKeyToken=9c7a200e36c0094e"
-  });
+  0: "Lidgren.Network, Version=2011.3.12.0, Culture=neutral, PublicKeyToken=null", 
+  1: "MonoGame.Framework, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null", 
+  2: "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  3: "OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4", 
+  4: "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  5: "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", 
+  6: "System.Runtime.Serialization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  7: "System.ServiceModel.Internals, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35", 
+  8: "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
+  9: "Tao.Sdl, Version=1.2.13.0, Culture=neutral, PublicKeyToken=9c7a200e36c0094e"
+});
 
 
 JSIL.DeclareNamespace("OpenTK");
@@ -24,14 +24,44 @@ JSIL.DeclareNamespace("OpenTK.Graphics");
 
 
 OpenTK.Service = function () {
+  this.keyboardDevices = [];
+  this.mouseDevices = [];
+};
+
+OpenTK.Service.prototype.UpdateDevices = function OpenTK_UpdateDevices () {
+  var keyboardService = JSIL.Host.getService("keyboard");
+  var mouseService = JSIL.Host.getService("mouse");
+
+  for (var i = 0, l = this.keyboardDevices.length; i < l; i++) {
+    var device = this.keyboardDevices[i];
+
+    device.PriorState = device.CurrentState;
+    device.CurrentState = keyboardService.getHeldKeys();
+
+    device.PriorState.forEach(function (keyCode) {
+      if (device.CurrentState.indexOf(keyCode) < 0)
+        device.fireKeyEvent(keyCode, false);      
+    });
+
+    device.CurrentState.forEach(function (keyCode) {
+      if (device.PriorState.indexOf(keyCode) < 0)
+        device.fireKeyEvent(keyCode, true);      
+    });
+  }
+
+  for (var i = 0, l = this.mouseDevices.length; i < l; i++) {
+    var device = this.mouseDevices[i];
+  }
 };
 
 OpenTK.Service.prototype.StartRunLoop = function (platform) {
   var gameWindow = platform._window.window;
   var eventArgs = new OpenTK.FrameEventArgs();
 
-  var dispatcher = function () {
+  var dispatcher = (function OpenTK_Tick () {
     try {
+      this.UpdateDevices();
+
       gameWindow.UpdateFrame(platform, eventArgs);
       gameWindow.RenderFrame(platform, eventArgs);
       
@@ -39,7 +69,7 @@ OpenTK.Service.prototype.StartRunLoop = function (platform) {
     } finally {
       platform.RaiseAsyncRunLoopEnded();
     }
-  };
+  }).bind(this);
 
   JSIL.Host.scheduleTick(dispatcher);
 };
@@ -60,7 +90,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
       // FIXME
     }
@@ -162,16 +192,14 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
-      throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Exit", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Exit () {
-      throw new Error('Not implemented');
     }
   );
 
@@ -185,7 +213,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   $.Method({Static:false, Public:true }, "get_IsExiting", 
     new JSIL.MethodSignature($.Boolean, [], []), 
     function get_IsExiting () {
-      throw new Error('Not implemented');
+      return false;
     }
   );
 
@@ -299,14 +327,14 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   */
 
   $.Method({Static:false, Public:true , Virtual:true }, "MakeCurrent", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function MakeCurrent () {
       // FIXME
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Run", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Run () {
       throw new Error('Not implemented');
     }
@@ -369,7 +397,7 @@ JSIL.ImplementExternals("OpenTK.GameWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "SwapBuffers", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function SwapBuffers () {
       // FIXME
     }
@@ -384,7 +412,7 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
       throw new Error('Not implemented');
     }
@@ -494,14 +522,14 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Close", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Close () {
       throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       throw new Error('Not implemented');
     }
@@ -659,7 +687,7 @@ JSIL.ImplementExternals("OpenTK.NativeWindow", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "ProcessEvents", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function ProcessEvents () {
       throw new Error('Not implemented');
     }
@@ -816,7 +844,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:true , Public:true }, "Assert", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Assert () {
       throw new Error('Not implemented');
     }
@@ -837,7 +865,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "Dispose", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Dispose () {
       // FIXME
     }
@@ -923,7 +951,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
   );
 
   $.Method({Static:false, Public:true , Virtual:true }, "LoadAll", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function LoadAll () {
       throw new Error('Not implemented');
     }
@@ -942,7 +970,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Context");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Context");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.get_Implementation", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.IGraphicsContext"), [], []), 
@@ -950,7 +978,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "get_Implementation");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "get_Implementation");
 
   $.Method({Static:false, Public:false, Virtual:true }, "OpenTK.Graphics.IGraphicsContextInternal.GetAddress", 
     new JSIL.MethodSignature($mgasms[2].TypeRef("System.IntPtr"), [$.String], []), 
@@ -958,7 +986,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
       throw new Error('Not implemented');
     }
   )
-    .Overrides(2, "GetAddress");
+    .Overrides("OpenTK.Graphics.IGraphicsContextInternal", "GetAddress");
 
 /*
   $.Method({Static:true , Public:true }, "set_DirectRendering", 
@@ -998,7 +1026,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.GraphicsContext", function ($interfaceB
 */
 
   $.Method({Static:false, Public:true , Virtual:true }, "SwapBuffers", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function SwapBuffers () {
       throw new Error('Not implemented');
     }
@@ -1021,7 +1049,7 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
   $.Method({Static:false, Public:false}, ".ctor", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function _ctor () {
     }
   );
@@ -1117,7 +1145,7 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
   );
 
   $.Method({Static:false, Public:true }, "RestoreResolution", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function RestoreResolution () {
       // FIXME
     }
@@ -1132,5 +1160,157 @@ JSIL.ImplementExternals("OpenTK.DisplayDevice", function ($interfaceBuilder) {
       throw new Error('Not implemented');
     }
   );
+
+});
+
+// 
+// KeyboardKeyEventArgs
+//
+
+JSIL.ImplementExternals("OpenTK.Input.KeyboardKeyEventArgs", function ($interfaceBuilder) {
+  var $ = $interfaceBuilder;
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")], []), 
+    function _ctor (value) {
+      this.key = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Key", 
+    new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Input.Key"), [], []), 
+    function get_Key () {
+      return this.key;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "set_Key", 
+    new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Input.Key")], []), 
+    function set_Key (value) {
+      this.key = value;
+    }
+  );
+});
+
+//
+// KeyboardDevice
+//
+
+JSIL.ImplementExternals("OpenTK.Input.KeyboardDevice", function ($) {
+    var keyMap = Object.create(null);
+
+    // Define a mapping from browser keycode -> OpenTK Key enumeration.
+    // FIXME: Missing some keys.
+    // FIXME: Right ctrl/shift/alt not implemented.
+    $.RawMethod(true, ".cctor2", function () {
+      var Key = $mgasms[3].OpenTK.Input.Key;
+
+      keyMap[27] = Key.Escape;
+
+      for (var i = 0; i < 24; i++) {
+        keyMap[112 + i] = Key.$Cast(Key.F1.value + i);
+      }
+
+      for (var j = 0; j <= 9; j++) {
+        keyMap[48 + j] = Key.$Cast(Key.Number0.value + j);
+      }
+
+      for (var k = 0; k < 26; k++) {
+        keyMap[65 + k] = Key.$Cast(Key.A.value + k);
+      }
+
+      keyMap[9] = Key.Tab;
+      keyMap[20] = Key.CapsLock;
+      keyMap[17] = Key.ControlLeft;
+      keyMap[16] = Key.ShiftLeft;
+      keyMap[91] = Key.WinLeft;
+      keyMap[18] = Key.AltLeft;
+      keyMap[32] = Key.Space;
+      // keyMap[VirtualKeys.RMENU] = Key.AltRight;
+      keyMap[92] = Key.WinRight;
+      keyMap[93] = Key.Menu;
+      // keyMap[VirtualKeys.RCONTROL] = Key.ControlRight;
+      // keyMap[VirtualKeys.RSHIFT] = Key.ShiftRight;
+      keyMap[13] = Key.Enter;
+      keyMap[8] = Key.BackSpace;
+      keyMap[59] = Key.Semicolon;
+      keyMap[186] = Key.Semicolon;
+      keyMap[191] = Key.Slash;
+      keyMap[192] = Key.Tilde;
+      keyMap[219] = Key.BracketLeft;
+      keyMap[220] = Key.BackSlash;
+      keyMap[221] = Key.BracketRight;
+      keyMap[222] = Key.Quote;
+      keyMap[61] = Key.Plus;
+      keyMap[187] = Key.Plus;
+      keyMap[188] = Key.Comma;
+      keyMap[109] = Key.Minus;
+      keyMap[189] = Key.Minus;
+      keyMap[190] = Key.Period;
+      keyMap[36] = Key.Home;
+      keyMap[35] = Key.End;
+      keyMap[46] = Key.Delete;
+      keyMap[33] = Key.PageUp;
+      keyMap[34] = Key.PageDown;
+      keyMap[144] = Key.NumLock;
+      keyMap[45] = Key.Insert;
+
+      for (var l = 0; l <= 9; l++) {
+        keyMap[96 + l] = Key.$Cast(Key.Keypad0.value + l);
+      }
+
+      keyMap[46] = Key.KeypadDecimal;
+      keyMap[110] = Key.KeypadDecimal;
+      keyMap[107] = Key.KeypadAdd;
+      keyMap[109] = Key.KeypadSubtract;
+      keyMap[111] = Key.KeypadDivide;
+      keyMap[106] = Key.KeypadMultiply;
+      keyMap[38] = Key.Up;
+      keyMap[40] = Key.Down;
+      keyMap[37] = Key.Left;
+      keyMap[39] = Key.Right;
+    });
+
+    $.Method({Static:false, Public:false}, ".ctor", 
+      JSIL.MethodSignature.Void,
+      function ctor () {
+        this.PriorState = [];
+        this.CurrentState = [];
+
+        this.KeyDown = null;
+        this.KeyUp = null;
+
+        var svc = JSIL.Host.getService("opentk");
+        svc.keyboardDevices.push(this);
+      }
+    );
+
+    $.RawMethod(false, "fireKeyEvent",
+      function fireKeyEvent (nativeKeyCode, isDown) {
+        var mappedKeyCode = keyMap[nativeKeyCode] || null;
+
+        // FIXME: Produce a warning?
+        if (mappedKeyCode === null)
+          return;
+
+        var args = new OpenTK.Input.KeyboardKeyEventArgs(mappedKeyCode);
+
+        if (isDown && this.KeyDown)
+          this.KeyDown(this, args);
+        else if (!isDown && this.KeyUp)
+          this.KeyUp(this, args);          
+      }
+    );
+
+    $.MakeEventAccessors(
+      {Static: false, Public: true }, "KeyDown", 
+      $jsilcore.TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")])
+    );
+
+    $.MakeEventAccessors(
+      {Static: false, Public: true }, "KeyUp", 
+      $jsilcore.TypeRef("System.EventHandler`1", [$mgasms[3].TypeRef("OpenTK.Input.KeyboardKeyEventArgs")])
+    );
+
 
 });

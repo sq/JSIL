@@ -116,7 +116,8 @@ $jsilxna.textCache = new $jsilxna.ImageCache(
 );
 
 
-$jsilxna.get2DContext = function (canvas, enableWebGL) {
+$jsilxna.get2DContext = function get2DContext (canvas, enableWebGL) {
+  var result = null;
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
@@ -167,7 +168,7 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
 
     if ($jsilxna.workingWebGL) {
       WebGL2D.enable(canvas);
-      return canvas.getContext("webgl-2d");
+      result = canvas.getContext("webgl-2d");
     } else {
       var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead. " + extraMessage;
       if (window.console && (typeof (window.console.error) === "function"))
@@ -177,7 +178,13 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
     }
   }
 
-  return canvas.getContext("2d");
+  if (!result)
+    result = canvas.getContext("2d");
+
+  if (!result)
+    throw new Error("Failed to initialize HTML5 Canvas.");
+
+  return result;
 };
 
 $jsilxna.channelNames = ["_r", "_g", "_b", "_a"];
@@ -672,7 +679,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", func
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPass", function ($) {
   $.Method({Static:false, Public:true }, "Apply", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Apply () {
       // FIXME
     }
@@ -750,7 +757,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   $.Method({
     Static: false,
     Public: true
-  }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
+  }, "ApplyChanges", JSIL.MethodSignature.Void, function () {
     var oc = this.device.originalCanvas;
 
     $jsilbrowserstate.nativeWidth = this.device.originalWidth = this._width;
@@ -996,7 +1003,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   );
 
   $.Method({Static:false, Public:true }, "End", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function SpriteBatch_End () {
       if (this.defer) {
         this.defer = false;
@@ -1028,7 +1035,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device.$UpdateViewport();
 
       if (this.saveCount !== this.restoreCount)
-        throw new Error("Unbalanced canvas save/restore");
+        JSIL.RuntimeError("Unbalanced canvas save/restore");
     }
   );
 
@@ -1448,46 +1455,54 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
-  var blitSinglePixel = function (context, originalImage, width, height, colorR, colorG, colorB, colorA) {
-    colorR /= 255;
-    colorG /= 255;
-    colorB /= 255;
-    colorA /= 255;
+  var blitSinglePixel = function InternalDraw_BlitSinglePixel (
+    context, originalImage, 
+    width, height, 
+    colorR, colorG, colorB, colorA
+  ) {
+    colorR = (colorR | 0) / +255;
+    colorG = (colorG | 0) / +255;
+    colorB = (colorB | 0) / +255;
+    colorA = (colorA | 0) / +255;
 
     var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
     var topLeftPixel = topLeftPixelText.split(",");
 
-    var unpremultiplyFactor = 1 / colorA;
+    var unpremultiplyFactor = +1 / colorA;
 
     var imageColor = "rgba(" + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
-      $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[0]) * colorR * unpremultiplyFactor) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[1]) * colorG * unpremultiplyFactor) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[2]) * colorB * unpremultiplyFactor) + ", " + 
       (parseFloat(topLeftPixel[3]) * colorA) + 
     ")";
 
     context.globalAlpha = colorA;
     context.fillStyle = imageColor;
     context.fillRect(
-      0, 0, width, height
+      0, 0, width | 0, height | 0
     );
   };
 
-  var blitChannels = function (
+  var blitChannels = function InternalDraw_BlitChannels (
     context, channels, 
     sourceX, sourceY, sourceW, sourceH, 
     width, height, 
     colorR, colorG, colorB, colorA
   ) {
-    var alpha = colorA / 255;
+    colorR = (colorR | 0) / +255;
+    colorG = (colorG | 0) / +255;
+    colorB = (colorB | 0) / +255;
+    colorA = (colorA | 0) / +255;
 
-    sourceX += channels.xOffset;
-    sourceY += channels.yOffset;
+    sourceX += channels.xOffset | 0;
+    sourceY += channels.yOffset | 0;
 
     var compositeOperation = context.globalCompositeOperation;
+
     if (compositeOperation !== "lighter") {
       context.globalCompositeOperation = "source-over";
-      context.globalAlpha = alpha;
+      context.globalAlpha = colorA;
       context.drawImage(
         channels.a, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1497,7 +1512,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     context.globalCompositeOperation = "lighter";
 
     if (colorR > 0) {
-      context.globalAlpha = colorR / 255;
+      context.globalAlpha = colorR;
       context.drawImage(
         channels.r, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1505,7 +1520,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
 
     if (colorG > 0) {
-      context.globalAlpha = colorG / 255;
+      context.globalAlpha = colorG;
       context.drawImage(
         channels.g, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
@@ -1513,13 +1528,186 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
 
     if (colorB > 0) {
-      context.globalAlpha = colorB / 255;
+      context.globalAlpha = colorB;
       context.drawImage(
         channels.b, sourceX, sourceY, sourceW, sourceH, 
         0, 0, width, height
       );
     }
   };
+
+  $.RawMethod(false, "InternalDraw$SetupAndExecute",
+    function InternalDraw_SetupAndExecute (
+      context,
+      texture, textureWidth, textureHeight,
+      originalImage, image,
+      positionX, positionY, width, height,
+      scaleX, scaleY,
+      sourceX, sourceY, sourceW, sourceH,
+      originX, originY,
+      rotation, color, effects
+    ) {
+      if (sourceX < 0) {
+        sourceW += sourceX;
+        sourceX = 0;
+      }
+      if (sourceY < 0) {
+        sourceH += sourceY;
+        sourceY = 0;
+      }
+
+      var maxWidth = (textureWidth - sourceX), 
+        maxHeight = (textureHeight - sourceY);
+
+      if (sourceW > maxWidth) 
+        sourceW = maxWidth;
+      if (sourceH > maxHeight) 
+        sourceH = maxHeight;
+
+      var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
+      var isWebGL = this.isWebGL;
+      var channels = null;
+
+      var colorA = color.a | 0;
+      if (colorA < 1)
+        return;
+
+      var colorR = color.r | 0, 
+        colorG = color.g | 0, 
+        colorB = color.b | 0;
+
+      if (!isSinglePixel && !isWebGL) {
+        // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
+        if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
+          channels = $jsilxna.getImageChannels(image, texture.id);
+        }
+      }
+
+      // Negative width/height cause an exception in Firefox
+      if (width < 0) {
+        scaleX *= -1;
+        width = -width;
+      }
+      if (height < 0) {
+        scaleY *= -1;
+        height = -height;
+      }
+
+      this.InternalDraw$ApplyTransform(
+        context,
+        +positionX, +positionY,
+        +rotation,
+        +scaleX, +scaleY,
+        +originX, +originY
+      );
+
+      if (effects) {
+        var e = effects.value;
+        this.InternalDraw$ApplySpriteEffect(context, e, +width, +height);
+      }      
+
+      if (
+        (width > 0) && (height > 0) && 
+        (sourceW > 0) && (sourceH > 0)
+      ) {
+        this.InternalDraw$Execute(
+          context,
+          isSinglePixel, isWebGL,
+          originalImage, image, channels, 
+          sourceX, sourceY, sourceW, sourceH,
+          width, height,
+          colorR, colorG, colorB, colorA
+        );
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ApplyTransform",
+    function InternalDraw_ApplyTransform (
+      context,
+      positionX, positionY,
+      rotation,
+      scaleX, scaleY,
+      originX, originY
+    ) {
+      context.translate(+positionX, +positionY);
+      context.rotate(+rotation);
+      context.scale(+scaleX, +scaleY);
+      context.translate(-originX, -originY);
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ApplySpriteEffect",
+    function InternalDraw_ApplySpriteEffect (context, e, width, height) {
+      if (e & this.flipHorizontally) {
+        context.translate(+width, 0);
+        context.scale(-1, 1);
+      }
+
+      if (e & this.flipVertically) {
+        context.translate(0, +height);
+        context.scale(1, -1);
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$ExecuteDebugDraw",
+    function InternalDraw_ExecuteDebugDraw (context, width, height) {
+      if ($drawDebugRects) {
+        context.fillStyle = "rgba(255, 0, 0, 0.33)";
+        context.fillRect(
+          0, 0, width, height
+        );
+      }
+
+      if ($drawDebugBoxes) {
+        context.strokeStyle = "rgba(255, 255, 0, 0.66)";
+        context.strokeRect(
+          0, 0, width, height
+        );
+      }
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw$Execute",
+    function InternalDraw_Execute (
+      context,
+      isSinglePixel, isWebGL,
+      originalImage, image, channels, 
+      sourceX, sourceY, sourceW, sourceH,
+      width, height,
+      colorR, colorG, colorB, colorA
+    ) {
+      this.InternalDraw$ExecuteDebugDraw(
+        context,
+        width, height
+      );
+
+      if (isSinglePixel) {
+        blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
+      } else if (channels !== null) {
+        blitChannels(
+          context, channels, 
+          sourceX, sourceY, sourceW, sourceH, 
+          width, height, 
+          colorR, colorG, colorB, colorA
+        );
+      } else if (this.isWebGL) {
+        context.drawImage(
+          image, sourceX, sourceY, sourceW, sourceH, 
+          0, 0, width, height, 
+          colorR / 255, colorG / 255, colorB / 255, colorA / 255
+        );
+      } else {
+        if (colorA < 255)
+          context.globalAlpha = colorA / 255;
+
+        this.$canvasDrawImage(
+          image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
+        );
+      }
+    }
+  );
 
   $.RawMethod(false, "InternalDraw", 
     function SpriteBatch_InternalDraw (
@@ -1544,114 +1732,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var image = texture.image;
       var originalImage = image;
       var context = this.device.context;
-
-      if (sourceX < 0) {
-        sourceW += sourceX;
-        sourceX = 0;
-      }
-      if (sourceY < 0) {
-        sourceH += sourceY;
-        sourceY = 0;
-      }
-
-      var maxWidth = texture.get_Width() - sourceX, maxHeight = texture.get_Height() - sourceY;
-
-      if (sourceW > maxWidth) 
-        sourceW = maxWidth;
-      if (sourceH > maxHeight) 
-        sourceH = maxHeight;
-
-      var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
-      var channels = null;
-
-      var colorA = color.a;
-      if (colorA < 1)
-        return;
-
-      var colorR = color.r, colorG = color.g, colorB = color.b;
-
-      if (!isSinglePixel && !this.isWebGL) {
-        // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
-        if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
-          channels = $jsilxna.getImageChannels(image, texture.id);
-        }
-      }
+      var textureWidth = texture.get_Width() | 0;
+      var textureHeight = texture.get_Height() | 0;
 
       this.$save();
 
-      context.translate(positionX, positionY);
-      context.rotate(rotation);
-      context.scale(scaleX, scaleY);
-
-      // Negative width/height cause an exception in Firefox
-      if (width < 0) {
-        context.scale(-1, 1);
-        width = -width;
-      }
-      if (height < 0) {
-        context.scale(1, -1);
-        height = -height;
-      }
-
-      context.translate(-originX, -originY);
-
-      if (effects) {
-        var e = effects.value;
-        
-        if (e & this.flipHorizontally) {
-          context.translate(width, 0);
-          context.scale(-1, 1);
-        }
-
-        if (e & this.flipVertically) {
-          context.translate(0, height);
-          context.scale(1, -1);
-        }
-      }      
-
-      // 0x0 blits cause an exception in IE
-      if (
-        (width > 0) && (height > 0) && 
-        (sourceW > 0) && (sourceH > 0)
-      ) {
-        if ($drawDebugRects) {
-          context.fillStyle = "rgba(255, 0, 0, 0.33)";
-          context.fillRect(
-            0, 0, width, height
-          );
-        }
-
-        if ($drawDebugBoxes) {
-          context.strokeStyle = "rgba(255, 255, 0, 0.66)";
-          context.strokeRect(
-            0, 0, width, height
-          );
-        }
-
-        if (isSinglePixel) {
-          blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
-        } else if (channels !== null) {
-          blitChannels(
-            context, channels, 
-            sourceX, sourceY, sourceW, sourceH, 
-            width, height, 
-            colorR, colorG, colorB, colorA
-          );
-        } else if (this.isWebGL) {
-          context.drawImage(
-            image, sourceX, sourceY, sourceW, sourceH, 
-            0, 0, width, height, 
-            colorR / 255, colorG / 255, colorB / 255, colorA / 255
-          );
-        } else {
-          if (colorA < 255)
-            context.globalAlpha = colorA / 255;
-
-          this.$canvasDrawImage(
-            image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
-          );
-        }
-      }
+      this.InternalDraw$SetupAndExecute(
+        context,
+        texture, textureWidth, textureHeight,
+        originalImage, image,
+        positionX, positionY, width, height,
+        scaleX, scaleY,
+        sourceX, sourceY, sourceW, sourceH,
+        originX, originY,
+        rotation, color, effects
+      );
 
       this.$restore();
     }
@@ -1916,13 +2011,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   });
 
   $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
+    var colorText = null;
+    if (typeof (colorCss) === "string")
+      colorText = colorCss;
+    else
+      colorText = "rgba(0, 0, 0, 1)";
+
+    var w = this.canvas.width | 0;
+    var h = this.canvas.height | 0;
+
     this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.globalCompositeOperation = "source-over";
     this.context.globalAlpha = 1.0;
-    this.context.fillStyle = colorCss || "rgba(0, 0, 0, 1)";
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillStyle = colorText;
+    this.context.clearRect(0, 0, w, h);
+    this.context.fillRect(0, 0, w, h);
     this.context.restore();
   });
 
@@ -2794,10 +2898,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       destArray[d] = sourceArray[s];
   };
 
-  $.RawMethod(false, "$getDataInternal", function (T, rect, data, startIndex, elementCount) {
+  $.RawMethod(false, "$getDataInternal", function $getDataInternal (T, rect, data, startIndex, elementCount) {
     this.$makeMutable();
 
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
+
     var imageData;
 
     if (rect) {
@@ -2808,7 +2915,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
     // FIXME: Need to repremultiply the image bytes... yuck.
 
-    switch (T.toString()) {
+    switch (T.__FullName__) {
       case "System.Byte":
         var target = JSIL.IsPackedArray(data) ? data.bytes : data;
         fastArrayCopy(target, startIndex, imageData.data, 0, elementCount);
@@ -2820,14 +2927,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
 
       default:
-        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+        throw new System.Exception("Pixel format '" + T.__FullName__ + "' not implemented");
     }    
   });
 
   $.RawMethod(false, "$setDataInternal", function $setDataInternal (T, rect, data, startIndex, elementCount) {
     var bytes = null;
 
-    switch (T.toString()) {
+    switch (T.__FullName__) {
       case "System.Byte":
         if (JSIL.IsPackedArray(data)) {
           bytes = data.bytes;
@@ -2845,7 +2952,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
         break;
 
       default:
-        throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+        throw new System.Exception("Pixel format '" + T.__FullName__ + "' not implemented");
     }
 
     this.$makeMutable();
@@ -2862,7 +2969,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       shouldUnpremultiply, false
     );
 
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
+
     ctx.globalCompositeOperation = "copy";
 
     if (rect)
@@ -2910,12 +3020,42 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     return result;
   };
 
+  var doUnpremultiply = function (dataBytes, bytes, startIndex, elementCount) {
+    var pixelCount = (elementCount / 4) | 0;
+    for (var i = 0; i < pixelCount; i++) {
+      var p = (i * 4) | 0;
+      var p1 = (p + 1) | 0;
+      var p2 = (p + 2) | 0;
+      var p3 = (p + 3) | 0;
+
+      var a = bytes[p3] | 0;
+
+      if (a <= 0) {
+        continue;
+      } else if (a > 254) {
+        dataBytes[p] = bytes[p];
+        dataBytes[p1] = bytes[p1];
+        dataBytes[p2] = bytes[p2];
+        dataBytes[p3] = a;
+      } else {
+        var m = 255 / a;
+
+        dataBytes[p] = (bytes[p] * m) | 0;
+        dataBytes[p1] = (bytes[p1] * m) | 0;
+        dataBytes[p2] = (bytes[p2] * m) | 0;
+        dataBytes[p3] = a;
+      }
+    }
+  };
+
   $.RawMethod(false, "$makeImageDataForBytes", function $makeImageDataForBytes (
     width, height,
     bytes, startIndex, elementCount, 
     unpremultiply, swapRedAndBlue
   ) {
-    var ctx = $jsilxna.get2DContext(this.image, false);
+    var ctx = this.cached2DContext;
+    if (!ctx)
+      ctx = this.cached2DContext = $jsilxna.get2DContext(this.image, false);
 
     var decoder = $jsilxna.ImageFormats[this.format.name];
     if (decoder !== null) {
@@ -2930,28 +3070,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
     //  to reverse the premultiplication.
     if (unpremultiply) {
-      var pixelCount = elementCount / 4;
-      for (var i = 0; i < pixelCount; i++) {
-        var p = (i * 4) | 0;
-
-        var a = bytes[(p + 3) | 0];
-
-        if (a <= 0) {
-          continue;
-        } else if (a > 254) {
-          dataBytes[p] = bytes[p];
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0];
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0];
-          dataBytes[(p + 3) | 0] = a;
-        } else {
-          var m = 255 / a;
-
-          dataBytes[p] = bytes[p] * m;
-          dataBytes[(p + 1) | 0] = bytes[(p + 1) | 0] * m;
-          dataBytes[(p + 2) | 0] = bytes[(p + 2) | 0] * m;
-          dataBytes[(p + 3) | 0] = a;
-        }
-      }
+      doUnpremultiply(dataBytes, bytes, startIndex, elementCount);
     } else {
       fastArrayCopy(dataBytes, 0, bytes, startIndex, elementCount);
     }
@@ -2997,7 +3116,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
   });
 });
 
@@ -3075,19 +3194,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
   $.Method({
     Static: false,
     Public: true
-  }, "SetData", new JSIL.MethodSignature(null, [], []), function (T, level, rect, data, startIndex, elementCount) {
+  }, "SetData", JSIL.MethodSignature.Void, function (T, level, rect, data, startIndex, elementCount) {
     throw new System.NotImplementedException();
   });
   $.Method({
     Static: false,
     Public: true
-  }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {
+  }, "$ResynthesizeImage", JSIL.MethodSignature.Void, function () {
     this.image.isDirty = true;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Dispose", JSIL.MethodSignature.Void, function () {
     if (!this.canvas)
       return;
 
@@ -3387,7 +3506,7 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   return result;
 };
 
-$jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCount) {
+$jsilxna.UnpackColorsToColorBytesRGBA = function UnpackColorsToColorBytesRGBA (colors, startIndex, elementCount) {
   if (JSIL.IsPackedArray(colors)) {
     var offsetBytes = (startIndex * 4) | 0;
     var countBytes = (elementCount * 4) | 0;
@@ -3417,7 +3536,7 @@ $jsilxna.UnpackColorsToColorBytesRGBA = function (colors, startIndex, elementCou
   return result;
 };
 
-$jsilxna.PackColorsFromColorBytesRGBA = function (destArray, destOffset, sourceArray, sourceOffset, count) {
+$jsilxna.PackColorsFromColorBytesRGBA = function PackColorsFromColorBytesRGBA (destArray, destOffset, sourceArray, sourceOffset, count) {
   if (JSIL.IsPackedArray(destArray)) {
     var rawArray = destArray.bytes;
     var offsetBytes = (destOffset * 4) | 0;
@@ -3468,7 +3587,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function _ctor () {
       this.cachedFilter = Microsoft.Xna.Framework.Graphics.TextureFilter.Linear;
       this.name = null;
@@ -3600,7 +3719,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectPassCollection",
   );
 
   $.Method({Static:false, Public:true }, "GetEnumerator", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1/Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.List`1+Enumerator", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPass")]), [], [])), 
     function GetEnumerator () {
       // FIXME
       return JSIL.GetEnumerator([getTemporaryPass()]);

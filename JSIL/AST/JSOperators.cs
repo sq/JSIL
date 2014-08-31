@@ -7,7 +7,7 @@ namespace JSIL.Ast {
     public abstract class JSOperator {
         public readonly string Token;
 
-        public JSOperator (string token) {
+        protected JSOperator (string token) {
             Token = token;
         }
 

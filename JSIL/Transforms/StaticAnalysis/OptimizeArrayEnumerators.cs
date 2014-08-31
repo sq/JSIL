@@ -12,8 +12,8 @@ namespace JSIL.Transforms {
 
         public bool EnableEnumeratorRemoval = true;
 
-        private List<JSBinaryOperatorExpression> SeenAssignments = new List<JSBinaryOperatorExpression>();
-        private HashSet<JSVariable> EnumeratorsToKill = new HashSet<JSVariable>();
+        private readonly List<JSBinaryOperatorExpression> SeenAssignments = new List<JSBinaryOperatorExpression>();
+        private readonly HashSet<JSVariable> EnumeratorsToKill = new HashSet<JSVariable>();
         private FunctionAnalysis1stPass FirstPass = null;
 
         private JSFunctionExpression Function;
@@ -32,7 +32,7 @@ namespace JSIL.Transforms {
 
             if (EnumeratorsToKill.Count > 0) {
                 // Rerun the static analyzer since we made major changes
-                FunctionSource.InvalidateFirstPass(Function.Method.QualifiedIdentifier);
+                InvalidateFirstPass();
                 FirstPass = GetFirstPass(Function.Method.QualifiedIdentifier);
 
                 // Scan to see if any of the enumerators we eliminated uses of are now
@@ -41,7 +41,7 @@ namespace JSIL.Transforms {
                     var variableName = variable.Name;
                     var accesses = (
                         from a in FirstPass.Accesses
-                        where a.Source.Name == variableName
+                        where a.Source == variableName
                         select a
                     );
 
@@ -70,7 +70,7 @@ namespace JSIL.Transforms {
                 (condInvocation != null) && 
                 (condInvocation.JSMethod != null) &&
                 (condInvocation.JSMethod.Identifier == "MoveNext") &&
-                (condInvocation.JSMethod.Method.DeclaringType.Interfaces.Any((ii) => ii.Item1.FullName == "System.Collections.IEnumerator")) &&
+                (condInvocation.JSMethod.Method.DeclaringType.Interfaces.ToEnumerable().Any((ii) => ii.Info.FullName == "System.Collections.IEnumerator")) &&
                 ((enumeratorVariable = condInvocation.ThisReference as JSVariable) != null)
             ) {
                 var enumeratorType = condInvocation.JSMethod.Method.DeclaringType;
@@ -183,9 +183,9 @@ namespace JSIL.Transforms {
             );
 
             var condition = new JSBinaryOperatorExpression(
-                JSBinaryOperator.LessThan, 
+                JSOperator.LessThan, 
                 new JSUnaryOperatorExpression(
-                    JSUnaryOperator.PreIncrement,
+                    JSOperator.PreIncrement,
                     indexVariable, TypeSystem.Int32
                 ), 
                 lengthVariable, TypeSystem.Boolean
@@ -246,12 +246,12 @@ namespace JSIL.Transforms {
             );
 
             var condition = new JSBinaryOperatorExpression(
-                JSBinaryOperator.LessThan,
+                JSOperator.LessThan,
                 indexVariable, lengthVariable, TypeSystem.Boolean
             );
 
             var increment = new JSUnaryOperatorExpression(
-                JSUnaryOperator.PostIncrement,
+                JSOperator.PostIncrement,
                 indexVariable, TypeSystem.Int32
             );
 

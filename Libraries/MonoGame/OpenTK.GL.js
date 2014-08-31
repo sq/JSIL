@@ -9,6 +9,30 @@ if (typeof ($jsilopentk) === "undefined")
 JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.GL");
 
+JSIL.GL.$nextHandle = 1;
+JSIL.GL.$handleTable = {
+};
+
+JSIL.GL.createHandle = function (obj) {
+  if (obj === null)
+    return 0;
+
+  var handle = JSIL.GL.$nextHandle++;
+  JSIL.GL.$handleTable[handle] = obj;
+  return handle;
+};
+
+JSIL.GL.destroyHandle = function (handle) {
+  delete JSIL.GL.$handleTable[handle];
+};
+
+JSIL.GL.getHandle = function (handle) {
+  if (handle <= 0)
+    return null;
+
+  return JSIL.GL.$handleTable[handle] || null;
+};
+
 JSIL.GL.$context = null;
 JSIL.GL.$state = {
   temporaryIndexBuffer: null,
@@ -18,8 +42,21 @@ JSIL.GL.$state = {
 JSIL.GL.getContext = function () {
   if (!JSIL.GL.$context) {
     var canvas = JSIL.Host.getCanvas();
-    JSIL.GL.$context = canvas.getContext("webgl");
-    JSIL.GL.initializeContext(JSIL.GL.$context);
+    var context = canvas.getContext("webgl") || null;
+    
+    if (!context) {
+      context = canvas.getContext("experimental-webgl") || null;
+
+      if (context) {
+        JSIL.Host.warning("Your browser's WebGL support is marked as experimental. You may encounter problems.");
+      } else {
+        JSIL.Host.warning("An attempt was made to activate WebGL, but your browser does not support it.");
+        return null;
+      }
+    }
+
+    JSIL.GL.$context = context;
+    JSIL.GL.initializeContext(context);
   }
 
   return JSIL.GL.$context;
@@ -37,7 +74,7 @@ JSIL.GL.fillTemporaryIndexBuffer = function (ctx, mode, count, type, indices) {
     buffer = state.temporaryIndexBuffer = ctx.createBuffer();
 
   // FIXME: Limit length of view
-  var view = indices.pinnedPointer.asView($jsilcore.System.Byte);
+  var view = indices.pinnedPointer.asView($jsilcore.System.Byte, -1);
   ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, buffer);
   ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
@@ -49,7 +86,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   var state = JSIL.GL.getState();
 
   if (!vertices.pinnedPointer)
-    throw new Error("vertices must be a pinned pointer");
+    JSIL.RuntimeError("vertices must be a pinned pointer");
 
   if (!state.temporaryVertexBuffer)
     state.temporaryVertexBuffer = ctx.createBuffer();
@@ -57,7 +94,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   ctx.bindBuffer(ctx.ARRAY_BUFFER, state.temporaryVertexBuffer);
 
   // FIXME: Limit length of view
-  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte);
+  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte, -1);
   ctx.bufferData(ctx.ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
   for (var i = 0, l = elements.get_Count(); i < l; i++) {
@@ -133,7 +170,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
           break;
 
         default:
-          throw new Error("Vertex attrib pointer type '" + this.type + "' not implemented");
+          JSIL.RuntimeError("Vertex attrib pointer type '" + this.type + "' not implemented");
       }
 
       this.cachedView = this.pointer.asView(elementType, this.size);
@@ -150,6 +187,9 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   $.Method({Static:true , Public:true }, "GetError", 
     new JSIL.MethodSignature($mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.ErrorCode"), [], []), 
     function GetError () {
+      if (jsilConfig.suppressGLErrors === true)
+        return OpenTK.Graphics.OpenGL.ErrorCode.NoError;
+
       var ctx = JSIL.GL.getContext();
       if (!ctx)
         return OpenTK.Graphics.OpenGL.ErrorCode.InvalidOperation;
@@ -206,7 +246,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $.Int32], []), 
     function AttachShader (program, shader) {
       var ctx = JSIL.GL.getContext();
-      ctx.attachShader(program, shader);
+      ctx.attachShader(JSIL.GL.getHandle(program), JSIL.GL.getHandle(shader));
     }
   );
 
@@ -265,7 +305,8 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.Int32, [], []), 
     function CreateProgram () {
       var ctx = JSIL.GL.getContext();
-      return ctx.createProgram();
+      var program = ctx.createProgram();
+      return JSIL.GL.createHandle(program);
     }
   );
 
@@ -273,7 +314,8 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.Int32, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.ShaderType")], []), 
     function CreateShader (type) {
       var ctx = JSIL.GL.getContext();
-      return ctx.createShader(type.value);
+      var shader = ctx.createShader(type.value);
+      return JSIL.GL.createHandle(shader);
     }
   );
 
@@ -281,7 +323,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32], []), 
     function CompileShader (shader) {
       var ctx = JSIL.GL.getContext();
-      ctx.compileShader(shader);
+      ctx.compileShader(JSIL.GL.getHandle(shader));
     }
   );
 
@@ -313,7 +355,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ], []), 
     function GetShader (shader, pname, /* ref */ params) {
       var ctx = JSIL.GL.getContext();
-      var value = ctx.getShaderParameter(shader, pname.value);
+      var value = ctx.getShaderParameter(JSIL.GL.getHandle(shader), pname.value);
       params.set(value);
     }
   );
@@ -325,7 +367,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ], []), 
     function GetProgram (program, pname, /* ref */ params) {
       var ctx = JSIL.GL.getContext();
-      var value = ctx.getProgramParameter(program, pname.value);
+      var value = ctx.getProgramParameter(JSIL.GL.getHandle(program), pname.value);
       params.set(value);
     }
   );
@@ -334,7 +376,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32], []), 
     function LinkProgram (program) {
       var ctx = JSIL.GL.getContext();
-      ctx.linkProgram(program);
+      ctx.linkProgram(JSIL.GL.getHandle(program));
     }
   );
 
@@ -342,7 +384,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.String, [$.Int32], []), 
     function GetShaderInfoLog (shader) {
       var ctx = JSIL.GL.getContext();
-      return ctx.getShaderInfoLog(shader);
+      return ctx.getShaderInfoLog(JSIL.GL.getHandle(shader));
     }
   );
 
@@ -350,7 +392,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.String, [$.Int32], []), 
     function GetProgramInfoLog (shader) {
       var ctx = JSIL.GL.getContext();
-      return ctx.getProgramInfoLog(shader);
+      return ctx.getProgramInfoLog(JSIL.GL.getHandle(shader));
     }
   );
 
@@ -358,7 +400,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.Boolean, [$.Int32], []), 
     function IsShader (shader) {
       var ctx = JSIL.GL.getContext();
-      return !!ctx.isShader(shader);
+      return !!ctx.isShader(JSIL.GL.getHandle(shader));
     }
   )
 
@@ -366,7 +408,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $.String], []), 
     function ShaderSource (shader, string) {
       var ctx = JSIL.GL.getContext();
-      ctx.shaderSource(shader, string);
+      ctx.shaderSource(JSIL.GL.getHandle(shader), string);
     }
   );
 
@@ -374,7 +416,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32], []), 
     function UseProgram (program) {
       var ctx = JSIL.GL.getContext();
-      ctx.useProgram(program);
+      ctx.useProgram(JSIL.GL.getHandle(program));
     }
   );
 
@@ -401,7 +443,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:true }, "Flush", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Flush () {
       var ctx = JSIL.GL.getContext();
       ctx.flush();
@@ -428,7 +470,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.BufferTarget"), $.Int32], []), 
     function BindBuffer (target, buffer) {
       var ctx = JSIL.GL.getContext();
-      ctx.bindBuffer(target.value, (buffer === 0) ? null : buffer);
+      ctx.bindBuffer(target.value, JSIL.GL.getHandle(buffer));
     }
   );
 
@@ -450,7 +492,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ], []), 
     function DrawElements (mode, count, type, indices) {
       if (!indices.pinnedPointer)
-        throw new Error("indices must be provided in the form of a pinned pointer");
+        JSIL.RuntimeError("indices must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
       var tib = JSIL.GL.fillTemporaryIndexBuffer(ctx, mode, count, type, indices);
@@ -465,10 +507,12 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], []),
     function GenTextures (count, /* ref */ result) {
       if (count !== 1)
-        throw new Error("Cannot create more than one texture");
+        JSIL.RuntimeError("Cannot create more than one texture");
 
       var ctx = JSIL.GL.getContext();
-      result.set(ctx.createTexture());
+      var texture = ctx.createTexture();
+      var handle = JSIL.GL.createHandle(texture);
+      result.set(handle);
     }
   );
 
@@ -476,7 +520,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.FramebufferTarget"), $.Int32], []), 
     function BindFramebuffer (target, framebuffer) {
       var ctx = JSIL.GL.getContext();
-      ctx.bindFramebuffer(target.value, (framebuffer === 0) ? null : framebuffer);
+      ctx.bindFramebuffer(target.value, JSIL.GL.getHandle(framebuffer));
     }
   );
 
@@ -546,7 +590,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.TextureTarget"), $.Int32], []), 
     function BindTexture (target, texture) {
       var ctx = JSIL.GL.getContext();
-      ctx.bindTexture(target.value, (texture === 0) ? null : texture);
+      ctx.bindTexture(target.value, JSIL.GL.getHandle(texture));
     }
   );
 
@@ -561,14 +605,14 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     function TexImage2D (target, level, internalformat, width, height, border, format, type, pixels) {
       var nullPixels = (pixels === System.IntPtr.Zero);
       if (!pixels.pinnedPointer && !nullPixels)
-        throw new Error("pixels must be provided in the form of a pinned pointer");
+        JSIL.RuntimeError("pixels must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
       var pixelView = null;
 
       if (!nullPixels) {
         // FIXME: Do we have to compute exact size here and limit the view?
-        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte);
+        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte, -1);
       }
 
       ctx.texImage2D(
@@ -584,7 +628,9 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.Int32, [$.Int32, $.String], []), 
     function GetAttribLocation (program, name) {
       var ctx = JSIL.GL.getContext();
-      return ctx.getAttribLocation(program, name);
+      var location = ctx.getAttribLocation(JSIL.GL.getHandle(program), name);
+      // Thanks for not being consistent, WebGL
+      return location;
     }
   );
 
@@ -592,7 +638,8 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature($.Int32, [$.Int32, $.String], []), 
     function GetUniformLocation (program, name) {
       var ctx = JSIL.GL.getContext();
-      return ctx.getUniformLocation(program, name);
+      var location = ctx.getUniformLocation(JSIL.GL.getHandle(program), name);
+      return JSIL.GL.createHandle(location);
     }
   );
 
@@ -600,7 +647,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $.Int32], []), 
     function Uniform1 (location, x) {
       var ctx = JSIL.GL.getContext();
-      ctx.uniform1i(location, x);
+      ctx.uniform1i(JSIL.GL.getHandle(location), x);
     }
   );
 
@@ -608,7 +655,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     new JSIL.MethodSignature(null, [$.Int32, $.Single], []), 
     function Uniform1 (location, x) {
       var ctx = JSIL.GL.getContext();
-      ctx.uniform1f(location, x);
+      ctx.uniform1f(JSIL.GL.getHandle(location), x);
     }
   );
 
@@ -622,10 +669,10 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       count = count | 0;
 
       if (count !== expectedCount)
-        throw new Error("count must be (v.length / 4)");
+        JSIL.RuntimeError("count must be (v.length / 4)");
 
       var ctx = JSIL.GL.getContext();
-      ctx.uniform4fv(location, v);
+      ctx.uniform4fv(JSIL.GL.getHandle(location), v);
     }
   );
 
@@ -637,7 +684,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
     function Uniform4 (location, count, pointer) {
       var ctx = JSIL.GL.getContext();
       var narrowView = pointer.asView($jsilcore.System.Single, (count | 0) * 4 * 4);
-      ctx.uniform4fv(location, narrowView);
+      ctx.uniform4fv(JSIL.GL.getHandle(location), narrowView);
     }
   );
 
@@ -725,7 +772,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
   );
 
   $.Method({Static:true , Public:false}, "Finish", 
-    new JSIL.MethodSignature(null, [], []), 
+    JSIL.MethodSignature.Void, 
     function Finish () {
       var ctx = JSIL.GL.getContext();
       ctx.finish();

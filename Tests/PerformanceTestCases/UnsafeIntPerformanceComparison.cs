@@ -39,7 +39,7 @@ public static class Program {
         fixed (int* pBuffer = Buffer) {
             JSIL.Verbatim.Expression("var offsetInElements = pBuffer.offsetInBytes >>> pBuffer.shift");
             for (int i = 0; i < BufferSize; i++)
-                JSIL.Verbatim.Expression("pBuffer.view[(offsetInElements + i) | 0] = (i % 255) | 0");
+                JSIL.Verbatim.Expression("pBuffer.view[(offsetInElements + $0) | 0] = ($0 % 255) | 0", i);
         }
     }
 }

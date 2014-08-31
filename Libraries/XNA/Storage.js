@@ -88,7 +88,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
-    (new JSIL.MethodSignature(null, [], [])), 
+    (JSIL.MethodSignature.Void), 
     function Dispose () {
       // FIXME
 

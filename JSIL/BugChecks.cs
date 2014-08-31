@@ -32,7 +32,7 @@ namespace JSIL.Internal {
         }
 
         public static void BrokenConcurrentDictionary () {
-            var msg = "Broken ConcurrentDictionary: https://bugzilla.xamarin.com/show_bug.cgi?id=6225";
+            const string msg = "Broken ConcurrentDictionary: https://bugzilla.xamarin.com/show_bug.cgi?id=6225";
             var keyA = new MyKey(1);
             var keyB = new MyKey(1);
             var dict = new ConcurrentDictionary<MyKey, string>(1, 2);

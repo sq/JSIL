@@ -36,6 +36,15 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
+    /// Specifies that this type is implemented externally and only stub should  be generated when translating code to JavaScript
+    ///  (but does not prevent use of the type like <see cref="JSIgnore"/> and <see cref="JSExternal"/> does.)
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class JSStubOnly : Attribute
+    {
+    }
+
+    /// <summary>
     /// Specifies a policy to apply to reads, writes, or invocations of a member when translating code to JavaScript.
     /// </summary>
     [AttributeUsage(
@@ -131,27 +140,6 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
-    /// Specifies that you wish to replace an existing constructor with one from your proxy. This is necessary because
-    ///  the compiler automatically generates hidden constructors for your proxy classes.
-    /// </summary>
-    [AttributeUsage(
-        AttributeTargets.Constructor
-    )]
-    public class JSReplaceConstructor : Attribute {
-    }
-
-    /// <summary>
-    /// If applied to a field, specifies that you wish for JSIL to treat the specified field as if it is immutable.
-    /// Struct copies will not be generated for the annotated field or any of its members.
-    /// If applied to a class/struct, the class/struct and all its fields are treated as if they are immutable.
-    /// </summary>
-    [AttributeUsage(
-        AttributeTargets.Field | AttributeTargets.Class | AttributeTargets.Struct
-    )]
-    public class JSImmutable : Attribute {
-    }
-
-    /// <summary>
     /// Specifies that it is invalid to access this property by invoking its getter/setter
     ///  methods directly in JavaScript.
     /// </summary>
@@ -196,5 +184,25 @@ namespace JSIL.Meta {
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class JSAllowPackedArrayArgumentsAttribute : Attribute {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate |
+    AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field)]
+    public class JSDeadCodeEleminationEntryPoint : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
+    public class JSDeadCodeEleminationClassEntryPoint : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Delegate)]
+    public class JSDeadCodeEleminationHierarchyEntryPoint : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method)]
+    public class JSNeverStub : Attribute {
     }
 }

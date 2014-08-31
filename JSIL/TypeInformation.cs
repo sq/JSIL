@@ -23,10 +23,10 @@ namespace JSIL.Internal {
         TypeInfo GetExisting (TypeIdentifier type);
         IMemberInfo Get (MemberReference member);
 
-        ProxyInfo[] GetProxies (TypeDefinition type);
+        ArraySegment<ProxyInfo> GetProxies (TypeDefinition type);
 
         void CacheProxyNames (MemberReference member);
-        bool TryGetProxyNames (string typeFullName, out string[] result);
+        bool TryGetProxyNames (TypeReference type, out ArraySegment<string> result);
 
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
@@ -47,7 +47,53 @@ namespace JSIL.Internal {
         }
     }
 
+    public struct InterfaceToken {
+        public readonly TypeInfo Info;
+        public readonly TypeReference Reference;
+
+        public InterfaceToken (TypeInfo info, TypeReference reference) {
+            Info = info;
+            Reference = reference;
+        }
+    }
+
+    public struct RecursiveInterfaceToken {
+        public readonly TypeInfo ImplementingType;
+        public readonly InterfaceToken ImplementedInterface;
+
+        public RecursiveInterfaceToken (TypeInfo implementingType, InterfaceToken implementedInterface) {
+            ImplementingType = implementingType;
+            ImplementedInterface = implementedInterface;
+        }
+    }
+
+    public class RecursiveInterfaceTokenComparer : IEqualityComparer<RecursiveInterfaceToken> {
+        public bool Equals (RecursiveInterfaceToken x, RecursiveInterfaceToken y) {
+            return TypeUtil.TypesAreEqual(
+                x.ImplementedInterface.Reference, 
+                y.ImplementedInterface.Reference,
+                true
+            );
+        }
+
+        public int GetHashCode (RecursiveInterfaceToken obj) {
+            return obj.ImplementedInterface.Info.GetHashCode();
+        }
+    }
+
     public struct TypeIdentifier {
+        public class ComparerImpl : IEqualityComparer<TypeIdentifier> {
+            public bool Equals (TypeIdentifier x, TypeIdentifier y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (TypeIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
+        public static readonly ComparerImpl Comparer = new ComparerImpl(); 
+
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;
@@ -111,25 +157,86 @@ namespace JSIL.Internal {
         }
 
         public override string ToString () {
+            var shortAssembly = Assembly;
+            if (!String.IsNullOrWhiteSpace(shortAssembly)) {
+                var firstComma = Assembly.IndexOf(",");
+                if (firstComma >= 0)
+                    shortAssembly = Assembly.Substring(0, firstComma);
+            }
+
+            var hasShortAssembly = !String.IsNullOrWhiteSpace(shortAssembly);
+
             return String.Format(
-                "{0}{1}{2}{3}{4}{5}{6}", Assembly, String.IsNullOrWhiteSpace(Assembly) ? "" : " ",
+                "{0}{1}{2}{3}{4}{5}{6}{7}", 
+                hasShortAssembly ? "[" : "", 
+                shortAssembly ?? "", 
+                hasShortAssembly ? "]" : "",
                 Namespace, String.IsNullOrWhiteSpace(Namespace) ? "" : ".",
                 String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : "/",
-                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : DeclaringTypeName,
+                DeclaringTypeName ?? "",
                 Name
             );
         }
     }
 
-    public struct GenericTypeIdentifier {
+    public struct GenericTypeIdentifier
+    {
         public readonly TypeIdentifier Type;
-        public readonly TypeIdentifier[] Arguments;
+        public readonly GenericTypeIdentifier[] Arguments;
         public readonly int ArrayRank;
 
-        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments, int arrayRank) {
-            Type = new TypeIdentifier(type);
-            Arguments = (from a in arguments select new TypeIdentifier(a)).ToArray();
+        public GenericTypeIdentifier(TypeIdentifier type, IEnumerable<GenericTypeIdentifier> arguments, int arrayRank)
+        {
+            Type = type;
+            Arguments = arguments.ToArray();
             ArrayRank = arrayRank;
+        }
+
+        public static GenericTypeIdentifier? Create(TypeReference type)
+        {
+            bool mapArraysToSystemArray = false;
+
+            while (type is ByReferenceType)
+                type = ((ByReferenceType)type).ElementType;
+
+            var resolved = TypeUtil.GetTypeDefinition(type, mapArraysToSystemArray);
+
+            if (resolved == null)
+            {
+                return null;
+            }
+
+            var at = type as ArrayType;
+            var git = type as GenericInstanceType;
+
+            IEnumerable<GenericTypeIdentifier> children;
+            if (git != null)
+            {
+                var childrenList = new GenericTypeIdentifier[git.GenericArguments.Count];
+                for (int i = 0; i < git.GenericArguments.Count; i++)
+                {
+                    var child = Create(git.GenericArguments[i]);
+                    if (child == null)
+                    {
+                        return null;
+                    }
+
+                    childrenList[i] = child.Value;
+                }
+
+                children = childrenList;
+            }
+            else
+            {
+                children = Enumerable.Empty<GenericTypeIdentifier>();
+            }
+
+            var identifier = new GenericTypeIdentifier(
+                new TypeIdentifier(resolved),
+                children,
+                (at != null) ? at.Rank : 0);
+
+            return identifier;
         }
 
         public bool Equals (GenericTypeIdentifier rhs) {
@@ -177,7 +284,7 @@ namespace JSIL.Internal {
             return String.Format(
                 "{0}<{1}>",
                 (Type + GetRankSuffix(ArrayRank)),
-                String.Join<TypeIdentifier>(", ", Arguments)
+                String.Join(", ", Arguments)
             );
         }
     }
@@ -189,7 +296,7 @@ namespace JSIL.Internal {
         public ModuleInfo (ModuleDefinition module) {
             Metadata = new MetadataCollection(module);
 
-            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName, false) ||
+            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore");
         }
     }
@@ -309,7 +416,11 @@ namespace JSIL.Internal {
                 if ((method.Name == ".cctor") && method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSExtraStaticConstructor")) {
                     ExtraStaticConstructor = method;
                 } else {
-                    Methods.Add(new MemberIdentifier(typeInfo, method), method);
+                    var key = new MemberIdentifier(typeInfo, method);
+                    if (Methods.ContainsKey(key))
+                        throw new InvalidOperationException("Proxy '" + proxyType.FullName + "' contains multiple matches for member '" + key.ToString());
+                    else
+                        Methods.Add(key, method);
                 }
             }
         }
@@ -378,8 +489,8 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
-        private System.Tuple<TypeInfo, TypeInfo, TypeReference>[] _AllInterfacesRecursive = null;
+        public readonly ArraySegment<InterfaceToken> Interfaces;
+        private ArraySegment<RecursiveInterfaceToken> _AllInterfacesRecursive;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -388,7 +499,7 @@ namespace JSIL.Internal {
 
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
-        public readonly ProxyInfo[] Proxies;
+        public readonly ArraySegment<ProxyInfo> Proxies;
 
         public readonly MethodSignatureCollection MethodSignatures;
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
@@ -404,6 +515,7 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly bool IsImmutable;
         public readonly string Replacement;
+        public readonly int UnstubbableMemberCount = 0;
 
         // Matches JSIL runtime name escaping rules
         public readonly string LocalName;
@@ -413,9 +525,12 @@ namespace JSIL.Internal {
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
+        protected bool _IsStubOnly = false;
+        protected bool _IsUnstubbable = false;
         protected bool _MethodGroupsInitialized = false;
 
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+        protected List<NamedMethodSignature> DeferredStaticMethodSignatureSetUpdates = new List<NamedMethodSignature>();
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
@@ -444,7 +559,7 @@ namespace JSIL.Internal {
 
             IsInterface = type.IsInterface;
 
-            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>();
+            var interfaces = new HashSet<InterfaceToken>();
             {
                 StringBuilder errorString = null;
 
@@ -455,8 +570,8 @@ namespace JSIL.Internal {
                         continue;
                     }
 
-                    var ii = Tuple.Create(source.GetExisting(i), i);
-                    if (ii.Item1 == null) {
+                    var ii = new InterfaceToken(source.GetExisting(i), i);
+                    if (ii.Info == null) {
                         if (errorString == null) {
                             errorString = new StringBuilder();
                             errorString.AppendFormat(
@@ -475,7 +590,7 @@ namespace JSIL.Internal {
                     throw new InvalidDataException(errorString.ToString());
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
                 if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceNone) {
@@ -485,7 +600,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(Tuple.Create(ii, i));
+                        interfaces.Add(new InterfaceToken(ii, i));
                     }
                 }
             }
@@ -493,11 +608,12 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Proxy.JSProxy") && !IsProxy)
                 Metadata.Remove("JSIL.Proxy.JSProxy");
 
-            Interfaces = interfaces.ToArray();
+            // FIXME: Using ImmutableArrayPool here can leak.
+            Interfaces = new ArraySegment<InterfaceToken>(interfaces.ToArray());
 
             _IsIgnored = module.IsIgnored ||
-                IsIgnoredName(type.Namespace, false) || 
-                IsIgnoredName(type.Name, false) ||
+                IsIgnoredName(type.Namespace) || 
+                IsIgnoredName(type.Name) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
@@ -508,6 +624,14 @@ namespace JSIL.Internal {
                 Replacement = (string)Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement")[0].Value;
             } else {
                 Replacement = null;
+            }
+
+            _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
+            _IsUnstubbable = Metadata.HasAttribute("JSIL.Meta.JSNeverStub");
+
+            if (_IsUnstubbable) {
+                _IsStubOnly = false;
+                _IsExternal = false;
             }
 
             if (baseClass != null)
@@ -578,7 +702,7 @@ namespace JSIL.Internal {
                 IsFlagsEnum = Metadata.HasAttribute("System.FlagsAttribute");
             }
 
-            foreach (var proxy in Proxies) {
+            foreach (var proxy in Proxies.ToEnumerable()) {
                 var seenMethods = new HashSet<MethodDefinition>();
 
                 foreach (var property in proxy.Properties.Values) {
@@ -633,7 +757,7 @@ namespace JSIL.Internal {
 
                     // The constructor may be compiler-generated, so only replace if it has the attribute.
                     if ((method.Name == ".ctor") && (method.Parameters.Count == 0)) {
-                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSReplaceConstructor"))
+                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Proxy.JSReplaceConstructor"))
                             continue;
                     }
 
@@ -670,6 +794,10 @@ namespace JSIL.Internal {
             }
 
             DoDeferredMethodSignatureSetUpdate();
+
+            ValidateMembers();
+
+            UnstubbableMemberCount = Members.Count(m => m.Value.IsUnstubbable);
         }
 
         private void DoDeferredMethodSignatureSetUpdate () {
@@ -682,10 +810,20 @@ namespace JSIL.Internal {
                     var set = ms.GetOrCreateFor(nms.Name);
                     set.Add(nms);
                 }
+
+                if (t != this) {
+                    foreach (var nms in t.DeferredMethodSignatureSetUpdates) {
+                        var set = MethodSignatures.GetOrCreateFor(nms.Name);
+                        set.Add(nms);
+                    }
+                }
             }
 
-            DeferredMethodSignatureSetUpdates.Clear();
-            DeferredMethodSignatureSetUpdates = null;
+            foreach (var nms in DeferredStaticMethodSignatureSetUpdates)
+            {
+                var set = MethodSignatures.GetOrCreateFor(nms.Name);
+                set.Add(nms);
+            }
         }
 
         public bool IsFullyInitialized {
@@ -727,17 +865,24 @@ namespace JSIL.Internal {
             return Definition.FullName;
         }
 
-        public System.Tuple<TypeInfo, TypeInfo, TypeReference>[] AllInterfacesRecursive {
+        /// <summary>
+        /// All interfaces implemented by this type and its base types.
+        /// Does not include interfaces implemented by those interfaces.
+        /// </summary>
+        public ArraySegment<RecursiveInterfaceToken> AllInterfacesRecursive {
             get {
-                if (_AllInterfacesRecursive == null) {
-                    var list = new List<System.Tuple<TypeInfo, TypeInfo, TypeReference>>();
-                    var types = SelfAndBaseTypesRecursive.Reverse().ToArray();
+                if (_AllInterfacesRecursive.Array == null) {
+                    var list = new List<RecursiveInterfaceToken>();
+                    var types = SelfAndBaseTypesRecursive.Reverse();
 
                     foreach (var type in types)
-                        foreach (var @interface in type.Interfaces)
-                            list.Add(Tuple.Create(type, @interface.Item1, @interface.Item2));
+                        foreach (var @interface in type.Interfaces.ToEnumerable())
+                            list.Add(new RecursiveInterfaceToken(type, @interface));
 
-                    _AllInterfacesRecursive = list.ToArray();
+                    // FIXME: Using ImmutableArrayPool here can leak.
+                    _AllInterfacesRecursive = new ArraySegment<RecursiveInterfaceToken>(list
+                        .Distinct(new RecursiveInterfaceTokenComparer())
+                        .ToArray());
                 }
 
                 return _AllInterfacesRecursive;
@@ -795,6 +940,13 @@ namespace JSIL.Internal {
             }
         }
 
+        public bool IsUnstubbable {
+            get {
+                // FIXME: Need GetExisting logic?
+                return _IsUnstubbable;
+            }
+        }
+
         public bool IsExternal {
             get {
                 if (_FullyInitialized)
@@ -807,6 +959,24 @@ namespace JSIL.Internal {
                 }
 
                 return _IsExternal;
+            }
+        }
+
+        public bool IsStubOnly
+        {
+            get
+            {
+                if (_FullyInitialized)
+                    return _IsStubOnly;
+
+                if (Definition.DeclaringType != null)
+                {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsStubOnly)
+                        return true;
+                }
+
+                return _IsStubOnly;
             }
         }
 
@@ -841,7 +1011,7 @@ namespace JSIL.Internal {
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
                            proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
-                        Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
+                        Console.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
                     Members.TryRemove(identifier, out result);
                 } else {
@@ -926,9 +1096,9 @@ namespace JSIL.Internal {
         );
 
         static readonly Regex IgnoredKeywordRegex = new Regex(
-            @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
+            @"\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__DynamicSite|__CachedAnonymousMethodDelegate", 
+            @"__DynamicSite", 
             RegexOptions.Compiled
         );
 
@@ -949,29 +1119,14 @@ namespace JSIL.Internal {
             var @class = GetGroup(m, "class", "");
             var name = GetGroup(m, "name", "");
 
-            isBackingField = name.Trim() == "BackingField";
+            isBackingField = 
+                (name.Trim() == "BackingField") && 
+                !String.IsNullOrWhiteSpace(@class);
 
             if (isBackingField) {
                 return String.Format("{0}$value", @class);
             } else {
-                int temp;
-                string result;
-
-                if (int.TryParse(name, out temp))
-                    result = @class;
-                else if (String.IsNullOrWhiteSpace(@class))
-                    result = "$" + name;
-                else
-                    result = @class + "$" + name;
-
-                // <<$$>>__1
-                if ((result == "$") || (result == "$$"))
-                    result += name;
-
-                if (String.IsNullOrWhiteSpace(result))
-                    return null;
-                else 
-                    return result;
+                return null;
             }
         }
 
@@ -987,7 +1142,7 @@ namespace JSIL.Internal {
                     return _FullName;
 
                 if (DeclaringType != null)
-                    return _FullName = DeclaringType.FullName + "/" + Name;
+                    return _FullName = DeclaringType.FullName + "+" + Name;
 
                 if (string.IsNullOrEmpty(Definition.Namespace))
                     return _FullName = Name;
@@ -996,9 +1151,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public static bool IsIgnoredName (string shortName, bool isField) {
-            bool defaultResult = false;
-
+        public static bool IsIgnoredName (string shortName) {
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
                     var length = m2.Length;
@@ -1009,50 +1162,20 @@ namespace JSIL.Internal {
                         (shortName[index + 1] == '_')
                     ) {
                         switch (m2.Value) {
-                            case "__BackingField":
-                            case "__DisplayClass":
-                                return false;
-
                             case "__DynamicSite":
                             case "__SiteContainer":
                                 return true;
 
-                            case "__CachedAnonymousMethodDelegate":
-                                if (isField)
-                                    return true;
-                                break;
+                            default:
+                                return false;
                         }
-                    } else if (
-                        (length >= 4) &&
-                        (shortName[index] == 'C') && 
-                        (shortName[index + 1] == 'S') &&
-                        (shortName[index + 2] == '$') &&
-                        (shortName[index + 3] == '<')
-                    ) {
-                        if (!isField)
-                            return true;
                     } else {
-                        defaultResult = true;
+                        return true;
                     }
                 }
             }
 
-            var m = MangledNameRegex.Match(shortName);
-            if (m.Success) {
-                switch (shortName[m.Groups[2].Index]) {
-                    case 'b':
-                        // Lambda
-                        return true;
-                    case 'c':
-                        // Class
-                        return false;
-                    case 'd':
-                        // Enumerator
-                        return false;
-                }
-            }
-
-            return defaultResult;
+            return false;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
@@ -1070,8 +1193,12 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
-
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
             return (MethodInfo)result;
         }
 
@@ -1085,7 +1212,12 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
 
             return (MethodInfo)result;
         }
@@ -1102,8 +1234,12 @@ namespace JSIL.Internal {
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
-
-            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            if (method.IsStatic || method.IsConstructor) {
+                DeferredStaticMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
+            else {
+                DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
+            }
 
             return (MethodInfo)result;
         }
@@ -1184,7 +1320,22 @@ namespace JSIL.Internal {
                 return;
 
             _IsIgnored = IsIgnored;
+            _IsStubOnly = IsStubOnly;
             _FullyInitialized = true;
+        }
+
+        private void ValidateMembers () {
+            var seenNames = new HashSet<string>();
+            foreach (var m in Members) {
+                var fi = m.Value as FieldInfo;
+                if (fi == null)
+                    continue;
+
+                if (seenNames.Contains(fi.Name))
+                    throw new InvalidDataException("Type info shows two fields named '" + fi.Name + "' in type '" + Name + "'");
+
+                seenNames.Add(fi.Name);
+            }
         }
     }
 
@@ -1201,7 +1352,7 @@ namespace JSIL.Internal {
 
         public bool Inherited;
         public string Name;
-        public readonly List<Entry> Entries = new List<Entry>();
+        public readonly List<Entry> Entries = new List<Entry>(1);
     }
 
     public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
@@ -1217,11 +1368,15 @@ namespace JSIL.Internal {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
-                else
+                else {
+                    if (Attributes == null)
+                        Attributes = new Dictionary<string, AttributeGroup>(cas.Count);
+
                     Add(ca.AttributeType.FullName, new AttributeGroup {
                         Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
+                }
             }
         }
 
@@ -1331,6 +1486,7 @@ namespace JSIL.Internal {
         bool IsStatic { get; }
         bool IsFromProxy { get; }
         bool IsIgnored { get; }
+        bool IsUnstubbable { get; }
         JSReadPolicy ReadPolicy { get; }
         JSWritePolicy WritePolicy { get; }
         JSInvokePolicy InvokePolicy { get; }
@@ -1348,6 +1504,7 @@ namespace JSIL.Internal {
         public readonly bool IsExternal;
         public readonly bool IsFromProxy;
         protected readonly bool _IsIgnored;
+        protected readonly bool _IsUnstubbable;
         protected readonly JSReadPolicy _ReadPolicy;
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
@@ -1355,9 +1512,9 @@ namespace JSIL.Internal {
         protected bool _WasReservedIdentifier;
         protected string _ShortName;
 
-        public MemberInfo (
+        protected MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            T member, ProxyInfo[] proxies, 
+            T member, ArraySegment<ProxyInfo> proxies, 
             bool isIgnored, bool isExternal, ProxyInfo sourceProxy
         ) {
             Identifier = identifier;
@@ -1366,7 +1523,8 @@ namespace JSIL.Internal {
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
 
-            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference);
+            _IsIgnored = isIgnored || 
+                TypeInfo.IsIgnoredName(member.Name);
             IsExternal = isExternal;
             IsFromProxy = sourceProxy != null;
             SourceProxy = sourceProxy;
@@ -1375,11 +1533,11 @@ namespace JSIL.Internal {
             Member = member;
             Metadata = new MetadataCollection(member);
 
-            if (proxies != null)
-            foreach (var proxy in proxies) {
+            if (proxies.Array != null)
+            foreach (var proxy in proxies.ToEnumerable()) {
                 ICustomAttributeProvider proxyMember;
 
-                if (proxy.GetMember<ICustomAttributeProvider>(identifier, out proxyMember)) {
+                if (proxy.GetMember(identifier, out proxyMember)) {
                     var meta = new MetadataCollection(proxyMember);
                     Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
                 }
@@ -1390,6 +1548,11 @@ namespace JSIL.Internal {
 
             if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
                 IsExternal = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSNeverStub")) {
+                _IsUnstubbable = true;
+                IsExternal = false;
+            }
 
             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
             if (parms != null) {
@@ -1458,6 +1621,13 @@ namespace JSIL.Internal {
 
         MetadataCollection IMemberInfo.Metadata {
             get { return Metadata; }
+        }
+
+        public bool IsUnstubbable {
+            get {
+                return _IsUnstubbable ||
+                    DeclaringType.IsUnstubbable;
+            }
         }
 
         public virtual bool IsIgnored {
@@ -1544,7 +1714,7 @@ namespace JSIL.Internal {
 
         public FieldInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            FieldDefinition field, ProxyInfo[] proxies,
+            FieldDefinition field, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, field, proxies, 
@@ -1593,7 +1763,7 @@ namespace JSIL.Internal {
 
         public PropertyInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            PropertyDefinition property, ProxyInfo[] proxies, 
+            PropertyDefinition property, ArraySegment<ProxyInfo> proxies, 
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, property, proxies, 
@@ -1610,10 +1780,7 @@ namespace JSIL.Internal {
         }
 
         protected override string GetName () {
-            string result;
-            result = ChangedName ?? Member.Name;
-
-            return result;
+            return ChangedName ?? Member.Name;
         }
 
         public override TypeReference ReturnType {
@@ -1636,7 +1803,7 @@ namespace JSIL.Internal {
     public class EventInfo : MemberInfo<EventDefinition> {
         public EventInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            EventDefinition evt, ProxyInfo[] proxies,
+            EventDefinition evt, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base(
             parent, identifier, evt, proxies, false, false, sourceProxy
@@ -1665,10 +1832,11 @@ namespace JSIL.Internal {
         public readonly string[] GenericParameterNames;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
-        public readonly bool IsGeneric;
+        public readonly bool IsAbstract;
         public readonly bool IsConstructor;
-        public readonly bool IsVirtual;
+        public readonly bool IsGeneric;
         public readonly bool IsSealed;
+        public readonly bool IsVirtual;
 
         protected NamedMethodSignature _Signature = null;
 
@@ -1679,7 +1847,7 @@ namespace JSIL.Internal {
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies,
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies,
             ProxyInfo sourceProxy
         ) : base (
             parent, identifier, method, proxies,
@@ -1690,15 +1858,16 @@ namespace JSIL.Internal {
         ) {
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
+            IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
         }
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies, 
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies, 
             PropertyInfo property, ProxyInfo sourceProxy
         ) : base (
             parent, identifier, method, proxies,
@@ -1711,10 +1880,11 @@ namespace JSIL.Internal {
             Property = property;
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
+            IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
 
             if (property != null)
                 Metadata.Update(property.Metadata, false);
@@ -1722,7 +1892,7 @@ namespace JSIL.Internal {
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
-            MethodDefinition method, ProxyInfo[] proxies, 
+            MethodDefinition method, ArraySegment<ProxyInfo> proxies, 
             EventInfo evt, ProxyInfo sourceProxy
         ) : base(
             parent, identifier, method, proxies,
@@ -1734,10 +1904,11 @@ namespace JSIL.Internal {
             Event = evt;
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
-            IsGeneric = method.HasGenericParameters;
+            IsAbstract = method.IsAbstract;
             IsConstructor = method.Name == ".ctor";
-            IsVirtual = method.IsVirtual;
+            IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+            IsVirtual = method.IsVirtual;
 
             if (evt != null)
                 Metadata.Update(evt.Metadata, false);
@@ -1847,13 +2018,11 @@ namespace JSIL.Internal {
         }
 
         public string GetName (bool stripGenericSuffix) {
-            string result;
-
             var cn = ChangedName;
             if (cn != null)
                 return cn;
 
-            result = Member.Name;
+            string result = Member.Name;
             
             if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
@@ -1871,7 +2040,6 @@ namespace JSIL.Internal {
                 if (base.IsIgnored)
                     return true;
 
-                bool parametersIgnored;
                 if (_ParametersIgnored.HasValue)
                     return _ParametersIgnored.Value;
                 else {
@@ -2168,8 +2336,6 @@ namespace JSIL.Internal {
         }
 
         public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
-            TypeReference result;
-
             if (returnType == null)
                 returnType = typeSystem.Void;
 
