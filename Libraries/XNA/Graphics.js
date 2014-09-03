@@ -840,6 +840,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Viewport", function ($
       return new Microsoft.Xna.Framework.Rectangle(this._x | 0, this._y | 0, this._width | 0, this._height | 0);
     }
   );
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Int32, $.Int32, $.Int32, $.Int32], []), function Viewport_ctor (x, y, width, height) {
+    this._x = x | 0;
+    this._y = y | 0;
+    this._width = width | 0;
+    this._height = height | 0;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, ".ctor", new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], []), function Viewport_ctor (rectangle) {
+    this._x = rectangle.X | 0;
+    this._y = rectangle.Y | 0;
+    this._width = rectangle.Width | 0;
+    this._height = rectangle.Height | 0;
+  });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
