@@ -447,7 +447,7 @@ JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
 });
 
 JSIL.MakeClass("System.Object", "System.Delegate", true, []);
-JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
+JSIL.MakeClass("System.Delegate", "System.MulticastDelegate", true, []);
 
 JSIL.MulticastDelegate.New = function (delegates) {
   var delegatesCopy = Array.prototype.slice.call(delegates);
@@ -469,6 +469,8 @@ JSIL.MulticastDelegate.New = function (delegates) {
   JSIL.SetValueProperty(resultDelegate, "__isMulticast__", true);
   JSIL.SetValueProperty(resultDelegate, "__ThisType__", delegates[0].__ThisType__);
   JSIL.SetValueProperty(resultDelegate, "toString", delegates[0].toString);
+  JSIL.SetValueProperty(resultDelegate, "__method__", resultDelegate)  
+  JSIL.SetValueProperty(resultDelegate, "Invoke", resultDelegate);
 
   return resultDelegate;
 };

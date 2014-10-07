@@ -8819,13 +8819,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     callStack = printStackTrace();
 
   var creator = function CreateDelegate () {
-    // Hack around the fact that every delegate type except MulticastDelegate derives from MulticastDelegate
     var delegateType;
-    if (fullName === "System.MulticastDelegate") {
-      delegateType = JSIL.GetTypeByName("System.Delegate", $jsilcore).__Type__;
-    } else {
-      delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore).__Type__;
-    }
+    delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore).__Type__;
 
     var typeObject = JSIL.$MakeTypeObject(fullName);
 
@@ -8846,7 +8841,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
 
     var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
-    staticClassObject.prototype = JSIL.CreatePrototypeObject(fullName === "System.MulticastDelegate" ? $jsilcore.System.MulticastDelegate.prototype : $jsilcore.System.Delegate.prototype);
+    staticClassObject.prototype = JSIL.CreatePrototypeObject($jsilcore.System.MulticastDelegate.prototype);
 
     var toStringImpl = function DelegateType_ToString () {
       return this.__ThisType__.toString();
@@ -8883,6 +8878,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       JSIL.SetValueProperty(resultDelegate, "__object__", object);
       JSIL.SetValueProperty(resultDelegate, "__method__", method);
       JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
+      JSIL.SetValueProperty(resultDelegate, "Invoke", method) 
 
       return resultDelegate;
     });
