@@ -8849,7 +8849,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
 
     JSIL.SetValueProperty(staticClassObject, "CheckType", $jsilcore.CheckDelegateType.bind(typeObject));
 
-    JSIL.SetValueProperty(staticClassObject, "New", function (object, method) {
+    JSIL.SetValueProperty(staticClassObject, "New", function (object, method, methodInfoResolver) {
       if ((typeof (method) === "undefined") &&
           (typeof (object) === "function")
       ) {
@@ -8878,7 +8878,10 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       JSIL.SetValueProperty(resultDelegate, "__object__", object);
       JSIL.SetValueProperty(resultDelegate, "__method__", method);
       JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
-      JSIL.SetValueProperty(resultDelegate, "Invoke", method) 
+      JSIL.SetValueProperty(resultDelegate, "Invoke", method);
+      JSIL.SetValueProperty(resultDelegate, "get_Method", this.__Type__.__PublicInterface__.prototype.get_Method);
+      JSIL.SetValueProperty(resultDelegate, "__methodInfoResolver__", methodInfoResolver);
+      resultDelegate.__isMethodInfoResolved__ = false;
 
       return resultDelegate;
     });

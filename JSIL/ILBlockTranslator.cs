@@ -2892,7 +2892,7 @@ namespace JSIL {
 
             return JSIL.NewDelegate(
                 constructor.DeclaringType,
-                thisArg, methodRef
+                thisArg, methodRef, methodMember
             );
         }
 
