@@ -240,6 +240,7 @@ namespace JSIL.Ast {
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
             var cast = reference as JSCastExpression;
             var cte = reference as JSChangeTypeExpression;
+            var bce = reference as JSNewBoxedVariable;
             bool isCast = false, isCte = false;
 
             if (cast != null) {
@@ -248,6 +249,8 @@ namespace JSIL.Ast {
             } else if (cte != null) {
                 isCte = true;
                 reference = cte.Expression;
+            } else if (bce != null && bce.SuppressClone) {
+                reference = JSReferenceExpression.New(bce.InitialValue);
             }
 
             Func<JSExpression, JSExpression> recast = (expression) => {
@@ -1147,6 +1150,7 @@ namespace JSIL.Ast {
     public class JSInvocationExpression : JSInvocationExpressionBase {
         public readonly bool ConstantIfArgumentsAre;
         public readonly bool ExplicitThis;
+        public readonly bool SuppressThisClone;
 
         protected TypeReference _ActualType = null;
 
@@ -1163,7 +1167,8 @@ namespace JSIL.Ast {
         protected JSInvocationExpression (
             JSExpression type, JSExpression method,
             JSExpression thisReference, JSExpression[] arguments,
-            bool explicitThis, bool constantIfArgumentsAre
+            bool explicitThis, bool constantIfArgumentsAre,
+            bool suppressThisClone
         )
             : base(
               (new[] { type, method, thisReference }).Concat(arguments ?? new JSExpression[0]).ToArray()
@@ -1179,15 +1184,16 @@ namespace JSIL.Ast {
 
             ExplicitThis = explicitThis;
             ConstantIfArgumentsAre = constantIfArgumentsAre;
+            SuppressThisClone = suppressThisClone;
+                }
+
+        public static JSInvocationExpression InvokeMethod (TypeReference type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false, bool suppressThisClone = false) {
+            return InvokeMethod(new JSType(type), method, thisReference, arguments, constantIfArgumentsAre, suppressThisClone);
         }
 
-        public static JSInvocationExpression InvokeMethod (TypeReference type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
-            return InvokeMethod(new JSType(type), method, thisReference, arguments, constantIfArgumentsAre);
-        }
-
-        public static JSInvocationExpression InvokeMethod (JSType type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+        public static JSInvocationExpression InvokeMethod (JSType type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false, bool suppressThisClone = false) {
             return new JSInvocationExpression(
-                type, method, thisReference, arguments, false, constantIfArgumentsAre
+                type, method, thisReference, arguments, false, constantIfArgumentsAre, suppressThisClone
             );
         }
 
@@ -1196,7 +1202,7 @@ namespace JSIL.Ast {
                 throw new InvalidOperationException("Invoking a method without passing in a type");
 
             return new JSInvocationExpression(
-                new JSNullExpression(), method, thisReference, arguments, false, constantIfArgumentsAre
+                new JSNullExpression(), method, thisReference, arguments, false, constantIfArgumentsAre, false
             );
         }
 
@@ -1206,7 +1212,7 @@ namespace JSIL.Ast {
 
         public static JSInvocationExpression InvokeBaseMethod (JSType type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
             return new JSInvocationExpression(
-                type, method, thisReference, arguments, true, constantIfArgumentsAre
+                type, method, thisReference, arguments, true, constantIfArgumentsAre, false
             );
         }
 
@@ -1216,13 +1222,13 @@ namespace JSIL.Ast {
 
         public static JSInvocationExpression InvokeStatic (JSType type, JSIdentifier method, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
             return new JSInvocationExpression(
-                type, method, new JSNullExpression(), arguments, true, constantIfArgumentsAre
+                type, method, new JSNullExpression(), arguments, true, constantIfArgumentsAre, false
             );
         }
 
         public static JSInvocationExpression InvokeStatic (JSExpression method, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
             return new JSInvocationExpression(
-                new JSNullExpression(), method, new JSNullExpression(), arguments, true, constantIfArgumentsAre
+                new JSNullExpression(), method, new JSNullExpression(), arguments, true, constantIfArgumentsAre, false
             );
         }
 
@@ -2916,10 +2922,12 @@ namespace JSIL.Ast {
 
     public class JSNewBoxedVariable : JSExpression {
         public readonly TypeReference ValueType;
+        public readonly bool SuppressClone;
 
-        public JSNewBoxedVariable (JSExpression initialValue, TypeReference valueType)
+        public JSNewBoxedVariable (JSExpression initialValue, TypeReference valueType, bool suppressClone = false)
             : base (initialValue) {
             ValueType = valueType;
+            SuppressClone = suppressClone;
         }
 
         public JSExpression InitialValue {
