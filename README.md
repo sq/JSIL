@@ -34,6 +34,7 @@ The Upstream folder also contains:
  * Win32 build of the Spidermonkey command-line JavaScript shell. It is built from sources provided by the Mozilla project (http://www.mozilla.org/). This build is used for running JavaScript automated tests.
  * A specific version of the NUnit.Framework assembly, used by the automated tests. This ensures that they compile correctly regardless of which version of NUnit you have installed.
  * Win32 build of PNGQuant for optimizing PNG files. (Jef Poskanzer, Greg Roelofs)
+ * Mono ILASM for CIL tests execution
  
 Logo by [John Flynn](http://www.bryneshrimp.com).
  
