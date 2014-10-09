@@ -512,14 +512,14 @@ namespace JSIL.Tests {
             return RunJavascript(
                 args, 
                 out temp1, out temp2, out temp3, out temp4, out temp5, 
-                makeConfiguration, true, onTranslationFailure, initializeTranslator
+                makeConfiguration, null, onTranslationFailure, initializeTranslator
             );
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
             Func<Configuration> makeConfiguration = null,
-            bool throwOnUnimplementedExternals = true,
+            JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
             Action<AssemblyTranslator> initializeTranslator = null
         ) {
@@ -527,22 +527,22 @@ namespace JSIL.Tests {
 
             return RunJavascript(
                 args, out generatedJavascript, out elapsedTranslation, out elapsedJs, 
-                out temp1, out temp2, 
-                makeConfiguration, throwOnUnimplementedExternals, onTranslationFailure, initializeTranslator
+                out temp1, out temp2,
+                makeConfiguration, evaluationConfig, onTranslationFailure, initializeTranslator
             );
         }
 
         public string RunJavascript (
             string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
             Func<Configuration> makeConfiguration = null,
-            bool throwOnUnimplementedExternals = true,
+            JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
             Action<AssemblyTranslator> initializeTranslator = null
         ) {
             var tempFilename = GenerateJavascript(
                 args, out generatedJavascript, out elapsedTranslation, 
                 makeConfiguration, 
-                throwOnUnimplementedExternals, 
+                evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                 onTranslationFailure,
                 initializeTranslator
             );
@@ -553,11 +553,17 @@ namespace JSIL.Tests {
                 var sentinelEnd = "// Test output ends here //";
                 var elapsedPrefix = "// elapsed: ";
 
-                StartupPrologue = String.Format("contentManifest['Test'] = [['Script', {0}]]; " +
-                    "function runMain () {{ " +
-                    "print({1}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({2}); print({3} + elapsedTime);" +
+                StartupPrologue =
+                    String.Format("contentManifest['Test'] = [['Script', {0}]]; ", Util.EscapeString(tempFilename));
+                if (evaluationConfig != null && evaluationConfig.AdditionalFilesToLoad != null){
+                    foreach (var file in evaluationConfig.AdditionalFilesToLoad)
+                    {
+                        StartupPrologue += String.Format("load({0});", Util.EscapeString(file));
+                    }
+                }
+                StartupPrologue += String.Format("function runMain () {{ " +
+                    "print({0}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({1}); print({2} + elapsedTime);" +
                     "}}; shellStartup();",
-                    Util.EscapeString(tempFilename),
                     Util.EscapeString(sentinelStart),
                     Util.EscapeString(sentinelEnd),
                     Util.EscapeString(elapsedPrefix)
@@ -633,7 +639,7 @@ namespace JSIL.Tests {
         public void Run (
             string[] args = null, 
             Func<Configuration> makeConfiguration = null, 
-            bool throwOnUnimplementedExternals = true,
+            JSEvaluationConfig evaluationConfig = null,
             bool dumpJsOnFailure = true,
             Action<Exception> onTranslationFailure = null,
             Action<AssemblyTranslator> initializeTranslator = null
@@ -671,7 +677,7 @@ namespace JSIL.Tests {
                     outputs[1] = RunJavascript(
                         args, out generatedJs[0], out elapsed[1], out elapsed[2], 
                         makeConfiguration: makeConfiguration,
-                        throwOnUnimplementedExternals: throwOnUnimplementedExternals,
+                        evaluationConfig: evaluationConfig,
                         onTranslationFailure: onTranslationFailure,
                         initializeTranslator: initializeTranslator
                     ).Replace("\r", "").Trim();
@@ -751,5 +757,12 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+    }
+
+    public class JSEvaluationConfig
+    {
+        public bool ThrowOnUnimplementedExternals { get; set; }
+
+        public string[] AdditionalFilesToLoad { get; set; }
     }
 }

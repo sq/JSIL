@@ -276,4 +276,10 @@ namespace JSIL.Proxies.Bcl
     public class System_Diagnostics_Trace
     {
     }
+
+    [JSProxy("System.Threading.Volatile", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Threading_Volatile
+    {
+    }
 }

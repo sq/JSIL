@@ -208,7 +208,7 @@ namespace JSIL.Tests {
             bool shouldRunJs = true, AssemblyCache asmCache = null,
             Func<Configuration> makeConfiguration = null, 
             Action<Exception> onTranslationFailure = null,
-            bool throwOnUnimplementedExternals = true,
+            JSEvaluationConfig evaluationConfig = null,
             string compilerOptions = "",
             Action<AssemblyTranslator> initializeTranslator = null
         ) {
@@ -236,7 +236,7 @@ namespace JSIL.Tests {
                     if (shouldRunJs) {
                         test.Run(
                             makeConfiguration: makeConfiguration, 
-                            throwOnUnimplementedExternals: throwOnUnimplementedExternals, 
+                            evaluationConfig: evaluationConfig, 
                             onTranslationFailure: onTranslationFailure,
                             initializeTranslator: initializeTranslator
                         );
@@ -248,7 +248,7 @@ namespace JSIL.Tests {
                             test.GenerateJavascript(
                                 new string[0], out js, out elapsed, 
                                 makeConfiguration, 
-                                throwOnUnimplementedExternals, 
+                                evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                                 onTranslationFailure,
                                 initializeTranslator
                             );
@@ -367,7 +367,7 @@ namespace JSIL.Tests {
         protected CompileResult RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
-            bool throwOnUnimplementedExternals = true,
+            JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
             string compilerOptions = "",
             Action<AssemblyTranslator> initializeTranslator = null
@@ -381,7 +381,7 @@ namespace JSIL.Tests {
                 return RunComparisonTest(
                     (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
                     makeConfiguration: makeConfiguration,
-                    throwOnUnimplementedExternals: throwOnUnimplementedExternals,
+                    evaluationConfig: evaluationConfig,
                     onTranslationFailure: onTranslationFailure,
                     compilerOptions: compilerOptions,
                     initializeTranslator: initializeTranslator
