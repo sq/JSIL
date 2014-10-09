@@ -8810,7 +8810,7 @@ $jsilcore.CheckDelegateType = function (value) {
   ) && (value.__ThisType__ === this);
 };
 
-JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
+JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignature) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
@@ -8819,13 +8819,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     callStack = printStackTrace();
 
   var creator = function CreateDelegate () {
-    // Hack around the fact that every delegate type except MulticastDelegate derives from MulticastDelegate
     var delegateType;
-    if (fullName === "System.MulticastDelegate") {
-      delegateType = JSIL.GetTypeByName("System.Delegate", $jsilcore);
-    } else {
-      delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore);
-    }
+    delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore).__Type__;
 
     var typeObject = JSIL.$MakeTypeObject(fullName);
 
@@ -8846,6 +8841,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
+    staticClassObject.prototype = JSIL.CreatePrototypeObject($jsilcore.System.MulticastDelegate.prototype);
 
     var toStringImpl = function DelegateType_ToString () {
       return this.__ThisType__.toString();
@@ -8882,6 +8878,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       JSIL.SetValueProperty(resultDelegate, "__object__", object);
       JSIL.SetValueProperty(resultDelegate, "__method__", method);
       JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
+      JSIL.SetValueProperty(resultDelegate, "Invoke", method) 
 
       return resultDelegate;
     });
@@ -8901,6 +8898,13 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     }
 
     JSIL.MakeCastMethods(staticClassObject, typeObject, "delegate");
+
+    if (methodSignature) {
+      var ib = new JSIL.InterfaceBuilder(assembly, typeObject, staticClassObject);
+      ib.Method({Static:false , Public:true }, "Invoke", 
+      methodSignature, 
+      function() {return this.__method__.apply(this, arguments);});	  
+    }
 
     return staticClassObject;
   };
