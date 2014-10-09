@@ -213,6 +213,9 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Async.js");
+  
+  if (config.interpreter || environment.getUserSetting("interpreter"))
+    environment.loadScript(libraryRoot + "JSIL.ExpressionInterpreter.js");  
 
   if (config.testFixture || environment.getUserSetting("testFixture"))
     environment.loadScript(libraryRoot + "JSIL.TestFixture.js");
