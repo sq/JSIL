@@ -62,6 +62,14 @@ namespace JSIL.Tests {
                         return result;
                     };
                     break;
+
+                case ".cpp":
+                    provider = () =>
+                    {
+                        var result = new CPPCodeProvider();
+                        return result;
+                    };
+                    break;
                 default:
                     throw new NotImplementedException("Extension '" + extension + "' cannot be compiled for test cases");
             }

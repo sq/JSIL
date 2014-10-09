@@ -113,9 +113,7 @@
     <None Include="AnalysisTestCases\Issue371.cs" />
     <None Include="AnalysisTestCases\Issue494.cs" />
     <None Include="AnalysisTestCases\Issue494_2.cs" />
-    <Compile Include="CILCodeProvider.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="CodeProviders.cs" />
     <Compile Include="ComparisonTest.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
