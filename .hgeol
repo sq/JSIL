@@ -1,0 +1,9 @@
+[repository]
+native = LF
+
+[patterns]
+**.cs = native
+**.sln = native
+**.js = native
+**.csproj = native
+**.xaml = native
