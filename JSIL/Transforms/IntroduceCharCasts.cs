@@ -36,6 +36,74 @@ namespace JSIL.Transforms {
 
             bool isArithmetic = !(boe.Operator is JSAssignmentOperator);
 
+            if (!isArithmetic && boe.Operator != JSOperator.Assignment && leftType.FullName == "System.Char")
+            {
+                JSBinaryOperator newOperator;
+                if (boe.Operator == JSOperator.AddAssignment)
+                {
+                    newOperator = JSOperator.Add;
+                }
+                else if (boe.Operator == JSOperator.BitwiseAndAssignment)
+                {
+                    newOperator = JSOperator.BitwiseAnd;
+                }
+                else if (boe.Operator == JSOperator.BitwiseOrAssignment)
+                {
+                    newOperator = JSOperator.BitwiseOr;
+                }
+                else if (boe.Operator == JSOperator.BitwiseXorAssignment)
+                {
+                    newOperator = JSOperator.BitwiseXor;
+                }
+                else if (boe.Operator == JSOperator.DivideAssignment)
+                {
+                    newOperator = JSOperator.Divide;
+                }
+                else if (boe.Operator == JSOperator.MultiplyAssignment)
+                {
+                    newOperator = JSOperator.Multiply;
+                }
+                else if (boe.Operator == JSOperator.RemainderAssignment)
+                {
+                    newOperator = JSOperator.Remainder;
+                }
+                else if (boe.Operator == JSOperator.ShiftLeftAssignment)
+                {
+                    newOperator = JSOperator.ShiftLeft;
+                }
+                else if (boe.Operator == JSOperator.ShiftRightAssignment)
+                {
+                    newOperator = JSOperator.ShiftRight;
+                }
+                else if (boe.Operator == JSOperator.ShiftRightUnsignedAssignment)
+                {
+                    newOperator = JSOperator.ShiftRightUnsigned;
+                }
+                else if (boe.Operator == JSOperator.SubtractAssignment)
+                {
+                    newOperator = JSOperator.Subtract;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Unknown assigment operator");
+                }
+
+                var newBoe = new JSBinaryOperatorExpression(JSOperator.Assignment, boe.Left,
+                    new JSBinaryOperatorExpression(newOperator, boe.Left, boe.Right, boe.ActualType), boe.ActualType);
+                ParentNode.ReplaceChild(boe, newBoe);
+                VisitReplacement(newBoe);
+                return;
+            }
+
+            if (boe.Operator == JSOperator.Assignment && (leftType.FullName == "System.Char") && (rightType.FullName != "System.Char"))
+            {
+                boe.ReplaceChild(boe.Right, CastToChar(boe.Right));
+            }
+            if (boe.Operator == JSOperator.Assignment && (leftType.FullName != "System.Char") && (rightType.FullName == "System.Char"))
+            {
+                boe.ReplaceChild(boe.Right, CastToInteger(boe.Right));
+            }
+
             if ((leftType.FullName == "System.Char") && isArithmetic)
                 boe.ReplaceChild(boe.Left, CastToInteger(boe.Left));
 

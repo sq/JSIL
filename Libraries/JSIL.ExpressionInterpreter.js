@@ -21611,7 +21611,7 @@ JSIL.MakeInterface(
     var box = $T03().$Cast(frame.Data[this._index]);
     frame.Data[($temp00 = (frame.StackIndex | 0), 
       frame.StackIndex = (((frame.StackIndex | 0) + 1) | 0), 
-      $temp00)] = JSIL.CloneParameter(this.T, box.Value);
+      $temp00)] = JSIL.CloneParameter(T, box.Value);
     return 1;
   };
 
@@ -21672,7 +21672,7 @@ JSIL.MakeInterface(
     var $temp00;
     frame.Data[($temp00 = (frame.StackIndex | 0), 
       frame.StackIndex = (((frame.StackIndex | 0) + 1) | 0), 
-      $temp00)] = JSIL.CloneParameter(this.T, frame.Closure[this._index].Value);
+      $temp00)] = JSIL.CloneParameter(T, frame.Closure[this._index].Value);
     return 1;
   };
 
@@ -43567,7 +43567,7 @@ JSIL.DeclareNamespace("Microsoft.Scripting.Runtime");
   function ScriptingRuntimeHelpers_MakeSingleCharStrings () {
     var result = JSIL.Array.New($T03(), 255);
 
-    for (var ch = "\0"; (ch.charCodeAt(0) | 0) < (result.length | 0); ch += "\x01") {
+    for (var ch = "\0"; (ch.charCodeAt(0) | 0) < (result.length | 0); ch = String.fromCharCode((ch.charCodeAt(0) | 0) + (("\x01").charCodeAt(0) | 0))) {
       result[ch.charCodeAt(0)] = $S00().Construct(ch, 1);
     }
     return result;

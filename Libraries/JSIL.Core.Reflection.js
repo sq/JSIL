@@ -499,6 +499,101 @@ JSIL.ImplementExternals(
         return JSIL.GetInterfacesImplementedByType(this, true, false);
       }
     );
+
+    var $T00 = function () {
+      return ($T00 = JSIL.Memoize($jsilcore.System.Type)) ();
+    };
+    var $T01 = function () {
+      return ($T01 = JSIL.Memoize($jsilcore.System.TypeCode)) ();
+    };
+    var $T02 = function () {
+      return ($T02 = JSIL.Memoize($jsilcore.System.Boolean)) ();
+    };
+    var $T03 = function () {
+      return ($T03 = JSIL.Memoize($jsilcore.System.Byte)) ();
+    };
+    var $T04 = function () {
+      return ($T04 = JSIL.Memoize($jsilcore.System.Char)) ();
+    };
+    var $T05 = function () {
+      return ($T05 = JSIL.Memoize($jsilcore.System.DateTime)) ();
+    };
+    var $T06 = function () {
+      return ($T06 = JSIL.Memoize($jsilcore.System.Decimal)) ();
+    };
+    var $T07 = function () {
+      return ($T07 = JSIL.Memoize($jsilcore.System.Double)) ();
+    };
+    var $T08 = function () {
+      return ($T08 = JSIL.Memoize($jsilcore.System.Int16)) ();
+    };
+    var $T09 = function () {
+      return ($T09 = JSIL.Memoize($jsilcore.System.Int32)) ();
+    };
+    var $T0A = function () {
+      return ($T0A = JSIL.Memoize($jsilcore.System.Int64)) ();
+    };
+    var $T0B = function () {
+      return ($T0B = JSIL.Memoize($jsilcore.System.SByte)) ();
+    };
+    var $T0C = function () {
+      return ($T0C = JSIL.Memoize($jsilcore.System.Single)) ();
+    };
+    var $T0D = function () {
+      return ($T0D = JSIL.Memoize($jsilcore.System.String)) ();
+    };
+    var $T0E = function () {
+      return ($T0E = JSIL.Memoize($jsilcore.System.UInt16)) ();
+    };
+    var $T0F = function () {
+      return ($T0F = JSIL.Memoize($jsilcore.System.UInt32)) ();
+    };
+    var $T10 = function () {
+      return ($T10 = JSIL.Memoize($jsilcore.System.UInt64)) ();
+    };
+
+    $.Method({Static:true , Public:true }, "GetTypeCode", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.TypeCode"), [$jsilcore.TypeRef("System.Type")]), 
+      function Type_GetTypeCode (type) {
+        if ($T00().op_Equality(type, null)) {
+          var result = $T01().Empty;
+        } else if ($T00().op_Equality(type, $T02().__Type__)) {
+          result = $T01().Boolean;
+        } else if ($T00().op_Equality(type, $T03().__Type__)) {
+          result = $T01().Byte;
+        } else if ($T00().op_Equality(type, $T04().__Type__)) {
+          result = $T01().Char;
+        } else if ($T00().op_Equality(type, $T05().__Type__)) {
+          result = $T01().DateTime;
+        } else if ($T00().op_Equality(type, $T06().__Type__)) {
+          result = $T01().Decimal;
+        } else if ($T00().op_Equality(type, $T07().__Type__)) {
+          result = $T01().Double;
+        } else if ($T00().op_Equality(type, $T08().__Type__)) {
+          result = $T01().Int16;
+        } else if (!(!$T00().op_Equality(type, $T09().__Type__) && !type.get_IsEnum())) {
+          result = $T01().Int32;
+        } else if ($T00().op_Equality(type, $T0A().__Type__)) {
+          result = $T01().Int64;
+        } else if ($T00().op_Equality(type, $T0B().__Type__)) {
+          result = $T01().SByte;
+        } else if ($T00().op_Equality(type, $T0C().__Type__)) {
+          result = $T01().Single;
+        } else if ($T00().op_Equality(type, $T0D().__Type__)) {
+          result = $T01().String;
+        } else if ($T00().op_Equality(type, $T0E().__Type__)) {
+          result = $T01().UInt16;
+        } else if ($T00().op_Equality(type, $T0F().__Type__)) {
+          result = $T01().UInt32;
+        } else if ($T00().op_Equality(type, $T10().__Type__)) {
+          result = $T01().UInt64;
+        } else {
+          result = $T01().Object;
+        }
+        return result;
+      }   
+    );    
+
   }
 );
 

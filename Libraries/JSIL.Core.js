@@ -2023,6 +2023,10 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
         if ((value < minValue) || (value > maxValue))
           throw new System.OverflowException("Arithmetic operation resulted in an overflow.");
 
+        if ($.publicInterface.name == "System_Char") {
+          return String.fromCharCode((value.charCodeAt(0) | 0));
+        }
+        
         return (value | 0);
       }
     );
