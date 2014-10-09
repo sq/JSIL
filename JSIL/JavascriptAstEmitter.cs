@@ -2480,5 +2480,12 @@ namespace JSIL {
             Visit(rpaep.Index);
             Output.RPar();
         }
+
+        public void VisitNode(JSDefferedExpression function)
+        {
+            Output.WriteRaw("function () { return ");
+            Visit(function.InnerExpression);
+            Output.WriteRaw("; }");
+        }
     }
 }

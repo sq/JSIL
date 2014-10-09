@@ -641,13 +641,17 @@ JSIL.ImplementExternals("System.Linq.Expressions.Expression", function ($) {
       return System.Linq.Expressions.ConstantExpression.Make(value, type);
     }
   );
+  
+  var $TParameterExpressionEnumerable = function () {
+    return ($T16 = JSIL.Memoize($jsilcore.System.Collections.Generic.IEnumerable$b1.Of($jsilcore.System.Linq.Expressions.ParameterExpression))) ();
+  };
 
   $.Method({Static:true , Public:true }, "Lambda", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.Expression`1", ["!!0"]), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Linq.Expressions.ParameterExpression")])], ["TDelegate"])), 
     function Lambda$b1 (TDelegate, body, parameters) {
       var name = null;
       var tailCall = false;
-      return new ( System.Linq.Expressions.Expression$b1.Of(TDelegate) )(body, name, tailCall, parameters);
+      return new ( System.Linq.Expressions.Expression$b1.Of(TDelegate) )(body, name, tailCall, $TParameterExpressionEnumerable().$Cast(parameters));
     }
   );
 

@@ -3123,4 +3123,18 @@ namespace JSIL.Ast {
             return ResultType;
         }
     }
+
+    public class JSDefferedExpression : JSExpression {
+        public JSExpression InnerExpression { get; private set; }
+
+        public JSDefferedExpression(JSExpression innerExpression)
+        {
+            InnerExpression = innerExpression;
+        }
+
+        public override TypeReference GetActualType(TypeSystem typeSystem)
+        {
+            return typeSystem.Object;
+        }
+    }
 }

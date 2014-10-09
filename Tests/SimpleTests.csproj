@@ -77,6 +77,8 @@
     <None Include="SimpleTestCases\DelegateInvoke_Issue500.cs" />
     <None Include="SimpleTestCases\DelegateInvoke_Issue543.cs" />
     <None Include="SimpleTestCases\DelegateReflection_Issue500.cs" />
+    <None Include="SimpleTestCases\DelegateMethod_Issue604.cs" />
+    <None Include="ExpressionTestCases\ExpressionsExecution.cs" />
     <Compile Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />

@@ -111,12 +111,16 @@ namespace JSIL {
             return new JSNewArrayExpression(elementType, dimensions, initializer);
         }
 
-        public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {
+        public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod, JSMethod method) {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     new JSType(delegateType),
                     new JSFakeMethod("New", delegateType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
-                ), new [] { thisReference, targetMethod },
+                ), 
+                method == null ? new [] { thisReference, targetMethod } : new [] {
+                    thisReference, 
+                    targetMethod, 
+                    new JSDefferedExpression(new JSMethodOfExpression(method.Reference, method.Method, method.MethodTypes, method.GenericArguments)),  },
                 true
             );
         }
