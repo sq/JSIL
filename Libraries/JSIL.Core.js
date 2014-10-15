@@ -245,6 +245,7 @@ JSIL.$AssignedTypeIds = {};
 JSIL.$GenericParameterTypeIds = {};
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
+JSIL.$PrivateTypeAssemblies = {};
 JSIL.$EntryPoints = {};
 
 
@@ -413,8 +414,10 @@ JSIL.AssignTypeId = function (assembly, typeName) {
 
   if (typeof (JSIL.$PublicTypeAssemblies[typeName]) !== "undefined") {
     assembly = JSIL.$PublicTypeAssemblies[typeName];
+  } else if (typeof (JSIL.$PrivateTypeAssemblies[typeName]) !== "undefined") {
+    assembly = JSIL.$PrivateTypeAssemblies[typeName];
   }
-
+  
   var key = assembly.__AssemblyId__ + "$" + typeName;
   var result = JSIL.$AssignedTypeIds[key];
 
@@ -1123,7 +1126,26 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       JSIL.$PublicTypes[key] = getter;
       JSIL.$PublicTypeAssemblies[key] = $private;
     }
-  }
+  } else if ($private == $jsilcore) {
+      var key = JSIL.EscapeName(name);
+
+      JSIL.$PrivateTypeAssemblies[key] = $private;  
+  } else {
+      var key = JSIL.EscapeName(name);
+      
+      var existing = JSIL.$PrivateTypeAssemblies[key];
+      
+      if (existing !== undefined){
+        if (existing != $jsilcore) {
+          JSIL.Host.warning(
+            "Private type '" + name + "' with external implementation defined more than twice: " + 
+            $private.toString() + " and " + existing.toString()
+          );
+        }
+
+        JSIL.$PrivateTypeAssemblies[key] = $private;
+      }      
+  }  
 
   var existing = $private.$typesByName[name];
   if (typeof (existing) === "function")
