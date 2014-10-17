@@ -208,6 +208,8 @@ namespace JSIL.Internal {
 
             Enqueue(HandleBooleanAsInteger);
 
+            Enqueue(DecomposeCharMutationOperators);
+
             Enqueue(IntroduceCharCasts);
 
             Enqueue(IntroduceEnumCasts);
@@ -243,7 +245,7 @@ namespace JSIL.Internal {
 
             // If integer arithmetic hinting is enabled, we need to decompose mutation operators
             //  into normal binary operator expressions and/or comma expressions so that truncation can happen.
-            Enqueue(DecomposeMutationOperators);
+            Enqueue(DecomposeIntegerMutationOperators);
 
             Enqueue(FixupPointerArithmetic);
 
@@ -253,14 +255,31 @@ namespace JSIL.Internal {
 
             // HACK: Something about nullables is broken so we have to do this twice. WTF?
             Enqueue(ReplaceMethodCalls);
+
+            Enqueue(ReplaceIndexerAssigments);
         }
 
 
         // Pipeline stage implementations
 
-        private bool DecomposeMutationOperators () {
+        private bool DecomposeCharMutationOperators () {
+            new DecomposeCharMutationOperators(TypeSystem, TypeInfoProvider).Visit(Function);
+
+            return true;
+        }
+
+        private bool DecomposeIntegerMutationOperators()
+        {
             if (Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true))
-                new DecomposeMutationOperators(TypeSystem, TypeInfoProvider).Visit(Function);
+                new DecomposeIntegerMutationOperators(TypeSystem, TypeInfoProvider).Visit(Function);
+
+            return true;
+        }
+
+
+        private bool ReplaceIndexerAssigments()
+        {
+            new ReplaceIndexerAssigments(TypeSystem, TypeInfoProvider).Visit(Function);
 
             return true;
         }

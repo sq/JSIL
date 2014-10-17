@@ -9,7 +9,38 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    public class DecomposeMutationOperators : JSAstVisitor {
+    public class DecomposeCharMutationOperators : DecomposeMutationOperators
+    {
+        public DecomposeCharMutationOperators(TypeSystem typeSystem, TypeInfoProvider typeInfo)
+            : base(typeSystem, typeInfo)
+        {
+        }
+
+        protected override bool ApplyDeconstuction(JSBinaryOperatorExpression boe)
+        {
+            var resultType = boe.Left.GetActualType(TypeSystem);
+            var resultIsChar = resultType.FullName == "System.Char";
+
+            return resultIsChar;
+        }
+    }
+
+    public class DecomposeIntegerMutationOperators : DecomposeMutationOperators
+    {
+        public DecomposeIntegerMutationOperators(TypeSystem typeSystem, TypeInfoProvider typeInfo) : base(typeSystem, typeInfo)
+        {
+        }
+
+        protected override bool ApplyDeconstuction(JSBinaryOperatorExpression boe)
+        {
+            var resultType = boe.GetActualType(TypeSystem);
+            var resultIsIntegral = TypeUtil.Is32BitIntegral(resultType);
+
+            return resultIsIntegral;
+        }
+    }
+
+    public abstract class DecomposeMutationOperators : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly TypeInfoProvider TypeInfo;
 
@@ -100,13 +131,11 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var resultType = boe.GetActualType(TypeSystem);
-            var resultIsIntegral = TypeUtil.Is32BitIntegral(resultType);
-            var resultIsPointer = TypeUtil.IsPointer(resultType);
 
             JSExpression replacement;
 
             if (
-                (resultIsIntegral) &&
+                ApplyDeconstuction(boe) &&
                 ((replacement = DeconstructMutationAssignment(ParentNode, boe, TypeSystem, resultType)) != null)
             ) {
                 ParentNode.ReplaceChild(boe, replacement);
@@ -116,6 +145,8 @@ namespace JSIL.Transforms {
 
             VisitChildren(boe);
         }
+
+        protected abstract bool ApplyDeconstuction(JSBinaryOperatorExpression boe);
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var type = uoe.Expression.GetActualType(TypeSystem);

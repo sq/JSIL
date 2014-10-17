@@ -2446,6 +2446,13 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSIndexerSetterExpression : JSCommaExpression
+    {
+        public JSIndexerSetterExpression(params JSExpression[] subExpressions) 
+            : base (subExpressions) {
+        }
+    }
+
     public class JSCommaExpression : JSExpression {
         public JSCommaExpression (params JSExpression[] subExpressions) 
             : base (subExpressions) {
