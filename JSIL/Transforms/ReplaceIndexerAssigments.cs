@@ -43,6 +43,12 @@ namespace JSIL.Transforms
 
                 foreach (var arg in new[] { invocation.ThisReference }.Union(invocation.Arguments))
                 {
+                    lastArgument = arg;
+                    if (arg is JSVariable || arg is JSLiteral)
+                    {
+                        continue;
+                    }
+
                     var originalType = arg.GetActualType(TypeSystem);
                     var cacheArgVariableName = "_ic_" + (cacheVariableNum + expressions.Count);
                     var argVariable = new JSVariable(cacheArgVariableName, originalType, function.Method.Reference);
