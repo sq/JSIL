@@ -932,6 +932,10 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
             parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
         }
       }
+      
+      if (this.IsStatic) {
+        obj = this._typeObject.__PublicInterface__;
+      }
 
       return impl.apply(obj, parameters);
     }
@@ -1394,6 +1398,20 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
       return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
     }
   );
+  
+  $.Method({Static: true, Public: true }, "op_Inequality", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], []),
+    function op_Inequality (left, right) {
+      return left !== right;
+    }
+  );  
+  
+  $.Method({Static: true, Public: true }, "op_Equality", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], []),
+    function op_Equality (left, right) {
+      return left === right;
+    }
+  ); 
 });
 
 JSIL.ImplementExternals("System.Reflection.EventInfo", function ($) {
