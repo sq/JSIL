@@ -3899,6 +3899,14 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     getEnumeratorImpl
   )
     .Overrides("System.Collections.IEnumerable", "GetEnumerator");
+    
+  $.Method({ Static: false, Public: true }, "UnionWith",
+    new JSIL.MethodSignature(
+      null, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")])], []
+    ),
+    function UnionWith(other) {
+      this.$addRange(other);
+    });    
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["T"], function ($) {

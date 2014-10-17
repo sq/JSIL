@@ -541,9 +541,9 @@ JSIL.ImplementExternals(
 
     $.Method({Static:true, Public:true }, "IndexOfAny", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Array", [$jsilcore.System.Char]), $jsilcore.TypeRef("System.Int32")], []),
-      function (str, chars) {
+      function (str, chars, startIndex) {
         var result = null;
-        for (var i = 0; i < chars.length; i++) {
+        for (var i = startIndex || 0; i < chars.length; i++) {
           var index = str.indexOf(chars[i]);
           if ((result === null) || (index < result))
             result = index;
@@ -554,7 +554,7 @@ JSIL.ImplementExternals(
         else
           return result;
       }
-    );
+    ); 
 
     $.Method({Static:true , Public:true }, "IsNullOrEmpty", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
@@ -2109,6 +2109,20 @@ JSIL.ImplementExternals("System.Char", function ($) {
         (charCode === 0x20) ||
         (charCode === 0xA0) || 
         (charCode === 0x85));
+    }
+  );
+  
+  $.Method({Static:true , Public:true }, "ToLowerInvariant", 
+    new JSIL.MethodSignature($.Char, [$.Char], []), 
+    function ToLowerInvariant (c) {
+      return c.toLowerCase();
+    }
+  );
+  
+  $.Method({Static:true , Public:true }, "ToUpperInvariant", 
+    new JSIL.MethodSignature($.Char, [$.Char], []), 
+    function ToLowerInvariant (c) {
+      return c.toUpperCase();
     }
   );
 });

@@ -225,6 +225,13 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("System.String.IndexOfAny($this, $chars, $startIndex)")]
+        [JSIsPure]
+        public int IndexOfAny(char[] chars, int startIndex)
+        {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("System.String.LastIndexOfAny($this, $chars)")]
         [JSIsPure]
         public int LastIndexOfAny (char[] chars) {
