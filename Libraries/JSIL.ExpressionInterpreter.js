@@ -38283,7 +38283,10 @@ JSIL.MakeEnum(
   function LightCompiler_EnsureLabel (node) {
     var result = new JSIL.BoxedVariable(null);
     if (!$T05().prototype.TryGetValue.call(this._treeLabels, node, /* ref */ result)) {
-      result.set($T05().prototype.set_Item.call(this._treeLabels, node, new ($T31())(node)));
+      var _ic_0 = null;
+      result.set((_ic_0 = new ($T31())(node), 
+          $T05().prototype.set_Item.call(this._treeLabels, node, _ic_0), 
+          _ic_0));
     }
     return result.get();
   };
@@ -39793,7 +39796,10 @@ JSIL.MakeEnum(
         if ($T04().op_Equality($T1C().MakeDelegate(paramTypes), $closure0.delegateType)) {
           name = (JSIL.ConcatString("Make", name, paramInfos.length));
           var ctorMethod = ($S04().CallVirtual("GetMethod", null, $thisType.__Type__, name, $T1B().$Flags("NonPublic", "Static"))).MakeGenericMethod(paramTypes);
-          result = $T00().prototype.set_Item.call($thisType._runCache, $closure0.delegateType, $T1D().CreateDelegate(ctorMethod, $T12().__Type__));
+          var _ic_0 = null;
+          result = (_ic_0 = $T1D().CreateDelegate(ctorMethod, $T12().__Type__), 
+            $T00().prototype.set_Item.call($thisType._runCache, $closure0.delegateType, _ic_0), 
+            _ic_0);
           return result;
         }
         runMethod = $S04().CallVirtual("GetMethod", null, $thisType.__Type__, JSIL.ConcatString(name, paramInfos.length), $T1B().$Flags("Instance", "NonPublic"));
@@ -39803,9 +39809,10 @@ JSIL.MakeEnum(
            ? runMethod.MakeGenericMethod(paramTypes)
            : runMethod)
       ;
-      var final = $T12().New($closure0, $T17().prototype.$lMakeRunDelegateCtor$gb__1, function () { return JSIL.GetMethodInfo($asm00.Microsoft.Scripting.Interpreter.LightLambda_$l$gc__DisplayClass2, "$lMakeRunDelegateCtor$gb__1", new JSIL.MethodSignature($asm01.System.Delegate, [$thisType]), false); });
-      $T00().prototype.set_Item.call($thisType._runCache, $closure0.delegateType, final);
-      result = final;
+      var _ic_1 = null;
+      result = (_ic_1 = $T12().New($closure0, $T17().prototype.$lMakeRunDelegateCtor$gb__1, function () { return JSIL.GetMethodInfo($asm00.Microsoft.Scripting.Interpreter.LightLambda_$l$gc__DisplayClass2, "$lMakeRunDelegateCtor$gb__1", new JSIL.MethodSignature($asm01.System.Delegate, [$thisType]), false); }), 
+        $T00().prototype.set_Item.call($thisType._runCache, $closure0.delegateType, _ic_1), 
+        _ic_1);
     }
     return result;
   };
