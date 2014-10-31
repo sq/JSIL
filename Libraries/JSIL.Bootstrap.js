@@ -462,26 +462,8 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       }
       if (!this.__isMethodInfoResolved__) {
         var methodInfo = this.__methodInfoResolver__();
-        if (methodInfo.get_DeclaringType().get_IsInterface()) {
-          // TODO: find better solution for resolving MethodInfo in class by interface MethodInfo.
-          // TODO: this will not work for interface generic methods.
-          methodInfo = null;
-          var allMethods = JSIL.GetMembersInternal(
-            this.__object__.__ThisType__, 
-            $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Public", "NonPublic", "Instance"),
-            "$AllMethods");
-          for (var i=0; i < allMethods.length; i++) {
-            var impl = JSIL.$GetMethodImplementation(allMethods[i], this.__object__);
-            if (impl === this.__method__) {
-              methodInfo = allMethods[i];
-              break;
-            }
-          }
-          
-          if (methodInfo === null) {
-            throw new Error("Method info not found");
-          }          
-        }
+        // TODO: find better solution for resolving MethodInfo in class by MethodInfo in base class.
+        // Currently it will not find proper derived implementation MethodInfo for virtual method and interface methods.
         JSIL.SetValueProperty(this, "__methodInfo__", methodInfo);
         this.__isMethodInfoResolved__ = true;
       }
