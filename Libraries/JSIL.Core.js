@@ -10061,8 +10061,10 @@ JSIL.$GetMethodImplementation = function (method, target) {
       if (!result.signature.IsClosed)
         JSIL.RuntimeError("Generic method is not closed");
   }
-
+  
+  // 1. Generic
   if (genericArgumentValues && genericArgumentValues.length) {
+    // 1.1 Generic static
     if (isStatic) {
       // Return an invoker that concats generic arguments and arglist and invokes
       //  static generic method implementation directly.
@@ -10074,7 +10076,7 @@ JSIL.$GetMethodImplementation = function (method, target) {
           publicInterface, fullArgumentList
         );
       };
-
+    // 1.2 Generic instance (interface)
     } else if (result instanceof JSIL.InterfaceMethod) {
       // Return an invoker that specifies the generic arguments and passes in rest
 
@@ -10085,7 +10087,7 @@ JSIL.$GetMethodImplementation = function (method, target) {
           methodArgs
         );
       };
-
+    // 1.3 Generic instance (non-interface)
     } else {
       // Return an invoker that concats generic arguments and arglist and invokes
       //  generic method implementation directly.
@@ -10098,7 +10100,8 @@ JSIL.$GetMethodImplementation = function (method, target) {
         );
       };
     }
-
+  // 2. Non-generic
+  // 2.1 Non-generic instance (interface)
   } else if (result instanceof JSIL.InterfaceMethod) {
     // Wrap the interface method invoker since it expects a generic arguments parameter.
 
@@ -10111,6 +10114,8 @@ JSIL.$GetMethodImplementation = function (method, target) {
   if (!result) {
     debugger;
   }
+  // 2.2 Non-generic instance (non-interface)
+  // 2.3 Non-generic static
   return result;
 };
 

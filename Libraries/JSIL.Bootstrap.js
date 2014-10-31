@@ -395,23 +395,38 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
           $jsilcore.TypeRef("System.Reflection.MethodInfo")
         ], [])), 
     function CreateDelegate (delegateType, firstArgument, method) {
-      var impl = JSIL.$GetMethodImplementation(method, firstArgument);
-
       var delegatePublicInterface = delegateType.__PublicInterface__;
-
       if (typeof (delegatePublicInterface.New) !== "function")
         JSIL.Host.abort(new Error("Invalid delegate type"));
+        
+      if (!method.IsStatic && firstArgument == null && delegateType.GetMethod("Invoke").GetParameters().length == method.GetParameters().length + 1)
+      {
+        //TODO: Check that first delegate Invoke parameter is assignable to method.DeclaringType
+        return delegatePublicInterface.New(
+          null,
+          function() {
+            var realFirstAgument = arguments[0];
+            var impl = JSIL.$GetMethodImplementation(method, firstArgument);
+            
+            if (!impl) {
+              throw new System.Exception("Method has no implementation");
+            } else if (typeof (impl) === "function") {
+              return delegatePublicInterface.New(realFirstAgument, impl, function () { return null; })(Array.prototype.slice.call(arguments, 1));
+            } else {
+              throw new Error("Unexpected JSIL.$GetMethodImplementation result");
+            }
+          }, 
+          function () { return method; });
+      }
+      
+      var impl = JSIL.$GetMethodImplementation(method, firstArgument);
 
       if (!impl) {
         throw new System.Exception("Method has no implementation");
       } else if (typeof (impl) === "function") {
         return delegatePublicInterface.New(firstArgument, impl, function () { return method; });
-      } else if (Object.getPrototypeOf(impl) === JSIL.InterfaceMethod.prototype) {
-        // FIXME: I think this may not work right when the interface method is overloaded.
-        var interfaceMethodImplementation =
-          impl.LookupMethod(firstArgument);
-
-        return delegatePublicInterface.New(firstArgument, interfaceMethodImplementation, function () { throw new Error("Not implemented"); });
+      } else {
+        throw new Error("Unexpected JSIL.$GetMethodImplementation result");
       }
     }
   );  
