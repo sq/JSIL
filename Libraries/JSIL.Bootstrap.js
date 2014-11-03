@@ -1629,7 +1629,7 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
   var IListCtor = function (list) {
     this._list = list;
 
-    if (JSIL.IsArray(list._array)) {
+    if (JSIL.IsArray(list._array)) {     
       Object.defineProperty(this, "_items", {
         get: function () {
           return list._array;
@@ -1641,10 +1641,7 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
           return list._array.length;
         }
       });
-    } else {
-      if (!list._items || (typeof(list._size) !== "number"))
-        JSIL.RuntimeError("argument must be a list");
-
+    } else if (list._items && (typeof(list._size) !== "number")) {
       Object.defineProperty(this, "_items", {
         get: function () {
           return list._items;
@@ -1656,7 +1653,20 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
           return list._size;
         }
       });
-    }
+    } else {
+      var array = JSIL.EnumerableToArray(list, this.T);
+      Object.defineProperty(this, "_items", {
+        get: function () {
+          return array;
+        }
+      });
+
+      Object.defineProperty(this, "_size", {
+        get: function () {
+          return array.length;
+        }
+      });
+    } 
   };
 
   $.RawMethod(false, "$listCtor", IListCtor);
