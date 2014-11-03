@@ -668,14 +668,6 @@ JSIL.ImplementExternals("System.Linq.Expressions.Expression", function ($) {
       return System.Linq.Expressions.ParameterExpression.Make(type, name, type.IsByRef);
     }
   );
-
-  $.Method({Static:true , Public:true }, "Equal", 
-    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.BinaryExpression"), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Linq.Expressions.Expression")], []), 
-    function Equal (left, right) {
-      // FIXME
-      return null;
-    }
-  )
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ConstantExpression", true, [], function ($) {

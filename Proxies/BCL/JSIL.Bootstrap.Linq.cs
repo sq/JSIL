@@ -183,12 +183,6 @@ namespace JSIL.Proxies.Bcl
         {
             throw new NotImplementedException();
         }
-
-        [JSExternal]
-        public static BinaryExpression Equal(Expression left, Expression right)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     [JSProxy(typeof(ConstantExpression), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
