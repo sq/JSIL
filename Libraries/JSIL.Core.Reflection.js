@@ -829,6 +829,27 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
       return getSetMethodImpl.call(this, true) !== null;
     }
   );
+  
+  var equalsImpl = function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    return JSIL.ObjectEquals(lhs, rhs);
+  };
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.PropertyInfo"), $jsilcore.TypeRef("System.Reflection.PropertyInfo")], [])), 
+    function op_Equality (left, right) {
+      return equalsImpl(left, right);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.PropertyInfo"), $jsilcore.TypeRef("System.Reflection.PropertyInfo")], [])), 
+    function op_Inequality (left, right) {
+      return !equalsImpl(left, right);
+    }
+  );
 });
 
 $jsilcore.$MethodGetParameters = function (method) {
@@ -1045,6 +1066,34 @@ JSIL.ImplementExternals(
         }
 
         return obj[this._descriptor.Name];
+      }
+    );
+    
+    var equalsImpl = function (lhs, rhs) {
+      if (lhs === rhs)
+        return true;
+
+      return JSIL.ObjectEquals(lhs, rhs);
+    };
+
+    $.Method({Static:true , Public:true }, "op_Equality", 
+      (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.FieldInfo"), $jsilcore.TypeRef("System.Reflection.FieldInfo")], [])), 
+      function op_Equality (left, right) {
+        return equalsImpl(left, right);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "op_Inequality", 
+      (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.FieldInfo"), $jsilcore.TypeRef("System.Reflection.FieldInfo")], [])), 
+      function op_Inequality (left, right) {
+        return !equalsImpl(left, right);
+      }
+    );
+    
+    $.Method({Static:false , Public:true }, "get_IsLiteral", 
+      (new JSIL.MethodSignature($.Boolean, [], [])), 
+      function get_IsLiteral () {
+        return false;
       }
     );
 
