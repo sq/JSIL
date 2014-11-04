@@ -250,6 +250,16 @@ JSIL.ImplementExternals(
         return getMethodImpl(this, name, defaultFlags(), argumentTypes);
       }
     );
+    
+    $.Method({Public: true , Static: false}, "GetMethod",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.String, $jsilcore.TypeRef("System.Reflection.BindingFlags"), $jsilcore.TypeRef("System.Reflection.Binder"), typeArray, $jsilcore.TypeRef("System.Array", ["System.Reflection.ParameterModifier"])]),      
+      function (name, flags, binder, argumentTypes, modifiers) {
+        if (binder !== null || modifiers !== null) {
+          throw new System.NotImplementedException("Binder and ParameterModifier are not supported yet.");
+        }
+        return getMethodImpl(this, name, flags, argumentTypes);
+      }
+    );
 
     $.Method({Public: true , Static: false}, "GetMethods",
       new JSIL.MethodSignature(methodArray, []),      
