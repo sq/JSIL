@@ -691,6 +691,14 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.Clear();
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
+                    var newAdditionalTranslate = (from p in localConfig.Assemblies.TranslateAdditional
+                                      let newP = MapPath(p, localVariables, true, true)
+                                      where newP != null
+                                      select newP).ToArray();
+
+                    localConfig.Assemblies.TranslateAdditional.Clear();
+                    localConfig.Assemblies.TranslateAdditional.AddRange(newAdditionalTranslate);
+
                     foreach (var analyzer in analyzers.Values) {
                         analyzer.SetConfiguration(localConfig);
                     }
