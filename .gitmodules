@@ -10,3 +10,6 @@
 [submodule "Upstream/structs.js"]
 	path = Upstream/structs.js
 	url = https://github.com/dherman/structs.js.git
+[submodule "Upstream/JSIL.ExpressionInterpreter"]
+	path = Upstream/JSIL.ExpressionInterpreter
+	url = https://github.com/iskiselev/JSIL.ExpressionInterpreter.git
