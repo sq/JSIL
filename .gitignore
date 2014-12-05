@@ -101,3 +101,4 @@ Corlib/*.nlp
 *.out
 *.pdb
 pingme.txt
+/packages

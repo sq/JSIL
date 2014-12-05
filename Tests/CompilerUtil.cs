@@ -6,8 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using FSharp.Compiler.CodeDom;
 using Microsoft.CSharp;
-using Microsoft.FSharp.Compiler.CodeDom;
 using Microsoft.VisualBasic;
 
 namespace JSIL.Tests {
