@@ -44,7 +44,10 @@ JSIL.ImplementExternals("System.Object", function ($) {
         var value = initializer[key];
 
         if (isInitializer(value)) {
-          this[key] = value.Apply(this[key]);
+          var result = value.Apply(this[key]);
+          if (result !== undefined) {
+            this[key] = result;
+          }
         } else {
           this[key] = value;
         }
@@ -156,8 +159,6 @@ JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function
   $.RawMethod(false, "Apply",
     function (previousValue) {
       JSIL.ApplyCollectionInitializer(previousValue, this.values);
-
-      return previousValue;
     }
   );
 });
@@ -180,7 +181,7 @@ JSIL.MakeClass("System.Object", "JSIL.ObjectInitializer", true, [], function ($)
       else
         JSIL.Host.warning("Object initializer applied to null/undefined!");
 
-      return result;
+      return this.hasInstance ? result : undefined;
     }
   );
 });
