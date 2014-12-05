@@ -44,13 +44,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Proxies.Bcl", "Proxies\BCL\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.DeadCodeAnalyzer", "Compiler\Analyzers\DeadCodeAnalyzer\JSIL.DeadCodeAnalyzer.csproj", "{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{B34E5D95-A5B8-4F55-949B-55C11D948D97}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|.NET 4.5 x86 = Debug|.NET 4.5 x86
