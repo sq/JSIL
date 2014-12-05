@@ -356,6 +356,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             AddType(field.FieldType);
+            AddType(field.DeclaringType);
             FieldDefinition resolvedField = field.Resolve();
 
             fields.Add(resolvedField);
