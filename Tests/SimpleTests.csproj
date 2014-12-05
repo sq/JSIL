@@ -83,6 +83,7 @@
     <None Include="ExpressionTestCases\ExpressionsExecution.cs" />
     <None Include="SimpleTestCases\CharArithmetic_Issue610.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\Issue578.cs" />
+    <None Include="SimpleTestCases\Issue631.cs" />
     <Compile Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
