@@ -133,7 +133,7 @@ $jsilcore.$ParseInt = function (text, style) {
   if ($jsilcore.$TryParseInt(text, style, temp))
     return temp.get();
 
-  throw new System.Exception("Invalid integer");
+  throw new System.FormatException("Invalid integer");
 };
 
 $jsilcore.$TryParseInt = function (text, style, result) {
