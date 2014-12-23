@@ -2025,12 +2025,16 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
       $.SetValue("__TypedArray__", null);
     }
 
-    var castSpecialType =
-      (typeName === "System.Char")
-        ? "char"
-        : isIntegral 
-          ? "integer" 
-          : "number";
+    var castSpecialType;
+    if (typeName === "System.Char") {
+      castSpecialType = "char";
+    } else if (typeName == "System.Boolean") {
+      castSpecialType = "bool";
+    } else if (isIntegral) {
+      castSpecialType = "integer";
+    } else {
+      castSpecialType = "number";
+    }
 
     JSIL.MakeCastMethods(
       $.publicInterface, $.typeObject, castSpecialType
