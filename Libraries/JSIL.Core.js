@@ -4592,7 +4592,13 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
     // HACK: We don't want to do this while initializing anything under the System namespace.
     (typeObject.__FullName__.indexOf("System.") !== 0)
   ) {
-    typeObject.__ES7Constructor__ = JSIL.ES7.TypedObjects.GetES7TypeObject(typeObject, true);
+    var es7ctor = JSIL.ES7.TypedObjects.GetES7TypeObject(typeObject, true);
+
+    // HACK: For some reason this type object isn't a constructor
+    if (es7ctor && es7ctor == TypedObject.Object)
+      es7ctor = null;
+
+    typeObject.__ES7Constructor__ = es7ctor;
   }
 
   if (typeObject.__RanCctors__)

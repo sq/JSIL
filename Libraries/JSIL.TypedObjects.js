@@ -7,7 +7,7 @@ if (typeof ($jsilcore) === "undefined")
   throw new Error("JSIL.Core is required");
 
 JSIL.ES7.TypedObjects.Enabled = true;
-JSIL.ES7.TypedObjects.Trace = true;
+JSIL.ES7.TypedObjects.Trace = false;
 
 JSIL.ES7.TypedObjects.API = TypedObject;
 
@@ -33,8 +33,8 @@ JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
   //  to store JS primitives in fields of type Object.
   // Maybe this can go away eventually once we always do boxing ourselves.
   // We'll have to box String though :-(
-  cacheSet(system.Object, api.any);
-  cacheSet(system.String, api.string);
+  cacheSet(system.Object, api.Any);
+  cacheSet(system.String, api.String);
 
   return cache;
 });
@@ -72,8 +72,13 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
   }
 
   var result = JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__];
-  if (result)
-    return result;
+  if (result) {
+    if (jsilTypeObject.__IsStruct__)
+      return result;
+    else
+      // HACK: Reference types need to always be .object so they can store null
+      return JSIL.ES7.TypedObjects.API.Object;
+  }
 
   var objectProto = jsilTypeObject.__PublicInterface__.prototype;
 
@@ -107,7 +112,7 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
     if (userDefinedOnly)
       return null;
     else
-      return JSIL.ES7.TypedObjects.API.object;
+      return JSIL.ES7.TypedObjects.API.Object;
   }
 
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
@@ -124,5 +129,9 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
   if (JSIL.ES7.TypedObjects.Trace)
     JSIL.Host.logWriteLine("ES7 typed object backing store enabled for " + jsilTypeObject.__FullName__);
 
-  return result;
+  if (jsilTypeObject.__IsStruct__)
+    return result;
+  else
+    // HACK: Reference types need to always be .object so they can store null
+    return JSIL.ES7.TypedObjects.API.Object;
 };
