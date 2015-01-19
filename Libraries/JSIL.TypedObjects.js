@@ -11,6 +11,8 @@ JSIL.ES7.TypedObjects.Trace = false;
 
 JSIL.ES7.TypedObjects.API = TypedObject;
 
+JSIL.ES7.TypedObjects.Constructing = "constructing";
+
 JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
   var api = JSIL.ES7.TypedObjects.API;
 
@@ -34,7 +36,7 @@ JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
   // Maybe this can go away eventually once we always do boxing ourselves.
   // We'll have to box String though :-(
   cacheSet(system.Object, api.Any);
-  cacheSet(system.String, api.String);
+  cacheSet(system.String, api.string);
 
   return cache;
 });
@@ -50,9 +52,12 @@ JSIL.ES7.TypedObjects.CreateES7TypeDescriptor = function (jsilTypeObject) {
 
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];
-    var fieldType = JSIL.ES7.TypedObjects.GetES7TypeObject(field.type, false);
+    var fieldType = JSIL.ES7.TypedObjects.GetES7TypeObject(field.type, false);    
 
     if (!fieldType) {
+      if (typeof (JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__]) === "undefined")
+        return null;
+
       return JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = null;
     }
 
@@ -72,6 +77,11 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
   }
 
   var result = JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__];
+
+  // HACK: Prevent infinite recursion
+  if (result === JSIL.ES7.TypedObjects.Constructing)    
+    return JSIL.ES7.TypedObjects.API.Object;
+
   if (result) {
     if (jsilTypeObject.__IsStruct__)
       return result;
@@ -114,6 +124,8 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
     else
       return JSIL.ES7.TypedObjects.API.Object;
   }
+
+  JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = JSIL.ES7.TypedObjects.Constructing;
 
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
 
