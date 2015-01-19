@@ -7,7 +7,7 @@ if (typeof ($jsilcore) === "undefined")
   throw new Error("JSIL.Core is required");
 
 JSIL.ES7.TypedObjects.Enabled = true;
-JSIL.ES7.TypedObjects.Trace = false;
+JSIL.ES7.TypedObjects.Trace = true;
 
 JSIL.ES7.TypedObjects.API = TypedObject;
 
@@ -113,11 +113,11 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
 
   var result = new JSIL.ES7.TypedObjects.API.StructType(
-    descriptor, 
-    {
-      prototype: objectProto
-    }
+    descriptor
   );
+
+  // HACK: Oh god
+  Object.setPrototypeOf(result.prototype, objectProto);
 
   JSIL.ES7.TypedObjects.TypeCache[jsilTypeObject.__TypeId__] = result;
 
