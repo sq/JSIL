@@ -9,7 +9,11 @@ if (typeof ($jsilcore) === "undefined")
 JSIL.ES7.TypedObjects.Enabled = true;
 JSIL.ES7.TypedObjects.Trace = false;
 
+JSIL.ES7.TypedObjects.API = TypedObject;
+
 JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
+  var api = JSIL.ES7.TypedObjects.API;
+
   var cache = JSIL.CreateDictionaryObject(null);
   var cacheSet = function (nativeType, es7Type) {
     cache[nativeType.__Type__.__TypeId__] = es7Type;
@@ -17,20 +21,20 @@ JSIL.SetLazyValueProperty(JSIL.ES7.TypedObjects, "BuiltInTypes", function () {
 
   var system = $jsilcore.System;
 
-  cacheSet(system.Byte  , TypedObjects.uint8);
-  cacheSet(system.SByte , TypedObjects.int8);
-  cacheSet(system.UInt16, TypedObjects.uint16);
-  cacheSet(system.Int16 , TypedObjects.int16);
-  cacheSet(system.UInt32, TypedObjects.uint32);
-  cacheSet(system.Int32 , TypedObjects.int32);
-  cacheSet(system.Single, TypedObjects.float32);
-  cacheSet(system.Double, TypedObjects.float64);
+  cacheSet(system.Byte  , api.uint8);
+  cacheSet(system.SByte , api.int8);
+  cacheSet(system.UInt16, api.uint16);
+  cacheSet(system.Int16 , api.int16);
+  cacheSet(system.UInt32, api.uint32);
+  cacheSet(system.Int32 , api.int32);
+  cacheSet(system.Single, api.float32);
+  cacheSet(system.Double, api.float64);
   // HACK: We would use TypedObjects.object here, but we need to be able
   //  to store JS primitives in fields of type Object.
   // Maybe this can go away eventually once we always do boxing ourselves.
   // We'll have to box String though :-(
-  cacheSet(system.Object, TypedObjects.any);
-  cacheSet(system.String, TypedObjects.string);
+  cacheSet(system.Object, api.any);
+  cacheSet(system.String, api.string);
 
   return cache;
 });
@@ -103,12 +107,12 @@ JSIL.ES7.TypedObjects.GetES7TypeObject = function (jsilTypeObject, userDefinedOn
     if (userDefinedOnly)
       return null;
     else
-      return TypedObjects.object;
+      return JSIL.ES7.TypedObjects.API.object;
   }
 
   var descriptor = JSIL.ES7.TypedObjects.CreateES7TypeDescriptor(jsilTypeObject);
 
-  var result = new TypedObjects.StructType(
+  var result = new JSIL.ES7.TypedObjects.API.StructType(
     descriptor, 
     {
       prototype: objectProto

@@ -231,12 +231,7 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "Polyfills.js");
   environment.loadScript(libraryRoot + "mersenne.js");
 
-  var useTypedObjects = config.typedObjects || true;
-
-  if (useTypedObjects) {
-    // HACK: This currently requires you to junction Libraries/ES7 to Upstream/es7-structs
-    environment.loadScript(libraryRoot + "ES7/lib/typedobjects.js");
-  }
+  var useTypedObjects = (config.typedObjects || true);
 
   environment.loadScript(libraryRoot + "JSIL.Core.js");
   environment.loadScript(libraryRoot + "JSIL.Host.js");
@@ -260,7 +255,11 @@ var $jsilloaderstate = {
     environment.loadScript(libraryRoot + "JSIL.ExpressionInterpreter.js");  
 
   if (useTypedObjects) {
-    environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
+    if ((typeof TypedObject) === "object") {
+      environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
+    } else {
+      JSIL.Host.logWriteLine("WARNING: TypedObject not available in this runtime environment");
+    }
   }
 
   if (config.testFixture || environment.getUserSetting("testFixture"))
