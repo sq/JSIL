@@ -102,3 +102,9 @@ Corlib/*.nlp
 *.pdb
 pingme.txt
 /packages
+/TestResults
+/Tests/EmscriptenTestCases/*.dll
+/Tests/EmscriptenTestCases/*.emjs
+/Tests/EmscriptenTestCases/common/common.exp
+/Tests/EmscriptenTestCases/common/common.lib
+/Tests/EmscriptenTestCases/common/common.obj
