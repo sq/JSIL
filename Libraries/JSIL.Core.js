@@ -6318,6 +6318,73 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   return members.length - 1;
 };
+JSIL.$PlacePInvokeMember = function (
+  target, memberName, namespace, dllName, importedName
+) {
+  var newValue = null;
+  var existingValue = target[memberName];
+
+  if (existingValue)
+    JSIL.RuntimeError("Type " + namespace + " already has a member named " + memberName + ", obstructing PInvoke");
+
+  var newValue = function PInvokeStub () {
+    JSIL.RuntimeError("Hi, I'm PInvoke!!!! :-)");
+  };
+
+  JSIL.SetValueProperty(target, memberName, newValue);
+};
+
+JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodName, signature) {
+  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
+
+  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
+
+  var prefix = "";
+  var fullName = this.namespace + "." + methodName;
+
+  if (!descriptor.Static)
+    JSIL.RuntimeError("PInvoke methods must be static: " + fullName);
+
+  /*
+  // FIXME
+  {
+    var pinvokeMethods = this.typeObject.__PInvokeMethods__;
+    var pinvokeMethodIndex = pinvokeMethods.length;
+
+    // FIXME: Avoid doing this somehow?
+    pinvokeMethods.push(signature);
+
+    var getName = function () {
+      var thisType = (this.__Type__ || this.__ThisType__);
+      var lateBoundSignature = thisType.__PInvokeMethods__[externalMethodIndex];
+
+      // FIXME: Why is this necessary now when it wasn't before?
+      if (lateBoundSignature == null)
+        lateBoundSignature = signature;
+
+      return lateBoundSignature.toString(methodName);
+    };
+  }
+  */
+
+  JSIL.$PlacePInvokeMember(
+    descriptor.Target, mangledName, this.namespace, "unknown.dll", methodName
+  );
+
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+  this.PushMember("MethodInfo", descriptor, { 
+    signature: signature, 
+    genericSignature: null,
+    mangledName: mangledName,
+    isExternal: true,
+    isPInvoke: true,
+    isPlaceholder: false,
+    isConstructor: false,
+    parameterInfo: memberBuilder.parameterInfo
+  }, memberBuilder, true);
+
+  return memberBuilder;
+};
 
 JSIL.$PlaceExternalMember = function (
   target, implementationSource, implementationPrefix,
@@ -6591,60 +6658,6 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
     fi = this.typeObject.__FieldInitializers__ = [];
 
   fi.push(fieldCreator);
-
-  return memberBuilder;
-};
-
-JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodName, signature) {
-  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
-
-  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
-
-  var impl = this.externals;
-
-  var prefix = "";
-  var fullName = this.namespace + "." + methodName;
-
-  if (!descriptor.Static)
-    JSIL.RuntimeError("PInvoke methods must be static: " + fullName);
-
-  /*
-  // FIXME
-  {
-    var pinvokeMethods = this.typeObject.__PInvokeMethods__;
-    var pinvokeMethodIndex = pinvokeMethods.length;
-
-    // FIXME: Avoid doing this somehow?
-    pinvokeMethods.push(signature);
-
-    var getName = function () {
-      var thisType = (this.__Type__ || this.__ThisType__);
-      var lateBoundSignature = thisType.__PInvokeMethods__[externalMethodIndex];
-
-      // FIXME: Why is this necessary now when it wasn't before?
-      if (lateBoundSignature == null)
-        lateBoundSignature = signature;
-
-      return lateBoundSignature.toString(methodName);
-    };
-  }
-
-  JSIL.$PlaceExternalMember(
-    descriptor.Target, impl, prefix, mangledName, this.namespace, getName
-  );
-  */
-
-  var memberBuilder = new JSIL.MemberBuilder(this.context);
-  this.PushMember("MethodInfo", descriptor, { 
-    signature: signature, 
-    genericSignature: null,
-    mangledName: mangledName,
-    isExternal: true,
-    isPInvoke: true,
-    isPlaceholder: false,
-    isConstructor: false,
-    parameterInfo: memberBuilder.parameterInfo
-  }, memberBuilder, true);
 
   return memberBuilder;
 };
