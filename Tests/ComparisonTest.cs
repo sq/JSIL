@@ -127,7 +127,7 @@ namespace JSIL.Tests {
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");
 
-            SourceDirectory = Path.GetDirectoryName(filenames.First());
+            SourceDirectory = Path.GetDirectoryName(absoluteFilenames.First());
 
             var assemblyNamePrefix = Path.GetDirectoryName(outputPath).Split(new char[] { '\\', '/' }).Last();
             var assemblyName = Path.Combine(
@@ -252,12 +252,16 @@ namespace JSIL.Tests {
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
-            // FIXME: Not thread safe.
-            var currentDir = Environment.CurrentDirectory;
+            string currentDir = null;
 
             try {
-                lock (this)
+                lock (this) {
+                    // FIXME: Not thread safe.
+                    currentDir = Environment.CurrentDirectory;
+
+                    // HACK: We chdir to the original location of the test. This ensures the test can find any DLLs it needs.
                     Environment.CurrentDirectory = this.SourceDirectory;
+                }
 
                 if (Assembly.Location.EndsWith(".exe")) {
                     long startedCs = DateTime.UtcNow.Ticks;
@@ -302,6 +306,9 @@ namespace JSIL.Tests {
                     }
                 }
             } finally {
+                if (currentDir == null)
+                    throw new InvalidOperationException();
+
                 lock (this)
                     if (Environment.CurrentDirectory == this.SourceDirectory)
                         Environment.CurrentDirectory = currentDir;
