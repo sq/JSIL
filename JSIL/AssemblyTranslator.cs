@@ -2771,6 +2771,8 @@ namespace JSIL {
                 dollar.WriteTo(output);
                 output.Dot();
                 if (methodInfo.IsPInvoke)
+                    // FIXME: Write out dll name from DllImport
+                    // FIXME: Write out alternate method name if provided
                     output.Identifier("PInvokeMethod", EscapingMode.None);
                 else if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
                     output.Identifier("ExternalMethod", EscapingMode.None);
