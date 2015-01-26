@@ -1615,11 +1615,18 @@ JSIL.GetArrayBuffer = function (array) {
 
 // Note that this does not let you mutate valueToPin by modifying the pinned pointer! This is read-only.
 JSIL.PinValueAndGetPointer = function (valueToPin, sourceType, targetType) {
-  var temporaryArray = new (JSIL.GetTypedArrayConstructorForElementType(sourceType))(1);
+  var sourceCtor = JSIL.GetTypedArrayConstructorForElementType(sourceType);
+  var targetCtor = JSIL.GetTypedArrayConstructorForElementType(targetType);
+
+  var temporaryArray = new (sourceCtor)(1);
   temporaryArray[0] = valueToPin;
 
-  var resultArray = new (JSIL.GetTypedArrayConstructorForElementType(targetType))(temporaryArray.buffer, 0, temporaryArray.buffer.byteLength);
-  return JSIL.PinAndGetPointer(resultArray);
+  if (sourceCtor == targetCtor) {
+    return JSIL.PinAndGetPointer(temporaryArray);
+  } else {
+    var resultArray = new (targetCtor)(temporaryArray.buffer, 0, temporaryArray.buffer.byteLength);
+    return JSIL.PinAndGetPointer(resultArray);
+  }
 };
 
 // FIXME: Implement unpin operation? Probably not needed yet.
@@ -1637,7 +1644,7 @@ JSIL.$LookupPInvokeMember = function (dllName, methodName) {
 JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignature) {
   var module = JSIL.GlobalNamespace.Module;
 
-  var pinReference = function (value, valueType, cleanupTasks) {
+  var pinReference = function (reference, valueType, cleanupTasks) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[0];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -1646,15 +1653,31 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (sizeOfValue <= 0)
       JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
 
-    var emscriptenPointer = module._malloc(sizeOfValue);
+    var emscriptenOffset = module._malloc(sizeOfValue);
+
+    var tByte = $jsilcore.System.Byte.__Type__;
+    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+    var emscriptenMemoryView = memoryRange.getView(tByte);
+
+    var emscriptenPointer = JSIL.NewPointer(
+      valueTypeObject, memoryRange, emscriptenMemoryView, emscriptenOffset
+    );
+
+    var managedValue = reference.get();
+    emscriptenPointer.set(managedValue);
 
     var cleanupTask = function () {
-      module._free(emscriptenPointer);
+      var unmarshalledValue = emscriptenPointer.get();
+      reference.set(unmarshalledValue);
+
+      module._free(emscriptenOffset);
+
+      // FIXME: Destroy emscripten pointer
     };
 
     cleanupTasks.push(cleanupTask);
 
-    return emscriptenPointer;
+    return emscriptenOffset;
   };
 
   var wrapper = function SimplePInvokeWrapper () {
