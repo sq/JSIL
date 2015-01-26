@@ -1625,5 +1625,11 @@ JSIL.PinValueAndGetPointer = function (valueToPin, sourceType, targetType) {
 // FIXME: Implement unpin operation? Probably not needed yet.
 
 JSIL.$LookupPInvokeMember = function (dllName, methodName) {
-  return null;
+  // FIXME: Store modules per-dll to resolve name collisions?
+  //  Need to merge heaps, though.
+  var module = JSIL.GlobalNamespace.Module;
+
+  var key = "_" + methodName;
+
+  return module[key];
 };
