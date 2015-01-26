@@ -6315,7 +6315,10 @@ JSIL.$PlacePInvokeMember = function (
     JSIL.RuntimeError("Type " + namespace + " already has a member named " + memberName + ", obstructing PInvoke");
 
   var newValue = function PInvokeStub () {
-    JSIL.RuntimeError("Hi, I'm PInvoke!!!! :-)");
+    if (JSIL.GlobalNamespace.Module)
+      JSIL.RuntimeError("Hi, I'm PInvoke!!!! :-)");
+    else
+      JSIL.RuntimeError("No emscripten modules loaded.");
   };
 
   JSIL.SetValueProperty(target, memberName, newValue);
