@@ -2770,7 +2770,9 @@ namespace JSIL {
             try {
                 dollar.WriteTo(output);
                 output.Dot();
-                if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
+                if (methodInfo.IsPInvoke)
+                    output.Identifier("PInvokeMethod", EscapingMode.None);
+                else if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
                     output.Identifier("ExternalMethod", EscapingMode.None);
                 else
                     output.Identifier("Method", EscapingMode.None);
