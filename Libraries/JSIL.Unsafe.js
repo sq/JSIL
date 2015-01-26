@@ -1635,5 +1635,61 @@ JSIL.$LookupPInvokeMember = function (dllName, methodName) {
 };
 
 JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignature) {
-  return nativeMethod;
+  var module = JSIL.GlobalNamespace.Module;
+
+  var pinReference = function (value, valueType, cleanupTasks) {
+    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[0];
+    if (!valueTypeObject)
+      JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
+
+    var sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
+    if (sizeOfValue <= 0)
+      JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
+
+    var emscriptenPointer = module._malloc(sizeOfValue);
+
+    var cleanupTask = function () {
+      module._free(emscriptenPointer);
+    };
+
+    cleanupTasks.push(cleanupTask);
+
+    return emscriptenPointer;
+  };
+
+  var wrapper = function SimplePInvokeWrapper () {
+    var argc = arguments.length | 0;
+    var cleanupTasks = null;
+
+    var convertedArguments = new Array(argc);
+    for (var i = 0; i < argc; i++)
+      convertedArguments[i] = arguments[i];
+
+    for (var i = 0; i < argc; i++) {
+      var argumentType = methodSignature.argumentTypes[i];
+
+      // Allocate space in emscripten heap, copy there before invocation
+      if (argumentType.typeName === "JSIL.Reference") {
+        var valueType = argumentType.genericArguments[0];
+
+        if (!cleanupTasks) cleanupTasks = [];
+
+        convertedArguments[i] = pinReference(convertedArguments[i], valueType, cleanupTasks);
+      }
+    }
+
+    try {
+      var nativeResult = nativeMethod.apply(this, convertedArguments);
+    } finally {
+      if (cleanupTasks)
+      for (var i = 0, l = cleanupTasks.length; i < l; i++) {
+        cleanupTasks[i]();
+      }
+    }
+
+    // FIXME: Convert non-primitive results? Not sure if necessary
+    return nativeResult;
+  };
+
+  return wrapper;
 };
