@@ -1633,3 +1633,7 @@ JSIL.$LookupPInvokeMember = function (dllName, methodName) {
 
   return module[key];
 };
+
+JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignature) {
+  return nativeMethod;
+};
