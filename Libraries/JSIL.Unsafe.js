@@ -1623,3 +1623,7 @@ JSIL.PinValueAndGetPointer = function (valueToPin, sourceType, targetType) {
 };
 
 // FIXME: Implement unpin operation? Probably not needed yet.
+
+JSIL.$LookupPInvokeMember = function (dllName, methodName) {
+  return null;
+};

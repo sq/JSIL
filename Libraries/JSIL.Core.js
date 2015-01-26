@@ -6305,6 +6305,7 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   return members.length - 1;
 };
+
 JSIL.$PlacePInvokeMember = function (
   target, memberName, namespace, dllName, importedName
 ) {
@@ -6315,10 +6316,15 @@ JSIL.$PlacePInvokeMember = function (
     JSIL.RuntimeError("Type " + namespace + " already has a member named " + memberName + ", obstructing PInvoke");
 
   var newValue = function PInvokeStub () {
-    if (JSIL.GlobalNamespace.Module)
-      JSIL.RuntimeError("Hi, I'm PInvoke!!!! :-)");
-    else
+    if (!JSIL.GlobalNamespace.Module)
       JSIL.RuntimeError("No emscripten modules loaded.");
+
+    var methodImpl = JSIL.$LookupPInvokeMember(dllName, importedName);
+    if (!methodImpl)
+      JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
+
+    // FIXME: Ick, slowwwwwwwwww
+    return methodImpl.apply(this, arguments);
   };
 
   JSIL.SetValueProperty(target, memberName, newValue);
