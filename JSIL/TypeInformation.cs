@@ -1837,6 +1837,7 @@ namespace JSIL.Internal {
         public readonly bool IsGeneric;
         public readonly bool IsSealed;
         public readonly bool IsVirtual;
+        public readonly bool IsPInvoke;
 
         protected NamedMethodSignature _Signature = null;
 
@@ -1844,6 +1845,22 @@ namespace JSIL.Internal {
         protected bool? _IsOverloadedRecursive;
         protected bool? _IsRedefinedRecursive;
         protected bool? _ParametersIgnored;
+
+        private static bool _IsExternal (
+            MethodDefinition method, 
+            PropertyInfo property = null,
+            EventInfo evt = null
+        ) {
+            var result = method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl;
+
+            if (property != null)
+                result |= property.IsExternal;
+
+            if (evt != null)
+                result |= evt.IsExternal;
+
+            return result;
+        }
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1853,7 +1870,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             TypeUtil.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            _IsExternal(method),
             sourceProxy
         ) {
             Parameters = method.Parameters.ToArray();
@@ -1863,6 +1880,7 @@ namespace JSIL.Internal {
             IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
+            IsPInvoke = method.IsPInvokeImpl;
         }
 
         public MethodInfo (
@@ -1873,8 +1891,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             TypeUtil.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || 
-                method.IsInternalCall || method.IsPInvokeImpl || property.IsExternal,
+            _IsExternal(method, property: property),
             sourceProxy
         ) {
             Property = property;
@@ -1885,6 +1902,7 @@ namespace JSIL.Internal {
             IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
+            IsPInvoke = method.IsPInvokeImpl;
 
             if (property != null)
                 Metadata.Update(property.Metadata, false);
@@ -1898,7 +1916,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             TypeUtil.IsIgnoredType(method.ReturnType) ||
                 method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            _IsExternal(method, evt: evt),
             sourceProxy
         ) {
             Event = evt;
@@ -1909,6 +1927,7 @@ namespace JSIL.Internal {
             IsGeneric = method.HasGenericParameters;
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
             IsVirtual = method.IsVirtual;
+            IsPInvoke = method.IsPInvokeImpl;
 
             if (evt != null)
                 Metadata.Update(evt.Metadata, false);
