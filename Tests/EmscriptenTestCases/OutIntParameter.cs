@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 
 public static class Program {
-    [DllImport("common.dll")]
+    [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
     public static extern void WriteInt (int value, out int result);
 
     public static void Main () {
