@@ -49,6 +49,7 @@ namespace JSIL.Tests {
         public readonly string[] StubbedAssemblies;
         public readonly string[] JSFilenames;
         public readonly string OutputPath;
+        public readonly string SourceDirectory;
         public readonly Assembly Assembly;
         public readonly CompileResult CompileResult;
         public readonly TimeSpan CompilationElapsed;
@@ -125,6 +126,8 @@ namespace JSIL.Tests {
 
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");
+
+            SourceDirectory = Path.GetDirectoryName(filenames.First());
 
             var assemblyNamePrefix = Path.GetDirectoryName(outputPath).Split(new char[] { '\\', '/' }).Last();
             var assemblyName = Path.Combine(
@@ -249,48 +252,59 @@ namespace JSIL.Tests {
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
+            // FIXME: Not thread safe.
+            var currentDir = Environment.CurrentDirectory;
 
-            if (Assembly.Location.EndsWith(".exe")) {
-                long startedCs = DateTime.UtcNow.Ticks;
+            try {
+                lock (this)
+                    Environment.CurrentDirectory = this.SourceDirectory;
 
-                string stdout, stderr;
-                int exitCode = RunCSharpExecutable(args, out stdout, out stderr);
+                if (Assembly.Location.EndsWith(".exe")) {
+                    long startedCs = DateTime.UtcNow.Ticks;
 
-                long endedCs = DateTime.UtcNow.Ticks;
+                    string stdout, stderr;
+                    int exitCode = RunCSharpExecutable(args, out stdout, out stderr);
 
-                elapsed = endedCs - startedCs;
-                if (exitCode != 0)
-                    return String.Format("Process exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr);
-                return stdout + stderr;
-            } else {
-                TextWriter oldStdout = null;
-                using (var sw = new StringWriter()) {
-                    oldStdout = Console.Out;
-                    try {
-                        oldStdout.Flush();
-                        Console.SetOut(sw);
+                    long endedCs = DateTime.UtcNow.Ticks;
 
-                        var testMethod = GetTestMethod();
-                        long startedCs = DateTime.UtcNow.Ticks;
+                    elapsed = endedCs - startedCs;
+                    if (exitCode != 0)
+                        return String.Format("Process exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr);
+                    return stdout + stderr;
+                } else {
+                    TextWriter oldStdout = null;
+                    using (var sw = new StringWriter()) {
+                        oldStdout = Console.Out;
+                        try {
+                            oldStdout.Flush();
+                            Console.SetOut(sw);
 
-                        if (MainAcceptsArguments.Value) {
-                            testMethod.Invoke(null, new object[] { args });
-                        } else {
-                            if ((args != null) && (args.Length > 0))
-                                throw new ArgumentException("Test case does not accept arguments");
+                            var testMethod = GetTestMethod();
+                            long startedCs = DateTime.UtcNow.Ticks;
 
-                            testMethod.Invoke(null, new object[] { });
+                            if (MainAcceptsArguments.Value) {
+                                testMethod.Invoke(null, new object[] { args });
+                            } else {
+                                if ((args != null) && (args.Length > 0))
+                                    throw new ArgumentException("Test case does not accept arguments");
+
+                                testMethod.Invoke(null, new object[] { });
+                            }
+
+                            long endedCs = DateTime.UtcNow.Ticks;
+
+                            elapsed = endedCs - startedCs;
+                            sw.Flush();
+                            return sw.ToString();
+                        } finally {
+                            Console.SetOut(oldStdout);
                         }
-
-                        long endedCs = DateTime.UtcNow.Ticks;
-
-                        elapsed = endedCs - startedCs;
-                        sw.Flush();
-                        return sw.ToString();
-                    } finally {
-                        Console.SetOut(oldStdout);
                     }
                 }
+            } finally {
+                lock (this)
+                    if (Environment.CurrentDirectory == this.SourceDirectory)
+                        Environment.CurrentDirectory = currentDir;
             }
         }
 
