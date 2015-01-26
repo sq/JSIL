@@ -691,6 +691,7 @@ JSIL.MakeClass("System.SystemException", "System.InvalidCastException", true);
 JSIL.MakeClass("System.SystemException", "System.InvalidOperationException", true);
 JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
 JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
+JSIL.MakeClass("System.SystemException", "System.TypeLoadException", true);
 
 JSIL.MakeClass("System.SystemException", "System.ArgumentException", true);
 JSIL.MakeClass("System.SystemException", "System.ArgumentOutOfRangeException", true);
