@@ -6307,13 +6307,14 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 };
 
 JSIL.$PlacePInvokeMember = function (
-  target, memberName, namespace, dllName, importedName
+  target, memberName, signature, 
+  dllName, importedName
 ) {
   var newValue = null;
   var existingValue = target[memberName];
 
   if (existingValue)
-    JSIL.RuntimeError("Type " + namespace + " already has a member named " + memberName + ", obstructing PInvoke");
+    JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
 
   var lookupThunk = function PInvokeLookupThunk () {
     if (!JSIL.GlobalNamespace.Module)
@@ -6323,7 +6324,9 @@ JSIL.$PlacePInvokeMember = function (
     if (!methodImpl)
       JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
 
-    return methodImpl;
+    var wrapper = JSIL.$WrapPInvokeMethodImpl(methodImpl, memberName, signature);
+
+    return wrapper;
   };
 
   JSIL.SetLazyValueProperty(target, memberName, lookupThunk);
@@ -6363,7 +6366,8 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
   */
 
   JSIL.$PlacePInvokeMember(
-    descriptor.Target, mangledName, this.namespace, "unknown.dll", methodName
+    descriptor.Target, mangledName, signature,
+    "unknown.dll", methodName
   );
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);

@@ -110,6 +110,39 @@
         }
       }
 
+      function loadDlls (shouldAutoRun) {
+        var regex = /dll=([^&]*)/g;
+
+        var dllsToLoad = 0;
+        var doneLoadingDlls = function () {
+          if (shouldAutoRun)
+            window.setTimeout(runScript, 25);
+        };
+
+        while (match = regex.exec(window.location.search)) {
+          var dllPath = match[1].trim();
+
+          if (dllPath.length) {
+            dllsToLoad += 1;
+
+            var elt = document.createElement("script");
+            elt.addEventListener("load", function dllLoaded () {
+              console.log("Loaded DLL " + this.src);
+
+              dllsToLoad -= 1;
+              if (dllsToLoad == 0)
+                doneLoadingDlls();
+            }, true);
+
+            elt.src = dllPath;
+            document.querySelector("body").appendChild(elt);
+          }
+        }
+
+        if (dllsToLoad == 0)
+          doneLoadingDlls();
+      }
+
       function onLoadFixture () {
         var button = document.getElementById("runscript");
         checkHash();
@@ -117,7 +150,11 @@
         button.removeAttribute("disabled");
         button.addEventListener("click", runScript, true);
 
-        if (window.location.search.indexOf("autoRun") >= 0) {
+        var shouldAutoRun = window.location.search.indexOf("autoRun") >= 0;
+
+        if (window.location.search.indexOf("dll=") >= 0) {
+          loadDlls(shouldAutoRun);
+        } else if (shouldAutoRun) {
           window.setTimeout(runScript, 25);
         }
       }
