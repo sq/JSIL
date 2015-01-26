@@ -113,6 +113,7 @@
     <None Include="AnalysisTestCases\Issue371.cs" />
     <None Include="AnalysisTestCases\Issue494.cs" />
     <None Include="AnalysisTestCases\Issue494_2.cs" />
+    <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
     </Compile>
