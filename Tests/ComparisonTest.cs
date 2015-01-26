@@ -574,8 +574,18 @@ namespace JSIL.Tests {
                 var sentinelEnd = "// Test output ends here //";
                 var elapsedPrefix = "// elapsed: ";
 
+                var manifest = String.Format(
+                    "['Script', {0}]", Util.EscapeString(tempFilename)
+                );
+
+                var dlls = Directory.GetFiles(SourceDirectory, "*.emjs");
+                foreach (var dll in dlls) {
+                    manifest += "," + Environment.NewLine +
+                        String.Format("['Library', {0}]", Util.EscapeString(Path.GetFullPath(dll)));
+                }
+
                 StartupPrologue =
-                    String.Format("contentManifest['Test'] = [['Script', {0}]]; ", Util.EscapeString(tempFilename));
+                    String.Format("contentManifest['Test'] = [{0}]; ", manifest);
                 if (evaluationConfig != null && evaluationConfig.AdditionalFilesToLoad != null){
                     foreach (var file in evaluationConfig.AdditionalFilesToLoad)
                     {
