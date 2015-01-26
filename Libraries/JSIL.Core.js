@@ -6582,6 +6582,60 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   return memberBuilder;
 };
 
+JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodName, signature) {
+  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
+
+  var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
+
+  var impl = this.externals;
+
+  var prefix = "";
+  var fullName = this.namespace + "." + methodName;
+
+  if (!descriptor.Static)
+    JSIL.RuntimeError("PInvoke methods must be static: " + fullName);
+
+  /*
+  // FIXME
+  {
+    var pinvokeMethods = this.typeObject.__PInvokeMethods__;
+    var pinvokeMethodIndex = pinvokeMethods.length;
+
+    // FIXME: Avoid doing this somehow?
+    pinvokeMethods.push(signature);
+
+    var getName = function () {
+      var thisType = (this.__Type__ || this.__ThisType__);
+      var lateBoundSignature = thisType.__PInvokeMethods__[externalMethodIndex];
+
+      // FIXME: Why is this necessary now when it wasn't before?
+      if (lateBoundSignature == null)
+        lateBoundSignature = signature;
+
+      return lateBoundSignature.toString(methodName);
+    };
+  }
+
+  JSIL.$PlaceExternalMember(
+    descriptor.Target, impl, prefix, mangledName, this.namespace, getName
+  );
+  */
+
+  var memberBuilder = new JSIL.MemberBuilder(this.context);
+  this.PushMember("MethodInfo", descriptor, { 
+    signature: signature, 
+    genericSignature: null,
+    mangledName: mangledName,
+    isExternal: true,
+    isPInvoke: true,
+    isPlaceholder: false,
+    isConstructor: false,
+    parameterInfo: memberBuilder.parameterInfo
+  }, memberBuilder, true);
+
+  return memberBuilder;
+};
+
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
