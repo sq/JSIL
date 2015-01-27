@@ -8,10 +8,10 @@
 )
 @if errorlevel 1 goto fail
 
-@rem @call emcc -O0 -g4 --memory-init-file 0 -o common.js common/common.cpp
+@call emcc -O0 -g4 --memory-init-file 0 -o common.js common/common.cpp
 @if errorlevel 1 goto fail
 
-@call emcc -Os -O2 --memory-init-file 0 -o common.js common/common.cpp
+@rem @call emcc -Os -O2 --memory-init-file 0 -o common.js common/common.cpp
 @if errorlevel 1 goto fail
 
 @echo Compiled common.emjs

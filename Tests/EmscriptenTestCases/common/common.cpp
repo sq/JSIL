@@ -22,3 +22,14 @@ export(void) WriteStruct (const int i, const float f, TestStruct * result) {
     result->I = i;
     result->F = f;
 }
+
+export(TestStruct) ReturnStruct (const int i, const float f) {
+    TestStruct result;
+    result.I = i;
+    result.F = f;
+    return result;
+}
+
+export(TestStruct) ReturnStructArgument (const TestStruct arg) {
+    return arg;
+}

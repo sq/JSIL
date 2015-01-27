@@ -1644,6 +1644,38 @@ JSIL.$LookupPInvokeMember = function (dllName, methodName) {
 JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignature) {
   var module = JSIL.GlobalNamespace.Module;
 
+  // FIXME: Factor out duplication
+
+  var copyToHeap = function (instance, valueType, cleanupTasks) {
+    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
+    if (!valueTypeObject)
+      JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
+
+    var sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
+    if (sizeOfValue <= 0)
+      JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
+
+    var emscriptenOffset = module._malloc(sizeOfValue);
+
+    var tByte = $jsilcore.System.Byte.__Type__;
+    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+    var emscriptenMemoryView = memoryRange.getView(tByte);
+
+    var emscriptenPointer = JSIL.NewPointer(
+      valueTypeObject, memoryRange, emscriptenMemoryView, emscriptenOffset
+    );
+
+    emscriptenPointer.set(instance);
+
+    var cleanupTask = function () {
+      module._free(emscriptenOffset);
+    };
+
+    cleanupTasks.push(cleanupTask);
+
+    return emscriptenOffset;
+  }
+
   var pinReference = function (reference, valueType, cleanupTasks) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
@@ -1688,6 +1720,10 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     for (var i = 0; i < argc; i++)
       convertedArguments[i] = arguments[i];
 
+    var resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
+    var structResult = resolvedReturnType && resolvedReturnType.__IsStruct__;
+    var resultContainer;
+
     for (var i = 0; i < argc; i++) {
       var argumentType = methodSignature.argumentTypes[i];
 
@@ -1698,7 +1734,27 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
         if (!cleanupTasks) cleanupTasks = [];
 
         convertedArguments[i] = pinReference(convertedArguments[i], valueType, cleanupTasks);
+      } else {
+        var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
+
+        if (resolvedArgumentType.__IsStruct__) {
+          if (!cleanupTasks) cleanupTasks = [];
+
+          convertedArguments[i] = copyToHeap(convertedArguments[i], resolvedArgumentType, cleanupTasks);
+        }
       }
+    }
+
+    if (structResult) {
+      if (!cleanupTasks) cleanupTasks = [];
+
+      resultContainer = new JSIL.BoxedVariable(
+        JSIL.DefaultValue(resolvedReturnType)
+      );
+
+      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, cleanupTasks);
+
+      convertedArguments.unshift(resultHeapAddress);
     }
 
     try {
@@ -1710,8 +1766,10 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
       }
     }
 
-    // FIXME: Convert non-primitive results? Not sure if necessary
-    return nativeResult;
+    if (structResult)
+      return resultContainer.get();
+    else
+      return nativeResult;
   };
 
   return wrapper;
