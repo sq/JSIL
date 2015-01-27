@@ -2,7 +2,7 @@
 #include <emscripten.h>
 #define export(T) extern "C" T EMSCRIPTEN_KEEPALIVE 
 #else
-#define export(T) extern "C" T __declspec(dllexport) 
+#define export(T) extern "C" __declspec(dllexport) T
 #endif
 
 struct TestStruct {
@@ -32,4 +32,8 @@ export(TestStruct) ReturnStruct (const int i, const float f) {
 
 export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
+}
+
+export(const char *) ReturnHello () {
+    return "hello";
 }
