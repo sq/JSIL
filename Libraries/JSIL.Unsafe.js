@@ -947,6 +947,26 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   );
 });
 
+JSIL.Malloc = function (size) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  if (!module)
+    JSIL.RuntimeError("No emscripten modules loaded");
+
+  // FIXME
+  return new System.IntPtr(module._malloc(size));
+};
+
+JSIL.Free = function (ptr) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  if (!module)
+    JSIL.RuntimeError("No emscripten modules loaded");
+
+  // FIXME
+  module._free(ptr.value);
+};
+
 JSIL.IsPackedArray = function IsPackedArray (object) {
   return object && !!object.__IsPackedArray__;
 };
