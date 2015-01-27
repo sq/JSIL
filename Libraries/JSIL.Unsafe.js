@@ -1661,26 +1661,44 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     return emscriptenOffset;
   };
 
-  var copyToHeap = function (instance, valueType, queueCleanup) {
+  var maybeCopyToHeap = function (instance, valueType, queueCleanup) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
 
-    var sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
-    if (sizeOfValue <= 0)
-      JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
+    var sizeOfValue;
+    var isString = (valueTypeObject.__FullName__ === "System.String");
+
+    if (isString) {
+      sizeOfValue = instance.length + 1;
+    } else if (valueTypeObject.__IsStruct__) {
+      sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
+      if (sizeOfValue <= 0)
+        JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
+    } else {
+      // Just pass by value
+      return instance;
+    }
 
     var result = allocateTemporary(sizeOfValue, null, queueCleanup);
 
-    var tByte = $jsilcore.System.Byte.__Type__;
-    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-    var emscriptenMemoryView = memoryRange.getView(tByte);
+    if (isString) {
+      System.Text.Encoding.ASCII.GetBytes(
+        instance, 0, instance.length, module.HEAPU8, result
+      );
 
-    var emscriptenPointer = JSIL.NewPointer(
-      valueTypeObject, memoryRange, emscriptenMemoryView, result
-    );
+      module.HEAPU8[(result + instance.length) | 0] = 0;
+    } else {
+      var tByte = $jsilcore.System.Byte.__Type__;
+      var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+      var emscriptenMemoryView = memoryRange.getView(tByte);
 
-    emscriptenPointer.set(instance);
+      var emscriptenPointer = JSIL.NewPointer(
+        valueTypeObject, memoryRange, emscriptenMemoryView, result
+      );
+
+      emscriptenPointer.set(instance);
+    }
 
     return result;
   }
@@ -1776,9 +1794,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
       } else {
         var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
 
-        if (resolvedArgumentType.__IsStruct__) {
-          convertedArguments[i] = copyToHeap(convertedArguments[i], resolvedArgumentType, queueCleanup);
-        }
+        convertedArguments[i] = maybeCopyToHeap(convertedArguments[i], resolvedArgumentType, queueCleanup);
       }
     }
 

@@ -41,3 +41,10 @@ export(void) MutateStringArgument (char * buf, int capacity) {
     // strcat_s(buf, capacity, " world");
     strcat(buf, " world");
 }
+
+export(int) CopyStringArgument (char * dst, int capacity, const char * src) {
+    int length = strlen(src);
+    memset(dst, 0, capacity);
+    strcpy(dst, src);
+    return length;
+}
