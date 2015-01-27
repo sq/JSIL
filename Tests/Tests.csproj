@@ -114,6 +114,8 @@
     <None Include="AnalysisTestCases\Issue494.cs" />
     <None Include="AnalysisTestCases\Issue494_2.cs" />
     <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
+    <None Include="EmscriptenTestCases\OutIntParameter.cs" />
+    <None Include="EmscriptenTestCases\RefIntParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
