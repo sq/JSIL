@@ -117,6 +117,7 @@
     <None Include="EmscriptenTestCases\OutIntParameter.cs" />
     <None Include="EmscriptenTestCases\RefIntParameter.cs" />
     <None Include="EmscriptenTestCases\OutStructParameter.cs" />
+    <None Include="EmscriptenTestCases\ByValueStructParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
