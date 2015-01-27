@@ -1646,7 +1646,22 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
 
   // FIXME: Factor out duplication
 
-  var copyToHeap = function (instance, valueType, cleanupTasks) {
+  var allocateTemporary = function (size, cleanup, queueCleanup) {
+    var emscriptenOffset = module._malloc(size);
+
+    var cleanupTask = function () {
+      if (cleanup)
+        cleanup();
+
+      module._free(emscriptenOffset);
+    };
+
+    queueCleanup(cleanupTask);
+
+    return emscriptenOffset;
+  };
+
+  var copyToHeap = function (instance, valueType, queueCleanup) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -1655,28 +1670,22 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (sizeOfValue <= 0)
       JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
 
-    var emscriptenOffset = module._malloc(sizeOfValue);
+    var result = allocateTemporary(sizeOfValue, null, queueCleanup);
 
     var tByte = $jsilcore.System.Byte.__Type__;
     var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
     var emscriptenMemoryView = memoryRange.getView(tByte);
 
     var emscriptenPointer = JSIL.NewPointer(
-      valueTypeObject, memoryRange, emscriptenMemoryView, emscriptenOffset
+      valueTypeObject, memoryRange, emscriptenMemoryView, result
     );
 
     emscriptenPointer.set(instance);
 
-    var cleanupTask = function () {
-      module._free(emscriptenOffset);
-    };
-
-    cleanupTasks.push(cleanupTask);
-
-    return emscriptenOffset;
+    return result;
   }
 
-  var pinReference = function (reference, valueType, cleanupTasks) {
+  var pinReference = function (reference, valueType, queueCleanup) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -1685,66 +1694,64 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (sizeOfValue <= 0)
       JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
 
-    var emscriptenOffset = module._malloc(sizeOfValue);
+    var result = allocateTemporary(
+      sizeOfValue, unmarshal, queueCleanup
+    );
 
     var tByte = $jsilcore.System.Byte.__Type__;
     var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
     var emscriptenMemoryView = memoryRange.getView(tByte);
 
     var emscriptenPointer = JSIL.NewPointer(
-      valueTypeObject, memoryRange, emscriptenMemoryView, emscriptenOffset
+      valueTypeObject, memoryRange, emscriptenMemoryView, result
     );
 
     var managedValue = reference.get();
     emscriptenPointer.set(managedValue);
 
-    var cleanupTask = function () {
+    function unmarshal () {
       var unmarshalledValue = emscriptenPointer.get();
       reference.set(unmarshalledValue);
-
-      module._free(emscriptenOffset);
-
-      // FIXME: Destroy emscripten pointer
     };
 
-    cleanupTasks.push(cleanupTask);
-
-    return emscriptenOffset;
+    return result;
   };
 
-  var pinStringBuilder = function (stringBuilder, cleanupTasks) {
-    var emscriptenOffset = module._malloc(stringBuilder.get_Capacity());
+  var pinStringBuilder = function (stringBuilder, queueCleanup) {
+    var result = allocateTemporary(
+      stringBuilder.get_Capacity(), unmarshal, queueCleanup
+    );
 
     var tByte = $jsilcore.System.Byte.__Type__;
     var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
     var emscriptenMemoryView = memoryRange.getView(tByte);
 
     for (var i = 0, l = stringBuilder._capacity; i < l; i++)
-      module.HEAPU8[(i + emscriptenOffset) | 0] = 0;
+      module.HEAPU8[(i + result) | 0] = 0;
 
     System.Text.Encoding.ASCII.GetBytes(
-      stringBuilder._str, 0, stringBuilder._str.length, module.HEAPU8, emscriptenOffset
+      stringBuilder._str, 0, stringBuilder._str.length, module.HEAPU8, result
     );
 
-    var cleanupTask = function () {
-      // FIXME
+    function unmarshal () {
       stringBuilder._str = JSIL.StringFromNullTerminatedByteArray(
-        module.HEAPU8, emscriptenOffset, stringBuilder._capacity
+        module.HEAPU8, result, stringBuilder._capacity
       );
-
-      module._free(emscriptenOffset);
-
-      // FIXME: Destroy emscripten pointer
     };
 
-    cleanupTasks.push(cleanupTask);
-
-    return emscriptenOffset;
+    return result;
   };
 
   var wrapper = function SimplePInvokeWrapper () {
     var argc = arguments.length | 0;
     var cleanupTasks = null;
+
+    function queueCleanup (t) {
+      if (!cleanupTasks)
+        cleanupTasks = [];
+
+      cleanupTasks.push(t);
+    };
 
     var convertedArguments = new Array(argc);
     for (var i = 0; i < argc; i++)
@@ -1763,32 +1770,24 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
       if (argumentType.typeName === "JSIL.Reference") {
         var valueType = argumentType.genericArguments[0];
 
-        if (!cleanupTasks) cleanupTasks = [];
-
-        convertedArguments[i] = pinReference(convertedArguments[i], valueType, cleanupTasks);
+        convertedArguments[i] = pinReference(convertedArguments[i], valueType, queueCleanup);
       } else if (argumentType.typeName === "System.Text.StringBuilder") {
-        if (!cleanupTasks) cleanupTasks = [];
-        
-        convertedArguments[i] = pinStringBuilder(convertedArguments[i], cleanupTasks);
+        convertedArguments[i] = pinStringBuilder(convertedArguments[i], queueCleanup);
       } else {
         var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
 
         if (resolvedArgumentType.__IsStruct__) {
-          if (!cleanupTasks) cleanupTasks = [];
-
-          convertedArguments[i] = copyToHeap(convertedArguments[i], resolvedArgumentType, cleanupTasks);
+          convertedArguments[i] = copyToHeap(convertedArguments[i], resolvedArgumentType, queueCleanup);
         }
       }
     }
 
     if (structResult) {
-      if (!cleanupTasks) cleanupTasks = [];
-
       resultContainer = new JSIL.BoxedVariable(
         JSIL.DefaultValue(resolvedReturnType)
       );
 
-      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, cleanupTasks);
+      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, queueCleanup);
 
       convertedArguments.unshift(resultHeapAddress);
     }
