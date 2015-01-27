@@ -112,13 +112,19 @@ namespace JSIL.Tests {
         protected override Translator.Configuration MakeConfiguration () {
             var result = base.MakeConfiguration();
 
+            result.CodeGenerator.EnableUnsafeCode = true;
+
             return result;
         }
 
         [Test]
         [TestCaseSource("EmscriptenTestCasesSource")]
         public void EmscriptenTestCases (object[] parameters) {
-            RunSingleComparisonTestCase(parameters);
+            RunSingleComparisonTestCase(
+                parameters,
+                MakeConfiguration,
+                compilerOptions: "/unsafe"
+            );
         }
 
         protected IEnumerable<TestCaseData> EmscriptenTestCasesSource () {
