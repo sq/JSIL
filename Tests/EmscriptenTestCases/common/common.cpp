@@ -5,6 +5,8 @@
 #define export(T) extern "C" __declspec(dllexport) T
 #endif
 
+#include <string.h>
+
 struct TestStruct {
     int I;
     float F;
@@ -34,6 +36,8 @@ export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
 }
 
-export(const char *) ReturnHello () {
-    return "hello";
+export(void) MutateStringArgument (char * buf, int capacity) {
+    // #%(*#@%OJIJ#LW% i hate clang
+    // strcat_s(buf, capacity, " world");
+    strcat(buf, " world");
 }

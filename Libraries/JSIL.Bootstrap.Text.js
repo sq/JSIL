@@ -1460,6 +1460,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (JSIL.MethodSignature.Void), 
     function _ctor () {
       this._str = "";
+      this._capacity = 0;
     }
   );
 
@@ -1467,6 +1468,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (capacity) {
       this._str = "";
+      this._capacity = capacity;
     }
   );
 
@@ -1474,6 +1476,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function _ctor (value) {
       this._str = value;
+      this._capacity = value.length;
     }
   );
 
@@ -1481,6 +1484,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (new JSIL.MethodSignature(null, [$.String, $.Int32], [])), 
     function _ctor (value, capacity) {
       this._str = value;
+      this._capacity = capacity;
     }
   );
 
@@ -1502,10 +1506,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
       }
 
     }
+
+    self._capacity = Math.max(self._capacity, self._str.length);
   };
 
   var appendNumber = function (self, num) {
     self._str += String(num);
+
+    self._capacity = Math.max(self._capacity, self._str.length);
   };
 
   $.Method({Static:false, Public:true }, "Append", 
@@ -1523,6 +1531,8 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     function Append (value, startIndex, charCount) {
       for (var i = 0; i < charCount; i++)
         this._str += value[startIndex + i];
+
+      this._capacity = Math.max(this._capacity, this._str.length);
     }
   );
 
@@ -1555,6 +1565,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (new JSIL.MethodSignature($.Type, [$.Boolean], [])), 
     function Append (value) {
       this._str += (value ? "True" : "False");
+      this._capacity = Math.max(this._capacity, this._str.length);
     }
   );
 
@@ -1640,6 +1651,8 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     function Append (value) {
       for (var i = 0; i < value.length; i++)
         this._str += value[i];
+
+      this._capacity = Math.max(this._capacity, this._str.length);
     }
   );
 
@@ -1712,12 +1725,28 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "set_Capacity", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Capacity (value) {
+      // FIXME: What happens if value is lower than the length of the current contents?
+      this._capacity = Math.max(value | 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Capacity", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Capacity () {
+      return this._capacity;
+    }
+  );
+
   var replace = function (self, oldText, newText, startIndex, count) {
     var prefix = self._str.substr(0, startIndex);
     var suffix = self._str.substr(startIndex + count);
     var region = self._str.substr(startIndex, count);
     var result = prefix + region.split(oldText).join(newText) + suffix;
     self._str = result;
+    self._capacity = Math.max(self._capacity, self._str.length);
     return self;
   };
 
