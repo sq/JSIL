@@ -1720,9 +1720,11 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     for (var i = 0; i < argc; i++)
       convertedArguments[i] = arguments[i];
 
-    var resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-    var structResult = resolvedReturnType && resolvedReturnType.__IsStruct__;
-    var resultContainer;
+    var structResult = false, resolvedReturnType = null, resultContainer = null;
+    if (methodSignature.returnType) {
+      resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
+      structResult = resolvedReturnType && resolvedReturnType.__IsStruct__;
+    }
 
     for (var i = 0; i < argc; i++) {
       var argumentType = methodSignature.argumentTypes[i];
