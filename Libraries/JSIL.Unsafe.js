@@ -1712,6 +1712,36 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     return emscriptenOffset;
   };
 
+  var pinStringBuilder = function (stringBuilder, cleanupTasks) {
+    var emscriptenOffset = module._malloc(stringBuilder.get_Capacity());
+
+    var tByte = $jsilcore.System.Byte.__Type__;
+    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+    var emscriptenMemoryView = memoryRange.getView(tByte);
+
+    for (var i = 0, l = stringBuilder._capacity; i < l; i++)
+      module.HEAPU8[(i + emscriptenOffset) | 0] = 0;
+
+    System.Text.Encoding.ASCII.GetBytes(
+      stringBuilder._str, 0, stringBuilder._str.length, module.HEAPU8, emscriptenOffset
+    );
+
+    var cleanupTask = function () {
+      // FIXME
+      stringBuilder._str = JSIL.StringFromNullTerminatedByteArray(
+        module.HEAPU8, emscriptenOffset, stringBuilder._capacity
+      );
+
+      module._free(emscriptenOffset);
+
+      // FIXME: Destroy emscripten pointer
+    };
+
+    cleanupTasks.push(cleanupTask);
+
+    return emscriptenOffset;
+  };
+
   var wrapper = function SimplePInvokeWrapper () {
     var argc = arguments.length | 0;
     var cleanupTasks = null;
@@ -1736,6 +1766,10 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
         if (!cleanupTasks) cleanupTasks = [];
 
         convertedArguments[i] = pinReference(convertedArguments[i], valueType, cleanupTasks);
+      } else if (argumentType.typeName === "System.Text.StringBuilder") {
+        if (!cleanupTasks) cleanupTasks = [];
+        
+        convertedArguments[i] = pinStringBuilder(convertedArguments[i], cleanupTasks);
       } else {
         var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
 
