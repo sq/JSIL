@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsmJs.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Builtins.cs" />
     <Compile Include="PackedArray.cs" />

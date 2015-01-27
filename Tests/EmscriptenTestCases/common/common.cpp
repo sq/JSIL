@@ -49,11 +49,3 @@ export(int) CopyStringArgument (char * dst, int capacity, const char * src) {
     strcpy(dst, src);
     return length;
 }
-
-export(void *) Alloc (int sizeBytes) {
-    return malloc(sizeBytes);
-}
-
-export(void) Free (void * ptr) {
-    free(ptr);
-}
