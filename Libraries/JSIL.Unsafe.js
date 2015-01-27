@@ -1661,7 +1661,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     return emscriptenOffset;
   };
 
-  var maybeCopyToHeap = function (instance, valueType, queueCleanup) {
+  var byValueMarshal = function (instance, valueType, queueCleanup) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -1671,6 +1671,12 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
 
     if (isString) {
       sizeOfValue = instance.length + 1;
+    } else if (valueTypeObject.__FullName__ === "System.IntPtr") {
+      // FIXME: Pinned pointers
+      if (instance.value === null)
+        JSIL.RuntimeError("Pinned pointers not supported");
+
+      return instance.value;
     } else if (valueTypeObject.__IsStruct__) {
       sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
       if (sizeOfValue <= 0)
@@ -1775,10 +1781,11 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     for (var i = 0; i < argc; i++)
       convertedArguments[i] = arguments[i];
 
-    var structResult = false, resolvedReturnType = null, resultContainer = null;
+    var structResult = false, resolvedReturnType = null, resultContainer = null, intPtrResult = false;
     if (methodSignature.returnType) {
       resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-      structResult = resolvedReturnType && resolvedReturnType.__IsStruct__;
+      intPtrResult = resolvedReturnType && resolvedReturnType.__FullName__ === "System.IntPtr";
+      structResult = (resolvedReturnType && resolvedReturnType.__IsStruct__) && !intPtrResult;
     }
 
     for (var i = 0; i < argc; i++) {
@@ -1794,7 +1801,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
       } else {
         var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
 
-        convertedArguments[i] = maybeCopyToHeap(convertedArguments[i], resolvedArgumentType, queueCleanup);
+        convertedArguments[i] = byValueMarshal(convertedArguments[i], resolvedArgumentType, queueCleanup);
       }
     }
 
@@ -1819,6 +1826,9 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
 
     if (structResult)
       return resultContainer.get();
+    else if (intPtrResult)
+      // FIXME: Generate a pinned pointer into the emscripten heap?
+      return new System.IntPtr(nativeResult);
     else
       return nativeResult;
   };

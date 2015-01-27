@@ -7,7 +7,6 @@ public static class Program {
     [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl, CharSet=CharSet.Ansi)]
     public static extern int CopyStringArgument (
         StringBuilder dest, int capacity,
-        [MarshalAs(UnmanagedType.LPStr)]
         string source
     );
 
