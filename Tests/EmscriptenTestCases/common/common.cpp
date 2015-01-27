@@ -5,6 +5,7 @@
 #define export(T) extern "C" __declspec(dllexport) T
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 
 struct TestStruct {
@@ -47,4 +48,12 @@ export(int) CopyStringArgument (char * dst, int capacity, const char * src) {
     memset(dst, 0, capacity);
     strcpy(dst, src);
     return length;
+}
+
+export(void *) Alloc (int sizeBytes) {
+    return malloc(sizeBytes);
+}
+
+export(void) Free (void * ptr) {
+    free(ptr);
 }
