@@ -1645,7 +1645,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
   var module = JSIL.GlobalNamespace.Module;
 
   var pinReference = function (reference, valueType, cleanupTasks) {
-    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[0];
+    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
 

@@ -116,6 +116,7 @@
     <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
     <None Include="EmscriptenTestCases\OutIntParameter.cs" />
     <None Include="EmscriptenTestCases\RefIntParameter.cs" />
+    <None Include="EmscriptenTestCases\OutStructParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
@@ -220,6 +221,7 @@
     <None Include="ReflectionTestCases\GetParameterAttributes.cs" />
     <None Include="ReflectionTestCases\GetConstructorAttributes.cs" />
     <None Include="SpecialTestCases\JSReplacementTypeofThisStatic.cs" />
+    <None Include="EmscriptenTestCases\common\common.cpp" />
     <Content Include="JSTestCases\SameNameDifferentReturnTypes.js" />
     <Content Include="JSTestCases\SameNameWithOverride.js" />
     <None Include="AnalysisTestCases\Issue395.cs" />
