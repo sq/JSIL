@@ -119,6 +119,7 @@
     <None Include="EmscriptenTestCases\ByValueStructParameter.cs" />
     <None Include="EmscriptenTestCases\ByValueStructResult.cs" />
     <None Include="EmscriptenTestCases\MutateStringArgument.cs" />
+    <None Include="EmscriptenTestCases\CopyStringArgument.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
