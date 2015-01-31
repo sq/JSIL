@@ -246,6 +246,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
           JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
 
         if (!warnedAboutFunctionTable) {
+          warnedAboutFunctionTable = true;
           JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
         }
 
