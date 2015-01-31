@@ -37,22 +37,28 @@ export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
 }
 
-export(void) MutateStringArgument (char * buf, int capacity) {
+export(void) MutateStringArgument (char * buf, const int capacity) {
     // #%(*#@%OJIJ#LW% i hate clang
     // strcat_s(buf, capacity, " world");
     strcat(buf, " world");
 }
 
-export(int) CopyStringArgument (char * dst, int capacity, const char * src) {
+export(int) CopyStringArgument (char * dst, const int capacity, const char * src) {
     int length = strlen(src);
     memset(dst, 0, capacity);
     strcpy(dst, src);
     return length;
 }
 
-export(int) WriteStringIntoBuffer (unsigned char * dst, int capacity) {
+export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     const char * str = "hello world";
     memset(dst, 0, capacity);
     strcpy((char *)dst, str);
     return strlen(str);
 }
+
+typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
+
+export(TPWriteStringIntoBuffer) ReturnFunctionPointer () {
+    return WriteStringIntoBuffer;
+};
