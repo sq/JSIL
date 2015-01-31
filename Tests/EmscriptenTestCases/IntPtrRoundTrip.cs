@@ -10,13 +10,13 @@ public static class Program {
     public static extern void WriteInt (int value, IntPtr buffer);
 
     public static void Main () {
-        var buf = Asm.Js.malloc(64);
+        var buf = NativeStdlib.malloc(64);
 
         WriteInt(10, buf);
 
         int i = ReadInt(buf);
 
-        Asm.Js.free(buf);
+        NativeStdlib.free(buf);
 
         Console.WriteLine(i);
     }
