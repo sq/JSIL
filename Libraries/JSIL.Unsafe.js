@@ -987,10 +987,10 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       var sizeBytes = this.ElementSize * this.Size;
 
       var module = JSIL.GlobalNamespace.Module;
-      var emscriptenOffset = module._malloc(sizeBytes);
+      this.EmscriptenOffset = module._malloc(sizeBytes);
 
       var tByte = $jsilcore.System.Byte.__Type__;
-      this.MemoryRange = new JSIL.MemoryRange(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
+      this.MemoryRange = new JSIL.MemoryRange(module.HEAPU8.buffer, this.EmscriptenOffset, sizeBytes);
 
       if (this.T.__IsNativeType__) {
         this._Array = this.MemoryRange.getView(this.T);
@@ -1000,6 +1000,13 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
         var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
         this._Array = new arrayType(buffer, this.MemoryRange);
       }
+    }
+  );
+
+  $.Method({Static: true, Public: true }, "op_Implicit", 
+    new JSIL.MethodSignature(TArray, [T], []),
+    function (self) {
+      return self._Array;
     }
   );
 
@@ -1022,7 +1029,7 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       this.IsNotDisposed = false;
       var module = JSIL.GlobalNamespace.Module;
 
-      module._free(this.MemoryRange.offset);
+      module._free(this.EmscriptenOffset);
     }
   );
 
@@ -1157,10 +1164,10 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
     memoryRange.storeExistingView(objectToPin);
     memoryView = objectToPin;
 
-    offsetInBytes = (offsetInElements * objectToPin.BYTES_PER_ELEMENT) | 0;
+    offsetInBytes = (((offsetInElements * objectToPin.BYTES_PER_ELEMENT) | 0) + objectToPin.byteOffset) | 0;
   } else {
     memoryView = memoryRange.getView($jsilcore.System.Byte.__Type__);
-    offsetInBytes = (offsetInElements * objectToPin.nativeSize) | 0;
+    offsetInBytes = (((offsetInElements * objectToPin.nativeSize) | 0) + objectToPin.byteOffset) | 0;;
   }
 
   var elementType = null;
@@ -1789,6 +1796,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (isString) {
       sizeOfValue = instance.length + 1;
     } else if (valueTypeObject.__FullName__ === "System.IntPtr") {
+      return pointerMarshal(instance, true);
     } else if (valueTypeObject.__FullNameWithoutArguments__ === "JSIL.Pointer") {
       return pointerMarshal(instance, false);
     } else if (valueTypeObject.__IsStruct__) {
