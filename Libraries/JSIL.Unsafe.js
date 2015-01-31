@@ -1161,14 +1161,19 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
   var memoryView;
 
+  var pinTargetByteOffset = 0;
+  if (typeof (objectToPin.byteOffset) === "number") {
+    pinTargetByteOffset = objectToPin.byteOffset | 0;
+  }
+
   if (!isPackedArray) {
     memoryRange.storeExistingView(objectToPin);
     memoryView = objectToPin;
 
-    offsetInBytes = (((offsetInElements * objectToPin.BYTES_PER_ELEMENT) | 0) + objectToPin.byteOffset) | 0;
+    offsetInBytes = (((offsetInElements * objectToPin.BYTES_PER_ELEMENT) | 0) + pinTargetByteOffset) | 0;
   } else {
     memoryView = memoryRange.getView($jsilcore.System.Byte.__Type__);
-    offsetInBytes = (((offsetInElements * objectToPin.nativeSize) | 0) + objectToPin.byteOffset) | 0;;
+    offsetInBytes = (((offsetInElements * objectToPin.nativeSize) | 0) + pinTargetByteOffset) | 0;
   }
 
   var elementType = null;
