@@ -297,7 +297,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
       if (typeof (length) === "number") {
         this.length = length | 0;
       } else {
-        this.length = buffer.length;
+        this.length = buffer.byteLength;
       }
 
       if (typeof (Map) !== "undefined") {
