@@ -14,7 +14,7 @@ public static unsafe class Program {
         using (var na = new NativePackedArray<byte>(512)) {
             int numBytes;
             fixed (byte* pBuffer = na.Array)
-                numBytes = WriteStringIntoBuffer(pBuffer, na.Size);
+                numBytes = WriteStringIntoBuffer(pBuffer, na.Length);
 
             var s = Encoding.ASCII.GetString(na, 0, numBytes);
             Console.WriteLine("'{0}'", s);
