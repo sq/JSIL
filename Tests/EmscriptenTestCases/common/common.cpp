@@ -49,3 +49,10 @@ export(int) CopyStringArgument (char * dst, int capacity, const char * src) {
     strcpy(dst, src);
     return length;
 }
+
+export(int) WriteStringIntoBuffer (unsigned char * dst, int capacity) {
+    const char * str = "hello world";
+    memset(dst, 0, capacity);
+    strcpy((char *)dst, str);
+    return strlen(str);
+}

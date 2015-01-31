@@ -122,6 +122,7 @@
     <None Include="EmscriptenTestCases\MutateStringArgument.cs" />
     <None Include="EmscriptenTestCases\CopyStringArgument.cs" />
     <None Include="EmscriptenTestCases\IntPtrRoundTrip.cs" />
+    <None Include="EmscriptenTestCases\PinnedStringBuffer.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>

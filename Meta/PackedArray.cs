@@ -55,6 +55,45 @@ namespace JSIL.Runtime {
         int Length { get; }
     }
 
+    public class NativePackedArray<T> : IDisposable
+        where T : struct
+    {
+        public readonly int Size;
+
+        private readonly T[] _Array;
+        private bool IsNotDisposed;
+
+        public NativePackedArray (int size) {
+            _Array = new T[size];
+            Size = size;
+            IsNotDisposed = true;
+        }
+
+        public T[] Array {
+            get {
+                if (!IsNotDisposed)
+                    throw new ObjectDisposedException("this");
+
+                return _Array;
+            }
+        }
+
+        public static implicit operator T[] (NativePackedArray<T> nativeArray) {
+            if (!nativeArray.IsNotDisposed)
+                throw new ObjectDisposedException("nativeArray");
+
+            return nativeArray.Array;
+        }
+
+        [JSReplacement("JSIL.PackedArray.Dispose($this)")]
+        public void Dispose () {
+            if (!IsNotDisposed)
+                throw new ObjectDisposedException("this");
+
+            IsNotDisposed = false;
+        }
+    }
+
     public static class PackedArray {
         [JSReplacement("JSIL.PackedArray.New($T, $size)")]
         [JSPackedArrayReturnValue]

@@ -290,8 +290,15 @@ JSIL.MakeStaticClass("System.Runtime.InteropServices.Marshal", true, [], functio
 
 JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function MemoryRange_ctor (buffer) {
+    function MemoryRange_ctor (buffer, offset, length) {
       this.buffer = buffer;
+      this.offset = offset | 0;
+
+      if (typeof (length) === "number") {
+        this.length = length | 0;
+      } else {
+        this.length = buffer.length;
+      }
 
       if (typeof (Map) !== "undefined") {
         this.viewCache = new Map();
@@ -349,7 +356,7 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 
       var result = this.getCachedView(arrayCtor);
       if (!result) {
-        result = new arrayCtor(this.buffer);
+        result = new arrayCtor(this.buffer, this.offset, this.length);
         this.setCachedView(arrayCtor, result);
       }
 
@@ -873,17 +880,22 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
   var TRef = JSIL.Reference.Of(T);
 
   $.RawMethod(false, ".ctor",
-    function PackedStructArray_ctor (buffer) {
+    function PackedStructArray_ctor (byteArray, memoryRange) {
       this.__IsPackedArray__ = true;
-      this.buffer = buffer;
-      this.memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);
-      this.bytes = this.memoryRange.getView($jsilcore.System.Byte.__Type__);
+      this.bytes = byteArray;
+      this.buffer = byteArray.buffer;
+
+      if (memoryRange)
+        this.memoryRange = memoryRange;
+      else
+        this.memoryRange = JSIL.GetMemoryRangeForBuffer(this.buffer);
+
       this.nativeSize = this.T.__NativeSize__;
       this.elementProxyConstructor = JSIL.$GetStructElementProxyConstructor(this.T);
       this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(this.T);
       this.unmarshaller = JSIL.$GetStructUnmarshaller(this.T);
       this.marshaller = JSIL.$GetStructMarshaller(this.T);
-      this.length = (buffer.byteLength / this.nativeSize) | 0;
+      this.length = (this.memoryRange.length / this.nativeSize) | 0;
     }
   );
 
@@ -957,6 +969,70 @@ JSIL.Malloc = function (size) {
   return new System.IntPtr(module._malloc(size));
 };
 
+JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"], function ($) {
+  var T = new JSIL.GenericParameter("T", "JSIL.Runtime.NativePackedArray`1");
+  var TArray = System.Array.Of(T);
+
+  $.Field({Public: false, Static: false, ReadOnly: true}, "_Array", TArray);
+  $.Field({Public: true , Static: false, ReadOnly: true}, "Size", $.Int32);
+  $.Field({Public: false, Static: false}, "IsNotDisposed", $.Boolean);
+
+  $.Method({Static: false, Public: true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$.Int32], []),
+    function (size) {
+      this.Size = size;
+      this.IsNotDisposed = true;
+
+      this.ElementSize = JSIL.GetNativeSizeOf(this.T);
+      var sizeBytes = this.ElementSize * this.Size;
+
+      var module = JSIL.GlobalNamespace.Module;
+      var emscriptenOffset = module._malloc(sizeBytes);
+
+      var tByte = $jsilcore.System.Byte.__Type__;
+      this.MemoryRange = new JSIL.MemoryRange(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
+
+      if (this.T.__IsNativeType__) {
+        this._Array = this.MemoryRange.getView(this.T);
+      } else {
+        var buffer = this.MemoryRange.getView(tByte);
+
+        var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
+        this._Array = new arrayType(buffer, this.MemoryRange);
+      }
+    }
+  );
+
+  $.Method(
+    {Public: true , Static: false}, "get_Array",
+    new JSIL.MethodSignature(TArray, [], []),
+    function get_Array () {
+      return this._Array;
+    }
+  );
+
+  $.Method(
+    {Public: true , Static: false}, "Dispose",
+    JSIL.MethodSignature.Void,
+    function Dispose () {
+      if (!this.IsNotDisposed)
+        // FIXME: Throw
+        return;
+
+      this.IsNotDisposed = false;
+      var module = JSIL.GlobalNamespace.Module;
+
+      module._free(this.MemoryRange.offset);
+    }
+  );
+
+  $.Property({}, "Array");
+
+  $.ImplementInterfaces(
+    /* 0 */ System.IDisposable
+  );
+});
+
 JSIL.Free = function (ptr) {
   var module = JSIL.GlobalNamespace.Module;
 
@@ -982,8 +1058,14 @@ JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer)
     elementTypePublicInterface = elementType.__PublicInterface__;
   }
 
-  if (!elementTypeObject.__IsStruct__)
+  if (!elementTypeObject.__IsStruct__) {
+    if (elementTypeObject.__IsNativeType__) {
+      var typeCtor = JSIL.GetTypedArrayConstructorForElementType(elementTypeObject);
+      return new typeCtor(sizeOrInitializer);
+    }
+
     throw new System.NotImplementedException("Cannot initialize a packed array with non-struct elements");
+  }
 
   var result = null, size = 0;
   var initializerIsArray = JSIL.IsArray(sizeOrInitializer);
@@ -995,7 +1077,7 @@ JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer)
   }
 
   var sizeInBytes = (JSIL.GetNativeSizeOf(elementTypeObject) * size) | 0;
-  var buffer = new ArrayBuffer(sizeInBytes);
+  var buffer = new Uint8Array(sizeInBytes);
   var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
 
   var result = new arrayType(buffer);
@@ -1681,6 +1763,21 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     return emscriptenOffset;
   };
 
+  var pointerMarshal = function (instance, isSystemIntPtr, queueCleanup) {
+    if (isSystemIntPtr) {
+      // FIXME: Pinned pointers
+      if (instance.value === null)
+        JSIL.RuntimeError("Pinned pointers not supported");
+
+      return instance.value;
+    }
+
+    if (instance.memoryRange.buffer !== module.HEAPU8.buffer)
+      JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
+
+    JSIL.RuntimeError("hi");
+  };
+
   var byValueMarshal = function (instance, valueType, queueCleanup) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
@@ -1692,11 +1789,8 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (isString) {
       sizeOfValue = instance.length + 1;
     } else if (valueTypeObject.__FullName__ === "System.IntPtr") {
-      // FIXME: Pinned pointers
-      if (instance.value === null)
-        JSIL.RuntimeError("Pinned pointers not supported");
-
-      return instance.value;
+    } else if (valueTypeObject.__FullNameWithoutArguments__ === "JSIL.Pointer") {
+      return pointerMarshal(instance, false);
     } else if (valueTypeObject.__IsStruct__) {
       sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
       if (sizeOfValue <= 0)
@@ -1801,11 +1895,14 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     for (var i = 0; i < argc; i++)
       convertedArguments[i] = arguments[i];
 
-    var structResult = false, resolvedReturnType = null, resultContainer = null, intPtrResult = false;
+    var structResult = false, intPtrResult = false, pointerResult = false;
+    var resolvedReturnType = null, resultContainer = null;
+
     if (methodSignature.returnType) {
       resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-      intPtrResult = resolvedReturnType && resolvedReturnType.__FullName__ === "System.IntPtr";
-      structResult = (resolvedReturnType && resolvedReturnType.__IsStruct__) && !intPtrResult;
+      intPtrResult = resolvedReturnType && (resolvedReturnType.__FullName__ === "System.IntPtr");
+      pointerResult = resolvedReturnType && (resolvedReturnType.__FullNameWithoutArguments__ === "JSIL.Pointer");
+      structResult = (resolvedReturnType && resolvedReturnType.__IsStruct__) && !intPtrResult && !pointerResult;
     }
 
     for (var i = 0; i < argc; i++) {
