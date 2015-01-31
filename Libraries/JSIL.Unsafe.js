@@ -356,7 +356,8 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 
       var result = this.getCachedView(arrayCtor);
       if (!result) {
-        result = new arrayCtor(this.buffer, this.offset, this.length);
+        var elementCount = (this.length / arrayCtor.BYTES_PER_ELEMENT) | 0;
+        result = new arrayCtor(this.buffer, this.offset, elementCount);
         this.setCachedView(arrayCtor, result);
       }
 
