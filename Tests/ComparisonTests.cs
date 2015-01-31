@@ -583,6 +583,11 @@ namespace JSIL.Tests {
             return FolderTestSource("InterfaceTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
+        #endregion
+    }
+
+    [TestFixture]
+    public class UnsafeTests : GenericTestFixture {
         [Test]
         [TestCaseSource("UnsafeTestCasesSource")]
         public void UnsafeTestCases (object[] parameters) {
@@ -600,7 +605,5 @@ namespace JSIL.Tests {
         protected IEnumerable<TestCaseData> UnsafeTestCasesSource () {
             return FolderTestSource("UnsafeTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
-
-        #endregion
     }
 }

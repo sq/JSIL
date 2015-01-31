@@ -67,14 +67,14 @@ namespace JSIL.Runtime {
     public class NativePackedArray<T> : IDisposable
         where T : struct
     {
-        public readonly int Size;
+        public readonly int Length;
 
         private readonly T[] _Array;
         private bool IsNotDisposed;
 
-        public NativePackedArray (int size) {
-            _Array = new T[size];
-            Size = size;
+        public NativePackedArray (int length) {
+            _Array = new T[length];
+            Length = length;
             IsNotDisposed = true;
         }
 
@@ -106,12 +106,12 @@ namespace JSIL.Runtime {
     }
 
     public static class PackedArray {
-        [JSReplacement("JSIL.PackedArray.New($T, $size)")]
+        [JSReplacement("JSIL.PackedArray.New($T, $length)")]
         [JSPackedArrayReturnValue]
-        public static T[] New<T> (int size) 
+        public static T[] New<T> (int length) 
             where T : struct
         {
-            return new T[size];
+            return new T[length];
         }
     }
 
