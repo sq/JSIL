@@ -13,6 +13,11 @@ namespace JSIL.Runtime {
         }
     }
 
+    /// <summary>
+    /// A packed array that is allocated in the managed heap.
+    /// Packed arrays always have a dense in-memory representation, even in JS. 
+    /// This allows passing them to APIs like WebGL along with pinning and fast marshalling/unmarshalling.
+    /// </summary>
     public unsafe interface IPackedArray<T> {
         T this[int index] {
             [JSRuntimeDispatch]
@@ -55,6 +60,10 @@ namespace JSIL.Runtime {
         int Length { get; }
     }
 
+    /// <summary>
+    /// A packed array that is allocated in the native (emscripten in JS) heap.
+    /// Because this array is allocated in the native heap, you must explicitly free it.
+    /// </summary>
     public class NativePackedArray<T> : IDisposable
         where T : struct
     {
@@ -70,6 +79,7 @@ namespace JSIL.Runtime {
         }
 
         public T[] Array {
+            [JSIsPure]
             get {
                 if (!IsNotDisposed)
                     throw new ObjectDisposedException("this");
@@ -78,6 +88,7 @@ namespace JSIL.Runtime {
             }
         }
 
+        [JSIsPure]
         public static implicit operator T[] (NativePackedArray<T> nativeArray) {
             if (!nativeArray.IsNotDisposed)
                 throw new ObjectDisposedException("nativeArray");
