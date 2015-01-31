@@ -1775,7 +1775,7 @@ JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignatur
     if (instance.memoryRange.buffer !== module.HEAPU8.buffer)
       JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
 
-    JSIL.RuntimeError("hi");
+    return instance.offsetInBytes;
   };
 
   var byValueMarshal = function (instance, valueType, queueCleanup) {
