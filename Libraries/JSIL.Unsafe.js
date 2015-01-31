@@ -10,7 +10,7 @@ JSIL.DeclareNamespace("JSIL.Runtime");
 JSIL.DeclareNamespace("JSIL.PackedArray");
 
 JSIL.ImplementExternals("System.IntPtr", function ($) {
-  var tIntPtr = $jsilcore.TypeRef("System.IntPtr");
+  var tIntPtr = $.IntPtr;
 
   $.RawMethod(false, "$fromPinnedPointer", function (pinnedPointer) {
     this.pinnedPointer = pinnedPointer;
@@ -155,7 +155,7 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   $.Method({Static:true , Public:true }, "StructureToPtr", 
     (new JSIL.MethodSignature(null, [
-          $.Object, $jsilcore.TypeRef("System.IntPtr"), 
+          $.Object, $.IntPtr, 
           $.Boolean
         ], [])), 
     function StructureToPtr (structure, ptr, fDeleteOld) {
@@ -179,7 +179,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   );  
 
   $.Method({Static:true , Public:true }, "OffsetOf", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$jsilcore.TypeRef("System.Type"), $.String], [])), 
+    (new JSIL.MethodSignature($.IntPtr, [$jsilcore.TypeRef("System.Type"), $.String], [])), 
     function OffsetOf (type, fieldName) {
       var fields = JSIL.GetFieldList(type);
 
@@ -192,6 +192,81 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       throw new System.Exception("No field named '" + fieldName + "' declared in type");
     }
   );
+
+  function mapSignatureType (t) {
+    if (t === null)
+      return "v";
+
+    var name = t.typeName || t.__FullName__;
+
+    switch (name) {
+      case "System.Int32":
+        return "i";
+      case "System.Single":
+        return "f";
+      case "System.Double":
+        return "d";
+      case "JSIL.Pointer":
+        return "i";
+
+      default:
+        JSIL.RuntimeError("Unhandled function pointer call argument type: " + name);
+        return;
+    }
+  }
+
+  var warnedAboutFunctionTable = false;
+
+  $.Method({Static:true , Public:true }, "GetDelegateForFunctionPointer", 
+    (new JSIL.MethodSignature("!!0", [$.IntPtr], ["T"])), 
+    function GetDelegateForFunctionPointer (T, ptr) {
+      if (!T.__IsDelegate__)
+        JSIL.RuntimeError("Type argument must be a delegate");
+
+      var signature = T.__Signature__;
+      if (!signature)
+        JSIL.RuntimeError("Delegate type must have a signature");
+
+      var module = JSIL.GlobalNamespace.Module;
+
+      // Build signature
+      var dynCallSignature = mapSignatureType(signature.returnType);
+      for (var i = 0, l = signature.argumentTypes.length; i < l; i++)
+        dynCallSignature += mapSignatureType(signature.argumentTypes[i]);
+
+      var methodIndex = ptr.value | 0;
+      var invokeImplementation = null;
+
+      var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
+      if (functionTable) {
+        invokeImplementation = functionTable[methodIndex];
+      } else {
+        var dynCallImplementation = module["dynCall_" + dynCallSignature];
+        if (!dynCallImplementation)
+          JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
+
+        if (!warnedAboutFunctionTable) {
+          JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
+        }
+
+        var boundDynCall = function (/* arguments... */) {
+          var argc = arguments.length | 0;
+          var argumentsList = new Array(argc + 1);
+          argumentsList[0] = methodIndex;
+
+          for (var i = 0; i < argc; i++)
+            argumentsList[i + 1] = arguments[i];
+
+          return dynCallImplementation.apply(this, argumentsList);
+        };
+
+        invokeImplementation = boundDynCall;
+      }
+
+      var wrappedDynCall = JSIL.$WrapPInvokeMethodImpl(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature);
+      return wrappedDynCall;
+    }
+  );  
 });
 
 JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) {
@@ -206,7 +281,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "AddrOfPinnedObject", 
-    new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], []), 
+    new JSIL.MethodSignature($.IntPtr, [], []), 
     function AddrOfPinnedObject () {
       return JSIL.CreateInstanceOfType(
         System.IntPtr.__Type__,
@@ -975,17 +1050,17 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   var TArray = System.Array.Of(T);
 
   $.Field({Public: false, Static: false, ReadOnly: true}, "_Array", TArray);
-  $.Field({Public: true , Static: false, ReadOnly: true}, "Size", $.Int32);
+  $.Field({Public: true , Static: false, ReadOnly: true}, "Length", $.Int32);
   $.Field({Public: false, Static: false}, "IsNotDisposed", $.Boolean);
 
   $.Method({Static: false, Public: true }, ".ctor", 
     new JSIL.MethodSignature(null, [$.Int32], []),
     function (size) {
-      this.Size = size;
+      this.Length = size;
       this.IsNotDisposed = true;
 
       this.ElementSize = JSIL.GetNativeSizeOf(this.T);
-      var sizeBytes = this.ElementSize * this.Size;
+      var sizeBytes = this.ElementSize * this.Length;
 
       var module = JSIL.GlobalNamespace.Module;
       this.EmscriptenOffset = module._malloc(sizeBytes);

@@ -6147,7 +6147,7 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface, builderM
       "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
       "System.SByte", "System.Int16", "System.Int32", "System.Int64",
       "System.Single", "System.Double", "System.String", "System.Object",
-      "System.Boolean", "System.Char"
+      "System.Boolean", "System.Char", "System.IntPtr", "System.UIntPtr"
     ]
   );
 
@@ -9011,7 +9011,11 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       var ib = new JSIL.InterfaceBuilder(assembly, typeObject, staticClassObject);
       ib.Method({Static:false , Public:true }, "Invoke", 
       methodSignature, 
-      function() {return this.__method__.apply(this, arguments);});	  
+      function() {return this.__method__.apply(this, arguments);});
+
+      typeObject.__Signature__ = methodSignature;
+    } else {
+      typeObject.__Signature__ = null;
     }
 
     return staticClassObject;
