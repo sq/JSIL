@@ -99,6 +99,43 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   );
 });
 
+JSIL.PInvoke.CallContext = function () {
+  this.allocations = [];
+  this.cleanups = [];
+};
+
+JSIL.PInvoke.CallContext.prototype.Allocate = function (sizeBytes) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var offset = module._malloc(sizeBytes);
+  this.allocations.push(offset);
+
+  return offset;
+};
+
+JSIL.PInvoke.CallContext.prototype.Dispose = function () {
+  var module = JSIL.GlobalNamespace.Module;
+
+  for (var i = 0, l = this.cleanups.length; i < l; i++) {
+    var c = this.cleanups[i];
+    c();
+  }
+
+  this.cleanups.length = 0;
+
+  for (var i = 0, l = this.allocations.length; i < l; i++) {
+    var a = this.allocations[i];
+    module._free(a);
+  }
+
+  this.allocations.length = 0;
+};
+
+// FIXME: Kill this
+JSIL.PInvoke.CallContext.prototype.QueueCleanup = function (callback) {
+  this.cleanups.push(callback);
+}
+
 JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
   // FIXME: Store modules per-dll to resolve name collisions?
   //  Need to merge heaps, though.
@@ -114,22 +151,16 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
 
   // FIXME: Factor out duplication
 
-  var allocateTemporary = function (size, cleanup, queueCleanup) {
-    var emscriptenOffset = module._malloc(size);
+  var allocateTemporary = function (size, cleanup, context) {
+    var emscriptenOffset = context.Allocate(size);
 
-    var cleanupTask = function () {
-      if (cleanup)
-        cleanup();
-
-      module._free(emscriptenOffset);
-    };
-
-    queueCleanup(cleanupTask);
+    if (cleanup)
+      context.QueueCleanup(cleanup);
 
     return emscriptenOffset;
   };
 
-  var pointerMarshal = function (instance, isSystemIntPtr, queueCleanup) {
+  var pointerMarshal = function (instance, isSystemIntPtr, context) {
     if (isSystemIntPtr) {
       // FIXME: Pinned pointers
       if (instance.value === null)
@@ -144,7 +175,7 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     return instance.offsetInBytes;
   };
 
-  var byValueMarshal = function (instance, valueType, queueCleanup) {
+  var byValueMarshal = function (instance, valueType, context) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -167,7 +198,7 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
       return instance;
     }
 
-    var result = allocateTemporary(sizeOfValue, null, queueCleanup);
+    var result = allocateTemporary(sizeOfValue, null, context);
 
     if (isString) {
       System.Text.Encoding.ASCII.GetBytes(
@@ -190,7 +221,7 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     return result;
   }
 
-  var pinReference = function (reference, valueType, queueCleanup) {
+  var pinReference = function (reference, valueType, context) {
     var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
     if (!valueTypeObject)
       JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
@@ -200,7 +231,7 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
       JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
 
     var result = allocateTemporary(
-      sizeOfValue, unmarshal, queueCleanup
+      sizeOfValue, unmarshal, context
     );
 
     var tByte = $jsilcore.System.Byte.__Type__;
@@ -222,9 +253,9 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     return result;
   };
 
-  var pinStringBuilder = function (stringBuilder, queueCleanup) {
+  var pinStringBuilder = function (stringBuilder, context) {
     var result = allocateTemporary(
-      stringBuilder.get_Capacity(), unmarshal, queueCleanup
+      stringBuilder.get_Capacity(), unmarshal, context
     );
 
     var tByte = $jsilcore.System.Byte.__Type__;
@@ -248,15 +279,9 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
   };
 
   var wrapper = function SimplePInvokeWrapper () {
+    var context = new JSIL.PInvoke.CallContext();
+
     var argc = arguments.length | 0;
-    var cleanupTasks = null;
-
-    function queueCleanup (t) {
-      if (!cleanupTasks)
-        cleanupTasks = [];
-
-      cleanupTasks.push(t);
-    };
 
     var convertedArguments = new Array(argc);
     for (var i = 0; i < argc; i++)
@@ -279,13 +304,13 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
       if (argumentType.typeName === "JSIL.Reference") {
         var valueType = argumentType.genericArguments[0];
 
-        convertedArguments[i] = pinReference(convertedArguments[i], valueType, queueCleanup);
+        convertedArguments[i] = pinReference(convertedArguments[i], valueType, context);
       } else if (argumentType.typeName === "System.Text.StringBuilder") {
-        convertedArguments[i] = pinStringBuilder(convertedArguments[i], queueCleanup);
+        convertedArguments[i] = pinStringBuilder(convertedArguments[i], context);
       } else {
         var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
 
-        convertedArguments[i] = byValueMarshal(convertedArguments[i], resolvedArgumentType, queueCleanup);
+        convertedArguments[i] = byValueMarshal(convertedArguments[i], resolvedArgumentType, context);
       }
     }
 
@@ -294,7 +319,7 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
         JSIL.DefaultValue(resolvedReturnType)
       );
 
-      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, queueCleanup);
+      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, context);
 
       convertedArguments.unshift(resultHeapAddress);
     }
@@ -302,11 +327,10 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     try {
       var nativeResult = nativeMethod.apply(this, convertedArguments);
     } finally {
-      if (cleanupTasks)
-      for (var i = 0, l = cleanupTasks.length; i < l; i++) {
-        cleanupTasks[i]();
-      }
+      context.Dispose();
     }
+
+    context.Dispose();
 
     if (structResult)
       return resultContainer.get();
