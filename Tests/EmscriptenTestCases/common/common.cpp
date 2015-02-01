@@ -57,11 +57,18 @@ export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     return strlen(str);
 }
 
-typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 
-export(TPWriteStringIntoBuffer) ReturnFunctionPointer () {
+typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
+typedef TestStruct (*TPReturnStructArgument) (const TestStruct);
+
+export(TPWriteStringIntoBuffer) ReturnWriteStringIntoBuffer () {
     return WriteStringIntoBuffer;
 };
+
+export(TPReturnStructArgument) ReturnReturnStructArgument () {
+    return ReturnStructArgument;
+};
+
 
 export(int) Add (int a, int b) {
     return a + b;
