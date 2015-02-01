@@ -62,3 +62,7 @@ typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 export(TPWriteStringIntoBuffer) ReturnFunctionPointer () {
     return WriteStringIntoBuffer;
 };
+
+export(int) Add (int a, int b) {
+    return a + b;
+}

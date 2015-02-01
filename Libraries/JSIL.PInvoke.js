@@ -99,6 +99,7 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   );
 });
 
+
 JSIL.PInvoke.CallContext = function () {
   this.allocations = [];
   this.cleanups = [];
@@ -136,6 +137,105 @@ JSIL.PInvoke.CallContext.prototype.QueueCleanup = function (callback) {
   this.cleanups.push(callback);
 }
 
+
+JSIL.PInvoke.ByValueMarshaller = function (type) {
+  this.type = type;
+};
+
+JSIL.PInvoke.ByValueMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  return managedValue;
+};
+
+JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  return nativeValue;
+};
+
+
+JSIL.PInvoke.ByValueStructMarshaller = function (type) {
+  this.type = type;
+  this.sizeInBytes = JSIL.GetNativeSizeOf(type);
+  this.marshaller = JSIL.$GetStructMarshaller(type);
+  this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
+};
+
+JSIL.PInvoke.ByValueStructMarshaller.prototype.AllocateZero = function (callContext) {
+  return callContext.Allocate(this.sizeInBytes);
+};
+
+JSIL.PInvoke.ByValueStructMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var offset = callContext.Allocate(this.sizeInBytes);
+  this.marshaller(managedValue, module.HEAPU8, offset);
+
+  return offset;
+};
+
+JSIL.PInvoke.ByValueStructMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  return new (this.unmarshalConstructor)(module.HEAPU8, nativeValue);
+};
+
+
+JSIL.PInvoke.IntPtrMarshaller = function () {
+};
+
+JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  JSIL.RuntimeError("Not implemented");
+};
+
+JSIL.PInvoke.IntPtrMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not implemented");
+};
+
+
+JSIL.PInvoke.PointerMarshaller = function (type) {
+  this.type = type;
+};
+
+JSIL.PInvoke.PointerMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  if (managedValue.memoryRange.buffer !== module.HEAPU8.buffer)
+    JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
+
+  return managedValue.offsetInBytes;
+};
+
+JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not implemented");
+};
+
+
+JSIL.PInvoke.GetMarshallerForType = function (type) {
+  // FIXME: Caching
+
+  switch (type.__FullNameWithoutArguments__) {
+    case "System.IntPtr":
+    case "System.UIntPtr":
+      return new JSIL.PInvoke.IntPtrMarshaller();
+
+    case "JSIL.Pointer":
+      return new JSIL.PInvoke.PointerMarshaller(type);
+
+    case "System.Text.StringBuilder":
+      JSIL.RuntimeError("Not implemented");
+      return null;
+
+    case "System.String":
+      JSIL.RuntimeError("Not implemented");
+      return null;
+  }
+
+  if (type.__IsNativeType__)
+    return new JSIL.PInvoke.ByValueMarshaller(type);
+  else if (type.__IsStruct__)
+    return new JSIL.PInvoke.ByValueStructMarshaller(type);
+  else
+    return new JSIL.PInvoke.ByValueMarshaller(type);
+};
+
 JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
   // FIXME: Store modules per-dll to resolve name collisions?
   //  Need to merge heaps, though.
@@ -150,6 +250,8 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
   var module = JSIL.GlobalNamespace.Module;
 
   // FIXME: Factor out duplication
+
+  /*
 
   var allocateTemporary = function (size, cleanup, context) {
     var emscriptenOffset = context.Allocate(size);
@@ -278,67 +380,52 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     return result;
   };
 
+  */
+
+  var argumentMarshallers = new Array(methodSignature.argumentTypes.length);
+  for (var i = 0, l = argumentMarshallers.length; i < l; i++) {
+    var argumentType = methodSignature.argumentTypes[i];
+    var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
+
+    argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType);
+  }
+
+  var resolvedReturnType = null, returnTypeMarshaller = null;
+  var structResult = false;
+
+  if (methodSignature.returnType) {
+    resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
+    structResult = resolvedReturnType.__IsStruct__ && !resolvedReturnType.__IsNativeType__;
+
+    returnTypeMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
+  }
+
   var wrapper = function SimplePInvokeWrapper () {
     var context = new JSIL.PInvoke.CallContext();
 
     var argc = arguments.length | 0;
 
-    var convertedArguments = new Array(argc);
+    var convertOffset = structResult ? 1 : 0;
+    var convertedArguments = new Array(argc + convertOffset);
     for (var i = 0; i < argc; i++)
-      convertedArguments[i] = arguments[i];
-
-    var structResult = false, intPtrResult = false, pointerResult = false;
-    var resolvedReturnType = null, resultContainer = null;
-
-    if (methodSignature.returnType) {
-      resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-      intPtrResult = resolvedReturnType && (resolvedReturnType.__FullName__ === "System.IntPtr");
-      pointerResult = resolvedReturnType && (resolvedReturnType.__FullNameWithoutArguments__ === "JSIL.Pointer");
-      structResult = (resolvedReturnType && resolvedReturnType.__IsStruct__) && !intPtrResult && !pointerResult;
-    }
-
-    for (var i = 0; i < argc; i++) {
-      var argumentType = methodSignature.argumentTypes[i];
-
-      // Allocate space in emscripten heap, copy there before invocation
-      if (argumentType.typeName === "JSIL.Reference") {
-        var valueType = argumentType.genericArguments[0];
-
-        convertedArguments[i] = pinReference(convertedArguments[i], valueType, context);
-      } else if (argumentType.typeName === "System.Text.StringBuilder") {
-        convertedArguments[i] = pinStringBuilder(convertedArguments[i], context);
-      } else {
-        var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
-
-        convertedArguments[i] = byValueMarshal(convertedArguments[i], resolvedArgumentType, context);
-      }
-    }
+      convertedArguments[i + convertOffset] = argumentMarshallers[i].ManagedToNative(arguments[i], context);
 
     if (structResult) {
-      resultContainer = new JSIL.BoxedVariable(
-        JSIL.DefaultValue(resolvedReturnType)
-      );
-
-      var resultHeapAddress = pinReference(resultContainer, resolvedReturnType, context);
-
-      convertedArguments.unshift(resultHeapAddress);
+      convertedArguments[0] = returnTypeMarshaller.AllocateZero(context);
     }
 
     try {
       var nativeResult = nativeMethod.apply(this, convertedArguments);
+
+      if (structResult)
+        return returnTypeMarshaller.NativeToManaged(convertedArguments[0]);
+      else if (returnTypeMarshaller)
+        return returnTypeMarshaller.NativeToManaged(nativeResult);
+      else
+        return nativeResult;
     } finally {
       context.Dispose();
     }
-
-    context.Dispose();
-
-    if (structResult)
-      return resultContainer.get();
-    else if (intPtrResult)
-      // FIXME: Generate a pinned pointer into the emscripten heap?
-      return new System.IntPtr(nativeResult);
-    else
-      return nativeResult;
   };
 
   return wrapper;
