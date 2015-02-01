@@ -57,9 +57,22 @@ export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     return strlen(str);
 }
 
+export(int)Add(int a, int b) {
+    return a + b;
+}
+
+export(void *)Alloc(int size) {
+    return malloc(size);
+}
+
+export(void)Free(void * ptr) {
+    return free(ptr);
+}
+
 
 typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 typedef TestStruct (*TPReturnStructArgument) (const TestStruct);
+typedef int (*TPBinaryOperator) (int, int);
 
 export(TPWriteStringIntoBuffer) ReturnWriteStringIntoBuffer () {
     return WriteStringIntoBuffer;
@@ -69,15 +82,11 @@ export(TPReturnStructArgument) ReturnReturnStructArgument () {
     return ReturnStructArgument;
 };
 
+export(TPBinaryOperator) ReturnAdd () {
+    return Add;
+};
 
-export(int) Add (int a, int b) {
-    return a + b;
-}
 
-export(void *) Alloc (int size) {
-    return malloc(size);
-}
-
-export(void) Free (void * ptr) {
-    return free(ptr);
+export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
+    return op(a, b);
 }
