@@ -6333,11 +6333,11 @@ JSIL.$PlacePInvokeMember = function (
     if (!JSIL.GlobalNamespace.Module)
       JSIL.RuntimeError("No emscripten modules loaded.");
 
-    var methodImpl = JSIL.$LookupPInvokeMember(dllName, importedName);
+    var methodImpl = JSIL.PInvoke.FindNativeMethod(dllName, importedName);
     if (!methodImpl)
       JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
 
-    var wrapper = JSIL.$WrapPInvokeMethodImpl(methodImpl, memberName, signature);
+    var wrapper = JSIL.PInvoke.WrapNativeMethod(methodImpl, memberName, signature);
 
     return wrapper;
   };

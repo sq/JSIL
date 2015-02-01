@@ -99,7 +99,7 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   );
 });
 
-JSIL.$LookupPInvokeMember = function (dllName, methodName) {
+JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
   // FIXME: Store modules per-dll to resolve name collisions?
   //  Need to merge heaps, though.
   var module = JSIL.GlobalNamespace.Module;
@@ -109,7 +109,7 @@ JSIL.$LookupPInvokeMember = function (dllName, methodName) {
   return module[key];
 };
 
-JSIL.$WrapPInvokeMethodImpl = function (nativeMethod, methodName, methodSignature) {
+JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignature) {
   var module = JSIL.GlobalNamespace.Module;
 
   // FIXME: Factor out duplication
@@ -392,7 +392,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
         invokeImplementation = boundDynCall;
       }
 
-      var wrappedDynCall = JSIL.$WrapPInvokeMethodImpl(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature);
+      var wrappedDynCall = JSIL.PInvoke.WrapNativeMethod(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature);
       return wrappedDynCall;
     }
   );  
