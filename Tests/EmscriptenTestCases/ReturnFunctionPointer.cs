@@ -11,7 +11,10 @@ public static unsafe class Program {
         public float F;
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     delegate TestStruct TReturnStructArgument (TestStruct arg);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     delegate int TWriteStringIntoBuffer (byte* dest, int capacity);
 
     [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
