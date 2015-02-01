@@ -9,14 +9,19 @@ public static class Program {
     [DllImport("common.dll", CallingConvention = CallingConvention.Cdecl)]
     public static extern void WriteInt (int value, IntPtr buffer);
 
+    [DllImport("common.dll", CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr Alloc (int size);
+    [DllImport("common.dll", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void Free (IntPtr ptr);
+
     public static void Main () {
-        var buf = NativeStdlib.malloc(64);
+        var buf = Alloc(64);
 
         WriteInt(10, buf);
 
         int i = ReadInt(buf);
 
-        NativeStdlib.free(buf);
+        Free(buf);
 
         Console.WriteLine(i);
     }
