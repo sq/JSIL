@@ -508,7 +508,20 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   var warnedAboutFunctionTable = false;
 
-  $.Method({Static:true , Public:true }, "GetDelegateForFunctionPointer", 
+  $.Method({Static: true , Public: true }, "GetFunctionPointerForDelegate",
+    (new JSIL.MethodSignature($.IntPtr, ["!!0"], ["T"])),
+    function GetFunctionPointerForDelegate (T, delegate) {
+      var module = JSIL.GlobalNamespace.Module;
+
+      // FIXME: Native -> Managed marshalling
+      var functionPointer = module.Runtime.addFunction(delegate);
+
+      var result = new System.IntPtr(functionPointer);
+      return result;
+    }
+  );
+
+  $.Method({Static: true , Public: true }, "GetDelegateForFunctionPointer", 
     (new JSIL.MethodSignature("!!0", [$.IntPtr], ["T"])), 
     function GetDelegateForFunctionPointer (T, ptr) {
       if (!T.__IsDelegate__)
