@@ -124,6 +124,7 @@
     <None Include="EmscriptenTestCases\IntPtrRoundTrip.cs" />
     <None Include="EmscriptenTestCases\PinnedStringBuffer.cs" />
     <None Include="EmscriptenTestCases\ReturnFunctionPointer.cs" />
+    <None Include="EmscriptenTestCases\IntParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
