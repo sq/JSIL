@@ -66,3 +66,11 @@ export(TPWriteStringIntoBuffer) ReturnFunctionPointer () {
 export(int) Add (int a, int b) {
     return a + b;
 }
+
+export(void *) Alloc (int size) {
+    return malloc(size);
+}
+
+export(void) Free (void * ptr) {
+    return free(ptr);
+}

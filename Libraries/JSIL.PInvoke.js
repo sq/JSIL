@@ -154,6 +154,7 @@ JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue
 JSIL.PInvoke.BoxedValueMarshaller = function (type) {
   this.type = type;
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
+  this.namedReturnValue = true;
 };
 
 JSIL.PInvoke.BoxedValueMarshaller.prototype.AllocateZero = function (callContext) {
@@ -198,6 +199,7 @@ JSIL.PInvoke.ByValueStructMarshaller = function (type) {
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
   this.marshaller = JSIL.$GetStructMarshaller(type);
   this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
+  this.namedReturnValue = true;
 };
 
 JSIL.PInvoke.ByValueStructMarshaller.prototype.AllocateZero = function (callContext) {
@@ -224,11 +226,15 @@ JSIL.PInvoke.IntPtrMarshaller = function () {
 };
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  JSIL.RuntimeError("Not implemented");
+  // FIXME: Pinned pointers
+  if (managedValue.value === null)
+    JSIL.RuntimeError("Pinned pointers not supported");
+
+  return managedValue.value;
 };
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  JSIL.RuntimeError("Not implemented");
+  return new System.IntPtr(nativeValue);
 };
 
 
@@ -503,14 +509,13 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
   }
 
   var resolvedReturnType = null, returnTypeMarshaller = null;
-  var structResult = false;
 
   if (methodSignature.returnType) {
     resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-    structResult = resolvedReturnType.__IsStruct__ && !resolvedReturnType.__IsNativeType__;
-
     returnTypeMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
   }
+
+  var structResult = returnTypeMarshaller && returnTypeMarshaller.namedReturnValue;
 
   var wrapper = function SimplePInvokeWrapper () {
     var context = new JSIL.PInvoke.CallContext();
