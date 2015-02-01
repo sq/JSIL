@@ -507,16 +507,65 @@ JSIL.PInvoke.CreateManagedToNativeWrapper = function (nativeMethod, methodName, 
   return wrapper;
 };
 
+JSIL.PInvoke.CreateNativeToManagedWrapper = function (managedFunction, methodSignature) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
+
+  var structResult = marshallers.result && marshallers.result.namedReturnValue;
+
+  var wrapper = function SimplePInvokeWrapper () {
+    var context = new JSIL.PInvoke.CallContext();
+
+    var argc = arguments.length | 0;
+    var convertOffset = structResult ? 1 : 0;
+
+    var convertedArguments = new Array(argc);
+    for (var i = 0, l = argc - convertOffset; i < l; i++)
+      convertedArguments[i] = marshallers.arguments[i].NativeToManaged(arguments[i + convertOffset], context);
+
+    try {
+      var managedResult;
+
+      managedResult = managedFunction.apply(this, convertedArguments);
+
+      if (structResult) {
+        // HACK: FIXME: Oh god
+        var structMarshaller = marshallers.result.marshaller;
+        structMarshaller(managedResult, module.HEAPU8, arguments[0]);
+        return;
+      } else if (marshallers.result) {
+        // FIXME: What happens if the return value has to get pinned into the emscripten heap?
+        return marshallers.result.ManagedToNative(managedResult, context);
+      } else {
+        return managedResult;
+      }
+    } finally {
+      context.Dispose();
+    }
+  };
+
+  return wrapper;
+};
+
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   var warnedAboutFunctionTable = false;
 
   $.Method({Static: true , Public: true }, "GetFunctionPointerForDelegate",
     (new JSIL.MethodSignature($.IntPtr, ["!!0"], ["T"])),
     function GetFunctionPointerForDelegate (T, delegate) {
+      if (!T.__IsDelegate__)
+        JSIL.RuntimeError("Type argument must be a delegate");
+
+      var signature = T.__Signature__;
+      if (!signature)
+        JSIL.RuntimeError("Delegate type must have a signature");
+
+      var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(delegate, signature);
+
       var module = JSIL.GlobalNamespace.Module;
 
-      // FIXME: Native -> Managed marshalling
-      var functionPointer = module.Runtime.addFunction(delegate);
+      var functionPointer = module.Runtime.addFunction(wrappedFunction);
 
       var result = new System.IntPtr(functionPointer);
       return result;
