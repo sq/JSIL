@@ -151,6 +151,48 @@ JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue
 };
 
 
+JSIL.PInvoke.BoxedValueMarshaller = function (type) {
+  this.type = type;
+  this.sizeInBytes = JSIL.GetNativeSizeOf(type);
+};
+
+JSIL.PInvoke.BoxedValueMarshaller.prototype.AllocateZero = function (callContext) {
+  return callContext.Allocate(this.sizeInBytes);
+};
+
+JSIL.PInvoke.BoxedValueMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var offset = callContext.Allocate(this.sizeInBytes);
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+  var emscriptenMemoryView = memoryRange.getView(tByte);
+
+  var emscriptenPointer = JSIL.NewPointer(
+    this.type, memoryRange, emscriptenMemoryView, offset
+  );
+
+  emscriptenPointer.set(managedValue);
+
+  return offset;
+};
+
+JSIL.PInvoke.BoxedValueMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+  var emscriptenMemoryView = memoryRange.getView(tByte);
+
+  var emscriptenPointer = JSIL.NewPointer(
+    this.type, memoryRange, emscriptenMemoryView, nativeValue
+  );
+
+  return emscriptenPointer.get();
+};
+
+
 JSIL.PInvoke.ByValueStructMarshaller = function (type) {
   this.type = type;
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
@@ -208,8 +250,33 @@ JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue
 };
 
 
-JSIL.PInvoke.GetMarshallerForType = function (type) {
+JSIL.PInvoke.ByRefMarshaller = function (type) {
+  this.type = type;
+  this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(type, true);
+};
+
+JSIL.PInvoke.ByRefMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var emscriptenOffset = this.innerMarshaller.ManagedToNative(managedValue.get(), callContext);
+
+  var innerMarshaller = this.innerMarshaller;
+
+  callContext.QueueCleanup(function () {
+    managedValue.set(innerMarshaller.NativeToManaged(emscriptenOffset, callContext));
+  });
+
+  return emscriptenOffset;
+};
+
+JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not valid for byref arguments");
+};
+
+
+JSIL.PInvoke.GetMarshallerForType = function (type, byRefInterior) {
   // FIXME: Caching
+
+  if (type.__IsByRef__ && (byRefInterior !== true))
+    return new JSIL.PInvoke.ByRefMarshaller(type);
 
   switch (type.__FullNameWithoutArguments__) {
     case "System.IntPtr":
@@ -228,12 +295,19 @@ JSIL.PInvoke.GetMarshallerForType = function (type) {
       return null;
   }
 
-  if (type.__IsNativeType__)
-    return new JSIL.PInvoke.ByValueMarshaller(type);
-  else if (type.__IsStruct__)
+  if (type.__IsNativeType__) {
+    if (byRefInterior)
+      return new JSIL.PInvoke.BoxedValueMarshaller(type);
+    else
+      return new JSIL.PInvoke.ByValueMarshaller(type);
+  } else if (type.__IsStruct__) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
-  else
-    return new JSIL.PInvoke.ByValueMarshaller(type);
+  } else {    
+    if (byRefInterior)
+      return new JSIL.PInvoke.BoxedValueMarshaller(type);
+    else
+      return new JSIL.PInvoke.ByValueMarshaller(type);
+  }
 };
 
 JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
@@ -418,9 +492,9 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
       var nativeResult = nativeMethod.apply(this, convertedArguments);
 
       if (structResult)
-        return returnTypeMarshaller.NativeToManaged(convertedArguments[0]);
+        return returnTypeMarshaller.NativeToManaged(convertedArguments[0], context);
       else if (returnTypeMarshaller)
-        return returnTypeMarshaller.NativeToManaged(nativeResult);
+        return returnTypeMarshaller.NativeToManaged(nativeResult, context);
       else
         return nativeResult;
     } finally {
