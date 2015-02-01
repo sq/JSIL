@@ -273,13 +273,51 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
+JSIL.PInvoke.StringBuilderMarshaller = function (charSet) {
+  if (charSet)
+    JSIL.RuntimeError("Not implemented");
+};
+
+JSIL.PInvoke.StringBuilderMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var sizeInBytes = managedValue.get_Capacity();
+  var emscriptenOffset = callContext.Allocate(sizeInBytes);
+
+  var module = JSIL.GlobalNamespace.Module;
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+  var emscriptenMemoryView = memoryRange.getView(tByte);
+
+  for (var i = 0, l = sizeInBytes; i < l; i++)
+    module.HEAPU8[(i + emscriptenOffset) | 0] = 0;
+
+  System.Text.Encoding.ASCII.GetBytes(
+    managedValue._str, 0, managedValue._str.length, module.HEAPU8, emscriptenOffset
+  );
+
+  callContext.QueueCleanup(function () {
+    managedValue._str = JSIL.StringFromNullTerminatedByteArray(
+      module.HEAPU8, emscriptenOffset, managedValue._capacity
+    );
+  });
+
+  return emscriptenOffset;
+};
+
+JSIL.PInvoke.StringBuilderMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not valid");
+};
+
+
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
 
   if (type.__IsByRef__)
     return new JSIL.PInvoke.ByRefMarshaller(type);
 
-  switch (type.__FullNameWithoutArguments__) {
+  var typeName = type.__FullNameWithoutArguments__ || type.__FullName__;
+
+  switch (typeName) {
     case "System.IntPtr":
     case "System.UIntPtr":
       return new JSIL.PInvoke.IntPtrMarshaller();
@@ -288,8 +326,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
       return new JSIL.PInvoke.PointerMarshaller(type);
 
     case "System.Text.StringBuilder":
-      JSIL.RuntimeError("Not implemented");
-      return null;
+      return new JSIL.PInvoke.StringBuilderMarshaller();
 
     case "System.String":
       JSIL.RuntimeError("Not implemented");
