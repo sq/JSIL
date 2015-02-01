@@ -6324,7 +6324,7 @@ JSIL.$PlacePInvokeMember = function (
     if (!methodImpl)
       JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
 
-    var wrapper = JSIL.PInvoke.WrapNativeMethod(methodImpl, memberName, signature);
+    var wrapper = JSIL.PInvoke.WrapNativeMethod(methodImpl, memberName, signature, false);
 
     return wrapper;
   };

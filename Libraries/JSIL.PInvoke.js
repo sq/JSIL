@@ -138,8 +138,37 @@ JSIL.PInvoke.CallContext.prototype.QueueCleanup = function (callback) {
 }
 
 
-JSIL.PInvoke.ByValueMarshaller = function (type) {
-  this.type = type;
+// JavaScript is garbage
+JSIL.PInvoke.SetupMarshallerPrototype = function (t) {
+  t.prototype = Object.create(JSIL.PInvoke.BaseMarshallerPrototype);
+  t.prototype.constructor = t;
+};
+
+
+JSIL.PInvoke.BaseMarshallerPrototype = Object.create(Object.prototype);
+
+JSIL.PInvoke.BaseMarshallerPrototype.GetSignatureToken = function (type) {
+  JSIL.RuntimeError("Marshaller of type '" + this.constructor.name + "' has no signature token implementation");
+};
+
+
+JSIL.PInvoke.ByValueMarshaller = function ByValueMarshaller (type) {
+  this.type = type;  
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueMarshaller);
+
+JSIL.PInvoke.ByValueMarshaller.prototype.GetSignatureToken = function () {
+  switch (this.type.__FullName__) {
+    case "System.Int32":
+      return "i";
+    case "System.Single":
+      return "f";
+    case "System.Double":
+      return "d";
+  }
+
+  JSIL.RuntimeError("No signature token for type '" + this.type.__FullName__ + "'");
 };
 
 JSIL.PInvoke.ByValueMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
@@ -151,11 +180,13 @@ JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue
 };
 
 
-JSIL.PInvoke.BoxedValueMarshaller = function (type) {
+JSIL.PInvoke.BoxedValueMarshaller = function BoxedValueMarshaller (type) {
   this.type = type;
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
   this.namedReturnValue = true;
 };
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.BoxedValueMarshaller);
 
 JSIL.PInvoke.BoxedValueMarshaller.prototype.AllocateZero = function (callContext) {
   return callContext.Allocate(this.sizeInBytes);
@@ -194,12 +225,18 @@ JSIL.PInvoke.BoxedValueMarshaller.prototype.NativeToManaged = function (nativeVa
 };
 
 
-JSIL.PInvoke.ByValueStructMarshaller = function (type) {
+JSIL.PInvoke.ByValueStructMarshaller = function ByValueStructMarshaller (type) {
   this.type = type;
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
   this.marshaller = JSIL.$GetStructMarshaller(type);
   this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
   this.namedReturnValue = true;
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueStructMarshaller);
+
+JSIL.PInvoke.ByValueStructMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
 };
 
 JSIL.PInvoke.ByValueStructMarshaller.prototype.AllocateZero = function (callContext) {
@@ -222,8 +259,10 @@ JSIL.PInvoke.ByValueStructMarshaller.prototype.NativeToManaged = function (nativ
 };
 
 
-JSIL.PInvoke.IntPtrMarshaller = function () {
+JSIL.PInvoke.IntPtrMarshaller = function IntPtrMarshaller () {
 };
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.IntPtrMarshaller);
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   // FIXME: Pinned pointers
@@ -238,10 +277,15 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.NativeToManaged = function (nativeValue,
 };
 
 
-JSIL.PInvoke.PointerMarshaller = function (type) {
+JSIL.PInvoke.PointerMarshaller = function PointerMarshaller (type) {
   this.type = type;
 };
 
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.PointerMarshaller);
+
+JSIL.PInvoke.PointerMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
+};
 JSIL.PInvoke.PointerMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = JSIL.GlobalNamespace.Module;
 
@@ -256,10 +300,16 @@ JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue
 };
 
 
-JSIL.PInvoke.ByRefMarshaller = function (type) {
+JSIL.PInvoke.ByRefMarshaller = function ByRefMarshaller (type) {
   this.type = type;
   this.innerType = type.__ReferentType__.__Type__;
   this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(this.innerType, true);
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByRefMarshaller);
+
+JSIL.PInvoke.ByRefMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
 };
 
 JSIL.PInvoke.ByRefMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
@@ -279,10 +329,12 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
-JSIL.PInvoke.StringBuilderMarshaller = function (charSet) {
+JSIL.PInvoke.StringBuilderMarshaller = function StringBuilderMarshaller (charSet) {
   if (charSet)
     JSIL.RuntimeError("Not implemented");
 };
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringBuilderMarshaller);
 
 JSIL.PInvoke.StringBuilderMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.get_Capacity();
@@ -315,10 +367,12 @@ JSIL.PInvoke.StringBuilderMarshaller.prototype.NativeToManaged = function (nativ
 };
 
 
-JSIL.PInvoke.StringMarshaller = function (charSet) {
+JSIL.PInvoke.StringMarshaller = function StringMarshaller (charSet) {
   if (charSet)
     JSIL.RuntimeError("Not implemented");
 };
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
 
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
@@ -390,141 +444,8 @@ JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
   return module[key];
 };
 
-JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignature) {
+JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignature, lateBound) {
   var module = JSIL.GlobalNamespace.Module;
-
-  // FIXME: Factor out duplication
-
-  /*
-
-  var allocateTemporary = function (size, cleanup, context) {
-    var emscriptenOffset = context.Allocate(size);
-
-    if (cleanup)
-      context.QueueCleanup(cleanup);
-
-    return emscriptenOffset;
-  };
-
-  var pointerMarshal = function (instance, isSystemIntPtr, context) {
-    if (isSystemIntPtr) {
-      // FIXME: Pinned pointers
-      if (instance.value === null)
-        JSIL.RuntimeError("Pinned pointers not supported");
-
-      return instance.value;
-    }
-
-    if (instance.memoryRange.buffer !== module.HEAPU8.buffer)
-      JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
-
-    return instance.offsetInBytes;
-  };
-
-  var byValueMarshal = function (instance, valueType, context) {
-    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
-    if (!valueTypeObject)
-      JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
-
-    var sizeOfValue;
-    var isString = (valueTypeObject.__FullName__ === "System.String");
-
-    if (isString) {
-      sizeOfValue = instance.length + 1;
-    } else if (valueTypeObject.__FullName__ === "System.IntPtr") {
-      return pointerMarshal(instance, true);
-    } else if (valueTypeObject.__FullNameWithoutArguments__ === "JSIL.Pointer") {
-      return pointerMarshal(instance, false);
-    } else if (valueTypeObject.__IsStruct__) {
-      sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
-      if (sizeOfValue <= 0)
-        JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
-    } else {
-      // Just pass by value
-      return instance;
-    }
-
-    var result = allocateTemporary(sizeOfValue, null, context);
-
-    if (isString) {
-      System.Text.Encoding.ASCII.GetBytes(
-        instance, 0, instance.length, module.HEAPU8, result
-      );
-
-      module.HEAPU8[(result + instance.length) | 0] = 0;
-    } else {
-      var tByte = $jsilcore.System.Byte.__Type__;
-      var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-      var emscriptenMemoryView = memoryRange.getView(tByte);
-
-      var emscriptenPointer = JSIL.NewPointer(
-        valueTypeObject, memoryRange, emscriptenMemoryView, result
-      );
-
-      emscriptenPointer.set(instance);
-    }
-
-    return result;
-  }
-
-  var pinReference = function (reference, valueType, context) {
-    var valueTypeObject = JSIL.ResolveTypeReference(valueType)[1];
-    if (!valueTypeObject)
-      JSIL.RuntimeError("Could not resolve argument type '" + valueType + "'");
-
-    var sizeOfValue = JSIL.GetNativeSizeOf(valueTypeObject);
-    if (sizeOfValue <= 0)
-      JSIL.RuntimeError("Type '" + valueTypeObject + "' has no native size and cannot be marshalled");
-
-    var result = allocateTemporary(
-      sizeOfValue, unmarshal, context
-    );
-
-    var tByte = $jsilcore.System.Byte.__Type__;
-    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-    var emscriptenMemoryView = memoryRange.getView(tByte);
-
-    var emscriptenPointer = JSIL.NewPointer(
-      valueTypeObject, memoryRange, emscriptenMemoryView, result
-    );
-
-    var managedValue = reference.get();
-    emscriptenPointer.set(managedValue);
-
-    function unmarshal () {
-      var unmarshalledValue = emscriptenPointer.get();
-      reference.set(unmarshalledValue);
-    };
-
-    return result;
-  };
-
-  var pinStringBuilder = function (stringBuilder, context) {
-    var result = allocateTemporary(
-      stringBuilder.get_Capacity(), unmarshal, context
-    );
-
-    var tByte = $jsilcore.System.Byte.__Type__;
-    var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-    var emscriptenMemoryView = memoryRange.getView(tByte);
-
-    for (var i = 0, l = stringBuilder._capacity; i < l; i++)
-      module.HEAPU8[(i + result) | 0] = 0;
-
-    System.Text.Encoding.ASCII.GetBytes(
-      stringBuilder._str, 0, stringBuilder._str.length, module.HEAPU8, result
-    );
-
-    function unmarshal () {
-      stringBuilder._str = JSIL.StringFromNullTerminatedByteArray(
-        module.HEAPU8, result, stringBuilder._capacity
-      );
-    };
-
-    return result;
-  };
-
-  */
 
   var argumentMarshallers = new Array(methodSignature.argumentTypes.length);
   for (var i = 0, l = argumentMarshallers.length; i < l; i++) {
@@ -534,14 +455,14 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType);
   }
 
-  var resolvedReturnType = null, returnTypeMarshaller = null;
+  var resolvedReturnType = null, resultMarshaller = null;
 
   if (methodSignature.returnType) {
     resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
-    returnTypeMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
+    resultMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
   }
 
-  var structResult = returnTypeMarshaller && returnTypeMarshaller.namedReturnValue;
+  var structResult = resultMarshaller && resultMarshaller.namedReturnValue;
 
   var wrapper = function SimplePInvokeWrapper () {
     var context = new JSIL.PInvoke.CallContext();
@@ -554,16 +475,23 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
       convertedArguments[i + convertOffset] = argumentMarshallers[i].ManagedToNative(arguments[i], context);
 
     if (structResult) {
-      convertedArguments[0] = returnTypeMarshaller.AllocateZero(context);
+      convertedArguments[0] = resultMarshaller.AllocateZero(context);
     }
 
     try {
-      var nativeResult = nativeMethod.apply(this, convertedArguments);
+      var nativeResult;
+
+      if (lateBound === true) {
+        var invokeTarget = nativeMethod();
+        nativeResult = invokeTarget.apply(this, convertedArguments);
+      } else {
+        nativeResult = nativeMethod.apply(this, convertedArguments);
+      }
 
       if (structResult)
-        return returnTypeMarshaller.NativeToManaged(convertedArguments[0], context);
-      else if (returnTypeMarshaller)
-        return returnTypeMarshaller.NativeToManaged(nativeResult, context);
+        return resultMarshaller.NativeToManaged(convertedArguments[0], context);
+      else if (resultMarshaller)
+        return resultMarshaller.NativeToManaged(nativeResult, context);
       else
         return nativeResult;
     } finally {
@@ -571,32 +499,13 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     }
   };
 
+  wrapper.__ArgumentMarshallers__ = argumentMarshallers;
+  wrapper.__ResultMarshaller__ = resultMarshaller;
+
   return wrapper;
 };
 
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
-  function mapSignatureType (t) {
-    if (t === null)
-      return "v";
-
-    var name = t.typeName || t.__FullName__;
-
-    switch (name) {
-      case "System.Int32":
-        return "i";
-      case "System.Single":
-        return "f";
-      case "System.Double":
-        return "d";
-      case "JSIL.Pointer":
-        return "i";
-
-      default:
-        JSIL.RuntimeError("Unhandled function pointer call argument type: " + name);
-        return;
-    }
-  }
-
   var warnedAboutFunctionTable = false;
 
   $.Method({Static:true , Public:true }, "GetDelegateForFunctionPointer", 
@@ -611,43 +520,65 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
 
       var module = JSIL.GlobalNamespace.Module;
 
-      // Build signature
-      var dynCallSignature = mapSignatureType(signature.returnType);
-      for (var i = 0, l = signature.argumentTypes.length; i < l; i++)
-        dynCallSignature += mapSignatureType(signature.argumentTypes[i]);
-
       var methodIndex = ptr.value | 0;
       var invokeImplementation = null;
 
-      var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
-      if (functionTable) {
-        invokeImplementation = functionTable[methodIndex];
+      function getInvokeImplementation () {
+        if (invokeImplementation === null)
+          invokeImplementation = lookupInvokeImplementation();
+
+        return invokeImplementation;
+      };
+
+      var wrappedMethod = JSIL.PInvoke.WrapNativeMethod(getInvokeImplementation, "GetDelegateForFunctionPointer_Result", signature, true);
+
+      // Build signature
+      var dynCallSignature = "";
+      var rm = wrappedMethod.__ResultMarshaller__;
+
+      if (rm) {
+        if (rm.namedReturnValue)
+          dynCallSignature += "v";
+        dynCallSignature += rm.GetSignatureToken(signature.returnType);
       } else {
-        var dynCallImplementation = module["dynCall_" + dynCallSignature];
-        if (!dynCallImplementation)
-          JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
-
-        if (!warnedAboutFunctionTable) {
-          warnedAboutFunctionTable = true;
-          JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
-        }
-
-        var boundDynCall = function (/* arguments... */) {
-          var argc = arguments.length | 0;
-          var argumentsList = new Array(argc + 1);
-          argumentsList[0] = methodIndex;
-
-          for (var i = 0; i < argc; i++)
-            argumentsList[i + 1] = arguments[i];
-
-          return dynCallImplementation.apply(this, argumentsList);
-        };
-
-        invokeImplementation = boundDynCall;
+        dynCallSignature += "v";
       }
 
-      var wrappedDynCall = JSIL.PInvoke.WrapNativeMethod(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature);
-      return wrappedDynCall;
+      for (var i = 0, l = signature.argumentTypes.length; i < l; i++) {
+        var m = wrappedMethod.__ArgumentMarshallers__[i];
+        dynCallSignature += m.GetSignatureToken(signature.argumentTypes[i]);
+      }
+
+      function lookupInvokeImplementation () {
+        var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
+        if (functionTable) {
+          return functionTable[methodIndex];
+        } else {
+          var dynCallImplementation = module["dynCall_" + dynCallSignature];
+          if (!dynCallImplementation)
+            JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
+
+          if (!warnedAboutFunctionTable) {
+            warnedAboutFunctionTable = true;
+            JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
+          }
+
+          var boundDynCall = function (/* arguments... */) {
+            var argc = arguments.length | 0;
+            var argumentsList = new Array(argc + 1);
+            argumentsList[0] = methodIndex;
+
+            for (var i = 0; i < argc; i++)
+              argumentsList[i + 1] = arguments[i];
+
+            return dynCallImplementation.apply(this, argumentsList);
+          };
+
+          return boundDynCall;
+        }
+      }
+
+      return wrappedMethod;
     }
   );  
 });
