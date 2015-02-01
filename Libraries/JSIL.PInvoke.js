@@ -315,6 +315,33 @@ JSIL.PInvoke.StringBuilderMarshaller.prototype.NativeToManaged = function (nativ
 };
 
 
+JSIL.PInvoke.StringMarshaller = function (charSet) {
+  if (charSet)
+    JSIL.RuntimeError("Not implemented");
+};
+
+JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var sizeInBytes = managedValue.length;
+  var emscriptenOffset = callContext.Allocate(sizeInBytes);
+
+  var module = JSIL.GlobalNamespace.Module;
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+  var emscriptenMemoryView = memoryRange.getView(tByte);
+
+  System.Text.Encoding.ASCII.GetBytes(
+    managedValue, 0, managedValue.length, module.HEAPU8, emscriptenOffset
+  );
+
+  return emscriptenOffset;
+};
+
+JSIL.PInvoke.StringMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not implemented");
+};
+
+
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
 
@@ -335,8 +362,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
       return new JSIL.PInvoke.StringBuilderMarshaller();
 
     case "System.String":
-      JSIL.RuntimeError("Not implemented");
-      return null;
+      return new JSIL.PInvoke.StringMarshaller();
   }
 
   if (type.__IsNativeType__) {
