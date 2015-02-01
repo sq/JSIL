@@ -252,7 +252,8 @@ JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue
 
 JSIL.PInvoke.ByRefMarshaller = function (type) {
   this.type = type;
-  this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(type, true);
+  this.innerType = type.__ReferentType__.__Type__;
+  this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(this.innerType, true);
 };
 
 JSIL.PInvoke.ByRefMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
@@ -272,10 +273,10 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
-JSIL.PInvoke.GetMarshallerForType = function (type, byRefInterior) {
+JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
 
-  if (type.__IsByRef__ && (byRefInterior !== true))
+  if (type.__IsByRef__)
     return new JSIL.PInvoke.ByRefMarshaller(type);
 
   switch (type.__FullNameWithoutArguments__) {
@@ -296,14 +297,14 @@ JSIL.PInvoke.GetMarshallerForType = function (type, byRefInterior) {
   }
 
   if (type.__IsNativeType__) {
-    if (byRefInterior)
+    if (box)
       return new JSIL.PInvoke.BoxedValueMarshaller(type);
     else
       return new JSIL.PInvoke.ByValueMarshaller(type);
   } else if (type.__IsStruct__) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
   } else {    
-    if (byRefInterior)
+    if (box)
       return new JSIL.PInvoke.BoxedValueMarshaller(type);
     else
       return new JSIL.PInvoke.ByValueMarshaller(type);
