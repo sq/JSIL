@@ -90,3 +90,7 @@ export(TPBinaryOperator) ReturnAdd () {
 export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
     return op(a, b);
 }
+
+export(TestStruct) CallReturnStructArgument (TPReturnStructArgument rsa, TestStruct arg) {
+    return rsa(arg);
+}

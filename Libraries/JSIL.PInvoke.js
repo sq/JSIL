@@ -444,9 +444,7 @@ JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
   return module[key];
 };
 
-JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignature, lateBound) {
-  var module = JSIL.GlobalNamespace.Module;
-
+JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature) {
   var argumentMarshallers = new Array(methodSignature.argumentTypes.length);
   for (var i = 0, l = argumentMarshallers.length; i < l; i++) {
     var argumentType = methodSignature.argumentTypes[i];
@@ -462,7 +460,19 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     resultMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
   }
 
-  var structResult = resultMarshaller && resultMarshaller.namedReturnValue;
+  return {
+    arguments: argumentMarshallers,
+    result: resultMarshaller
+  };
+};
+
+JSIL.PInvoke.CreateManagedToNativeWrapper = function (nativeMethod, methodName, methodSignature, marshallers) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  if (!marshallers)
+    marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
+
+  var structResult = marshallers.result && marshallers.result.namedReturnValue;
 
   var wrapper = function SimplePInvokeWrapper () {
     var context = new JSIL.PInvoke.CallContext();
@@ -472,35 +482,27 @@ JSIL.PInvoke.WrapNativeMethod = function (nativeMethod, methodName, methodSignat
     var convertOffset = structResult ? 1 : 0;
     var convertedArguments = new Array(argc + convertOffset);
     for (var i = 0; i < argc; i++)
-      convertedArguments[i + convertOffset] = argumentMarshallers[i].ManagedToNative(arguments[i], context);
+      convertedArguments[i + convertOffset] = marshallers.arguments[i].ManagedToNative(arguments[i], context);
 
     if (structResult) {
-      convertedArguments[0] = resultMarshaller.AllocateZero(context);
+      convertedArguments[0] = marshallers.result.AllocateZero(context);
     }
 
     try {
       var nativeResult;
 
-      if (lateBound === true) {
-        var invokeTarget = nativeMethod();
-        nativeResult = invokeTarget.apply(this, convertedArguments);
-      } else {
-        nativeResult = nativeMethod.apply(this, convertedArguments);
-      }
+      nativeResult = nativeMethod.apply(this, convertedArguments);
 
       if (structResult)
-        return resultMarshaller.NativeToManaged(convertedArguments[0], context);
-      else if (resultMarshaller)
-        return resultMarshaller.NativeToManaged(nativeResult, context);
+        return marshallers.result.NativeToManaged(convertedArguments[0], context);
+      else if (marshallers.result)
+        return marshallers.result.NativeToManaged(nativeResult, context);
       else
         return nativeResult;
     } finally {
       context.Dispose();
     }
   };
-
-  wrapper.__ArgumentMarshallers__ = argumentMarshallers;
-  wrapper.__ResultMarshaller__ = resultMarshaller;
 
   return wrapper;
 };
@@ -533,21 +535,14 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
 
       var module = JSIL.GlobalNamespace.Module;
 
+      var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature);
+
       var methodIndex = ptr.value | 0;
       var invokeImplementation = null;
 
-      function getInvokeImplementation () {
-        if (invokeImplementation === null)
-          invokeImplementation = lookupInvokeImplementation();
-
-        return invokeImplementation;
-      };
-
-      var wrappedMethod = JSIL.PInvoke.WrapNativeMethod(getInvokeImplementation, "GetDelegateForFunctionPointer_Result", signature, true);
-
       // Build signature
       var dynCallSignature = "";
-      var rm = wrappedMethod.__ResultMarshaller__;
+      var rm = marshallers.result;
 
       if (rm) {
         if (rm.namedReturnValue)
@@ -558,39 +553,38 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       }
 
       for (var i = 0, l = signature.argumentTypes.length; i < l; i++) {
-        var m = wrappedMethod.__ArgumentMarshallers__[i];
+        var m = marshallers.arguments[i];
         dynCallSignature += m.GetSignatureToken(signature.argumentTypes[i]);
       }
 
-      function lookupInvokeImplementation () {
-        var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
-        if (functionTable) {
-          return functionTable[methodIndex];
-        } else {
-          var dynCallImplementation = module["dynCall_" + dynCallSignature];
-          if (!dynCallImplementation)
-            JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
+      var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
+      if (functionTable) {
+        invokeImplementation = functionTable[methodIndex];
+      } else {
+        var dynCallImplementation = module["dynCall_" + dynCallSignature];
+        if (!dynCallImplementation)
+          JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
 
-          if (!warnedAboutFunctionTable) {
-            warnedAboutFunctionTable = true;
-            JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
-          }
-
-          var boundDynCall = function (/* arguments... */) {
-            var argc = arguments.length | 0;
-            var argumentsList = new Array(argc + 1);
-            argumentsList[0] = methodIndex;
-
-            for (var i = 0; i < argc; i++)
-              argumentsList[i + 1] = arguments[i];
-
-            return dynCallImplementation.apply(this, argumentsList);
-          };
-
-          return boundDynCall;
+        if (!warnedAboutFunctionTable) {
+          warnedAboutFunctionTable = true;
+          JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
         }
+
+        var boundDynCall = function (/* arguments... */) {
+          var argc = arguments.length | 0;
+          var argumentsList = new Array(argc + 1);
+          argumentsList[0] = methodIndex;
+
+          for (var i = 0; i < argc; i++)
+            argumentsList[i + 1] = arguments[i];
+
+          return dynCallImplementation.apply(this, argumentsList);
+        };
+
+        invokeImplementation = boundDynCall;
       }
 
+      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature, marshallers);
       return wrappedMethod;
     }
   );  
