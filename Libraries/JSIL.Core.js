@@ -6332,7 +6332,7 @@ JSIL.$PlacePInvokeMember = function (
   JSIL.SetLazyValueProperty(target, memberName, lookupThunk);
 };
 
-JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodName, signature) {
+JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodName, signature, pInvokeInfo) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
   var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
@@ -6342,6 +6342,10 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
 
   if (!descriptor.Static)
     JSIL.RuntimeError("PInvoke methods must be static: " + fullName);
+  if (!pInvokeInfo)
+    JSIL.RuntimeError("PInvoke methods must have PInvoke info");
+  if (!pInvokeInfo.Module)
+    JSIL.RuntimeError("PInvoke methods must have a module name");
 
   /*
   // FIXME
@@ -6367,7 +6371,7 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
 
   JSIL.$PlacePInvokeMember(
     descriptor.Target, mangledName, signature,
-    "unknown.dll", methodName
+    pInvokeInfo.Module, pInvokeInfo.EntryPoint || methodName
   );
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
@@ -6379,7 +6383,8 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
     isPInvoke: true,
     isPlaceholder: false,
     isConstructor: false,
-    parameterInfo: memberBuilder.parameterInfo
+    parameterInfo: memberBuilder.parameterInfo,
+    pInvokeInfo: pInvokeInfo
   }, memberBuilder, true);
 
   return memberBuilder;

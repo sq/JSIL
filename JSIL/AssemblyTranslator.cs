@@ -2791,7 +2791,39 @@ namespace JSIL {
 
                 output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
 
-                if (!isExternal) {
+                if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
+                    var pii = method.PInvokeInfo;
+
+                    output.Comma();
+                    output.NewLine();
+
+                    output.OpenBrace();
+
+                    output.WriteRaw("Module: ");
+                    output.Value(pii.Module.Name);
+                    output.Comma();
+                    output.NewLine();
+
+                    if (pii.IsCharSetAuto) {
+                        output.WriteRaw("CharSet: 'auto',");
+                        output.NewLine();
+                    } else if (pii.IsCharSetUnicode) {
+                        output.WriteRaw("CharSet: 'unicode',");
+                        output.NewLine();
+                    } else if (pii.IsCharSetAnsi) {
+                        output.WriteRaw("CharSet: 'ansi',");
+                        output.NewLine();
+                    }
+
+                    if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
+                        output.WriteRaw("EntryPoint: ");
+                        output.Value(pii.EntryPoint);
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    output.CloseBrace(false);
+                } else if (!isExternal) {
                     output.Comma();
                     output.NewLine();
 
