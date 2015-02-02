@@ -98,17 +98,14 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   $.Field({Public: true , Static: false, ReadOnly: true}, "Length", $.Int32);
   $.Field({Public: false, Static: false}, "IsNotDisposed", $.Boolean);
 
-  $.Method({Static: false, Public: true }, ".ctor", 
-    new JSIL.MethodSignature(null, [$.Int32], []),
-    function (size) {
+  $.RawMethod(false, "$innerCtor", function innerCtor (module, size) {
       this.Length = size;
       this.IsNotDisposed = true;
 
       this.ElementSize = JSIL.GetNativeSizeOf(this.T);
       var sizeBytes = this.ElementSize * this.Length;
 
-      // FIXME: Record the emscripten module allocated in (though right now we always use the global...)
-      var module = this.Module = JSIL.PInvoke.GetGlobalModule();
+      this.Module = module;
       this.EmscriptenOffset = module._malloc(sizeBytes);
 
       var tByte = $jsilcore.System.Byte.__Type__;
@@ -122,6 +119,19 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
         var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
         this._Array = new arrayType(buffer, this.MemoryRange);
       }
+  });
+
+  $.Method({Static: false, Public: true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$.Int32], []),
+    function (size) {
+      this.$innerCtor(JSIL.PInvoke.GetGlobalModule(), size);
+    }
+  );
+
+  $.Method({Static: false, Public: true }, ".ctor", 
+    new JSIL.MethodSignature(null, [$.String, $.Int32], []),
+    function (dllName, size) {
+      this.$innerCtor(JSIL.PInvoke.GetModule(dllName), size);
     }
   );
 
