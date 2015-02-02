@@ -370,6 +370,8 @@ JSIL.PInvoke.StringBuilderMarshaller.prototype.NativeToManaged = function (nativ
 JSIL.PInvoke.StringMarshaller = function StringMarshaller (charSet) {
   if (charSet)
     JSIL.RuntimeError("Not implemented");
+
+  this.allocates = true;
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
@@ -396,6 +398,41 @@ JSIL.PInvoke.StringMarshaller.prototype.NativeToManaged = function (nativeValue,
 };
 
 
+JSIL.PInvoke.DelegateMarshaller = function DelegateMarshaller (type) {
+  this.type = type;
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.DelegateMarshaller);
+
+JSIL.PInvoke.DelegateMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var wrapper = JSIL.PInvoke.CreateNativeToManagedWrapper(
+    managedValue, this.type.__Signature__
+  );
+
+  var functionPointer = module.Runtime.addFunction(wrapper);
+
+  callContext.QueueCleanup(function () {
+    module.Runtime.removeFunction(functionPointer);
+  });
+
+  return functionPointer;
+};
+
+JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  var module = JSIL.GlobalNamespace.Module;
+
+  var wrapper = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer$b1(
+    this.type
+  )(
+    new System.IntPtr(nativeValue)
+  );
+
+  return wrapper;
+};
+
+
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
 
@@ -419,18 +456,17 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
       return new JSIL.PInvoke.StringMarshaller();
   }
 
-  if (type.__IsNativeType__) {
+  if (type.__IsDelegate__) {
+    return new JSIL.PInvoke.DelegateMarshaller(type);
+  } else if (type.__IsNativeType__) {
     if (box)
       return new JSIL.PInvoke.BoxedValueMarshaller(type);
     else
       return new JSIL.PInvoke.ByValueMarshaller(type);
   } else if (type.__IsStruct__) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
-  } else {    
-    if (box)
-      return new JSIL.PInvoke.BoxedValueMarshaller(type);
-    else
-      return new JSIL.PInvoke.ByValueMarshaller(type);
+  } else {
+    JSIL.RuntimeError("Type '" + type + "' cannot be marshalled");
   }
 };
 
@@ -457,6 +493,7 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature) {
 
   if (methodSignature.returnType) {
     resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
+
     resultMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
   }
 
@@ -511,6 +548,9 @@ JSIL.PInvoke.CreateNativeToManagedWrapper = function (managedFunction, methodSig
   var module = JSIL.GlobalNamespace.Module;
 
   var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
+
+  if (marshallers.result.allocates)
+    JSIL.RuntimeError("Return type '" + methodSignature.returnType + "' is not valid because it allocates on the native heap");
 
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
 
