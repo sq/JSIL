@@ -20,7 +20,7 @@ JSIL.PInvoke.GetGlobalModule = function () {
 };
 
 // Used to access specific entry points
-JSIL.PInvoke.GetModule = function (name) {
+JSIL.PInvoke.GetModule = function (name, throwOnFail) {
   var modules = JSIL.__NativeModules__;
 
   // HACK
@@ -28,7 +28,7 @@ JSIL.PInvoke.GetModule = function (name) {
 
   var module = modules[key];
 
-  if (!module)
+  if (!module && (throwOnFail !== false))
     JSIL.RuntimeError("No module named '" + name + "' loaded.");
 
   return module;

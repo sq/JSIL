@@ -6330,11 +6330,17 @@ JSIL.$PlacePInvokeMember = function (
     JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
 
   var lookupThunk = function PInvokeLookupThunk () {
-    var module = JSIL.PInvoke.GetModule(dllName);
+    var module = JSIL.PInvoke.GetModule(dllName, false);
+    if (!module)
+      return (function MissingPInvokeModule () {
+        throw new System.DllNotFoundException("Unable to load DLL '" + dllName + "': The specified module could not be found.");
+      });
 
     var methodImpl = JSIL.PInvoke.FindNativeMethod(module, importedName);
     if (!methodImpl)
-      JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
+      return (function MissingPInvokeEntryPoint () {
+        throw new System.EntryPointNotFoundException("Unable to find an entry point named '" + importedName + "' in DLL '" + dllName + "'.");
+      });
 
     var wrapper = JSIL.PInvoke.CreateManagedToNativeWrapper(
       module, methodImpl, memberName, signature, null
