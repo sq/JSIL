@@ -6317,14 +6317,15 @@ JSIL.$PlacePInvokeMember = function (
     JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
 
   var lookupThunk = function PInvokeLookupThunk () {
-    if (!JSIL.GlobalNamespace.Module)
-      JSIL.RuntimeError("No emscripten modules loaded.");
+    var module = JSIL.PInvoke.GetModule(dllName);
 
-    var methodImpl = JSIL.PInvoke.FindNativeMethod(dllName, importedName);
+    var methodImpl = JSIL.PInvoke.FindNativeMethod(module, importedName);
     if (!methodImpl)
       JSIL.RuntimeError("Emscripten module '" + dllName + "' doesn't export " + importedName);
 
-    var wrapper = JSIL.PInvoke.CreateManagedToNativeWrapper(methodImpl, memberName, signature, null);
+    var wrapper = JSIL.PInvoke.CreateManagedToNativeWrapper(
+      module, methodImpl, memberName, signature, null
+    );
 
     return wrapper;
   };
@@ -6346,28 +6347,6 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
     JSIL.RuntimeError("PInvoke methods must have PInvoke info");
   if (!pInvokeInfo.Module)
     JSIL.RuntimeError("PInvoke methods must have a module name");
-
-  /*
-  // FIXME
-  {
-    var pinvokeMethods = this.typeObject.__PInvokeMethods__;
-    var pinvokeMethodIndex = pinvokeMethods.length;
-
-    // FIXME: Avoid doing this somehow?
-    pinvokeMethods.push(signature);
-
-    var getName = function () {
-      var thisType = (this.__Type__ || this.__ThisType__);
-      var lateBoundSignature = thisType.__PInvokeMethods__[externalMethodIndex];
-
-      // FIXME: Why is this necessary now when it wasn't before?
-      if (lateBoundSignature == null)
-        lateBoundSignature = signature;
-
-      return lateBoundSignature.toString(methodName);
-    };
-  }
-  */
 
   JSIL.$PlacePInvokeMember(
     descriptor.Target, mangledName, signature,

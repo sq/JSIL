@@ -581,7 +581,7 @@ namespace JSIL.Tests {
                 var dlls = Directory.GetFiles(SourceDirectory, "*.emjs");
                 foreach (var dll in dlls) {
                     manifest += "," + Environment.NewLine +
-                        String.Format("['Library', {0}]", Util.EscapeString(Path.GetFullPath(dll)));
+                        String.Format("['NativeLibrary', {0}]", Util.EscapeString(Path.GetFullPath(dll)));
                 }
 
                 StartupPrologue =

@@ -1,4 +1,4 @@
-JSIL.loadGlobalScript = function (uri, onComplete) {
+JSIL.loadGlobalScript = function (uri, onComplete, dllName) {
   var anchor = document.createElement("a");
   anchor.href = uri;
   var absoluteUri = anchor.href;
@@ -12,6 +12,9 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   JSIL.Browser.RegisterOneShotEventListener(
     scriptTag, "load", true, 
     function ScriptTag_Load (e) {
+      if (dllName)
+        JSIL.EndLoadNativeLibrary(dllName);
+
       if (done)
         return;
 
@@ -22,6 +25,9 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   JSIL.Browser.RegisterOneShotEventListener(
     scriptTag, "error", true, 
     function ScriptTag_Error (e) {
+      if (dllName)
+        JSIL.EndLoadNativeLibrary(dllName);
+
       if (done)
         return;
 
@@ -34,6 +40,9 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   scriptTag.src = absoluteUri;
 
   try {
+    if (dllName)
+      JSIL.BeginLoadNativeLibrary(dllName);
+
     body.appendChild(scriptTag);
   } catch (exc) {
     done = true;
@@ -294,7 +303,7 @@ function loadBinaryFileAsync (uri, onComplete) {
   });
 }
 
-var finishLoadingScript = function (state, path, onError) {
+var finishLoadingScript = function (state, path, onError, dllName) {
   state.pendingScriptLoads += 1;
 
   JSIL.loadGlobalScript(path, function (result, error) {
@@ -316,14 +325,14 @@ var finishLoadingScript = function (state, path, onError) {
 
       onError(errorText);
     }          
-  });
+  }, dllName);
 };
 
-var loadScriptInternal = function (uri, onError, onDoneLoading, state) {
+var loadScriptInternal = function (uri, onError, onDoneLoading, state, dllName) {
   var absoluteUrl = getAbsoluteUrl(uri);
 
   var finisher = function () {
-    finishLoadingScript(state, uri, onError);
+    finishLoadingScript(state, uri, onError, dllName);
   };
 
   if (absoluteUrl.indexOf("file://") === 0) {
@@ -343,6 +352,10 @@ var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
     var uri = jsilConfig.libraryRoot + filename;
     loadScriptInternal(uri, onError, onDoneLoading, state);
+  },
+  "NativeLibrary": function loadNativeLibrary (filename, data, onError, onDoneLoading, state) {
+    var uri = jsilConfig.libraryRoot + filename;
+    loadScriptInternal(uri, onError, onDoneLoading, state, filename);
   },
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
     var uri = jsilConfig.scriptRoot + filename;

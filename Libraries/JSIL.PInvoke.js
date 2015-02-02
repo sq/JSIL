@@ -8,25 +8,32 @@ if (!$jsilcore)
 
 JSIL.DeclareNamespace("JSIL.PInvoke");
 
-JSIL.Malloc = function (size) {
-  var module = JSIL.GlobalNamespace.Module;
+
+// Used to access shared heap
+JSIL.PInvoke.GetGlobalModule = function () {
+  var module = JSIL.GlobalNamespace.Module || JSIL.__NativeModules__["__global__"];
 
   if (!module)
     JSIL.RuntimeError("No emscripten modules loaded");
 
-  // FIXME
-  return new System.IntPtr(module._malloc(size));
+  return module;
 };
 
-JSIL.Free = function (ptr) {
-  var module = JSIL.GlobalNamespace.Module;
+// Used to access specific entry points
+JSIL.PInvoke.GetModule = function (name) {
+  var modules = JSIL.__NativeModules__;
+
+  // HACK
+  var key = name.toLowerCase().replace(".so", ".dll");
+
+  var module = modules[key];
 
   if (!module)
-    JSIL.RuntimeError("No emscripten modules loaded");
+    JSIL.RuntimeError("No module named '" + name + "' loaded.");
 
-  // FIXME
-  module._free(ptr.value);
+  return module;
 };
+
 
 JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"], function ($) {
   var T = new JSIL.GenericParameter("T", "JSIL.Runtime.NativePackedArray`1");
@@ -45,7 +52,8 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       this.ElementSize = JSIL.GetNativeSizeOf(this.T);
       var sizeBytes = this.ElementSize * this.Length;
 
-      var module = JSIL.GlobalNamespace.Module;
+      // FIXME: Record the emscripten module allocated in (though right now we always use the global...)
+      var module = this.Module = JSIL.PInvoke.GetGlobalModule();
       this.EmscriptenOffset = module._malloc(sizeBytes);
 
       var tByte = $jsilcore.System.Byte.__Type__;
@@ -86,9 +94,8 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
         return;
 
       this.IsNotDisposed = false;
-      var module = JSIL.GlobalNamespace.Module;
 
-      module._free(this.EmscriptenOffset);
+      this.Module._free(this.EmscriptenOffset);
     }
   );
 
@@ -100,23 +107,20 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
 });
 
 
-JSIL.PInvoke.CallContext = function () {
+JSIL.PInvoke.CallContext = function (module) {
+  this.module = module;
   this.allocations = [];
   this.cleanups = [];
 };
 
 JSIL.PInvoke.CallContext.prototype.Allocate = function (sizeBytes) {
-  var module = JSIL.GlobalNamespace.Module;
-
-  var offset = module._malloc(sizeBytes);
+  var offset = this.module._malloc(sizeBytes);
   this.allocations.push(offset);
 
   return offset;
 };
 
 JSIL.PInvoke.CallContext.prototype.Dispose = function () {
-  var module = JSIL.GlobalNamespace.Module;
-
   for (var i = 0, l = this.cleanups.length; i < l; i++) {
     var c = this.cleanups[i];
     c();
@@ -126,7 +130,7 @@ JSIL.PInvoke.CallContext.prototype.Dispose = function () {
 
   for (var i = 0, l = this.allocations.length; i < l; i++) {
     var a = this.allocations[i];
-    module._free(a);
+    this.module._free(a);
   }
 
   this.allocations.length = 0;
@@ -193,7 +197,7 @@ JSIL.PInvoke.BoxedValueMarshaller.prototype.AllocateZero = function (callContext
 };
 
 JSIL.PInvoke.BoxedValueMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var offset = callContext.Allocate(this.sizeInBytes);
 
@@ -211,7 +215,7 @@ JSIL.PInvoke.BoxedValueMarshaller.prototype.ManagedToNative = function (managedV
 };
 
 JSIL.PInvoke.BoxedValueMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var tByte = $jsilcore.System.Byte.__Type__;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
@@ -244,7 +248,7 @@ JSIL.PInvoke.ByValueStructMarshaller.prototype.AllocateZero = function (callCont
 };
 
 JSIL.PInvoke.ByValueStructMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var offset = callContext.Allocate(this.sizeInBytes);
   this.marshaller(managedValue, module.HEAPU8, offset);
@@ -253,7 +257,7 @@ JSIL.PInvoke.ByValueStructMarshaller.prototype.ManagedToNative = function (manag
 };
 
 JSIL.PInvoke.ByValueStructMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   return new (this.unmarshalConstructor)(module.HEAPU8, nativeValue);
 };
@@ -287,7 +291,7 @@ JSIL.PInvoke.PointerMarshaller.prototype.GetSignatureToken = function () {
   return "i";
 };
 JSIL.PInvoke.PointerMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   if (managedValue.memoryRange.buffer !== module.HEAPU8.buffer)
     JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
@@ -340,7 +344,7 @@ JSIL.PInvoke.StringBuilderMarshaller.prototype.ManagedToNative = function (manag
   var sizeInBytes = managedValue.get_Capacity();
   var emscriptenOffset = callContext.Allocate(sizeInBytes);
 
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var tByte = $jsilcore.System.Byte.__Type__;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
@@ -380,7 +384,7 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
   var sizeInBytes = managedValue.length;
   var emscriptenOffset = callContext.Allocate(sizeInBytes);
 
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var tByte = $jsilcore.System.Byte.__Type__;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
@@ -405,10 +409,10 @@ JSIL.PInvoke.DelegateMarshaller = function DelegateMarshaller (type) {
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.DelegateMarshaller);
 
 JSIL.PInvoke.DelegateMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var wrapper = JSIL.PInvoke.CreateNativeToManagedWrapper(
-    managedValue, this.type.__Signature__
+    module, managedValue, this.type.__Signature__
   );
 
   var functionPointer = module.Runtime.addFunction(wrapper);
@@ -421,7 +425,7 @@ JSIL.PInvoke.DelegateMarshaller.prototype.ManagedToNative = function (managedVal
 };
 
 JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  var module = JSIL.GlobalNamespace.Module;
+  var module = callContext.module;
 
   var wrapper = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer$b1(
     this.type
@@ -470,11 +474,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   }
 };
 
-JSIL.PInvoke.FindNativeMethod = function (dllName, methodName) {
-  // FIXME: Store modules per-dll to resolve name collisions?
-  //  Need to merge heaps, though.
-  var module = JSIL.GlobalNamespace.Module;
-
+JSIL.PInvoke.FindNativeMethod = function (module, methodName) {
   var key = "_" + methodName;
 
   return module[key];
@@ -503,16 +503,14 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature) {
   };
 };
 
-JSIL.PInvoke.CreateManagedToNativeWrapper = function (nativeMethod, methodName, methodSignature, marshallers) {
-  var module = JSIL.GlobalNamespace.Module;
-
+JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, methodName, methodSignature, marshallers) {
   if (!marshallers)
     marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
 
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
 
   var wrapper = function SimplePInvokeWrapper () {
-    var context = new JSIL.PInvoke.CallContext();
+    var context = new JSIL.PInvoke.CallContext(module);
 
     var argc = arguments.length | 0;
 
@@ -544,9 +542,7 @@ JSIL.PInvoke.CreateManagedToNativeWrapper = function (nativeMethod, methodName, 
   return wrapper;
 };
 
-JSIL.PInvoke.CreateNativeToManagedWrapper = function (managedFunction, methodSignature) {
-  var module = JSIL.GlobalNamespace.Module;
-
+JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, methodSignature) {
   var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
 
   if (marshallers.result.allocates)
@@ -555,7 +551,7 @@ JSIL.PInvoke.CreateNativeToManagedWrapper = function (managedFunction, methodSig
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
 
   var wrapper = function SimplePInvokeWrapper () {
-    var context = new JSIL.PInvoke.CallContext();
+    var context = new JSIL.PInvoke.CallContext(module);
 
     var argc = arguments.length | 0;
     var convertOffset = structResult ? 1 : 0;
@@ -601,9 +597,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       if (!signature)
         JSIL.RuntimeError("Delegate type must have a signature");
 
-      var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(delegate, signature);
+      // FIXME
+      var module = JSIL.PInvoke.GetGlobalModule();
 
-      var module = JSIL.GlobalNamespace.Module;
+      var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(module, delegate, signature);
 
       var functionPointer = module.Runtime.addFunction(wrappedFunction);
 
@@ -622,7 +619,8 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       if (!signature)
         JSIL.RuntimeError("Delegate type must have a signature");
 
-      var module = JSIL.GlobalNamespace.Module;
+      // FIXME
+      var module = JSIL.PInvoke.GetGlobalModule();
 
       var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature);
 
@@ -673,7 +671,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
         invokeImplementation = boundDynCall;
       }
 
-      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(invokeImplementation, "GetDelegateForFunctionPointer_Result", signature, marshallers);
+      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(module, invokeImplementation, "GetDelegateForFunctionPointer_Result", signature, marshallers);
       return wrappedMethod;
     }
   );  
