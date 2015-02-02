@@ -19,7 +19,15 @@ public static class Program {
             var b = ReturnStructArgument(a);
             Console.WriteLine("Lookup ignored DLL name");
         } catch (Exception exc) {
-            Console.WriteLine(exc.Message);
+            Console.WriteLine(exc.GetType().Name);
+
+            // HACK: JS exception won't have hresult
+            var msg = exc.Message;
+            var parenPosition = msg.IndexOf("(");
+            if (parenPosition >= 0)
+                msg = msg.Substring(0, parenPosition - 1).Trim();
+
+            Console.WriteLine(msg);
         }
     }
 }

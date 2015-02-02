@@ -707,6 +707,9 @@ JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
 
 JSIL.MakeClass("System.SystemException", "System.Collections.Generic.KeyNotFoundException", true);
 
+JSIL.MakeClass("System.TypeLoadException", "System.DllNotFoundException", true);
+JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException", true);
+
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
     var text = "";
