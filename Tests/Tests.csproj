@@ -126,7 +126,9 @@
     <None Include="EmscriptenTestCases\ReturnFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\IntParameter.cs" />
     <None Include="EmscriptenTestCases\PassFunctionPointer.cs" />
+    <None Include="EmscriptenTestCases\PassDelegate.cs" />
     <None Include="EmscriptenTestCases\PassFunctionPointerForDelegate.cs" />
+    <None Include="EmscriptenTestCases\ReturnDelegate.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
