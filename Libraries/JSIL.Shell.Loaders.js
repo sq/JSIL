@@ -3,6 +3,12 @@ var assetLoaders = {
     var uri = JSIL.Shell.GetURIForFile(jsilConfig.libraryRoot, filename);
     load(uri);
   },
+  "NativeLibrary": function loadNativeLibrary (filename, data) {
+    var uri = JSIL.Shell.GetURIForFile(jsilConfig.libraryRoot, filename);
+    JSIL.BeginLoadNativeLibrary(filename);
+    load(uri);
+    JSIL.EndLoadNativeLibrary(filename);
+  },
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
     var uri = JSIL.Shell.GetURIForFile(jsilConfig.scriptRoot, filename);
     load(uri);

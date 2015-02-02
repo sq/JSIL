@@ -12,7 +12,8 @@
     throw new Error("JSIL.js loaded twice");
 
   var JSIL = {
-    __FullName__: "JSIL"
+    __FullName__: "JSIL",
+    __NativeModules__: {}
   };
 
   Object.defineProperty(
@@ -138,6 +139,37 @@ var $jsilloaderstate = {
   Environment_SpidermonkeyShell.prototype.loadEnvironmentScripts = function () {
     this.loadScript(libraryRoot + "JSIL.Shell.js");
     this.loadScript(libraryRoot + "JSIL.Shell.Loaders.js");
+  };
+
+
+  var priorModule = JSIL.GlobalNamespace.Module;
+
+  JSIL.BeginLoadNativeLibrary = function (name) {
+    var priorModule = JSIL.GlobalNamespace.Module;
+    JSIL.GlobalNamespace.Module = Object.create(null);
+  };
+
+  JSIL.EndLoadNativeLibrary = function (name) {
+    var key = name;
+    var lastIndex = Math.max(key.lastIndexOf("/"), key.lastIndexOf("\\"));
+    if (lastIndex >= 0)
+      key = key.substr(lastIndex + 1);
+
+    // HACK
+    key = key.replace(".emjs", ".dll").replace(".js", ".dll").toLowerCase();
+
+    if (JSIL.__NativeModules__[key])
+      throw new Error("A module named '" + key + "' is already loaded.");
+
+    // HACK: FIXME: We need a global module to use as a fallback for scenarios
+    //  where we don't know which module a call is interacting with
+    if (!JSIL.__NativeModules__["__global__"])
+      JSIL.__NativeModules__["__global__"] = JSIL.GlobalNamespace.Module;
+
+    JSIL.__NativeModules__[key] = JSIL.GlobalNamespace.Module;
+
+    JSIL.GlobalNamespace.Module = priorModule;
+    priorModule = null;
   };
 
 

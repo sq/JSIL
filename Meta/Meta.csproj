@@ -46,7 +46,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Native.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Builtins.cs" />
     <Compile Include="PackedArray.cs" />

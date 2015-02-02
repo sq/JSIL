@@ -127,12 +127,16 @@
 
             var elt = document.createElement("script");
             elt.addEventListener("load", function dllLoaded () {
+              JSIL.EndLoadNativeLibrary(dllPath);
+
               console.log("Loaded DLL " + this.src);
 
               dllsToLoad -= 1;
               if (dllsToLoad == 0)
                 doneLoadingDlls();
             }, true);
+
+            JSIL.BeginLoadNativeLibrary(dllPath);
 
             elt.src = dllPath;
             document.querySelector("body").appendChild(elt);

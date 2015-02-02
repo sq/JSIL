@@ -979,6 +979,7 @@ function pollAssetQueue () {
 
       switch (lhs[0]) {
         case "Library":
+        case "NativeLibrary":
           lhsTypeIndex = 0;
           break;
         case "Script":
@@ -988,6 +989,7 @@ function pollAssetQueue () {
 
       switch (rhs[0]) {
         case "Library":
+        case "NativeLibrary":
           rhsTypeIndex = 0;
           break;
         case "Script":
