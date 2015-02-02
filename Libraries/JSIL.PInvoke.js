@@ -10,11 +10,20 @@ JSIL.DeclareNamespace("JSIL.PInvoke");
 
 
 // Used to access shared heap
+var warnedAboutMultiModule = false;
+
 JSIL.PInvoke.GetGlobalModule = function () {
   var module = JSIL.GlobalNamespace.Module || JSIL.__NativeModules__["__global__"];
 
   if (!module)
     JSIL.RuntimeError("No emscripten modules loaded");
+
+  if (Object.keys(JSIL.__NativeModules__).length > 2) {
+    if (!warnedAboutMultiModule) {
+      warnedAboutMultiModule = true;
+      JSIL.Host.warning("More than one Emscripten module is loaded, so operations that need a global heap will fail. This is due to a limitation of Emscripten.");
+    }
+  }
 
   return module;
 };
