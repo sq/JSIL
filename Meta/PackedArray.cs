@@ -78,6 +78,14 @@ namespace JSIL.Runtime {
             IsNotDisposed = true;
         }
 
+        /// <summary>
+        /// If you load multiple emscripten modules, it's necessary to specify which one's heap you wish to allocate into.
+        /// </summary>
+        /// <param name="dllName">The name of the module (the name you pass to DllImport)</param>
+        public NativePackedArray (string dllName, int length)
+            : this (length) {
+        }
+
         public T[] Array {
             [JSIsPure]
             get {
