@@ -12,8 +12,8 @@ JSIL.DeclareNamespace("JSIL.PackedArray");
 JSIL.ImplementExternals("System.IntPtr", function ($) {
   var tIntPtr = $.IntPtr;
 
-  $.RawMethod(false, "$fromPinnedPointer", function (pinnedPointer) {
-    this.pinnedPointer = pinnedPointer;
+  $.RawMethod(false, "$fromPointer", function (pointer) {
+    this.pointer = pointer;
     this.value = null;
   });
 
@@ -24,7 +24,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (value) {
-      this.pinnedPointer = null;
+      this.pointer = null;
       this.value = $jsilcore.System.Int64.FromInt32(value);
     }
   );
@@ -32,7 +32,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int64], [])), 
     function _ctor (value) {
-      this.pinnedPointer = null;
+      this.pointer = null;
       this.value = value;
     }
   );
@@ -40,18 +40,18 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.RawMethod(false, "__CopyMembers__", 
     function IntPtr_CopyMembers (source, target) {
       target.value = source.value;
-      target.pinnedPointer = source.pinnedPointer;
+      target.pointer = source.pointer;
     }
   );
 
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
-      if (lhs.pinnedPointer !== null) {
-        if (!rhs.pinnedPointer)
+      if (lhs.pointer !== null) {
+        if (!rhs.pointer)
           return false;
 
-        return rhs.pinnedPointer.equals(lhs.pinnedPointer);
+        return rhs.pointer.equals(lhs.pointer);
       } else {
         return System.Int64.op_Equality(lhs.value, rhs.value);
       }
@@ -61,11 +61,11 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Inequality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Inequality (lhs, rhs) {
-      if (lhs.pinnedPointer !== null) {
-        if (!rhs.pinnedPointer)
+      if (lhs.pointer !== null) {
+        if (!rhs.pointer)
           return true;
 
-        return !rhs.pinnedPointer.equals(lhs.pinnedPointer);
+        return !rhs.pointer.equals(lhs.pointer);
       } else {
         return System.Int64.op_Inequality(lhs.value, rhs.value);
       }
@@ -75,12 +75,12 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Addition", 
     (new JSIL.MethodSignature(tIntPtr, [tIntPtr, $.Int32], [])), 
     function op_Addition (lhs, rhs) {
-      if (lhs.pinnedPointer !== null) {
-        var newPointer = lhs.pinnedPointer.add(rhs, false);
+      if (lhs.pointer !== null) {
+        var newPointer = lhs.pointer.add(rhs, false);
 
         return JSIL.CreateInstanceOfType(
           System.IntPtr.__Type__,
-          "$fromPinnedPointer",
+          "$fromPointer",
           [newPointer]
         );
       } else {
@@ -92,7 +92,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, "ToInt32", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ToInt32 () {
-      if (this.pinnedPointer !== null)
+      if (this.pointer !== null)
         JSIL.RuntimeError("Attempting to call ToInt32() on a pinned object pointer");
 
       return this.value.ToInt32();
@@ -102,7 +102,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, "ToInt64", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ToInt64 () {
-      if (this.pinnedPointer !== null)
+      if (this.pointer !== null)
         JSIL.RuntimeError("Attempting to call ToInt64() on a pinned object pointer");
 
       return this.value;
@@ -210,7 +210,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
     function AddrOfPinnedObject () {
       return JSIL.CreateInstanceOfType(
         System.IntPtr.__Type__,
-        "$fromPinnedPointer",
+        "$fromPointer",
         [this._pointer]
       );
     }
