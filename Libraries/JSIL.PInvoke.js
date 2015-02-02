@@ -43,6 +43,49 @@ JSIL.PInvoke.GetModule = function (name, throwOnFail) {
   return module;
 };
 
+// Locates the emscripten module that owns a given heap
+JSIL.PInvoke.GetModuleForHeap = function (heap, throwOnFail) {
+  var buffer;
+
+  if (!heap)
+    JSIL.RuntimeError("No heap provided");
+  else if (heap && heap.buffer)
+    buffer = heap.buffer;
+  else
+    buffer = heap;
+
+  for (var k in JSIL.__NativeModules__) {
+    var m = JSIL.__NativeModules__[k];
+
+    var mBuffer = m.HEAPU8.buffer;
+
+    if (mBuffer === buffer)
+      return m;
+  }
+
+  if (throwOnFail !== false)
+    JSIL.RuntimeError("No module owns the specified heap");
+
+  return null;
+};
+
+JSIL.PInvoke.CreatePointerForModule = function (module, address) {
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
+  var emscriptenMemoryView = memoryRange.getView(tByte);
+
+  var emscriptenPointer = JSIL.NewPointer(
+    tByte, memoryRange, emscriptenMemoryView, address
+  );
+
+  var intPtr = JSIL.CreateInstanceOfType(
+    System.IntPtr.__Type__,
+    "$fromPointer",
+    [emscriptenPointer]
+  );
+
+  return intPtr;
+};
 
 JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"], function ($) {
   var T = new JSIL.GenericParameter("T", "JSIL.Runtime.NativePackedArray`1");
@@ -278,15 +321,20 @@ JSIL.PInvoke.IntPtrMarshaller = function IntPtrMarshaller () {
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.IntPtrMarshaller);
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  // FIXME: Pinned pointers
-  if (managedValue.value === null)
-    JSIL.RuntimeError("Pinned pointers not supported");
+  if (managedValue.pointer) {
+    if (callContext.module.HEAPU8.buffer !== managedValue.pointer.memoryRange.buffer)
+      JSIL.RuntimeError("The pointer does not point into the module's heap");
 
-  return managedValue.value;
+    return managedValue.pointer.offsetInBytes | 0;
+  } else {
+    // HACK: We have no way to know this address is in the correct heap.
+
+    return managedValue.value | 0;
+  }
 };
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  return new System.IntPtr(nativeValue);
+  return JSIL.PInvoke.CreatePointerForModule(callContext.module, nativeValue);
 };
 
 
@@ -439,7 +487,7 @@ JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValu
   var wrapper = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer$b1(
     this.type
   )(
-    new System.IntPtr(nativeValue)
+    JSIL.PInvoke.CreatePointerForModule(callContext.module, nativeValue)
   );
 
   return wrapper;
@@ -613,7 +661,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
 
       var functionPointer = module.Runtime.addFunction(wrappedFunction);
 
-      var result = new System.IntPtr(functionPointer);
+      var result = JSIL.PInvoke.CreatePointerForModule(module, functionPointer);
       return result;
     }
   );
@@ -628,12 +676,17 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       if (!signature)
         JSIL.RuntimeError("Delegate type must have a signature");
 
-      // FIXME
-      var module = JSIL.PInvoke.GetGlobalModule();
+      var methodIndex, module;
+      if (ptr.pointer) {
+        module = JSIL.PInvoke.GetModuleForHeap(ptr.pointer.memoryRange.buffer);
+        methodIndex = ptr.pointer.offsetInBytes | 0;
+      } else {
+        module = JSIL.PInvoke.GetGlobalModule();
+        methodIndex = ptr.value | 0;
+      }
 
       var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature);
 
-      var methodIndex = ptr.value | 0;
       var invokeImplementation = null;
 
       // Build signature

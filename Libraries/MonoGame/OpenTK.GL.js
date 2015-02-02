@@ -74,7 +74,7 @@ JSIL.GL.fillTemporaryIndexBuffer = function (ctx, mode, count, type, indices) {
     buffer = state.temporaryIndexBuffer = ctx.createBuffer();
 
   // FIXME: Limit length of view
-  var view = indices.pinnedPointer.asView($jsilcore.System.Byte, -1);
+  var view = indices.pointer.asView($jsilcore.System.Byte, -1);
   ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, buffer);
   ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
@@ -85,7 +85,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   var ctx = JSIL.GL.getContext();
   var state = JSIL.GL.getState();
 
-  if (!vertices.pinnedPointer)
+  if (!vertices.pointer)
     JSIL.RuntimeError("vertices must be a pinned pointer");
 
   if (!state.temporaryVertexBuffer)
@@ -94,7 +94,7 @@ OpenTK.Service.prototype.VertexAttribPointers = function (vertices, vertexStride
   ctx.bindBuffer(ctx.ARRAY_BUFFER, state.temporaryVertexBuffer);
 
   // FIXME: Limit length of view
-  var view = vertices.pinnedPointer.asView($jsilcore.System.Byte, -1);
+  var view = vertices.pointer.asView($jsilcore.System.Byte, -1);
   ctx.bufferData(ctx.ARRAY_BUFFER, view, ctx.DYNAMIC_DRAW);
 
   for (var i = 0, l = elements.get_Count(); i < l; i++) {
@@ -491,7 +491,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
         $mgasms[3].TypeRef("OpenTK.Graphics.OpenGL.DrawElementsType"), $mgasms[2].TypeRef("System.IntPtr")
       ], []), 
     function DrawElements (mode, count, type, indices) {
-      if (!indices.pinnedPointer)
+      if (!indices.pointer)
         JSIL.RuntimeError("indices must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
@@ -604,7 +604,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
       ], []), 
     function TexImage2D (target, level, internalformat, width, height, border, format, type, pixels) {
       var nullPixels = (pixels === System.IntPtr.Zero);
-      if (!pixels.pinnedPointer && !nullPixels)
+      if (!pixels.pointer && !nullPixels)
         JSIL.RuntimeError("pixels must be provided in the form of a pinned pointer");
 
       var ctx = JSIL.GL.getContext();
@@ -612,7 +612,7 @@ JSIL.ImplementExternals("OpenTK.Graphics.OpenGL.GL", function ($interfaceBuilder
 
       if (!nullPixels) {
         // FIXME: Do we have to compute exact size here and limit the view?
-        pixelView = pixels.pinnedPointer.asView($jsilcore.System.Byte, -1);
+        pixelView = pixels.pointer.asView($jsilcore.System.Byte, -1);
       }
 
       ctx.texImage2D(
