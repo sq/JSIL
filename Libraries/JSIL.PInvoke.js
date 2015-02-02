@@ -69,14 +69,17 @@ JSIL.PInvoke.GetModuleForHeap = function (heap, throwOnFail) {
   return null;
 };
 
-JSIL.PInvoke.CreatePointerForModule = function (module, address) {
-  var tByte = $jsilcore.System.Byte.__Type__;
+JSIL.PInvoke.CreateBytePointerForModule = function (module, address) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-  var emscriptenMemoryView = memoryRange.getView(tByte);
+  var emscriptenMemoryView = memoryRange.getView(System.Byte.__Type__);
 
-  var emscriptenPointer = JSIL.NewPointer(
-    tByte, memoryRange, emscriptenMemoryView, address
-  );
+  var emscriptenPointer = new JSIL.BytePointer(memoryRange, emscriptenMemoryView, address);
+
+  return emscriptenPointer;
+};
+
+JSIL.PInvoke.CreateIntPtrForModule = function (module, address) {
+  var emscriptenPointer = JSIL.PInvoke.CreateBytePointerForModule(module, address);
 
   var intPtr = JSIL.CreateInstanceOfType(
     System.IntPtr.__Type__,
@@ -334,7 +337,7 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue
 };
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  return JSIL.PInvoke.CreatePointerForModule(callContext.module, nativeValue);
+  return JSIL.PInvoke.CreateIntPtrForModule(callContext.module, nativeValue);
 };
 
 
@@ -487,7 +490,7 @@ JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValu
   var wrapper = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer$b1(
     this.type
   )(
-    JSIL.PInvoke.CreatePointerForModule(callContext.module, nativeValue)
+    JSIL.PInvoke.CreateIntPtrForModule(callContext.module, nativeValue)
   );
 
   return wrapper;
@@ -661,7 +664,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
 
       var functionPointer = module.Runtime.addFunction(wrappedFunction);
 
-      var result = JSIL.PInvoke.CreatePointerForModule(module, functionPointer);
+      var result = JSIL.PInvoke.CreateIntPtrForModule(module, functionPointer);
       return result;
     }
   );
