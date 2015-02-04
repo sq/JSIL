@@ -350,14 +350,23 @@ var loadScriptInternal = function (uri, onError, onDoneLoading, state, dllName) 
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
+    if (state.jsilInitialized)
+      throw new Error("A library was loaded after JSIL initialization");
+
     var uri = jsilConfig.libraryRoot + filename;
     loadScriptInternal(uri, onError, onDoneLoading, state);
   },
   "NativeLibrary": function loadNativeLibrary (filename, data, onError, onDoneLoading, state) {
+    if (state.jsilInitialized)
+      throw new Error("A script was loaded after JSIL initialization");
+    
     var uri = jsilConfig.libraryRoot + filename;
     loadScriptInternal(uri, onError, onDoneLoading, state, filename);
   },
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
+    if (state.jsilInitialized)
+      throw new Error("A script was loaded after JSIL initialization");
+    
     var uri = jsilConfig.scriptRoot + filename;
     loadScriptInternal(uri, onError, onDoneLoading, state);
   },
