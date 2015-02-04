@@ -141,7 +141,6 @@ var $jsilloaderstate = {
     this.loadScript(libraryRoot + "JSIL.Shell.Loaders.js");
   };
 
-
   var priorModule = JSIL.GlobalNamespace.Module;
 
   JSIL.BeginLoadNativeLibrary = function (name) {
@@ -161,12 +160,18 @@ var $jsilloaderstate = {
     if (JSIL.__NativeModules__[key])
       throw new Error("A module named '" + key + "' is already loaded.");
 
+    if (typeof(JSIL.GlobalNamespace.Module) != "function") {
+      throw new Error("The Module in " + name + " is not a function. Please pass '-s MODULARIZE=1' to emcc when compiling native libraries.");
+    }
+
+    var module = JSIL.GlobalNamespace.Module();
+
     // HACK: FIXME: We need a global module to use as a fallback for scenarios
     //  where we don't know which module a call is interacting with
     if (!JSIL.__NativeModules__["__global__"])
-      JSIL.__NativeModules__["__global__"] = JSIL.GlobalNamespace.Module;
+      JSIL.__NativeModules__["__global__"] = module;
 
-    JSIL.__NativeModules__[key] = JSIL.GlobalNamespace.Module;
+    JSIL.__NativeModules__[key] = module;
 
     JSIL.GlobalNamespace.Module = priorModule;
     priorModule = null;
