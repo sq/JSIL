@@ -3542,6 +3542,20 @@ JSIL.ImplementExternals(
         return result;
       }
     );
+
+      $.Method({ Static: false, Public: true, Virtual: true }, "CompareTo",
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Object")]),
+        function (enm) {
+            if (this.value < enm.value) {
+                return -1;
+            }
+            if (this.value > enm.value) {
+                return 1;
+            }
+            return 0;
+        }
+      );
+
   }
 );
 
