@@ -160,11 +160,13 @@ var $jsilloaderstate = {
     if (JSIL.__NativeModules__[key])
       throw new Error("A module named '" + key + "' is already loaded.");
 
-    if (typeof(JSIL.GlobalNamespace.Module) != "function") {
-      throw new Error("The Module in " + name + " is not a function. Please pass '-s MODULARIZE=1' to emcc when compiling native libraries.");
+    var module;
+    if (typeof(JSIL.GlobalNamespace.Module) == "function") {
+      // compiled with emcc -s MODULARIZE=1
+      module = JSIL.GlobalNamespace.Module();
+    } else {
+      module = JSIL.GlobalNamespace.Module;
     }
-
-    var module = JSIL.GlobalNamespace.Module();
 
     // HACK: FIXME: We need a global module to use as a fallback for scenarios
     //  where we don't know which module a call is interacting with
