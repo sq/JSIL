@@ -13,6 +13,10 @@ struct TestStruct {
     float F;
 };
 
+struct CallbackStruct {
+	void(*callback)(int i);
+};
+
 export(void) WriteInt (const int value, int * result) {
     *result = value;
 }
@@ -93,4 +97,8 @@ export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
 
 export(TestStruct) CallReturnStructArgument (TPReturnStructArgument rsa, TestStruct arg) {
     return rsa(arg);
+}
+
+export(void) CallFunctionInStruct(CallbackStruct s, int i) {
+	return s.callback(i);
 }
