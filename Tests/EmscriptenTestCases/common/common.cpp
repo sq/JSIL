@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 struct TestStruct {
     int I;
@@ -15,6 +16,10 @@ struct TestStruct {
 
 struct CallbackStruct {
 	void(*callback)(int i);
+};
+
+struct FlagStruct {
+	uint32_t flags;
 };
 
 export(void) WriteInt (const int value, int * result) {
@@ -101,4 +106,10 @@ export(TestStruct) CallReturnStructArgument (TPReturnStructArgument rsa, TestStr
 
 export(void) CallFunctionInStruct(CallbackStruct s, int i) {
 	return s.callback(i);
+}
+
+export(FlagStruct) PassFlagInStruct(FlagStruct s) {
+	FlagStruct s2;
+	s2.flags = s.flags;
+	return s2;
 }

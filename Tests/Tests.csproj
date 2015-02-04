@@ -133,6 +133,7 @@
     <None Include="EmscriptenTestCases\AlternateEntryPoint.cs" />
     <None Include="EmscriptenTestCases\WrongEntryPoint.cs" />
     <None Include="EmscriptenTestCases\PassDelegateInStruct.cs" />
+    <None Include="EmscriptenTestCases\PassFlagsInStruct.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
