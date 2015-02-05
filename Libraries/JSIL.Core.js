@@ -1109,17 +1109,16 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       };
 
       if (existingAssembly != undefined) {
-        JSIL.Host.warning(
-          "Public type '" + name + "' defined twice: " + 
-          existingAssembly.toString() + " and " + 
-          $private.toString()
+        JSIL.WarningFormat(
+          "Public type '{0}' defined twice: {1} and {2}",
+          [name, existingAssembly.toString(), $private.toString()]
         );
 
         delete JSIL.$PublicTypeAssemblies[key];
       } else {
-        JSIL.Host.warning(
-          "Public type '" + name + "' defined more than twice: " + 
-          $private.toString() + " and several other assemblies"
+        JSIL.WarningFormat(
+          "Public type '{0}' defined more than twice: {1} and several other assemblies",
+          [name, $private.toString()]
         );
       }
     } else {
@@ -1260,6 +1259,12 @@ JSIL.$WarningError = function (err) {
   }
 }
 
+JSIL.$ExternalMemberWarningFormat = 
+  "The external method '{0}' of type '{1}' has not been implemented.";
+
+JSIL.$ExternalMemberInheritedWarningFormat = 
+  "The external method '{0}' of type '{1}' has not been implemented; calling inherited method.";
+
 JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedMember) {
   var state = {
     warningCount: 0
@@ -1269,7 +1274,10 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
   if (typeof (inheritedMember) === "function") {
     result = function ExternalMemberStub () {
       if (state.warningCount < 1) {
-        JSIL.Host.warning("The external method '" + getMemberName.call(this) + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+        JSIL.WarningFormat(
+          JSIL.$ExternalMemberInheritedWarningFormat,
+          [getMemberName.call(this), namespaceName]
+        );
         state.warningCount += 1;
       }
 
@@ -1281,8 +1289,11 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
         return;
       }
 
+      JSIL.WarningFormat(
+        JSIL.$ExternalMemberWarningFormat,
+        [getMemberName.call(this), namespaceName]
+      );
       state.warningCount += 1;
-      JSIL.$WarningError("The external method '" + getMemberName.call(this) + "' of type '" + namespaceName + "' has not been implemented.");
     };
   }
 
@@ -10058,6 +10069,16 @@ JSIL.RuntimeError = function (text) {
   throw new Error(text);
 };
 
+JSIL.RuntimeErrorFormat = function (format, values) {
+  var text = JSIL.$FormatStringImpl(format, values);
+  throw new Error(text);
+};
+
+JSIL.WarningFormat = function (format, values) {
+  var text = JSIL.$FormatStringImpl(format, values);
+  JSIL.Host.warning(text);
+};
+
 JSIL.ValidateArgumentTypes = function (types) {
   for (var i = 0, l = types.length; i < l; i++) {
     var item = types[i];
@@ -10108,6 +10129,9 @@ JSIL.GetFieldInfo = function(typeObject, name, isStatic){
 JSIL.$FormatRegex = new RegExp("{([0-9]*)(?:,([-0-9]*))?(?::([^}]*))?}|{{|}}|{|}", "g");
 
 JSIL.$FormatStringImpl = function (format, values) {
+  if ((arguments.length !== 2) || !JSIL.IsArray(values))
+    JSIL.RuntimeError("JSIL.$FormatStringImpl expects (formatString, [value0, value1, ...])");
+
   var match = null;
   var matcher = function (match, index, alignment, valueFormat, offset, str) {
     if (match === "{{")
