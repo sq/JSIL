@@ -510,9 +510,6 @@ JSIL.ImplementExternals(
       }
     );
 
-    //                             index   alignment      valueFormat    escape
-    var formatRegex = new RegExp("{([0-9]*)(?:,([-0-9]*))?(?::([^}]*))?}|{{|}}|{|}", "g");
-
     $.Method({Static:true , Public:true }, "Format", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
       function (format) {
@@ -521,43 +518,12 @@ JSIL.ImplementExternals(
         if (arguments.length === 1)
           return format;
 
-        var match = null;
         var values = Array.prototype.slice.call(arguments, 1);
 
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
-        var matcher = function (match, index, alignment, valueFormat, offset, str) {
-          if (match === "{{")
-            return "{";
-          else if (match === "}}")
-            return "}";
-          else if ((match === "{") || (match === "}"))
-            throw new System.FormatException("Input string was not in a correct format.");
-
-          index = parseInt(index);
-
-          var value = values[index];
-
-          if (alignment || valueFormat) {
-            return JSIL.NumberToFormattedString(value, alignment, valueFormat);
-
-          } else {
-
-            if (typeof (value) === "boolean") {
-              if (value)
-                return "True";
-              else
-                return "False";
-            } else if (value === null) {
-              return "";
-            } else {
-              return String(value);
-            }
-          }
-        };
-
-        return format.replace(formatRegex, matcher);
+        return JSIL.$FormatStringImpl(format, values);
       }
     );
 

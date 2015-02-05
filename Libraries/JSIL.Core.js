@@ -10116,3 +10116,41 @@ JSIL.GetFieldInfo = function(typeObject, name, isStatic){
   }
   return null;
 };
+
+//                                index   alignment      valueFormat    escape
+JSIL.$FormatRegex = new RegExp("{([0-9]*)(?:,([-0-9]*))?(?::([^}]*))?}|{{|}}|{|}", "g");
+
+JSIL.$FormatStringImpl = function (format, values) {
+  var match = null;
+  var matcher = function (match, index, alignment, valueFormat, offset, str) {
+    if (match === "{{")
+      return "{";
+    else if (match === "}}")
+      return "}";
+    else if ((match === "{") || (match === "}"))
+      throw new System.FormatException("Input string was not in a correct format.");
+
+    index = parseInt(index);
+
+    var value = values[index];
+
+    if (alignment || valueFormat) {
+      return JSIL.NumberToFormattedString(value, alignment, valueFormat);
+
+    } else {
+
+      if (typeof (value) === "boolean") {
+        if (value)
+          return "True";
+        else
+          return "False";
+      } else if (value === null) {
+        return "";
+      } else {
+        return String(value);
+      }
+    }
+  };
+
+  return format.replace(JSIL.$FormatRegex, matcher);
+};
