@@ -1239,8 +1239,13 @@ JSIL.UnknownMember = function (memberName) {
   JSIL.Host.abort(new Error("An attempt was made to reference the member '" + memberName + "', but it has no type information."));
 };
 
-JSIL.$WarningError = function (err) {       
-  if (typeof err == "string") {
+JSIL.$UnimplementedExternalError = function (err) {       
+  if (typeof err === "string") {
+    if (arguments.length === 2)
+      err = JSIL.$FormatStringImpl(err, arguments[1]);
+    else if (arguments.length > 2)
+      JSIL.RuntimeError("$UnimplementedExternalError only accepts (errString), (error), or (errString, [value0, value1, ...])");
+
     err = new Error(err);
   }
 

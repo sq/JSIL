@@ -1411,7 +1411,10 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     var size = field.sizeBytes;
 
     if (size <= 0)
-      JSIL.$WarningError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshalled (field.sizeBytes <= 0)");
+      JSIL.RuntimeErrorFormat(
+        "Field '{0}' of type '{1}' cannot be marshalled (field.sizeBytes <= 0)",
+        [field.name, typeObject.__FullName__]
+      );
 
     var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
 
@@ -1437,7 +1440,10 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
           funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
         );
     } else {
-      JSIL.$WarningError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshalled (unknown constructor type)");
+      JSIL.RuntimeErrorFormat(
+        "Field '{0}' of type '{1}' cannot be marshalled (unknown constructor type)",
+        [field.name, typeObject.__FullName__]
+      );
     }
   }
 
