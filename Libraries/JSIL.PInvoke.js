@@ -299,7 +299,15 @@ JSIL.PInvoke.ByValueStructMarshaller = function ByValueStructMarshaller (type) {
   this.sizeInBytes = JSIL.GetNativeSizeOf(type);
   this.marshaller = JSIL.$GetStructMarshaller(type);
   this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
-  this.namedReturnValue = true;
+
+  // clang/emscripten optimization for small single-member structs as return values
+  if ((this.sizeInBytes <= 4) && (JSIL.GetFieldList(type).length === 1)) {
+    this.unpackedReturnValue = true;
+    this.namedReturnValue = false;
+  } else {
+    this.unpackedReturnValue = false;
+    this.namedReturnValue = true;
+  }
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueStructMarshaller);
@@ -324,7 +332,13 @@ JSIL.PInvoke.ByValueStructMarshaller.prototype.ManagedToNative = function (manag
 JSIL.PInvoke.ByValueStructMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
   var module = callContext.module;
 
-  return new (this.unmarshalConstructor)(module.HEAPU8, nativeValue);
+  if (this.unpackedReturnValue) {
+    // FIXME: Is this always an int32?
+    var scratchBytes = $jsilcore.BytesFromInt32(nativeValue);
+    return new (this.unmarshalConstructor)(scratchBytes, 0);
+  } else {
+    return new (this.unmarshalConstructor)(module.HEAPU8, nativeValue);
+  }
 };
 
 

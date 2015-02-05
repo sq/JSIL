@@ -1177,6 +1177,8 @@ JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
       return -1;
 
     return result;
+  } else if (typeObject.__IsEnum__) {
+    return JSIL.GetNativeSizeOf(typeObject.__StorageType__);
   } else {
     return -1;
   }
@@ -1405,6 +1407,8 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   if (!marshal)
     JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", 0, "offset", nativeSize);
 
+  var numEnumFields = 0;
+
   for (var i = 0, l = sortedFields.length; i < l; i++) {
     var field = sortedFields[i];
     var offset = field.offsetBytes;
@@ -1417,15 +1421,28 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       );
 
     var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
+    if (!fieldConstructor && field.type.__IsEnum__)
+      fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type.__StorageType__, false);
 
     if (fieldConstructor) {
       var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
       closure["scratch_" + field.name] = fieldArray;
 
-      if (marshal) {
-        body.push("scratch_" + field.name + "[0] = " + structArgName + "." + field.name + ";");
+      if (field.type.__IsEnum__) {
+        var closureKey = "enum_" + String(numEnumFields++);
+        closure[closureKey] = field.type.$Cast;
+
+        if (marshal) {
+          body.push("scratch_" + field.name + "[0] = (" + structArgName + "." + field.name + ").value;");
+        } else {
+          body.push(structArgName + "." + field.name + " = " + closureKey + "(scratch_" + field.name + "[0]);");
+        }
       } else {
-        body.push(structArgName + "." + field.name + " = scratch_" + field.name + "[0];");
+        if (marshal) {
+          body.push("scratch_" + field.name + "[0] = " + structArgName + "." + field.name + ";");
+        } else {
+          body.push(structArgName + "." + field.name + " = scratch_" + field.name + "[0];");
+        }
       }
     } else if (field.type.__IsStruct__) {
       // Try to marshal the struct

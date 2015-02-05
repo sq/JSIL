@@ -135,6 +135,7 @@
     <None Include="EmscriptenTestCases\PassDelegateInStruct.cs" />
     <None Include="EmscriptenTestCases\PassFlagsInStruct.cs" />
     <None Include="EmscriptenTestCases\OutUshortArrayParameter.cs" />
+    <None Include="EmscriptenTestCases\ByValueStructParameter_Small.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>

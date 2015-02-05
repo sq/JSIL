@@ -1029,47 +1029,57 @@ namespace JSIL {
             );
         }
 
-        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
-            var typeInfo = _TypeInfoProvider.GetTypeInformation(enm);
-
-            output.Identifier("JSIL.MakeEnum", EscapingMode.None);
-            output.LPar();
-            output.NewLine();
-
-            output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-            output.Comma();
-
-            output.Value(enm.IsPublic);
-            output.Comma();
-
-            output.OpenBrace();
-
+        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm, JavascriptAstEmitter astEmitter) {
             var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
+
             if (typeInformation == null)
                 throw new InvalidDataException(String.Format(
                     "No type information for enum '{0}'!",
                     enm.FullName
                 ));
 
-            bool isFirst = true;
-            foreach (var em in typeInformation.EnumMembers.Values.OrderBy((em) => em.Value)) {
-                if (!isFirst) {
-                    output.Comma();
-                    output.NewLine();
-                }
+            output.Identifier("JSIL.MakeEnum", EscapingMode.None);
+            output.LPar();
+            output.NewLine();
 
+            output.OpenBrace();
+
+            output.WriteRaw("FullName: ");
+            output.Value(Util.DemangleCecilTypeName(typeInformation.FullName));
+            output.Comma();
+            output.NewLine();
+
+            output.WriteRaw("BaseType: ");
+            // FIXME: Will this work on Mono?
+            output.TypeReference(enm.Fields.First(f => f.Name == "value__").FieldType, astEmitter.ReferenceContext);
+            output.Comma();
+            output.NewLine();
+
+            output.WriteRaw("IsPublic: ");
+            output.Value(enm.IsPublic);
+            output.Comma();
+            output.NewLine();
+
+            output.WriteRaw("IsFlags: ");
+            output.Value(typeInformation.IsFlagsEnum);
+            output.Comma();
+            output.NewLine();
+
+            output.CloseBrace(false);
+            output.Comma();
+            output.NewLine();
+
+            output.OpenBrace();
+
+            foreach (var em in typeInformation.EnumMembers.Values.OrderBy((em) => em.Value)) {
                 output.Identifier(em.Name);
                 output.WriteRaw(": ");
                 output.Value(em.Value);
-
-                isFirst = false;
+                output.Comma();
+                output.NewLine();
             }
 
-            output.NewLine();
-            output.CloseBrace(false);
-            output.Comma();
-            output.Value(typeInformation.IsFlagsEnum);
-            output.NewLine();
+            output.CloseBrace();
 
             output.RPar();
             output.Semicolon();
@@ -1242,7 +1252,7 @@ namespace JSIL {
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateEnum(context, output, typedef);
+                    TranslateEnum(context, output, typedef, astEmitter);
                     return;
                 } else if (typeInfo.IsDelegate) {
                     output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));

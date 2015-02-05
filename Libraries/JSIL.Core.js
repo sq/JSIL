@@ -5659,7 +5659,7 @@ JSIL.MakeEnum = function (_descriptor, _members) {
       FullName: arguments[0],
       IsPublic: arguments[1],
       IsFlags: arguments[3] || false,
-      StorageFormat: "System.Int32"
+      BaseType: $jsilcore.TypeRef("System.Int32")
     };
 
     members = arguments[2];
@@ -5702,6 +5702,12 @@ JSIL.MakeEnum = function (_descriptor, _members) {
     JSIL.SetValueProperty(typeObject, "__IsReferenceType__", false);
     typeObject.__IsClosed__ = true;
     typeObject.__TypeInitialized__ = false;
+
+    if (descriptor.BaseType) {
+      typeObject.__StorageType__ = JSIL.ResolveTypeReference(descriptor.BaseType)[1];
+    } else {
+      typeObject.__StorageType__ = $jsilcore.System.Int32.__Type__;
+    }
 
     var typeId = JSIL.AssignTypeId(context, descriptor.FullName);
     JSIL.SetValueProperty(typeObject, "__TypeId__", typeId); 
@@ -5862,14 +5868,14 @@ JSIL.MakeEnum = function (_descriptor, _members) {
 
       JSIL.SetLazyValueProperty($, key, makeGetter(key, value));
 
-      var descriptor = ib.ParseDescriptor({Public: true, Static: true}, key);
+      var memberDescriptor = ib.ParseDescriptor({Public: true, Static: true}, key);
       var mb = new JSIL.MemberBuilder(context);
       var data = { 
         fieldType: $.__Type__,
         constant: value
       };
 
-      ib.PushMember("FieldInfo", descriptor, data, mb);
+      ib.PushMember("FieldInfo", memberDescriptor, data, mb);
     }
 
     // FIXME: This is doing FixupInterfaces on Enum every time instead of on the specific enum type.
