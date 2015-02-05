@@ -509,17 +509,16 @@ JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValu
 // Fallback UnimplementedMarshaller delays error until the actual point of attempted marshalling
 JSIL.PInvoke.UnimplementedMarshaller = function UnimplementedMarshaller (type, errorMsg) {
   this.type = type;
-  this.errorMsg = errorMsg;
 }
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.UnimplementedMarshaller);
 
 JSIL.PInvoke.UnimplementedMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
-  JSIL.RuntimeError(this.errorMsg);
+  JSIL.RuntimeErrorFormat("Type '{0}' has no marshalling implementation", [this.type.__FullName__]);
 }
 
 JSIL.PInvoke.UnimplementedMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  JSIL.RuntimeError(this.errorMsg);
+  JSIL.RuntimeErrorFormat("Type '{0}' has no marshalling implementation", [this.type.__FullName__]);
 }
 
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
@@ -557,9 +556,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   } else if (type.__IsEnum__) {
     return new JSIL.PInvoke.ByValueMarshaller(type);
   } else {
-    var msg = "Type '" + type + "' cannot be marshalled";
-    JSIL.$WarningError(msg);
-    return new JSIL.PInvoke.UnimplementedMarshaller(type, msg);
+    return new JSIL.PInvoke.UnimplementedMarshaller(type);
   }
 };
 
