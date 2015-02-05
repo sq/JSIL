@@ -194,14 +194,31 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   );
 });
 
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.ValueType"), 
+    Name: "System.Runtime.InteropServices.GCHandle", 
+    IsPublic: true, 
+    IsReferenceType: false, 
+    MaximumConstructorArguments: 2, 
+  }, function ($interfaceBuilder) {
+  }
+);
+
 JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) {
   $.RawMethod(false, "$internalCtor", function (obj) {
-    this._pointer = JSIL.PinAndGetPointer(obj, 0);
+    this._target = obj;
+
+    if (obj && obj.__ThisType__.__IsDelegate__) {
+      this._pointer = obj.$pin();
+    } else {
+      this._pointer = JSIL.PinAndGetPointer(obj, 0);
+    }
   });
 
   $.RawMethod(false, "__CopyMembers__", 
     function GCHandle_CopyMembers (source, target) {
       target._pointer = source._pointer;
+      target._target = source._target;
     }
   );
 
@@ -243,7 +260,14 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   $.Method({Static:false, Public:true }, "Free", 
     JSIL.MethodSignature.Void, 
     function Free () {
-      // FIXME: Unpin?
+      if (this._target && this._target.__ThisType__.__IsDelegate__) {
+        this._target.$unpin();
+      } else {
+        // FIXME: Unpin
+      }
+      
+      this._pointer = null;
+      this._target = null;
     }
   );
 });
@@ -1416,7 +1440,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   if (!marshal)
     JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "bytes", 0, "offset", nativeSize);
 
-  var numEnumFields = 0;
+  var numEnumFields = 0, numDelegateFields = 0;
 
   for (var i = 0, l = sortedFields.length; i < l; i++) {
     var field = sortedFields[i];
@@ -1432,6 +1456,8 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
     if (!fieldConstructor && field.type.__IsEnum__)
       fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type.__StorageType__, false);
+    else if (!fieldConstructor && field.type.__IsDelegate__)
+      fieldConstructor = JSIL.GetTypedArrayConstructorForElementType($jsilcore.System.Int32.__Type__, false);
 
     if (fieldConstructor) {
       var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
@@ -1443,6 +1469,17 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
         if (marshal) {
           body.push("scratch_" + field.name + "[0] = (" + structArgName + "." + field.name + ").value;");
+        } else {
+          body.push(structArgName + "." + field.name + " = " + closureKey + "(scratch_" + field.name + "[0]);");
+        }
+      } else if (field.type.__IsDelegate__) {
+        var closureKey = "delegate_" + String(numDelegateFields++);
+        closure[closureKey] = function FailDelegate () {
+          JSIL.RuntimeError("Delegate out marshalling in structs not implemented");
+        };
+
+        if (marshal) {
+          body.push("scratch_" + field.name + "[0] = (" + structArgName + "." + field.name + ").$asIntPtr();");
         } else {
           body.push(structArgName + "." + field.name + " = " + closureKey + "(scratch_" + field.name + "[0]);");
         }
@@ -1465,11 +1502,6 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         body.push(
           funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
         );
-    } else if (field.type.__IsDelegate__) {
-      JSIL.RuntimeErrorFormat(
-        "Field '{0}' of type '{1}' cannot be marshalled (delegate)",
-        [field.name, typeObject.__FullName__]
-      );
     } else {
       JSIL.RuntimeErrorFormat(
         "Field '{0}' of type '{1}' cannot be marshalled (unknown constructor type)",
