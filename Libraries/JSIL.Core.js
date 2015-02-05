@@ -5637,8 +5637,28 @@ JSIL.EnumValue.prototype.valueOf = function () {
   return this.value;
 }
 
-JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
-  var localName = JSIL.GetLocalName(fullName);
+/* old arglist: fullName, isPublic, members, isFlagsEnum */
+JSIL.MakeEnum = function (_descriptor, _members) {
+  var descriptor, members;
+
+  if (arguments.length !== 2) {
+    descriptor = {
+      FullName: arguments[0],
+      IsPublic: arguments[1],
+      IsFlags: arguments[3] || false,
+      StorageFormat: "System.Int32"
+    };
+
+    members = arguments[2];
+  } else {
+    descriptor = _descriptor;
+    members = _members;
+  }
+
+  if (!descriptor || !members)
+    JSIL.RuntimeError("Invalid arguments");
+
+  var localName = JSIL.GetLocalName(descriptor.FullName);
   
   var callStack = null;
   if (typeof (printStackTrace) === "function")
@@ -5652,7 +5672,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       JSIL.RuntimeError("Cannot construct an instance of an enum");
     };
 
-    typeObject = JSIL.$MakeTypeObject(fullName);
+    typeObject = JSIL.$MakeTypeObject(descriptor.FullName);
 
     publicInterface.prototype = JSIL.CreatePrototypeObject($jsilcore.System.Enum.prototype);
     publicInterface.__Type__ = typeObject;
@@ -5661,7 +5681,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     JSIL.SetValueProperty(typeObject, "__BaseType__", $jsilcore.System.Enum.__Type__);
     typeObject.__Context__ = context;
     typeObject.__CallStack__ = callStack;
-    JSIL.SetValueProperty(typeObject, "__FullName__", fullName); 
+    JSIL.SetValueProperty(typeObject, "__FullName__", descriptor.FullName); 
     typeObject.__IsArray__ = false;
     typeObject.__IsEnum__ = true;
     typeObject.__IsByRef__ = false;
@@ -5670,11 +5690,11 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     typeObject.__IsClosed__ = true;
     typeObject.__TypeInitialized__ = false;
 
-    var typeId = JSIL.AssignTypeId(context, fullName);
+    var typeId = JSIL.AssignTypeId(context, descriptor.FullName);
     JSIL.SetValueProperty(typeObject, "__TypeId__", typeId); 
     JSIL.SetValueProperty(publicInterface, "__TypeId__", typeId); 
 
-    typeObject.__IsFlagsEnum__ = isFlagsEnum;
+    typeObject.__IsFlagsEnum__ = descriptor.IsFlags;
     // HACK to ensure that enum types implement the interfaces System.Enum does.
     typeObject.__Interfaces__ = typeObject.__BaseType__.__Interfaces__;
 
@@ -5695,7 +5715,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     });
 
     JSIL.SetValueProperty(publicInterface, "toString", function Type_ToString () {
-      return "<" + fullName + " Public Interface>";
+      return "<" + descriptor.FullName + " Public Interface>";
     });
 
     typeObject.Of$NoInitialize = function () {
@@ -5705,7 +5725,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       return typeObject;
     };
 
-    if (isFlagsEnum) {
+    if (descriptor.IsFlags) {
       publicInterface.$Flags = function FlagsEnum_Flags () {
         var argc = arguments.length;
         var resultValue = 0;
@@ -5731,7 +5751,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     };
 
     var valueType = publicInterface.$Value = JSIL.CreateNamedFunction(
-      fullName,
+      descriptor.FullName,
       ["value", "name"],
       "this.value = value;\r\n" +
       "this.stringified = this.name = name;\r\n"
@@ -5744,7 +5764,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     }
 
     JSIL.SetValueProperty(
-      valueProto, "isFlags", isFlagsEnum
+      valueProto, "isFlags", descriptor.IsFlags
     );
 
     JSIL.SetValueProperty(
@@ -5801,7 +5821,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     var prototype = JSIL.CreatePrototypeObject(enumType.__PublicInterface__.prototype);
     JSIL.SetValueProperty(prototype, "__BaseType__", enumType);
     JSIL.SetValueProperty(prototype, "__ShortName__", localName);
-    JSIL.SetValueProperty(prototype, "__FullName__", fullName);
+    JSIL.SetValueProperty(prototype, "__FullName__", descriptor.FullName);
 
     JSIL.SetValueProperty($, "__BaseType__", enumType);
     $.prototype = prototype;
@@ -5846,7 +5866,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     JSIL.MakeCastMethods($, $.__Type__, "enum");
   };
 
-  JSIL.RegisterName(fullName, $private, isPublic, creator, initializer);
+  JSIL.RegisterName(descriptor.FullName, $private, descriptor.IsPublic, creator, initializer);
 };
 
 JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
