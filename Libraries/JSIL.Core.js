@@ -1136,9 +1136,9 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       
       if (existing !== undefined){
         if (existing != $jsilcore) {
-          JSIL.Host.warning(
-            "Private type '" + name + "' with external implementation defined more than twice: " + 
-            $private.toString() + " and " + existing.toString()
+          JSIL.WarningFormat(
+            "Private type '{0}' with external implementation defined more than twice: '{1}'" + 
+            [$private.toString(), existing.toString()]
           );
         }
 
@@ -1387,7 +1387,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
 
   if (typeof (externals) !== "function") {
     if (trace)    
-      JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
+      JSIL.WarningFormat("Old-style ImplementExternals call for '{0}' ignored!", [namespaceName]);
 
     return;
   }
@@ -1873,7 +1873,10 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     try {
       if (state.constructing) {
         if (($jsilcore.SuppressRecursiveConstructionErrors > 0) && state.value) {
-          JSIL.Host.warning("Ignoring recursive construction of type '" + name + "'.");
+          JSIL.WarningFormat(
+            "Ignoring recursive construction of type '{0}'.",
+            [name]
+          );
           return state.value;
         } else {
           var err = new Error("Recursive construction of type '" + name + "' detected.");
@@ -2174,7 +2177,10 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
           (existingParameters[i].__IsClosed__ === false)
         ) {
           if (JSIL.WarnAboutGenericResolveFailures)
-            JSIL.Host.warning("Failed to resolve generic parameter #" + i + " of type reference '" + obj.toString() + "'.");
+            JSIL.WarningFormat(
+              "Failed to resolve generic parameter #{0} of type reference '{1}'.",
+              [i, obj.toString()]
+            );
 
           return null;
         }
@@ -2913,7 +2919,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     var iface = interfaces[i];
 
     if (typeof (iface) === "undefined") {
-      JSIL.Host.warning("Type " + typeName + " implements an undefined interface.");
+      JSIL.WarningFormat(
+        "Type '{0}' implements an undefined interface.",
+        [typeName]
+      );
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
       var resolved = JSIL.ResolveName(
@@ -2923,7 +2932,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       if (resolved.exists())
         iface = resolved.get();
       else {
-        JSIL.Host.warning("Type " + typeName + " implements an undefined interface named '" + iface + "'.");
+        JSIL.WarningFormat(
+          "Type '{0}' implements an undefined interface named '{1}'.",
+          [typeName, iface]
+        );
         interfaces[i] = null;
         continue __interfaces__;
       }
@@ -2936,7 +2948,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         else
           iface = iface.get();
       } catch (exc) {
-        JSIL.Host.warning("Type " + typeName + " implements an interface named '" + String(iface.getTypeName() || iface) + "' that could not be resolved: " + exc);
+        JSIL.WarningFormat(
+          "Type '{0}' implements an interface named '{1}' that could not be resolved: {2}",
+          [typeName, String(iface.getTypeName() || iface), exc]
+        );
         interfaces[i] = null;
         continue __interfaces__;
       }
@@ -3111,12 +3126,12 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       }
 
       if (!iface)
-        JSIL.RuntimeError(
-          "Member '" + typeObject.__FullName__ + 
-          "::" + member._descriptor.EscapedName + 
-          "' overrides nonexistent interface member '" + 
-          override.interfaceNameOrReference + 
-          "::" + override.interfaceMemberName + "'"
+        JSIL.RuntimeErrorFormat(
+          "Member '{0}::{1}' overrides nonexistent interface member '{2}::{3}'",
+          [
+            typeObject.__FullName__, member._descriptor.EscapedName,
+            override.interfaceNameOrReference, override.interfaceMemberName
+          ]
         );
 
       var interfaceQualifiedName = JSIL.$GetSignaturePrefixForType(iface) + JSIL.EscapeName(override.interfaceMemberName);
