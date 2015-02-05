@@ -54,8 +54,12 @@ JSIL.PInvoke.GetModuleForHeap = function (heap, throwOnFail) {
   else
     buffer = heap;
 
-  for (var k in JSIL.__NativeModules__) {
-    var m = JSIL.__NativeModules__[k];
+  var nm = JSIL.__NativeModules__;
+  for (var k in nm) {
+    if (!nm.hasOwnProperty(k))
+      continue;
+
+    var m = nm[k];
 
     var mBuffer = m.HEAPU8.buffer;
 
@@ -88,6 +92,47 @@ JSIL.PInvoke.CreateIntPtrForModule = function (module, address) {
   );
 
   return intPtr;
+};
+
+JSIL.PInvoke.CreateFunctionPointer = function (fn) {
+  var result = null;
+
+  var nm = JSIL.__NativeModules__;
+  for (var k in nm) {
+    if (!nm.hasOwnProperty(k))
+      continue;
+
+    if (k === "__global__")
+      continue;
+
+    var module = nm[k];
+
+    // FIXME: Unique wrapper per-module?
+    var localFp = module.Runtime.addFunction(fn);
+    if (result === null)
+      result = localFp;
+    else if (result !== localFp)
+      JSIL.RuntimeError("Emscripten function pointer tables are desynchronized between modules");
+  }
+
+  return result;
+};
+
+JSIL.PInvoke.DestroyFunctionPointer = function (fp) {
+  var nm = JSIL.__NativeModules__;
+  for (var k in nm) {
+    if (!nm.hasOwnProperty(k))
+      continue;
+
+    if (k === "__global__")
+      continue;
+
+    var module = nm[k];
+
+    module.Runtime.removeFunction(fp);
+  }
+
+  return result;
 };
 
 JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"], function ($) {
@@ -745,10 +790,12 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       // FIXME
       var module = JSIL.PInvoke.GetGlobalModule();
 
+      // FIXME
       var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(module, delegate, signature);
 
-      var functionPointer = module.Runtime.addFunction(wrappedFunction);
+      var functionPointer = JSIL.PInvoke.CreateFunctionPointer(wrappedFunction);
 
+      // FIXME
       var result = JSIL.PInvoke.CreateIntPtrForModule(module, functionPointer);
       return result;
     }

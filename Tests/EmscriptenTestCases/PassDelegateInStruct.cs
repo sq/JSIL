@@ -17,7 +17,10 @@ public static unsafe class Program {
     public static extern void CallFunctionInStruct (CallbackStruct s, int i);
 
     public static void Main () {
-        var s = new CallbackStruct { callback = PrintSuccess };
+        Callback c = PrintSuccess;
+        var cHandle = GCHandle.Alloc(c);
+
+        var s = new CallbackStruct { callback = c };
         CallFunctionInStruct(s, 747);
     }
 

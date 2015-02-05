@@ -8993,7 +8993,22 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
 
     var toStringImpl = function DelegateType_ToString () {
       return this.__ThisType__.toString();
-    };    
+    };
+
+    var pinImpl = function Delegate_Pin () {
+      this.__pinnedPointer__ = 0;
+    };
+
+    var unpinImpl = function Delegate_Unpin () {
+      this.__pinnedPointer__ = null;
+    };
+
+    var asIntPtrImpl = function Delegate_AsIntPtr () {
+      if (this.__pinnedPointer__)
+        return this.__pinnedPointer__;
+      else
+        JSIL.RuntimeErrorFormat("Delegate of type {0} is not pinned and cannot be packed/marshalled", [this.__ThisType__]);
+    };
 
     JSIL.SetValueProperty(staticClassObject, "CheckType", $jsilcore.CheckDelegateType.bind(typeObject));
 
@@ -9029,6 +9044,12 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       JSIL.SetValueProperty(resultDelegate, "Invoke", method);
       JSIL.SetValueProperty(resultDelegate, "get_Method", this.__Type__.__PublicInterface__.prototype.get_Method);
       JSIL.SetValueProperty(resultDelegate, "__methodInfoResolver__", methodInfoResolver);
+
+      // FIXME: Move these off the object to reduce cost of constructing delegates
+      JSIL.SetValueProperty(resultDelegate, "$pin", pinImpl);
+      JSIL.SetValueProperty(resultDelegate, "$unpin", unpinImpl);
+      JSIL.SetValueProperty(resultDelegate, "$asIntPtr", asIntPtrImpl);
+
       resultDelegate.__isMethodInfoResolved__ = false;
 
       return resultDelegate;
