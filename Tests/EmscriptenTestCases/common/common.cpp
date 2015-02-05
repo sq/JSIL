@@ -7,10 +7,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 struct TestStruct {
     int I;
     float F;
+};
+
+struct CallbackStruct {
+	void(*callback)(int i);
+};
+
+struct FlagStruct {
+	uint32_t flags;
 };
 
 export(void) WriteInt (const int value, int * result) {
@@ -86,11 +95,24 @@ export(TPBinaryOperator) ReturnAdd () {
     return Add;
 };
 
-
 export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
     return op(a, b);
 }
 
 export(TestStruct) CallReturnStructArgument (TPReturnStructArgument rsa, TestStruct arg) {
     return rsa(arg);
+}
+
+export(void) CallFunctionInStruct(CallbackStruct s, int i) {
+	return s.callback(i);
+}
+
+export(FlagStruct) PassFlagInStruct(FlagStruct s) {
+	FlagStruct s2;
+	s2.flags = s.flags;
+	return s2;
+}
+
+export(void) FillUshortArray(uint16_t *ramp) {
+	ramp[0] = 192;
 }

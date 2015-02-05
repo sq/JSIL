@@ -131,6 +131,9 @@
     <None Include="EmscriptenTestCases\WrongDllName.cs" />
     <None Include="EmscriptenTestCases\AlternateEntryPoint.cs" />
     <None Include="EmscriptenTestCases\WrongEntryPoint.cs" />
+    <None Include="EmscriptenTestCases\PassDelegateInStruct.cs" />
+    <None Include="EmscriptenTestCases\PassFlagsInStruct.cs" />
+    <None Include="EmscriptenTestCases\OutUshortArrayParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
