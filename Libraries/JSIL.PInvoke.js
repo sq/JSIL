@@ -506,6 +506,21 @@ JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValu
   return wrapper;
 };
 
+// Fallback UnimplementedMarshaller delays error until the actual point of attempted marshalling
+JSIL.PInvoke.UnimplementedMarshaller = function UnimplementedMarshaller (type, errorMsg) {
+  this.type = type;
+  this.errorMsg = errorMsg;
+}
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.UnimplementedMarshaller);
+
+JSIL.PInvoke.UnimplementedMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  JSIL.RuntimeError(this.errorMsg);
+}
+
+JSIL.PInvoke.UnimplementedMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError(this.errorMsg);
+}
 
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
@@ -539,8 +554,12 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
       return new JSIL.PInvoke.ByValueMarshaller(type);
   } else if (type.__IsStruct__) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
+  } else if (type.__IsEnum__) {
+    return new JSIL.PInvoke.ByValueMarshaller(type);
   } else {
-    JSIL.RuntimeError("Type '" + type + "' cannot be marshalled");
+    var msg = "Type '" + type + "' cannot be marshalled";
+    JSIL.$WarningError(msg);
+    return new JSIL.PInvoke.UnimplementedMarshaller(type, msg);
   }
 };
 

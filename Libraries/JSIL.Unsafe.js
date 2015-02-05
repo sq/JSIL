@@ -1411,7 +1411,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
     var size = field.sizeBytes;
 
     if (size <= 0)
-      JSIL.RuntimeError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+      JSIL.$WarningError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshalled (field.sizeBytes <= 0)");
 
     var fieldConstructor = JSIL.GetTypedArrayConstructorForElementType(field.type, false);
 
@@ -1437,7 +1437,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
           funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
         );
     } else {
-      JSIL.RuntimeError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshaled");
+      JSIL.$WarningError("Field '" + field.name + "' of type '" + typeObject.__FullName__ + "' cannot be marshalled (unknown constructor type)");
     }
   }
 
@@ -1447,7 +1447,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
 JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
   return function UnmarshallableField () {
-    JSIL.RuntimeError("Field '" + fieldName + "' cannot be marshaled");
+    JSIL.RuntimeError("Field '" + fieldName + "' cannot be marshalled");
   };
 };
 
