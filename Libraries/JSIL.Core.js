@@ -3566,7 +3566,7 @@ JSIL.$BuildFieldList = function (typeObject) {
     // Native types may derive from System.ValueType but we can't treat them as structs.
     var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
-    var fieldSize = JSIL.GetNativeSizeOf(fieldType);
+    var fieldSize = JSIL.GetNativeSizeOf(fieldType, true);
     var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType);
 
     var actualFieldOffset = fieldOffset;

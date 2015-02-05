@@ -167,14 +167,14 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     (new JSIL.MethodSignature($.Int32, [$.Object], [])), 
     function SizeOf (structure) {
       var type = JSIL.GetType(structure);
-      return JSIL.GetNativeSizeOf(type);
+      return JSIL.GetNativeSizeOf(type, true);
     }
   )
 
   $.Method({Static:true , Public:true }, "SizeOf", 
     (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Type")], [])), 
     function SizeOf (type) {
-      return JSIL.GetNativeSizeOf(type);
+      return JSIL.GetNativeSizeOf(type, true);
     }
   );  
 
@@ -994,7 +994,7 @@ JSIL.PackedArray.New = function PackedArray_New (elementType, sizeOrInitializer)
     size = Number(sizeOrInitializer) | 0;
   }
 
-  var sizeInBytes = (JSIL.GetNativeSizeOf(elementTypeObject) * size) | 0;
+  var sizeInBytes = (JSIL.GetNativeSizeOf(elementTypeObject, false) * size) | 0;
   var buffer = new Uint8Array(sizeInBytes);
   var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
 
@@ -1165,7 +1165,7 @@ JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
   return unmarshaller(struct, bytes, offset);
 };
 
-JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
+JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject, forPInvoke) {
   if (typeObject.__IsNativeType__) {
     var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject, false);
     if (arrayCtor)
@@ -1179,7 +1179,12 @@ JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject) {
 
     return result;
   } else if (typeObject.__IsEnum__) {
-    return JSIL.GetNativeSizeOf(typeObject.__StorageType__);
+    return JSIL.GetNativeSizeOf(typeObject.__StorageType__, forPInvoke);
+  } else if (typeObject.__IsDelegate__) {
+    if (forPInvoke)
+      return 4;
+    else
+      return -1;
   } else {
     return -1;
   }
@@ -1331,8 +1336,11 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetTo
 };
 
 JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
+  // FIXME
+  var forPInvoke = false;
+
   var fields = JSIL.GetFieldList(typeObject);
-  var nativeSize = JSIL.GetNativeSizeOf(typeObject);
+  var nativeSize = JSIL.GetNativeSizeOf(typeObject, forPInvoke);
   var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject);
   var scratchBuffer = new ArrayBuffer(nativeSize);
   var scratchRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
@@ -1457,6 +1465,11 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         body.push(
           funcKey + "(" + structArgName + "." + field.name + ", scratchBytes, " + offset + ");"
         );
+    } else if (field.type.__IsDelegate__) {
+      JSIL.RuntimeErrorFormat(
+        "Field '{0}' of type '{1}' cannot be marshalled (delegate)",
+        [field.name, typeObject.__FullName__]
+      );
     } else {
       JSIL.RuntimeErrorFormat(
         "Field '{0}' of type '{1}' cannot be marshalled (unknown constructor type)",
@@ -1561,12 +1574,15 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
 };
 
 JSIL.$MakeElementProxyConstructor = function (typeObject) {
+  // FIXME
+  var forPInvoke = false;
+
   // var elementProxyPrototype = JSIL.CreatePrototypeObject(typeObject.__PublicInterface__.prototype);  
   // HACK: This makes a big difference
   var elementProxyPrototype = JSIL.$CreateCrockfordObject(typeObject.__PublicInterface__.prototype);
   var fields = JSIL.GetFieldList(typeObject);
 
-  var nativeSize = JSIL.GetNativeSizeOf(typeObject) | 0;
+  var nativeSize = JSIL.GetNativeSizeOf(typeObject, forPInvoke) | 0;
   var marshallingScratchBuffer = JSIL.GetMarshallingScratchBuffer(nativeSize);
   var viewBytes = marshallingScratchBuffer.getView($jsilcore.System.Byte, false);
 

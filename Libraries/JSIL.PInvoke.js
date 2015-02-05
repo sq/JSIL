@@ -102,7 +102,7 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       this.Length = size;
       this.IsNotDisposed = true;
 
-      this.ElementSize = JSIL.GetNativeSizeOf(this.T);
+      this.ElementSize = JSIL.GetNativeSizeOf(this.T, false);
       var sizeBytes = this.ElementSize * this.Length;
 
       this.Module = module;
@@ -251,7 +251,7 @@ JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue
 
 JSIL.PInvoke.BoxedValueMarshaller = function BoxedValueMarshaller (type) {
   this.type = type;
-  this.sizeInBytes = JSIL.GetNativeSizeOf(type);
+  this.sizeInBytes = JSIL.GetNativeSizeOf(type, false);
   this.namedReturnValue = true;
 };
 
@@ -296,7 +296,7 @@ JSIL.PInvoke.BoxedValueMarshaller.prototype.NativeToManaged = function (nativeVa
 
 JSIL.PInvoke.ByValueStructMarshaller = function ByValueStructMarshaller (type) {
   this.type = type;
-  this.sizeInBytes = JSIL.GetNativeSizeOf(type);
+  this.sizeInBytes = JSIL.GetNativeSizeOf(type, true);
   this.marshaller = JSIL.$GetStructMarshaller(type);
   this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
 
