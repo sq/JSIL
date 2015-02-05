@@ -95,7 +95,6 @@ export(TPBinaryOperator) ReturnAdd () {
     return Add;
 };
 
-
 export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
     return op(a, b);
 }
@@ -112,4 +111,8 @@ export(FlagStruct) PassFlagInStruct(FlagStruct s) {
 	FlagStruct s2;
 	s2.flags = s.flags;
 	return s2;
+}
+
+export(void) FillUshortArray(uint16_t *ramp) {
+	ramp[0] = 192;
 }
