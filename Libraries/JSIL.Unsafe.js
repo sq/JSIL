@@ -1447,7 +1447,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
 JSIL.$MakeUnmarshallableFieldAccessor = function (fieldName) {
   return function UnmarshallableField () {
-    JSIL.RuntimeError("Field '" + fieldName + "' cannot be marshaled");
+    JSIL.RuntimeError("Field '" + fieldName + "' cannot be marshalled");
   };
 };
 
