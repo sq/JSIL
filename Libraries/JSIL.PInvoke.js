@@ -300,8 +300,8 @@ JSIL.PInvoke.ByValueStructMarshaller = function ByValueStructMarshaller (type) {
   this.marshaller = JSIL.$GetStructMarshaller(type);
   this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(type);
 
-  // clang/emscripten optimization for small single-member structs as return values
-  if ((this.sizeInBytes <= 4) && (JSIL.GetFieldList(type).length === 1)) {
+  // clang/emscripten optimization for single-member structs as return values
+  if (JSIL.GetFieldList(type).length === 1) {
     this.unpackedReturnValue = true;
     this.namedReturnValue = false;
   } else {
