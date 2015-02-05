@@ -9009,7 +9009,12 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     };
 
     var pinImpl = function Delegate_Pin () {
-      this.__pinnedPointer__ = 0;
+      this.__pinnedPointer__ = 
+        System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate$b1(
+          this.__ThisType__
+        )(
+          this
+        );
     };
 
     var unpinImpl = function Delegate_Unpin () {
