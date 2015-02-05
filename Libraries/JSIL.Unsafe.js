@@ -44,6 +44,20 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     }
   );
 
+  $.RawMethod(true, "__CustomMarshal__", 
+    function IntPtr_CustomMarshal (value, buffer, offset) {
+      // FIXME
+      JSIL.RuntimeError("IntPtr.__CustomMarshal__");
+    }
+  );
+
+  $.RawMethod(true, "__CustomUnmarshal__", 
+    function IntPtr_CustomUnmarshal (value, buffer, offset) {
+      // FIXME
+      JSIL.RuntimeError("IntPtr.__CustomUnmarshal__");
+    }
+  );
+
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
@@ -265,7 +279,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
       } else {
         // FIXME: Unpin
       }
-      
+
       this._pointer = null;
       this._target = null;
     }
@@ -1479,7 +1493,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         };
 
         if (marshal) {
-          body.push("scratch_" + field.name + "[0] = (" + structArgName + "." + field.name + ").$asIntPtr();");
+          body.push("scratch_" + field.name + "[0] = (" + structArgName + "." + field.name + ").$asIntPtr().ToInt32() | 0;");
         } else {
           body.push(structArgName + "." + field.name + " = " + closureKey + "(scratch_" + field.name + "[0]);");
         }

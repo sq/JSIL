@@ -94,30 +94,6 @@ JSIL.PInvoke.CreateIntPtrForModule = function (module, address) {
   return intPtr;
 };
 
-JSIL.PInvoke.CreateFunctionPointer = function (fn) {
-  var result = null;
-
-  var nm = JSIL.__NativeModules__;
-  for (var k in nm) {
-    if (!nm.hasOwnProperty(k))
-      continue;
-
-    if (k === "__global__")
-      continue;
-
-    var module = nm[k];
-
-    // FIXME: Unique wrapper per-module?
-    var localFp = module.Runtime.addFunction(fn);
-    if (result === null)
-      result = localFp;
-    else if (result !== localFp)
-      JSIL.RuntimeError("Emscripten function pointer tables are desynchronized between modules");
-  }
-
-  return result;
-};
-
 JSIL.PInvoke.DestroyFunctionPointer = function (fp) {
   var nm = JSIL.__NativeModules__;
   for (var k in nm) {
@@ -401,7 +377,8 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue
   } else {
     // HACK: We have no way to know this address is in the correct heap.
 
-    return managedValue.value | 0;
+    // FIXME: Preserve 53 bits?
+    return managedValue.value.ToInt32() | 0;
   }
 };
 
@@ -735,7 +712,7 @@ JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, meth
 JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, methodSignature) {
   var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
 
-  if (marshallers.result.allocates)
+  if (marshallers.result && marshallers.result.allocates)
     JSIL.RuntimeError("Return type '" + methodSignature.returnType + "' is not valid because it allocates on the native heap");
 
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
@@ -774,6 +751,31 @@ JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, m
   return wrapper;
 };
 
+JSIL.PInvoke.CreateUniversalFunctionPointerForDelegate = function (delegate, signature) {
+  var result = null;
+
+  var nm = JSIL.__NativeModules__;
+  for (var k in nm) {
+    if (!nm.hasOwnProperty(k))
+      continue;
+
+    if (k === "__global__")
+      continue;
+
+    var module = nm[k];
+
+    var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(module, delegate, signature);
+
+    var localFp = module.Runtime.addFunction(wrappedFunction);
+    if (result === null)
+      result = localFp;
+    else if (result !== localFp)
+      JSIL.RuntimeError("Emscripten function pointer tables are desynchronized between modules");
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   var warnedAboutFunctionTable = false;
 
@@ -787,16 +789,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       if (!signature)
         JSIL.RuntimeError("Delegate type must have a signature");
 
-      // FIXME
-      var module = JSIL.PInvoke.GetGlobalModule();
+      var functionPointer = JSIL.PInvoke.CreateUniversalFunctionPointerForDelegate(delegate, signature);
 
       // FIXME
-      var wrappedFunction = JSIL.PInvoke.CreateNativeToManagedWrapper(module, delegate, signature);
-
-      var functionPointer = JSIL.PInvoke.CreateFunctionPointer(wrappedFunction);
-
-      // FIXME
-      var result = JSIL.PInvoke.CreateIntPtrForModule(module, functionPointer);
+      var result = new System.IntPtr(functionPointer);
       return result;
     }
   );
