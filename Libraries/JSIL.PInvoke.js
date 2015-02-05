@@ -558,27 +558,8 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
     return new JSIL.PInvoke.ByValueMarshaller(type);
   } else {
     var msg = "Type '" + type + "' cannot be marshalled";
-      
-    var getError = function () {
-      return new Error(msg);
-    };
-
-    if (JSIL.ThrowOnUnimplementedExternals) {
-      JSIL.Host.abort(getError());
-    } else {
-      var err = getError();
-      if (typeof (err.stack) !== "undefined") {
-        if (err.stack.indexOf(err.toString()) === 0)
-          msg = err.stack;
-        else
-          msg += "\n" + err.stack;
-      }
-
-      err = null;
-      JSIL.Host.warning(msg);
-
-      return new JSIL.PInvoke.UnimplementedMarshaller(type, msg);
-    }
+    JSIL.$WarningError(msg);
+    return new JSIL.PInvoke.UnimplementedMarshaller(type, msg);
   }
 };
 

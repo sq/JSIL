@@ -1240,6 +1240,26 @@ JSIL.UnknownMember = function (memberName) {
   JSIL.Host.abort(new Error("An attempt was made to reference the member '" + memberName + "', but it has no type information."));
 };
 
+JSIL.$WarningError = function (err) {       
+  if (typeof err == "string") {
+    err = new Error(err);
+  }
+
+  var msg = err.message;
+
+  if (typeof (err.stack) !== "undefined") {
+    if (err.stack.indexOf(err.toString()) === 0)
+      msg = err.stack;
+    else
+      msg += "\n" + err.stack;
+  }
+
+  JSIL.Host.warning(msg);
+  if (JSIL.ThrowOnUnimplementedExternals) {
+      JSIL.Host.abort(err);
+  }
+}
+
 JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedMember) {
   var state = {
     warningCount: 0
@@ -1256,37 +1276,13 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
       return Function.prototype.apply.call(inheritedMember, this, arguments);
     };
   } else {
-    var msg = null;
-    
     result = function ExternalMemberStub () {
       if (state.warningCount > 3) {
-        msg = null;
         return;
       }
 
       state.warningCount += 1;
-      var self = this;
-      var getError = function () {
-        if (msg === null)
-          msg = "The external method '" + getMemberName.call(self) + "' of type '" + namespaceName + "' has not been implemented.";
-
-        return new Error(msg);
-      };
-
-      if (JSIL.ThrowOnUnimplementedExternals) {
-        JSIL.Host.abort(getError());
-      } else {
-        var err = getError();
-        if (typeof (err.stack) !== "undefined") {
-          if (err.stack.indexOf(err.toString()) === 0)
-            msg = err.stack;
-          else
-            msg += "\n" + err.stack;
-        }
-
-        err = null;
-        JSIL.Host.warning(msg);
-      }
+      JSIL.$WarningError("The external method '" + getMemberName.call(this) + "' of type '" + namespaceName + "' has not been implemented.");
     };
   }
 
