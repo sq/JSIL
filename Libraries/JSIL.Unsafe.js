@@ -897,6 +897,7 @@ JSIL.MakeClass("System.Array", "JSIL.PackedStructArray", true, ["T"], function (
       this.unmarshaller = JSIL.$GetStructUnmarshaller(this.T);
       this.marshaller = JSIL.$GetStructMarshaller(this.T);
       this.length = (this.memoryRange.length / this.nativeSize) | 0;
+      this.byteLength = (this.length * this.nativeSize) | 0;
     }
   );
 

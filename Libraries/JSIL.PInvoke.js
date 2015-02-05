@@ -417,6 +417,49 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
+JSIL.PInvoke.ArrayMarshaller = function ArrayMarshaller (type) {
+  this.type = type;
+  this.elementType = type.__ElementType__;
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ArrayMarshaller);
+
+JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
+};
+
+JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = callContext.module;
+  var pointer = JSIL.PinAndGetPointer(managedValue, 0);
+
+  if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
+    return pointer.offsetInBytes | 0;
+  } else {
+    // Copy to temporary storage on the emscripten heap, then copy back after the call
+
+    var sizeBytes = managedValue.byteLength;
+    var emscriptenOffset = callContext.Allocate(sizeBytes);
+
+    var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
+    var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
+
+    // FIXME: Don't do this if it's out-only
+    destView.set(sourceView, 0);
+
+    // FIXME: Only do this if it's out-only or inout
+    callContext.QueueCleanup(function () {
+      sourceView.set(destView, 0);
+    });
+
+    return emscriptenOffset;
+  }
+};
+
+JSIL.PInvoke.ArrayMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  JSIL.RuntimeError("Not valid for array arguments");
+};
+
+
 JSIL.PInvoke.StringBuilderMarshaller = function StringBuilderMarshaller (charSet) {
   if (charSet)
     JSIL.RuntimeError("Not implemented");
@@ -569,6 +612,8 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
   } else if (type.__IsEnum__) {
     return new JSIL.PInvoke.ByValueMarshaller(type);
+  } else if (type.__IsArray__) {
+    return new JSIL.PInvoke.ArrayMarshaller(type);
   } else {
     return new JSIL.PInvoke.UnimplementedMarshaller(type);
   }
