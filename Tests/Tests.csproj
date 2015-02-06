@@ -76,7 +76,7 @@
     <None Include="AnalysisTestCases\ReturnMutatedStructArgument.cs" />
     <None Include="AnalysisTestCases\ReturnMutatedNestedStruct.cs" />
     <None Include="AnalysisTestCases\MutateNestedStruct.cs" />
-    <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
+    <None Include="AnalysisTestCases\Issue667.cs" />
     <None Include="AnalysisTestCases\NestedReturnNew.cs" />
     <None Include="AnalysisTestCases\StructTemporaries.cs" />
     <None Include="AnalysisTestCases\LocalCopyOfGlobal.cs" />
@@ -113,6 +113,7 @@
     <None Include="AnalysisTestCases\Issue371.cs" />
     <None Include="AnalysisTestCases\Issue494.cs" />
     <None Include="AnalysisTestCases\Issue494_2.cs" />
+    <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
     </Compile>

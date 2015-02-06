@@ -757,5 +757,17 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void Issue667 () {
+            string output = "a = 5\r\nb = 6\r\na = 3\r\nb = 7";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue667.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
