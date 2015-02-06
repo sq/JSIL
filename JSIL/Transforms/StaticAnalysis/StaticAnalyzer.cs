@@ -96,6 +96,21 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
+            // Generate synthetic assignments for each parameter so that static analysis doesn't think
+            //  that they are written to zero times (the correct answer is one)
+            foreach (var parameter in fn.Parameters) {
+                State.Assignments.Add(new FunctionAnalysis1stPass.Assignment(
+                    GetParentNodeIndices(),
+                    StatementIndex, NodeIndex, 
+                    parameter.Name,
+                    // FIXME: Should this be a null expression or something instead?
+                    parameter,
+                    JSOperator.Assignment,
+                    parameter.GetActualType(TypeSystem),
+                    parameter.GetActualType(TypeSystem)
+                ));
+            }
+
             VisitChildren(fn);
         }
 
