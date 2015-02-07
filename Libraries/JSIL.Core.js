@@ -2592,9 +2592,10 @@ $jsilcore.$Of$NoInitialize = function () {
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var key = ga[i];
+    var escapedKey = JSIL.EscapeName(key);
     var name = new JSIL.Name(key, resultTypeObject.__FullNameWithoutArguments__);
 
-    writeGenericArgument(key, name, resolvedArguments[i]);
+    writeGenericArgument(escapedKey, name, resolvedArguments[i]);
   }
 
   if (typeObject.IsInterface)
@@ -5418,7 +5419,9 @@ JSIL.MakeType = function (typeArgs, initializer) {
       var ga = typeObject.__GenericArguments__[i];
       var name = new JSIL.Name(ga, fullName);
 
-      JSIL.SetValueProperty(staticClassObject, ga, name);
+      var escapedKey = JSIL.EscapeName(ga);
+
+      JSIL.SetValueProperty(staticClassObject, escapedKey, name);
     }    
 
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
