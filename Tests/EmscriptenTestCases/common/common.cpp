@@ -15,6 +15,7 @@ struct TestStruct {
 };
 
 struct CallbackStruct {
+	unsigned short us;
 	void(*callback)(int i);
 };
 
