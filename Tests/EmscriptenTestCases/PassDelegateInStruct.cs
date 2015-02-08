@@ -10,6 +10,7 @@ public static unsafe class Program {
 
     [StructLayout(LayoutKind.Sequential)]
     public struct CallbackStruct {
+        public ushort us;
         public Callback callback;
     }
 
@@ -20,7 +21,7 @@ public static unsafe class Program {
         Callback c = PrintSuccess;
         var cHandle = GCHandle.Alloc(c);
 
-        var s = new CallbackStruct { callback = c };
+        var s = new CallbackStruct { us = 4, callback = c };
         CallFunctionInStruct(s, 747);
     }
 
