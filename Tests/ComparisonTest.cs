@@ -44,6 +44,8 @@ namespace JSIL.Tests {
 
         public string StartupPrologue;
 
+        public Func<string> GetTestRunnerQueryString = () => "";
+
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
         public readonly string[] StubbedAssemblies;
@@ -168,7 +170,7 @@ namespace JSIL.Tests {
             CompilationElapsed = TimeSpan.FromTicks(ended - started);
         }
 
-        public static string GetTestRunnerLink (string testFile) {
+        public static string GetTestRunnerLink (string testFile, string queryString = "") {
             var rootPath = Path.GetFullPath(Path.Combine(
                 Path.GetDirectoryName(LoaderJSPath),
                 @"..\"
@@ -179,7 +181,8 @@ namespace JSIL.Tests {
             );
 
             return String.Format(
-                "{0}#{1}", uri,
+                "{0}?{1}#{2}", uri,
+                queryString,
                 MapSourceFileToTestFile(Path.GetFullPath(testFile))
                     .Replace(rootPath, "")
                     .Replace("\\", "/")
@@ -756,7 +759,7 @@ namespace JSIL.Tests {
                 var jsex = ex as JavaScriptEvaluatorException;
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
-                Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
+                Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath, GetTestRunnerQueryString()));
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;

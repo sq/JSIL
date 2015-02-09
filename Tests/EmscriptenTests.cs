@@ -123,7 +123,9 @@ namespace JSIL.Tests {
             RunSingleComparisonTestCase(
                 parameters,
                 MakeConfiguration,
-                compilerOptions: "/unsafe"
+                compilerOptions: "/unsafe",
+                getTestRunnerQueryString: () =>
+                    "dll=Tests/EmscriptenTestCases/common.emjs"
             );
         }
 

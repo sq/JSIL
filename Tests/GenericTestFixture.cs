@@ -210,7 +210,8 @@ namespace JSIL.Tests {
             Action<Exception> onTranslationFailure = null,
             JSEvaluationConfig evaluationConfig = null,
             string compilerOptions = "",
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            Func<string> getTestRunnerQueryString = null
         ) {
             CompileResult result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
@@ -231,6 +232,7 @@ namespace JSIL.Tests {
                     stubbedAssemblies, typeInfo, asmCache,
                     compilerOptions: compilerOptions
                 )) {
+                    test.GetTestRunnerQueryString = getTestRunnerQueryString;
                     result = test.CompileResult;
 
                     if (shouldRunJs) {
@@ -370,7 +372,8 @@ namespace JSIL.Tests {
             JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
             string compilerOptions = "",
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            Func<string> getTestRunnerQueryString = null
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -384,7 +387,8 @@ namespace JSIL.Tests {
                     evaluationConfig: evaluationConfig,
                     onTranslationFailure: onTranslationFailure,
                     compilerOptions: compilerOptions,
-                    initializeTranslator: initializeTranslator
+                    initializeTranslator: initializeTranslator,
+                    getTestRunnerQueryString: getTestRunnerQueryString
                 );
             } finally {
                 if ((bool)parameters[4]) {
