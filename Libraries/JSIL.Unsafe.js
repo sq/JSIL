@@ -1241,6 +1241,8 @@ JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject, forPInvok
       return -1;
 
     return result;
+  } else if (typeObject.__IsEnum__) {
+    return JSIL.GetNativeAlignmentOf(typeObject.__StorageType__, forPInvoke);
   } else if (typeObject.__IsDelegate__) {
     if (forPInvoke)
       return 4;
