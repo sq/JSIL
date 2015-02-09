@@ -23,6 +23,11 @@ struct FlagStruct {
 	uint32_t flags;
 };
 
+struct AlignmentStruct {
+	unsigned short us;
+	uint32_t choices;
+};
+
 export(void) WriteInt (const int value, int * result) {
     *result = value;
 }
@@ -116,4 +121,8 @@ export(FlagStruct) PassFlagInStruct(FlagStruct s) {
 
 export(void) FillUshortArray(uint16_t *ramp) {
 	ramp[0] = 192;
+}
+
+export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
+	return arg;
 }
