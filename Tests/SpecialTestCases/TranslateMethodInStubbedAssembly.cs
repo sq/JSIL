@@ -3,6 +3,8 @@ using JSIL.Meta;
 
 public static class Program {
     public static void Main (string[] args) {
+        T.ShouldNotBeExternal();
+        T.ShouldBeExternal();
     }
 }
 

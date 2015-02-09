@@ -1290,14 +1290,22 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
     };
   } else {
     result = function ExternalMemberStub () {
-      if (state.warningCount > 3) {
+      if (state.warningCount > 3)
         return;
-      }
 
-      JSIL.WarningFormat(
-        JSIL.$ExternalMemberWarningFormat,
-        [getMemberName.call(this), namespaceName]
-      );
+      var fmtArgs = [getMemberName.call(this), namespaceName];
+
+      if (JSIL.ThrowOnUnimplementedExternals)
+        throw new Error(
+          JSIL.$FormatStringImpl(
+            JSIL.$ExternalMemberWarningFormat, fmtArgs            
+          )
+        );
+      else
+        JSIL.WarningFormat(
+          JSIL.$ExternalMemberWarningFormat, fmtArgs
+        );
+
       state.warningCount += 1;
     };
   }

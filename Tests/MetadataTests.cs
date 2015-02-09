@@ -531,9 +531,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void CanForceTranslationOfMethodInStubbedAssembly () {
+            var expectedOutput = "This should be translated!\r\nThis shouldn't be translated!";
+
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\TranslateMethodInStubbedAssembly.cs",
-                "",
+                expectedOutput,
                 "method 'void Main(System.String[])' of type 'Program'",
                 new[] { ".*" }
             );
