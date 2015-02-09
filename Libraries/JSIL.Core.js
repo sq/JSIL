@@ -6381,14 +6381,16 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 };
 
 JSIL.$PlacePInvokeMember = function (
-  target, memberName, signature, 
-  dllName, importedName
+  target, memberName, signature, methodName, pInvokeInfo
 ) {
   var newValue = null;
   var existingValue = target[memberName];
 
   if (existingValue)
     JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
+
+  var dllName = pInvokeInfo.Module;
+  var importedName = pInvokeInfo.EntryPoint || methodName;
 
   var lookupThunk = function PInvokeLookupThunk () {
     var module = JSIL.PInvoke.GetModule(dllName, false);
@@ -6404,7 +6406,7 @@ JSIL.$PlacePInvokeMember = function (
       });
 
     var wrapper = JSIL.PInvoke.CreateManagedToNativeWrapper(
-      module, methodImpl, memberName, signature, null
+      module, methodImpl, memberName, signature, pInvokeInfo, null
     );
 
     return wrapper;
@@ -6429,8 +6431,7 @@ JSIL.InterfaceBuilder.prototype.PInvokeMethod = function (_descriptor, methodNam
     JSIL.RuntimeError("PInvoke methods must have a module name");
 
   JSIL.$PlacePInvokeMember(
-    descriptor.Target, mangledName, signature,
-    pInvokeInfo.Module, pInvokeInfo.EntryPoint || methodName
+    descriptor.Target, mangledName, signature, methodName, pInvokeInfo
   );
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);

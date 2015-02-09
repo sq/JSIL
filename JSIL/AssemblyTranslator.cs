@@ -2716,6 +2716,100 @@ namespace JSIL {
             }
         }
 
+        private void TranslatePInvokeInfo (
+            MethodReference methodRef, MethodDefinition method, MethodInfo methodInfo, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+        ) {
+            var pii = method.PInvokeInfo;
+
+            output.Comma();
+            output.NewLine();
+
+            output.OpenBrace();
+
+            output.WriteRaw("Module: ");
+            output.Value(pii.Module.Name);
+            output.Comma();
+            output.NewLine();
+
+            if (pii.IsCharSetAuto) {
+                output.WriteRaw("CharSet: 'auto',");
+                output.NewLine();
+            } else if (pii.IsCharSetUnicode) {
+                output.WriteRaw("CharSet: 'unicode',");
+                output.NewLine();
+            } else if (pii.IsCharSetAnsi) {
+                output.WriteRaw("CharSet: 'ansi',");
+                output.NewLine();
+            }
+
+            bool isArgsDictOpen = false;
+
+            foreach (var p in method.Parameters) {
+                if (p.HasMarshalInfo) {
+                    if (!isArgsDictOpen) {
+                        isArgsDictOpen = true;
+                        output.WriteRaw("Parameters: ");
+                        output.OpenBracket(true);
+                    } else {
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    TranslateMarshalInfo(
+                        methodRef, method, methodInfo,
+                        p.MarshalInfo, astEmitter, output
+                    );
+                } else if (isArgsDictOpen) {
+                    output.WriteRaw("null, ");
+                    output.NewLine();
+                }
+            }
+
+            if (isArgsDictOpen)
+                output.CloseBracket(true);
+
+            if (method.MethodReturnType.HasMarshalInfo) {
+                output.WriteRaw("Result: ");
+
+                TranslateMarshalInfo(
+                    methodRef, method, methodInfo,
+                    method.MethodReturnType.MarshalInfo, astEmitter, output
+                );
+                output.NewLine();
+            }
+
+            if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
+                output.WriteRaw("EntryPoint: ");
+                output.Value(pii.EntryPoint);
+                output.Comma();
+                output.NewLine();
+            }
+
+            output.CloseBrace(false);
+        }
+
+        private void TranslateMarshalInfo (
+            MethodReference methodRef, MethodDefinition method, MethodInfo methodInfo, 
+            MarshalInfo mi, JavascriptAstEmitter astEmitter, JavascriptFormatter output
+        ) {
+            output.OpenBrace();
+
+            if (mi.NativeType == NativeType.CustomMarshaler) {
+                var cmi = (CustomMarshalInfo)mi;
+
+                output.WriteRaw("CustomMarshaler: ");
+                output.TypeReference(cmi.ManagedType, astEmitter.ReferenceContext);
+                output.NewLine();
+            } else {
+                output.WriteRaw("NativeType: ");
+                output.Value(mi.NativeType.ToString());
+                output.NewLine();
+            }
+
+            output.CloseBrace(false);
+        }
+
         protected void DefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
@@ -2802,37 +2896,9 @@ namespace JSIL {
                 output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
-                    var pii = method.PInvokeInfo;
-
-                    output.Comma();
-                    output.NewLine();
-
-                    output.OpenBrace();
-
-                    output.WriteRaw("Module: ");
-                    output.Value(pii.Module.Name);
-                    output.Comma();
-                    output.NewLine();
-
-                    if (pii.IsCharSetAuto) {
-                        output.WriteRaw("CharSet: 'auto',");
-                        output.NewLine();
-                    } else if (pii.IsCharSetUnicode) {
-                        output.WriteRaw("CharSet: 'unicode',");
-                        output.NewLine();
-                    } else if (pii.IsCharSetAnsi) {
-                        output.WriteRaw("CharSet: 'ansi',");
-                        output.NewLine();
-                    }
-
-                    if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
-                        output.WriteRaw("EntryPoint: ");
-                        output.Value(pii.EntryPoint);
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    output.CloseBrace(false);
+                    TranslatePInvokeInfo(
+                        methodRef, method, methodInfo, astEmitter, output
+                    );
                 } else if (!isExternal) {
                     output.Comma();
                     output.NewLine();

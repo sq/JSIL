@@ -655,7 +655,7 @@ JSIL.PInvoke.FindNativeMethod = function (module, methodName) {
   return module[key];
 };
 
-JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature) {
+JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature, pInvokeInfo) {
   var argumentMarshallers = new Array(methodSignature.argumentTypes.length);
   for (var i = 0, l = argumentMarshallers.length; i < l; i++) {
     var argumentType = methodSignature.argumentTypes[i];
@@ -678,9 +678,9 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature) {
   };
 };
 
-JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, methodName, methodSignature, marshallers) {
+JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, methodName, methodSignature, pInvokeInfo, marshallers) {
   if (!marshallers)
-    marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
+    marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature, pInvokeInfo);
 
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
 
@@ -717,8 +717,8 @@ JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, meth
   return wrapper;
 };
 
-JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, methodSignature) {
-  var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature);
+JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, methodSignature, pInvokeInfo) {
+  var marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature, pInvokeInfo);
 
   if (marshallers.result && marshallers.result.allocates)
     JSIL.RuntimeError("Return type '" + methodSignature.returnType + "' is not valid because it allocates on the native heap");
@@ -815,6 +815,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       if (!signature)
         JSIL.RuntimeError("Delegate type must have a signature");
 
+      var pInvokeInfo = T.__PInvokeInfo__;
+      if (!pInvokeInfo)
+        pInvokeInfo = null;
+
       var methodIndex, module;
       if (ptr.pointer) {
         module = JSIL.PInvoke.GetModuleForHeap(ptr.pointer.memoryRange.buffer);
@@ -824,7 +828,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
         methodIndex = ptr.value | 0;
       }
 
-      var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature);
+      var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature, pInvokeInfo);
 
       var invokeImplementation = null;
 
@@ -872,7 +876,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
         invokeImplementation = boundDynCall;
       }
 
-      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(module, invokeImplementation, "GetDelegateForFunctionPointer_Result", signature, marshallers);
+      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(
+        module, invokeImplementation, "GetDelegateForFunctionPointer_Result", 
+        signature, pInvokeInfo, marshallers
+      );
       return wrappedMethod;
     }
   );  
