@@ -531,7 +531,7 @@ JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
 
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
-  var emscriptenOffset = callContext.Allocate(sizeInBytes);
+  var emscriptenOffset = callContext.Allocate(sizeInBytes+1);
 
   var module = callContext.module;
 
@@ -543,6 +543,7 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
     managedValue, 0, managedValue.length, module.HEAPU8, emscriptenOffset
   );
 
+  module.setValue(emscriptenOffset+sizeInBytes, 0, 'i8');
   return emscriptenOffset;
 };
 
