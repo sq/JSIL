@@ -3572,7 +3572,7 @@ JSIL.$BuildFieldList = function (typeObject) {
     var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
     var fieldSize = JSIL.GetNativeSizeOf(fieldType, true);
-    var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType);
+    var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType, true);
 
     var actualFieldOffset = fieldOffset;
     if (fieldAlignment > 0) {

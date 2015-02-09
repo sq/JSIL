@@ -1228,7 +1228,7 @@ JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject, forPInvoke) {
   }
 };
 
-JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject) {
+JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject, forPInvoke) {
   if (typeObject.__IsNativeType__) {
     var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject, false);
     if (arrayCtor)
@@ -1241,6 +1241,11 @@ JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject) {
       return -1;
 
     return result;
+  } else if (typeObject.__IsDelegate__) {
+    if (forPInvoke)
+      return 4;
+    else
+      return -1;
   } else {
     return -1;
   }
@@ -1379,7 +1384,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
 
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject, forPInvoke);
-  var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject);
+  var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject, forPInvoke);
   var scratchBuffer = new ArrayBuffer(nativeSize);
   var scratchRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
 
