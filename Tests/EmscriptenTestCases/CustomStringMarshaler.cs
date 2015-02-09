@@ -65,11 +65,24 @@ public static class Program {
         }
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(LPUtf8StrMarshaler), MarshalCookie = LPUtf8StrMarshaler.LeaveAllocated)]
+    delegate string TReturnString();
+
     [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(LPUtf8StrMarshaler), MarshalCookie = LPUtf8StrMarshaler.LeaveAllocated)]
     public static extern string ReturnString();
 
+    [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
+    public static extern IntPtr ReturnReturnString();
+
     public static void Main () {
         Console.WriteLine(ReturnString());
+
+        var fp = ReturnReturnString();
+
+        var d = Marshal.GetDelegateForFunctionPointer<TReturnString>(fp);
+
+        Console.WriteLine(d());
     }
 }

@@ -1105,6 +1105,8 @@ namespace JSIL {
             if (invokeMethod != null)
             {
                 output.Comma();
+                output.NewLine();
+
                 astEmitter.ReferenceContext.Push();
                 astEmitter.ReferenceContext.DefiningType = del;
                 try
@@ -1117,6 +1119,15 @@ namespace JSIL {
                 finally
                 {
                     astEmitter.ReferenceContext.Pop();
+                }
+
+                if (
+                    invokeMethod.HasPInvokeInfo || 
+                    invokeMethod.MethodReturnType.HasMarshalInfo ||
+                    invokeMethod.Parameters.Any(p => p.HasMarshalInfo)
+                ) {
+                    TranslatePInvokeInfo(invokeMethod, invokeMethod, astEmitter, output);
+                    output.NewLine();
                 }
             }
 
@@ -2717,7 +2728,7 @@ namespace JSIL {
         }
 
         private void TranslatePInvokeInfo (
-            MethodReference methodRef, MethodDefinition method, MethodInfo methodInfo, 
+            MethodReference methodRef, MethodDefinition method, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output
         ) {
             var pii = method.PInvokeInfo;
@@ -2727,20 +2738,29 @@ namespace JSIL {
 
             output.OpenBrace();
 
-            output.WriteRaw("Module: ");
-            output.Value(pii.Module.Name);
-            output.Comma();
-            output.NewLine();
+            if (pii != null) {
+                output.WriteRaw("Module: ");
+                output.Value(pii.Module.Name);
+                output.Comma();
+                output.NewLine();
 
-            if (pii.IsCharSetAuto) {
-                output.WriteRaw("CharSet: 'auto',");
-                output.NewLine();
-            } else if (pii.IsCharSetUnicode) {
-                output.WriteRaw("CharSet: 'unicode',");
-                output.NewLine();
-            } else if (pii.IsCharSetAnsi) {
-                output.WriteRaw("CharSet: 'ansi',");
-                output.NewLine();
+                if (pii.IsCharSetAuto) {
+                    output.WriteRaw("CharSet: 'auto',");
+                    output.NewLine();
+                } else if (pii.IsCharSetUnicode) {
+                    output.WriteRaw("CharSet: 'unicode',");
+                    output.NewLine();
+                } else if (pii.IsCharSetAnsi) {
+                    output.WriteRaw("CharSet: 'ansi',");
+                    output.NewLine();
+                }
+
+                if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
+                    output.WriteRaw("EntryPoint: ");
+                    output.Value(pii.EntryPoint);
+                    output.Comma();
+                    output.NewLine();
+                }
             }
 
             bool isArgsDictOpen = false;
@@ -2757,7 +2777,7 @@ namespace JSIL {
                     }
 
                     TranslateMarshalInfo(
-                        methodRef, method, methodInfo,
+                        methodRef, method,
                         p.MarshalInfo, astEmitter, output
                     );
                 } else if (isArgsDictOpen) {
@@ -2773,16 +2793,9 @@ namespace JSIL {
                 output.WriteRaw("Result: ");
 
                 TranslateMarshalInfo(
-                    methodRef, method, methodInfo,
+                    methodRef, method,
                     method.MethodReturnType.MarshalInfo, astEmitter, output
                 );
-                output.NewLine();
-            }
-
-            if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
-                output.WriteRaw("EntryPoint: ");
-                output.Value(pii.EntryPoint);
-                output.Comma();
                 output.NewLine();
             }
 
@@ -2790,7 +2803,7 @@ namespace JSIL {
         }
 
         private void TranslateMarshalInfo (
-            MethodReference methodRef, MethodDefinition method, MethodInfo methodInfo, 
+            MethodReference methodRef, MethodDefinition method,
             MarshalInfo mi, JavascriptAstEmitter astEmitter, JavascriptFormatter output
         ) {
             output.OpenBrace();
@@ -2897,7 +2910,7 @@ namespace JSIL {
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
                     TranslatePInvokeInfo(
-                        methodRef, method, methodInfo, astEmitter, output
+                        methodRef, method, astEmitter, output
                     );
                 } else if (!isExternal) {
                     output.Comma();
