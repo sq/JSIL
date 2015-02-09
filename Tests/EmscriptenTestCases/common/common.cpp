@@ -47,6 +47,10 @@ export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
 }
 
+export(const char *) ReturnString() {
+	return "butts";
+}
+
 export(void) MutateStringArgument (char * buf, const int capacity) {
     // #%(*#@%OJIJ#LW% i hate clang
     // strcat_s(buf, capacity, " world");

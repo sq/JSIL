@@ -137,6 +137,7 @@
     <None Include="EmscriptenTestCases\OutUshortArrayParameter.cs" />
     <None Include="EmscriptenTestCases\ByValueStructParameter_Small.cs" />
     <None Include="EmscriptenTestCases\PassIntPtrInStruct.cs" />
+    <None Include="EmscriptenTestCases\CustomStringMarshaler.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
