@@ -5411,9 +5411,15 @@ JSIL.MakeType = function (typeArgs, initializer) {
       typeObject.__IsClosed__ = (baseType.__IsClosed__ !== false);
     }
 
-    typeObject._IsAssignableFrom = function (typeOfValue) {
-      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
-    };
+    if (fullName === "System.Object") {
+      typeObject._IsAssignableFrom = function (typeOfValue) {
+        return true;
+      };
+    } else {
+      typeObject._IsAssignableFrom = function (typeOfValue) {
+        return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
+      };
+    }
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
       var ga = typeObject.__GenericArguments__[i];
