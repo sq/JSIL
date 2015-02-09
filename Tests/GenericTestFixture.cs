@@ -232,7 +232,7 @@ namespace JSIL.Tests {
                     stubbedAssemblies, typeInfo, asmCache,
                     compilerOptions: compilerOptions
                 )) {
-                    test.GetTestRunnerQueryString = getTestRunnerQueryString;
+                    test.GetTestRunnerQueryString = getTestRunnerQueryString ?? test.GetTestRunnerQueryString;
                     result = test.CompileResult;
 
                     if (shouldRunJs) {
