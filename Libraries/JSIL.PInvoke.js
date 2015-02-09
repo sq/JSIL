@@ -249,7 +249,8 @@ JSIL.PInvoke.ByValueMarshaller = function ByValueMarshaller (type) {
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueMarshaller);
 
 JSIL.PInvoke.ByValueMarshaller.prototype.GetSignatureToken = function () {
-  switch (this.type.__FullName__) {
+  var storageType = this.type.__IsEnum__ ? this.type.__StorageType__ : this.type;
+  switch (storageType.__FullName__) {
     case "System.Int32":
       return "i";
     case "System.Single":
@@ -367,6 +368,10 @@ JSIL.PInvoke.IntPtrMarshaller = function IntPtrMarshaller () {
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.IntPtrMarshaller);
+
+JSIL.PInvoke.IntPtrMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
+};
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   if (managedValue.pointer) {
@@ -531,7 +536,7 @@ JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
 
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
-  var emscriptenOffset = callContext.Allocate(sizeInBytes);
+  var emscriptenOffset = callContext.Allocate(sizeInBytes+1);
 
   var module = callContext.module;
 
@@ -543,6 +548,7 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
     managedValue, 0, managedValue.length, module.HEAPU8, emscriptenOffset
   );
 
+  module.setValue(emscriptenOffset+sizeInBytes, 0, 'i8');
   return emscriptenOffset;
 };
 
