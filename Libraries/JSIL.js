@@ -140,10 +140,34 @@ var $jsilloaderstate = {
     this.loadScript(libraryRoot + "JSIL.Shell.Loaders.js");
   };
 
+  function Environment_WebWorker (config) {
+	var self = this;
+	this.config = config;
 
+	contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
+	contentManifest["JSIL"].push(["Library", "JSIL.IO.js"]);
+	contentManifest["JSIL"].push(["Library", "JSIL.XML.js"]);
+  };
+
+  Environment_WebWorker.prototype.getUserSetting = function (key) {
+	// FIXME
+	return false;
+  };
+
+  Environment_WebWorker.prototype.loadScript = function (uri) {
+	importScripts(uri);
+  };
+
+  Environment_WebWorker.prototype.loadEnvironmentScripts = function () {
+	this.loadScript(libraryRoot + "JSIL.WebWorker.js");
+	this.loadScript(libraryRoot + "JSIL.WebWorker.Loaders.js");
+  };
+
+  
   var environments = {
     "browser": Environment_Browser,
-    "spidermonkey_shell": Environment_SpidermonkeyShell
+    "spidermonkey_shell": Environment_SpidermonkeyShell,
+	"webworker": Environment_WebWorker
   }
 
   if (!config.environment) {

@@ -2041,7 +2041,16 @@ JSIL.ImplementExternals("System.Math", function ($) {
       return result;
     }
   );
-
+	
+  $.Method({Static:true , Public:true }, "Round", 
+	(new JSIL.MethodSignature($jsilcore.TypeRef("System.Decimal"), [$jsilcore.TypeRef("System.Decimal"), $.Int32], [])), 
+	function Round (value, digits) {
+	  var multiplier = Math.pow(10, digits);
+	  var result = Math.round(value * multiplier) / multiplier;
+	  return result;
+	}
+  );
+  
   $.Method({Static:true , Public:true }, "Atan2", 
     (new JSIL.MethodSignature($.Double, [$.Double, $.Double], [])), 
     Math.atan2
@@ -2142,6 +2151,27 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
     ctorImpl
   );
 
+  $.Method({Static:true , Public:true }, "op_LessThan", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return decimalToNumber(lhs) < decimalToNumber(rhs);
+    }
+  );
+  
+  $.Method({Static:true , Public:true }, "op_LessThanOrEqual", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return decimalToNumber(lhs) <= decimalToNumber(rhs);
+    }
+  );
+  
+  $.Method({Static:true , Public:true }, "op_GreaterThan", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return decimalToNumber(lhs) > decimalToNumber(rhs);
+    }
+  );
+  
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])),
     function (lhs, rhs) {
@@ -2183,7 +2213,12 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
       return numberToDecimal(decimalToNumber(lhs) - decimalToNumber(rhs));
     }
   );
-
+  
+  $.Method({Static:true , Public:true }, "op_Implicit", 
+    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Int32")], [])),
+    numberToDecimal
+  );
+  
   $.Method({Static:true , Public:true }, "op_Explicit", 
     (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Single")], [])),
     numberToDecimal
@@ -3507,6 +3542,20 @@ JSIL.ImplementExternals(
         return result;
       }
     );
+
+      $.Method({ Static: false, Public: true, Virtual: true }, "CompareTo",
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Object")]),
+        function (enm) {
+            if (this.value < enm.value) {
+                return -1;
+            }
+            if (this.value > enm.value) {
+                return 1;
+            }
+            return 0;
+        }
+      );
+
   }
 );
 
