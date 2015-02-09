@@ -496,7 +496,7 @@ JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringBuilderMarshaller);
 
 JSIL.PInvoke.StringBuilderMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.get_Capacity();
-  var emscriptenOffset = callContext.Allocate(sizeInBytes);
+  var emscriptenOffset = callContext.Allocate(sizeInBytes + 1);
 
   var module = callContext.module;
 
@@ -504,7 +504,7 @@ JSIL.PInvoke.StringBuilderMarshaller.prototype.ManagedToNative = function (manag
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
   var emscriptenMemoryView = memoryRange.getView(tByte);
 
-  for (var i = 0, l = sizeInBytes; i < l; i++)
+  for (var i = 0, l = sizeInBytes + 1; i < l; i++)
     module.HEAPU8[(i + emscriptenOffset) | 0] = 0;
 
   System.Text.Encoding.ASCII.GetBytes(
@@ -536,7 +536,7 @@ JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
 
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
-  var emscriptenOffset = callContext.Allocate(sizeInBytes+1);
+  var emscriptenOffset = callContext.Allocate(sizeInBytes + 1);
 
   var module = callContext.module;
 
@@ -544,11 +544,13 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
   var emscriptenMemoryView = memoryRange.getView(tByte);
 
+  for (var i = 0, l = sizeInBytes + 1; i < l; i++)
+    module.HEAPU8[(i + emscriptenOffset) | 0] = 0;
+
   System.Text.Encoding.ASCII.GetBytes(
     managedValue, 0, managedValue.length, module.HEAPU8, emscriptenOffset
   );
 
-  module.setValue(emscriptenOffset+sizeInBytes, 0, 'i8');
   return emscriptenOffset;
 };
 
