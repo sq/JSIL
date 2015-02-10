@@ -876,12 +876,16 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
   );
 
   function _GetDelegateForFunctionPointer(T, ptr) {
-    if (!T.__IsDelegate__)
-      JSIL.RuntimeError("Cannot get delegate of type " + T.__FullName__ + ": Not a delegate type");
+    if (!T.__IsDelegate__) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Not a delegate type", [T.__FullName__]);
+      return null;
+    }
 
     var signature = T.__Signature__;
-    if (!signature)
-      JSIL.RuntimeError("Cannot get delegate of type " + T.__FullName__ + ": Delegate type must have a signature");
+    if (!signature) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Delegate type must have a signature", [T.__FullName__]);
+      return null;
+    }
 
     var pInvokeInfo = T.__PInvokeInfo__;
     if (!pInvokeInfo)
@@ -896,8 +900,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       methodIndex = ptr.value | 0;
     }
 
-    if (methodIndex === 0)
-      JSIL.RuntimeError("Cannot get delegate of type " + T.__FullName__ + ": Null function pointer");
+    if (methodIndex === 0) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Null function pointer", [T.__FullName__]);
+      return null;
+    }
 
     var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature, pInvokeInfo);
 
@@ -926,7 +932,8 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     } else {
       var dynCallImplementation = module["dynCall_" + dynCallSignature];
       if (!dynCallImplementation) {
-        JSIL.RuntimeError("Cannot get delegate of type " + T.__FullName__ + ": No dynCall implementation or function table for signature '" + dynCallSignature + "'");
+        JSIL.WarningFormat("Cannot get delegate of type {0}: No dynCall implementation or function table for signature '{1}'", [T.__FullName__, dynCallSignature]);
+        return null;
       }
 
       if (!warnedAboutFunctionTable) {
