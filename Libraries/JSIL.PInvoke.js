@@ -251,6 +251,8 @@ JSIL.PInvoke.ByValueMarshaller.prototype.GetSignatureToken = function () {
   var storageType = this.type.__IsEnum__ ? this.type.__StorageType__ : this.type;
   switch (storageType.__FullName__) {
     case "System.Int32":
+    case "System.UInt32":
+    case "System.Boolean":
       return "i";
     case "System.Single":
     case "System.Double":
