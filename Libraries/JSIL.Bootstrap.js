@@ -12,6 +12,8 @@ JSIL.DeclareNamespace("System.Text.RegularExpressions");
 JSIL.DeclareNamespace("System.Diagnostics");
 JSIL.DeclareNamespace("System.Collections.Generic");
 JSIL.DeclareNamespace("System.Collections.ObjectModel");
+JSIL.DeclareNamespace("System.Runtime");
+JSIL.DeclareNamespace("System.Runtime.InteropServices");
 
 // HACK: Unfortunately necessary :-(
 String.prototype.Object_Equals = function (rhs) {
@@ -5396,3 +5398,13 @@ JSIL.MakeInterface(
   .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
   .Attribute($jsilcore.TypeRef("System.Reflection.DefaultMemberAttribute"), function () { return ["Item"]; })
   .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));
+
+
+JSIL.MakeInterface(
+  "System.Runtime.InteropServices.ICustomMarshaler", true, [], function ($) {
+    $.Method({}, "MarshalNativeToManaged", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.IntPtr")]));
+    $.Method({}, "MarshalManagedToNative", new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$.Object]));
+    $.Method({}, "CleanUpNativeData", JSIL.MethodSignature.Action($jsilcore.TypeRef("System.IntPtr")));
+    $.Method({}, "CleanUpManagedData", JSIL.MethodSignature.Action($.Object));
+    $.Method({}, "GetNativeDataSize", JSIL.MethodSignature.Return($.Int32));
+  }, []);

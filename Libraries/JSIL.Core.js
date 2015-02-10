@@ -8980,7 +8980,7 @@ $jsilcore.CheckDelegateType = function (value) {
   ) && (value.__ThisType__ === this);
 };
 
-JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignature) {
+JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignature, pInvokeInfo) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
@@ -9107,6 +9107,12 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       typeObject.__Signature__ = methodSignature;
     } else {
       typeObject.__Signature__ = null;
+    }
+
+    if (pInvokeInfo) {
+      typeObject.__PInvokeInfo__ = pInvokeInfo;
+    } else {
+      typeObject.__PInvokeInfo__ = null;
     }
 
     return staticClassObject;

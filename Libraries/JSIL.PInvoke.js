@@ -8,7 +8,6 @@ if (!$jsilcore)
 
 JSIL.DeclareNamespace("JSIL.PInvoke");
 
-
 // Used to access shared heap
 var warnedAboutMultiModule = false;
 
@@ -593,6 +592,7 @@ JSIL.PInvoke.DelegateMarshaller.prototype.NativeToManaged = function (nativeValu
   return wrapper;
 };
 
+
 // Fallback UnimplementedMarshaller delays error until the actual point of attempted marshalling
 JSIL.PInvoke.UnimplementedMarshaller = function UnimplementedMarshaller (type, errorMsg) {
   this.type = type;
@@ -607,6 +607,64 @@ JSIL.PInvoke.UnimplementedMarshaller.prototype.ManagedToNative = function (manag
 JSIL.PInvoke.UnimplementedMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
   JSIL.RuntimeErrorFormat("Type '{0}' has no marshalling implementation", [this.type.__FullName__]);
 }
+
+
+JSIL.PInvoke.ManagedMarshaller = function ManagedMarshaller (type, customMarshalerType, cookie) {
+  this.type = type;
+  this.customMarshalerPublicInterface = JSIL.ResolveTypeReference(customMarshalerType)[0];
+
+  if (typeof (cookie) === "string")
+    this.cookie = cookie;
+  else
+    this.cookie = null;
+
+  this.cachedInstance = null;
+}
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ManagedMarshaller);
+
+JSIL.PInvoke.ManagedMarshaller.prototype.GetInstance = function () {
+  if (!this.cachedInstance)
+    this.cachedInstance = this.customMarshalerPublicInterface.GetInstance(this.cookie);
+
+  return this.cachedInstance;
+};
+
+JSIL.PInvoke.ManagedMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
+};
+
+JSIL.PInvoke.ManagedMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var instance = this.GetInstance();
+
+  var ptr = instance.MarshalManagedToNative(managedValue);
+
+  callContext.QueueCleanup(function () {
+    instance.CleanUpNativeData(ptr);
+  });
+
+  var emscriptenOffset = ptr.ToInt32();
+  return emscriptenOffset;
+}
+
+JSIL.PInvoke.ManagedMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  var instance = this.GetInstance();
+  
+  var ptr = JSIL.PInvoke.CreateIntPtrForModule(callContext.module, nativeValue);
+
+  var managedValue = instance.MarshalNativeToManaged(ptr);
+
+  callContext.QueueCleanup(function () {
+    instance.CleanUpManagedData(managedValue);
+  });
+
+  return managedValue;
+}
+
+
+JSIL.PInvoke.WrapManagedCustomMarshaler = function (type, customMarshaler, cookie) {
+  return new JSIL.PInvoke.ManagedMarshaller(type, customMarshaler, cookie);
+};
 
 JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   // FIXME: Caching
@@ -660,8 +718,15 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature, pInvokeInfo
   for (var i = 0, l = argumentMarshallers.length; i < l; i++) {
     var argumentType = methodSignature.argumentTypes[i];
     var resolvedArgumentType = JSIL.ResolveTypeReference(argumentType)[1];
+    var marshalInfo = null;
+    if (pInvokeInfo && pInvokeInfo.Parameters)
+      marshalInfo = pInvokeInfo.Parameters[i];
 
-    argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType);
+    if (marshalInfo && marshalInfo.CustomMarshaler) {
+      argumentMarshallers[i] = JSIL.PInvoke.WrapManagedCustomMarshaler(resolvedArgumentType, marshalInfo.CustomMarshaler, marshalInfo.Cookie);
+    } else {
+      argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType);
+    }
   }
 
   var resolvedReturnType = null, resultMarshaller = null;
@@ -669,7 +734,11 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature, pInvokeInfo
   if (methodSignature.returnType) {
     resolvedReturnType = JSIL.ResolveTypeReference(methodSignature.returnType)[1];
 
-    resultMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
+    if (pInvokeInfo && pInvokeInfo.Result && pInvokeInfo.Result.CustomMarshaler) {
+      resultMarshaller = JSIL.PInvoke.WrapManagedCustomMarshaler(resolvedReturnType, pInvokeInfo.Result.CustomMarshaler, pInvokeInfo.Result.Cookie);
+    } else {
+      resultMarshaller = JSIL.PInvoke.GetMarshallerForType(resolvedReturnType);
+    }
   }
 
   return {

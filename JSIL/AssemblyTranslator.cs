@@ -2813,7 +2813,15 @@ namespace JSIL {
 
                 output.WriteRaw("CustomMarshaler: ");
                 output.TypeReference(cmi.ManagedType, astEmitter.ReferenceContext);
-                output.NewLine();
+
+                if (cmi.Cookie != null) {
+                    output.Comma();
+                    output.WriteRaw("Cookie: ");
+                    output.Value(cmi.Cookie);
+                    output.NewLine();
+                } else {
+                    output.NewLine();
+                }
             } else {
                 output.WriteRaw("NativeType: ");
                 output.Value(mi.NativeType.ToString());

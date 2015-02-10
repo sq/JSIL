@@ -17,6 +17,11 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     this.value = null;
   });
 
+  $.RawMethod(false, "$fromInt64", function (int64) {
+    this.pointer = null;
+    this.value = int64;
+  });
+
   $.RawMethod(true, ".cctor", function () {
     System.IntPtr.Zero = new System.IntPtr(0);
   });
@@ -41,20 +46,6 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     function IntPtr_CopyMembers (source, target) {
       target.value = source.value;
       target.pointer = source.pointer;
-    }
-  );
-
-  $.RawMethod(true, "__CustomMarshal__", 
-    function IntPtr_CustomMarshal (value, buffer, offset) {
-      // FIXME
-      JSIL.RuntimeError("IntPtr.__CustomMarshal__");
-    }
-  );
-
-  $.RawMethod(true, "__CustomUnmarshal__", 
-    function IntPtr_CustomUnmarshal (value, buffer, offset) {
-      // FIXME
-      JSIL.RuntimeError("IntPtr.__CustomUnmarshal__");
     }
   );
 
@@ -120,6 +111,73 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
         JSIL.RuntimeError("Attempting to call ToInt64() on a pinned object pointer");
 
       return this.value;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$.Int32]), 
+    function op_Explicit (value) {
+      return JSIL.CreateInstanceOfType(
+        System.IntPtr.__Type__,
+        "$fromInt64",
+        [$jsilcore.System.Int64.FromInt32(value)]
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$.Int64]), 
+    function op_Explicit (value) {
+      return JSIL.CreateInstanceOfType(
+        System.IntPtr.__Type__,
+        "$fromInt64",
+        [value]
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$jsilcore.TypeRef("JSIL.Pointer", [$jsilcore.TypeRef("System.Void")])]), 
+    function op_Explicit (value) {
+      return JSIL.CreateInstanceOfType(
+        System.IntPtr.__Type__,
+        "$fromPointer",
+        [value]
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.Pointer", [$jsilcore.TypeRef("System.Void")]), [$jsilcore.TypeRef("System.IntPtr")]), 
+    function op_Explicit (value) {
+      if (value.pointer) {
+        // FIXME: Cast it?
+        return value.pointer;
+      } else {
+        throw new Error('Not implemented');
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.IntPtr")]), 
+    function op_Explicit (value) {
+      if (value.pointer) {
+        return value.pointer.offsetInBytes;
+      } else {
+        return value.value.ToInt32();
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.IntPtr")]), 
+    function op_Explicit (value) {
+      if (value.pointer) {
+        return $jsilcore.System.Int64.FromInt32(value.pointer.offsetInBytes);
+      } else {
+        return value.value;
+      }
     }
   );
 
@@ -206,6 +264,24 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       throw new System.Exception("No field named '" + fieldName + "' declared in type");
     }
   );
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.IntPtr"), $jsilcore.TypeRef("System.Array", [$.Byte]), 
+        $.Int32, $.Int32
+      ]), 
+    function Copy (source, destination, startIndex, length) {
+      if (!source.pointer)
+        JSIL.RuntimeError("Source argument must be a pointer into a pinned buffer, not a raw value");
+
+      var pSource = source.pointer.cast($jsilcore.System.Byte);
+      for (var i = 0, l = length | 0, s = startIndex | 0; i < l; i++) {
+        var d = (s + i) | 0;
+
+        destination[d] = pSource.getElement(i);
+      }
+    }
+  )
 });
 
 JSIL.MakeType({
@@ -476,7 +552,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      var view = this.memoryRange.getView(elementType.__Type__, true);
+      var view;
+      if (elementType.__PublicInterface__) {
+        view = this.memoryRange.getView(elementType, true);
+      } else {
+        view = this.memoryRange.getView(elementType.__Type__, true);
+      }
 
       return JSIL.NewPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
     }
