@@ -62,9 +62,7 @@ namespace JSIL.Transforms {
 
             // HACK: Can't eliminate struct temporaries, since that might eliminate some implied copies.
             if (TypeUtil.IsStruct(target.IdentifierType)) {
-                // HACK: Should be fine for always-constant literals
                 return source.IsConstant;
-                // return false;
             }
 
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
@@ -277,6 +275,14 @@ namespace JSIL.Transforms {
             return true;
         }
 
+        private bool CanSkipUsageVeto (JSExpression replacement) {
+            return 
+                (replacement is JSLiteral) && 
+                // Usage count veto is important for struct literals since they can be mutated
+                //  after-the-fact
+                !TypeUtil.IsStruct(replacement.GetActualType(TypeSystem));
+        }
+
         public void VisitNode (JSFunctionExpression fn) {
             FirstPass = GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
@@ -370,7 +376,7 @@ namespace JSIL.Transforms {
                 if (
                     (copies.Length + accesses.Length) > 1
                 ) {
-                    if (replacement is JSLiteral) {
+                    if (CanSkipUsageVeto(replacement)) {
                         if (TraceLevel >= 5)
                             Console.WriteLine("Skipping veto of elimination for {0} because it is a literal.", v);
                     } else {
