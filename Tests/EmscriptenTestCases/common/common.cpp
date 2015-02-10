@@ -80,6 +80,15 @@ export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     return strlen(str);
 }
 
+export(void) FillStructBuffer(TestStruct *buffer, const int capacity) {
+	memset(buffer, 0, capacity*sizeof(TestStruct));
+
+	for (int i = 0; i < capacity; i++) {
+		buffer[i].I = 1;
+		buffer[i].F = 2.0;
+	}
+}
+
 export(int)Add(int a, int b) {
     return a + b;
 }

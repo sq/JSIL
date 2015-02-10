@@ -141,6 +141,7 @@
     <None Include="EmscriptenTestCases\CustomStringMarshaler.cs" />
     <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\StaticStringFromIntPtr.cs" />
+    <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
