@@ -535,6 +535,10 @@ JSIL.PInvoke.StringMarshaller = function StringMarshaller (charSet) {
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
 
+JSIL.PInvoke.StringMarshaller.prototype.GetSignatureToken = function() {
+  return "i";
+}
+
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
   var emscriptenOffset = callContext.Allocate(sizeInBytes + 1);
