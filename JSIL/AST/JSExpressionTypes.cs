@@ -1471,62 +1471,6 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSInitializerApplicationExpression : JSExpression {
-        public JSInitializerApplicationExpression (JSExpression target, JSExpression initializer)
-            : base(target, initializer) {
-        }
-
-        public JSExpression Target {
-            get {
-                return Values[0];
-            }
-        }
-
-        public JSExpression Initializer {
-            get {
-                return Values[1];
-            }
-        }
-
-        public override bool IsConstant {
-            get {
-                return Target.IsConstant && Initializer.IsConstant;
-            }
-        }
-
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Target.GetActualType(typeSystem);
-        }
-    }
-
-    public class JSNestedObjectInitializerExpression : JSExpression {
-        public JSNestedObjectInitializerExpression (JSExpression newInstance, JSExpression initializer)
-            : base(newInstance, initializer) {
-        }
-
-        public JSExpression NewInstance {
-            get {
-                return Values[0];
-            }
-        }
-
-        public JSExpression Initializer {
-            get {
-                return Values[1];
-            }
-        }
-
-        public override bool IsConstant {
-            get {
-                return NewInstance.IsConstant && Initializer.IsConstant;
-            }
-        }
-
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return NewInstance.GetActualType(typeSystem);
-        }
-    }
-
     public class JSArrayExpression : JSExpression {
         public readonly TypeReference ElementType;
 

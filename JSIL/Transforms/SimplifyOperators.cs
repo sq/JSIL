@@ -151,6 +151,8 @@ namespace JSIL.Transforms {
                 isAssignment && (leftNew != null) &&
                 (rightNew != null)
             ) {
+                // FIXME
+                /*
                 var rightType = rightNew.Type as JSDotExpressionBase;
                 if (
                     (rightType != null) &&
@@ -168,6 +170,7 @@ namespace JSIL.Transforms {
 
                     return;
                 }
+                */
             } else if (
                 isAssignment && (leftVar != null) &&
                 leftVar.IsThis

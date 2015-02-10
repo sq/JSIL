@@ -157,16 +157,13 @@ namespace JSIL.Transforms {
             if (IsTypeExcludedFromCopies(valueType)) 
                 return false;
 
-            var iae = value as JSInitializerApplicationExpression;
-
             if (
                 (value is JSLiteral) ||
                 (value is JSNewExpression) ||
                 (value is JSPassByReferenceExpression) ||
                 (value is JSNewBoxedVariable) ||
                 (value is JSDefaultValueLiteral) ||
-                (value is JSFieldOfExpression) ||
-                ((iae != null) && ((iae.Target is JSNewExpression) || (iae.Target is JSDefaultValueLiteral)))
+                (value is JSFieldOfExpression)
             ) {
                 return false;
             }

@@ -404,7 +404,8 @@ namespace JSIL {
                     LockStatement = false,
                     FullyQualifyAmbiguousTypeNames = true,
                     ForEachStatement = false,
-                    ExpressionTrees = false
+                    ExpressionTrees = false,
+                    ObjectOrCollectionInitializers = false
                 }
             };
         }
