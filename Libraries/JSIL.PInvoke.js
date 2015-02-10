@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
 
-if (!$jsilcore)  
+if (!$jsilcore)
   throw new Error("JSIL.Core is required");
 
 JSIL.DeclareNamespace("JSIL.PInvoke");
@@ -141,21 +141,21 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       }
   });
 
-  $.Method({Static: false, Public: true }, ".ctor", 
+  $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.Int32], []),
     function (size) {
       this.$innerCtor(JSIL.PInvoke.GetGlobalModule(), size);
     }
   );
 
-  $.Method({Static: false, Public: true }, ".ctor", 
+  $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.String, $.Int32], []),
     function (dllName, size) {
       this.$innerCtor(JSIL.PInvoke.GetModule(dllName), size);
     }
   );
 
-  $.Method({Static: true, Public: true }, "op_Implicit", 
+  $.Method({Static: true, Public: true }, "op_Implicit",
     new JSIL.MethodSignature(TArray, [T], []),
     function (self) {
       return self._Array;
@@ -242,7 +242,7 @@ JSIL.PInvoke.BaseMarshallerPrototype.GetSignatureToken = function (type) {
 
 
 JSIL.PInvoke.ByValueMarshaller = function ByValueMarshaller (type) {
-  this.type = type;  
+  this.type = type;
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueMarshaller);
@@ -251,9 +251,10 @@ JSIL.PInvoke.ByValueMarshaller.prototype.GetSignatureToken = function () {
   var storageType = this.type.__IsEnum__ ? this.type.__StorageType__ : this.type;
   switch (storageType.__FullName__) {
     case "System.Int32":
+    case "System.UInt32":
+    case "System.Boolean":
       return "i";
     case "System.Single":
-      return "f";
     case "System.Double":
       return "d";
   }
@@ -416,7 +417,8 @@ JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue
 
 JSIL.PInvoke.ByRefMarshaller = function ByRefMarshaller (type) {
   this.type = type;
-  this.innerType = type.__ReferentType__.__Type__;
+  // XXX (Mispy): should this be necessary? the first is null for ref System.String
+  this.innerType = type.__ReferentType__.__Type__ || type.__ReferentType__;
   this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(this.innerType, true);
 };
 
@@ -532,6 +534,10 @@ JSIL.PInvoke.StringMarshaller = function StringMarshaller (charSet) {
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.StringMarshaller);
+
+JSIL.PInvoke.StringMarshaller.prototype.GetSignatureToken = function() {
+  return "i";
+}
 
 JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var sizeInBytes = managedValue.length;
@@ -649,7 +655,7 @@ JSIL.PInvoke.ManagedMarshaller.prototype.ManagedToNative = function (managedValu
 
 JSIL.PInvoke.ManagedMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
   var instance = this.GetInstance();
-  
+
   var ptr = JSIL.PInvoke.CreateIntPtrForModule(callContext.module, nativeValue);
 
   var managedValue = instance.MarshalNativeToManaged(ptr);
@@ -874,82 +880,105 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     }
   );
 
-  $.Method({Static: true , Public: true }, "GetDelegateForFunctionPointer", 
-    (new JSIL.MethodSignature("!!0", [$.IntPtr], ["T"])), 
-    function GetDelegateForFunctionPointer (T, ptr) {
-      if (!T.__IsDelegate__)
-        JSIL.RuntimeError("Type argument must be a delegate");
-
-      var signature = T.__Signature__;
-      if (!signature)
-        JSIL.RuntimeError("Delegate type must have a signature");
-
-      var pInvokeInfo = T.__PInvokeInfo__;
-      if (!pInvokeInfo)
-        pInvokeInfo = null;
-
-      var methodIndex, module;
-      if (ptr.pointer) {
-        module = JSIL.PInvoke.GetModuleForHeap(ptr.pointer.memoryRange.buffer);
-        methodIndex = ptr.pointer.offsetInBytes | 0;
-      } else {
-        module = JSIL.PInvoke.GetGlobalModule();
-        methodIndex = ptr.value | 0;
-      }
-
-      var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature, pInvokeInfo);
-
-      var invokeImplementation = null;
-
-      // Build signature
-      var dynCallSignature = "";
-      var rm = marshallers.result;
-
-      if (rm) {
-        if (rm.namedReturnValue)
-          dynCallSignature += "v";
-        dynCallSignature += rm.GetSignatureToken(signature.returnType);
-      } else {
-        dynCallSignature += "v";
-      }
-
-      for (var i = 0, l = signature.argumentTypes.length; i < l; i++) {
-        var m = marshallers.arguments[i];
-        dynCallSignature += m.GetSignatureToken(signature.argumentTypes[i]);
-      }
-
-      var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
-      if (functionTable) {
-        invokeImplementation = functionTable[methodIndex];
-      } else {
-        var dynCallImplementation = module["dynCall_" + dynCallSignature];
-        if (!dynCallImplementation)
-          JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
-
-        if (!warnedAboutFunctionTable) {
-          warnedAboutFunctionTable = true;
-          JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
-        }
-
-        var boundDynCall = function (/* arguments... */) {
-          var argc = arguments.length | 0;
-          var argumentsList = new Array(argc + 1);
-          argumentsList[0] = methodIndex;
-
-          for (var i = 0; i < argc; i++)
-            argumentsList[i + 1] = arguments[i];
-
-          return dynCallImplementation.apply(this, argumentsList);
-        };
-
-        invokeImplementation = boundDynCall;
-      }
-
-      var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(
-        module, invokeImplementation, "GetDelegateForFunctionPointer_Result", 
-        signature, pInvokeInfo, marshallers
-      );
-      return wrappedMethod;
+  function _GetDelegateForFunctionPointer(T, ptr) {
+    if (!T.__IsDelegate__) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Not a delegate type", [T.__FullName__]);
+      return null;
     }
-  );  
+
+    var signature = T.__Signature__;
+    if (!signature) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Delegate type must have a signature", [T.__FullName__]);
+      return null;
+    }
+
+    var pInvokeInfo = T.__PInvokeInfo__;
+    if (!pInvokeInfo)
+      pInvokeInfo = null;
+
+    var methodIndex, module;
+    if (ptr.pointer) {
+      module = JSIL.PInvoke.GetModuleForHeap(ptr.pointer.memoryRange.buffer);
+      methodIndex = ptr.pointer.offsetInBytes | 0;
+    } else {
+      module = JSIL.PInvoke.GetGlobalModule();
+      methodIndex = ptr.value | 0;
+    }
+
+    if (methodIndex === 0) {
+      JSIL.WarningFormat("Cannot get delegate of type {0}: Null function pointer", [T.__FullName__]);
+      return null;
+    }
+
+    var marshallers = JSIL.PInvoke.GetMarshallersForSignature(signature, pInvokeInfo);
+
+    var invokeImplementation = null;
+
+    // Build signature
+    var dynCallSignature = "";
+    var rm = marshallers.result;
+
+    if (rm) {
+      if (rm.namedReturnValue)
+        dynCallSignature += "v";
+      dynCallSignature += rm.GetSignatureToken(signature.returnType);
+    } else {
+      dynCallSignature += "v";
+    }
+
+    for (var i = 0, l = signature.argumentTypes.length; i < l; i++) {
+      var m = marshallers.arguments[i];
+      dynCallSignature += m.GetSignatureToken(signature.argumentTypes[i]);
+    }
+
+    var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
+    if (functionTable) {
+      invokeImplementation = functionTable[methodIndex];
+    } else {
+      var dynCallImplementation = module["dynCall_" + dynCallSignature];
+      if (!dynCallImplementation) {
+        JSIL.WarningFormat("Cannot get delegate of type {0}: No dynCall implementation or function table for signature '{1}'", [T.__FullName__, dynCallSignature]);
+        return null;
+      }
+
+      if (!warnedAboutFunctionTable) {
+        warnedAboutFunctionTable = true;
+        JSIL.Host.warning("This emscripten module was compiled without '-s EXPORT_FUNCTION_TABLES=1'. Performance will be compromised.");
+      }
+
+      var boundDynCall = function (/* arguments... */) {
+        var argc = arguments.length | 0;
+        var argumentsList = new Array(argc + 1);
+        argumentsList[0] = methodIndex;
+
+        for (var i = 0; i < argc; i++)
+          argumentsList[i + 1] = arguments[i];
+
+        return dynCallImplementation.apply(this, argumentsList);
+      };
+
+      invokeImplementation = boundDynCall;
+    }
+
+    var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(
+      module, invokeImplementation, "GetDelegateForFunctionPointer_Result",
+      signature, pInvokeInfo, marshallers
+    );
+    return wrappedMethod;
+  }
+
+  $.Method({Static: true , Public: true }, "GetDelegateForFunctionPointer",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Delegate"), [$.IntPtr, $jsilcore.TypeRef("System.Type")])),
+    function GetDelegateForFunctionPointer (ptr, T) {
+      return _GetDelegateForFunctionPointer(T, ptr);
+    }
+  );
+
+
+  $.Method({Static: true , Public: true }, "GetDelegateForFunctionPointer",
+    (new JSIL.MethodSignature("!!0", [$.IntPtr], ["T"])),
+    function GetDelegateForFunctionPointer (T, ptr) {
+      return _GetDelegateForFunctionPointer(T, ptr);
+    }
+  );
 });

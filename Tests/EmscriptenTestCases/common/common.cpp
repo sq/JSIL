@@ -52,8 +52,12 @@ export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
 }
 
-export(const char *) ReturnString() {
-	return "butts";
+export(const char *) ReturnString(const char *s) {
+	return s;
+}
+
+export(const unsigned char *) ReturnStaticString() {
+	return (const unsigned char *)"fuzzy pickles";
 }
 
 export(void) MutateStringArgument (char * buf, const int capacity) {
@@ -76,6 +80,15 @@ export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     return strlen(str);
 }
 
+export(void) FillStructBuffer(TestStruct *buffer, const int capacity) {
+	memset(buffer, 0, capacity*sizeof(TestStruct));
+
+	for (int i = 0; i < capacity; i++) {
+		buffer[i].I = 1;
+		buffer[i].F = 2.0;
+	}
+}
+
 export(int)Add(int a, int b) {
     return a + b;
 }
@@ -88,11 +101,15 @@ export(void)Free(void * ptr) {
     return free(ptr);
 }
 
+export(float) AddFloat (float a, float b) {
+	return a + b;
+}
 
 typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 typedef TestStruct (*TPReturnStructArgument) (const TestStruct);
 typedef int (*TPBinaryOperator) (int, int);
-typedef const char * (*TPReturnString) ();
+typedef const char * (*TPReturnString) (const char *);
+typedef float(*TPAddFloat) (float, float);
 
 export(TPWriteStringIntoBuffer) ReturnWriteStringIntoBuffer () {
     return WriteStringIntoBuffer;
@@ -109,6 +126,10 @@ export(TPBinaryOperator) ReturnAdd () {
 export(TPReturnString) ReturnReturnString () {
     return ReturnString;
 };
+
+export(TPAddFloat) ReturnAddFloat () {
+	return AddFloat;
+}
 
 export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
     return op(a, b);
