@@ -97,20 +97,24 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:false, Public:true }, "ToInt32", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ToInt32 () {
-      if (this.pointer !== null)
-        JSIL.RuntimeError("Attempting to call ToInt32() on a pinned object pointer");
-
-      return this.value.ToInt32();
+      if (this.pointer) {
+        return this.pointer.offsetInBytes;
+      } else {
+        return this.value.ToInt32();
+      }
     }
   );
 
   $.Method({Static:false, Public:true }, "ToInt64", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ToInt64 () {
-      if (this.pointer !== null)
-        JSIL.RuntimeError("Attempting to call ToInt64() on a pinned object pointer");
-
-      return this.value;
+      if (this.pointer) {
+        return $jsilcore.System.Int64.FromInt32(
+          this.pointer.offsetInBytes
+        );
+      } else {
+        return this.value;
+      }
     }
   );
 
@@ -180,8 +184,6 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
       }
     }
   );
-
-  $.Field({Static:true, Public:true }, "Zero", tIntPtr);
 });
 
 JSIL.ImplementExternals("System.UIntPtr", function ($) {
@@ -215,8 +217,15 @@ JSIL.ImplementExternals("System.UIntPtr", function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "System.IntPtr", true, [], function ($) {
+  $.Field({Static:false, Public:false }, "value", $.Int64);
+
+  $.Field({Static:true, Public:true }, "Zero", $.Type);
 });
+
 JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, [], function ($) {
+  $.Field({Static:false, Public:false }, "value", $.UInt64);
+
+  $.Field({Static:true, Public:true }, "Zero", $.Type);
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Void", true, [], function ($) {
