@@ -2118,17 +2118,24 @@ namespace JSIL {
             if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredExpression))
                 return new JSNullExpression();
 
+            var valueType = value.GetActualType(TypeSystem);
+
             JSVariable jsv = MapVariable(variable);
 
             if (jsv.IsReference) {
-                JSExpression materializedValue;
-                if (!JSReferenceExpression.TryMaterialize(JSIL, value, out materializedValue))
-                    WarningFormatFunction("Cannot store a non-reference into variable {0}: {1}", jsv, value);
-                else
-                    value = materializedValue;
-            }
+                if (
+                    (valueType.IsByReference || valueType.IsPointer) &&
+                    TypeUtil.TypesAreAssignable(TypeInfo, variable.Type, valueType)
+                ) {
 
-            var valueType = value.GetActualType(TypeSystem);
+                } else {
+                    JSExpression materializedValue;
+                    if (!JSReferenceExpression.TryMaterialize(JSIL, value, out materializedValue))
+                        WarningFormatFunction("Cannot store a non-reference into variable {0}: {1}", jsv, value);
+                    else
+                        value = materializedValue;
+                }
+            }
 
             // Assignment from a packed array field into a non-packed array variable needs to change
             //  the type of the variable so that it is also treated as a packed array.
