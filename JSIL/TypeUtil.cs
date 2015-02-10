@@ -110,7 +110,9 @@ namespace JSIL {
             if ((type.Namespace == "System") && (type.Name == "ValueType"))
                 return true;
 
-            return (etype == MetadataType.ValueType);
+            return (etype == MetadataType.ValueType) ||
+                (etype == MetadataType.IntPtr) ||
+                (etype == MetadataType.UIntPtr);
         }
 
         public static bool IsNumeric (TypeReference type) {

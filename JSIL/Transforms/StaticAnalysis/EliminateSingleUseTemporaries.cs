@@ -62,7 +62,14 @@ namespace JSIL.Transforms {
 
             // HACK: Can't eliminate struct temporaries, since that might eliminate some implied copies.
             if (TypeUtil.IsStruct(target.IdentifierType)) {
-                return source.IsConstant;
+                // HACK: Allow optimizing out default(T) for structs,
+                //  but only if they're referred to once.
+                if (source is JSDefaultValueLiteral) {
+                    var numUsages = FirstPass.Accesses.Where(a => a.Source == target.Identifier).Count();
+                    return numUsages <= 1;
+                } else {
+                    return false;
+                }
             }
 
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
