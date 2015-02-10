@@ -253,7 +253,6 @@ JSIL.PInvoke.ByValueMarshaller.prototype.GetSignatureToken = function () {
     case "System.Int32":
       return "i";
     case "System.Single":
-      return "f";
     case "System.Double":
       return "d";
   }
@@ -921,8 +920,9 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       invokeImplementation = functionTable[methodIndex];
     } else {
       var dynCallImplementation = module["dynCall_" + dynCallSignature];
-      if (!dynCallImplementation)
+      if (!dynCallImplementation) {
         JSIL.RuntimeError("No dynCall implementation or function table for signature '" + dynCallSignature + "'");
+      }
 
       if (!warnedAboutFunctionTable) {
         warnedAboutFunctionTable = true;
