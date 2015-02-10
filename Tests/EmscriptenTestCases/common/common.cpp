@@ -56,6 +56,10 @@ export(const char *) ReturnString(const char *s) {
 	return s;
 }
 
+export(const unsigned char *) ReturnStaticString() {
+	return (const unsigned char *)"fuzzy pickles";
+}
+
 export(void) MutateStringArgument (char * buf, const int capacity) {
     // #%(*#@%OJIJ#LW% i hate clang
     // strcat_s(buf, capacity, " world");
