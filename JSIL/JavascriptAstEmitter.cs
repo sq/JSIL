@@ -1052,7 +1052,10 @@ namespace JSIL {
                 } else {
                     Output.WriteRaw("0");
                 }
-            } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
+            } else if (
+                TypeUtil.IsIntegralOrEnum(defaultValue.Value) &&
+                (defaultValue.Value.FullName != "System.IntPtr")
+            ) {
                 Output.Value(0);
             } else if (TypeUtil.IsNullable(defaultValue.Value)) {
                 Output.WriteRaw("null");
