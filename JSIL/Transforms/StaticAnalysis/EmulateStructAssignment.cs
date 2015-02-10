@@ -474,22 +474,46 @@ namespace JSIL.Transforms {
                 var rightVarsModified = (rightVars.Any((rv) => SecondPass.IsVariableModified(rv.Name)));
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
+                bool rightVarIsEffectivelyConstantHere = false;
+                var rightVar = boe.Right as JSVariable;
+
+                if ((rightVar != null) && !rightVar.IsParameter) {
+                    // If we're making a copy of a local variable, and this is the last reference to 
+                    //  the variable, we can eliminate the copy.
+
+                    if (
+                        SecondPass.Data.Accesses
+                            .Where(a => a.Source == rightVar.Identifier)
+                            .All(a => a.NodeIndex <= NodeIndex) &&
+                        SecondPass.Data.Assignments
+                            .Where(a => a.Target == rightVar.Identifier)
+                            .All(a => a.NodeIndex < NodeIndex)
+                    ) {
+                        rightVarIsEffectivelyConstantHere = true;
+                    }
+                }
+
                 if (
                     (
                         rightVarsModified || 
                         IsCopyNeededForAssignmentTarget(boe.Left) || 
                         rightVarsAreReferences
                     ) &&
-                    !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left)
+                    !IsCopyAlwaysUnnecessaryForAssignmentTarget(boe.Left) &&
+                    !rightVarIsEffectivelyConstantHere
                 ) {
                     if (TraceInsertedCopies)
-                        Console.WriteLine(String.Format("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right));
+                        Console.WriteLine("struct copy introduced for assignment {0} = {1}", boe.Left, boe.Right);
 
                     doPostOptimization = true;
                     boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
-                    if (TraceElidedCopies)
-                        Console.WriteLine(String.Format("struct copy elided for assignment {0} = {1}", boe.Left, boe.Right));
+                    if (TraceElidedCopies) {
+                        Console.WriteLine(
+                            "struct copy elided for assignment {0} = {1}{2}", boe.Left, boe.Right,
+                            rightVarIsEffectivelyConstantHere ? " (rhs is effectively constant due to following all other accesses)" : ""
+                        );
+                    }
                 }
             } else {
                 if (TraceElidedCopies && TypeUtil.IsStruct(boe.Right.GetActualType(TypeSystem)))
