@@ -270,7 +270,7 @@ namespace JSIL.Transforms {
 
             if (!result) {
                 if (TraceElidedCopies)
-                    Console.WriteLine("argument {0} needs no copy because it isn't modified and doesn't escape");
+                    Console.WriteLine("argument {0} ('{1}') needs no copy because it isn't modified and doesn't escape", expression, parameterName);
             }
 
             return result;

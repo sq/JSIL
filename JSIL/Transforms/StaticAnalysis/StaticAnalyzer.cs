@@ -718,8 +718,8 @@ namespace JSIL.Transforms {
 
     public class FunctionAnalysis2ndPass {
         public const bool TraceModifications = false;
-        public const bool TraceEscapes = false;
-        public const bool Tracing = false;
+        public const bool TraceEscapes       = false;
+        public const bool Tracing            = false;
 
         protected readonly bool _IsPure;
         protected bool? _CachedIsPure;
