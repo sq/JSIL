@@ -139,6 +139,7 @@
     <None Include="EmscriptenTestCases\PassIntPtrInStruct.cs" />
     <None Include="EmscriptenTestCases\StructAlignment.cs" />
     <None Include="EmscriptenTestCases\CustomStringMarshaler.cs" />
+    <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>

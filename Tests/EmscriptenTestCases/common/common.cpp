@@ -88,11 +88,15 @@ export(void)Free(void * ptr) {
     return free(ptr);
 }
 
+export(float) AddFloat (float a, float b) {
+	return a + b;
+}
 
 typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 typedef TestStruct (*TPReturnStructArgument) (const TestStruct);
 typedef int (*TPBinaryOperator) (int, int);
 typedef const char * (*TPReturnString) (const char *);
+typedef float(*TPAddFloat) (float, float);
 
 export(TPWriteStringIntoBuffer) ReturnWriteStringIntoBuffer () {
     return WriteStringIntoBuffer;
@@ -109,6 +113,10 @@ export(TPBinaryOperator) ReturnAdd () {
 export(TPReturnString) ReturnReturnString () {
     return ReturnString;
 };
+
+export(TPAddFloat) ReturnAddFloat () {
+	return AddFloat;
+}
 
 export(int) CallBinaryOperator (TPBinaryOperator op, int a, int b) {
     return op(a, b);
