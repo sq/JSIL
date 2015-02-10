@@ -1126,6 +1126,7 @@ namespace JSIL {
                     invokeMethod.MethodReturnType.HasMarshalInfo ||
                     invokeMethod.Parameters.Any(p => p.HasMarshalInfo)
                 ) {
+                    output.Comma();
                     TranslatePInvokeInfo(invokeMethod, invokeMethod, astEmitter, output);
                     output.NewLine();
                 }
@@ -2733,9 +2734,6 @@ namespace JSIL {
         ) {
             var pii = method.PInvokeInfo;
 
-            output.Comma();
-            output.NewLine();
-
             output.OpenBrace();
 
             if (pii != null) {
@@ -2781,7 +2779,7 @@ namespace JSIL {
                         p.MarshalInfo, astEmitter, output
                     );
                 } else if (isArgsDictOpen) {
-                    output.WriteRaw("null, ");
+                    output.WriteRaw(", null");
                     output.NewLine();
                 }
             }
@@ -2790,6 +2788,9 @@ namespace JSIL {
                 output.CloseBracket(true);
 
             if (method.MethodReturnType.HasMarshalInfo) {
+                if (isArgsDictOpen)
+                    output.Comma();
+
                 output.WriteRaw("Result: ");
 
                 TranslateMarshalInfo(
@@ -2917,6 +2918,8 @@ namespace JSIL {
                 output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
+                    output.Comma();
+                    output.NewLine();
                     TranslatePInvokeInfo(
                         methodRef, method, astEmitter, output
                     );
