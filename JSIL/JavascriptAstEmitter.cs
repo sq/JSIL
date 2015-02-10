@@ -792,11 +792,21 @@ namespace JSIL {
         }
 
         public void VisitNode (JSStructCopyExpression sce) {
-            Visit(sce.Struct);
-            Output.Dot();
-            Output.Identifier("MemberwiseClone");
-            Output.LPar();
-            Output.RPar();
+            // HACK: Arithmetic can produce values of implicit type IntPtr. Gross.
+            if (
+                sce.GetActualType(TypeSystem).Name.EndsWith("IntPtr") &&
+                sce.AllChildrenRecursive.All(
+                    n => (n is JSOperatorExpressionBase) || (n is JSLiteral)
+                )
+            ) {
+                Visit(sce.Struct);
+            } else {
+                Visit(sce.Struct);
+                Output.Dot();
+                Output.Identifier("MemberwiseClone");
+                Output.LPar();
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSConditionalStructCopyExpression sce) {
