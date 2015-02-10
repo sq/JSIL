@@ -52,8 +52,8 @@ export(TestStruct) ReturnStructArgument (const TestStruct arg) {
     return arg;
 }
 
-export(const char *) ReturnString() {
-	return "butts";
+export(const char *) ReturnString(const char *s) {
+	return s;
 }
 
 export(void) MutateStringArgument (char * buf, const int capacity) {
@@ -92,7 +92,7 @@ export(void)Free(void * ptr) {
 typedef int (*TPWriteStringIntoBuffer) (unsigned char *, const int);
 typedef TestStruct (*TPReturnStructArgument) (const TestStruct);
 typedef int (*TPBinaryOperator) (int, int);
-typedef const char * (*TPReturnString) ();
+typedef const char * (*TPReturnString) (const char *);
 
 export(TPWriteStringIntoBuffer) ReturnWriteStringIntoBuffer () {
     return WriteStringIntoBuffer;

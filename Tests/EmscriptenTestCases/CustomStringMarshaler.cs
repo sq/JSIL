@@ -26,6 +26,7 @@ public static class Program {
         }
 
         public object MarshalNativeToManaged(IntPtr pNativeData) {
+            Console.WriteLine("NativeToManaged");
             if (pNativeData == IntPtr.Zero)
                 return null;
             var ptr = (byte*)pNativeData;
@@ -38,6 +39,7 @@ public static class Program {
         }
 
         public IntPtr MarshalManagedToNative(object ManagedObj) {
+            Console.WriteLine("ManagedToNative");
             if (ManagedObj == null)
                 return IntPtr.Zero;
             var str = ManagedObj as string;
@@ -67,22 +69,25 @@ public static class Program {
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(LPUtf8StrMarshaler), MarshalCookie = LPUtf8StrMarshaler.LeaveAllocated)]
-    delegate string TReturnString();
+    delegate string TReturnString(string s);
 
     [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(LPUtf8StrMarshaler), MarshalCookie = LPUtf8StrMarshaler.LeaveAllocated)]
-    public static extern string ReturnString();
+    public static extern string ReturnString(
+        [In()] [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(LPUtf8StrMarshaler))]
+		string s
+    );
 
     [DllImport("common.dll", CallingConvention=CallingConvention.Cdecl)]
     public static extern IntPtr ReturnReturnString();
 
     public static void Main () {
-        Console.WriteLine(ReturnString());
+        Console.WriteLine(ReturnString("cheeks"));
 
         var fp = ReturnReturnString();
 
         var d = Marshal.GetDelegateForFunctionPointer<TReturnString>(fp);
 
-        Console.WriteLine(d());
+        Console.WriteLine(d("cheeks"));
     }
 }
