@@ -19,6 +19,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
     }
   );
 
+  // FIXME: Remove this once the expressions stuff doesn't rely on it anymore
   $.RawMethod(false, "__Initialize__",
     function (initializer) {
       var isInitializer = function (v) {

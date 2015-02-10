@@ -2308,6 +2308,10 @@ namespace JSIL {
             if (targetVariable != null) {
                 if (!targetVariable.IsReference)
                     WarningFormatFunction("unsupported target variable for stobj: {0}", node.Arguments[0]);
+
+                if (!valueType.IsByReference) {
+                    return new JSWriteThroughReferenceExpression(targetVariable, value);
+                }
             } else {
                 JSExpression referent;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))

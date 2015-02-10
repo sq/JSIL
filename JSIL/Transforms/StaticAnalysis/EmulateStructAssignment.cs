@@ -218,6 +218,10 @@ namespace JSIL.Transforms {
             if (valueType.FullName == "System.Decimal")
                 return true;
 
+            // HACK: Never copy references to structs
+            if (valueType.IsByReference)
+                return true;
+
             return false;
         }
 

@@ -29,6 +29,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
         public override int GetHashCode() {
             return base.GetHashCode();
         }

@@ -60,9 +60,12 @@ namespace JSIL.Transforms {
             if ((source == null) || (source.IsNull))
                 return false;
 
-            // Can't eliminate struct temporaries, since that might eliminate some implied copies.
-            if (TypeUtil.IsStruct(target.IdentifierType))
-                return false;
+            // HACK: Can't eliminate struct temporaries, since that might eliminate some implied copies.
+            if (TypeUtil.IsStruct(target.IdentifierType)) {
+                // HACK: Should be fine for always-constant literals
+                return source.IsConstant;
+                // return false;
+            }
 
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
             {

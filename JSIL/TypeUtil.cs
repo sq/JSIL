@@ -728,7 +728,9 @@ namespace JSIL {
                 return true;
 
             int targetDepth, sourceDepth;
-            if (TypesAreEqual(FullyDereferenceType(target, out targetDepth), FullyDereferenceType(source, out sourceDepth))) {
+            var targetDerefed = FullyDereferenceType(target, out targetDepth);
+            var sourceDerefed = FullyDereferenceType(source, out sourceDepth);
+            if (TypesAreEqual(targetDerefed, sourceDerefed)) {
                 if (targetDepth == sourceDepth)
                     return true;
             }
@@ -750,6 +752,15 @@ namespace JSIL {
             // HACK: The .NET type system treats pointers and ints as assignable to each other
             if (IsIntegral(target) && IsPointer(source))
                 return true;
+
+            // HACK: T& = T* (but not T* = T& ...?)
+            if (
+                target.IsByReference && 
+                IsPointer(source) &&
+                TypesAreEqual(targetDerefed, source.GetElementType(), true)
+            ) {
+                return true;
+            }
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
             return typeInfo.AssignabilityCache.GetOrCreate(
