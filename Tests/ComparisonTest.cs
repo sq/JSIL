@@ -36,6 +36,7 @@ namespace JSIL.Tests {
             RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.Singleline
         );
 
+        public static readonly string JSILFolder;
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
         public static readonly string DebugJSShellPath;
@@ -62,6 +63,8 @@ namespace JSIL.Tests {
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
             var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
+
+            JSILFolder = Path.GetDirectoryName(Util.GetPathOfAssembly(typeof(JSIL.AssemblyTranslator).Assembly));
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Tests"));
             if (TestSourceFolder[TestSourceFolder.Length - 1] != Path.DirectorySeparatorChar)

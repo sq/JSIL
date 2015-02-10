@@ -21,11 +21,13 @@ namespace JSIL.SimpleTests {
             RunSingleComparisonTestCase(parameters);
         }
 
-        protected IEnumerable<TestCaseData> SimpleTestCasesSource()
-        {
+        protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
             return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
+    }
 
+    [TestFixture]
+    public class SimpleTestsForBcl : GenericTestFixture {
         [Test]
         [TestCaseSource("SimpleTestCasesSourceForStubbedBcl")]
         public void SimpleTestCasesForStubbedBcl (object[] parameters) {
@@ -49,7 +51,8 @@ namespace JSIL.SimpleTests {
                 c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
                 c.Assemblies.Ignored.Add("JSIL\\.Meta,");
 
-                c.Assemblies.Proxies.Add("JSIL.Proxies.Bcl.dll");
+                c.Assemblies.Proxies.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.Proxies.Bcl.dll"));
+
                 return c;
             };
 
@@ -95,7 +98,8 @@ namespace JSIL.SimpleTests {
                     c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
                     c.Assemblies.Ignored.Add("JSIL\\.Meta,");
 
-                    c.Assemblies.Proxies.Add("JSIL.Proxies.Bcl.dll");
+                    c.Assemblies.Proxies.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.Proxies.Bcl.dll"));
+
                     return c;
                 };
 
@@ -115,58 +119,6 @@ namespace JSIL.SimpleTests {
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
         {
             return FolderTestSource("SimpleTestCasesForTranslatedBcl", null, new AssemblyCache());
-        }
-
-        [Test]
-        [TestCaseSource("ExpressionTestCasesSourceForTranslatedBcl")]
-        public void ExpressionTestCasesForTranslatedBcl(object[] parameters)
-        {
-            Func<Configuration> makeConfiguration = () =>
-            {
-                var c = new Configuration
-                {
-                    ApplyDefaults = false,
-                };
-                c.Assemblies.Stubbed.Add("^System,");
-                c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
-                c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");
-                c.Assemblies.Stubbed.Add("FSharp.Core,");
-
-                c.Assemblies.Ignored.Add("Microsoft\\.VisualC,");
-                c.Assemblies.Ignored.Add("Accessibility,");
-                c.Assemblies.Ignored.Add("SMDiagnostics,");
-                c.Assemblies.Ignored.Add("System\\.EnterpriseServices,");
-                c.Assemblies.Ignored.Add("System\\.Security,");
-                c.Assemblies.Ignored.Add("System\\.Runtime\\.Serialization\\.Formatters\\.Soap,");
-                c.Assemblies.Ignored.Add("System\\.Runtime\\.DurableInstancing,");
-                c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
-                c.Assemblies.Ignored.Add("JSIL\\.Meta,");
-
-                c.Assemblies.Proxies.Add("JSIL.Proxies.Bcl.dll");
-                return c;
-            };
-
-            Action<AssemblyTranslator> initializeTranslator = (at) =>
-            {
-                // Suppress stdout spew
-                at.IgnoredMethod += (_, _2) => { };
-            };
-
-            RunSingleComparisonTestCase(
-                parameters,
-                makeConfiguration,
-                new JSEvaluationConfig
-                {
-                    ThrowOnUnimplementedExternals = false,
-                    AdditionalFilesToLoad = new[] { Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "..", "Libraries", "JSIL.ExpressionInterpreter.js")) }
-                },
-                initializeTranslator: initializeTranslator
-            );
-        }
-
-        protected IEnumerable<TestCaseData> ExpressionTestCasesSourceForTranslatedBcl()
-        {
-            return FolderTestSource("ExpressionTestCases", null, new AssemblyCache());
         }
     }
 }
