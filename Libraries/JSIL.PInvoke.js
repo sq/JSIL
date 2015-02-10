@@ -417,7 +417,8 @@ JSIL.PInvoke.PointerMarshaller.prototype.NativeToManaged = function (nativeValue
 
 JSIL.PInvoke.ByRefMarshaller = function ByRefMarshaller (type) {
   this.type = type;
-  this.innerType = type.__ReferentType__.__Type__;
+  // XXX (Mispy): should this be necessary? the first is null for ref System.String
+  this.innerType = type.__ReferentType__.__Type__ || type.__ReferentType__;
   this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(this.innerType, true);
 };
 
