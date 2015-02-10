@@ -7397,6 +7397,23 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
     thisReferenceExpression = thisReferenceArg;
 
 
+  var emitMissingMethodCheck = function (result, methodExpression, methodName, indentation) {
+    var errMethod =
+      indentation + "  " +
+      (callMethodName === "CallStatic")
+        ? "this.$StaticMethodNotFound("
+        : "this.$MethodNotFound(";
+
+    result.push(indentation + "if (!" + methodExpression + ")");
+    if (thisReferenceArg !== methodLookupArg)
+      result.push(errMethod + thisReferenceExpression +  ", " + methodName + ");");
+    else
+      result.push(errMethod + thisReferenceArg +  ", " + methodName + ");");      
+
+    result.push(indentation);
+  };
+
+
   // This is the path used for simple invocations - no IC, etc.
   var emitDefaultInvocation = function (indentation, methodKeyToken) {
     // For every invocation type other than Call, the this-reference will
@@ -7406,7 +7423,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       : methodLookupArg + "[" + methodKeyToken + "]";
 
     if (fallbackMethod) {
-      body.push(indentation + "  var methodReference = " + methodName + ";");
+      body.push(indentation + "  var methodReference = " + methodName + ";");    
       body.push(indentation + "  if (!methodReference) {");
       body.push(indentation + "    methodReference = fallbackMethod(this.typeObject, this, thisReference)");
       body.push(indentation + "  }");
@@ -7419,6 +7436,8 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         false, indentation + "  "
       );
     } else {
+      emitMissingMethodCheck(body, methodName, methodKeyToken, "");
+
       JSIL.MethodSignature.$EmitInvocation(
         body, methodName, thisReferenceExpression, 
         (!!returnType) ? "return " : "", 
@@ -7552,6 +7571,8 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         ? methodLookupArg + "['" + entry.methodKey + "'].call"
         : methodLookupArg + "['" + entry.methodKey + "']";
 
+      emitMissingMethodCheck(body, methodName, "'" + entry.methodKey + "'", "    ");
+
       // This inline cache entry matches, so build an appropriate invocation.
       JSIL.MethodSignature.$EmitInvocation(
         body, methodName, thisReferenceExpression, 
@@ -7588,6 +7609,24 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
     argumentNames,
     joinedBody,
     closure
+  );
+};
+
+JSIL.MethodSignature.prototype.$StaticMethodNotFound = function (publicInterface, methodName) {
+  JSIL.RuntimeErrorFormat(
+    "No static method with signature '{0}' found in context '{1}'", [
+      this.toString(methodName), 
+      publicInterface
+    ]
+  );
+};
+
+JSIL.MethodSignature.prototype.$MethodNotFound = function (thisReference, methodName) {
+  JSIL.RuntimeErrorFormat(
+    "No method with signature '{0}' found on instance '{1}'", [
+      this.toString(methodName), 
+      thisReference
+    ]
   );
 };
 
