@@ -842,33 +842,54 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.BytePointer", true, [], function ($) {
 });
 
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
+  function ElementTypeRecord (elementType) {
+    this.type = elementType;
+    this.typeId = elementType.__TypeId__;
+    this.nativeSize = elementType.__NativeSize__;
+    this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(elementType);
+    // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
+    this.marshaller = JSIL.$GetStructMarshaller(elementType);
+  };
+
+  var elementTypeRecords = JSIL.CreateDictionaryObject(null);
+
+  function getElementTypeRecord (elementType) {
+    var result = elementTypeRecords[elementType.__TypeId__];
+    if (!result)
+      result = elementTypeRecords[elementType.__TypeId__] = new ElementTypeRecord(elementType);
+
+    return result;
+  };
+
   $.RawMethod(false, ".ctor",
     function StructPointer_ctor (elementType, memoryRange, view, offsetInBytes) {
       if (arguments.length !== 4)
         JSIL.RuntimeError("Pointer ctor expects (elementType, memoryRange, view, offsetInBytes)");
 
-      this.elementType = elementType;
+      this.typeRecord = getElementTypeRecord(elementType);
       this.memoryRange = memoryRange;
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
-      this.nativeSize = elementType.__NativeSize__;
-      this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(elementType);
-      // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
-      this.marshaller = JSIL.$GetStructMarshaller(elementType);
       this.proxy = null;
     }
   );
 
+
+  $.RawMethod(false, "get_elementType",
+    function StructPointer_get_elementType () {
+      return this.typeRecord.type;
+    }
+  );
+
+  $.Property({}, "elementType");
+
+
   $.RawMethod(false, "__CopyMembers__",
     function StructPointer_CopyMembers (source, target) {
-      target.elementType = source.elementType;
+      target.typeRecord = source.typeRecord;
       target.memoryRange = source.memoryRange;
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
-      target.nativeSize = source.nativeSize;
-      target.unmarshalConstructor = source.unmarshalConstructor;
-      // target.unmarshaller = source.unmarshaller;
-      target.marshaller = source.marshaller;
       target.proxy = null;
     }
   );
@@ -890,12 +911,12 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, "addElements",
     function StructPointer_AddElements (offsetInElements, modifyInPlace) {
       if (modifyInPlace === true) {
-        this.offsetInBytes = (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0;
+        this.offsetInBytes = (this.offsetInBytes + ((offsetInElements * this.typeRecord.nativeSize) | 0)) | 0;
       } else {
         return new JSIL.StructPointer(
           this.elementType, 
           this.memoryRange, this.view, 
-          (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0
+          (this.offsetInBytes + ((offsetInElements * this.typeRecord.nativeSize) | 0)) | 0
         );
       }
     }
@@ -903,7 +924,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "get",
     function StructPointer_Get () {
-      var result = new this.unmarshalConstructor(this.view, this.offsetInBytes);
+      var result = new this.typeRecord.unmarshalConstructor(this.view, this.offsetInBytes);
       return result;
     }
   );
@@ -920,38 +941,41 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "set",
     function StructPointer_Set (value) {
-      this.marshaller(value, this.view, this.offsetInBytes);
+      this.typeRecord.marshaller(value, this.view, this.offsetInBytes);
       return value;
     }
   );
 
   $.RawMethod(false, "getElement",
     function StructPointer_GetElement (offsetInElements) {
-      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.elementType.__NativeSize__) | 0) | 0;
+      var record = this.typeRecord;
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * record.nativeSize) | 0) | 0;
 
-      var result = new this.unmarshalConstructor(this.view, offsetInBytes);
+      var result = new record.unmarshalConstructor(this.view, offsetInBytes);
       return result;
     }
   );
 
   $.RawMethod(false, "setElement",
     function StructPointer_SetElement (offsetInElements, value) {
-      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.elementType.__NativeSize__) | 0) | 0;
-      this.marshaller(value, this.view, offsetInBytes);
+      var record = this.typeRecord;
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * record.nativeSize) | 0) | 0;
+
+      record.marshaller(value, this.view, offsetInBytes);
       return value;
     }
   );
 
   $.RawMethod(false, "getOffset",
     function StructPointer_GetOffset (offsetInBytes) {
-      var result = new this.unmarshalConstructor(this.view, (this.offsetInBytes + offsetInBytes) | 0);
+      var result = new this.typeRecord.unmarshalConstructor(this.view, (this.offsetInBytes + offsetInBytes) | 0);
       return result;
     }
   );
 
   $.RawMethod(false, "setOffset",
     function StructPointer_SetOffset (offsetInBytes, value) {
-      this.marshaller(value, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+      this.typeRecord.marshaller(value, this.view, (this.offsetInBytes + offsetInBytes) | 0);
       return value;
     }
   );
