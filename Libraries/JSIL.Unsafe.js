@@ -495,7 +495,12 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
     shiftTable[i] = (Math.log(i) / Math.LN2) | 0;
   }
 
-  function Pointer_ctor (memoryRange, view, offsetInBytes) {
+  $.SetValue("__IsPointer__", true);
+
+  function Pointer_ctor (elementType, memoryRange, view, offsetInBytes) {
+    if (arguments.length !== 4)
+      JSIL.RuntimeError("Pointer ctor expects (elementType, memoryRange, view, offsetInBytes)");
+
     this.memoryRange = memoryRange;
     this.view = view;
     this.offsetInBytes = offsetInBytes | 0;
@@ -507,6 +512,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
     }
 
     this.offsetInElements = offsetInBytes >> this.shift;
+    this.elementType = elementType;
   };
 
   $.RawMethod(false, ".ctor", Pointer_ctor);
@@ -518,6 +524,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
       target.offsetInBytes = source.offsetInBytes;
       target.offsetInElements = source.offsetInElements;
       target.shift = source.shift;
+      target.elementType = source.elementType;
     }
   );
 
@@ -603,9 +610,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
         this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
         this.offsetInElements = this.offsetInBytes >> this.shift;
       } else {
-        // FIXME: Not generating strongly typed pointers
-        return new JSIL.VoidPointer(
-          this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0
+        var ctor = this.__ThisType__.__PublicInterface__;
+        return new (ctor)(
+          this.elementType, this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0
         );
       }
     }
@@ -617,9 +624,9 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
         this.offsetInElements = (this.offsetInElements + offsetInElements) | 0;
         this.offsetInBytes = (this.offsetInBytes + (offsetInElements << this.shift)) | 0;
       } else {
-        // FIXME: Not generating strongly typed pointers
-        return new JSIL.VoidPointer(
-          this.memoryRange, this.view, (this.offsetInBytes + (offsetInElements << this.shift)) | 0
+        var ctor = this.__ThisType__.__PublicInterface__;
+        return new (ctor)(
+          this.elementType, this.memoryRange, this.view, (this.offsetInBytes + (offsetInElements << this.shift)) | 0
         );
       }
     }
@@ -836,22 +843,25 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.BytePointer", true, [], function ($) {
 
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function StructPointer_ctor (structType, memoryRange, view, offsetInBytes) {
-      this.structType = structType;
+    function StructPointer_ctor (elementType, memoryRange, view, offsetInBytes) {
+      if (arguments.length !== 4)
+        JSIL.RuntimeError("Pointer ctor expects (elementType, memoryRange, view, offsetInBytes)");
+
+      this.elementType = elementType;
       this.memoryRange = memoryRange;
       this.view = view;
       this.offsetInBytes = offsetInBytes | 0;
-      this.nativeSize = structType.__NativeSize__;
-      this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(structType);
+      this.nativeSize = elementType.__NativeSize__;
+      this.unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(elementType);
       // this.unmarshaller = JSIL.$GetStructUnmarshaller(structType);
-      this.marshaller = JSIL.$GetStructMarshaller(structType);
+      this.marshaller = JSIL.$GetStructMarshaller(elementType);
       this.proxy = null;
     }
   );
 
   $.RawMethod(false, "__CopyMembers__",
     function StructPointer_CopyMembers (source, target) {
-      target.structType = source.structType;
+      target.elementType = source.elementType;
       target.memoryRange = source.memoryRange;
       target.view = source.view;
       target.offsetInBytes = source.offsetInBytes;
@@ -868,7 +878,11 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
       if (modifyInPlace === true) {
         this.offsetInBytes = (this.offsetInBytes + offsetInBytes) | 0;
       } else {
-        return new JSIL.VoidPointer(this.memoryRange, this.view, (this.offsetInBytes + offsetInBytes) | 0);
+        return new JSIL.StructPointer(
+          this.elementType, 
+          this.memoryRange, this.view, 
+          (this.offsetInBytes + offsetInBytes) | 0
+        );
       }
     }
   );
@@ -879,7 +893,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
         this.offsetInBytes = (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0;
       } else {
         return new JSIL.StructPointer(
-          this.structType, 
+          this.elementType, 
           this.memoryRange, this.view, 
           (this.offsetInBytes + ((offsetInElements * this.nativeSize) | 0)) | 0
         );
@@ -897,7 +911,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
   $.RawMethod(false, "getProxy",
     function StructPointer_GetProxy () {
       if (this.proxy === null)
-        this.proxy = JSIL.MakeElementProxy(this.structType);
+        this.proxy = JSIL.MakeElementProxy(this.elementType);
 
       this.proxy.retargetBytes(this.view, this.offsetInBytes);
       return this.proxy;
@@ -913,7 +927,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "getElement",
     function StructPointer_GetElement (offsetInElements) {
-      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.elementType.__NativeSize__) | 0) | 0;
 
       var result = new this.unmarshalConstructor(this.view, offsetInBytes);
       return result;
@@ -922,7 +936,7 @@ JSIL.MakeStruct("JSIL.Pointer", "JSIL.StructPointer", true, [], function ($) {
 
   $.RawMethod(false, "setElement",
     function StructPointer_SetElement (offsetInElements, value) {
-      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.structType.__NativeSize__) | 0) | 0;
+      var offsetInBytes = (this.offsetInBytes + (offsetInElements * this.elementType.__NativeSize__) | 0) | 0;
       this.marshaller(value, this.view, offsetInBytes);
       return value;
     }
@@ -1148,16 +1162,16 @@ JSIL.NewPointer = function (elementTypeObject, memoryRange, view, offsetInBytes)
 
   switch (view.BYTES_PER_ELEMENT) {
     case 1:
-      return new JSIL.BytePointer(memoryRange, view, offsetInBytes);
+      return new JSIL.BytePointer(elementTypeObject, memoryRange, view, offsetInBytes);
     case 2:
-      return new JSIL.WordPointer(memoryRange, view, offsetInBytes);
+      return new JSIL.WordPointer(elementTypeObject, memoryRange, view, offsetInBytes);
     case 4:
-      return new JSIL.DoubleWordPointer(memoryRange, view, offsetInBytes);
+      return new JSIL.DoubleWordPointer(elementTypeObject, memoryRange, view, offsetInBytes);
     case 8:
-      return new JSIL.QuadWordPointer(memoryRange, view, offsetInBytes);
+      return new JSIL.QuadWordPointer(elementTypeObject, memoryRange, view, offsetInBytes);
 
     default:
-      return new JSIL.Pointer(memoryRange, view, offsetInBytes);
+      return new JSIL.Pointer(elementTypeObject, memoryRange, view, offsetInBytes);
   }
 };
 
@@ -1240,7 +1254,7 @@ JSIL.StackAlloc = function (sizeInBytes, elementType) {
   if (!view)
     JSIL.RuntimeError("Unable to stack-allocate arrays of type '" + elementType.__FullName__ + "'");
 
-  return new JSIL.VoidPointer(memoryRange, view, 0);
+  return JSIL.NewPointer(elementType, memoryRange, view, 0);
 };
 
 $jsilcore.PointerLiteralMemoryRange = null;

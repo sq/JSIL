@@ -401,6 +401,21 @@ JSIL.StringFromCharArray = function (chars, startIndex, length) {
   }
 };
 
+JSIL.StringFromNullTerminatedPointer = function (chars) {
+  var result = "";
+
+  var i = 0;
+  while (true) {
+    var ch = chars.getElement(i++) | 0;
+    if (ch === 0)
+      break;
+
+    result += String.fromCharCode(ch);
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals(
   "System.String", function ($) {
     $.RawMethod(true, ".cctor2", function () {
@@ -418,6 +433,21 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Char")])], [], $jsilcore),
       function (chars) {
         return new String(JSIL.StringFromCharArray(chars, 0, chars.length));
+      }
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Pointer", [$jsilcore.TypeRef("System.SByte")])], [], $jsilcore),
+      function (bytes) {
+        return new String(JSIL.StringFromNullTerminatedPointer(bytes));
+      }
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Pointer", [$jsilcore.TypeRef("System.Char")])], [], $jsilcore),
+      function (chars) {
+        // FIXME: Is this correct? Do char pointers yield integers or string literals?
+        return new String(JSIL.StringFromNullTerminatedPointer(chars));
       }
     );
 

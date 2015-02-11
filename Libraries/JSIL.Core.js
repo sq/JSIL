@@ -4801,6 +4801,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   var isIEnumerable = typeName.indexOf(".IEnumerable") >= 0;
   var isICollection = typeName.indexOf(".ICollection") >= 0;
   var isIList = typeName.indexOf(".IList") >= 0;
+  var isPointer = typeName.indexOf("JSIL.Pointer") === 0;
 
   var isInterface = typeObject.IsInterface || false;
 
@@ -4813,6 +4814,18 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
       // Fallback to default check logic
       return false;
+    };
+  } else if (isPointer) {
+    var expectedElementTypeId = typeObject.__GenericArgumentValues__[0].__TypeId__;
+
+    checkMethod = function Check_IsPointer (value) {
+      var isPointer = value.__IsPointer__ || false;
+      if (isPointer) {
+        var matches = value.elementType.__TypeId__ === expectedElementTypeId;
+        return matches;
+      } else {
+        return false;
+      }
     };
   }
 

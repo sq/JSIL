@@ -76,7 +76,7 @@ JSIL.PInvoke.CreateBytePointerForModule = function (module, address) {
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
   var emscriptenMemoryView = memoryRange.getView(System.Byte.__Type__);
 
-  var emscriptenPointer = new JSIL.BytePointer(memoryRange, emscriptenMemoryView, address);
+  var emscriptenPointer = new JSIL.BytePointer(System.Byte.__Type__, memoryRange, emscriptenMemoryView, address);
 
   return emscriptenPointer;
 };
