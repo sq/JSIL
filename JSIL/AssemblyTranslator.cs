@@ -2777,7 +2777,8 @@ namespace JSIL {
 
                     TranslateMarshalInfo(
                         methodRef, method,
-                        p.MarshalInfo, astEmitter, output
+                        p.Attributes, p.MarshalInfo, 
+                        astEmitter, output
                     );
                 } else if (isArgsDictOpen) {
                     output.WriteRaw(", null");
@@ -2796,7 +2797,8 @@ namespace JSIL {
 
                 TranslateMarshalInfo(
                     methodRef, method,
-                    method.MethodReturnType.MarshalInfo, astEmitter, output
+                    method.MethodReturnType.Attributes, method.MethodReturnType.MarshalInfo, 
+                    astEmitter, output
                 );
                 output.NewLine();
             }
@@ -2806,7 +2808,8 @@ namespace JSIL {
 
         private void TranslateMarshalInfo (
             MethodReference methodRef, MethodDefinition method,
-            MarshalInfo mi, JavascriptAstEmitter astEmitter, JavascriptFormatter output
+            Mono.Cecil.ParameterAttributes attributes, MarshalInfo mi, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output
         ) {
             output.OpenBrace();
 
@@ -2820,13 +2823,18 @@ namespace JSIL {
                     output.Comma();
                     output.WriteRaw("Cookie: ");
                     output.Value(cmi.Cookie);
-                    output.NewLine();
-                } else {
-                    output.NewLine();
                 }
             } else {
                 output.WriteRaw("NativeType: ");
                 output.Value(mi.NativeType.ToString());
+            }
+
+            if (attributes.HasFlag(Mono.Cecil.ParameterAttributes.Out)) {
+                output.Comma();
+                output.NewLine();
+                output.WriteRaw("Out: true");
+                output.NewLine();
+            } else {
                 output.NewLine();
             }
 

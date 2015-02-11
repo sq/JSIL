@@ -445,9 +445,10 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
-JSIL.PInvoke.ArrayMarshaller = function ArrayMarshaller (type) {
+JSIL.PInvoke.ArrayMarshaller = function ArrayMarshaller (type, isOut) {
   this.type = type;
   this.elementType = type.__ElementType__;
+  this.isOut = isOut;
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ArrayMarshaller);
@@ -463,7 +464,7 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
   if (pointer === null) {
     // Array can't be pinned, so copy to temporary storage one item at a time, then back
     // FIXME: Generate a one-time performance warning if this array is big
-    
+
     var arrayLength = managedValue.length;
     var itemSizeBytes = JSIL.GetNativeSizeOf(this.elementType);
     var sizeBytes = arrayLength * itemSizeBytes;
@@ -474,11 +475,12 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
     for (var i = 0; i < arrayLength; i++)
       destPointer.setElement(i, managedValue[i]);
 
-    // FIXME: Only do this if it's out-only or inout
-    callContext.QueueCleanup(function () {
-      for (var i = 0; i < arrayLength; i++)
-        managedValue[i] = destPointer.getElement(i);
-    });
+    if (this.isOut) {
+      callContext.QueueCleanup(function () {
+        for (var i = 0; i < arrayLength; i++)
+          managedValue[i] = destPointer.getElement(i);
+      });
+    }
 
     return emscriptenOffset;
   } else if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
@@ -492,13 +494,13 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
     var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
     var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
 
-    // FIXME: Don't do this if it's out-only
-    destView.set(sourceView, 0);
+    if (this.isOut) {
+      destView.set(sourceView, 0);
 
-    // FIXME: Only do this if it's out-only or inout
-    callContext.QueueCleanup(function () {
-      sourceView.set(destView, 0);
-    });
+      callContext.QueueCleanup(function () {
+        sourceView.set(destView, 0);
+      });
+    }
 
     return emscriptenOffset;
   }
@@ -693,7 +695,7 @@ JSIL.PInvoke.WrapManagedCustomMarshaler = function (type, customMarshaler, cooki
   return new JSIL.PInvoke.ManagedMarshaller(type, customMarshaler, cookie);
 };
 
-JSIL.PInvoke.GetMarshallerForType = function (type, box) {
+JSIL.PInvoke.GetMarshallerForType = function (type, box, isOut) {
   // FIXME: Caching
 
   if (type.__IsByRef__)
@@ -728,7 +730,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box) {
   } else if (type.__IsEnum__) {
     return new JSIL.PInvoke.ByValueMarshaller(type);
   } else if (type.__IsArray__) {
-    return new JSIL.PInvoke.ArrayMarshaller(type);
+    return new JSIL.PInvoke.ArrayMarshaller(type, isOut);
   } else {
     return new JSIL.PInvoke.UnimplementedMarshaller(type);
   }
@@ -752,7 +754,10 @@ JSIL.PInvoke.GetMarshallersForSignature = function (methodSignature, pInvokeInfo
     if (marshalInfo && marshalInfo.CustomMarshaler) {
       argumentMarshallers[i] = JSIL.PInvoke.WrapManagedCustomMarshaler(resolvedArgumentType, marshalInfo.CustomMarshaler, marshalInfo.Cookie);
     } else {
-      argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType);
+      var isOut = false;
+      if (marshalInfo)
+        isOut = marshalInfo.Out || false;
+      argumentMarshallers[i] = JSIL.PInvoke.GetMarshallerForType(resolvedArgumentType, false, isOut);
     }
   }
 
