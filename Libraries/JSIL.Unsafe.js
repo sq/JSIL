@@ -1180,9 +1180,23 @@ if (typeof (WeakMap) !== "undefined") {
   $jsilcore.MemoryRangeCache = null;
 }
 
+JSIL.UnwrapPointerType = function (typeObject) {
+  if (typeObject.__Type__)
+    typeObject = typeObject.__Type__;
+
+  if (typeObject.__OpenType__ === JSIL.Pointer.__Type__)
+    return typeObject.__GenericArgumentValues__[0];
+  else
+    return typeObject;
+}
+
 JSIL.NewPointer = function (elementTypeObject, memoryRange, view, offsetInBytes) {
-  if ((elementTypeObject != null) && elementTypeObject.__IsStruct__)
-    return new JSIL.StructPointer(elementTypeObject, memoryRange, view, offsetInBytes);
+  if (elementTypeObject) {
+    elementTypeObject = JSIL.UnwrapPointerType(elementTypeObject);
+
+    if (elementTypeObject.__IsStruct__)
+      return new JSIL.StructPointer(elementTypeObject, memoryRange, view, offsetInBytes);
+  }
 
   switch (view.BYTES_PER_ELEMENT) {
     case 1:
@@ -1868,6 +1882,8 @@ JSIL.GetArrayBuffer = function (array) {
 
 // Note that this does not let you mutate valueToPin by modifying the pinned pointer! This is read-only.
 JSIL.PinValueAndGetPointer = function (valueToPin, sourceType, targetType) {
+  targetType = JSIL.UnwrapPointerType(targetType);
+
   var sourceCtor = JSIL.GetTypedArrayConstructorForElementType(sourceType);
   var targetCtor = JSIL.GetTypedArrayConstructorForElementType(targetType);
 

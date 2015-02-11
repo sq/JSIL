@@ -937,7 +937,10 @@ namespace JSIL.Internal {
         }
 
         protected void TypeIdentifier (PointerType ptr, TypeReferenceContext context, bool includeParens) {
+            WriteRaw("JSIL.Pointer.Of");
+            LPar();
             Identifier(ptr.ElementType as dynamic, context, includeParens);
+            RPar();
         }
 
         protected void TypeIdentifier (GenericInstanceType type, TypeReferenceContext context, bool includeParens) {
