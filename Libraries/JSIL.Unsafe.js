@@ -561,14 +561,11 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
 
   $.RawMethod(false, "cast",
     function Pointer_Cast (elementType) {
-      var view;
-      if (elementType.__PublicInterface__) {
-        view = this.memoryRange.getView(elementType, true);
-      } else {
-        view = this.memoryRange.getView(elementType.__Type__, true);
-      }
+      var typeObject = 
+        elementType.__Type__ || elementType;
 
-      return JSIL.NewPointer(elementType.__Type__, this.memoryRange, view, this.offsetInBytes);
+      var view = this.memoryRange.getView(typeObject, true);
+      return JSIL.NewPointer(typeObject, this.memoryRange, view, this.offsetInBytes);
     }
   );
 
@@ -1180,20 +1177,31 @@ JSIL.GetMemoryRangeForBuffer = function (buffer) {
   return result;
 };
 
-JSIL.PinAndGetPointer = function (objectToPin, offsetInElements) {
+JSIL.PinAndGetPointer = function (objectToPin, offsetInElements, throwOnFail) {
   var isPackedArray = JSIL.IsPackedArray(objectToPin);
 
   if (!JSIL.IsArray(objectToPin) && !isPackedArray) {
-    JSIL.RuntimeError("Object being pinned must be an array");
+    if (throwOnFail !== false)
+      JSIL.RuntimeError("Object being pinned must be an array");
+    else
+      return null;
   }
 
   var buffer = objectToPin.buffer;
-  if (!buffer)
-    JSIL.RuntimeError("Object being pinned must have an underlying memory buffer");
+  if (!buffer) {
+    if (throwOnFail !== false)
+      JSIL.RuntimeError("Object being pinned must have an underlying memory buffer");
+    else
+      return null;
+  }
 
   offsetInElements = (offsetInElements || 0) | 0;
-  if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length))
-    JSIL.RuntimeError("offsetInElements outside the array");
+  if ((offsetInElements < 0) || (offsetInElements >= objectToPin.length)) {
+    if (throwOnFail !== false)
+      JSIL.RuntimeError("offsetInElements outside the array");
+    else
+      return null;
+  }
 
   var offsetInBytes;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(buffer);

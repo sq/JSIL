@@ -458,9 +458,30 @@ JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
 
 JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = callContext.module;
-  var pointer = JSIL.PinAndGetPointer(managedValue, 0);
+  var pointer = JSIL.PinAndGetPointer(managedValue, 0, false);
 
-  if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
+  if (pointer === null) {
+    // Array can't be pinned, so copy to temporary storage one item at a time, then back
+    // FIXME: Generate a one-time performance warning if this array is big
+    
+    var arrayLength = managedValue.length;
+    var itemSizeBytes = JSIL.GetNativeSizeOf(this.elementType);
+    var sizeBytes = arrayLength * itemSizeBytes;
+
+    var emscriptenOffset = callContext.Allocate(sizeBytes);
+    var destPointer = JSIL.PInvoke.CreateBytePointerForModule(module, emscriptenOffset).cast(this.elementType);
+
+    for (var i = 0; i < arrayLength; i++)
+      destPointer.setElement(i, managedValue[i]);
+
+    // FIXME: Only do this if it's out-only or inout
+    callContext.QueueCleanup(function () {
+      for (var i = 0; i < arrayLength; i++)
+        managedValue[i] = destPointer.getElement(i);
+    });
+
+    return emscriptenOffset;
+  } else if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
     return pointer.offsetInBytes | 0;
   } else {
     // Copy to temporary storage on the emscripten heap, then copy back after the call
