@@ -11,6 +11,8 @@ JSIL.DeclareNamespace("JSIL.PInvoke");
 // Used to access shared heap
 var warnedAboutMultiModule = false;
 
+JSIL.PInvoke.CurrentCallContext = null;
+
 JSIL.PInvoke.GetGlobalModule = function () {
   var module = JSIL.GlobalNamespace.Module || JSIL.__NativeModules__["__global__"];
 
@@ -25,6 +27,15 @@ JSIL.PInvoke.GetGlobalModule = function () {
   }
 
   return module;
+};
+
+// Used in operations like AllocHGlobal to try and ensure we pick the best possible
+//  heap during marshaling operations (when we have a good guess) instead of just choking
+JSIL.PInvoke.GetDefaultModule = function () {
+  if (JSIL.PInvoke.CurrentCallContext)
+    return JSIL.PInvoke.CurrentCallContext.module;
+  else
+    return JSIL.PInvoke.GetGlobalModule();
 };
 
 // Used to access specific entry points
@@ -70,6 +81,24 @@ JSIL.PInvoke.GetModuleForHeap = function (heap, throwOnFail) {
     JSIL.RuntimeError("No module owns the specified heap");
 
   return null;
+};
+
+JSIL.PInvoke.PickModuleForPointer = function (pointer, enableFallback) {
+  var result = null;
+
+  if (pointer.pointer) {
+    result = JSIL.PInvoke.GetModuleForHeap(pointer.pointer.memoryRange.buffer, !enableFallback);
+  }
+
+  if (result === null) {
+    if (enableFallback) {
+      result = JSIL.PInvoke.GetDefaultModule();
+    } else {
+      JSIL.RuntimeError("No appropriate module available");
+    }
+  }
+
+  return result;
 };
 
 JSIL.PInvoke.CreateBytePointerForModule = function (module, address) {
@@ -144,7 +173,7 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.Int32], []),
     function (size) {
-      this.$innerCtor(JSIL.PInvoke.GetGlobalModule(), size);
+      this.$innerCtor(JSIL.PInvoke.GetDefaultModule(), size);
     }
   );
 
@@ -193,6 +222,11 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
 
 
 JSIL.PInvoke.CallContext = function (module) {
+  // HACK: Save and restore the current call context value.
+  // This is important so operations like AllocHGlobal can choose the right module.
+  this.prior = JSIL.PInvoke.CurrentCallContext;
+  JSIL.PInvoke.CurrentCallContext = this;
+
   this.module = module;
   this.allocations = [];
   this.cleanups = [];
@@ -206,6 +240,8 @@ JSIL.PInvoke.CallContext.prototype.Allocate = function (sizeBytes) {
 };
 
 JSIL.PInvoke.CallContext.prototype.Dispose = function () {
+  JSIL.PInvoke.CurrentCallContext = this.prior;
+
   for (var i = 0, l = this.cleanups.length; i < l; i++) {
     var c = this.cleanups[i];
     c();
@@ -922,14 +958,8 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     if (!pInvokeInfo)
       pInvokeInfo = null;
 
-    var methodIndex, module;
-    if (ptr.pointer) {
-      module = JSIL.PInvoke.GetModuleForHeap(ptr.pointer.memoryRange.buffer);
-      methodIndex = ptr.pointer.offsetInBytes | 0;
-    } else {
-      module = JSIL.PInvoke.GetGlobalModule();
-      methodIndex = ptr.value | 0;
-    }
+    var methodIndex = ptr.ToInt32();
+    var module = JSIL.PInvoke.PickModuleForPointer(ptr, false);
 
     if (methodIndex === 0) {
       JSIL.WarningFormat("Cannot get delegate of type {0}: Null function pointer", [T.__FullName__]);

@@ -276,7 +276,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
 
   $.Method({Static:true , Public:true }, "Copy", 
     new JSIL.MethodSignature(null, [
-        $jsilcore.TypeRef("System.IntPtr"), $jsilcore.TypeRef("System.Array", [$.Byte]), 
+        $.IntPtr, $jsilcore.TypeRef("System.Array", [$.Byte]), 
         $.Int32, $.Int32
       ]), 
     function Copy (source, destination, startIndex, length) {
@@ -290,7 +290,55 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
         destination[d] = pSource.getElement(i);
       }
     }
-  )
+  );
+
+  $.Method({Static:true , Public:true }, "Copy", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, $.IntPtr, $.Int32 
+      ]), 
+    function Copy (source, startIndex, destination, length) {
+      if (!destination.pointer)
+        JSIL.RuntimeError("Destination argument must be a pointer into a pinned buffer, not a raw value");
+
+      var pDest = destination.pointer.cast($jsilcore.System.Byte);
+      for (var i = 0, l = length | 0, s = startIndex | 0; i < l; i++) {
+        pDest.setElement(
+          i, 
+          source[(s + i) | 0]
+        );
+      }
+    }
+  );
+
+  var mallocImpl = function (sizeBytes) {
+    var module = JSIL.PInvoke.GetDefaultModule();
+    var address = module._malloc(sizeBytes | 0);
+    var result = JSIL.PInvoke.CreateIntPtrForModule(module, address);
+    return result;
+  };
+
+  $.Method({Static:true , Public:true }, "AllocHGlobal", 
+    new JSIL.MethodSignature($.IntPtr, [$.IntPtr]), 
+    function AllocHGlobal (cb) {
+      return mallocImpl(cb.ToInt32());
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "AllocHGlobal", 
+    new JSIL.MethodSignature($.IntPtr, [$.Int32]), 
+    function AllocHGlobal (cb) {
+      return mallocImpl(cb);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "FreeHGlobal", 
+    JSIL.MethodSignature.Action($.IntPtr), 
+    function FreeHGlobal (hglobal) {
+      var module = JSIL.PInvoke.PickModuleForPointer(hglobal, true);
+      module._free(hglobal.ToInt32());
+    }
+  );
+
 });
 
 JSIL.MakeType({
