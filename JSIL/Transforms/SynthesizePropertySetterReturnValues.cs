@@ -26,33 +26,80 @@ namespace JSIL.Transforms {
             VisitChildren(function);
         }
 
+        private JSExpression Hoist (JSExpression expression, TypeReference type, List<JSExpression> commaElements) {
+            if (expression is JSVariable)
+                return null;
+            else if (expression is JSLiteral)
+                return null;
+
+            var thisBoe = expression as JSBinaryOperatorExpression;
+            if ((thisBoe != null) &&
+                (thisBoe.Operator == JSOperator.Assignment) &&
+                (thisBoe.Left is JSVariable)
+            ) {
+                // If the value is (x = y), insert 'x = y' and then set the value to 'x'
+                commaElements.Add(thisBoe);
+                return thisBoe.Left;
+            } else {
+                var tempVar = new JSRawOutputIdentifier(
+                    type, "$temp{0:X2}", Function.TemporaryVariableCount++
+                );
+
+                commaElements.Add(new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, tempVar, expression, type
+                ));
+
+                return tempVar;
+            }
+        }
+
         public void VisitNode (JSPropertySetterInvocation psi) {
             if (ParentNode is JSExpressionStatement) {
                 VisitChildren(psi);
                 return;
             }
 
+            var thisReference = psi.Invocation.ThisReference;
             var valueType = psi.GetActualType(TypeSystem);
-            var tempVariable = new JSRawOutputIdentifier(
-                valueType,
-                "$temp{0:X2}", Function.TemporaryVariableCount++
-            );
+            var thisType = thisReference.GetActualType(TypeSystem);
+            var parameters = psi.Invocation.Parameters.ToArray();
 
-            var value = psi.Value;
-            var filteredInvocation = psi.Invocation.FilterArguments(
-                (i, v) => 
-                    (v == value)
-                        ? tempVariable
-                        : v
-            );
+            JSExpression tempThis;
+            JSExpression[] tempArguments = new JSExpression[parameters.Length];
+            var commaElements = new List<JSExpression>();
 
-            var replacement = new JSCommaExpression(
-                new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, tempVariable, value, valueType
-                ),
-                filteredInvocation,
-                tempVariable
-            );
+            tempThis = Hoist(thisReference, thisType, commaElements);
+
+            for (var i = 0; i < parameters.Length; i++) {
+                var arg = psi.Invocation.Arguments[i];
+                var argType = parameters[i].Key.ParameterType;
+
+                tempArguments[i] = Hoist(arg, argType, commaElements);
+            }
+
+            var resultInvocation = psi.Invocation;
+
+            if ((tempThis != null) || tempArguments.Any(ta => ta != null)) {
+                resultInvocation = psi.Invocation.FilterArguments(
+                    (i, a) => {
+                        if ((i >= 0) && (tempArguments[i] != null))
+                            return tempArguments[i];
+                        else if ((i == -1) && (tempThis != null))
+                            return tempThis;
+                        else
+                            return a;
+                    }
+                );
+            }
+
+            commaElements.Add(resultInvocation);
+
+            if (tempArguments.Last() != null)
+                commaElements.Add(tempArguments.Last());
+            else
+                commaElements.Add(psi.Value);
+
+            var replacement = new JSCommaExpression(commaElements.ToArray());
 
             ParentNode.ReplaceChild(psi, replacement);
             VisitReplacement(replacement);

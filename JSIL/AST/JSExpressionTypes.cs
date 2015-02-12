@@ -1188,12 +1188,14 @@ namespace JSIL.Ast {
         }
 
         public JSInvocationExpression FilterArguments (Func<int, JSExpression, JSExpression> filter) {
+            var newThis = filter(-1, ThisReference);
+
             var newArguments = new JSExpression[Arguments.Count];
             for (var i = 0; i < newArguments.Length; i++)
                 newArguments[i] = filter(i, Arguments[i]);
 
             return new JSInvocationExpression(
-                Type, Method, ThisReference, 
+                Type, Method, newThis, 
                 newArguments, 
                 ExplicitThis, ConstantIfArgumentsAre, SuppressThisClone
             );
