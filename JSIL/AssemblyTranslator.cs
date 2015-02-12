@@ -572,6 +572,7 @@ namespace JSIL {
             using (var ms = new MemoryStream())
             using (var tw = new StreamWriter(ms, new UTF8Encoding(false))) {
                 tw.WriteLine("// {0} {1}", GetHeaderText(), Environment.NewLine);
+                tw.WriteLine("'use strict';");
 
                 foreach (var kvp in manifest.Entries) {
                     tw.WriteLine(
@@ -814,6 +815,9 @@ namespace JSIL {
             );
 
             formatter.Comment(GetHeaderText());
+            formatter.NewLine();
+
+            formatter.WriteRaw("'use strict';");
             formatter.NewLine();
 
             if (stubbed) {
