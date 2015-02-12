@@ -8899,26 +8899,53 @@ JSIL.Array.GetElements = function (array) {
     JSIL.RuntimeError("Argument is not an array");
 };
 
-JSIL.Array.Erase$Struct = function (elements, startIndex, length, elementTypeObject, elementTypePublicInterface) {
-  length = length | 0;
-  startIndex = startIndex | 0;
+JSIL.Array.$EraseImplementations = JSIL.CreateDictionaryObject(null);
 
-  if (length > elements.length)
-    JSIL.RuntimeError("Length out of range");
+// Creating a unique implementation of Erase for every element type
+//  allows JITs to optimize it more aggressively by making ICs monomorphic
+JSIL.Array.$GetEraseImplementation = function (elementTypeObject, elementTypePublicInterface) {
+  var result = JSIL.Array.$EraseImplementations[elementTypeObject.__TypeId__];
+  if (!result) {
+    var body = [
+      "length = length | 0;",
+      "startIndex = startIndex | 0;",
+      "",
+      "if (length > elements.length)",
+      "  JSIL.RuntimeError('Length out of range');",
+      ""
+    ];
 
-  for (var i = 0; i < length; i = (i + 1) | 0)
-    elements[(i + startIndex) | 0] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
-};
+    if (elementTypeObject.__IsNativeType__) {
+      body.push("var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);");
+    } else if (elementTypeObject.__IsEnum__) {
+      body.push("var defaultValue = elementTypePublicInterface.$Cast(0);");
+    } else if (!elementTypeObject.__IsStruct__) {
+      body.push("var defaultValue = null;");
+    }
 
-JSIL.Array.Erase$Primitive = function (elements, startIndex, length, value) {
-  length = length | 0;
-  startIndex = startIndex | 0;
-  
-  if (length > elements.length)
-    JSIL.RuntimeError("Length out of range");
+    body.push("");
+    body.push("for (var i = 0; i < length; i = (i + 1) | 0)");
 
-  for (var i = 0; i < length; i = (i + 1) | 0)
-    elements[(i + startIndex) | 0] = value;
+    if (elementTypeObject.__IsStruct__) {
+      body.push("  elements[(i + startIndex) | 0] = new elementTypePublicInterface();");
+    } else {
+      body.push("  elements[(i + startIndex) | 0] = defaultValue;");
+    }
+
+    result = JSIL.CreateNamedFunction(
+      elementTypeObject.__FullName__ + "[].Erase", 
+      ["elements", "startIndex", "length"],
+      body.join("\n"),
+      {
+        elementTypeObject: elementTypeObject,
+        elementTypePublicInterface: elementTypePublicInterface
+      }
+    );
+
+    JSIL.Array.$EraseImplementations[elementTypeObject.__TypeId__] = result;
+  }
+
+  return result;
 };
 
 // startIndex and length are optional
@@ -8942,14 +8969,9 @@ JSIL.Array.Erase = function Array_Erase (array, elementType, startIndex, length)
   if (typeof (length) !== "number")
     length = elements.length - startIndex;
   length = length | 0;
-
-  if (elementTypeObject.__IsStruct__) {
-    JSIL.Array.Erase$Struct(elements, startIndex, length, elementTypeObject, elementTypePublicInterface);
-  } else {
-    var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
-
-    JSIL.Array.Erase$Primitive(elements, startIndex, length, defaultValue);
-  }
+  
+  var impl = JSIL.Array.$GetEraseImplementation(elementTypeObject, elementTypePublicInterface);
+  impl(elements, startIndex, length);
 };
 
 JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
