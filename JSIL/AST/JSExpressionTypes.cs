@@ -1185,7 +1185,19 @@ namespace JSIL.Ast {
             ExplicitThis = explicitThis;
             ConstantIfArgumentsAre = constantIfArgumentsAre;
             SuppressThisClone = suppressThisClone;
-                }
+        }
+
+        public JSInvocationExpression FilterArguments (Func<int, JSExpression, JSExpression> filter) {
+            var newArguments = new JSExpression[Arguments.Count];
+            for (var i = 0; i < newArguments.Length; i++)
+                newArguments[i] = filter(i, Arguments[i]);
+
+            return new JSInvocationExpression(
+                Type, Method, ThisReference, 
+                newArguments, 
+                ExplicitThis, ConstantIfArgumentsAre, SuppressThisClone
+            );
+        }
 
         public static JSInvocationExpression InvokeMethod (TypeReference type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false, bool suppressThisClone = false) {
             return InvokeMethod(new JSType(type), method, thisReference, arguments, constantIfArgumentsAre, suppressThisClone);
@@ -3079,6 +3091,38 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType(TypeSystem typeSystem)
         {
             return typeSystem.Object;
+        }
+    }
+
+    public class JSPropertySetterInvocation : JSExpression {
+        public JSPropertySetterInvocation (JSInvocationExpression invocation)
+            : base (invocation) {
+        }
+
+        public JSInvocationExpression Invocation {
+            get {
+                return (JSInvocationExpression)Values[0];
+            }
+        }
+
+        public JSExpression Value {
+            get {
+                return Invocation.Arguments.Last();
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Invocation.Parameters.Last().Key.ParameterType;
+        }
+
+        public override bool IsConstant {
+            get {
+                return Value.IsConstant;
+            }
+        }
+
+        public override string ToString () {
+            return "((" + Invocation.ToString() + "))";
         }
     }
 }

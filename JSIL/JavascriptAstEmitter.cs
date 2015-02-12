@@ -2177,6 +2177,10 @@ namespace JSIL {
             return false;
         }
 
+        public void VisitNode (JSPropertySetterInvocation psi) {
+            Visit(psi.Invocation);
+        }
+
         public void VisitNode (JSInvocationExpression invocation) {
             var jsm = invocation.JSMethod;
             MethodInfo method = null;

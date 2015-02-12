@@ -3256,7 +3256,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_CallSetter (ILExpression node, MethodReference setter) {
-            return Translate_Call(node, setter);
+            return FilterSetterInvocation(Translate_Call(node, setter));
         }
 
         protected JSExpression Translate_CallvirtGetter (ILExpression node, MethodReference getter) {
@@ -3265,8 +3265,18 @@ namespace JSIL {
             return result;
         }
 
+        protected JSExpression FilterSetterInvocation (JSExpression invocation) {
+            var ie = invocation as JSInvocationExpression;
+
+            if (ie != null)
+                return new JSPropertySetterInvocation(ie);
+            else
+                // Probably an assignment or something.
+                return invocation;
+        }
+
         protected JSExpression Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
-            return Translate_Callvirt(node, setter);
+            return FilterSetterInvocation(Translate_Callvirt(node, setter));
         }
 
         protected JSUnaryOperatorExpression Translate_PostIncrement (ILExpression node, int arg) {

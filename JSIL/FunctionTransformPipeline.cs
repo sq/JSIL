@@ -189,6 +189,8 @@ namespace JSIL.Internal {
 
             Enqueue(IntroduceVariableDeclarationsAndReferences);
 
+            Enqueue(SynthesizePropertySetterReturnValues);
+
             // Important to run this before static analysis. Otherwise var, declaration and ctor 
             //  call can end up split, making a variable appear to get modified.
             Enqueue(FixupStructConstructorInvocations);
@@ -274,6 +276,12 @@ namespace JSIL.Internal {
 
         private bool IntroducePackedArrays () {
             new IntroducePackedArrays(TypeSystem, MethodTypes).Visit(Function);
+
+            return true;
+        }
+
+        private bool SynthesizePropertySetterReturnValues () {
+            new SynthesizePropertySetterReturnValues(TypeSystem, TypeInfoProvider).Visit(Function);
 
             return true;
         }
