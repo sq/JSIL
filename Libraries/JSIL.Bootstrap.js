@@ -1243,6 +1243,24 @@ $jsilcore.$ListExternals = function ($, T, type) {
       new JSIL.MethodSignature(null, [$.Object], []),
       removeImpl
     ).Overrides("System.Collections.IList", "Remove");
+
+    $.Method({Static: false, Public: false}, "InsertRange",
+      new JSIL.MethodSignature(null, [$.Int32, mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
+      function (index, items) {
+        var e = JSIL.GetEnumerator(items, this.T);
+        var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+        var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+
+        try {
+          var i = index;
+
+          while (moveNext.Call(e))
+            this.InsertItem(i++, getCurrent.Call(e));
+        } finally {
+          JSIL.Dispose(e);
+        }
+      }
+    );
   }
 
   $.Method({Static: false, Public: true }, "set_Item",
