@@ -1401,6 +1401,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Sort", 
     JSIL.MethodSignature.Void,
     function () {
+      this._items.length = this._size;
       this._items.sort(JSIL.CompareValues);
     }
   );
@@ -1408,6 +1409,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Sort", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Comparison`1", [T])], []),
     function (comparison) {
+      this._items.length = this._size;
       this._items.sort(comparison);
     }
   );
@@ -1415,21 +1417,16 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "Sort", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.IComparer")], [])), 
     function Sort (comparer) {
-      this._items.sort(function (lhs, rhs) {
-        return comparer.Compare(lhs, rhs);
-      });
+      this._items.length = this._size;
+      this._items.sort(JSIL.$WrapIComparer(null, comparer));
     }
   );
 
   $.Method({Static:false, Public:true }, "Sort", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
     function Sort (comparer) {
-      var tComparer = System.Collections.Generic.IComparer$b1.Of(this.T);
-      var compare = tComparer.Compare;
-
-      this._items.sort(function (lhs, rhs) {
-        return compare.Call(comparer, null, lhs, rhs);
-      });
+      this._items.length = this._size;
+      this._items.sort(JSIL.$WrapIComparer(this.T, comparer));
     }
   );
 
@@ -5279,6 +5276,13 @@ JSIL.ImplementExternals("System.Array", function ($) {
     }
   };
 
+  var sortImpl = function (array, index, length, comparison) {
+    if ((index !== 0) || (length !== array.length))
+      JSIL.RuntimeError("Sorting a subset of an array is not implemented");
+
+    Array.prototype.sort.call(array, comparison);
+  };
+
   $.Method({Static:true , Public:true }, "Copy", 
     new JSIL.MethodSignature(null, [
         $jsilcore.TypeRef("System.Array"), $jsilcore.TypeRef("System.Array"), 
@@ -5299,6 +5303,74 @@ JSIL.ImplementExternals("System.Array", function ($) {
       copyImpl(sourceArray, sourceIndex, destinationArray, destinationIndex, length);
     }
   );
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    JSIL.MethodSignature.Action($jsilcore.TypeRef("System.Array")), 
+    function Sort (array) {
+      sortImpl(array, 0, array.length, JSIL.CompareValues);
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $.Int32
+      ]), 
+    function Sort (array, index, length) {
+      sortImpl(array, index, length, JSIL.CompareValues);
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array"), $jsilcore.TypeRef("System.Collections.IComparer")]), 
+    function Sort (array, comparer) {
+      sortImpl(array, 0, array.length, JSIL.$WrapIComparer(null, comparer));
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array"), $.Int32, 
+        $.Int32, $jsilcore.TypeRef("System.Collections.IComparer")
+      ]), 
+    function Sort (array, index, length, comparer) {
+      sortImpl(array, index, length, JSIL.$WrapIComparer(null, comparer));
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
+        $.Int32
+      ], ["T"]), 
+    function Sort$b1 (T, array, index, length) {
+      sortImpl(array, index, length, JSIL.CompareValues);
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", ["!!0"])], ["T"]), 
+    function Sort$b1 (T, array, comparer) {
+      sortImpl(array, 0, array.length, JSIL.$WrapIComparer(T, comparer));
+    }
+  )
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32, 
+        $.Int32, $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", ["!!0"])
+      ], ["T"]), 
+    function Sort$b1 (T, array, index, length, comparer) {
+      sortImpl(array, index, length, JSIL.$WrapIComparer(T, comparer));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $jsilcore.TypeRef("System.Comparison`1", ["!!0"])], ["T"]), 
+    function Sort$b1 (T, array, comparison) {
+      sortImpl(array, 0, array.length, comparison);
+    }
+  )
 });
 
 JSIL.MakeInterface(
@@ -5452,3 +5524,18 @@ JSIL.MakeInterface(
     $.Method({}, "CleanUpManagedData", JSIL.MethodSignature.Action($.Object));
     $.Method({}, "GetNativeDataSize", JSIL.MethodSignature.Return($.Int32));
   }, []);
+
+
+JSIL.$WrapIComparer = function (T, comparer) {
+  var compare;
+  if (T !== null) {
+    var tComparer = System.Collections.Generic.IComparer$b1.Of(T);
+    compare = tComparer.Compare;
+  } else {
+    compare = System.Collections.IComparer.Compare;
+  }
+
+  return function (lhs, rhs) {
+    return compare.Call(comparer, null, lhs, rhs);
+  };
+};
