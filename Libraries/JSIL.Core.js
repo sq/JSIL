@@ -595,7 +595,8 @@ JSIL.PreInitMembrane.prototype.checkForUseAfterCleanup = function () {
 
 JSIL.PreInitMembrane.prototype.maybeInit = function () {
   if (this.hasRunCleanup && this.hasRunInitializer) {
-    JSIL.RuntimeError("maybeInit called after init and cleanup");
+    // HACK for #651
+    // JSIL.RuntimeError("maybeInit called after init and cleanup");
   }
 
   if (!this.hasRunInitializer) {
