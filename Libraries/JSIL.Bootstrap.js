@@ -1244,7 +1244,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       removeImpl
     ).Overrides("System.Collections.IList", "Remove");
 
-    $.Method({Static: false, Public: false}, "InsertRange",
+    $.Method({Static: false, Public: true}, "InsertRange",
       new JSIL.MethodSignature(null, [$.Int32, mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
       function (index, items) {
         var e = JSIL.GetEnumerator(items, this.T);
@@ -1258,6 +1258,21 @@ $jsilcore.$ListExternals = function ($, T, type) {
             this.InsertItem(i++, getCurrent.Call(e));
         } finally {
           JSIL.Dispose(e);
+        }
+      }
+    );
+
+    $.Method({Static: false, Public: true}, "Reverse",
+      new JSIL.MethodSignature(null, [], []),
+      function () {
+        var i = 0;
+        var n = this._size - 1;
+
+        for (var i = 0, l = this._size - 1; i < l; i++, l--) {
+          var a = this._items[i];
+          var b = this._items[l];
+          this._items[i] = b;
+          this._items[l] = a;
         }
       }
     );
