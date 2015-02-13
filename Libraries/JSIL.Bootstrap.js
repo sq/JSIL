@@ -5258,8 +5258,24 @@ JSIL.ImplementExternals("System.Array", function ($) {
 
     length = length | 0;
 
-    for (var i = 0; i < length; i = (i + 1) | 0) {
-      destinationArray[i + destinationIndex] = sourceArray[i + sourceIndex];
+    if (
+      (sourceArray === destinationArray) &&
+      (destinationIndex === sourceIndex)
+    )
+      return;
+
+    if (
+      (sourceArray === destinationArray) &&
+      (destinationIndex < (sourceIndex + length)) && 
+      (destinationIndex > sourceIndex)
+    ) {
+      for (var i = length - 1; i >= 0; i = (i - 1) | 0) {
+        destinationArray[i + destinationIndex] = sourceArray[i + sourceIndex];
+      }
+    } else {
+      for (var i = 0; i < length; i = (i + 1) | 0) {
+        destinationArray[i + destinationIndex] = sourceArray[i + sourceIndex];
+      }
     }
   };
 
