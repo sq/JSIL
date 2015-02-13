@@ -898,14 +898,14 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayInterfaceOverlay", true, ["T"], funct
   $.Method({Static:false, Public:true }, "Contains", 
     new JSIL.MethodSignature($.Boolean, [T], []),
     function Contains (value) {
-      return (this._array.indexOf(value) >= 0);
+      return JSIL.Array.IndexOf(this._array, this._array.length, value) >= 0;
     }
   );
   
   $.Method({Static:false, Public:true }, "IndexOf", 
     new JSIL.MethodSignature($.Int32, [T], []),
     function IndexOf (value) {
-      return this._array.indexOf(value);
+      return JSIL.Array.IndexOf(this._array, this._array.length, value);
     }
   );
 
@@ -1012,12 +1012,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   var indexOfImpl = function List_IndexOf (value) {
-    for (var i = 0, l = this._size; i < l; i++) {
-      if (JSIL.ObjectEquals(this._items[i], value))
-        return i;
-    }
-
-    return -1;
+    return JSIL.Array.IndexOf(this._items, this._size, value);
   };
 
   var findIndexImpl = function List_FindIndex (predicate) {
@@ -1046,7 +1041,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   };
 
   var removeImpl = function (item) {
-    var index = this._items.indexOf(item);
+    var index = JSIL.Array.IndexOf(this._items, this._size, item);
     if (index === -1)
       return false;
 

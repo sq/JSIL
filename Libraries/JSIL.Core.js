@@ -10341,3 +10341,12 @@ JSIL.$FormatStringImpl = function (format, values) {
 
   return format.replace(JSIL.$FormatRegex, matcher);
 };
+
+JSIL.Array.IndexOf = function (array, count, value) {
+  for (var i = 0, l = count; i < l; i++) {
+    if (JSIL.ObjectEquals(array[i], value))
+      return i;
+  }
+
+  return -1;
+};
