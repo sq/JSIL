@@ -62,17 +62,16 @@ namespace JSIL.Transforms {
             var thisReference = psi.Invocation.ThisReference;
             var valueType = psi.GetActualType(TypeSystem);
             var thisType = thisReference.GetActualType(TypeSystem);
-            var parameters = psi.Invocation.Parameters.ToArray();
 
             JSExpression tempThis;
-            JSExpression[] tempArguments = new JSExpression[parameters.Length];
+            JSExpression[] tempArguments = new JSExpression[psi.Invocation.Arguments.Count];
             var commaElements = new List<JSExpression>();
 
             tempThis = Hoist(thisReference, thisType, commaElements);
 
-            for (var i = 0; i < parameters.Length; i++) {
+            for (var i = 0; i < tempArguments.Length; i++) {
                 var arg = psi.Invocation.Arguments[i];
-                var argType = parameters[i].Key.ParameterType;
+                var argType = arg.GetActualType(TypeSystem);
 
                 tempArguments[i] = Hoist(arg, argType, commaElements);
             }
