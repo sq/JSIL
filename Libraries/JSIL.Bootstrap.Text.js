@@ -1826,6 +1826,16 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "set_Chars", 
+    (new JSIL.MethodSignature(null, [$.Int32, $.Char], [])), 
+    function set_Chars (i, value) {
+      this._str = 
+        this._str.substr(0, i) +
+        value +
+        this._str.substr(i + 1);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "toString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function toString () {

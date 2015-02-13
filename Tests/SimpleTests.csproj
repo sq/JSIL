@@ -91,6 +91,7 @@
     <None Include="SimpleTestCases\Issue491_2.cs" />
     <None Include="SimpleTestCases\Issue491_3.cs" />
     <None Include="SimpleTestCases\Issue682.cs" />
+    <None Include="SimpleTestCases\Issue681.cs" />
     <Compile Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="ExpressionTests.cs" />
     <Compile Include="SimpleTests.cs" />
