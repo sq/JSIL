@@ -44,6 +44,8 @@ namespace JSIL.Transforms {
                 MakeLhsForAssignment(expressionToMutate), newValue, type
             );
 
+            assignment = ConvertReadExpressionToWriteExpression(assignment, TypeSystem);
+
             return assignment;
         }
 
