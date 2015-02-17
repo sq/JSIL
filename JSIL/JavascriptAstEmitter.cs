@@ -1041,6 +1041,8 @@ namespace JSIL {
                 CommaSeparatedList(args);
             }
             Output.RPar();
+            Output.Dot();
+            Output.WriteRaw("LValue");
         }
 
         public void VisitNode (JSIgnoredTypeReference itr) {
