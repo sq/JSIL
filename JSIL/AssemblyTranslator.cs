@@ -451,7 +451,8 @@ namespace JSIL {
         ) {
 
             var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
-            var assemblies = LoadAssembly(assemblyPath);
+            var assemblies = new [] {assemblyPath}.Union(this.Configuration.Assemblies.TranslateAdditional).Distinct()
+                .SelectMany(LoadAssembly).Distinct(new FullNameAssemblyComparer()).ToArray();
             var parallelOptions = GetParallelOptions();
 
             if (AssembliesLoaded != null)
