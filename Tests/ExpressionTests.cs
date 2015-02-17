@@ -39,6 +39,7 @@ namespace JSIL.SimpleTests {
                 c.Assemblies.Ignored.Add("System\\.Runtime\\.DurableInstancing,");
                 c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
                 c.Assemblies.Ignored.Add("JSIL\\.Meta,");
+                c.Assemblies.TranslateAdditional.Add("JSIL.ExpressionInterpreter.dll");
                 
                 c.Assemblies.Proxies.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.Proxies.Bcl.dll"));
 

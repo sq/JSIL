@@ -8,6 +8,7 @@ namespace JSIL.Translator {
     public class Configuration {
         [Serializable]
         public sealed class AssemblyConfiguration {
+            public readonly List<string> TranslateAdditional = new List<string>();
             public readonly List<string> Ignored = new List<string>();
             public readonly List<string> Stubbed = new List<string>();
 
@@ -16,6 +17,7 @@ namespace JSIL.Translator {
             public readonly Dictionary<string, string> Redirects = new Dictionary<string, string>();
 
             public void MergeInto (AssemblyConfiguration result) {
+                result.TranslateAdditional.AddRange(TranslateAdditional);
                 result.Ignored.AddRange(Ignored);
                 result.Stubbed.AddRange(Stubbed);
                 result.Proxies.AddRange(Proxies);
