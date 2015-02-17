@@ -100,6 +100,7 @@
     <None Include="SimpleTestCases\Issue663.cs" />
     <None Include="SimpleTestCases\Issue651.cs" />
     <None Include="SimpleTestCases\RefIntIncrement_Issue684.cs" />
+    <None Include="SimpleTestCases\EscapeArgumentsVarName.cs" />
     <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="ExpressionTests.cs" />
     <None Include="SimpleTestCases\StringEscape_Issue687.cs" />
