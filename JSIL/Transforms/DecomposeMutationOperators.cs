@@ -114,6 +114,17 @@ namespace JSIL.Transforms {
                 return;
             }
 
+            if (boe.Operator == JSOperator.Assignment)
+            {
+                replacement = ConvertReadExpressionToWriteExpression(boe, TypeSystem);
+                if (replacement != boe)
+                {
+                    ParentNode.ReplaceChild(boe, replacement);
+                    VisitReplacement(replacement);
+                    return;
+                }
+            }
+
             VisitChildren(boe);
         }
 
