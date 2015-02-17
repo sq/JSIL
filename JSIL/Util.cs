@@ -225,8 +225,6 @@ namespace JSIL.Internal {
 
         public static string EscapeCharacter (char character, bool forJson) {
             switch (character) {
-                case '\0':
-                    return @"\0";
                 case '\'':
                     return @"\'";
                 case '\\':
