@@ -101,6 +101,7 @@
     <None Include="SimpleTestCases\Issue651.cs" />
     <Compile Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
     <Compile Include="ExpressionTests.cs" />
+    <None Include="SimpleTestCases\StringEscape_Issue687.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
