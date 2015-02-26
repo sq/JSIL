@@ -145,6 +145,7 @@
     <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\StaticStringFromIntPtr.cs" />
     <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
+    <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
@@ -428,7 +429,7 @@
     <None Include="UnsafeTestCases\PackedStructArrayNew.cs" />
     <None Include="UnsafeTestCases\CastAddressOfValueToArray.cs" />
     <None Include="UnsafeTestCases\IgnorePointerFields.cs" />
-    <Compile Include="UnsafeTestCases\PointerWriteConversion_Issue686.cs" />
+    <None Include="UnsafeTestCases\PointerWriteConversion_Issue686.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
