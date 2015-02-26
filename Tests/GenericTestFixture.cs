@@ -211,7 +211,8 @@ namespace JSIL.Tests {
             JSEvaluationConfig evaluationConfig = null,
             string compilerOptions = "",
             Action<AssemblyTranslator> initializeTranslator = null,
-            Func<string> getTestRunnerQueryString = null
+            Func<string> getTestRunnerQueryString = null,
+            bool? scanForProxies = null
         ) {
             CompileResult result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
@@ -240,7 +241,8 @@ namespace JSIL.Tests {
                             makeConfiguration: makeConfiguration, 
                             evaluationConfig: evaluationConfig, 
                             onTranslationFailure: onTranslationFailure,
-                            initializeTranslator: initializeTranslator
+                            initializeTranslator: initializeTranslator,
+                            scanForProxies: scanForProxies
                         );
                     } else {
                         string js;
@@ -373,7 +375,8 @@ namespace JSIL.Tests {
             Action<Exception> onTranslationFailure = null,
             string compilerOptions = "",
             Action<AssemblyTranslator> initializeTranslator = null,
-            Func<string> getTestRunnerQueryString = null
+            Func<string> getTestRunnerQueryString = null,
+            bool? scanForProxies = null
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -388,7 +391,8 @@ namespace JSIL.Tests {
                     onTranslationFailure: onTranslationFailure,
                     compilerOptions: compilerOptions,
                     initializeTranslator: initializeTranslator,
-                    getTestRunnerQueryString: getTestRunnerQueryString
+                    getTestRunnerQueryString: getTestRunnerQueryString,
+                    scanForProxies: scanForProxies
                 );
             } finally {
                 if ((bool)parameters[4]) {
