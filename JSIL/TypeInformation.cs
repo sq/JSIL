@@ -325,6 +325,7 @@ namespace JSIL.Internal {
         public readonly bool IsInheritable;
 
         internal int UsageCount;
+        internal readonly ConcurrentDictionary<MemberIdentifier, bool> MemberReplacedTable;
 
         protected readonly ITypeInfoSource TypeInfo;
 
@@ -336,6 +337,8 @@ namespace JSIL.Internal {
             Properties = new Dictionary<MemberIdentifier, PropertyDefinition>(comparer);
             Events = new Dictionary<MemberIdentifier, EventDefinition>(comparer);
             Methods = new Dictionary<MemberIdentifier, MethodDefinition>(comparer);
+
+            MemberReplacedTable = new ConcurrentDictionary<MemberIdentifier, bool>(comparer);
 
             ExtraStaticConstructor = null;
 
@@ -554,11 +557,6 @@ namespace JSIL.Internal {
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
 
-            if (!IsProxy) {
-                foreach (var p in Proxies)
-                    p.UsageCount += 1;
-            }
-
             IsDelegate = (type.BaseType != null) && (
                 (type.BaseType.FullName == "System.Delegate") ||
                 (type.BaseType.FullName == "System.MulticastDelegate")
@@ -598,6 +596,9 @@ namespace JSIL.Internal {
             }
 
             foreach (var proxy in Proxies.ToEnumerable()) {
+                if (!IsProxy)
+                    Interlocked.Increment(ref proxy.UsageCount);
+
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
                 if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceNone) {
@@ -1020,7 +1021,10 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Console.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
+                    proxy.MemberReplacedTable.TryAdd(identifier, true);
+
                     Members.TryRemove(identifier, out result);
+                    return false;
                 } else {
                     throw new ArgumentException(String.Format(
                         "Member '{0}' not found", member.Name

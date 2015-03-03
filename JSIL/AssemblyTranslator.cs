@@ -570,9 +570,34 @@ namespace JSIL {
                 return;
 
             foreach (var p in _TypeInfoProvider.Proxies) {
-                if ((p.UsageCount == 0) && (ProxyNotMatched != null))
-                    ProxyNotMatched(new TypeIdentifier(p.Definition));
+                var ti = new TypeIdentifier(p.Definition);
 
+                if ((p.UsageCount == 0) && (ProxyNotMatched != null)) {
+                    ProxyNotMatched(ti);
+                    continue;
+                }
+
+                if (p.MemberPolicy == Proxy.JSProxyMemberPolicy.ReplaceNone)
+                    continue;
+
+                if (ProxyMemberNotMatched != null)
+                foreach (var identifier in p.Methods.Keys) {
+                    // Don't log warnings on failed 0-arg default ctor replacement.
+                    // Very often this just means the 0-arg ctor the compiler synthesized for the proxy didn't replace anything.
+                    if (
+                        (identifier.Name == ".ctor") && 
+                        (
+                            (identifier.ParameterTypes == null) || (identifier.ParameterTypes.Length == 0)
+                        )
+                    )
+                        continue;
+
+                    bool used;
+                    p.MemberReplacedTable.TryGetValue(identifier, out used);
+
+                    if (!used)
+                        ProxyMemberNotMatched(new QualifiedMemberIdentifier(ti, identifier));
+                }
                 // FIXME: Member usage counts                
             }
         }
