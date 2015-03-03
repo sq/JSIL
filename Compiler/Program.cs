@@ -605,7 +605,7 @@ namespace JSIL.Compiler {
             translator.CouldNotDecompileMethod += (fn, ex) =>
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex);
 
-            if (configuration.ProxyWarnings.GetValueOrDefault(true)) {
+            if (configuration.ProxyWarnings.GetValueOrDefault(false)) {
                 translator.ProxyNotMatched += (ti) => {
                     Console.Error.WriteLine("// Proxy {0} never matched any types.", ti);
                 };
