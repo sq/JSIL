@@ -760,12 +760,13 @@ namespace JSIL {
                         }
 
                         foreach (var m in methods) {
-                            if (!m.HasBody)
-                                continue;
-
                             var mi = _TypeInfoProvider.GetMethod(m);
 
                             if ((mi == null) || (mi.IsIgnored))
+                                continue;
+
+                            // A pinvoke method with no body can be replaced by a proxy method body
+                            if (!m.HasBody && !mi.IsFromProxy)
                                 continue;
 
                             if (isStubbed && !mi.IsUnstubbable) {
@@ -1832,7 +1833,7 @@ namespace JSIL {
                 var pr = new ProgressReporter();
 
                 context.CurrentMethod = methodDef;
-                if ((methodDef.Body.CodeSize > LargeMethodThreshold) && (this.DecompilingMethod != null))
+                if ((bodyDef.Body.CodeSize > LargeMethodThreshold) && (this.DecompilingMethod != null))
                     this.DecompilingMethod(method.FullName, pr);
 
                 ILBlock ilb;
@@ -2586,36 +2587,36 @@ namespace JSIL {
 
         protected void CreateMethodInformation (
             MethodInfo methodInfo, bool stubbed,
-            out bool isExternal, out bool isReplaced, 
+            out bool isExternal, out bool isJSReplaced, 
             out bool methodIsProxied
         ) {
-            isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
+            isJSReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
-                !methodInfo.IsExternal && !isReplaced;
+                !methodInfo.IsExternal && !isJSReplaced;
 
             isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
         }
 
         protected bool ShouldTranslateMethodBody (
             MethodDefinition method, MethodInfo methodInfo, bool stubbed,
-            out bool isExternal, out bool isReplaced,
+            out bool isExternal, out bool isJSReplaced,
             out bool methodIsProxied
         ) {
             if (methodInfo == null) {
-                isExternal = isReplaced = methodIsProxied = false;
+                isExternal = isJSReplaced = methodIsProxied = false;
                 return false;
             }
 
             CreateMethodInformation(
                 methodInfo, stubbed,
-                out isExternal, out isReplaced, out methodIsProxied
+                out isExternal, out isJSReplaced, out methodIsProxied
             );
 
             if(ShouldSkipMember(method))
                 return false;
 
             if (isExternal) {
-                if (isReplaced)
+                if (isJSReplaced)
                     return false;
 
                 var isProperty = methodInfo.DeclaringProperty != null;
@@ -2631,7 +2632,7 @@ namespace JSIL {
 
             if (methodInfo.IsIgnored)
                 return false;
-            if (!method.HasBody && !isExternal)
+            if (!method.HasBody && !isExternal && !methodIsProxied)
                 return false;
 
             return true;
