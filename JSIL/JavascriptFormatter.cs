@@ -172,7 +172,7 @@ namespace JSIL.Internal {
             "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
             "System.SByte", "System.Int16", "System.Int32", "System.Int64",
             "System.Single", "System.Double", "System.String", "System.Object",
-            "System.Boolean", "System.Char"
+            "System.Boolean", "System.Char", "System.IntPtr", "System.UIntPtr"
         }; 
 
         public JavascriptFormatter (
