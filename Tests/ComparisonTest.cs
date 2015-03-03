@@ -504,7 +504,7 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                "runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}, \r\n  {5}\r\n);",
+                "var runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}, \r\n  {5}\r\n);",
                 JavascriptExecutionTimeout,
                 Util.EscapeString(testAssemblyName),
                 Util.EscapeString(testTypeName), 

@@ -83,6 +83,7 @@ namespace JSIL.SimpleTests {
                         {
                             ApplyDefaults = false,
                         };
+                    c.CodeGenerator.EnableUnsafeCode = true;
                     c.Assemblies.Stubbed.Add("^System,");
                     c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
                     c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");

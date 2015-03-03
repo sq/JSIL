@@ -37,7 +37,7 @@ namespace JSIL.Internal {
             "export", "extends", "super", "let",
             "package", "interface", "implements", "private",
             "protected", "public", "static", "yield",
-            "const", "true", "false", "null",
+            "const", "true", "false", "null", "arguments"
         };
 
         // We need to flag these names as reserved because they are properties of
