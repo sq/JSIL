@@ -52,6 +52,9 @@
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
     <CodeAnalysisFailOnMissingRules>true</CodeAnalysisFailOnMissingRules>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|.NET 4.5 x86'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Compiler.CodeDom, Version=0.9.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -142,6 +145,7 @@
     <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\StaticStringFromIntPtr.cs" />
     <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
+    <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>

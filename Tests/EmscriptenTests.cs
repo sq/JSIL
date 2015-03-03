@@ -124,8 +124,9 @@ namespace JSIL.Tests {
                 parameters,
                 MakeConfiguration,
                 compilerOptions: "/unsafe",
-                getTestRunnerQueryString: () =>
-                    "dll=Tests/EmscriptenTestCases/common.emjs"
+                getTestRunnerQueryString: (() =>
+                    "dll=Tests/EmscriptenTestCases/common.emjs"),
+                scanForProxies: true
             );
         }
 

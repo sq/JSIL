@@ -390,7 +390,8 @@ namespace JSIL.Tests {
             Func<TranslationResult, TOutput> processResult,
             Func<Configuration> makeConfiguration = null,
             Action<Exception> onTranslationFailure = null,
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            bool? scanForProxies = null
         ) {
             Configuration configuration;
 
@@ -415,7 +416,7 @@ namespace JSIL.Tests {
 
                 try {
                     translationResult = translator.Translate(
-                        assemblyPath, TypeInfo == null
+                        assemblyPath, scanForProxies == null ? TypeInfo == null : (bool)scanForProxies
                     );
 
                     AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, translationResult);
@@ -451,7 +452,8 @@ namespace JSIL.Tests {
             Func<Configuration> makeConfiguration = null,
             bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null,
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            bool? scanForProxies = null
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
             string translatedJs;
@@ -466,7 +468,8 @@ namespace JSIL.Tests {
                     (tr) => tr.WriteToString(), 
                     makeConfiguration, 
                     onTranslationFailure,
-                    initializeTranslator
+                    initializeTranslator,
+                    scanForProxies
                 );
             } else {
                 throw new InvalidDataException("Provided both JS filenames and assembly");
@@ -548,14 +551,16 @@ namespace JSIL.Tests {
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            bool? scanForProxies = null
         ) {
             string temp1, temp2;
 
             return RunJavascript(
                 args, out generatedJavascript, out elapsedTranslation, out elapsedJs, 
                 out temp1, out temp2,
-                makeConfiguration, evaluationConfig, onTranslationFailure, initializeTranslator
+                makeConfiguration, evaluationConfig, onTranslationFailure, initializeTranslator,
+                scanForProxies
             );
         }
 
@@ -564,14 +569,16 @@ namespace JSIL.Tests {
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            bool? scanForProxies = null
         ) {
             var tempFilename = GenerateJavascript(
                 args, out generatedJavascript, out elapsedTranslation, 
                 makeConfiguration, 
                 evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                 onTranslationFailure,
-                initializeTranslator
+                initializeTranslator,
+                scanForProxies
             );
 
             using (var evaluator = EvaluatorPool.Get()) {
@@ -679,7 +686,8 @@ namespace JSIL.Tests {
             JSEvaluationConfig evaluationConfig = null,
             bool dumpJsOnFailure = true,
             Action<Exception> onTranslationFailure = null,
-            Action<AssemblyTranslator> initializeTranslator = null
+            Action<AssemblyTranslator> initializeTranslator = null,
+            bool? scanForProxies = null
         ) {
             var signals = new[] {
                     new ManualResetEventSlim(false), new ManualResetEventSlim(false)
@@ -716,7 +724,8 @@ namespace JSIL.Tests {
                         makeConfiguration: makeConfiguration,
                         evaluationConfig: evaluationConfig,
                         onTranslationFailure: onTranslationFailure,
-                        initializeTranslator: initializeTranslator
+                        initializeTranslator: initializeTranslator,
+                        scanForProxies: scanForProxies
                     ).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[1] = ex;
