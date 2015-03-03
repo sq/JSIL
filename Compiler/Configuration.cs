@@ -40,6 +40,7 @@ namespace JSIL.Compiler {
         public bool? AutoLoadConfigFiles;
         public bool? UseLocalProxies;
         public bool? ReuseTypeInfoAcrossAssemblies;
+        public bool? ProxyWarnings;
         public string OutputDirectory;
         public string FileOutputDirectory;
         public string Profile;
@@ -68,6 +69,8 @@ namespace JSIL.Compiler {
                 cc.Profile = Profile;
             if (Path != null)
                 cc.Path = Path;
+            if (ProxyWarnings.HasValue)
+                cc.ProxyWarnings = ProxyWarnings;
 
             foreach (var kvp in ProfileSettings)
                 cc.ProfileSettings[kvp.Key] = kvp.Value;

@@ -23,5 +23,6 @@
   "ProfileSettings": {
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%outputdirectory%/Content"
-  }
+  },
+  "ProxyWarnings": false
 }

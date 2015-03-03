@@ -88,8 +88,12 @@ namespace JSIL {
         public event LoadErrorHandler CouldNotLoadSymbols;
         public event LoadErrorHandler CouldNotResolveAssembly;
         public event LoadErrorHandler CouldNotDecompileMethod;
+        
         public event Action<string> Warning;
         public event Action<string, string[]> IgnoredMethod;
+
+        public event Action<TypeIdentifier> ProxyNotMatched;
+        public event Action<QualifiedMemberIdentifier> ProxyMemberNotMatched;
 
         public event Action<AssemblyDefinition[]> AssembliesLoaded;
         public event Action AnalyzeStarted;
@@ -518,7 +522,7 @@ namespace JSIL {
                         var context = MakeDecompilerContext(assembly.MainModule);
 
                         try {
-                            Translate(context, assembly, outputStream);
+                            TranslateSingleAssemblyInternal(context, assembly, outputStream);
                         } catch (Exception exc) {
                             throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
                         }
@@ -556,7 +560,21 @@ namespace JSIL {
 
             pr.OnFinished();
 
+            DoProxyDiagnostics();
+
             return result;
+        }
+
+        private void DoProxyDiagnostics () {
+            if ((ProxyNotMatched == null) && (ProxyMemberNotMatched == null))
+                return;
+
+            foreach (var p in _TypeInfoProvider.Proxies) {
+                if ((p.UsageCount == 0) && (ProxyNotMatched != null))
+                    ProxyNotMatched(new TypeIdentifier(p.Definition));
+
+                // FIXME: Member usage counts                
+            }
         }
 
         private void TriggerAutomaticGC () {
@@ -807,7 +825,7 @@ namespace JSIL {
             );
         }
 
-        protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
+        protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);

@@ -89,6 +89,12 @@ namespace JSIL {
             return new TypeInfoProvider(this);
         }
 
+        public IEnumerable<ProxyInfo> Proxies {
+            get {
+                return TypeProxies.Values;
+            }
+        }
+
         private static bool _ShouldAddProxies (ArraySegment<string> proxies) {
             if (proxies.Array == null)
                 return false;

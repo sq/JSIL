@@ -324,6 +324,8 @@ namespace JSIL.Internal {
 
         public readonly bool IsInheritable;
 
+        internal int UsageCount;
+
         protected readonly ITypeInfoSource TypeInfo;
 
         public ProxyInfo (ITypeInfoSource typeInfo, TypeDefinition proxyType) {
@@ -551,6 +553,11 @@ namespace JSIL.Internal {
 
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
+
+            if (!IsProxy) {
+                foreach (var p in Proxies)
+                    p.UsageCount += 1;
+            }
 
             IsDelegate = (type.BaseType != null) && (
                 (type.BaseType.FullName == "System.Delegate") ||
