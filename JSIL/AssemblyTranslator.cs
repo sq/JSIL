@@ -569,6 +569,8 @@ namespace JSIL {
             if ((ProxyNotMatched == null) && (ProxyMemberNotMatched == null))
                 return;
 
+            var methodsToSkip = new HashSet<MemberIdentifier>(new MemberIdentifier.Comparer(_TypeInfoProvider));
+
             foreach (var p in _TypeInfoProvider.Proxies) {
                 var ti = new TypeIdentifier(p.Definition);
 
@@ -577,28 +579,55 @@ namespace JSIL {
                     continue;
                 }
 
+                // If they explicitly disabled replacement for the type, none of the members got replaced
                 if (p.MemberPolicy == Proxy.JSProxyMemberPolicy.ReplaceNone)
                     continue;
 
-                if (ProxyMemberNotMatched != null)
-                foreach (var identifier in p.Methods.Keys) {
-                    // Don't log warnings on failed 0-arg default ctor replacement.
-                    // Very often this just means the 0-arg ctor the compiler synthesized for the proxy didn't replace anything.
-                    if (
-                        (identifier.Name == ".ctor") && 
-                        (
-                            (identifier.ParameterTypes == null) || (identifier.ParameterTypes.Length == 0)
+                if (ProxyMemberNotMatched != null) {
+                    methodsToSkip.Clear();
+
+                    foreach (var kvp in p.Properties) {
+                        if (kvp.Value.CustomAttributes.Any(ca => ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace")) {
+                            var mi = kvp.Key;
+
+                            if (kvp.Value.GetMethod != null)
+                                methodsToSkip.Add(mi.Getter);
+
+                            if (kvp.Value.SetMethod != null)
+                                methodsToSkip.Add(mi.Setter);
+
+                            continue;
+                        }
+                    }
+
+                    foreach (var kvp in p.Methods) {
+                        if (methodsToSkip.Contains(kvp.Key))
+                            continue;
+
+                        var identifier = kvp.Key;
+
+                        // Don't log warnings on failed 0-arg default ctor replacement.
+                        // Very often this just means the 0-arg ctor the compiler synthesized for the proxy didn't replace anything.
+                        if (
+                            (identifier.Name == ".ctor") && 
+                            (
+                                (identifier.ParameterTypes == null) || (identifier.ParameterTypes.Length == 0)
+                            )
                         )
-                    )
-                        continue;
+                            continue;
 
-                    bool used;
-                    p.MemberReplacedTable.TryGetValue(identifier, out used);
+                        bool used;
+                        p.MemberReplacedTable.TryGetValue(identifier, out used);
 
-                    if (!used)
-                        ProxyMemberNotMatched(new QualifiedMemberIdentifier(ti, identifier));
+                        if (!used) {
+                            // Member was explicitly marked as neverreplace, so of course it didn't replace anything
+                            if (kvp.Value.CustomAttributes.Any(ca => ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace"))
+                                continue;
+
+                            ProxyMemberNotMatched(new QualifiedMemberIdentifier(ti, identifier));
+                        }
+                    }
                 }
-                // FIXME: Member usage counts                
             }
         }
 

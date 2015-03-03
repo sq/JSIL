@@ -67,6 +67,24 @@ namespace JSIL.Internal {
                 ));
         }
 
+        private MemberIdentifier (
+            bool isStatic,
+            MemberType type,
+            string name,
+            TypeReference returnType,
+            TypeReference[] parameterTypes,
+            int genericArgumentCount
+        ) {
+            IsStatic = isStatic;
+            Type = type;
+            Name = name;
+            ReturnType = returnType;
+            ParameterTypes = parameterTypes;
+            GenericArgumentCount = genericArgumentCount;
+
+            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
+        }
+
         public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
             IsStatic = !mr.HasThis;
             Type = MemberType.Method;
@@ -303,6 +321,40 @@ namespace JSIL.Internal {
             }
 
             return true;
+        }
+
+        public MemberIdentifier Getter {
+            get {
+                if (Type != MemberType.Property)
+                    throw new InvalidOperationException();
+
+                return new MemberIdentifier(
+                    IsStatic, MemberType.Method,
+                    "get_" + Name,
+                    ReturnType, ParameterTypes,
+                    0
+                );
+            }
+        }
+
+        public MemberIdentifier Setter {
+            get {
+                if (Type != MemberType.Property)
+                    throw new InvalidOperationException();
+
+                TypeReference[] parameterTypes;
+                if (ParameterTypes == null)
+                    parameterTypes = new [] { ReturnType };
+                else
+                    parameterTypes = ParameterTypes.Concat(new [] { ReturnType }).ToArray();
+
+                return new MemberIdentifier(
+                    IsStatic, MemberType.Method,
+                    "set_" + Name,
+                    null, parameterTypes,
+                    0
+                );
+            }
         }
 
         public override bool Equals (object obj) {
