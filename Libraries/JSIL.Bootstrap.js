@@ -1262,19 +1262,34 @@ $jsilcore.$ListExternals = function ($, T, type) {
       }
     );
 
+    var reverseImpl = function (index, count) {
+      if (arguments.length < 2) {
+        index = 0;
+        count = this._size | 0;
+      } else {
+        index |= 0;
+        count |= 0;
+      }
+
+      if (count < 1)
+        return;
+
+      for (var i = index, l = (index + count - 1) | 0; i < l; i++, l--) {
+        var a = this._items[i];
+        var b = this._items[l];
+        this._items[i] = b;
+        this._items[l] = a;
+      }
+    }
+
     $.Method({Static: false, Public: true}, "Reverse",
       new JSIL.MethodSignature(null, [], []),
-      function () {
-        var i = 0;
-        var n = this._size - 1;
+      reverseImpl
+    );
 
-        for (var i = 0, l = this._size - 1; i < l; i++, l--) {
-          var a = this._items[i];
-          var b = this._items[l];
-          this._items[i] = b;
-          this._items[l] = a;
-        }
-      }
+    $.Method({Static: false, Public: true}, "Reverse",
+      new JSIL.MethodSignature(null, [$.Int32, $.Int32], []),
+      reverseImpl
     );
   }
 
