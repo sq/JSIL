@@ -1024,7 +1024,6 @@ namespace JSIL.Internal {
                     proxy.MemberReplacedTable.TryAdd(identifier, true);
 
                     Members.TryRemove(identifier, out result);
-                    return false;
                 } else {
                     throw new ArgumentException(String.Format(
                         "Member '{0}' not found", member.Name
