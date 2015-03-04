@@ -668,14 +668,6 @@ JSIL.ImplementExternals("System.Linq.Expressions.Expression", function ($) {
       return System.Linq.Expressions.ParameterExpression.Make(type, name, type.IsByRef);
     }
   );
-
-  $.Method({Static:true , Public:true }, "Equal", 
-    new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.BinaryExpression"), [$jsilcore.TypeRef("System.Linq.Expressions.Expression"), $jsilcore.TypeRef("System.Linq.Expressions.Expression")], []), 
-    function Equal (left, right) {
-      // FIXME
-      return null;
-    }
-  )
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ConstantExpression", true, [], function ($) {
@@ -684,6 +676,10 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.
   $.ExternalMethod({Static:true , Public:false}, "Make", 
     (new JSIL.MethodSignature($.Type, [$.Object, $jsilcore.TypeRef("System.Type")], []))
   );
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), "System.Linq.Expressions.TypedConstantExpression", true, [], function ($) {
+  var $thisType = $.publicInterface;
 });
 
 JSIL.ImplementExternals("System.Linq.Expressions.ConstantExpression", function ($) {
@@ -697,10 +693,30 @@ JSIL.ImplementExternals("System.Linq.Expressions.ConstantExpression", function (
   $.Method({Static:true , Public:false}, "Make", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Linq.Expressions.ConstantExpression"), [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
     function Make (value, type) {
-      return new System.Linq.Expressions.ConstantExpression(value);
+      if (value == null && type == $jsilcore.System.Object.__Type__ || value != null && JSIL.GetType(value) == type) {
+        return new System.Linq.Expressions.ConstantExpression(value);
+      } else {
+        return new System.Linq.Expressions.TypedConstantExpression(value, type);
+      }
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Linq.Expressions.TypedConstantExpression", function ($) {
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
+    function _ctor (value, type) {
+      this._value = value;
+      this._type = type;
     }
   );
 
+  $.Method({Static:false , Public:true}, "get_Type", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []), 
+    function get_Type() {
+      return this._type;
+    }
+  );
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Linq.Expressions.Expression"), "System.Linq.Expressions.ParameterExpression", true, [], function ($) {

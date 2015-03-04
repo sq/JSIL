@@ -8,6 +8,8 @@ public static class Program
 
     public static void Main(string[] args)
     {
+        Expression<Func<int, bool>> expr = (value) => value == 42;
+
         WriteMethod(() => StaticMethodNonGeneric());
         WriteMethod(() => StaticMethodGeneric<A>());
 
