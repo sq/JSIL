@@ -52,8 +52,18 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
+      function isNullPointer(p) {
+        return (lhs.pointer === null && lhs.value == 0) ||
+               (lhs.pointer !== null && lhs.pointer.offsetInBytes == 0)
+      }
+
+      // Null pointers always equal, regardless of where they came from      
+      if (isNullPointer(lhs) && isNullPointer(rhs)) {
+        return true;
+      }
+
       if (lhs.pointer !== null) {
-        if (!rhs.pointer)
+        if (!rhs.pointer) // Non-null emscripten pointers can't equal C# ones
           return false;
 
         return rhs.pointer.equals(lhs.pointer);
@@ -66,6 +76,15 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Inequality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Inequality (lhs, rhs) {
+      function isNullPointer(p) {
+        return (lhs.pointer === null && lhs.value == 0) ||
+               (lhs.pointer !== null && lhs.pointer.offsetInBytes == 0)
+      }
+
+      if (isNullPointer(lhs) && isNullPointer(rhs)) {
+        return false;
+      }
+
       if (lhs.pointer !== null) {
         if (!rhs.pointer)
           return true;
