@@ -5,12 +5,7 @@ public static class Program
 {
     public static void Main()
     {
-        Test(new Test());
-        //TestInterface(new Test());
-
-        Action a = M1;
-        a += M2;
-        WriteAction(a);
+        TestInterface(new Test());
     }
 
     public static void TestInterface(ITest<object> item)
@@ -26,19 +21,6 @@ public static class Program
         WriteAction((Action)Delegate.CreateDelegate(typeof(Action), item, typeof(ITest<object>).GetMethod("GenericMethod2").MakeGenericMethod(typeof(string))));
     }
 
-    public static void Test(Test item)
-    {
-        WriteAction(item.Method1);
-        WriteAction(item.Method2);
-        WriteAction(item.GenericMethod1<int>);
-        WriteAction(item.GenericMethod2<string>);
-
-        WriteAction((Action)Delegate.CreateDelegate(typeof(Action), item, typeof(Test).GetMethod("Method1")));
-        WriteAction((Action)Delegate.CreateDelegate(typeof(Action), item, typeof(Test).GetMethod("Method2")));
-        WriteAction((Action)Delegate.CreateDelegate(typeof(Action), item, typeof(Test).GetMethod("GenericMethod1").MakeGenericMethod(typeof(string))));
-        WriteAction((Action)Delegate.CreateDelegate(typeof(Action), item, typeof(Test).GetMethod("GenericMethod2").MakeGenericMethod(typeof(string))));
-    }
-
     public static void WriteAction(Action action)
     {
         Console.Write(action.Method.DeclaringType.Name);
@@ -51,16 +33,6 @@ public static class Program
         Console.Write(".");
         Console.WriteLine(mi.Name);
         Console.WriteLine(mi.ContainsGenericParameters ? "true" : "false");
-    }
-
-    public static void M1()
-    {
-
-    }
-
-    public static void M2()
-    {
-
     }
 }
 

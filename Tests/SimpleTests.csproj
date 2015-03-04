@@ -88,6 +88,7 @@
     <None Include="SimpleTestCases\Issue478.cs" />
     <None Include="SimpleTestCases\Issue560.cs" />
     <None Include="SimpleTestCases\Issue491.cs" />
+    <None Include="SimpleTestCases\DelegateDetached_Issue624.cs" />
     <None Include="SimpleTestCases\Issue491_2.cs" />
     <None Include="SimpleTestCases\Issue491_3.cs" />
     <None Include="SimpleTestCases\Issue682.cs" />
