@@ -101,6 +101,10 @@ export(void)Free(void * ptr) {
     return free(ptr);
 }
 
+export(void *) ReturnNullPtr() {
+	return NULL;
+}
+
 export(float) AddFloat (float a, float b) {
 	return a + b;
 }
