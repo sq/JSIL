@@ -2305,6 +2305,7 @@ namespace JSIL.Ast {
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
             var cte = inner as JSChangeTypeExpression;
             var literal = inner as JSIntegerLiteral;
+            var variable = inner as JSVariable;
             JSChangeTypeExpression result;
 
             if (cte != null) {
@@ -2318,9 +2319,14 @@ namespace JSIL.Ast {
             var innerType = inner.GetActualType(typeSystem);
             if (TypeUtil.TypesAreEqual(newType, innerType))
                 return inner;
+            else if ((variable != null) && innerType.IsByReference &&
+                     TypeUtil.TypesAreEqual(((ByReferenceType) innerType).ElementType, newType)) {
+                return new JSReadThroughReferenceExpression(variable);
+            }
             else if ((literal != null) && TypeUtil.IsPointer(newType)) {
                 return new JSPointerLiteral(literal.Value, newType);
-            } else
+            }
+            else
                 return result;
         }
 
