@@ -19,5 +19,18 @@ public static class Program {
         PrintCompared("Asd", "asdf", StringComparison.OrdinalIgnoreCase);
         PrintCompared("asd", "asdf", StringComparison.Ordinal);
         PrintCompared("asd", "asdf", StringComparison.OrdinalIgnoreCase);
+
+        PrintCompared(null, "asd", StringComparison.Ordinal);
+        PrintCompared("asd", null, StringComparison.Ordinal);
+        PrintCompared(null, "asd", StringComparison.OrdinalIgnoreCase);
+        PrintCompared("asd", null, StringComparison.OrdinalIgnoreCase);
+
+        PrintCompared(null, string.Empty, StringComparison.Ordinal);
+        PrintCompared(string.Empty, null, StringComparison.Ordinal);
+        PrintCompared(null, string.Empty, StringComparison.OrdinalIgnoreCase);
+        PrintCompared(string.Empty, null, StringComparison.OrdinalIgnoreCase);
+
+        PrintCompared(null, null, StringComparison.Ordinal);
+        PrintCompared(null, null, StringComparison.OrdinalIgnoreCase);
     }
 }
