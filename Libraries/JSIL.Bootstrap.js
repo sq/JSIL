@@ -411,7 +411,8 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
             if (!impl) {
               throw new System.Exception("Method has no implementation");
             } else if (typeof (impl) === "function") {
-              return delegatePublicInterface.New(realFirstAgument, impl, function () { return null; })(Array.prototype.slice.call(arguments, 1));
+              var f = delegatePublicInterface.New(realFirstAgument, impl, function () { return null; });
+              return f.apply(null, Array.prototype.slice.call(arguments, 1));
             } else {
               throw new Error("Unexpected JSIL.$GetMethodImplementation result");
             }

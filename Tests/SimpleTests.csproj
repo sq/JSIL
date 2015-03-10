@@ -89,7 +89,6 @@
     <None Include="SimpleTestCases\Issue478.cs" />
     <None Include="SimpleTestCases\Issue560.cs" />
     <None Include="SimpleTestCases\Issue491.cs" />
-    <None Include="SimpleTestCases\DelegateDetached_Issue624.cs" />
     <None Include="SimpleTestCases\Issue491_2.cs" />
     <None Include="SimpleTestCases\Issue491_3.cs" />
     <None Include="SimpleTestCases\Issue682.cs" />
@@ -108,6 +107,7 @@
     <None Include="SimpleTestCases\StringEscape_Issue687.cs" />
     <None Include="SimpleTestCases\Issue672_2.cs" />
     <None Include="SimpleTestCases\Issue705.cs" />
+    <None Include="SimpleTestCasesForStubbedBcl\DelegateComplexTest_Issue624.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
