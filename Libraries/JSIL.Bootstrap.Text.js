@@ -469,6 +469,13 @@ JSIL.ImplementExternals(
     );
 
     var compareInternal = function (lhs, rhs, comparison) {
+      if (lhs == null && rhs == null)
+        return 0;
+      else if (lhs == null)
+        return -1;
+      else if (rhs == null)
+        return 1;
+        
       switch (comparison.valueOf()) {
         case 1: // System.StringComparison.CurrentCultureIgnoreCase:
         case 3: // System.StringComparison.InvariantCultureIgnoreCase:
