@@ -157,6 +157,10 @@ export(void) FillUshortArray(uint16_t *ramp) {
 	ramp[0] = 192;
 }
 
+export(uint16_t) FirstElementOfUshortArray(uint16_t *arr) {
+	return arr[0];
+}
+
 export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 	return arg;
 }
