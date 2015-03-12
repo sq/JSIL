@@ -437,6 +437,13 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
       return path;
     }
   );
+
+  $.Method({Static:true , Public:true }, "IsPathRooted", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function GetFileName (path) {
+      return path.match(/^(\w:|\\)/);
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.IO.Stream", function ($) {
