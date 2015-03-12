@@ -725,33 +725,43 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
-  var ctorBytesImpl = function (self, bytes, writable) {
+  var ctorBytesImpl = function (self, bytes, index, count, writable) {
     System.IO.Stream.prototype._ctor.call(self);
 
     self._buffer = bytes;
     self._writable = writable;
-    self._length = self._capacity = bytes.length;
-    self._pos = 0;
+    self._length = bytes.length;
+    self._capacity = count;
+    self._pos = index;
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (JSIL.MethodSignature.Void), 
     function _ctor () {
-      ctorBytesImpl(this, [], true);
+      ctorBytesImpl(this, [], 0, 0, true);
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function _ctor (buffer) {
-      ctorBytesImpl(this, buffer, true);
+      ctorBytesImpl(this, buffer, 0, buffer.length, true);
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Boolean], [])), 
     function _ctor (buffer, writable) {
-      ctorBytesImpl(this, buffer, writable);
+      ctorBytesImpl(this, buffer, 0, buffer.length, writable);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor",
+    /* Initializes a new non-resizable instance of the MemoryStream class based on the specified region of a 
+       byte array, with the CanWrite property set as specified. */
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, $.Int32, $.Boolean], [])), 
+    function _ctor (buffer, index, count, writable) {
+      ctorBytesImpl(this, buffer, index, count, writable);
     }
   );
 
