@@ -178,10 +178,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return;
             }
 
-            AddType(resolvedType.BaseType);
-
             if (types.Add(resolvedType))
             {
+                AddType(resolvedType.BaseType);
+
                 if (resolvedType.HasCustomAttributes)
                 {
                     foreach (CustomAttribute attribute in resolvedType.CustomAttributes)
