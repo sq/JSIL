@@ -27,7 +27,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             fields = new HashSet<FieldDefinition>();
             assemblies = new HashSet<AssemblyDefinition>();
 
-            if (configuration.WhiteList != null &
+            if (configuration.WhiteList != null &&
                 configuration.WhiteList.Count > 0) {
                 whiteListCache = new List<Regex>(configuration.WhiteList.Count);
                 foreach (var pattern in configuration.WhiteList) {
@@ -370,7 +370,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             foreach (ModuleDefinition module in modules) {
                 typeMapStep.ProcessModule(module);
 
-                if (whiteListCache.Count > 0) {
+                if (whiteListCache != null && whiteListCache.Count > 0) {
                     foreach (var type in module.Types) {
                         ProcessWhiteList(type);
                     }
@@ -381,7 +381,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
-            if (configuration.WhiteList == null)
+            if (whiteListCache == null)
                 return false;
 
             foreach (var regex in whiteListCache) {
