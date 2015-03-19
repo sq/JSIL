@@ -370,10 +370,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             foreach (ModuleDefinition module in modules) {
                 typeMapStep.ProcessModule(module);
 
-                if (whiteListCache != null && whiteListCache.Count > 0) {
-                    foreach (var type in module.Types) {
-                        ProcessWhiteList(type);
-                    }
+                foreach (var type in module.Types) {
+                    ProcessWhiteList(type);
                 }
             }
 
@@ -381,12 +379,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
-            if (whiteListCache == null)
-                return false;
-
-            foreach (var regex in whiteListCache) {
-                if (regex.IsMatch(member.FullName))
-                    return true;
+            if (whiteListCache != null)
+            {
+                foreach (var regex in whiteListCache)
+                {
+                    if (regex.IsMatch(member.FullName))
+                        return true;
+                }
             }
 
             IEnumerable<CustomAttribute> customAttributes = null;
