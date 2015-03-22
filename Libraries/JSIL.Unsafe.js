@@ -53,8 +53,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
       function isNullPointer(p) {
-        return (lhs.pointer === null && lhs.value == 0) ||
-               (lhs.pointer !== null && lhs.pointer.offsetInBytes == 0)
+        return (lhs.pointer == null && lhs.value == 0) ||
+               (lhs.pointer != null && lhs.pointer.offsetInBytes == 0)
       }
 
       // Null pointers always equal, regardless of where they came from      
@@ -77,8 +77,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Inequality (lhs, rhs) {
       function isNullPointer(p) {
-        return (lhs.pointer === null && lhs.value == 0) ||
-               (lhs.pointer !== null && lhs.pointer.offsetInBytes == 0)
+        return (lhs.pointer == null && lhs.value == 0) ||
+               (lhs.pointer != null && lhs.pointer.offsetInBytes == 0)
       }
 
       if (isNullPointer(lhs) && isNullPointer(rhs)) {
