@@ -148,6 +148,7 @@
     <None Include="EmscriptenTestCases\OutUshortArrayParameter - Copy.cs" />
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <None Include="EmscriptenTestCases\IntPtrZeroEquality.cs" />
+    <None Include="EmscriptenTestCases\StringRefArgument.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>

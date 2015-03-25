@@ -164,3 +164,7 @@ export(uint16_t) FirstElementOfUshortArray(uint16_t *arr) {
 export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 	return arg;
 }
+
+export(int) ReadStringLength(const char *s) {
+	return strlen(s);
+}
