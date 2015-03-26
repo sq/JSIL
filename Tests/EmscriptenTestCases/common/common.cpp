@@ -73,6 +73,14 @@ export(int) CopyStringArgument (char * dst, const int capacity, const char * src
     return length;
 }
 
+
+export(int) CopySecondStringFromArray(char * dst, const int capacity, const char ** src) {
+	int length = strlen(src[1]);
+	memset(dst, 0, capacity);
+	strcpy(dst, src[1]);
+	return length;
+}
+
 export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
     const char * str = "hello world";
     memset(dst, 0, capacity);
