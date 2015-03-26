@@ -160,3 +160,7 @@ export(void) FillUshortArray(uint16_t *ramp) {
 export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 	return arg;
 }
+
+export(int) ReadRefStringLength(const char **s) {
+	return strlen(*s);
+}

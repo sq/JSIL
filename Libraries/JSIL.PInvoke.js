@@ -619,8 +619,30 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
 };
 
 JSIL.PInvoke.StringMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  JSIL.RuntimeError("Not implemented");
-};
+  var module = callContext.module;
+
+  if (nativeValue < 0) {
+      JSIL.RuntimeErrorFormat("StringMarshaller NativeToManaged got a negative nativeValue ({0})", [nativeValue]);
+      return null;
+  }
+
+  var length = 0;
+  while (true) {
+    if (module.HEAPU8[(nativeValue + length) | 0] == 0) {
+      break;
+    }
+    length += 1;
+  }
+
+  var memoryRange = new JSIL.MemoryRange(module.HEAPU8.buffer, nativeValue, length);
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var view = memoryRange.getView(tByte);
+
+  var s = System.Text.Encoding.ASCII.GetString(view);
+  JSIL.WarningFormat("assuming string is ASCII-encoded: {0}", [s]);
+  return s;
+}
 
 
 JSIL.PInvoke.DelegateMarshaller = function DelegateMarshaller (type) {
