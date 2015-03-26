@@ -495,12 +495,31 @@ JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
 
 JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = callContext.module;
+
+  if (this.elementType.__FullName__ == "System.String") {
+    // for string arrays, just marshal a pointer to each of them individually
+    var pointers = new Uint32Array(managedValue.length);
+    var stringMarshaller = new JSIL.PInvoke.StringMarshaller();
+    for (var i = 0; i < managedValue.length; i++) {
+      pointers[i] = stringMarshaller.ManagedToNative(managedValue[i], callContext);
+    }
+
+    // Allocate bytes needed for the array of pointers
+    var nPointerBytes = pointers.length * pointers.BYTES_PER_ELEMENT;
+    var pointerPtr = module._malloc(nPointerBytes);
+
+    // Copy array of pointers to Emscripten heap
+    var pointerHeap = new Uint8Array(module.HEAPU8.buffer, pointerPtr, nPointerBytes);
+    pointerHeap.set(new Uint8Array(pointers.buffer));
+
+    return pointerHeap.byteOffset;
+  }
+
   var pointer = JSIL.PinAndGetPointer(managedValue, 0, false);
 
   if (pointer === null) {
     // Array can't be pinned, so copy to temporary storage one item at a time, then back
     // FIXME: Generate a one-time performance warning if this array is big
-
     var arrayLength = managedValue.length;
     var itemSizeBytes = JSIL.GetNativeSizeOf(this.elementType);
     var sizeBytes = arrayLength * itemSizeBytes;
