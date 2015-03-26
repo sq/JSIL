@@ -147,6 +147,7 @@
     <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <None Include="EmscriptenTestCases\IntPtrZeroEquality.cs" />
+    <None Include="EmscriptenTestCases\StringArrayParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
