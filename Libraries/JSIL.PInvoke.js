@@ -504,11 +504,9 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
       pointers[i] = stringMarshaller.ManagedToNative(managedValue[i], callContext);
     }
 
-    // Allocate bytes needed for the array of pointers
     var nPointerBytes = pointers.length * pointers.BYTES_PER_ELEMENT;
     var pointerPtr = module._malloc(nPointerBytes);
 
-    // Copy array of pointers to Emscripten heap
     var pointerHeap = new Uint8Array(module.HEAPU8.buffer, pointerPtr, nPointerBytes);
     pointerHeap.set(new Uint8Array(pointers.buffer));
 
@@ -549,9 +547,9 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
     var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
     var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
 
-    if (this.isOut) {
-      destView.set(sourceView, 0);
+     destView.set(sourceView, 0);
 
+    if (this.isOut) {
       callContext.QueueCleanup(function () {
         sourceView.set(destView, 0);
       });

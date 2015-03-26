@@ -176,3 +176,7 @@ export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 export(int) ReadStringLength(const char *s) {
 	return strlen(s);
 }
+
+export(int) ReturnSecondIntFromArray(int *ints) {
+	return ints[1];
+}

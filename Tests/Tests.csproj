@@ -145,11 +145,10 @@
     <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\StaticStringFromIntPtr.cs" />
     <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
-    <None Include="EmscriptenTestCases\OutUshortArrayParameter - Copy.cs" />
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <None Include="EmscriptenTestCases\IntPtrZeroEquality.cs" />
-    <None Include="EmscriptenTestCases\StringRefArgument.cs" />
     <None Include="EmscriptenTestCases\StringArrayParameter.cs" />
+    <None Include="EmscriptenTestCases\IntArrayParameter.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">
       <SubType>Component</SubType>
