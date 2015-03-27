@@ -1789,6 +1789,13 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Contains",
+    new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")], []),
+    function Contains (value) {
+      return JSIL.Array.IndexOf(this._items, this._items.length, value) >= 0;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Count", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Count () {
