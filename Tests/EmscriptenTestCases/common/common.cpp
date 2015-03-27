@@ -56,6 +56,10 @@ export(const char *) ReturnString(const char *s) {
 	return s;
 }
 
+export(int) ReturnInt(int i) {
+	return i;
+}
+
 export(const unsigned char *) ReturnStaticString() {
 	return (const unsigned char *)"fuzzy pickles";
 }
