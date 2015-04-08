@@ -495,12 +495,29 @@ JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
 
 JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = callContext.module;
+
+  if (this.elementType.__FullName__ == "System.String") {
+    // for string arrays, just marshal a pointer to each of them individually
+    var pointers = new Uint32Array(managedValue.length);
+    var stringMarshaller = new JSIL.PInvoke.StringMarshaller();
+    for (var i = 0; i < managedValue.length; i++) {
+      pointers[i] = stringMarshaller.ManagedToNative(managedValue[i], callContext);
+    }
+
+    var nPointerBytes = pointers.length * pointers.BYTES_PER_ELEMENT;
+    var pointerPtr = module._malloc(nPointerBytes);
+
+    var pointerHeap = new Uint8Array(module.HEAPU8.buffer, pointerPtr, nPointerBytes);
+    pointerHeap.set(new Uint8Array(pointers.buffer));
+
+    return pointerHeap.byteOffset;
+  }
+
   var pointer = JSIL.PinAndGetPointer(managedValue, 0, false);
 
   if (pointer === null) {
     // Array can't be pinned, so copy to temporary storage one item at a time, then back
     // FIXME: Generate a one-time performance warning if this array is big
-
     var arrayLength = managedValue.length;
     var itemSizeBytes = JSIL.GetNativeSizeOf(this.elementType);
     var sizeBytes = arrayLength * itemSizeBytes;
@@ -530,9 +547,9 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
     var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
     var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
 
-    if (this.isOut) {
-      destView.set(sourceView, 0);
+     destView.set(sourceView, 0);
 
+    if (this.isOut) {
       callContext.QueueCleanup(function () {
         sourceView.set(destView, 0);
       });
@@ -619,8 +636,30 @@ JSIL.PInvoke.StringMarshaller.prototype.ManagedToNative = function (managedValue
 };
 
 JSIL.PInvoke.StringMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
-  JSIL.RuntimeError("Not implemented");
-};
+  var module = callContext.module;
+
+  if (nativeValue < 0) {
+      JSIL.RuntimeErrorFormat("StringMarshaller NativeToManaged got a negative nativeValue ({0})", [nativeValue]);
+      return null;
+  }
+
+  var length = 0;
+  while (true) {
+    if (module.HEAPU8[(nativeValue + length) | 0] == 0) {
+      break;
+    }
+    length += 1;
+  }
+
+  var memoryRange = new JSIL.MemoryRange(module.HEAPU8.buffer, nativeValue, length);
+
+  var tByte = $jsilcore.System.Byte.__Type__;
+  var view = memoryRange.getView(tByte);
+
+  var s = System.Text.Encoding.ASCII.GetString(view);
+  JSIL.WarningFormat("assuming string is ASCII-encoded: {0}", [s]);
+  return s;
+}
 
 
 JSIL.PInvoke.DelegateMarshaller = function DelegateMarshaller (type) {

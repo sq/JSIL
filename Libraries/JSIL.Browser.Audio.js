@@ -532,7 +532,7 @@ function loadSoundGeneric (audioInfo, filename, data, onError, onDoneLoading) {
 };
 
 function initSoundLoader () {
-  var audioContextCtor = window.webkitAudioContext || window.mozAudioContext || window.AudioContext;
+  var audioContextCtor = window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.AudioContext;
 
   var audioInfo = JSIL.CreateDictionaryObject($blobBuilderInfo);
 

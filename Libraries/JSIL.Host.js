@@ -149,7 +149,8 @@ JSIL.Host.logWriteLine = function (text) {
 
 JSIL.Host.warning = function (text) {
   var svc = JSIL.Host.getService("stderr");
-  svc.write(text + "\n");
+  var stack = Error().stack;
+  svc.write(text + "\n" + stack.slice(stack.indexOf("\n", 6)+1, -1));
 }
 
 JSIL.Host.abort = function (exception, extraInfo) {

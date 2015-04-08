@@ -56,6 +56,10 @@ export(const char *) ReturnString(const char *s) {
 	return s;
 }
 
+export(int) ReturnInt(int i) {
+	return i;
+}
+
 export(const unsigned char *) ReturnStaticString() {
 	return (const unsigned char *)"fuzzy pickles";
 }
@@ -71,6 +75,14 @@ export(int) CopyStringArgument (char * dst, const int capacity, const char * src
     memset(dst, 0, capacity);
     strcpy(dst, src);
     return length;
+}
+
+
+export(int) CopySecondStringFromArray(char * dst, const int capacity, const char ** src) {
+	int length = strlen(src[1]);
+	memset(dst, 0, capacity);
+	strcpy(dst, src[1]);
+	return length;
 }
 
 export(int) WriteStringIntoBuffer (unsigned char * dst, const int capacity) {
@@ -99,6 +111,10 @@ export(void *)Alloc(int size) {
 
 export(void)Free(void * ptr) {
     return free(ptr);
+}
+
+export(void *) ReturnNullPtr() {
+	return NULL;
 }
 
 export(float) AddFloat (float a, float b) {
@@ -153,6 +169,18 @@ export(void) FillUshortArray(uint16_t *ramp) {
 	ramp[0] = 192;
 }
 
+export(uint16_t) FirstElementOfUshortArray(uint16_t *arr) {
+	return arr[0];
+}
+
 export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 	return arg;
+}
+
+export(int) ReadStringLength(const char *s) {
+	return strlen(s);
+}
+
+export(int) ReturnSecondIntFromArray(int *ints) {
+	return ints[1];
 }

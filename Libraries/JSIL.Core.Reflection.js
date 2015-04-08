@@ -250,6 +250,16 @@ JSIL.ImplementExternals(
         return getMethodImpl(this, name, defaultFlags(), argumentTypes);
       }
     );
+    
+    $.Method({Public: true , Static: false}, "GetMethod",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [$.String, $jsilcore.TypeRef("System.Reflection.BindingFlags"), $jsilcore.TypeRef("System.Reflection.Binder"), typeArray, $jsilcore.TypeRef("System.Array", ["System.Reflection.ParameterModifier"])]),      
+      function (name, flags, binder, argumentTypes, modifiers) {
+        if (binder !== null || modifiers !== null) {
+          throw new System.NotImplementedException("Binder and ParameterModifier are not supported yet.");
+        }
+        return getMethodImpl(this, name, flags, argumentTypes);
+      }
+    );
 
     $.Method({Public: true , Static: false}, "GetMethods",
       new JSIL.MethodSignature(methodArray, []),      
@@ -829,6 +839,27 @@ JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
       return getSetMethodImpl.call(this, true) !== null;
     }
   );
+  
+  var equalsImpl = function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    return JSIL.ObjectEquals(lhs, rhs);
+  };
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.PropertyInfo"), $jsilcore.TypeRef("System.Reflection.PropertyInfo")], [])), 
+    function op_Equality (left, right) {
+      return equalsImpl(left, right);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.PropertyInfo"), $jsilcore.TypeRef("System.Reflection.PropertyInfo")], [])), 
+    function op_Inequality (left, right) {
+      return !equalsImpl(left, right);
+    }
+  );
 });
 
 $jsilcore.$MethodGetParameters = function (method) {
@@ -931,6 +962,10 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
           if (parameters[i] === null && parameterTypes[i].IsValueType)
             parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
         }
+      }
+      
+      if (this.IsStatic) {
+        obj = this._typeObject.__PublicInterface__;
       }
 
       return impl.apply(obj, parameters);
@@ -1045,6 +1080,34 @@ JSIL.ImplementExternals(
         }
 
         return obj[this._descriptor.Name];
+      }
+    );
+    
+    var equalsImpl = function (lhs, rhs) {
+      if (lhs === rhs)
+        return true;
+
+      return JSIL.ObjectEquals(lhs, rhs);
+    };
+
+    $.Method({Static:true , Public:true }, "op_Equality", 
+      (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.FieldInfo"), $jsilcore.TypeRef("System.Reflection.FieldInfo")], [])), 
+      function op_Equality (left, right) {
+        return equalsImpl(left, right);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "op_Inequality", 
+      (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.FieldInfo"), $jsilcore.TypeRef("System.Reflection.FieldInfo")], [])), 
+      function op_Inequality (left, right) {
+        return !equalsImpl(left, right);
+      }
+    );
+    
+    $.Method({Static:false , Public:true }, "get_IsLiteral", 
+      (new JSIL.MethodSignature($.Boolean, [], [])), 
+      function get_IsLiteral () {
+        return false;
       }
     );
 
@@ -1417,6 +1480,20 @@ JSIL.ImplementExternals("System.Reflection.ConstructorInfo", function ($) {
       return JSIL.CreateInstanceOfType(this.get_DeclaringType(), impl, parameters);
     }
   );
+  
+  $.Method({Static: true, Public: true }, "op_Inequality", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], []),
+    function op_Inequality (left, right) {
+      return left !== right;
+    }
+  );  
+  
+  $.Method({Static: true, Public: true }, "op_Equality", 
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.ConstructorInfo"), $jsilcore.TypeRef("System.Reflection.ConstructorInfo")], []),
+    function op_Equality (left, right) {
+      return left === right;
+    }
+  ); 
 });
 
 JSIL.ImplementExternals("System.Reflection.EventInfo", function ($) {
