@@ -27,7 +27,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             fields = new HashSet<FieldDefinition>();
             assemblies = new HashSet<AssemblyDefinition>();
 
-            if (configuration.WhiteList != null &
+            if (configuration.WhiteList != null &&
                 configuration.WhiteList.Count > 0) {
                 whiteListCache = new List<Regex>(configuration.WhiteList.Count);
                 foreach (var pattern in configuration.WhiteList) {
@@ -178,10 +178,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return;
             }
 
-            AddType(resolvedType.BaseType);
-
             if (types.Add(resolvedType))
             {
+                AddType(resolvedType.BaseType);
+
                 if (resolvedType.HasCustomAttributes)
                 {
                     foreach (CustomAttribute attribute in resolvedType.CustomAttributes)
@@ -370,10 +370,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             foreach (ModuleDefinition module in modules) {
                 typeMapStep.ProcessModule(module);
 
-                if (whiteListCache.Count > 0) {
-                    foreach (var type in module.Types) {
-                        ProcessWhiteList(type);
-                    }
+                foreach (var type in module.Types) {
+                    ProcessWhiteList(type);
                 }
             }
 
@@ -381,12 +379,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
-            if (configuration.WhiteList == null)
-                return false;
-
-            foreach (var regex in whiteListCache) {
-                if (regex.IsMatch(member.FullName))
-                    return true;
+            if (whiteListCache != null)
+            {
+                foreach (var regex in whiteListCache)
+                {
+                    if (regex.IsMatch(member.FullName))
+                        return true;
+                }
             }
 
             IEnumerable<CustomAttribute> customAttributes = null;
