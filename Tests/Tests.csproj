@@ -145,6 +145,7 @@
     <None Include="EmscriptenTestCases\GetDelegateForFunctionPointer.cs" />
     <None Include="EmscriptenTestCases\StaticStringFromIntPtr.cs" />
     <None Include="EmscriptenTestCases\OutStructArrayParameter.cs" />
+    <None Include="AnalysisTestCases\Issue696.cs" />
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <Compile Include="EmscriptenTests.cs" />
     <Compile Include="CodeProviders.cs">

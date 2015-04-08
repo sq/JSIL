@@ -769,5 +769,17 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void Issue696 () {
+            string output = "ExtraAccessToAvoidException - Success (not expected)";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\Issue696.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }
