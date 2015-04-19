@@ -438,6 +438,21 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   );
 });
 
+JSIL.MakeEnum(
+  {
+    FullName: "System.Runtime.InteropServices.GCHandleType", 
+    BaseType: $jsilcore.TypeRef("System.Int32"), 
+    IsPublic: true, 
+    IsFlags: false, 
+  }, 
+  {
+    Weak: 0, 
+    WeakTrackResurrection: 1, 
+    Normal: 2, 
+    Pinned: 3, 
+  }
+);
+
 JSIL.ImplementExternals("System.Buffer", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
