@@ -481,6 +481,42 @@ JSIL.PInvoke.ByRefMarshaller.prototype.NativeToManaged = function (nativeValue, 
 };
 
 
+JSIL.PInvoke.ByRefStringMarshaller = function ByRefStringMarshaller () {
+  this.innerMarshaller = JSIL.PInvoke.GetMarshallerForType(System.String.__Type__);
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByRefStringMarshaller);
+
+JSIL.PInvoke.ByRefStringMarshaller.prototype.GetSignatureToken = function () {
+  return "i";
+};
+
+JSIL.PInvoke.ByRefStringMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  var module = callContext.module;
+  var addressOffset = callContext.Allocate(4);
+
+  var emscriptenOffset = this.innerMarshaller.ManagedToNative(managedValue.get(), callContext);
+  module.HEAPU32[addressOffset / 4] = emscriptenOffset;
+
+  var innerMarshaller = this.innerMarshaller;
+
+  callContext.QueueCleanup(function () {
+    var newOffset = module.HEAPU32[addressOffset / 4];
+
+    if (newOffset != emscriptenOffset)
+      managedValue.set(innerMarshaller.NativeToManaged(newOffset, callContext));
+  });
+
+  return addressOffset;
+};
+
+JSIL.PInvoke.ByRefStringMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  // FIXME: Is this right?
+  var resultString = innerMarshaller.NativeToManaged(nativeValue, callContext);
+  return new JSIL.BoxedValue(resultString);  
+};
+
+
 JSIL.PInvoke.ArrayMarshaller = function ArrayMarshaller (type, isOut) {
   this.type = type;
   this.elementType = type.__ElementType__;
@@ -773,8 +809,13 @@ JSIL.PInvoke.WrapManagedCustomMarshaler = function (type, customMarshaler, cooki
 JSIL.PInvoke.GetMarshallerForType = function (type, box, isOut) {
   // FIXME: Caching
 
-  if (type.__IsByRef__)
-    return new JSIL.PInvoke.ByRefMarshaller(type);
+  if (type.__IsByRef__) {
+    var rt = type.__ReferentType__.__Type__ || type.__ReferentType__;
+    if (rt && rt.__FullName__ === "System.String")
+      return new JSIL.PInvoke.ByRefStringMarshaller();
+    else
+      return new JSIL.PInvoke.ByRefMarshaller(type);
+  }
 
   var typeName = type.__FullNameWithoutArguments__ || type.__FullName__;
 

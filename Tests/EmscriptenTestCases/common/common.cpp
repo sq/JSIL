@@ -177,8 +177,8 @@ export(AlignmentStruct) TestAlignment(const AlignmentStruct arg) {
 	return arg;
 }
 
-export(int) ReadStringLength(const char *s) {
-	return strlen(s);
+export(int) ReadStringLength(const char **s) {
+	return strlen(*s);
 }
 
 export(int) ReturnSecondIntFromArray(int *ints) {
