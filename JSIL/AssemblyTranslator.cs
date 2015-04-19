@@ -3051,9 +3051,11 @@ namespace JSIL {
 
                 TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
 
-                TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+                if (!makeSkeleton)
+                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
 
-                TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
+                if (!makeSkeleton)
+                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
 
                 output.Semicolon();
             } finally {
