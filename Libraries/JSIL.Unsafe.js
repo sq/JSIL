@@ -1816,10 +1816,6 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
       var unmarshaller = JSIL.$GetStructUnmarshaller(field.type);
       var cachedInstanceKey = "this.cached$" + field.name;
 
-      // FIXME: Is this going to work consistently?
-      var template = JSIL.CreateInstanceOfType(field.type, null);
-
-
       adapterSource.push("var cachedInstance = " + cachedInstanceKey + ";");
       adapterSource.push("if (cachedInstance !== null) {");
       adapterSource.push("  unmarshaller(cachedInstance, this.$bytes, offset);");
@@ -1841,6 +1837,40 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
   } else {
     return JSIL.$MakeUnmarshallableFieldAccessor(field.name); 
   }
+};
+
+JSIL.$MakeProxyFieldGetter = function (typeObject, field, viewBytes, nativeView) {
+  var fieldOffset = field.offsetBytes | 0;
+  var fieldSize = field.sizeBytes | 0;
+  var proxyConstructor = JSIL.$GetStructElementProxyConstructor(field.type);
+
+  if (!field.type.__IsStruct__)
+    JSIL.RuntimeError("Field must be a struct");
+
+  var adapterSource = [
+    "var offset = ((this.$offset | 0) + " + fieldOffset + ") | 0;"
+  ];
+
+  var unmarshalConstructor = JSIL.$GetStructUnmarshalConstructor(field.type);
+  var unmarshaller = JSIL.$GetStructUnmarshaller(field.type);
+  var cachedInstanceKey = "this.cached$" + field.name;
+
+  adapterSource.push("var cachedInstance = " + cachedInstanceKey + ";");
+  adapterSource.push("if (cachedInstance !== null) {");
+  adapterSource.push("  cachedInstance.retargetBytes(this.$bytes, this.$offset + fieldOffset);");
+  adapterSource.push("  return cachedInstance;");
+  adapterSource.push("}");
+  adapterSource.push("");
+  adapterSource.push("return " + cachedInstanceKey + " = new proxyConstructor(this.$bytes, this.$offset + fieldOffset);");
+
+  return JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".Proxy.get_" + field.name, [],
+    adapterSource.join("\n"),
+    { 
+      proxyConstructor: proxyConstructor,
+      fieldOffset: fieldOffset
+    }
+  );
 };
 
 JSIL.$MakeElementProxyConstructor = function (typeObject) {
@@ -1870,6 +1900,14 @@ JSIL.$MakeElementProxyConstructor = function (typeObject) {
 
     if (size <= 0) {
       getter = setter = JSIL.$MakeUnmarshallableFieldAccessor(field.name);
+    } else if (field.type.__IsStruct__) {
+      // HACK: Struct fields must be element proxies themselves so writes like this work:
+      // proxy.Field.Field += 1
+      // TODO: Maybe hoist this into the compiler to make it cheaper for non-write scenarios?
+      var nativeView = marshallingScratchBuffer.getView(field.type, false);
+      getter = JSIL.$MakeProxyFieldGetter(typeObject, field, viewBytes, nativeView);
+      setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true);
+      constructorBody.push("this.cached$" + field.name + " = null;");
     } else {
       var nativeView = marshallingScratchBuffer.getView(field.type, false);
       getter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, false);

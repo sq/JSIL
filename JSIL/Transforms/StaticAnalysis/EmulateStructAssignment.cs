@@ -176,13 +176,17 @@ namespace JSIL.Transforms {
 
             var valueDot = value as JSDotExpressionBase;
 
-            // The value is being read out of an element proxy, so no copy is necessary - the read unpacks the value
-            //  on demand from the packed array.
+            // The value is being read out of an element proxy
             if (
                 (valueDot != null) &&
                 PackedArrayUtil.IsElementProxy(valueDot.Target)
             ) {
+                // BROKEN: no copy is necessary - the read unpacks the value on demand from the packed array.
                 // return false;
+
+                // HACK: Currently struct fields are proxies so that writes to them work correctly.
+                // FIXME: Maybe return true here always?
+                // return true;
             }
 
             var valueTypeInfo = TypeInfo.GetExisting(valueType);
