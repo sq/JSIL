@@ -109,3 +109,5 @@ pingme.txt
 /Tests/EmscriptenTestCases/common/common.lib
 /Tests/EmscriptenTestCases/common/common.obj
 /Tests/EmscriptenTestCases/common.js.map
+desktop.ini
+/httpd

@@ -3,10 +3,17 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.js must be loaded first");
 
-JSIL.SuppressInterfaceWarnings = true;
+if (typeof(JSIL.SuppressInterfaceWarnings) === "undefined")
+  JSIL.SuppressInterfaceWarnings = true;
+
 JSIL.ReadOnlyPropertyWriteWarnings = false;
-JSIL.ThrowOnUnimplementedExternals = false;
-JSIL.ThrowOnStaticCctorError = false;
+
+if (typeof(JSIL.ThrowOnUnimplementedExternals) === "undefined")
+  JSIL.ThrowOnUnimplementedExternals = false;
+
+if (typeof(JSIL.ThrowOnStaticCctorError) === "undefined")
+  JSIL.ThrowOnStaticCctorError = false;
+
 JSIL.WarnAboutGenericResolveFailures = false;
 
 JSIL.$NextAssemblyId = 0;
@@ -4461,14 +4468,13 @@ JSIL.InitializeType = function (type) {
 };
 
 JSIL.$InvokeStaticConstructor = function (staticConstructor, typeObject, classObject) {
-  try {
+  if (JSIL.ThrowOnStaticCctorError) {
     staticConstructor.call(classObject);
-  } catch (e) {
-    typeObject.__StaticConstructorError__ = e;
-
-    if (JSIL.ThrowOnStaticCctorError) {
-      JSIL.Host.abort(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
-    } else {
+  } else {
+    try {
+      staticConstructor.call(classObject);
+    } catch (e) {
+      typeObject.__StaticConstructorError__ = e;
       JSIL.Host.warning("Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ":");
       JSIL.Host.warning(e);
     }

@@ -374,7 +374,7 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.GCHandle", function ($) 
   $.RawMethod(false, "$internalCtor", function (obj) {
     this._target = obj;
 
-    if (obj && obj.__ThisType__.__IsDelegate__) {
+    if (obj && obj.__ThisType__ && obj.__ThisType__.__IsDelegate__) {
       this._pointer = obj.$pin();
     } else {
       this._pointer = JSIL.PinAndGetPointer(obj, 0);

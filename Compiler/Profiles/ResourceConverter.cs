@@ -197,13 +197,14 @@ namespace JSIL.Utilities {
                 );
 
                 foreach (var kvp in manifestResources) {
-                    Console.WriteLine(kvp.Key);
                     var key = kvp.Key;
 
                     if (result.Files.ContainsKey(key)) {
                         if (result.Files[key].Size != kvp.Value.Length)
                             throw new InvalidOperationException("Found two conflicting manifest resources named '" + key + "'");
                     } else {
+                        Console.WriteLine(key);
+
                         result.AddFile(
                             "ManifestResource", key,
                             new ArraySegment<byte>(kvp.Value),
