@@ -2,9 +2,13 @@
 @del /Q *.js.map
 
 @if exist "%ProgramW6432%\Emscripten\emsdk_env.bat" (
-    @call "%ProgramW6432%\Emscripten\emsdk_env.bat" 
+    @pushd "%ProgramW6432%\Emscripten" 
+    @call "emsdk_env.bat" 
+    @popd
 ) else (
-    @call "%PROGRAMFILES%\Emscripten\emsdk_env.bat"
+    @pushd "%ProgramFiles%\Emscripten" 
+    @call "emsdk_env.bat" 
+    @popd
 )
 @if errorlevel 1 goto fail
 
