@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using JSIL.Meta;
 
@@ -94,6 +95,14 @@ namespace JSIL.Runtime {
 
                 return _Array;
             }
+        }
+
+        public GCHandle AllocHandle () {
+            return GCHandle.Alloc(_Array);
+        }
+
+        public GCHandle AllocHandle (GCHandleType type) {
+            return GCHandle.Alloc(_Array, type);
         }
 
         [JSIsPure]

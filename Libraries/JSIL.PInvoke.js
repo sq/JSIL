@@ -154,6 +154,10 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       this.ElementSize = JSIL.GetNativeSizeOf(this.T, false);
       var sizeBytes = this.ElementSize * this.Length;
 
+      // HACK because emscripten malloc is finicky
+      if (sizeBytes < 4)
+        sizeBytes = 4;
+
       this.Module = module;
       this.EmscriptenOffset = module._malloc(sizeBytes);
 
@@ -165,21 +169,21 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
       } else {
         var buffer = this.MemoryRange.getView(tByte);
 
-        var arrayType = JSIL.PackedStructArray.Of(elementTypeObject);
+        var arrayType = JSIL.PackedStructArray.Of(this.T);
         this._Array = new arrayType(buffer, this.MemoryRange);
       }
   });
 
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.Int32], []),
-    function (size) {
+    function NativePackedArray_ctor (size) {
       this.$innerCtor(JSIL.PInvoke.GetDefaultModule(), size);
     }
   );
 
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.String, $.Int32], []),
-    function (dllName, size) {
+    function NativePackedArray_ctor (dllName, size) {
       this.$innerCtor(JSIL.PInvoke.GetModule(dllName), size);
     }
   );
@@ -196,6 +200,23 @@ JSIL.MakeClass("System.Object", "JSIL.Runtime.NativePackedArray`1", true, ["T"],
     new JSIL.MethodSignature(TArray, [], []),
     function get_Array () {
       return this._Array;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AllocHandle", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Runtime.InteropServices.GCHandle"), [], []), 
+    function AllocHandle () {
+      return System.Runtime.InteropServices.GCHandle.Alloc(this._Array);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AllocHandle", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Runtime.InteropServices.GCHandle"), [$jsilcore.TypeRef("System.Runtime.InteropServices.GCHandleType")], []), 
+    function AllocHandle (type) {
+      // FIXME: type
+      return System.Runtime.InteropServices.GCHandle.Alloc(
+        this._Array, type
+      );
     }
   );
 
@@ -411,10 +432,23 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.GetSignatureToken = function () {
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   if (managedValue.pointer) {
-    if (callContext.module.HEAPU8.buffer !== managedValue.pointer.memoryRange.buffer)
-      JSIL.RuntimeError("The pointer does not point into the module's heap");
+    var sourceBuffer = managedValue.pointer.memoryRange.buffer;
+    var destBuffer = callContext.module.HEAPU8.buffer;
 
-    return managedValue.pointer.offsetInBytes | 0;
+    if (destBuffer === sourceBuffer) {
+      // Pointer is in the correct heap, so marshal as-is.
+      return managedValue.pointer.offsetInBytes | 0;
+    } else {
+      // HACK: Use the length of the underlying memory range the pointer
+      //  is aimed at as the length of the region being marshalled.
+      // Best we can do. Will be correct for trivial cases (pinned an array)
+      return JSIL.PInvoke.ArrayMarshaller.CreateTemporaryNativeCopy(
+        managedValue.pointer, managedValue.pointer.memoryRange.length, callContext, 
+        // HACK: no way to infer isOut reliably here
+        true
+      );
+    }
+
   } else {
     // HACK: We have no way to know this address is in the correct heap.
 
@@ -529,6 +563,30 @@ JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
   return "i";
 };
 
+JSIL.PInvoke.ArrayMarshaller.CreateTemporaryNativeCopy = function (pointer, sizeBytes, callContext, isOut) {
+  var module = callContext.module;
+
+  if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
+    return pointer.offsetInBytes | 0;
+  } else {
+    // Copy to temporary storage on the emscripten heap, then copy back after the call
+    var emscriptenOffset = callContext.Allocate(sizeBytes);
+
+    var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
+    var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
+
+    destView.set(sourceView, 0);
+
+    if (isOut) {
+      callContext.QueueCleanup(function () {
+        sourceView.set(destView, 0);
+      });
+    }
+
+    return emscriptenOffset;
+  }
+};
+
 JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = callContext.module;
 
@@ -572,27 +630,11 @@ JSIL.PInvoke.ArrayMarshaller.prototype.ManagedToNative = function (managedValue,
     }
 
     return emscriptenOffset;
-  } else if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
-    return pointer.offsetInBytes | 0;
-  } else {
-    // Copy to temporary storage on the emscripten heap, then copy back after the call
-
-    var sizeBytes = managedValue.byteLength;
-    var emscriptenOffset = callContext.Allocate(sizeBytes);
-
-    var sourceView = pointer.asView($jsilcore.System.Byte, sizeBytes);
-    var destView = new Uint8Array(module.HEAPU8.buffer, emscriptenOffset, sizeBytes);
-
-     destView.set(sourceView, 0);
-
-    if (this.isOut) {
-      callContext.QueueCleanup(function () {
-        sourceView.set(destView, 0);
-      });
-    }
-
-    return emscriptenOffset;
   }
+
+  return JSIL.PInvoke.ArrayMarshaller.CreateTemporaryNativeCopy(
+    pointer, managedValue.byteLength, callContext, this.isOut
+  );
 };
 
 JSIL.PInvoke.ArrayMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {

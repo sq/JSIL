@@ -8,6 +8,6 @@ public static unsafe class Program {
     public static void Main () {
         var arr = new ushort[5] { 1, 2, 3, 4, 5 };        
         GCHandle dataHandle = GCHandle.Alloc(arr, GCHandleType.Pinned);
-        Console.WriteLine("Test: {0}", FirstElementOfUshortArray((IntPtr) dataHandle.AddrOfPinnedObject().ToInt64()));
+        Console.WriteLine("Test: {0}", FirstElementOfUshortArray(dataHandle.AddrOfPinnedObject()));
     }
 }

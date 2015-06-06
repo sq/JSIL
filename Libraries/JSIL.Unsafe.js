@@ -505,6 +505,11 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
         this.length = buffer.byteLength;
       }
 
+      if (this.offset < 0)
+        JSIL.RuntimeError("MemoryRange offset must be >= 0");
+      else if (this.length < 0)
+        JSIL.RuntimeError("MemoryRange length must be >= 0");
+
       if (typeof (Map) !== "undefined") {
         this.viewCache = new Map();
         this.viewCacheIsMap = true;
@@ -1436,7 +1441,9 @@ JSIL.UnmarshalStruct = function Struct_Unmarshal (struct, bytes, offset) {
 };
 
 JSIL.GetNativeSizeOf = function GetNativeSizeOf (typeObject, forPInvoke) {
-  if (typeObject.__IsNativeType__) {
+  if (!typeObject) {
+    return -1;
+  } if (typeObject.__IsNativeType__) {
     var arrayCtor = JSIL.GetTypedArrayConstructorForElementType(typeObject, false);
     if (arrayCtor)
       return arrayCtor.BYTES_PER_ELEMENT;
@@ -1619,6 +1626,9 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject, forPInvoke);
   var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject, forPInvoke);
+  if (nativeSize < 0)
+    JSIL.RuntimeError("Type '" + typeObject.__FullName__ + "' cannot be marshalled");
+
   var scratchBuffer = new ArrayBuffer(nativeSize);
   var scratchRange = JSIL.GetMemoryRangeForBuffer(scratchBuffer);
 
