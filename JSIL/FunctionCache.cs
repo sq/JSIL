@@ -183,7 +183,7 @@ namespace JSIL {
             return true;
         }
 
-        public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method, QualifiedMemberIdentifier forMethod) {
+        public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method, QualifiedMemberIdentifier forCaller) {
             var entry = GetCacheEntry(method, false);
 
             if ((entry == null) || (entry.Expression == null))
@@ -228,7 +228,7 @@ namespace JSIL {
             return entry.SecondPass;
         }
 
-        public FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forMethod) {
+        public FunctionAnalysis2ndPass GetSecondPass (JSMethod method, QualifiedMemberIdentifier forCaller) {
             if (method == null)
                 return null;
 
@@ -240,7 +240,7 @@ namespace JSIL {
             if (entry == null)
                 return null;
 
-            GetFirstPass(id, forMethod);
+            GetFirstPass(id, forCaller);
 
             if (!TryAcquireStaticAnalysisDataLock(entry, method.QualifiedIdentifier))
                 return null;
