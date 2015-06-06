@@ -28,48 +28,6 @@ namespace JSIL.Transforms {
 
             Visit(function);
 
-            // Invocations that reassign or mutate this need to have a synthesized side effect
-            foreach (var invocation in State.Invocations) {
-                if (invocation.ThisVariable == null)
-                    continue;
-
-                bool shouldSynthesizeSideEffect = false;
-                do {
-                    var jsm = invocation.Method;
-                    if (jsm == null) {
-                        shouldSynthesizeSideEffect = true;
-                        break;
-                    }
-
-                    var SecondPass = FunctionSource.GetSecondPass(invocation.Method, identifier);
-                    if (SecondPass == null) {
-                        shouldSynthesizeSideEffect = true;
-                        break;
-                    }
-
-                    if (SecondPass.ViolatesThisReferenceImmutability) {
-                        shouldSynthesizeSideEffect = true;
-                        break;
-                    } else if (
-                        (SecondPass.Data != null) && 
-                        SecondPass.Data.SideEffects.Any(se => se.Variable == "this")
-                    ) {
-                        // FIXME: Is this necessary or is it overly conservative?
-                        shouldSynthesizeSideEffect = true;
-                        break;
-                    }
-
-                    if (!shouldSynthesizeSideEffect)
-                        ;
-                } while (false);
-
-                if (shouldSynthesizeSideEffect)
-                    State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        invocation.ParentNodeIndices, invocation.StatementIndex, invocation.NodeIndex, 
-                        invocation.ThisVariable, "this-reference is potentially reassigned or mutated"
-                    ));
-            }
-
             State.Accesses.Sort(FunctionAnalysis1stPass.ItemComparer);
             State.Assignments.Sort(FunctionAnalysis1stPass.ItemComparer);
 
@@ -792,6 +750,7 @@ namespace JSIL.Transforms {
         public readonly HashSet<HashSet<FieldInfo>> RecursivelyMutatedFields;
         private readonly HashSet<string> ModifiedVariables;
         private readonly HashSet<string> EscapingVariables;
+        public readonly HashSet<string> IndirectSideEffectVariables;
         public readonly string ResultVariable;
         public readonly bool ResultIsNew;
         public readonly bool ViolatesThisReferenceImmutability;
@@ -811,7 +770,9 @@ namespace JSIL.Transforms {
             Data = data;
             IsSealed = isSealed;
 
-            if (data.Function == null)
+            if (data == null)
+                throw new ArgumentNullException("data");
+            else if (data.Function == null)
                 throw new ArgumentNullException("data.Function");
             else if (data.Function.Method == null)
                 throw new ArgumentNullException("data.Function.Method");
@@ -1001,6 +962,49 @@ namespace JSIL.Transforms {
                 ModifiedVariables.Add("this");
             }
 
+            IndirectSideEffectVariables = new HashSet<string>();
+
+            // Invocations that reassign or mutate this need to have a synthesized side effect
+            foreach (var invocation in data.Invocations) {
+                if (invocation.ThisVariable == null)
+                    continue;
+                else if (IndirectSideEffectVariables.Contains(invocation.ThisVariable))
+                    continue;
+
+                bool shouldSynthesizeSideEffect = false;
+                do {
+                    var jsm = invocation.Method;
+                    if (jsm == null) {
+                        shouldSynthesizeSideEffect = true;
+                        break;
+                    }
+
+                    var targetSecondPass = functionCache.GetSecondPass(invocation.Method, data.Identifier);
+                    if (targetSecondPass == null) {
+                        shouldSynthesizeSideEffect = true;
+                        break;
+                    }
+
+                    if (targetSecondPass.ViolatesThisReferenceImmutability) {
+                        shouldSynthesizeSideEffect = true;
+                        break;
+                    } else if (
+                        (targetSecondPass.Data != null) && 
+                        targetSecondPass.Data.SideEffects.Any(se => se.Variable == "this")
+                    ) {
+                        // FIXME: Is this necessary or is it overly conservative?
+                        shouldSynthesizeSideEffect = true;
+                        break;
+                    }
+
+                    if (!shouldSynthesizeSideEffect)
+                        ;
+                } while (false);
+
+                if (shouldSynthesizeSideEffect)
+                    IndirectSideEffectVariables.Add(invocation.ThisVariable);
+            }
+
             MutatedFields = new HashSet<FieldInfo>(
                 from fa in data.FieldAccesses where !fa.IsRead select fa.Field.Field
             );
@@ -1059,6 +1063,7 @@ namespace JSIL.Transforms {
             }
 
             VariableAliases = new Dictionary<string, HashSet<string>>();
+            IndirectSideEffectVariables = new HashSet<string>();
 
             ResultVariable = null;
             ResultIsNew = method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");

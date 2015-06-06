@@ -88,23 +88,12 @@ namespace JSIL.Internal {
         private bool RunStaticAnalysisDependentTransform<T> (T visitor, Action<T> postVisitAction = null)
             where T : StaticAnalysisJSAstVisitor 
         {
-            try {
-                visitor.Visit(Function);
+            visitor.Visit(Function);
 
-                if (postVisitAction != null)
-                    postVisitAction(visitor);
+            if (postVisitAction != null)
+                postVisitAction(visitor);
 
-                return true;
-            } catch (TemporarilySuspendTransformPipelineException exc) {
-                if (Trace)
-                    Console.WriteLine(
-                        "Static analysis for '{2}::{3}' suspended due to dependency on '{0}::{1}'", 
-                        exc.Identifier.Type.Name, exc.Identifier.Member.Name, 
-                        Identifier.Type.Name, Identifier.Member.Name
-                    );
-
-                return false;
-            }
+            return true;
         }
 
         public void Enqueue (FunctionTransformPipelineStage stage) {
@@ -131,7 +120,22 @@ namespace JSIL.Internal {
                     var currentStage = Pipeline.Peek();
 
                     try {
-                        if (currentStage()) {
+                        var stageSucceeded = false;
+
+                        try {
+                            stageSucceeded = currentStage();
+                        } catch (TemporarilySuspendTransformPipelineException exc) {
+                            if (Trace)
+                                Console.WriteLine(
+                                    "Static analysis for '{2}::{3}' suspended due to dependency on '{0}::{1}'", 
+                                    exc.Identifier.Type.Name, exc.Identifier.Member.Name, 
+                                    Identifier.Type.Name, Identifier.Member.Name
+                                );
+
+                            return false;
+                        }
+
+                        if (stageSucceeded) {
                             Pipeline.Dequeue();
 
                             if (CheckForStaticAnalysisChanges) {

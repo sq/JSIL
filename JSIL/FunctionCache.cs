@@ -217,7 +217,11 @@ namespace JSIL {
                 (entry.SecondPass == null) && 
                 (entry.Expression != null)
             ) {
-                if (entry.Definition.IsAbstract)
+                if (
+                    entry.Definition.IsAbstract ||
+                    // HACK: Fixes ExpressionsExecution and ExpressionsTest???
+                    (entry.FirstPass == null)
+                )
                     entry.SecondPass = CreateSecondPassForAbstractMethod(entry.Info);
                 else if (entry.Definition.IsVirtual)
                     entry.SecondPass = CreateSecondPassForOverridableMethod(entry.Info, entry.FirstPass);

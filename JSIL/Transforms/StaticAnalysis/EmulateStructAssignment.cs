@@ -497,6 +497,13 @@ namespace JSIL.Transforms {
             //  them is not safe. On the other hand, ref/out vars should always
             //  generate a copy on read... right?
 
+            if (SecondPass == null)
+                return false;
+            else if (SecondPass.IndirectSideEffectVariables.Contains(variable.Name))
+                return false;
+            else if (SecondPass.Data == null)
+                return false;
+
             foreach (var se in SecondPass.Data.SideEffects)
                 if (se.Variable == variable.Name)
                     return false;
