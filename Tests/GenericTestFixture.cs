@@ -317,7 +317,16 @@ namespace JSIL.Tests {
                 try {
                     var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
 
-                    Assert.AreEqual(Portability.NormalizeNewLines(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
+                    try {
+                        Assert.AreEqual(Portability.NormalizeNewLines(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
+                    } catch {
+                        var cso = csOutput;
+                        if (cso.Length > 8192)
+                            cso = cso.Substring(0, 8192);
+                        Console.Error.WriteLine("// C# stdout: \r\n{0}", cso);
+                        throw;
+                    }
+
                     Assert.AreEqual(Portability.NormalizeNewLines(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);

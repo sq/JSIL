@@ -781,5 +781,26 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void FNABaseOffset () {
+            var expected = @"1415, 1016
+1953.75, 1220
+1103, 392
+2591.25, 1388
+2955, 1400
+1632.75, 1180
+1942.5, 1192
+1133, 400
+2353.25, 1204
+2669, 1216";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\FNABaseOffset.cs",
+                expected, expected
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

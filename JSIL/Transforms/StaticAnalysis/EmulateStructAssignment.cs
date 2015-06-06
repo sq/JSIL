@@ -486,6 +486,24 @@ namespace JSIL.Transforms {
             return false;
         }
 
+        private bool IsStructVariableNeverMutated (JSExpression expr) {
+            var variable = expr as JSVariable;
+
+            if (variable == null)
+                return false;
+
+            // FIXME: ref/out don't generate a SideEffect. Should they?
+            // I think reassignment through ref/out is safe but mutation through
+            //  them is not safe. On the other hand, ref/out vars should always
+            //  generate a copy on read... right?
+
+            foreach (var se in SecondPass.Data.SideEffects)
+                if (se.Variable == variable.Name)
+                    return false;
+
+            return true;
+        }
+
         public void VisitNode (JSBinaryOperatorExpression boe) {
             if (boe.Operator != JSOperator.Assignment) {
                 base.VisitNode(boe);
@@ -502,15 +520,20 @@ namespace JSIL.Transforms {
                 // Even if the assignment target is never modified, if the assignment *source*
                 //  gets modified, we need to make a copy here, because the target is probably
                 //  being used as a back-up copy.
-                var rightVarsModified = (rightVars.Any((rv) => SecondPass.IsVariableModified(rv.Name)));
+                var rightVarsMutated = rightVars.Any((rv) => !IsStructVariableNeverMutated(rv));
                 var rightVarsAreReferences = rightVars.Any((rv) => rv.IsReference);
 
+                // We need to ensure that the lhs is never mutated. Reassignment is fine.
+                bool leftVarMutated = !IsStructVariableNeverMutated(boe.Left);
+
                 bool rightVarIsEffectivelyConstantHere = 
-                    IsVarEffectivelyConstantHere(boe.Right as JSVariable);
+                    IsVarEffectivelyConstantHere(boe.Right as JSVariable) &&
+                    !leftVarMutated;
 
                 if (
                     (
-                        rightVarsModified || 
+                        rightVarsMutated || 
+                        leftVarMutated ||
                         IsCopyNeededForAssignmentTarget(boe.Left) || 
                         rightVarsAreReferences
                     ) &&
@@ -526,7 +549,9 @@ namespace JSIL.Transforms {
                     if (TraceElidedCopies) {
                         Console.WriteLine(
                             "struct copy elided for assignment {0} = {1}{2}", boe.Left, boe.Right,
-                            rightVarIsEffectivelyConstantHere ? " (rhs is effectively constant due to following all other accesses)" : ""
+                            rightVarIsEffectivelyConstantHere 
+                                ? " (rhs is effectively constant due to following all other accesses)" 
+                                : ""
                         );
                     }
                 }
