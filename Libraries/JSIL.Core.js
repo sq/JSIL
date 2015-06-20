@@ -3555,7 +3555,9 @@ JSIL.$BuildFieldList = function (typeObject) {
     typeObject, bindingFlags, "FieldInfo"
   );
   var fl = typeObject.__FieldList__ = [];
-  var fieldOffset = 0;
+  var fieldOffset = 0;  
+
+  var customPacking = typeObject.__CustomPacking__ | 0;
 
   $fieldloop:
   for (var i = 0; i < fields.length; i++) {
@@ -3592,8 +3594,18 @@ JSIL.$BuildFieldList = function (typeObject) {
     var fieldSize = JSIL.GetNativeSizeOf(fieldType, true);
     var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType, true);
 
+    if (customPacking) {
+      if (fieldAlignment !== customPacking)
+        JSIL.WarningFormat("Custom packing for field {0}.{1} is non-native for JavaScript", [typeObject.__FullName__, field._descriptor.Name]);
+
+      fieldAlignment = customPacking;
+    }
+
     var actualFieldOffset = fieldOffset;
-    if (fieldAlignment > 0) {
+
+    if (typeof (field._data.offset) === "number") {
+      actualFieldOffset = field._data.offset;
+    } else if (fieldAlignment > 0) {
       actualFieldOffset = (((fieldOffset + (fieldAlignment - 1)) / fieldAlignment) | 0) * fieldAlignment;
     }
 
@@ -5436,6 +5448,11 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__IsValueType__ = !isReferenceType;
     typeObject.__IsByRef__ = false;
 
+    typeObject.__CustomPacking__    = typeArgs.Pack;
+    typeObject.__CustomSize__       = typeArgs.SizeBytes;
+    typeObject.__ExplicitLayout__   = typeArgs.ExplicitLayout;
+    typeObject.__SequentialLayout__ = typeArgs.SequentialLayout;
+
     // Lazily initialize struct's native size and alignment properties
     if (typeObject.__IsStruct__) {
       JSIL.SetLazyValueProperty(
@@ -6641,8 +6658,11 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
   var data = { 
     fieldType: fieldType,
-    defaultValueExpression: defaultValueExpression 
+    defaultValueExpression: defaultValueExpression
   };
+
+  if (typeof (_descriptor.Offset) === "number")
+    data.offset = _descriptor.Offset | 0;
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   var fieldIndex = this.PushMember("FieldInfo", descriptor, data, memberBuilder);

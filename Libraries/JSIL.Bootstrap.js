@@ -4537,7 +4537,7 @@ $jsilcore.GetSerializationScratchBuffers = function () {
 
         var result = new Uint8Array(byteCount);
         for (var i = 0; i < byteCount; i++)
-          result[i] = this.uint8[i];
+          result[i] = uint8[i];
 
         return result;
       },
@@ -4549,7 +4549,7 @@ $jsilcore.GetSerializationScratchBuffers = function () {
           JSIL.RuntimeError("bytes cannot be null");
 
         for (var i = 0; i < count; i++)
-          this.uint8[i] = bytes[offset + i];
+          uint8[i] = bytes[offset + i];
       }
     };
   }

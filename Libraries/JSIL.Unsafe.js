@@ -1519,6 +1519,9 @@ JSIL.ComputeNativeSizeOfStruct = function ComputeNativeSizeOfStruct (typeObject)
       resultSize = Math.max(resultSize, field.offsetBytes + field.sizeBytes);
   }
 
+  if (typeof (typeObject.__CustomSize__) === "number")
+    resultSize = Math.max(typeObject.__CustomSize__, resultSize);
+
   if (maxAlignment > 0) {
     var resultSizeAligned = (((resultSize + maxAlignment - 1) / maxAlignment) | 0) * maxAlignment;
     // JSIL.Host.logWriteLine("Native size of '" + typeObject.__FullName__ + "' expanded from " + resultSize + " to " + resultSizeAligned + " by alignment");
@@ -1623,6 +1626,8 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   // FIXME
   var forPInvoke = false;
 
+  var serializationScratchBuffers = $jsilcore.GetSerializationScratchBuffers();
+
   var fields = JSIL.GetFieldList(typeObject);
   var nativeSize = JSIL.GetNativeSizeOf(typeObject, forPInvoke);
   var nativeAlignment = JSIL.GetNativeAlignmentOf(typeObject, forPInvoke);
@@ -1672,6 +1677,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
   }
 
   body.push("offset = offset | 0;");
+  body.push("");
 
   // For structs only containing other structs we can generate a specialized marshalling function
   //  that avoids some extra work
@@ -1723,8 +1729,29 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       fieldConstructor = JSIL.GetTypedArrayConstructorForElementType($jsilcore.System.Int32.__Type__, false);
 
     if (fieldConstructor) {
-      var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
-      closure["scratch_" + field.name] = fieldArray;
+      var nativeAlignment = fieldConstructor.BYTES_PER_ELEMENT;
+
+      var slowPath = false;
+      if ((offset % nativeAlignment) !== 0) {
+        // Unaligned offset. Use slow path involving another buffer to compensate for alignment.
+        // Sigh...
+        slowPath = true;
+        var key = fieldConstructor.name.toLowerCase().replace("array", "");
+        closure["scratch_" + field.name] = serializationScratchBuffers[key];
+
+        if (marshal)
+          closure["unalignedScratchBytes"] = serializationScratchBuffers.uint8;
+        else
+          closure["fillUnalignedScratchBytes"] = serializationScratchBuffers.fillFrom;
+
+      } else {
+        var fieldArray = new fieldConstructor(scratchBuffer, offset, 1);
+        closure["scratch_" + field.name] = fieldArray;
+      }
+
+      if (slowPath && !marshal) {
+        body.push("debugger");
+      }
 
       if (field.type.__IsEnum__) {
         var closureKey = "enum_" + String(numEnumFields++);
@@ -1752,6 +1779,10 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
         } else {
           body.push(structArgName + "." + field.name + " = scratch_" + field.name + "[0];");
         }
+      }
+
+      if (slowPath && marshal) {
+        JSIL.$EmitMemcpyIntrinsic(body, "scratchBytes", "unalignedScratchBytes", offset, 0, nativeAlignment);
       }
     } else if (field.type.__IsStruct__) {
       // Try to marshal the struct
