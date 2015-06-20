@@ -15,6 +15,7 @@ if (typeof(JSIL.ThrowOnStaticCctorError) === "undefined")
   JSIL.ThrowOnStaticCctorError = false;
 
 JSIL.WarnAboutGenericResolveFailures = false;
+JSIL.StructFormatWarnings = false;
 
 JSIL.$NextAssemblyId = 0;
 JSIL.PrivateNamespaces = {};
@@ -3550,6 +3551,7 @@ JSIL.$BuildFieldList = function (typeObject) {
   if (typeObject.__IsClosed__ === false)
     return;
 
+  var isUnion = false;
   var bindingFlags = $jsilcore.BindingFlags.$Flags("Instance", "NonPublic", "Public");
   var fields = JSIL.GetMembersInternal(
     typeObject, bindingFlags, "FieldInfo"
@@ -3597,8 +3599,10 @@ JSIL.$BuildFieldList = function (typeObject) {
     // StructLayout.Pack seems to only be able to eliminate extra space between fields,
     //  not add extra space as one might also expect.
     if (customPacking && (customPacking < fieldAlignment)) {
-      if (fieldAlignment !== customPacking)
-        JSIL.WarningFormat("Custom packing for field {0}.{1} is non-native for JavaScript", [typeObject.__FullName__, field._descriptor.Name]);
+      if (JSIL.StructFormatWarnings) {
+        if (fieldAlignment !== customPacking)
+          JSIL.WarningFormat("Custom packing for field {0}.{1} is non-native for JavaScript", [typeObject.__FullName__, field._descriptor.Name]);
+      }
 
       fieldAlignment = customPacking;
     }
@@ -3621,6 +3625,32 @@ JSIL.$BuildFieldList = function (typeObject) {
       alignmentBytes: fieldAlignment
     };
 
+    // Scan through preceding fields to see if we overlap any of them.
+    for (var j = 0; j < fl.length; j++) {
+      var priorRecord = fl[j];
+      var start = priorRecord.offsetBytes;
+      var end   = start + priorRecord.sizeBytes;
+
+      var myInclusiveEnd = actualFieldOffset + fieldSize - 1;
+
+      if (
+        (
+          (actualFieldOffset < end) &&
+          (actualFieldOffset >= start)
+        ) ||
+        (
+          (myInclusiveEnd < end) &&
+          (myInclusiveEnd >= start)
+        )
+      ) {
+        if (JSIL.StructFormatWarnings)
+          JSIL.WarningFormat("Field {0}.{1} overlaps field {0}.{2}.", [typeObject.__FullName__, fieldRecord.name, priorRecord.name]);
+
+        fieldRecord.overlapsOtherFields = true;
+        isUnion = true;
+      } 
+    }
+
     if (!field.IsStatic)
       fl.push(fieldRecord);
 
@@ -3632,6 +3662,12 @@ JSIL.$BuildFieldList = function (typeObject) {
   fl.sort(function (lhs, rhs) {
     return JSIL.CompareValues(lhs.name, rhs.name);
   })
+
+  Object.defineProperty(typeObject, "__IsUnion_BackingStore__", {
+    value: isUnion,
+    configurable: true,
+    enumerable: false
+  });
 
   return fl;
 };
@@ -5469,6 +5505,13 @@ JSIL.MakeType = function (typeArgs, initializer) {
       JSIL.SetLazyValueProperty(
         typeObject, "__NativeSize__",
         JSIL.ComputeNativeSizeOfStruct.bind(null, typeObject)
+      );
+      JSIL.SetLazyValueProperty(
+        typeObject, "__IsUnion__",
+        function () {
+          JSIL.GetFieldList(typeObject);
+          return typeObject.__IsUnion_BackingStore__;
+        }
       );
     }
 
