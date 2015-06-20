@@ -1129,28 +1129,42 @@ namespace JSIL {
                 (expression.InferredType != null) &&
                 !TypeUtil.TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
+                var expectedType = expression.ExpectedType;
+
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
                 bool shouldAutoCast = (
                     AutoCastingState.Peek() ||
                     (
                         // Comparisons between value types still need a cast.
-                        !TypeUtil.IsReferenceType(expression.ExpectedType) || 
+                        !TypeUtil.IsReferenceType(expectedType) || 
                         !TypeUtil.IsReferenceType(expression.InferredType)
                     )
                 );
 
+                // HACK: ILSpy improperly decompiles sequences like:
+                // byte * px = ...;
+                // *((A*)px) = new A()
+                // into a cast of the form ((A&)px) = new A()
+                if (
+                    (expectedType is ByReferenceType) &&
+                    (expression.InferredType is PointerType) &&
+                    !TypeUtil.TypesAreEqual(expectedType.GetElementType(), expression.InferredType.GetElementType())
+                ) {
+                    expectedType = new PointerType(expectedType.GetElementType());
+                }
+
                 bool specialNullableCast = (
-                    TypeUtil.IsNullable(expression.ExpectedType) ||
+                    TypeUtil.IsNullable(expectedType) ||
                     TypeUtil.IsNullable(expression.InferredType) ||
                     (expression.Code == ILCode.ValueOf)
                 );
 
                 if (shouldAutoCast) {
                     if (specialNullableCast)
-                        return new JSNullableCastExpression(result, new JSType(expression.ExpectedType));
+                        return new JSNullableCastExpression(result, new JSType(expectedType));
                     else
-                        return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
+                        return JSCastExpression.New(result, expectedType, TypeSystem, isCoercion: true);
                 } else {
                     // FIXME: Should this be JSChangeTypeExpression to preserve type information?
                     // I think not, because a lot of these ExpectedTypes are wrong.

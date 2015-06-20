@@ -440,6 +440,7 @@
     <None Include="UnsafeTestCases\IgnorePointerFields.cs" />
     <None Include="UnsafeTestCases\PointerWriteConversion_Issue686.cs" />
     <None Include="UnsafeTestCases\ModifyPackedStructArrayElementStructField.cs" />
+    <None Include="UnsafeTestCases\CustomPacking.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

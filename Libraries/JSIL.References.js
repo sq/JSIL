@@ -9,6 +9,8 @@ if (!$jsilcore)
 JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var types = {};
 
+  $.SetValue("__IsReference__", true);
+
   var checkType = function Reference_CheckType (value) {
     var type = this;
 
@@ -74,6 +76,10 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
         compositePublicInterface, compositeTypeObject, (
           $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]"
         )
+      );
+
+      JSIL.MakeCastMethods(
+        compositePublicInterface, compositeTypeObject, "reference"
       );
 
       types[elementName] = compositePublicInterface;
