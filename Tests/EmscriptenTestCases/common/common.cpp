@@ -54,6 +54,20 @@ export(void)WriteUnionFloat(const float f, TestUnion * result) {
 	result->F = f;
 }
 
+union TestComplexUnion {
+	int I;
+	TestStruct S;
+};
+
+export(void)WriteComplexUnionInt(const int i, TestComplexUnion *result) {
+	result->I = i;
+}
+
+export(void)WriteComplexUnionStruct(const int i, const float f, TestComplexUnion *result) {
+	result->S.I = i;
+	result->S.F = f;
+}
+
 export(TestStruct) ReturnStruct (const int i, const float f) {
     TestStruct result;
     result.I = i;
