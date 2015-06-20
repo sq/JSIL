@@ -3634,7 +3634,7 @@ JSIL.$BuildFieldList = function (typeObject) {
         actualFieldOffset = field._data.offset;
       else if (JSIL.StructFormatWarnings)
         JSIL.WarningFormat("Ignoring offset for field {0}.{1} because {0} does not have explicit layout", [typeObject.__FullName__, field.descriptor.Name]);
-      
+
     } else if (fieldAlignment > 0) {
       actualFieldOffset = (((fieldOffset + (fieldAlignment - 1)) / fieldAlignment) | 0) * fieldAlignment;
     }
@@ -3649,30 +3649,32 @@ JSIL.$BuildFieldList = function (typeObject) {
       alignmentBytes: fieldAlignment
     };
 
-    // Scan through preceding fields to see if we overlap any of them.
-    for (var j = 0; j < fl.length; j++) {
-      var priorRecord = fl[j];
-      var start = priorRecord.offsetBytes;
-      var end   = start + priorRecord.sizeBytes;
+    if (fieldSize > 0) {
+      // Scan through preceding fields to see if we overlap any of them.
+      for (var j = 0; j < fl.length; j++) {
+        var priorRecord = fl[j];
+        var start = priorRecord.offsetBytes;
+        var end   = start + priorRecord.sizeBytes;
 
-      var myInclusiveEnd = actualFieldOffset + fieldSize - 1;
+        var myInclusiveEnd = actualFieldOffset + fieldSize - 1;
 
-      if (
-        (
-          (actualFieldOffset < end) &&
-          (actualFieldOffset >= start)
-        ) ||
-        (
-          (myInclusiveEnd < end) &&
-          (myInclusiveEnd >= start)
-        )
-      ) {
-        if (JSIL.StructFormatWarnings)
-          JSIL.WarningFormat("Field {0}.{1} overlaps field {0}.{2}.", [typeObject.__FullName__, fieldRecord.name, priorRecord.name]);
+        if (
+          (
+            (actualFieldOffset < end) &&
+            (actualFieldOffset >= start)
+          ) ||
+          (
+            (myInclusiveEnd < end) &&
+            (myInclusiveEnd >= start)
+          )
+        ) {
+          if (JSIL.StructFormatWarnings)
+            JSIL.WarningFormat("Field {0}.{1} overlaps field {0}.{2}.", [typeObject.__FullName__, fieldRecord.name, priorRecord.name]);
 
-        fieldRecord.overlapsOtherFields = true;
-        isUnion = true;
-      } 
+          fieldRecord.overlapsOtherFields = true;
+          isUnion = true;
+        } 
+      }      
     }
 
     if (!field.IsStatic)
@@ -3686,6 +3688,9 @@ JSIL.$BuildFieldList = function (typeObject) {
   fl.sort(function (lhs, rhs) {
     return JSIL.CompareValues(lhs.name, rhs.name);
   })
+
+  if (isUnion && !typeObject.__ExplicitLayout__)
+    JSIL.RuntimeError("Non-explicit-layout structure appears to be a union: " + typeObject.__FullName__);
 
   Object.defineProperty(typeObject, "__IsUnion_BackingStore__", {
     value: isUnion,
