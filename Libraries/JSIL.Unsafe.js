@@ -1750,7 +1750,7 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       }
 
       if (slowPath && !marshal) {
-        body.push("debugger");
+        body.push("fillUnalignedScratchBytes(scratchBytes, " + offset + ", " + nativeAlignment + ");");
       }
 
       if (field.type.__IsEnum__) {

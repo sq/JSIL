@@ -3594,7 +3594,9 @@ JSIL.$BuildFieldList = function (typeObject) {
     var fieldSize = JSIL.GetNativeSizeOf(fieldType, true);
     var fieldAlignment = JSIL.GetNativeAlignmentOf(fieldType, true);
 
-    if (customPacking) {
+    // StructLayout.Pack seems to only be able to eliminate extra space between fields,
+    //  not add extra space as one might also expect.
+    if (customPacking && (customPacking < fieldAlignment)) {
       if (fieldAlignment !== customPacking)
         JSIL.WarningFormat("Custom packing for field {0}.{1} is non-native for JavaScript", [typeObject.__FullName__, field._descriptor.Name]);
 
@@ -5449,6 +5451,11 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__IsByRef__ = false;
 
     typeObject.__CustomPacking__    = typeArgs.Pack;
+
+    // Packings of 16 or more are silently ignored by the windows .NET runtime.
+    if (typeObject.__CustomPacking__ >= 16)
+      typeObject.__CustomPacking__ = 0;
+
     typeObject.__CustomSize__       = typeArgs.SizeBytes;
     typeObject.__ExplicitLayout__   = typeArgs.ExplicitLayout;
     typeObject.__SequentialLayout__ = typeArgs.SequentialLayout;
