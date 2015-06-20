@@ -254,7 +254,10 @@ JSIL.PInvoke.CallContext = function (module) {
 };
 
 JSIL.PInvoke.CallContext.prototype.Allocate = function (sizeBytes) {
-  var offset = this.module._malloc(sizeBytes);
+  // HACK
+  var padding = 64;
+
+  var offset = this.module._malloc(sizeBytes + padding);
   this.allocations.push(offset);
 
   return offset;
