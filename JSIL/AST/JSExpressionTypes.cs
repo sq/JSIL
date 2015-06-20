@@ -1608,12 +1608,14 @@ namespace JSIL.Ast {
         public readonly bool IsStatic;
         public readonly bool IsVirtual;
         public readonly bool IsReadonly;
+        public readonly int? Offset;
 
-        public JSMemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false) {
+        public JSMemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false, int? offset = null) {
             IsPublic = isPublic;
             IsStatic = isStatic;
             IsVirtual = isVirtual;
             IsReadonly = isReadonly;
+            Offset = offset;
         }
 
         public override bool IsConstant {

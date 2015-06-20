@@ -743,7 +743,11 @@ namespace JSIL.Internal {
             TypeReference(type.Definition, context);
         }
 
-        public void MemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false, bool isReadonly = false) {
+        public void MemberDescriptor (
+            bool isPublic, bool isStatic, 
+            bool isVirtual = false, bool isReadonly = false,
+            int? offset = null
+        ) {
             WriteRaw("{");
 
             WriteRaw("Static");
@@ -774,6 +778,13 @@ namespace JSIL.Internal {
                 WriteRaw("ReadOnly");
                 WriteRaw(":");
                 WriteRaw("true ");
+            }
+
+            if (offset.HasValue) {
+                Comma();
+
+                WriteRaw("Offset: ");
+                Value(offset.Value);
             }
 
             WriteRaw("}");

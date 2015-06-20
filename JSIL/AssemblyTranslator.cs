@@ -1480,6 +1480,32 @@ namespace JSIL {
                         output.NewLine();
                     }
 
+                    if (typedef.IsExplicitLayout) {
+                        output.WriteRaw("ExplicitLayout: true");
+                        output.Comma();
+                        output.NewLine();
+                    } else if (typedef.IsSequentialLayout) {
+                        output.WriteRaw("SequentialLayout: true");
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    if (typedef.HasLayoutInfo) {
+                        if (typedef.PackingSize != 0) {
+                            output.WriteRaw("Pack: ");
+                            output.Value(typedef.PackingSize);
+                            output.Comma();
+                            output.NewLine();
+                        }
+
+                        if (typedef.ClassSize != 0) {
+                            output.WriteRaw("SizeBytes: ");
+                            output.Value(typedef.ClassSize);
+                            output.Comma();
+                            output.NewLine();
+                        }
+                    }
+
                     output.CloseBrace(false);
                 }
 
@@ -2119,7 +2145,11 @@ namespace JSIL {
 
             var dollarIdentifier = new JSRawOutputIdentifier(field.DeclaringType, dollar.Format, dollar.Arguments);
             var descriptor = new JSMemberDescriptor(
-                field.IsPublic, field.IsStatic, isReadonly: field.IsInitOnly
+                field.IsPublic, field.IsStatic, 
+                isReadonly: field.IsInitOnly, 
+                offset: field.DeclaringType.IsExplicitLayout
+                    ? (int?)field.Offset
+                    : null
             );
 
             var fieldName = Util.EscapeIdentifier(fieldInfo.Name, EscapingMode.MemberIdentifier);

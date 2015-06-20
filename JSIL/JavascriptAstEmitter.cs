@@ -2062,7 +2062,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSMemberDescriptor desc) {
-            Output.MemberDescriptor(desc.IsPublic, desc.IsStatic, desc.IsVirtual, desc.IsReadonly);
+            Output.MemberDescriptor(desc.IsPublic, desc.IsStatic, desc.IsVirtual, desc.IsReadonly, desc.Offset);
         }
 
         public void VisitNode (JSObjectExpression obj) {

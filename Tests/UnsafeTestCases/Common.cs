@@ -45,3 +45,12 @@ public struct ByteNestedByte {
     DoubleTwoBytes b;
     byte c;
 }
+
+public static class Util {
+    public static void PrintBytes (byte[] bytes) {
+        foreach (var b in bytes)
+            Console.Write("{0:X2}", b);
+
+        Console.WriteLine();
+    }
+}
