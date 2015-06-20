@@ -443,6 +443,7 @@
     <None Include="UnsafeTestCases\CustomPacking.cs" />
     <None Include="UnsafeTestCases\CustomFieldOffset.cs" />
     <None Include="UnsafeTestCases\CustomFieldOffsetUnion.cs" />
+    <None Include="UnsafeTestCases\UnionContainingEnum.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

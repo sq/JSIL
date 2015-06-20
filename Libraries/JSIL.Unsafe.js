@@ -1837,6 +1837,10 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
 
   if (nativeView) {
     var clampedByteView = viewBytes.subarray(0, nativeView.BYTES_PER_ELEMENT);
+    var closure = { 
+      nativeView: nativeView, 
+      clampedByteView: clampedByteView 
+    };
 
     var adapterSource = [];
 
@@ -1849,11 +1853,15 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
     }
 
     if (makeSetter) {
-      adapterSource.push("nativeView[0] = value;");
+      if (field.type.__IsEnum__) {
+        adapterSource.push("nativeView[0] = value.value;");
+      } else {
+        adapterSource.push("nativeView[0] = value;");
+      }
+
       JSIL.$EmitMemcpyIntrinsic(
         adapterSource, "bytes", "clampedByteView", "offset", 0, nativeView.BYTES_PER_ELEMENT
       );
-      // adapterSource.push("bytes.set(clampedByteView, offset);");
 
       return JSIL.CreateNamedFunction(
         typeObject.__FullName__ + ".Proxy.set_" + field.name, ["value"],
@@ -1865,12 +1873,17 @@ JSIL.$MakeFieldMarshaller = function (typeObject, field, viewBytes, nativeView, 
         adapterSource, "clampedByteView", "bytes", 0, "offset", fieldSize
       );
 
-      adapterSource.push("return nativeView[0];");
+      if (field.type.__IsEnum__) {
+        closure.enumType = field.type;
+        adapterSource.push("return enumType.$Cast(nativeView[0]);");
+      } else {
+        adapterSource.push("return nativeView[0];");
+      }
 
       return JSIL.CreateNamedFunction(
         typeObject.__FullName__ + ".Proxy.get_" + field.name, [],
         adapterSource.join("\n"),
-        { nativeView: nativeView, clampedByteView: clampedByteView }
+        closure
       );
     }
 
@@ -1974,22 +1987,27 @@ JSIL.$MakeProxylikeConstructorBody = function (
     var size = field.sizeBytes;
 
     var getter, setter;
+    var storageType = field.type;
+
+    if (field.type.__IsEnum__)
+      storageType = field.type.__StorageType__;
 
     if (size <= 0) {
       getter = setter = JSIL.$MakeUnmarshallableFieldAccessor(field.name);
-    } else if (field.type.__IsStruct__) {
-      // HACK: Struct fields must be element proxies themselves so writes like this work:
-      // proxy.Field.Field += 1
-      // TODO: Maybe hoist this into the compiler to make it cheaper for non-write scenarios?
-      var nativeView = marshallingScratchBuffer.getView(field.type, false);
-      getter = JSIL.$MakeProxyFieldGetter(typeObject, field, viewBytes, nativeView, isElementProxy);
-      setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true, isElementProxy);
-      constructorBody.push(targetToken + ".cached$" + field.name + " = null;");
     } else {
-      var nativeView = marshallingScratchBuffer.getView(field.type, false);
-      getter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, false, isElementProxy);
-      setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true, isElementProxy);
-      constructorBody.push(targetToken + ".cached$" + field.name + " = null;");
+      var nativeView = marshallingScratchBuffer.getView(storageType, false);
+      if (field.type.__IsStruct__) {
+        // HACK: Struct fields must be element proxies themselves so writes like this work:
+        // proxy.Field.Field += 1
+        // TODO: Maybe hoist this into the compiler to make it cheaper for non-write scenarios?
+        getter = JSIL.$MakeProxyFieldGetter(typeObject, field, viewBytes, nativeView, isElementProxy);
+        setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true, isElementProxy);
+        constructorBody.push(targetToken + ".cached$" + field.name + " = null;");
+
+      } else {
+        getter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, false, isElementProxy);
+        setter = JSIL.$MakeFieldMarshaller(typeObject, field, viewBytes, nativeView, true, isElementProxy);
+      }
     }
 
     // FIXME: The use of get/set functions here will really degrade performance in some JS engines

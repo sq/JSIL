@@ -39,6 +39,8 @@ public static class Program {
             *((Union*)pBuffer) = u;
             Util.PrintBytes(buffer);
             Console.WriteLine(*((Union*)pBuffer));
+
+            Console.WriteLine(Marshal.SizeOf(typeof(Union)));
         }
     }
 }
