@@ -150,6 +150,7 @@
     <None Include="EmscriptenTestCases\EnumRoundTrip.cs" />
     <None Include="AnalysisTestCases\FNABaseOffset.cs" />
     <None Include="EmscriptenTestCases\OutUnionParameter.cs" />
+    <None Include="EmscriptenTestCases\OutComplexUnionParameter.cs" />
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <None Include="EmscriptenTestCases\IntPtrZeroEquality.cs" />
     <None Include="EmscriptenTestCases\StringArrayParameter.cs" />
