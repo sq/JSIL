@@ -41,6 +41,19 @@ export(void) WriteStruct (const int i, const float f, TestStruct * result) {
     result->F = f;
 }
 
+union TestUnion {
+	int I;
+	float F;
+};
+
+export(void)WriteUnionInt(const int i, TestUnion * result) {
+	result->I = i;
+}
+
+export(void)WriteUnionFloat(const float f, TestUnion * result) {
+	result->F = f;
+}
+
 export(TestStruct) ReturnStruct (const int i, const float f) {
     TestStruct result;
     result.I = i;
