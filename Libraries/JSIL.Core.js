@@ -3193,11 +3193,17 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   typeObject.__IsFixingUpInterfaces__ = false;
 };
 
+$jsilcore.BuildingFieldList = new Array();
+
 JSIL.GetFieldList = function (typeObject) {
   var fl = typeObject.__FieldList__;
 
-  if (fl === $jsilcore.ArrayNotInitialized)
+  if (fl === $jsilcore.ArrayNotInitialized) {
+    fl = $jsilcore.BuildingFieldList;
     fl = JSIL.$BuildFieldList(typeObject);
+  } else if (fl === $jsilcore.BuildingFieldList) {
+    JSIL.RuntimeError("Recursive invocation of GetFieldList on type " + typeObject.__FullName__);
+  }
 
   if ((fl === $jsilcore.ArrayNull) || (!JSIL.IsArray(fl)))
     return $jsilcore.ArrayNull;
@@ -3301,62 +3307,71 @@ JSIL.MakeFieldInitializer = function (typeObject, returnNamedFunction) {
 
   var prototype = typeObject.__PublicInterface__.prototype;
   var body = [];
-  
-  var types = {};
-  var defaults = {};
 
   var targetArgName = returnNamedFunction ? "target" : "this";
+  var initializerClosure = null;
 
-  for (var i = 0, l = fl.length; i < l; i++) {
-    var field = fl[i];
+  if (typeObject.__IsUnion__) {
+    var sizeBytes = typeObject.__NativeSize__;
+    body.push(JSIL.FormatMemberAccess(targetArgName, "$backingStore") + " = new Uint8Array(" + sizeBytes + ");");
 
-    if ((field.type === typeObject) && (field.isStruct)) {
-      JSIL.Host.warning("Ignoring self-typed struct field " + field.name);
-      continue;
+    // HACK: Generate accessors for the (now missing) fields that hit our backing store
+    JSIL.$GenerateUnionAccessors(typeObject, fl, body, targetArgName);
+  } else {  
+    var types = {};
+    var defaults = {};
+
+    for (var i = 0, l = fl.length; i < l; i++) {
+      var field = fl[i];
+
+      if ((field.type === typeObject) && (field.isStruct)) {
+        JSIL.Host.warning("Ignoring self-typed struct field " + field.name);
+        continue;
+      }
+
+      var key = "f" + i.toString();
+
+      if (field.isStruct) {
+        if (field.type.__IsNullable__) {
+          body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = null;");
+        } else {
+          body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
+          types[key] = field.type.__PublicInterface__;
+        }
+      } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
+        // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
+        //  an object's field slots should be.
+        var defaultValueString;
+        if (field.type.__FullName__ === "System.Boolean") {
+          defaultValueString = "(false)";
+        } else if (field.type.__FullName__ === "System.Char") {
+          defaultValueString = "('\\0')";
+        } else if (field.type.__IsIntegral__) {
+          defaultValueString = "(0 | 0)";
+        } else {
+          defaultValueString = "(+0.0)";
+        }
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = " + defaultValueString + ";");
+      } else {
+        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = defaults." + key + ";");
+
+        if (typeof (field.defaultValueExpression) === "function") {
+          // FIXME: This wants a this-reference?
+          defaults[key] = field.defaultValueExpression();
+        } else if (field.defaultValueExpression) {
+          defaults[key] = field.defaultValueExpression;
+        } else {
+          defaults[key] = JSIL.DefaultValue(field.type);
+        }
+      }
+
     }
 
-    var key = "f" + i.toString();
-
-    if (field.isStruct) {
-      if (field.type.__IsNullable__) {
-        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = null;");
-      } else {
-        body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = new types." + key + "();");
-        types[key] = field.type.__PublicInterface__;
-      }
-    } else if (field.type.__IsNativeType__ && field.type.__IsNumeric__) {
-      // This is necessary because JS engines are incredibly dumb about figuring out the actual type(s)
-      //  an object's field slots should be.
-      var defaultValueString;
-      if (field.type.__FullName__ === "System.Boolean") {
-        defaultValueString = "(false)";
-      } else if (field.type.__FullName__ === "System.Char") {
-        defaultValueString = "('\\0')";
-      } else if (field.type.__IsIntegral__) {
-        defaultValueString = "(0 | 0)";
-      } else {
-        defaultValueString = "(+0.0)";
-      }
-      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = " + defaultValueString + ";");
-    } else {
-      body.push(JSIL.FormatMemberAccess(targetArgName, field.name) + " = defaults." + key + ";");
-
-      if (typeof (field.defaultValueExpression) === "function") {
-        // FIXME: This wants a this-reference?
-        defaults[key] = field.defaultValueExpression();
-      } else if (field.defaultValueExpression) {
-        defaults[key] = field.defaultValueExpression;
-      } else {
-        defaults[key] = JSIL.DefaultValue(field.type);
-      }
-    }
-
+    initializerClosure = { 
+      types: types, 
+      defaults: defaults
+    };
   }
-
-  var initializerClosure = { 
-    types: types, 
-    defaults: defaults
-  };
 
   if (returnNamedFunction) {
     var boundFunction = JSIL.CreateNamedFunction(
@@ -3458,7 +3473,12 @@ JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
 JSIL.$MakeCopierCore = function (typeObject, context, body, resultVar) {
   var fields = JSIL.GetFieldList(typeObject);
 
-  if (context.prototype.__CopyMembers__) {
+  if (typeObject.__IsUnion__) {
+    var nativeSize = typeObject.__NativeSize__;
+
+    body.push("  " + resultVar + ".$backingStore = new Uint8Array(" + nativeSize + ");");
+    JSIL.$EmitMemcpyIntrinsic(body, resultVar + ".$backingStore", "source.$backingStore", 0, 0, nativeSize);    
+  } else if (context.prototype.__CopyMembers__) {
     context.copier = context.prototype.__CopyMembers__;
     body.push("  context.copier(source, " + resultVar + ");");
   } else {
@@ -3610,7 +3630,11 @@ JSIL.$BuildFieldList = function (typeObject) {
     var actualFieldOffset = fieldOffset;
 
     if (typeof (field._data.offset) === "number") {
-      actualFieldOffset = field._data.offset;
+      if (typeObject.__ExplicitLayout__)
+        actualFieldOffset = field._data.offset;
+      else if (JSIL.StructFormatWarnings)
+        JSIL.WarningFormat("Ignoring offset for field {0}.{1} because {0} does not have explicit layout", [typeObject.__FullName__, field.descriptor.Name]);
+      
     } else if (fieldAlignment > 0) {
       actualFieldOffset = (((fieldOffset + (fieldAlignment - 1)) / fieldAlignment) | 0) * fieldAlignment;
     }
