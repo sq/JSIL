@@ -6504,8 +6504,11 @@ JSIL.$PlacePInvokeMember = function (
   var newValue = null;
   var existingValue = target[memberName];
 
-  if (existingValue)
-    JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
+  if (existingValue) {
+    // JSIL.RuntimeError("PInvoke member " + memberName + " obstructed");
+    // Most likely explanation is that an external method took our place.
+    return;
+  }
 
   var dllName = pInvokeInfo.Module;
   var importedName = pInvokeInfo.EntryPoint || methodName;
