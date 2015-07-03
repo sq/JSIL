@@ -405,6 +405,7 @@
     <None Include="UnsafeTestCases\StackAlloc.cs" />
     <None Include="UnsafeTestCases\PointerOrdering.cs" />
     <None Include="UnsafeTestCases\PointerRefCast.cs" />
+    <None Include="UnsafeTestCases\ZeroLengthIntArray.cs" />
     <None Include="FailingTestCases\PassPackedArrayAsNormalArrayArgument.cs" />
     <None Include="FailingTestCases\PassNormalArrayAsPackedArrayArgument.cs" />
     <None Include="FailingTestCases\ReturnNormalArrayAsPackedArray.cs" />
