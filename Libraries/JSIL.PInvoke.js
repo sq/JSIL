@@ -303,6 +303,9 @@ JSIL.PInvoke.BaseMarshallerPrototype.GetSignatureToken = function (type) {
 
 JSIL.PInvoke.ByValueMarshaller = function ByValueMarshaller (type) {
   this.type = type;
+
+  if (type.__IsEnum__)
+    JSIL.RuntimeError("ByValueMarshaller must not be used for enums");
 };
 
 JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.ByValueMarshaller);
@@ -328,6 +331,44 @@ JSIL.PInvoke.ByValueMarshaller.prototype.ManagedToNative = function (managedValu
 
 JSIL.PInvoke.ByValueMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
   return nativeValue;
+};
+
+
+JSIL.PInvoke.EnumMarshaller = function EnumMarshaller (type) {
+  this.type = type;
+
+  if (!type.__IsEnum__)
+    JSIL.RuntimeError("Expected enum");
+};
+
+JSIL.PInvoke.SetupMarshallerPrototype(JSIL.PInvoke.EnumMarshaller);
+
+JSIL.PInvoke.EnumMarshaller.prototype.GetSignatureToken = function () {
+  // FIXME: Does the emscripten ABI do anything special here?
+  return "i";
+
+  /*  
+  var storageType = this.type.__StorageType__;
+  switch (storageType.__FullName__) {
+    case "System.Int32":
+    case "System.UInt32":
+    case "System.Boolean":
+      return "i";
+  }
+
+  JSIL.RuntimeError("No signature token for type '" + this.type.__FullName__ + "'");
+  */
+};
+
+JSIL.PInvoke.EnumMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
+  if (typeof (managedValue) !== "object")
+    JSIL.RuntimeError("Expected a managed enum instance");
+
+  return managedValue.value;
+};
+
+JSIL.PInvoke.EnumMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
+  return this.type.$Cast(nativeValue);
 };
 
 
@@ -888,7 +929,7 @@ JSIL.PInvoke.GetMarshallerForType = function (type, box, isOut) {
   } else if (type.__IsStruct__) {
     return new JSIL.PInvoke.ByValueStructMarshaller(type);
   } else if (type.__IsEnum__) {
-    return new JSIL.PInvoke.ByValueMarshaller(type);
+    return new JSIL.PInvoke.EnumMarshaller(type);
   } else if (type.__IsArray__) {
     return new JSIL.PInvoke.ArrayMarshaller(type, isOut);
   } else {
