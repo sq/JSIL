@@ -364,9 +364,8 @@ JSIL.PInvoke.BoxedValueMarshaller.prototype.ManagedToNative = function (managedV
 JSIL.PInvoke.BoxedValueMarshaller.prototype.NativeToManaged = function (nativeValue, callContext) {
   var module = callContext.module;
 
-  var tByte = $jsilcore.System.Byte.__Type__;
   var memoryRange = JSIL.GetMemoryRangeForBuffer(module.HEAPU8.buffer);
-  var emscriptenMemoryView = memoryRange.getView(tByte);
+  var emscriptenMemoryView = memoryRange.getView(this.type);
 
   var emscriptenPointer = JSIL.NewPointer(
     this.type, memoryRange, emscriptenMemoryView, nativeValue
