@@ -8,7 +8,7 @@ public static class Program {
 
     public static void Main () {
         int result;
-        WriteInt(5, out result);
+        WriteInt(2147483646, out result);
 
         Console.WriteLine(result);
     }
