@@ -6214,24 +6214,36 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArguments) {  
-  // The user might pass in a public interface instead of a type object, so map that to the type object.
-  for (var i = 0, l = genericArguments.length; i < l; i++) {
-    var ga = genericArguments[i];
-
-    if ((typeof (ga) !== "undefined") && (ga !== null) && (typeof (ga.__Type__) === "object"))
-      genericArguments[i] = ga.__Type__;
-  }
-
-  var result = function BoundGenericMethod_Invoke () {
-    // concat doesn't work on the raw 'arguments' value :(
-    var invokeArguments = genericArguments.concat(
-      Array.prototype.slice.call(arguments)
-    );
-
-    return body.apply(outerThis, invokeArguments);
+JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount) {
+  var body = [];
+  var normalArgumentNames = [];
+  var normalArgumentList = "";
+  var binderArgumentNames = [];
+  var binderArgumentList = "";
+  var closure = {
+    dispatcherKey: groupDispatcher,
+    methodFullName: methodFullName
   };
 
+  for (var i = 0; i < genericArgumentCount; i++) {
+    binderArgumentNames.push("genericArg" + i);
+    binderArgumentList += binderArgumentNames[i];
+
+    if (i !== (genericArgumentCount - 1))
+      binderArgumentList += ", ";
+    else if (maxArgumentCount > 0)
+      binderArgumentList += ", ";
+  }
+
+  for (var i = 0; i < maxArgumentCount; i++) {
+    normalArgumentNames.push("arg" + i);
+    normalArgumentList += normalArgumentNames[i];
+
+    if (i !== (maxArgumentCount - 1))
+      normalArgumentList += ", ";
+  }
+
+  /*
   result.call = function BoundGenericMethod_Call (thisReference) {
     // concat doesn't work on the raw 'arguments' value :(
     var invokeArguments = genericArguments.concat(
@@ -6250,31 +6262,45 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
   };
 
   return result;
-};
+  */
 
-JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount) {
-  var body = [];
-  var binderArgumentNames = [];
-  var closure = {
-    dispatcherKey: groupDispatcher,
-    methodFullName: methodFullName
-  };
+  // The user might pass in a public interface instead of a type object, so map that to the type object.
+  for (var i = 0; i < genericArgumentCount; i++) {
+    var varName = binderArgumentNames[i];
+    body.push("if (" + varName + " && " + varName + ".__Type__)");
+    body.push("  " + varName + " = " + varName + ".__Type__");
+  }
 
-  for (var i = 0; i < genericArgumentCount; i++)
-    binderArgumentNames.push("genericArg" + i);
+  body.push("");
 
+  body.push("var outerThis = this;");
   body.push("var dispatcher = this[dispatcherKey];");
-  body.push("var boundMethod = JSIL.$BindGenericMethod(this, dispatcher, methodFullName, [");
-  for (var i = 0; i < genericArgumentCount; i++)
-    body.push(
-      "  genericArg" + i + (
-        (i === (genericArgumentCount - 1))
-          ? ""
-          : ","
-      )
-    );
-  body.push("]);");
-  body.push("return boundMethod;");
+  body.push("");
+
+  body.push("var result = function BoundGenericMethod_Invoke (");
+  body.push("  " + normalArgumentList);
+  body.push(") {");
+  body.push("  return dispatcher.call(");
+  body.push("    outerThis, ");
+  body.push("    " + binderArgumentList);
+  body.push("    " + normalArgumentList);
+  body.push("  );");
+  body.push("};");
+
+  /*
+  body.push("result.call = function BoundGenericMethod_Invoke (");
+  body.push("  " + normalArgumentList);
+  body.push(") {");
+  body.push("  return dispatcher.call(");
+  body.push("    outerThis, ");
+  body.push("    " + binderArgumentList);
+  body.push("    " + normalArgumentList);
+  body.push("  );");
+  body.push("};");
+  */
+
+  body.push("");
+  body.push("return result;");
 
   var result = JSIL.CreateNamedFunction(
     methodFullName + "`" + genericArgumentCount + ".BindGenericArguments[" + maxArgumentCount + "]",    
