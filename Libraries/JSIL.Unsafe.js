@@ -739,6 +739,13 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
     }
   );
 
+  function getBuffer (ptr) {
+    if (ptr.memoryRange !== null)
+      return ptr.memoryRange.buffer;
+    else
+      return null;
+  };
+
   $.RawMethod(false, "equals",
     function Pointer_Equals (rhs) {
       if (rhs === null)
@@ -746,7 +753,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
       else if (rhs === this)
         return true;
       else
-        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+        return (getBuffer(this) === getBuffer(rhs)) && 
           (this.offsetInBytes === rhs.offsetInBytes);
     }
   );
@@ -756,7 +763,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
       if (rhs === null)
         return false;
       else
-        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+        return (getBuffer(this) === getBuffer(rhs)) && 
           (this.offsetInBytes < rhs.offsetInBytes);
     }
   );
@@ -766,7 +773,7 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
       if (rhs === null)
         return false;
       else
-        return (this.memoryRange.buffer === rhs.memoryRange.buffer) && 
+        return (getBuffer(this) === getBuffer(rhs)) && 
           (this.offsetInBytes > rhs.offsetInBytes);
     }
   );
@@ -786,6 +793,30 @@ JSIL.MakeStruct("System.ValueType", "JSIL.Pointer", true, ["T"], function ($) {
 });
 
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.VoidPointer", true, [], function ($) {
+});
+
+JSIL.MakeStruct("JSIL.Pointer", "JSIL.NullPointer", true, [], function ($) {
+  $.SetValue("__IsNull__", true);
+
+  function NullPointer_ctor (elementType) {
+    if (arguments.length !== 1)
+      JSIL.RuntimeError("NullPointer ctor expects (elementType)");
+
+    this.memoryRange = null;
+    this.view = null;
+    this.offsetInBytes = 0;
+    this.shift = 0;
+    this.offsetInElements = 0;
+    this.elementType = elementType;
+  };
+
+  $.RawMethod(false, ".ctor", NullPointer_ctor);
+
+  $.RawMethod(false, "toString",
+    function NullPointer_ToString () {
+      return "<null ptr>";
+    }
+  );
 });
 
 JSIL.MakeStruct("JSIL.Pointer", "JSIL.WordPointer", true, [], function ($) {

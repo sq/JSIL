@@ -2421,6 +2421,20 @@ namespace JSIL {
             return Translate_Ldobj(node, null);
         }
 
+        protected JSExpression AttemptPointerConversion (JSExpression value, TypeReference targetType) {
+            var childLiteral = value.SelfAndChildrenRecursive.OfType<JSLiteral>().FirstOrDefault();
+
+            // We special-case allowing 0 to be converted to a pointer.
+            if (
+                (childLiteral != null) && 
+                (Convert.ToInt64(childLiteral.Literal) == 0)
+            ) {
+                return new JSDefaultValueLiteral(targetType);
+            }
+
+            throw new NotImplementedException("Cannot autoconvert expression to pointer: " + value.ToString());
+        }
+
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
             var target = TranslateNode(node.Arguments[0]);
             var targetChangeType = target as JSChangeTypeExpression;
@@ -2429,10 +2443,12 @@ namespace JSIL {
             var valueType = value.GetActualType(TypeSystem);
 
             // Handle an assignment where the left hand side is a pointer or reference cast
-            if (targetChangeType != null)
-                targetVariable = targetChangeType.Expression as JSVariable;
-
             var targetType = target.GetActualType(TypeSystem);
+            if (targetChangeType != null) {
+                targetVariable = targetChangeType.Expression as JSVariable;
+                targetType = targetVariable.GetActualType(TypeSystem);
+            }
+
             if (targetType.IsPointer && !valueType.IsPointer)
                 return new JSWriteThroughPointerExpression(target, value, valueType);
 
@@ -2441,6 +2457,14 @@ namespace JSIL {
                     WarningFormatFunction("unsupported target variable for stobj: {0}", node.Arguments[0]);
 
                 if (!valueType.IsByReference) {
+                    var neededValueType = ((ByReferenceType)targetType).ElementType;
+
+                    // HACK: If you have a ref T* and you write into it, the necessary automatic casts won't happen
+                    //  because ILSpy's type inference never figures out the appropriate types.
+                    if (TypeUtil.IsPointer(neededValueType) && !TypeUtil.IsPointer(valueType)) {
+                        value = AttemptPointerConversion(value, neededValueType);
+                    }
+
                     return new JSWriteThroughReferenceExpression(targetVariable, value);
                 }
             } else {

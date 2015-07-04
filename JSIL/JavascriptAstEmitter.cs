@@ -1057,7 +1057,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (TypeUtil.IsEnum(defaultValue.Value)) {
+            if (TypeUtil.IsPointer(defaultValue.Value)) {
+                var elementType = defaultValue.Value.GetElementType();
+                Output.WriteRaw("new JSIL.NullPointer");
+                Output.LPar();
+                Output.Identifier(elementType, ReferenceContext, false);
+                Output.RPar();
+            } else if (TypeUtil.IsEnum(defaultValue.Value)) {
                 EnumMemberInfo emi;
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
                 
