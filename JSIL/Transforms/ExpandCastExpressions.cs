@@ -29,6 +29,7 @@ namespace JSIL.Transforms {
             var targetType = ce.NewType;
 
             JSExpression newExpression = null;
+            var innerCast = ce.Expression as JSCastExpression;
 
             if (targetType.FullName == "System.ValueType") {
                 var replacement = ce.Expression;
@@ -124,15 +125,24 @@ namespace JSIL.Transforms {
                 TypeUtil.IsNumeric(currentType) &&
                 !TypeUtil.TypesAreEqual(targetType, currentType, true)
             ) {
-                if (currentType.MetadataType == MetadataType.Int64) {
+                if (
+                    (innerCast != null) &&
+                    (innerCast.Expression.GetActualType(TypeSystem) == targetType) &&
+                    (TypeUtil.IsFloatingPoint(targetType) == TypeUtil.IsFloatingPoint(currentType)) &&
+                    (TypeUtil.IsSigned(targetType) == TypeUtil.IsSigned(currentType)) &&
+                    (TypeUtil.SizeOfType(targetType) <= TypeUtil.SizeOfType(currentType))
+                ) {
+                    // HACK: Turn pointless conversions like '(int32)(int64)(1 + 2)' into '(1 + 2)'
+                    newExpression = innerCast.Expression;
+
+                } else if (currentType.MetadataType == MetadataType.Int64) {
                     if (targetType.MetadataType == MetadataType.UInt64) {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
                                 new JSFakeMethod("ToUInt64", TypeSystem.UInt64, new TypeReference[] { }, MethodTypeFactory),
                                 ce.Expression);
-                    }
-                    else {
+                    } else {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
@@ -140,16 +150,15 @@ namespace JSIL.Transforms {
                                 ce.Expression,
                                 GetInt64ConversionArgs(targetType));
                     }
-                }
-                else if (currentType.MetadataType == MetadataType.UInt64) { 
+
+                } else if (currentType.MetadataType == MetadataType.UInt64) { 
                     if (targetType.MetadataType == MetadataType.Int64) { 
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
                                 new JSFakeMethod("ToInt64", TypeSystem.Int64, new TypeReference[] { }, MethodTypeFactory),
                                 ce.Expression);
-                    }
-                    else {
+                    } else {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
@@ -157,20 +166,21 @@ namespace JSIL.Transforms {
                                 ce.Expression,
                                 GetInt64ConversionArgs(targetType));
                     }
-                }
-                else if (targetType.MetadataType == MetadataType.Int64) {
+
+                } else if (targetType.MetadataType == MetadataType.Int64) {
                     newExpression = JSInvocationExpression.InvokeStatic(
                         new JSType(TypeSystem.Int64),
                         new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
                         new[] { ce.Expression },
                         true);
-                }
-                else if (targetType.MetadataType == MetadataType.UInt64) {
+
+                } else if (targetType.MetadataType == MetadataType.UInt64) {
                     newExpression = JSInvocationExpression.InvokeStatic(
                         new JSType(TypeSystem.UInt64),
                         new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
                         new[] { ce.Expression },
                         true);
+
                 } else if (TypeUtil.IsIntegral(currentType)) {
                     if (!TypeUtil.IsIntegral(targetType)) {
                         // Integer -> float conversion
