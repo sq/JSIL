@@ -1213,14 +1213,14 @@ namespace JSIL {
                 !TypeUtil.TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
                 var expectedType = expression.ExpectedType;
-
+                
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
                 bool shouldAutoCast = AutoCastingState.Peek();
 
                 if (
-                    TypeUtil.IsIntPtr(expectedType) ||
-                    TypeUtil.IsIntPtr(expression.InferredType)
+                    TypeUtil.IsIntPtr(TypeUtil.DereferenceType(expectedType)) ||
+                    TypeUtil.IsIntPtr(TypeUtil.DereferenceType(expression.InferredType))
                 ) {
                     // Never do autocasts to/from System.IntPtr since ILSpy's broken type inference generates it
                     shouldAutoCast = false;
@@ -2268,7 +2268,9 @@ namespace JSIL {
                 if (!TypeUtil.IsPointer(valueType)) {
                     // The ldloc/ldloca with a pointer expected type should have pinned this...
                     //  or is it a native int, maybe?
-                    throw new InvalidOperationException("Expected pointer on rhs");
+
+                    // This will throw if it fails
+                    value = AttemptPointerConversion(value, variable.Type);
                 } else if (!TypeUtil.TypesAreEqual(variable.Type, valueType)) {
                     throw new InvalidOperationException("Expected matching pointer type on rhs");
                 }

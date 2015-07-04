@@ -2080,6 +2080,9 @@ namespace JSIL.Ast {
                         return new JSUntranslatableExpression("Conversion of expression '" + inner + "' to pointer");
                     }
                 }
+            } else if (TypeUtil.IsPointer(currentType)) {
+                if (TypeUtil.IsIntegral(newType))
+                    return new JSPointerCastExpression(inner, newType);
             }
 
             return make();

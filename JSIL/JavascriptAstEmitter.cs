@@ -534,10 +534,16 @@ namespace JSIL {
         public void VisitNode (JSPointerCastExpression pce) {
             Visit(pce.Pointer);
             Output.Dot();
-            Output.Identifier("cast");
-            Output.LPar();
-            Visit(pce.NewType);
-            Output.RPar();
+
+            if (TypeUtil.IsIntegral(pce.GetActualType(TypeSystem))) {
+                Output.Identifier("offsetInBytes");
+                Output.Comment("UNSAFE ptr -> int cast");
+            } else {
+                Output.Identifier("cast");
+                Output.LPar();
+                Visit(pce.NewType);
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSPointerLiteral pl) {

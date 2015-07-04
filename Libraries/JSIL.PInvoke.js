@@ -86,7 +86,7 @@ JSIL.PInvoke.GetModuleForHeap = function (heap, throwOnFail) {
 JSIL.PInvoke.PickModuleForPointer = function (pointer, enableFallback) {
   var result = null;
 
-  if (pointer.pointer) {
+  if (pointer.pointer && pointer.pointer.memoryRange) {
     result = JSIL.PInvoke.GetModuleForHeap(pointer.pointer.memoryRange.buffer, !enableFallback);
   }
 
@@ -475,6 +475,9 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.GetSignatureToken = function () {
 
 JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   if (managedValue.pointer) {
+    if (managedValue.pointer.__IsNull__)
+      return 0;
+
     var sourceBuffer = managedValue.pointer.memoryRange.buffer;
     var destBuffer = callContext.module.HEAPU8.buffer;
 
@@ -515,6 +518,9 @@ JSIL.PInvoke.PointerMarshaller.prototype.GetSignatureToken = function () {
 };
 JSIL.PInvoke.PointerMarshaller.prototype.ManagedToNative = function (managedValue, callContext) {
   var module = callContext.module;
+
+  if (managedValue.__IsNull__)
+    return 0;
 
   if (managedValue.memoryRange.buffer !== module.HEAPU8.buffer)
     JSIL.RuntimeError("Pointer is not pinned inside the emscripten heap");
@@ -608,6 +614,9 @@ JSIL.PInvoke.ArrayMarshaller.prototype.GetSignatureToken = function () {
 JSIL.PInvoke.ArrayMarshaller.CreateTemporaryNativeCopy = function (pointer, sizeBytes, callContext, isOut) {
   var module = callContext.module;
 
+  if (pointer.__IsNull__)
+    return 0;
+  
   if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
     return pointer.offsetInBytes | 0;
   } else {

@@ -1368,6 +1368,11 @@ JSIL.PinAndGetPointer = function (objectToPin, offsetInElements, throwOnFail) {
       return null;
   }
 
+  // Pinning a zero-element array always produces a null pointer on the CLR
+  if (objectToPin.length === 0)
+    // FIXME: Infer the type of the null pointer
+    return new JSIL.NullPointer(null);
+
   var buffer = objectToPin.buffer;
   if (!buffer) {
     if (throwOnFail !== false)

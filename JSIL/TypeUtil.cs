@@ -275,7 +275,7 @@ namespace JSIL {
             if (type == null)
                 return false;
 
-            return type.IsPointer || IsIntPtr(type);
+            return type.IsPointer;
         }
 
         public static bool Is32BitIntegralOrIntPtr (TypeReference type) {
@@ -780,17 +780,22 @@ namespace JSIL {
                     return true;
             }
 
-            // HACK: The .NET type system treats pointers and native ints as assignable to each other
-            if (IsNativeInteger(target) && IsPointer(source))
-                return true;
+            if (IsPointer(source)) {
+                // HACK: The .NET type system treats pointers and native ints as assignable to each other
+                if (IsNativeInteger(target))
+                    return true;
 
-            // HACK: T& = T* (but not T* = T& ...?)
-            if (
-                target.IsByReference && 
-                IsPointer(source) &&
-                TypesAreEqual(targetDerefed, source.GetElementType(), true)
-            ) {
-                return true;
+                // HACK: T& = T* (but not T* = T& ...?)
+                if (
+                    target.IsByReference && 
+                    TypesAreEqual(targetDerefed, source.GetElementType(), true)
+                ) {
+                    return true;
+                }
+
+                // HACK
+                if (IsIntegral(target))
+                    return false;
             }
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
