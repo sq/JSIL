@@ -949,16 +949,14 @@ JSIL.ImplementExternals("System.Int64", function ($) {
             return r;
         }
 
-      
         var truncated = me()
           .op_BitwiseAnd(this, me().FromNumber(maxValue))
           .ToNumber();
 
         if (signed) {
-          var maxPlusOne = maxValue + 1;
           var signedMaxValue = maxValue >>> 1;
           if (truncated > signedMaxValue)
-            return truncated - signedMaxValue;
+            return (truncated - maxValue) - 1;
           else
             return truncated;
         }

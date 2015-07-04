@@ -110,6 +110,7 @@
     <None Include="SimpleTestCasesForStubbedBcl\DelegateComplexTest_Issue624.cs" />
     <None Include="SimpleTestCases\Queue.cs" />
     <None Include="SimpleTestCases\UriBasic.cs" />
+    <None Include="SimpleTestCases\NumericRoundTripCasts.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
