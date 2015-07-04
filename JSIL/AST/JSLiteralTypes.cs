@@ -146,6 +146,20 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSNativeIntegerLiteral : JSLiteralBase<int> {
+        public JSNativeIntegerLiteral (int value)
+            : base(value) {
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.NativeInt();
+        }
+
+        public override string ToString () {
+            return String.Format("{0}", Value);
+        }
+    }
+
     public class JSEnumLiteral : JSLiteralBase<long> {
         public readonly TypeReference EnumType;
         public readonly string[] Names;

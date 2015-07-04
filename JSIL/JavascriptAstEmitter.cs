@@ -555,6 +555,10 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSNativeIntegerLiteral nil) {
+            Output.Value(nil.Value);
+        }
+
         public void VisitNode (JSPointerDeltaExpression pde) {
             Visit(pde.Left);
             Output.Dot();

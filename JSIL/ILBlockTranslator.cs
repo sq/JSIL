@@ -378,9 +378,9 @@ namespace JSIL {
             var rightPointer = rhs as JSPointerLiteral;
             if (!(op is JSAssignmentOperator)) {
                 if (leftPointer != null)
-                    lhs = JSLiteral.New(leftPointer.Value);
+                    lhs = new JSNativeIntegerLiteral((int)leftPointer.Value);
                 if (rightPointer != null)
-                    rhs = JSLiteral.New(rightPointer.Value);
+                    rhs = new JSNativeIntegerLiteral((int)rightPointer.Value);
             }
 
             var leftType = lhs.GetActualType(TypeSystem);
@@ -1219,10 +1219,10 @@ namespace JSIL {
                 bool shouldAutoCast = AutoCastingState.Peek();
 
                 if (
-                    TypeUtil.IsPointer(expectedType) ||
-                    TypeUtil.IsPointer(expression.InferredType)
+                    TypeUtil.IsIntPtr(expectedType) ||
+                    TypeUtil.IsIntPtr(expression.InferredType)
                 ) {
-                    // Never autocast pointer types.
+                    // Never do autocasts to/from System.IntPtr since ILSpy's broken type inference generates it
                     shouldAutoCast = false;
                 } else if (
                     !TypeUtil.IsReferenceType(expectedType) || 
@@ -2204,6 +2204,15 @@ namespace JSIL {
             if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
                 return new JSIgnoredTypeReference(true, valueType);
 
+            if (
+                TypeUtil.IsPointer(node.ExpectedType) &&
+                TypeUtil.IsArray(valueType)
+            ) {
+                // HACK: ILSpy produces 'ldloc arr' expressions with an expected pointer type.
+                //  Do the necessary magic here.
+                return new JSPinExpression(result, JSIntegerLiteral.New(0), node.ExpectedType);
+            }
+
             return result;
         }
 
@@ -2253,6 +2262,17 @@ namespace JSIL {
             var valueTypeInfo = TypeInfo.Get(valueType);
             if ((valueTypeInfo != null) && valueTypeInfo.IsIgnored)
                 return new JSIgnoredTypeReference(true, valueType);
+
+            // FIXME: We're not getting the appropriate casts elsewhere in the pipeline for some reason...
+            if (TypeUtil.IsPointer(variable.Type)) {
+                if (!TypeUtil.IsPointer(valueType)) {
+                    // The ldloc/ldloca with a pointer expected type should have pinned this...
+                    //  or is it a native int, maybe?
+                    throw new InvalidOperationException("Expected pointer on rhs");
+                } else if (!TypeUtil.TypesAreEqual(variable.Type, valueType)) {
+                    throw new InvalidOperationException("Expected matching pointer type on rhs");
+                }
+            }
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, DecomposeMutationOperators.MakeLhsForAssignment(jsv),
