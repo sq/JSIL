@@ -6214,8 +6214,7 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArguments) {
-  genericArguments = Array.prototype.slice.call(genericArguments);
+JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArguments) {  
   // The user might pass in a public interface instead of a type object, so map that to the type object.
   for (var i = 0, l = genericArguments.length; i < l; i++) {
     var ga = genericArguments[i];
@@ -6278,7 +6277,7 @@ JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, gener
   body.push("return boundMethod;");
 
   var result = JSIL.CreateNamedFunction(
-    methodFullName + "$Binder$" + genericArgumentCount + "$" + maxArgumentCount,    
+    methodFullName + "`" + genericArgumentCount + ".BindGenericArguments[" + maxArgumentCount + "]",    
     binderArgumentNames,
     body.join("\r\n"),
     closure
