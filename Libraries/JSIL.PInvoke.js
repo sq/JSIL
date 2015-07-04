@@ -266,19 +266,20 @@ JSIL.PInvoke.CallContext.prototype.Allocate = function (sizeBytes) {
 JSIL.PInvoke.CallContext.prototype.Dispose = function () {
   JSIL.PInvoke.CurrentCallContext = this.prior;
 
+  if (this.cleanups)
   for (var i = 0, l = this.cleanups.length; i < l; i++) {
     var c = this.cleanups[i];
     c();
   }
 
-  this.cleanups.length = 0;
-
+  if (this.allocations)
   for (var i = 0, l = this.allocations.length; i < l; i++) {
     var a = this.allocations[i];
     this.module._free(a);
   }
 
-  this.allocations.length = 0;
+  this.cleanups = null;
+  this.allocations = null;
 };
 
 // FIXME: Kill this
@@ -616,7 +617,7 @@ JSIL.PInvoke.ArrayMarshaller.CreateTemporaryNativeCopy = function (pointer, size
 
   if (pointer.__IsNull__)
     return 0;
-  
+
   if (pointer.memoryRange.buffer === module.HEAPU8.buffer) {
     return pointer.offsetInBytes | 0;
   } else {
