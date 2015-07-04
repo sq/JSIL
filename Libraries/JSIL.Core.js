@@ -3837,11 +3837,7 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
     var groupDispatcher = makeDispatcher(id, group, offset);
 
     var genericArgumentCount = offset;
-    var maxArgumentCount = 0;
-    for (var k in group.dict)
-      maxArgumentCount = Math.max(maxArgumentCount, k | 0);
-
-    var stub = JSIL.$MakeGenericMethodBinder(groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount);
+    var stub = JSIL.$MakeGenericMethodBinder(groupDispatcher, methodFullName, genericArgumentCount, group.dict);
 
     return JSIL.$MakeAnonymousMethod(target, stub);
   };
@@ -6214,8 +6210,9 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount) {
+JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, genericArgumentCount, argumentCounts) {
   var body = [];
+  var maxArgumentCount = 0;
   var normalArgumentNames = [];
   var normalArgumentList = "";
   var binderArgumentNames = [];
@@ -6231,9 +6228,10 @@ JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, gener
 
     if (i !== (genericArgumentCount - 1))
       binderArgumentList += ", ";
-    else if (maxArgumentCount > 0)
-      binderArgumentList += ", ";
   }
+
+  for (var k in argumentCounts)
+    maxArgumentCount = Math.max(maxArgumentCount, k | 0);
 
   for (var i = 0; i < maxArgumentCount; i++) {
     normalArgumentNames.push("arg" + i);
@@ -6271,33 +6269,103 @@ JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, gener
     body.push("  " + varName + " = " + varName + ".__Type__");
   }
 
-  body.push("");
+  var innerDispatchCode = ["  switch (argc) {"];
 
+  for (var k in argumentCounts) {
+    var localArgCount = k | 0;
+    innerDispatchCode.push("  case " + localArgCount + ":");
+    innerDispatchCode.push("    return dispatcher.call(");
+    innerDispatchCode.push("      thisReference,");
+    innerDispatchCode.push("      " + binderArgumentList + (
+        (localArgCount !== 0)
+          ? ", "
+          : ""
+      )
+    );
+
+    for (var i = 0; i < localArgCount; i++) {
+      innerDispatchCode.push(
+        "      " + normalArgumentNames[i] + (
+          (i === localArgCount - 1)
+            ? ""
+            : ", "
+        )
+      );
+    }
+
+    innerDispatchCode.push("    );");
+  }
+
+  innerDispatchCode.push("  default:");
+  innerDispatchCode.push("    JSIL.RuntimeError('Unexpected argument count');");
+  innerDispatchCode.push("  }");
+
+  body.push("");
   body.push("var outerThis = this;");
   body.push("var dispatcher = this[dispatcherKey];");
-  body.push("");
 
+  body.push("");
   body.push("var result = function BoundGenericMethod_Invoke (");
   body.push("  " + normalArgumentList);
   body.push(") {");
-  body.push("  return dispatcher.call(");
-  body.push("    outerThis, ");
-  body.push("    " + binderArgumentList);
-  body.push("    " + normalArgumentList);
-  body.push("  );");
+  body.push("  var thisReference = outerThis;");
+  body.push("  var argc = arguments.length | 0;");
+  body.push("  ");
+  body.push.apply(body, innerDispatchCode);
   body.push("};");
 
-  /*
-  body.push("result.call = function BoundGenericMethod_Invoke (");
-  body.push("  " + normalArgumentList);
+  body.push("");
+  body.push("result.call = function BoundGenericMethod_Call (");
+  body.push(
+    "  thisReference" + (
+      (maxArgumentCount !== 0)
+        ? ", "
+        : ""
+    ) + normalArgumentList
+  );
   body.push(") {");
-  body.push("  return dispatcher.call(");
-  body.push("    outerThis, ");
-  body.push("    " + binderArgumentList);
-  body.push("    " + normalArgumentList);
-  body.push("  );");
+  body.push("  var argc = ((arguments.length | 0) - 1) | 0;");
+  body.push("  ");
+  body.push.apply(body, innerDispatchCode);
   body.push("};");
-  */
+
+  body.push("");
+  body.push("result.apply = function BoundGenericMethod_Apply (");
+  body.push("  thisReference, $arguments");
+  body.push(") {");
+  body.push("  var argc = $arguments.length | 0;");
+  body.push("  ");
+  body.push("  switch (argc) {");
+
+  for (var k in argumentCounts) {
+    var localArgCount = k | 0;
+    body.push("  case " + localArgCount + ":");
+    body.push("    return dispatcher.call(");
+    body.push("      thisReference,");
+    body.push("      " + binderArgumentList + (
+        (localArgCount !== 0)
+          ? ", "
+          : ""
+      )
+    );
+
+    for (var i = 0; i < localArgCount; i++) {
+      body.push(
+        "      $arguments[" + i + "]" + (
+          (i === localArgCount - 1)
+            ? ""
+            : ", "
+        )
+      );
+    }
+
+    body.push("    );");
+  }
+
+  body.push("  default:");
+  body.push("    JSIL.RuntimeError('Unexpected argument count');");
+  body.push("  }");
+  body.push("};");
 
   body.push("");
   body.push("return result;");
