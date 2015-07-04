@@ -28,8 +28,16 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   });
 
   $.RawMethod(true, ".cctor", function () {
-    System.IntPtr.Zero = new System.IntPtr(0);
+    System.IntPtr.Zero = new System.IntPtr();
   });
+
+  $.Method({Static:false, Public:false }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.pointer = null;
+      this.value = 0;
+    }
+  );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
@@ -50,24 +58,27 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.RawMethod(false, "__CopyMembers__", 
     function IntPtr_CopyMembers (source, target) {
       target.value = source.value;
-      target.pointer = source.pointer;
+      if (!source.pointer)
+        target.pointer = null;
+      else
+        target.pointer = source.pointer;
     }
   );
+
+  function isNullPointer(p) {
+    return (!p.pointer && p.value === 0) ||
+           (p.pointer && p.pointer.offsetInBytes === 0);
+  };
 
   $.Method({Static:true , Public:true }, "op_Equality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
-      function isNullPointer(p) {
-        return (lhs.pointer === null && lhs.value === 0) ||
-               (lhs.pointer !== null && lhs.pointer.offsetInBytes === 0)
-      }
-
       // Null pointers always equal, regardless of where they came from      
       if (isNullPointer(lhs) && isNullPointer(rhs)) {
         return true;
       }
 
-      if (lhs.pointer !== null) {
+      if (lhs.pointer) {
         if (!rhs.pointer) // Non-null emscripten pointers can't equal C# ones
           return false;
 
@@ -81,16 +92,11 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Inequality", 
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Inequality (lhs, rhs) {
-      function isNullPointer(p) {
-        return (lhs.pointer === null && lhs.value === 0) ||
-               (lhs.pointer !== null && lhs.pointer.offsetInBytes === 0)
-      }
-
       if (isNullPointer(lhs) && isNullPointer(rhs)) {
         return false;
       }
 
-      if (lhs.pointer !== null) {
+      if (lhs.pointer) {
         if (!rhs.pointer)
           return true;
 
@@ -104,7 +110,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
   $.Method({Static:true , Public:true }, "op_Addition", 
     (new JSIL.MethodSignature(tIntPtr, [tIntPtr, $.Int32], [])), 
     function op_Addition (lhs, rhs) {
-      if (lhs.pointer !== null) {
+      if (lhs.pointer) {
         var newPointer = lhs.pointer.add(rhs, false);
 
         return JSIL.CreateInstanceOfType(
