@@ -115,6 +115,22 @@ namespace JSIL {
                 (etype == MetadataType.UIntPtr);
         }
 
+        public static bool IsNativeInteger (TypeReference type, out bool isSigned) {
+            var result = (type.Namespace == "JSIL.Types") &&
+                (
+                    (type.Name == "NativeInt") ||
+                    (type.Name == "NativeUInt")
+                );
+
+            isSigned = result && (type.Name == "NativeInt");
+            return result;
+        }
+
+        public static bool IsNativeInteger (TypeReference type) {
+            bool temp;
+            return IsNativeInteger(type, out temp);
+        }
+
         public static bool IsNumeric (TypeReference type) {
             type = DereferenceType(type);
 
@@ -135,7 +151,7 @@ namespace JSIL {
                 case MetadataType.IntPtr:
                     return true;
                 default:
-                    return false;
+                    return IsNativeInteger(type);
             }
         }
 
@@ -159,8 +175,13 @@ namespace JSIL {
                 case MetadataType.UIntPtr:
                     return false;
 
-                default:
+                default: {
+                    bool result;
+                    if (IsNativeInteger(type, out result))
+                        return result;
+
                     return null;
+                }
             }
         }
 
@@ -182,7 +203,7 @@ namespace JSIL {
                 case MetadataType.IntPtr:
                     return true;
                 default:
-                    return false;
+                    return IsNativeInteger(type);
             }
         }
 
@@ -198,7 +219,7 @@ namespace JSIL {
                 case MetadataType.Int32:
                     return true;
                 default:
-                    return false;
+                    return IsNativeInteger(type);
             }
         }
 
@@ -236,15 +257,24 @@ namespace JSIL {
                     return 4;
             }
 
+            if (IsNativeInteger(type))
+                return 4;
+
             throw new ArgumentException("Type must be numeric");
         }
 
 
         public static bool IsIntPtr (TypeReference type) {
+            if (type == null)
+                return false;
+
             return (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
         }
 
         public static bool IsPointer (TypeReference type) {
+            if (type == null)
+                return false;
+
             return type.IsPointer || IsIntPtr(type);
         }
 
@@ -750,8 +780,8 @@ namespace JSIL {
                     return true;
             }
 
-            // HACK: The .NET type system treats pointers and ints as assignable to each other
-            if (IsIntegral(target) && IsPointer(source))
+            // HACK: The .NET type system treats pointers and native ints as assignable to each other
+            if (IsNativeInteger(target) && IsPointer(source))
                 return true;
 
             // HACK: T& = T* (but not T* = T& ...?)
@@ -972,6 +1002,16 @@ namespace JSIL {
 
         public static TypeReference SystemType (this TypeSystem system) {
             return new TypeReference("System", "Type", system.Object.Module, system.Object.Scope);
+        }
+
+        // HACK: Synthetic
+        public static TypeReference NativeInt (this TypeSystem system) {
+            return new TypeReference("JSIL.Types", "NativeInt", system.Object.Module, system.Object.Scope);
+        }
+
+        // HACK: Synthetic
+        public static TypeReference NativeUInt (this TypeSystem system) {
+            return new TypeReference("JSIL.Types", "NativeUInt", system.Object.Module, system.Object.Scope);
         }
     }
 }

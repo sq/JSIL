@@ -371,6 +371,74 @@ namespace JSIL {
             return (op is JSComparisonOperator);
         }
 
+        protected JSExpression Translate_BinaryOp_Pointer (ILExpression node, JSBinaryOperator op, JSExpression lhs, JSExpression rhs) {
+            // We can end up with a pointer literal in an arithmetic expression.
+            // In this case we want to switch it back to a normal integer literal so that the math operations work.
+            var leftPointer = lhs as JSPointerLiteral;
+            var rightPointer = rhs as JSPointerLiteral;
+            if (!(op is JSAssignmentOperator)) {
+                if (leftPointer != null)
+                    lhs = JSLiteral.New(leftPointer.Value);
+                if (rightPointer != null)
+                    rhs = JSLiteral.New(rightPointer.Value);
+            }
+
+            var leftType = lhs.GetActualType(TypeSystem);
+            var rightType = rhs.GetActualType(TypeSystem);
+            var leftIsPointerish = TypeUtil.IsPointer(leftType) || TypeUtil.IsNativeInteger(leftType);
+            var rightIsPointerish = TypeUtil.IsPointer(rightType) || TypeUtil.IsNativeInteger(rightType);
+
+            JSExpression result = null;
+            if (leftIsPointerish && TypeUtil.IsIntegral(rightType)) {
+                if (
+                    (op == JSOperator.Add) ||
+                    (op == JSOperator.AddAssignment)
+                ) {
+                    result = new JSPointerAddExpression(
+                        lhs, rhs,
+                        op == JSOperator.AddAssignment
+                    );
+                } else if (
+                    (op == JSOperator.Subtract) ||
+                    (op == JSOperator.SubtractAssignment)
+                ) {
+                    result = new JSPointerAddExpression(
+                        lhs,
+                        new JSUnaryOperatorExpression(JSOperator.Negation, rhs, TypeSystem.NativeInt()),
+                        op == JSOperator.SubtractAssignment
+                    );
+                } else if (
+                    (op == JSOperator.Divide) ||
+                    (op == JSOperator.DivideAssignment)
+                ) {
+                    // This should only happen when the lhs is already a native int
+                    if (TypeUtil.IsPointer(leftType))
+                        return new JSUntranslatableExpression(node);
+
+                    result = new JSBinaryOperatorExpression(
+                        op, lhs, rhs, TypeSystem.NativeInt()
+                    );
+                } else {
+                    Debugger.Break();
+                }
+            } else if (leftIsPointerish && rightIsPointerish) {
+                if (op == JSOperator.Subtract) {
+                    result = new JSPointerDeltaExpression(
+                        lhs, rhs, TypeSystem.NativeInt()
+                    );
+                } else if (op is JSComparisonOperator) {
+                    result = new JSPointerComparisonExpression(op, lhs, rhs, TypeSystem.Boolean);
+                } else {
+                    Debugger.Break();
+                }
+            }
+
+            if (result == null)
+                return new JSUntranslatableExpression(node);
+            else
+                return result;
+        }
+
         protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
             // Detect attempts to perform pointer arithmetic
             if (TypeUtil.IsIgnoredType(node.Arguments[0].ExpectedType) ||
@@ -389,8 +457,19 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
+            // HACK: Auto-casting for pointer arithmetic is undesirable, because ILSpy
+            //  infers incorrect types here
+            var arePointersInvolved =
+                TypeUtil.IsPointer(node.Arguments[0].ExpectedType) ||
+                TypeUtil.IsPointer(node.Arguments[0].InferredType) ||
+                TypeUtil.IsPointer(node.Arguments[1].ExpectedType) ||
+                TypeUtil.IsPointer(node.Arguments[1].InferredType);
+
             JSExpression lhs, rhs;
-            AutoCastingState.Push(!ShouldSuppressAutoCastingForOperator(op));
+            AutoCastingState.Push(
+                !ShouldSuppressAutoCastingForOperator(op) &&
+                !arePointersInvolved
+            );
             try {
                 lhs = TranslateNode(node.Arguments[0]);
                 rhs = TranslateNode(node.Arguments[1]);
@@ -405,6 +484,9 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
+            if (arePointersInvolved)
+                return Translate_BinaryOp_Pointer(node, op, lhs, rhs);
+
             var resultType = node.InferredType ?? node.ExpectedType;
             var leftType = lhs.GetActualType(TypeSystem);
             var rightType = rhs.GetActualType(TypeSystem);
@@ -415,6 +497,8 @@ namespace JSIL {
                 TypeUtil.IsIntegral(resultType) &&
                 !(op is JSBitwiseOperator)
             ) {
+                // HACK: Compensate for broken ILSpy type inference on certain forms of integer arithmetic
+
                 var sizeofLeft = TypeUtil.SizeOfType(leftType);
                 var sizeofRight = TypeUtil.SizeOfType(rightType);
                 TypeReference largestType;
@@ -432,7 +516,6 @@ namespace JSIL {
                     : 0;
 
                 if (TypeUtil.SizeOfType(largestType) > Math.Max(sizeofInferred, sizeofExpected)) {
-                    // HACK: ILSpy's completely broken type inference strikes again.
                     // FIXME: Get the sign right?
                     resultType = largestType;
                 }
@@ -1133,14 +1216,21 @@ namespace JSIL {
 
                 // HACK: Expected types inside of comparison expressions are wrong, so we need to suppress
                 //  the casts they would normally generate sometimes.
-                bool shouldAutoCast = (
-                    AutoCastingState.Peek() ||
-                    (
-                        // Comparisons between value types still need a cast.
-                        !TypeUtil.IsReferenceType(expectedType) || 
-                        !TypeUtil.IsReferenceType(expression.InferredType)
-                    )
-                );
+                bool shouldAutoCast = AutoCastingState.Peek();
+
+                if (
+                    TypeUtil.IsPointer(expectedType) ||
+                    TypeUtil.IsPointer(expression.InferredType)
+                ) {
+                    // Never autocast pointer types.
+                    shouldAutoCast = false;
+                } else if (
+                    !TypeUtil.IsReferenceType(expectedType) || 
+                    !TypeUtil.IsReferenceType(expression.InferredType)
+                ) {
+                    // Comparisons between value types still need a cast.
+                    shouldAutoCast = true;
+                }
 
                 // HACK: ILSpy improperly decompiles sequences like:
                 // byte * px = ...;
@@ -2523,7 +2613,10 @@ namespace JSIL {
         }
 
         private JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType, bool getReference) {
-            var expectedType = elementType ?? node.InferredType ?? node.ExpectedType;
+            var expectedType = node.InferredType ?? node.ExpectedType;
+            if (!getReference)
+                expectedType = elementType ?? expectedType;
+
             var target = TranslateNode(node.Arguments[0]);
             if (target.IsNull || target is JSIgnoredMemberReference || target is JSIgnoredTypeReference)
                 return target;
@@ -2534,7 +2627,11 @@ namespace JSIL {
             JSExpression result;
 
             if (getReference) {
-                result = JSIL.NewElementReference(target, index);
+                if (TypeUtil.IsPointer(node.ExpectedType)) {
+                    result = new JSPinExpression(target, index, node.ExpectedType);
+                } else {
+                    result = JSIL.NewElementReference(target, index);
+                }
             } else if (PackedArrayUtil.IsPackedArrayType(targetType)) {
                 result = PackedArrayUtil.GetItem(targetType, TypeInfo.Get(targetType), target, index, MethodTypes);
             } else {
@@ -2753,7 +2850,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_I (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeInt());
         }
         
         protected JSExpression Translate_Conv_I1 (ILExpression node) {
@@ -2773,11 +2870,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_Ovf_I (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeInt(), true);
         }
 
         protected JSExpression Translate_Conv_Ovf_I_Un (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32, true, true);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeInt(), true, true);
         }
 
         protected JSExpression Translate_Conv_Ovf_I1 (ILExpression node) {
@@ -2813,11 +2910,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_Ovf_U (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeUInt(), true);
         }
 
         protected JSExpression Translate_Conv_Ovf_U_Un (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32, true, true);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeUInt(), true, true);
         }
 
         protected JSExpression Translate_Conv_Ovf_U1 (ILExpression node) {
@@ -2865,7 +2962,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_U (ILExpression node) {
-            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.NativeUInt());
         }
 
         protected JSExpression Translate_Conv_U1 (ILExpression node) {

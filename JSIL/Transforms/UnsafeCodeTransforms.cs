@@ -96,61 +96,6 @@ namespace JSIL.Transforms {
             VisitChildren(pce);
         }
 
-        public void VisitNode (JSBinaryOperatorExpression boe) {
-            var leftType = boe.Left.GetActualType(TypeSystem);
-            var rightType = boe.Right.GetActualType(TypeSystem);
-
-            // We can end up with a pointer literal in an arithmetic expression.
-            // In this case we want to switch it back to a normal integer literal so that the math operations work.
-            var leftPointer = boe.Left as JSPointerLiteral;
-            var rightPointer = boe.Right as JSPointerLiteral;
-            if (!(boe.Operator is JSAssignmentOperator)) {
-                if (leftPointer != null)
-                    boe.ReplaceChild(boe.Left, JSLiteral.New(leftPointer.Value));
-                if (rightPointer != null)
-                    boe.ReplaceChild(boe.Right, JSLiteral.New(rightPointer.Value));
-            }
-
-            JSExpression replacement = null;
-            if (leftType.IsPointer && TypeUtil.IsIntegral(rightType)) {
-                if (
-                    (boe.Operator == JSOperator.Add) ||
-                    (boe.Operator == JSOperator.AddAssignment)
-                ) {
-                    replacement = new JSPointerAddExpression(
-                        boe.Left, boe.Right,
-                        boe.Operator == JSOperator.AddAssignment
-                    );
-                } else if (
-                    (boe.Operator == JSOperator.Subtract) ||
-                    (boe.Operator == JSOperator.SubtractAssignment)
-                ) {
-                    // FIXME: Int32 is probably wrong
-                    replacement = new JSPointerAddExpression(
-                        boe.Left,
-                        new JSUnaryOperatorExpression(JSOperator.Negation, boe.Right, TypeSystem.Int32),
-                        boe.Operator == JSOperator.SubtractAssignment
-                    );
-                }
-            } else if (leftType.IsPointer && rightType.IsPointer) {
-                if (boe.Operator == JSOperator.Subtract) {
-                    // FIXME: Int32 is probably wrong
-                    replacement = new JSPointerDeltaExpression(
-                        boe.Left, boe.Right, TypeSystem.Int32
-                    );
-                } else if (boe.Operator is JSComparisonOperator) {
-                    replacement = new JSPointerComparisonExpression(boe.Operator, boe.Left, boe.Right, boe.ActualType);
-                }
-            }
-
-            if (replacement != null) {
-                ParentNode.ReplaceChild(boe, replacement);
-                VisitReplacement(replacement);
-            } else {
-                VisitChildren(boe);
-            }
-        }
-
         public static bool ExtractOffsetFromPointerExpression (JSExpression pointer, TypeSystem typeSystem, out JSExpression newPointer, out JSExpression offset) {
             pointer = JSPointerExpressionUtil.UnwrapExpression(pointer);
 

@@ -125,12 +125,19 @@ namespace JSIL.Transforms {
                 TypeUtil.IsNumeric(currentType) &&
                 !TypeUtil.TypesAreEqual(targetType, currentType, true)
             ) {
+                TypeReference innerType = null;
+                if (innerCast != null)
+                    innerType = innerCast.Expression.GetActualType(TypeSystem);
+
                 if (
-                    (innerCast != null) &&
-                    (innerCast.Expression.GetActualType(TypeSystem) == targetType) &&
-                    (TypeUtil.IsFloatingPoint(targetType) == TypeUtil.IsFloatingPoint(currentType)) &&
-                    (TypeUtil.IsSigned(targetType) == TypeUtil.IsSigned(currentType)) &&
-                    (TypeUtil.SizeOfType(targetType) <= TypeUtil.SizeOfType(currentType))
+                    TypeUtil.TypesAreAssignable(TypeInfo, targetType, innerType) &&
+                    (
+                        (TypeUtil.IsFloatingPoint(targetType) == TypeUtil.IsFloatingPoint(currentType)) &&
+                        (TypeUtil.IsFloatingPoint(targetType) == TypeUtil.IsFloatingPoint(innerType))
+                    ) &&
+                    (TypeUtil.IsSigned(targetType) == TypeUtil.IsSigned(innerType)) &&
+                    (TypeUtil.SizeOfType(targetType) <= TypeUtil.SizeOfType(currentType)) &&
+                    (TypeUtil.SizeOfType(targetType) >= TypeUtil.SizeOfType(innerType))
                 ) {
                     // HACK: Turn pointless conversions like '(int32)(int64)(1 + 2)' into '(1 + 2)'
                     newExpression = innerCast.Expression;
