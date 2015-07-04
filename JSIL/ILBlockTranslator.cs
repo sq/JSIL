@@ -2427,12 +2427,12 @@ namespace JSIL {
             var childLiteral = value.SelfAndChildrenRecursive.OfType<JSLiteral>().FirstOrDefault();
 
             // We special-case allowing 0 to be converted to a pointer.
-            if (
-                (childLiteral != null) && 
-                (Convert.ToInt64(childLiteral.Literal) == 0)
-            ) {
+            object ptr = null;
+            if (childLiteral != null)
+                ptr = Convert.ChangeType(childLiteral.Literal, typeof(Int64));
+
+            if ((ptr != null) && ((Int64)ptr == 0))
                 return new JSDefaultValueLiteral(targetType);
-            }
 
             throw new NotImplementedException("Cannot autoconvert expression to pointer: " + value.ToString());
         }
