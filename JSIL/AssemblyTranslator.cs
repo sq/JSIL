@@ -1996,7 +1996,7 @@ namespace JSIL {
                 var parameters = (from v in translator.Variables.Values where v.IsParameter && !v.IsThis select v);
 
                 if (method.HasGenericParameters) {
-                    var type = new TypeReference("System", "Type", context.CurrentModule.TypeSystem.Object.Module, context.CurrentModule.TypeSystem.Object.Scope);
+                    var type = context.CurrentModule.TypeSystem.SystemType();
                     parameters = (from gp in method.GenericParameters select new JSVariable(gp.Name, type, method)).Concat(parameters);
                 }
 

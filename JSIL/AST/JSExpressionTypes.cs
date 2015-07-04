@@ -749,7 +749,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return new TypeReference("System", "Type", typeSystem.Object.Module, typeSystem.Object.Scope);
+            return typeSystem.SystemType();
         }
 
         public override string ToString () {

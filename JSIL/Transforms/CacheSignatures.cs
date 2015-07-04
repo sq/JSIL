@@ -221,7 +221,7 @@ namespace JSIL.Transforms {
                 var functionIdentifier = fe.Method.Method.Identifier;
                 CacheSet localSet;
                 if (LocalCachedSets.TryGetValue(functionIdentifier, out localSet)) {
-                    var trType = new TypeReference("System", "Type", null, null);
+                    var trType = fe.Method.Reference.Module.TypeSystem.SystemType();
 
                     int i = 0;
                     foreach (var kvp in localSet.Signatures) {

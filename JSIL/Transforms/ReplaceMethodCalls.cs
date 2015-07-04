@@ -98,7 +98,7 @@ namespace JSIL.Transforms {
                                     ),
                                     new JSTypeOfExpression(git.GenericArguments[0]),
                                     JSIL.ThrowNullReferenceException(),
-                                    new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope, false)
+                                    TypeSystem.SystemType()
                                 );
                             } else {
                                 replacement = JSIL.GetTypeOf(thisExpression);

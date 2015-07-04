@@ -969,5 +969,9 @@ namespace JSIL {
 
             return false;
         }
+
+        public static TypeReference SystemType (this TypeSystem system) {
+            return new TypeReference("System", "Type", system.Object.Module, system.Object.Scope);
+        }
     }
 }
