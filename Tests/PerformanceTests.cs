@@ -249,57 +249,5 @@ namespace JSIL.Tests {
                 Console.WriteLine("JS:\r\n{0}", test.RunJavascript(null));
             }
         }
-    }
-
-    [TestFixture]
-    public class PerformanceAnalysisTests : GenericTestFixture {
-        Configuration MakeUnsafeConfiguration () {
-            var cfg = MakeConfiguration();
-            cfg.CodeGenerator.EnableUnsafeCode = true;
-            return cfg;
-        }
-
-        protected override Dictionary<string, string> SetupEvaluatorEnvironment () {
-            return new Dictionary<string, string> {
-                { "INFERFLAGS", "result" }
-            };
-        }
-
-        protected override string JSShellOptions {
-            get {
-                return "--ion-eager --thread-count=0";
-            }
-        }
-
-        protected override bool UseDebugJSShell {
-            get {
-                return true;
-            }
-        }
-
-        private void AssertIsSingleton (PerformanceAnalysisData data, string expression) {
-            Assert.IsTrue(data[expression].IsSingleton, expression + " is not a singleton");
-        }
-
-        // FIXME: Latest js.exe breaks this test.
-        [Ignore]
-        [Test]
-        public void PointerMethodsAreSingletons () {
-            using (var test = MakeTest(@"PerformanceTestCases\PointerMethodsAreSingletons.cs")) {
-                var data = new PerformanceAnalysisData(test, MakeUnsafeConfiguration);
-
-                Console.WriteLine(data.Output);
-
-                try {
-                    AssertIsSingleton(data, "pBuffer.getElement");
-                    AssertIsSingleton(data, "pBuffer.setElement");
-                    // FIXME: Fails. Something about this function makes SpiderMonkey unhappy :-(
-                    AssertIsSingleton(data, "Program.TestInlineAccess");
-                } catch (Exception) {
-                    data.Dump(Console.Out);
-                    throw;
-                }
-            }
-        }
-    }    
+    } 
 }

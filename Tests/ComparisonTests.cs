@@ -136,58 +136,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [TestCaseSource("GenericsSource")]
-        public void Generics (object[] parameters) {
-            RunSingleComparisonTestCase(parameters);
-        }
-
-        protected IEnumerable<TestCaseData> GenericsSource () {
-            return FilenameTestSource(
-                new[] { 
-                    @"TestCases\HiddenMethodFromGenericClass.cs",
-                    @"TestCases\MultipleGenericInterfaces.cs",
-                    @"TestCases\NestedGenericInheritance.cs",
-                    @"TestCases\DelegateResultWithConstraints.cs",
-                    @"TestCases\GenericStaticProperties.cs",
-                    @"TestCases\GenericInnerClasses.cs",
-                    @"TestCases\GenericTypeCasts.cs",
-                    @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
-                    @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
-                    @"TestCases\GenericInstanceCallGenericMethod.cs",
-                    @"TestCases\GenericStructs.cs",
-                    @"TestCases\InheritGenericClass.cs",
-                    @"TestCases\InheritOpenGenericClass.cs",
-                    @"TestCases\InheritOpenGenericInterface.cs",
-                    @"TestCases\GenericMethods.cs",
-                    @"TestCases\GenericMethodThisReference.cs",
-                    @"TestCases\NestedGenericMethodCalls.cs",
-                    @"TestCases\OverloadWithGeneric.cs",
-                    @"TestCases\OverloadWithGenericArgCount.cs",
-                    @"TestCases\OverloadWithMultipleGeneric.cs",
-                    @"TestCases\OverloadWithMultipleGenericThis.cs",
-                    @"TestCases\OverloadWithMultipleGenericThisRecursive.cs",
-                    @"TestCases\GenericClasses.cs",
-                    @"TestCases\GenericStaticMethods.cs",
-                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
-                    @"TestCases\GenericStaticConstructorOrdering.cs",
-                    @"TestCases\MethodOfGenericTypeAsGenericDelegate.cs",
-                    @"TestCases\GenericMethodAsGenericDelegate.cs",
-                    @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
-                    @"TestCases\GenericParameterNameShadowing.cs",
-                    @"TestCases\MutatedStructGenericParameter.cs",
-                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
-                    @"TestCases\RefStructThisWithInterface.cs",
-                    @"TestCases\MethodGenericParameterAsTypeParameter.cs",
-                    @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
-                    @"TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs",
-                    @"TestCases\GenericStaticMethods2.cs",
-                    @"InterfaceTestCases\GenericMethodInsideGenericInterface.cs",
-                    @"InterfaceTestCases\GenericMethodInsideNonGenericInterface.cs",
-                }, MakeDefaultProvider(), new AssemblyCache()
-            );
-        }
-
-        [Test]
         [TestCaseSource("StructsSource")]
         public void Structs (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
@@ -604,6 +552,61 @@ namespace JSIL.Tests {
 
         protected IEnumerable<TestCaseData> UnsafeTestCasesSource () {
             return FolderTestSource("UnsafeTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+    }
+
+    [TestFixture]
+    public class GenericsTests : GenericTestFixture {
+        [Test]
+        [TestCaseSource("GenericsSource")]
+        public void Generics (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> GenericsSource () {
+            return FilenameTestSource(
+                new[] { 
+                    @"TestCases\HiddenMethodFromGenericClass.cs",
+                    @"TestCases\MultipleGenericInterfaces.cs",
+                    @"TestCases\NestedGenericInheritance.cs",
+                    @"TestCases\DelegateResultWithConstraints.cs",
+                    @"TestCases\GenericStaticProperties.cs",
+                    @"TestCases\GenericInnerClasses.cs",
+                    @"TestCases\GenericTypeCasts.cs",
+                    @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
+                    @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
+                    @"TestCases\GenericInstanceCallGenericMethod.cs",
+                    @"TestCases\GenericStructs.cs",
+                    @"TestCases\InheritGenericClass.cs",
+                    @"TestCases\InheritOpenGenericClass.cs",
+                    @"TestCases\InheritOpenGenericInterface.cs",
+                    @"TestCases\GenericMethods.cs",
+                    @"TestCases\GenericMethodThisReference.cs",
+                    @"TestCases\NestedGenericMethodCalls.cs",
+                    @"TestCases\OverloadWithGeneric.cs",
+                    @"TestCases\OverloadWithGenericArgCount.cs",
+                    @"TestCases\OverloadWithMultipleGeneric.cs",
+                    @"TestCases\OverloadWithMultipleGenericThis.cs",
+                    @"TestCases\OverloadWithMultipleGenericThisRecursive.cs",
+                    @"TestCases\GenericClasses.cs",
+                    @"TestCases\GenericStaticMethods.cs",
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
+                    @"TestCases\GenericStaticConstructorOrdering.cs",
+                    @"TestCases\MethodOfGenericTypeAsGenericDelegate.cs",
+                    @"TestCases\GenericMethodAsGenericDelegate.cs",
+                    @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
+                    @"TestCases\GenericParameterNameShadowing.cs",
+                    @"TestCases\MutatedStructGenericParameter.cs",
+                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
+                    @"TestCases\RefStructThisWithInterface.cs",
+                    @"TestCases\MethodGenericParameterAsTypeParameter.cs",
+                    @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
+                    @"TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs",
+                    @"TestCases\GenericStaticMethods2.cs",
+                    @"InterfaceTestCases\GenericMethodInsideGenericInterface.cs",
+                    @"InterfaceTestCases\GenericMethodInsideNonGenericInterface.cs"
+                }, MakeDefaultProvider(), new AssemblyCache()
+            );
         }
     }
 }

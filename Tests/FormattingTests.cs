@@ -491,28 +491,6 @@ namespace JSIL.Tests {
             }
         }
 
-        // FIXME: This is broken by the new mechanism for caching signatures, but maybe it's fine?
-        [Ignore]
-        [Test]
-        public void CorlibTypeRefs () {
-            var generatedJs = GetJavascript(
-                @"SpecialTestCases\CorlibTypeRefs.cs",
-                "Method(hello)\r\nMethod(MyType(world))"
-            );
-
-            try {
-                Assert.IsFalse(generatedJs.Contains(".TypeRef(\"System.String\")"), "Long-form string typeref");
-                Assert.IsTrue(generatedJs.Contains(".TypeRef(\"MyType\")"), "Long-form custom typeref");
-
-                // Maybe this can be improved?
-                Assert.IsTrue(generatedJs.Contains(".TypeRef(\"System.Array\""), "Long-form array typeref");
-            } catch {
-                Console.WriteLine(generatedJs);
-
-                throw;
-            }
-        }
-
         [Test]
         public void FastOverloadDispatch () {
             var output = "A()\r\nA(1)\r\nA(1, str)\r\nB()\r\nB(int 1)\r\nB(string str)";

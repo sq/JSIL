@@ -3836,11 +3836,12 @@ JSIL.$MakeMethodGroup = function (typeObject, isStatic, target, renamedMethods, 
   makeGenericArgumentGroup = function (id, group, offset) {
     var groupDispatcher = makeDispatcher(id, group, offset);
 
-    var stub = function GetBoundGenericMethod () {
-      var dispatcherImpl = this[groupDispatcher];
-      var boundMethod = JSIL.$BindGenericMethod(this, dispatcherImpl, methodFullName, arguments);
-      return boundMethod;
-    };
+    var genericArgumentCount = offset;
+    var maxArgumentCount = 0;
+    for (var k in group.dict)
+      maxArgumentCount = Math.max(maxArgumentCount, k | 0);
+
+    var stub = JSIL.$MakeGenericMethodBinder(groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount);
 
     return JSIL.$MakeAnonymousMethod(target, stub);
   };
@@ -6248,6 +6249,40 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
     );
     return body.apply(thisReference, invokeArguments);
   };
+
+  return result;
+};
+
+JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, genericArgumentCount, maxArgumentCount) {
+  var body = [];
+  var binderArgumentNames = [];
+  var closure = {
+    dispatcherKey: groupDispatcher,
+    methodFullName: methodFullName
+  };
+
+  for (var i = 0; i < genericArgumentCount; i++)
+    binderArgumentNames.push("genericArg" + i);
+
+  body.push("var dispatcher = this[dispatcherKey];");
+  body.push("var boundMethod = JSIL.$BindGenericMethod(this, dispatcher, methodFullName, [");
+  for (var i = 0; i < genericArgumentCount; i++)
+    body.push(
+      "  genericArg" + i + (
+        (i === (genericArgumentCount - 1))
+          ? ""
+          : ","
+      )
+    );
+  body.push("]);");
+  body.push("return boundMethod;");
+
+  var result = JSIL.CreateNamedFunction(
+    methodFullName + "$Binder$" + genericArgumentCount + "$" + maxArgumentCount,    
+    binderArgumentNames,
+    body.join("\r\n"),
+    closure
+  );
 
   return result;
 };

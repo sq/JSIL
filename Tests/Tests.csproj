@@ -412,7 +412,6 @@
     <None Include="FailingTestCases\ReturnNormalArrayAsPackedArray.cs" />
     <None Include="FailingTestCases\ReturnPackedArrayAsNormalArray.cs" />
     <Compile Include="GenericTestFixture.cs" />
-    <None Include="PerformanceTestCases\PointerMethodsAreSingletons.cs" />
     <Compile Include="PerformanceAnalysis.cs" />
     <None Include="PerformanceTestCases\Vector3.cs" />
     <None Include="PerformanceTestCases\OverloadedMethodCalls.cs" />

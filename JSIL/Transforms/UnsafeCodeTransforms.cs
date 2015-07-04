@@ -72,6 +72,10 @@ namespace JSIL.Transforms {
             JSExpression newPointer, offset;
 
             if (ExtractOffsetFromPointerExpression(wtpe.Left, TypeSystem, out newPointer, out offset)) {
+                // HACK: Is this right?
+                if (wtpe.OffsetInBytes != null)
+                    offset = new JSBinaryOperatorExpression(JSOperator.Add, wtpe.OffsetInBytes, offset, TypeSystem.Int32);
+
                 var replacement = new JSWriteThroughPointerExpression(newPointer, wtpe.Right, wtpe.ActualType, offset);
                 ParentNode.ReplaceChild(wtpe, replacement);
                 VisitReplacement(replacement);
