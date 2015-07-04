@@ -2734,7 +2734,10 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("({0} + {1})", Pointer, Delta);
+            if (MutateInPlace)
+                return String.Format("({0} += {1})", Pointer, Delta);
+            else
+                return String.Format("({0} + {1})", Pointer, Delta);
         }
     }
 

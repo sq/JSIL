@@ -99,6 +99,13 @@ namespace JSIL.Transforms {
         public static bool ExtractOffsetFromPointerExpression (JSExpression pointer, TypeSystem typeSystem, out JSExpression newPointer, out JSExpression offset) {
             pointer = JSPointerExpressionUtil.UnwrapExpression(pointer);
 
+            var addExpression = pointer as JSPointerAddExpression;
+            if (addExpression != null) {
+                newPointer = addExpression.Pointer;
+                offset = addExpression.Delta;
+                return true;
+            }
+
             offset = null;
             newPointer = pointer;
 
@@ -136,5 +143,34 @@ namespace JSIL.Transforms {
                 return false;
             }
         }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            var leftType = boe.Left.GetActualType(TypeSystem);
+            var rightType = boe.Right.GetActualType(TypeSystem);
+
+            JSVariable leftVar;
+            JSPointerAddExpression rightAdd;
+
+            if (
+                TypeUtil.IsPointer(leftType) && 
+                TypeUtil.IsPointer(rightType) &&
+                (boe.Operator is JSAssignmentOperator) &&
+                ((leftVar = boe.Left as JSVariable) != null) &&
+                ((rightAdd = boe.Right as JSPointerAddExpression) != null) &&
+                rightAdd.Pointer.Equals(leftVar) &&
+                !rightAdd.MutateInPlace
+            ) {
+                var replacement = new JSPointerAddExpression(
+                    leftVar, rightAdd.Delta, true
+                );
+
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+                return;
+            } else {
+                VisitChildren(boe);
+            }
+        }
+
     }
 }
