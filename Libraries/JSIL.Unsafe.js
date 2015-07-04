@@ -17,9 +17,14 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     this.value = null;
   });
 
+  $.RawMethod(false, "$fromInt32", function (int32) {
+    this.pointer = null;
+    this.value   = int32 | 0;
+  });
+
   $.RawMethod(false, "$fromInt64", function (int64) {
     this.pointer = null;
-    this.value = int64;
+    this.value   = int64.ToNumber() | 0;
   });
 
   $.RawMethod(true, ".cctor", function () {
@@ -30,7 +35,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (value) {
       this.pointer = null;
-      this.value = $jsilcore.System.Int64.FromInt32(value);
+      this.value = value | 0;
     }
   );
 
@@ -38,7 +43,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature(null, [$.Int64], [])), 
     function _ctor (value) {
       this.pointer = null;
-      this.value = value;
+      this.value = value.ToNumber() | 0;
     }
   );
 
@@ -53,8 +58,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Equality (lhs, rhs) {
       function isNullPointer(p) {
-        return (lhs.pointer == null && lhs.value == 0) ||
-               (lhs.pointer != null && lhs.pointer.offsetInBytes == 0)
+        return (lhs.pointer === null && lhs.value === 0) ||
+               (lhs.pointer !== null && lhs.pointer.offsetInBytes === 0)
       }
 
       // Null pointers always equal, regardless of where they came from      
@@ -68,7 +73,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
 
         return rhs.pointer.equals(lhs.pointer);
       } else {
-        return System.Int64.op_Equality(lhs.value, rhs.value);
+        return lhs.value === rhs.value;
       }
     }
   );
@@ -77,8 +82,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     (new JSIL.MethodSignature($.Boolean, [tIntPtr, tIntPtr], [])), 
     function op_Inequality (lhs, rhs) {
       function isNullPointer(p) {
-        return (lhs.pointer == null && lhs.value == 0) ||
-               (lhs.pointer != null && lhs.pointer.offsetInBytes == 0)
+        return (lhs.pointer === null && lhs.value === 0) ||
+               (lhs.pointer !== null && lhs.pointer.offsetInBytes === 0)
       }
 
       if (isNullPointer(lhs) && isNullPointer(rhs)) {
@@ -91,7 +96,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
 
         return !rhs.pointer.equals(lhs.pointer);
       } else {
-        return System.Int64.op_Inequality(lhs.value, rhs.value);
+        return lhs.value !== rhs.value;
       }
     }
   );
@@ -108,7 +113,11 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
           [newPointer]
         );
       } else {
-        JSIL.RuntimeError("Not implemented");
+        return JSIL.CreateInstanceOfType(
+          System.IntPtr.__Type__,
+          "$fromInt32",
+          [lhs.value + rhs]
+        );
       }
     }
   );
@@ -119,7 +128,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
       if (this.pointer) {
         return this.pointer.offsetInBytes;
       } else {
-        return this.value.ToInt32();
+        return this.value;
       }
     }
   );
@@ -132,7 +141,9 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
           this.pointer.offsetInBytes
         );
       } else {
-        return this.value;
+        return $jsilcore.System.Int64.FromInt32(
+          this.value
+        );
       }
     }
   );
@@ -142,8 +153,8 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
     function op_Explicit (value) {
       return JSIL.CreateInstanceOfType(
         System.IntPtr.__Type__,
-        "$fromInt64",
-        [$jsilcore.System.Int64.FromInt32(value)]
+        "$fromInt32",
+        [value]
       );
     }
   );
@@ -188,7 +199,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
       if (value.pointer) {
         return value.pointer.offsetInBytes;
       } else {
-        return value.value.ToInt32();
+        return value.value;
       }
     }
   );
@@ -199,7 +210,7 @@ JSIL.ImplementExternals("System.IntPtr", function ($) {
       if (value.pointer) {
         return $jsilcore.System.Int64.FromInt32(value.pointer.offsetInBytes);
       } else {
-        return value.value;
+        return $jsilcore.System.Int64.FromInt32(value.value);
       }
     }
   );
@@ -209,40 +220,40 @@ JSIL.ImplementExternals("System.UIntPtr", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.UInt32], [])), 
     function _ctor (value) {
-      this.value = $jsilcore.System.UInt64.FromUInt32(value);
+      this.value = value >>> 0;
     }
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.UInt64], [])), 
     function _ctor (value) {
-      this.value = value;
+      this.value = value.ToNumber() >>> 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "ToUInt32", 
     (new JSIL.MethodSignature($.UInt32, [], [])), 
     function ToUInt32 () {
-      return this.value.ToUInt32();
+      return this.value;
     }
   );
 
   $.Method({Static:false, Public:true }, "ToUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ToUInt64 () {
-      return this.value;
+      return $jsilcore.System.UInt64.FromUInt32(this.value);
     }
   );
 });
 
 JSIL.MakeStruct("System.ValueType", "System.IntPtr", true, [], function ($) {
-  $.Field({Static:false, Public:false }, "value", $.Int64);
+  $.Field({Static:false, Public:false }, "value", $.Int32);
 
   $.Field({Static:true, Public:true }, "Zero", $.Type);
 });
 
 JSIL.MakeStruct("System.ValueType", "System.UIntPtr", true, [], function ($) {
-  $.Field({Static:false, Public:false }, "value", $.UInt64);
+  $.Field({Static:false, Public:false }, "value", $.UInt32);
 
   $.Field({Static:true, Public:true }, "Zero", $.Type);
 });

@@ -231,10 +231,9 @@ namespace JSIL {
                 case MetadataType.Double:
                     return 8;
 
-                // Blech
                 case MetadataType.UIntPtr:
                 case MetadataType.IntPtr:
-                    return 8;
+                    return 4;
             }
 
             throw new ArgumentException("Type must be numeric");

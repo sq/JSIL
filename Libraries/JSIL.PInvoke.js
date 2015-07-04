@@ -495,8 +495,7 @@ JSIL.PInvoke.IntPtrMarshaller.prototype.ManagedToNative = function (managedValue
   } else {
     // HACK: We have no way to know this address is in the correct heap.
 
-    // FIXME: Preserve 53 bits?
-    return managedValue.value.ToInt32() | 0;
+    return managedValue.value | 0;
   }
 };
 
