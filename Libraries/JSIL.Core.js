@@ -6301,70 +6301,22 @@ JSIL.$MakeGenericMethodBinder = function (groupDispatcher, methodFullName, gener
   innerDispatchCode.push("  }");
 
   body.push("");
-  body.push("var outerThis = this;");
+  body.push("var boundThis = this;");
   body.push("var dispatcher = this[dispatcherKey];");
 
   body.push("");
   body.push("var result = function BoundGenericMethod_Invoke (");
   body.push("  " + normalArgumentList);
   body.push(") {");
-  body.push("  var thisReference = outerThis;");
+  body.push("  var thisReference = this;");
+  // HACK: Strict-mode functions get an undefined 'this' in cases where none is provided.
+  //  In non-strict mode, 'this' will be the global object, which would break this.
+  //  Thanks to strict mode, we don't need custom .call or .apply methods!
+  body.push("  if (typeof (thisReference) === 'undefined')");
+  body.push("    thisReference = boundThis;");
   body.push("  var argc = arguments.length | 0;");
   body.push("  ");
   body.push.apply(body, innerDispatchCode);
-  body.push("};");
-
-  body.push("");
-  body.push("result.call = function BoundGenericMethod_Call (");
-  body.push(
-    "  thisReference" + (
-      (maxArgumentCount !== 0)
-        ? ", "
-        : ""
-    ) + normalArgumentList
-  );
-  body.push(") {");
-  body.push("  var argc = ((arguments.length | 0) - 1) | 0;");
-  body.push("  ");
-  body.push.apply(body, innerDispatchCode);
-  body.push("};");
-
-  body.push("");
-  body.push("result.apply = function BoundGenericMethod_Apply (");
-  body.push("  thisReference, $arguments");
-  body.push(") {");
-  body.push("  var argc = $arguments.length | 0;");
-  body.push("  ");
-  body.push("  switch (argc) {");
-
-  for (var k in argumentCounts) {
-    var localArgCount = k | 0;
-    body.push("  case " + localArgCount + ":");
-    body.push("    return dispatcher.call(");
-    body.push("      thisReference,");
-    body.push("      " + binderArgumentList + (
-        (localArgCount !== 0)
-          ? ", "
-          : ""
-      )
-    );
-
-    for (var i = 0; i < localArgCount; i++) {
-      body.push(
-        "      $arguments[" + i + "]" + (
-          (i === localArgCount - 1)
-            ? ""
-            : ", "
-        )
-      );
-    }
-
-    body.push("    );");
-  }
-
-  body.push("  default:");
-  body.push("    JSIL.RuntimeError('Unexpected argument count');");
-  body.push("  }");
   body.push("};");
 
   body.push("");
