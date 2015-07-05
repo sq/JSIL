@@ -116,6 +116,8 @@ namespace JSIL {
         }
 
         public static bool IsNativeInteger (TypeReference type, out bool isSigned) {
+            type = StripModifiers(type);
+
             var result = (type.Namespace == "JSIL.Types") &&
                 (
                     (type.Name == "NativeInt") ||
@@ -268,6 +270,7 @@ namespace JSIL {
             if (type == null)
                 return false;
 
+            type = StripModifiers(type);
             return (type.FullName == "System.IntPtr") || (type.FullName == "System.UIntPtr");
         }
 
@@ -275,6 +278,7 @@ namespace JSIL {
             if (type == null)
                 return false;
 
+            type = StripModifiers(type);
             return type.IsPointer;
         }
 
