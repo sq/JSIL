@@ -3258,9 +3258,15 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
 JSIL.CreateRebindableNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
   var strictPrefix = "\"use strict\";\r\n";
-  var uriPrefix = "//# sourceURL=jsil://closure/" + name + "\r\n";
+  var uriPrefix = "", escapedFunctionIdentifier = "";
 
-  var escapedFunctionIdentifier = JSIL.EscapeJSIdentifier(name);
+  if (name) {
+    uriPrefix = "//# sourceURL=jsil://closure/" + name + "\r\n";
+    escapedFunctionIdentifier = JSIL.EscapeJSIdentifier(name);
+  } else {
+    escapedFunctionIdentifier = "unnamed";
+  }
+
   var rawFunctionText = "function " + escapedFunctionIdentifier + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +

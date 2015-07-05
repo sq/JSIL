@@ -993,38 +993,85 @@ JSIL.PInvoke.CreateManagedToNativeWrapper = function (module, nativeMethod, meth
     marshallers = JSIL.PInvoke.GetMarshallersForSignature(methodSignature, pInvokeInfo);
 
   var structResult = marshallers.result && marshallers.result.namedReturnValue;
+  var convertOffset = structResult ? 1 : 0;
+  var argc = methodSignature.argumentTypes.length;
 
-  var wrapper = function SimplePInvokeWrapper () {
-    var context = new JSIL.PInvoke.CallContext(module);
+  var argumentNames = new Array(argc + 1);
 
-    var argc = arguments.length | 0;
+  argumentNames[0] = "context";
+  for (var i = 0; i < argc; i++)
+    argumentNames[i + 1] = "arg" + i;
 
-    var convertOffset = structResult ? 1 : 0;
-    var convertedArguments = new Array(argc + convertOffset);
-    for (var i = 0; i < argc; i++)
-      convertedArguments[i + convertOffset] = marshallers.arguments[i].ManagedToNative(arguments[i], context);
-
-    if (structResult) {
-      convertedArguments[0] = marshallers.result.AllocateZero(context);
-    }
-
-    try {
-      var nativeResult;
-
-      nativeResult = nativeMethod.apply(this, convertedArguments);
-
-      if (structResult)
-        return marshallers.result.NativeToManaged(convertedArguments[0], context);
-      else if (marshallers.result)
-        return marshallers.result.NativeToManaged(nativeResult, context);
-      else
-        return nativeResult;
-    } finally {
-      context.Dispose();
-    }
+  var closure = {
+    nativeMethod: nativeMethod,
+    resultMarshaller: marshallers.result
   };
 
-  return wrapper;
+  var body = [];
+
+  for (var i = 0; i < argc; i++) {
+    closure["marshaller" + i] = marshallers.arguments[i];
+
+    body.push("arg" + i + " = marshaller" + i + ".ManagedToNative(arg" + i + ", context);");
+  }
+
+  if (structResult)
+    body.push("var result = resultMarshaller.AllocateZero(context);");
+
+  body.push("var nativeResult = nativeMethod(");
+
+  if (structResult)
+    body.push("  result" + ((argc !== 0) ? ", " : ""));
+  for (var i = 0; i < argc; i++)
+    body.push("  arg" + i + ((i === argc - 1) ? "" : ", "));
+
+  body.push(");");
+
+  if (structResult)
+    body.push("return resultMarshaller.NativeToManaged(result, context);");
+  else if (marshallers.result)
+    body.push("return resultMarshaller.NativeToManaged(nativeResult, context);");
+  else
+    body.push("return nativeResult");
+
+  var wrapper = JSIL.CreateNamedFunction(
+    methodName + ".PInvokeWrapper", argumentNames,
+    body.join("\n"),
+    closure
+  );
+
+  // Now generate an exception handling wrapper.
+  // We split the context creation/disposal out from the rest,
+  //  because try-catch and try-finally prevent optimization in
+  //  some JS runtimes (V8 :-( )
+
+  body.length = 0;
+
+  body.push("var context = new callContext(module);");
+  body.push("try {");
+  body.push("  return invoke(");
+
+  body.push("    context" + ((argc !== 0) ? ", " : ""));
+  for (var i = 0; i < argc; i++)
+    body.push("    arg" + i + ((i === argc - 1) ? "" : ", "));
+
+  body.push("  );");
+  body.push("} finally {");
+  body.push("  context.Dispose();");
+  body.push("}");
+
+  var wrapperArgumentNames = argumentNames.slice(1);
+  var tryCatchWrapper = JSIL.CreateNamedFunction(
+    "JSIL.PInvoke.ErrorHandler[" + argc + "]", wrapperArgumentNames,
+    body.join("\n"),
+    {
+      callContext: JSIL.PInvoke.CallContext,
+      module: module,
+      invoke: wrapper
+    }
+  );
+
+  return tryCatchWrapper;
 };
 
 JSIL.PInvoke.CreateNativeToManagedWrapper = function (module, managedFunction, methodSignature, pInvokeInfo) {
