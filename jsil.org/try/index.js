@@ -455,7 +455,7 @@ function beginCompile () {
     contentType: "text/plain; charset=UTF-8",
     
     type: 'POST',
-    url: "http://jsil.org/try/compile.aspx",
+    url: "compile.aspx",
     data: sourceCode,
     success: compileComplete,
     error: function (xhr, status, moreStatus) {
