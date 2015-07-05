@@ -383,6 +383,22 @@ namespace JSIL {
                     rhs = new JSNativeIntegerLiteral((int)rightPointer.Value);
             }
 
+            var leftCast = lhs as JSPointerCastExpression;
+            var rightCast = rhs as JSPointerCastExpression;
+
+            // HACK: IL sometimes does (T*)((UInt64)lhs + (UInt64)rhs). Strip the conversions so we can make sense of it
+            if (
+                (leftCast != null) &&
+                TypeUtil.IsIntegral(leftCast.NewType.Type)
+            )
+                lhs = leftCast.Pointer;
+
+            if (
+                (rightCast != null) &&
+                TypeUtil.IsIntegral(rightCast.NewType.Type)
+            )
+                rhs = rightCast.Pointer;
+
             var leftType = lhs.GetActualType(TypeSystem);
             var rightType = rhs.GetActualType(TypeSystem);
             var leftIsPointerish = TypeUtil.IsPointer(leftType) || TypeUtil.IsNativeInteger(leftType);
@@ -417,6 +433,18 @@ namespace JSIL {
 
                     result = new JSBinaryOperatorExpression(
                         op, lhs, rhs, TypeSystem.NativeInt()
+                    );
+                } else if (
+                    op is JSComparisonOperator
+                ) {
+                    if (!TypeUtil.IsPointer(leftType))
+                        return new JSUntranslatableExpression(node);
+
+                    result = new JSBinaryOperatorExpression(
+                        op,
+                        new JSDotExpression(lhs, new JSStringIdentifier("offsetInBytes", TypeSystem.Int32)),
+                        rhs,
+                        TypeSystem.Boolean
                     );
                 } else {
                     Debugger.Break();
@@ -460,10 +488,10 @@ namespace JSIL {
             // HACK: Auto-casting for pointer arithmetic is undesirable, because ILSpy
             //  infers incorrect types here
             var arePointersInvolved =
-                TypeUtil.IsPointer(node.Arguments[0].ExpectedType) ||
-                TypeUtil.IsPointer(node.Arguments[0].InferredType) ||
-                TypeUtil.IsPointer(node.Arguments[1].ExpectedType) ||
-                TypeUtil.IsPointer(node.Arguments[1].InferredType);
+                TypeUtil.IsPointer(TypeUtil.DereferenceType(node.Arguments[0].ExpectedType)) ||
+                TypeUtil.IsPointer(TypeUtil.DereferenceType(node.Arguments[0].InferredType)) ||
+                TypeUtil.IsPointer(TypeUtil.DereferenceType(node.Arguments[1].ExpectedType)) ||
+                TypeUtil.IsPointer(TypeUtil.DereferenceType(node.Arguments[1].InferredType));
 
             JSExpression lhs, rhs;
             AutoCastingState.Push(
@@ -476,6 +504,11 @@ namespace JSIL {
             } finally {
                 AutoCastingState.Pop();
             }
+
+            if (TypeUtil.IsPointer(lhs.GetActualType(TypeSystem)))
+                arePointersInvolved |= true;
+            else if (TypeUtil.IsPointer(rhs.GetActualType(TypeSystem)))
+                arePointersInvolved |= true;
 
             var boeLeft = lhs as JSBinaryOperatorExpression;
             if (
@@ -2425,16 +2458,20 @@ namespace JSIL {
 
         protected JSExpression AttemptPointerConversion (JSExpression value, TypeReference targetType) {
             var childLiteral = value.SelfAndChildrenRecursive.OfType<JSLiteral>().FirstOrDefault();
+            if (childLiteral != null) {
+                // We special-case allowing 0 to be converted to a pointer.
+                if ((childLiteral.Literal is Int64) && ((Int64)childLiteral.Literal == 0))
+                    return new JSDefaultValueLiteral(targetType);
+                else if ((childLiteral.Literal is Int32) && ((Int32)childLiteral.Literal == 0))
+                    return new JSDefaultValueLiteral(targetType);
+                else if ((childLiteral.Literal is Boolean) && ((Boolean)childLiteral.Literal == false))
+                    return new JSDefaultValueLiteral(targetType);
 
-            // We special-case allowing 0 to be converted to a pointer.
-            object ptr = null;
-            if (childLiteral != null)
-                ptr = Convert.ChangeType(childLiteral.Literal, typeof(Int64));
+                if (value is JSUntranslatableExpression)
+                    return value;
+            }
 
-            if ((ptr != null) && ((Int64)ptr == 0))
-                return new JSDefaultValueLiteral(targetType);
-
-            throw new NotImplementedException("Cannot autoconvert expression to pointer: " + value.ToString());
+            return new JSUntranslatableExpression("Implicit conversion to pointer: " + value);
         }
 
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
