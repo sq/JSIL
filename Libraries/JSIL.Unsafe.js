@@ -1688,6 +1688,10 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetTo
   }
 };
 
+JSIL.$MakeInt64MarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
+  // FIXME
+};
+
 JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
   // FIXME
   var forPInvoke = false;
@@ -1724,6 +1728,14 @@ JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstru
       JSIL.$EmitMemcpyIntrinsic(body, selfStore, "bytes", 0, "offset", nativeSize);
     
     return;
+  }
+
+  // HACK: Compensate for our int64/uint64 having unusual memory layout
+  if (
+    (typeObject.__FullName__ === "System.Int64") ||
+    (typeObject.__FullName__ === "System.UInt64")
+  ) { 
+    return JSIL.$MakeInt64MarshalFunctionSource(typeObject, marshal, isConstructor, closure, body);
   }
 
   var scratchBuffer = new ArrayBuffer(nativeSize);
