@@ -627,6 +627,16 @@ namespace JSIL.Compiler {
         }
 
         static void Main (string[] arguments) {
+            try {
+                InternalMain(arguments);
+            } catch (Exception exc) {
+                Console.WriteLine(exc);
+                Environment.ExitCode = 1024;
+                return;
+            }
+        }
+
+        static void InternalMain (string[] arguments) {
             SolutionBuilder.SolutionBuilder.HandleCommandLine();
 
             var buildGroups = new List<BuildGroup>();
