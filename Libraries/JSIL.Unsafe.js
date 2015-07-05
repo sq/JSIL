@@ -1689,7 +1689,34 @@ JSIL.$EmitMemcpyIntrinsic = function (body, destToken, sourceToken, destOffsetTo
 };
 
 JSIL.$MakeInt64MarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {
-  // FIXME
+  var targetVar = isConstructor ? "this" : "struct";
+  var triplet;
+
+  if (marshal) {
+    triplet = function (targetField, offset, count) {
+      var f = "struct." + targetField;
+      
+      body.push("bytes[(offset + " + offset + ") | 0] = " + f + " & 0xFF;");
+      if (count > 1)
+        body.push("bytes[(offset + " + (offset + 1) + ") | 0] = (" + f + " >> 8) & 0xFF;");
+      if (count > 2)
+        body.push("bytes[(offset + " + (offset + 2) + ") | 0] = (" + f + " >> 16) & 0xFF;");
+    };
+  } else {
+    triplet = function (targetField, offset, count) {
+      body.push(targetVar + "." + targetField + " = (");
+      body.push("  bytes[(offset + " + offset + ") | 0] ");
+      if (count > 1)
+        body.push("  | (bytes[(offset + " + (offset + 1) + ") | 0] << 8)");
+      if (count > 2)
+        body.push("  | (bytes[(offset + " + (offset + 2) + ") | 0] << 16)");
+      body.push(");");
+    };
+  }
+
+  triplet("a", 0, 3);
+  triplet("b", 3, 3);
+  triplet("c", 6, 2);
 };
 
 JSIL.$MakeStructMarshalFunctionSource = function (typeObject, marshal, isConstructor, closure, body) {

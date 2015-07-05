@@ -449,6 +449,7 @@
     <None Include="UnsafeTestCases\UnionContainingEnum.cs" />
     <None Include="UnsafeTestCases\SDLTouchStructLayout.cs" />
     <None Include="UnsafeTestCases\ReadInt64InStruct.cs" />
+    <None Include="UnsafeTestCases\WriteUInt64InStruct.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
