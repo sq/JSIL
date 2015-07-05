@@ -1208,8 +1208,10 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
     }
 
     var functionTable = module["FUNCTION_TABLE_" + dynCallSignature];
+    var wrapperName;
     if (functionTable) {
       invokeImplementation = functionTable[methodIndex];
+      wrapperName = invokeImplementation.name || "GetDelegateForFunctionPointer_Result";
     } else {
       var dynCallImplementation = module["dynCall_" + dynCallSignature];
       if (!dynCallImplementation) {
@@ -1234,10 +1236,11 @@ JSIL.ImplementExternals("System.Runtime.InteropServices.Marshal", function ($) {
       };
 
       invokeImplementation = boundDynCall;
+      wrapperName = "GetDelegateForFunctionPointer_Slow_Result";
     }
 
     var wrappedMethod = JSIL.PInvoke.CreateManagedToNativeWrapper(
-      module, invokeImplementation, "GetDelegateForFunctionPointer_Result",
+      module, invokeImplementation, wrapperName,
       signature, pInvokeInfo, marshallers
     );
     return wrappedMethod;
