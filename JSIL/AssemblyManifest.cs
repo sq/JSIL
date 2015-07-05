@@ -7,7 +7,10 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
-    public class AssemblyManifest : IDisposable {
+    public class AssemblyManifest : IDisposable
+    {
+        public readonly object _syncRoot = new object();
+
         public class Token {
             public readonly string Assembly;
 
@@ -35,9 +38,14 @@ namespace JSIL {
         protected readonly ConcurrentCache<string, Token>.CreatorFunction MakeToken;
         protected bool AssignedIdentifiers = false;
 
-        public AssemblyManifest () {
-            MakeToken = (assemblyFullName) => {
-                AssignedIdentifiers = false;
+        public AssemblyManifest ()
+        {
+            MakeToken = (assemblyFullName) =>
+            {
+                lock (_syncRoot)
+                {
+                    AssignedIdentifiers = false;
+                }
                 return new Token(assemblyFullName);
             };
         }
@@ -47,23 +55,28 @@ namespace JSIL {
         }
 
         public void AssignIdentifiers () {
-            if (AssignedIdentifiers)
-                return;
+            lock (_syncRoot)
+            {
+                if (AssignedIdentifiers)
+                    return;
 
-            var names = (from kvp in Tokens select kvp.Key).OrderBy((k) => k);
-            int max = (from kvp in Tokens select kvp.Value.ID.GetValueOrDefault(-1)).Max();
+                var names = (from kvp in Tokens select kvp.Key).OrderBy((k) => k);
+                int max = (from kvp in Tokens select kvp.Value.ID.GetValueOrDefault(-1)).Max();
 
-            int i = max + 1;
+                int i = max + 1;
 
-            foreach (var name in names) {
-                Token token;
-                if (Tokens.TryGet(name, out token)) {
-                    if (!token.ID.HasValue)
-                        token.ID = i++;
+                foreach (var name in names)
+                {
+                    Token token;
+                    if (Tokens.TryGet(name, out token))
+                    {
+                        if (!token.ID.HasValue)
+                            token.ID = i++;
+                    }
                 }
-            }
 
-            AssignedIdentifiers = true;
+                AssignedIdentifiers = true;
+            }
         }
 
         public Token GetPrivateToken (AssemblyDefinition assembly) {
