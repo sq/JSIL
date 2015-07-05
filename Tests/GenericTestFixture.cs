@@ -291,8 +291,16 @@ namespace JSIL.Tests {
                 try {
                     output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration);
                 } catch {
-                    if (dumpJsOnFailure)
-                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    if (dumpJsOnFailure) {
+                        // Failures in very large programs can totally choke the test runner
+                        const int limit = 1024 * 16;
+
+                        var truncated = generatedJs;
+                        if (truncated.Length > limit)
+                            truncated = truncated.Substring(0, limit);
+
+                        Console.Error.WriteLine("// Generated JS: \r\n{0}", truncated);
+                    }
                     throw;
                 }
 

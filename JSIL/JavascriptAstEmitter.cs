@@ -1834,6 +1834,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
+            if ((bop.Operator is JSAssignmentOperator) && (bop.Left is JSUntranslatableExpression)) {
+                var left = (JSUntranslatableExpression)bop.Left;
+                VisitNode(new JSUntranslatableExpression("Assignment to untranslatable expression " + (left.Type ?? "")));
+                return;
+            }
+
             var resultType = bop.GetActualType(TypeSystem);
             bool needsCast = (bop.Operator is JSArithmeticOperator) && 
                 TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
