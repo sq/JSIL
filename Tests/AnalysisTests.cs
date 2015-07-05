@@ -28,13 +28,17 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @"mc.UpdateWithNewState(2, ct);"
-            ));
-            Assert.IsTrue(generatedJs.Contains(
-                @"mc.UpdateWithNewState(2, ct.MemberwiseClone());"
-            ));
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @"mc.UpdateWithNewState(2, ct);"
+                ));
+                Assert.IsTrue(generatedJs.Contains(
+                    @"mc.UpdateWithNewState(2, ct.MemberwiseClone());"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -46,40 +50,44 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"a = \$thisType.A.MemberwiseClone\(\)"
-            ));
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnArgument\($thisType.B\).MemberwiseClone\(\)"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"c = \$thisType.B.MemberwiseClone\(\)"
-            ));
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"d = \$thisType.A.MemberwiseClone\(\)"
-            ));
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"e = \$thisType.A.MemberwiseClone\(\)"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"\$thisType.Field = e"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
-            ));
+            try {
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"a = \$thisType.A.MemberwiseClone\(\)"
+                ));
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"b = \$thisType.ReturnArgument\($thisType.B\).MemberwiseClone\(\)"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"c = \$thisType.B.MemberwiseClone\(\)"
+                ));
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"d = \$thisType.A.MemberwiseClone\(\)"
+                ));
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"e = \$thisType.A.MemberwiseClone\(\)"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"\$thisType.Field = e"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
+                ));
 
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"f = new JSIL.BoxedVariable\(\$thisType\.A\.MemberwiseClone\(\)\)"
-            ), "Struct values should be copied when creating a boxed variable from them");
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"f = new JSIL.BoxedVariable\(\$thisType\.A\.MemberwiseClone\(\)\)"
+                ), "Struct values should be copied when creating a boxed variable from them");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -91,15 +99,19 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"\$thisType.ReturnArgument\(a.MemberwiseClone\(\)\)"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnArgument\(a\).MemberwiseClone\(\);"
-            ));
+            try {
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"\$thisType.ReturnArgument\(a.MemberwiseClone\(\)\)"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"b = \$thisType.ReturnArgument\(a\).MemberwiseClone\(\);"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -111,15 +123,19 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
-            ));
+            try {
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -131,15 +147,19 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(Regex.IsMatch(
-                generatedJs,
-                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
-            ));
-            Assert.IsTrue(Regex.IsMatch(
-                generatedJs,
-                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
-            ));
+            try {
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs,
+                    @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -151,13 +171,17 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".IncrementArgumentValue(a)"
-            ));
-            Assert.IsTrue(generatedJs.Contains(
-                @".IncrementArgumentValue(a.MemberwiseClone())"
-            ));
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".IncrementArgumentValue(a)"
+                ));
+                Assert.IsTrue(generatedJs.Contains(
+                    @".IncrementArgumentValue(a.MemberwiseClone())"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -169,16 +193,20 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".IncrementArgumentValue(a)"
-            ));
-            Assert.IsTrue(generatedJs.Contains(
-                @".IncrementArgumentValue(a.MemberwiseClone())"
-            ));
-            Assert.IsFalse(generatedJs.Contains(
-                @"b = $thisType.IncrementArgumentValue(a.MemberwiseClone()).MemberwiseClone()"
-            ), "Return value was cloned inside b assignment (a is already cloned)");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".IncrementArgumentValue(a)"
+                ));
+                Assert.IsTrue(generatedJs.Contains(
+                    @".IncrementArgumentValue(a.MemberwiseClone())"
+                ));
+                Assert.IsFalse(generatedJs.Contains(
+                    @"b = $thisType.IncrementArgumentValue(a.MemberwiseClone()).MemberwiseClone()"
+                ), "Return value was cloned inside b assignment (a is already cloned)");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -190,22 +218,26 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".op_Addition(a.MemberwiseClone()"
-            ), "Argument to op_Addition was cloned");
-            Assert.IsFalse(generatedJs.ContainsRegex(
-                @"\.op_Addition\([^\)]*\)\.MemberwiseClone\("
-            ), "Return value of op_Addition was cloned");
-            Assert.IsFalse(generatedJs.Contains(
-                @"b.MemberwiseClone())"
-            ), "Argument to op_Addition was cloned");
-            Assert.IsFalse(generatedJs.Contains(
-                @"c.MemberwiseClone())"
-            ), "Argument to op_Addition was cloned");
-            Assert.IsTrue(generatedJs.Contains(
-                @".op_Addition(a, b)"
-            ));
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".op_Addition(a.MemberwiseClone()"
+                ), "Argument to op_Addition was cloned");
+                Assert.IsFalse(generatedJs.ContainsRegex(
+                    @"\.op_Addition\([^\)]*\)\.MemberwiseClone\("
+                ), "Return value of op_Addition was cloned");
+                Assert.IsFalse(generatedJs.Contains(
+                    @"b.MemberwiseClone())"
+                ), "Argument to op_Addition was cloned");
+                Assert.IsFalse(generatedJs.Contains(
+                    @"c.MemberwiseClone())"
+                ), "Argument to op_Addition was cloned");
+                Assert.IsTrue(generatedJs.Contains(
+                    @".op_Addition(a, b)"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -217,11 +249,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-
-            Assert.IsFalse(generatedJs.Contains(
-                @".MemberwiseClone()"
-            ), "a value was cloned");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".MemberwiseClone()"
+                ), "a value was cloned");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -233,10 +268,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @"GetEnumerator().MemberwiseClone()"
-            ), "The enumerator was cloned");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @"GetEnumerator().MemberwiseClone()"
+                ), "The enumerator was cloned");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -248,10 +287,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".MemberwiseClone()"
-            ), "A struct was cloned");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".MemberwiseClone()"
+                ), "A struct was cloned");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -263,10 +306,13 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-
-            var cloneCount = Regex.Matches(generatedJs, @".MemberwiseClone\(\)").Count;
-            Assert.AreEqual(1, cloneCount, "Expected 1 struct clone");
+            try {
+                var cloneCount = Regex.Matches(generatedJs, @".MemberwiseClone\(\)").Count;
+                Assert.AreEqual(1, cloneCount, "Expected 1 struct clone");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -278,9 +324,13 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains("a.Value"));
-            Assert.IsTrue(generatedJs.Contains("b.Value"));
+            try {
+                Assert.IsTrue(generatedJs.Contains("a.Value"));
+                Assert.IsTrue(generatedJs.Contains("b.Value"));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -292,9 +342,13 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains("lineListIndices ="));
-            Assert.IsTrue(generatedJs.Contains("lineListIndices["));
+            try {
+                Assert.IsTrue(generatedJs.Contains("lineListIndices ="));
+                Assert.IsTrue(generatedJs.Contains("lineListIndices["));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -306,10 +360,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains(
-                @"copy = arg.MemberwiseClone()"
-            ), "Copy was not cloned");
+            try {
+                Assert.IsTrue(generatedJs.Contains(
+                    @"copy = arg.MemberwiseClone()"
+                ), "Copy was not cloned");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -321,13 +379,17 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @"Dispose()"
-            ), "Enumerator(s) were disposed");
-            Assert.IsFalse(generatedJs.Contains(
-                @" finally "
-            ), "Finally block(s) were generated");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @"Dispose()"
+                ), "Enumerator(s) were disposed");
+                Assert.IsFalse(generatedJs.Contains(
+                    @" finally "
+                ), "Finally block(s) were generated");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -339,19 +401,23 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".GetEnumerator"
-            ), "GetEnumerator was called");
-            Assert.IsFalse(generatedJs.Contains(
-                @".MoveNext()"
-            ), "MoveNext was called");
-            Assert.IsFalse(generatedJs.Contains(
-                @".Current"
-            ), "Current was used");
-            Assert.IsFalse(generatedJs.Contains(
-                @"Dispose()"
-            ), "Dispose was called");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".GetEnumerator"
+                ), "GetEnumerator was called");
+                Assert.IsFalse(generatedJs.Contains(
+                    @".MoveNext()"
+                ), "MoveNext was called");
+                Assert.IsFalse(generatedJs.Contains(
+                    @".Current"
+                ), "Current was used");
+                Assert.IsFalse(generatedJs.Contains(
+                    @"Dispose()"
+                ), "Dispose was called");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -365,19 +431,23 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @".GetEnumerator"
-            ), "GetEnumerator was called");
-            Assert.IsFalse(generatedJs.Contains(
-                @".MoveNext()"
-            ), "MoveNext was called");
-            Assert.IsFalse(generatedJs.Contains(
-                @".Current"
-            ), "Current was used");
-            Assert.IsFalse(generatedJs.Contains(
-                @"Dispose()"
-            ), "Dispose was called");
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @".GetEnumerator"
+                ), "GetEnumerator was called");
+                Assert.IsFalse(generatedJs.Contains(
+                    @".MoveNext()"
+                ), "MoveNext was called");
+                Assert.IsFalse(generatedJs.Contains(
+                    @".Current"
+                ), "Current was used");
+                Assert.IsFalse(generatedJs.Contains(
+                    @"Dispose()"
+                ), "Dispose was called");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -388,8 +458,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\StructLoopInteraction.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -416,8 +484,9 @@ namespace JSIL.Tests {
                     generatedJs.Contains("| 0) / 8) | 0), 8)") &&
                     generatedJs.Contains("Math.imul(")
                 );
-            } finally {
+            } catch {
                 Console.WriteLine(generatedJs);
+                throw;
             }
         }
 
@@ -428,8 +497,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\TemporaryArraySize.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -439,8 +506,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\AddToStructProperty.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -452,10 +517,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains(
-                @"b = a.MemberwiseClone()"
-            ), "Copy was not cloned");
+            try {
+                Assert.IsTrue(generatedJs.Contains(
+                    @"b = a.MemberwiseClone()"
+                ), "Copy was not cloned");
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -467,13 +536,17 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @"ICT.MemberwiseClone"
-            ));
-            Assert.IsTrue(generatedJs.Contains(
-                @"CT.MemberwiseClone"
-            ));
+            try {
+                Assert.IsFalse(generatedJs.Contains(
+                    @"ICT.MemberwiseClone"
+                ));
+                Assert.IsTrue(generatedJs.Contains(
+                    @"CT.MemberwiseClone"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -485,10 +558,14 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains(
-                @"ict = ict.MemberwiseClone(),"
-            ));
+            try {
+                Assert.IsTrue(generatedJs.Contains(
+                    @"ict = ict.MemberwiseClone(),"
+                ));
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -499,8 +576,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\SwitchConstructorFolding.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -511,8 +586,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\ReadStructFromReadonlyFieldThenMutate.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -523,8 +596,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\UnfoldableStructConstructor.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -535,8 +606,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\ImmutableStructReinitialization.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -547,8 +616,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\ImmutableStructReinitializationInControlFlow.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -559,8 +626,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\ImmutableStructReinitializationInLoop.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -571,8 +636,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue184.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -583,8 +646,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\AffectedFieldThroughCall.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -595,8 +656,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\AffectedFieldThroughRecursiveCall.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -607,8 +666,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\TemporaryFunctionCallPurity.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -620,17 +677,20 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("PrintValue(new ($T"),
+                    "A temporary instance is allocated per loop iteration"
+                );
 
-            Assert.IsFalse(
-                generatedJs.Contains("PrintValue(new ($T"),
-                "A temporary instance is allocated per loop iteration"
-            );
-
-            Assert.IsTrue(
-                generatedJs.Contains("new ($T"),
-                "An instance was never allocated"
-            );
+                Assert.IsTrue(
+                    generatedJs.Contains("new ($T"),
+                    "An instance was never allocated"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -642,24 +702,25 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("PrintValues(new ($T"),
+                    "A temporary instance is allocated per loop iteration"
+                );
 
-            Assert.IsFalse(
-                generatedJs.Contains("PrintValues(new ($T"),
-                "A temporary instance is allocated per loop iteration"
-            );
-
-            Assert.IsTrue(
-                generatedJs.Contains("new ($T"),
-                "An instance was never allocated"
-            );
+                Assert.IsTrue(
+                    generatedJs.Contains("new ($T"),
+                    "An instance was never allocated"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
         public void Issue199 () {
             var generatedJs = GetJavascript(@"SpecialTestCases\Issue199.fs");
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -671,17 +732,20 @@ namespace JSIL.Tests {
                 output, output
             );
 
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.IsFalse(
+                    generatedJs.Contains("result.set_Item(i, new ("),
+                    "A temporary instance is allocated per loop iteration"
+                );
 
-            Assert.IsFalse(
-                generatedJs.Contains("result.set_Item(i, new ("),
-                "A temporary instance is allocated per loop iteration"
-            );
-
-            Assert.IsTrue(
-                generatedJs.Contains("new ("),
-                "An instance was never allocated"
-            );
+                Assert.IsTrue(
+                    generatedJs.Contains("new ("),
+                    "An instance was never allocated"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -692,8 +756,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\CopyForTemporaryStructInLoop.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -707,19 +769,22 @@ namespace JSIL.Tests {
                 output
             );
 
-            Console.WriteLine(generatedJs);
+            try {
+                Assert.AreEqual(
+                    Regex.Matches(generatedJs, @"\/\* ref \*\/ this").Count,
+                    0,
+                    "this was passed as a reference"
+                );
 
-            Assert.AreEqual(
-                Regex.Matches(generatedJs, @"\/\* ref \*\/ this").Count,
-                0,
-                "this was passed as a reference"
-            );
-
-            Assert.AreEqual(
-                Regex.Matches(generatedJs, @"new JSIL\.BoxedVariable\(this\)").Count,
-                2,
-                "this should have been boxed twice"
-            );
+                Assert.AreEqual(
+                    Regex.Matches(generatedJs, @"new JSIL\.BoxedVariable\(this\)").Count,
+                    2,
+                    "this should have been boxed twice"
+                );
+            } catch {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
         }
 
         [Test]
@@ -730,8 +795,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue395.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -742,8 +805,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue494.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -754,8 +815,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue494_2.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -766,8 +825,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue667.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -778,8 +835,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\Issue696.cs",
                 output, output
             );
-
-            Console.WriteLine(generatedJs);
         }
 
         [Test]
@@ -799,8 +854,6 @@ namespace JSIL.Tests {
                 @"AnalysisTestCases\FNABaseOffset.cs",
                 expected, expected
             );
-
-            Console.WriteLine(generatedJs);
         }
     }
 }

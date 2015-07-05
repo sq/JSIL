@@ -413,7 +413,6 @@ namespace JSIL.Tests {
                 );
             } finally {
                 if ((bool)parameters[4]) {
-                    Console.WriteLine("Disposing cache and provider.");
                     if (provider != null)
                         provider.Dispose();
                     if (cache != null)
