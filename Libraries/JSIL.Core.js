@@ -3618,13 +3618,15 @@ JSIL.$BuildFieldList = function (typeObject) {
 
     // StructLayout.Pack seems to only be able to eliminate extra space between fields,
     //  not add extra space as one might also expect.
-    if (customPacking && (customPacking < fieldAlignment)) {
+    if (customPacking) {
+      var newFieldAlignment = Math.min(fieldAlignment, customPacking);
+
       if (JSIL.StructFormatWarnings) {
-        if (fieldAlignment !== customPacking)
+        if (newFieldAlignment !== customPacking)
           JSIL.WarningFormat("Custom packing for field {0}.{1} is non-native for JavaScript", [typeObject.__FullName__, field._descriptor.Name]);
       }
 
-      fieldAlignment = customPacking;
+      fieldAlignment = newFieldAlignment;
     }
 
     var actualFieldOffset = fieldOffset;

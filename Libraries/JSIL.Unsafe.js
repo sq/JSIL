@@ -6,6 +6,11 @@ if (typeof (JSIL) === "undefined")
 if (!$jsilcore)  
   throw new Error("JSIL.Core is required");
 
+JSIL.$StructSizeOverrides = {
+  "System.Int64": 8,
+  "System.UInt64": 8
+};
+
 JSIL.DeclareNamespace("JSIL.Runtime");
 JSIL.DeclareNamespace("JSIL.PackedArray");
 
@@ -1546,6 +1551,10 @@ JSIL.GetNativeAlignmentOf = function GetNativeAlignmentOf (typeObject, forPInvok
 };
 
 JSIL.ComputeNativeAlignmentOfStruct = function ComputeNativeAlignmentOfStruct (typeObject) {
+  var fcs = JSIL.$StructSizeOverrides[typeObject.__FullName__];
+  if (fcs)
+    return fcs;
+
   var fields = JSIL.GetFieldList(typeObject);
   var maxAlignment = 0;
 
@@ -1562,6 +1571,10 @@ JSIL.ComputeNativeSizeOfStruct = function ComputeNativeSizeOfStruct (typeObject)
   var maxAlignment = 0;
   // Structs are always at least one byte in size
   var resultSize = 1;
+
+  var fcs = JSIL.$StructSizeOverrides[typeObject.__FullName__];
+  if (fcs)
+    return fcs;
 
   for (var i = 0, l = fields.length; i < l; i++) {
     var field = fields[i];

@@ -24,5 +24,8 @@ public static class Program {
         Console.WriteLine(Marshal.OffsetOf(t, "fingerId").ToInt32());
         Console.WriteLine(Marshal.OffsetOf(t, "x").ToInt32());
         Console.WriteLine(Marshal.OffsetOf(t, "y").ToInt32());
+        Console.WriteLine(Marshal.OffsetOf(t, "dx").ToInt32());
+        Console.WriteLine(Marshal.OffsetOf(t, "dy").ToInt32());
+        Console.WriteLine(Marshal.OffsetOf(t, "pressure").ToInt32());
     }
 }
