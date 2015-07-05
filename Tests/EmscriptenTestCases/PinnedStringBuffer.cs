@@ -11,7 +11,7 @@ public static unsafe class Program {
     );
 
     public static void Main () {
-        using (var na = new NativePackedArray<byte>(512)) {
+        using (var na = new NativePackedArray<byte>("common.dll", 512)) {
             int numBytes;
             fixed (byte* pBuffer = na.Array)
                 numBytes = WriteStringIntoBuffer(pBuffer, na.Length);
