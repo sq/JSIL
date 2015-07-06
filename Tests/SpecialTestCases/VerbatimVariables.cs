@@ -7,5 +7,7 @@ public static class Program {
         var a = 2;
         var b = 5;
         Console.WriteLine(Verbatim.Expression("$0 + $1", a, b));
+        int i = Verbatim.Expression<int>("$0 + $1", a, b);
+        Console.WriteLine(i);
     }
 }

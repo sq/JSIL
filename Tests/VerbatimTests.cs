@@ -35,7 +35,7 @@ namespace JSIL.Tests {
         public void VerbatimIsEmittedRawInGeneratedJavascript () {
             GenericTest(
                 @"SpecialTestCases\Verbatim.cs",
-                "1\r\n2", "1"
+                "0\r\n2", "4"
             );
         }
 
@@ -67,7 +67,7 @@ namespace JSIL.Tests {
         public void VerbatimVariables () {
             var js = GetJavascript(
                 @"SpecialTestCases\VerbatimVariables.cs",
-                "hello\r\n7"
+                "hello\r\n7\r\n7"
             );
         }
 

@@ -772,7 +772,10 @@ namespace JSIL {
                     return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments, forDynamic);
 
                 case "JSIL.Verbatim": {
-                    if (methodName == "Expression") {
+                    if (
+                        (methodName == "Expression") ||
+                        (methodName == "Expression`1")
+                    ) {
                         var expression = arguments[0] as JSStringLiteral;
                         if (expression == null)
                             throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
@@ -829,6 +832,8 @@ namespace JSIL {
                             return new JSCommaExpression(commaFirstClause, verbatimLiteral);
                         else
                             return verbatimLiteral;
+                    } else {
+                        throw new NotImplementedException("Verbatim method not implemented: " + methodName);
                     }
                     break;
                 }
@@ -844,6 +849,8 @@ namespace JSIL {
                             return new JSIndexerExpression(
                                 JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
                             );
+                    } else {
+                        throw new NotImplementedException("JSGlobal method not implemented: " + methodName);
                     }
                     break;
                 }
@@ -855,6 +862,8 @@ namespace JSIL {
                             throw new InvalidOperationException("JSLocal must recieve a string literal as an index");
 
                         return new JSStringIdentifier(expression.Value, TypeSystem.Object);
+                    } else {
+                        throw new NotImplementedException("JSLocal method not implemented: " + methodName);
                     }
                     break;
                 }
@@ -874,24 +883,8 @@ namespace JSIL {
                                 new JSUnaryOperatorExpression(JSOperator.LogicalNot, shouldThrow, TypeSystem.Boolean)
                             }, true
                         );
-                    }
-                    break;
-                }
-
-                case "JSIL.Profiling": {
-                    if (methodName == "TagJSExpression") {
-                        var expression = arguments[0] as JSStringLiteral;
-                        if (expression == null)
-                            throw new InvalidOperationException("JSIL.Profiling.TagJSExpression must recieve a string literal as an argument");
-
-                        var actualExpression = String.Format(
-                            "JSIL.Shell.TagObject({0}, {1})",
-                            expression.Value, Util.EscapeString(expression.Value)
-                        );
-
-                        return new JSVerbatimLiteral(
-                            methodName, actualExpression, null, null
-                        );
+                    } else {
+                        throw new NotImplementedException("JSIL.Services method not implemented: " + methodName);
                     }
                     break;
                 }
