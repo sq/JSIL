@@ -13,3 +13,6 @@
 [submodule "Upstream/JSIL.ExpressionInterpreter"]
 	path = Upstream/JSIL.ExpressionInterpreter
 	url = https://github.com/iskiselev/JSIL.ExpressionInterpreter.git
+[submodule "Meta"]
+	path = Meta
+	url = https://github.com/sq/JSIL.Meta.git
