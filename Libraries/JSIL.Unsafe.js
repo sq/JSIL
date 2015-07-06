@@ -486,9 +486,14 @@ JSIL.ImplementExternals("System.Buffer", function ($interfaceBuilder) {
       ], []), 
     function BlockCopy (src, srcOffset, dst, dstOffset, count) {
       var srcBuffer = JSIL.GetArrayBuffer(src);
+      srcOffset += JSIL.GetArrayByteOffset(src);
+
       var dstBuffer = JSIL.GetArrayBuffer(dst);
+      dstOffset += JSIL.GetArrayByteOffset(dst);
+
       var srcView = new Uint8Array(srcBuffer, srcOffset, count);
       var dstView = new Uint8Array(dstBuffer, dstOffset, count);
+
       dstView.set(srcView);
     }
   );
@@ -496,8 +501,7 @@ JSIL.ImplementExternals("System.Buffer", function ($interfaceBuilder) {
   $.Method({Static:true , Public:true }, "ByteLength", 
     new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array")], []), 
     function ByteLength (array) {
-      var buffer = JSIL.GetArrayBuffer(array);
-      return buffer.byteLength;
+      return JSIL.GetArrayByteLength(array);
     }
   );
 
@@ -505,6 +509,8 @@ JSIL.ImplementExternals("System.Buffer", function ($interfaceBuilder) {
     new JSIL.MethodSignature($.Byte, [$jsilcore.TypeRef("System.Array"), $.Int32], []), 
     function GetByte (array, index) {
       var buffer = JSIL.GetArrayBuffer(array);
+      index += JSIL.GetArrayByteOffset(array);
+      
       var view = new Uint8Array(buffer, index, 1);
       return view[0];
     }
@@ -572,8 +578,12 @@ JSIL.MakeClass("System.Object", "JSIL.MemoryRange", true, [], function ($) {
 
       var cachedView = this.getCachedView(arrayCtor);
       if (cachedView) {
+        // FIXME: I don't think this is actually a problem?
+        //  I'm not really sure why it happens, though...
+        /*
         if (cachedView !== view)
           JSIL.RuntimeError("A different view is already stored for this element type");
+        */
       } else {
         this.setCachedView(arrayCtor, view);
       }
@@ -2220,6 +2230,34 @@ JSIL.GetArrayBuffer = function (array) {
     return array.bytes.buffer;
   } else {
     return array.buffer;
+  }
+};
+
+JSIL.GetArrayByteOffset = function (array) {
+  var isPackedArray = JSIL.IsPackedArray(array);
+
+  if (!JSIL.IsTypedArray(array) && !isPackedArray) {
+    JSIL.RuntimeError("Object has no array buffer");
+  }
+
+  if (isPackedArray) {
+    return array.bytes.byteOffset | 0;
+  } else {
+    return array.byteOffset | 0;
+  }
+};
+
+JSIL.GetArrayByteLength = function (array) {
+  var isPackedArray = JSIL.IsPackedArray(array);
+
+  if (!JSIL.IsTypedArray(array) && !isPackedArray) {
+    JSIL.RuntimeError("Object has no array buffer");
+  }
+
+  if (isPackedArray) {
+    return array.bytes.byteLength | 0;
+  } else {
+    return array.byteLength | 0;
   }
 };
 
