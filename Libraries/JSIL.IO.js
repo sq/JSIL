@@ -378,6 +378,30 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
     combineImpl
   );
 
+  $.Method({Static:true , Public:true }, "GetInvalidPathChars", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [], [])), 
+    function GetInvalidPathChars () {
+      var result = ['"', "<", ">", "|", "*", "?"];
+
+      for (var i = 0; i < 31; i++)
+        result.push(String.fromCharCode(i));
+
+      return result;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetInvalidFileNameChars", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [], [])), 
+    function GetInvalidFileNameChars () {
+      var result = System.IO.Path.GetInvalidPathChars();
+      result.push("\\");
+      result.push("/");
+      result.push(":");
+      
+      return result;
+    }
+  );
+
   $.Method({Static:true , Public:true }, "GetExtension", 
     (new JSIL.MethodSignature($.String, [$.String], [])), 
     function GetExtension (path) {
