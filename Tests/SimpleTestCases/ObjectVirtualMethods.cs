@@ -16,6 +16,17 @@ class Program
         System.Console.WriteLine(c1.GetHashCode() == c2.GetHashCode() ? "true" : "false");
         System.Console.WriteLine(c1.GetHashCode() == c1.GetHashCode() ? "true" : "false");
         System.Console.WriteLine(c2.GetHashCode() == c2.GetHashCode() ? "true" : "false");
+
+        // Equals
+        System.Console.WriteLine(i1.Equals(i2) ? "true" : "false");
+        System.Console.WriteLine(i2.Equals(i1) ? "true" : "false");
+        System.Console.WriteLine(i1.Equals(i1) ? "true" : "false");
+        System.Console.WriteLine(i2.Equals(i2) ? "true" : "false");
+
+        System.Console.WriteLine(c1.Equals(c2) ? "true" : "false");
+        System.Console.WriteLine(c2.Equals(c1) ? "true" : "false");
+        System.Console.WriteLine(c1.Equals(c1) ? "true" : "false");
+        System.Console.WriteLine(c2.Equals(c2) ? "true" : "false");
     }
 }
 
@@ -25,6 +36,18 @@ public class BaseClass
     {
         Console.WriteLine("BaseClass.GetHashCode");
         return base.GetHashCode();
+    }
+
+    public override bool Equals(object other)
+    {
+        Console.WriteLine("BaseClass.Equals");
+        return base.Equals(other);
+    }
+
+    public bool Equals(BaseClass other)
+    {
+        Console.WriteLine("BaseClass.Equals");
+        return base.Equals(other);
     }
 }
 
@@ -44,5 +67,11 @@ public class DerivedClass : BaseClass
     public void GetHashCode(int a)
     {
         Console.WriteLine("DerivedClass.GetHashCode(int)");
+    }
+
+    public override bool Equals(object other)
+    {
+        Console.WriteLine("DerivedClass.Equals");
+        return base.Equals(other);
     }
 }

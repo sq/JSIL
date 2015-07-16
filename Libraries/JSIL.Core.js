@@ -9421,6 +9421,36 @@ JSIL.GetEqualsSignature = function () {
   return JSIL.$equalsSignature;
 }
 
+JSIL.ObjectEqualsInstance = function (lhs, rhs, virtualCall, thisType) {
+  switch (typeof (lhs)) {
+    case "string":
+    case "number":
+      return lhs == rhs;
+      break;
+
+    case "object":
+      if (virtualCall) {
+        var key = JSIL.GetEqualsSignature().GetNamedKey("Object_Equals", true);
+        var fn = lhs[key];
+
+        if (fn)
+          return fn.call(lhs, rhs);
+      }
+      else {
+          if (thisType.__PublicInterface__.prototype.Object_Equals) {
+              return thisType.__PublicInterface__.prototype.Object_Equals.call(lhs, rhs);
+          }
+      }         
+      
+      break;
+  }
+
+  if (lhs === rhs)
+    return true;
+
+  return false;
+};
+
 JSIL.ObjectEquals = function (lhs, rhs) {
   if ((lhs === null) || (rhs === null))
     return lhs === rhs;

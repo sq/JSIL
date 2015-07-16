@@ -54,6 +54,9 @@ namespace JSIL.Proxies {
         [JSIsPure]
         [JSReplacement("JSIL.ObjectHashCode($this, !$explicitThis(method), $declaringType(method))")]
         public new abstract int GetHashCode();
+
+        [JSReplacement("JSIL.ObjectEqualsInstance($this, $obj, !$explicitThis(method), $declaringType(method))")]
+        new public abstract bool Equals(object obj);
     }
 
     [JSProxy(
@@ -70,5 +73,8 @@ namespace JSIL.Proxies {
         [JSIsPure]
         [JSReplacement("JSIL.ObjectHashCode($this, false)")]
         public new abstract int GetHashCode();
+
+        [JSReplacement("JSIL.ObjectEquals($this, $obj)")]
+        new public abstract bool Equals(object obj);
     }
 }
