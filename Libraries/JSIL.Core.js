@@ -9480,13 +9480,14 @@ if (typeof (WeakMap) !== "undefined") {
   };
 }
 
-JSIL.ObjectHashCode = function (obj) {
+JSIL.ObjectHashCode = function (obj, virtualCall, thisType) {
   var type = typeof obj;
 
-  if (type === "object") {
-    if (obj.GetHashCode)
-      return (obj.GetHashCode() | 0);
-
+  if (type === "object" || type == "string") {
+    if (obj.GetHashCode && virtualCall)
+      return (obj.GetHashCode() | 0);   
+    if (!virtualCall && thisType.__PublicInterface__.prototype.GetHashCode)
+      return (thisType.__PublicInterface__.prototype.GetHashCode.call(obj) | 0);   
     return JSIL.HashCodeInternal(obj);
   } else {
     // FIXME: Not an integer. Gross.

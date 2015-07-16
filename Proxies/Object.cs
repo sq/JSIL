@@ -9,8 +9,9 @@ namespace JSIL.Proxies {
         typeof(Object),
         memberPolicy: JSProxyMemberPolicy.ReplaceNone,
         attributePolicy: JSProxyAttributePolicy.ReplaceDeclared
-    )]
-    public abstract class ObjectProxy {
+        )]
+    public abstract class ObjectProxy
+    {
         [JSIsPure]
         [JSExternal]
         new abstract public Type GetType ();
@@ -41,5 +42,33 @@ namespace JSIL.Proxies {
         public static bool ReferenceEquals (object objA, object objB) {
             throw new InvalidOperationException();
         }
+    }
+
+    [JSProxy(
+        typeof (Object),
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        attributePolicy: JSProxyAttributePolicy.ReplaceDeclared,
+        inheritable: false)]
+    public abstract class ObjectGetHashCodeProxy
+    {
+        [JSIsPure]
+        [JSReplacement("JSIL.ObjectHashCode($this, !$explicitThis(method), $declaringType(method))")]
+        public new abstract int GetHashCode();
+    }
+
+    [JSProxy(
+        new[]
+        {
+            typeof (SByte), typeof (Int16), typeof (Int32),
+            typeof (Byte), typeof (UInt16), typeof (UInt32),
+            typeof (String)
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        attributePolicy: JSProxyAttributePolicy.ReplaceDeclared)]
+    public abstract class JSTypesGetHashCodeProxy
+    {
+        [JSIsPure]
+        [JSReplacement("JSIL.ObjectHashCode($this, false)")]
+        public new abstract int GetHashCode();
     }
 }
