@@ -276,7 +276,7 @@
     <None Include="SpecialTestCases\TranslateTypeInStubbedAssembly.cs" />
     <None Include="SpecialTestCases\TranslateMethodInStubbedAssembly.cs" />
     <None Include="SpecialTestCases\TranslateMethodInStubbedType.cs" />
-    <None Include="FailingTestCases\DelegateMethod_Issue604.cs" />
+    <None Include="FailingTestCases\DelegateMethod_ResolveInterface_Issue604.cs" />
     <None Include="PerformanceTestCases\GenericMethodCalls.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
@@ -415,7 +415,7 @@
     <Compile Include="PerformanceAnalysis.cs" />
     <None Include="PerformanceTestCases\Vector3.cs" />
     <None Include="PerformanceTestCases\OverloadedMethodCalls.cs" />
-    <None Include="PerformanceTestCases\OverloadedConstructors.cs" />
+    <None Include="PerformanceTestCases\OverloadedConstructorsPerfomance.cs" />
     <None Include="PerformanceTestCases\UncachedOverloadedMethodCalls.cs" />
     <Compile Include="PerformanceTests.cs" />
     <None Include="TestCases\GenericStaticMethods2.cs" />
