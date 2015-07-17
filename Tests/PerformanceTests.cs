@@ -120,7 +120,7 @@ namespace JSIL.Tests {
         [Test]
         public void OverloadedConstructors () {
             using (var test = MakeTest(
-                @"PerformanceTestCases\OverloadedConstructors.cs"
+                @"PerformanceTestCases\OverloadedConstructorsPerfomance.cs"
             )) {
                 Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
 
