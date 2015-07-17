@@ -112,6 +112,7 @@
     <None Include="SimpleTestCases\UriBasic.cs" />
     <None Include="SimpleTestCases\NumericRoundTripCasts.cs" />
     <None Include="SimpleTestCases\ObjectVirtualMethods.cs" />
+    <None Include="SimpleTestCases\RawTypeIsObject_Issue754.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
