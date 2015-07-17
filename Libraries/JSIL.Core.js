@@ -9421,6 +9421,36 @@ JSIL.GetEqualsSignature = function () {
   return JSIL.$equalsSignature;
 }
 
+JSIL.ObjectEqualsInstance = function (lhs, rhs, virtualCall, thisType) {
+  switch (typeof (lhs)) {
+    case "string":
+    case "number":
+      return lhs == rhs;
+      break;
+
+    case "object":
+      if (virtualCall) {
+        var key = JSIL.GetEqualsSignature().GetNamedKey("Object_Equals", true);
+        var fn = lhs[key];
+
+        if (fn)
+          return fn.call(lhs, rhs);
+      }
+      else {
+          if (thisType.__PublicInterface__.prototype.Object_Equals) {
+              return thisType.__PublicInterface__.prototype.Object_Equals.call(lhs, rhs);
+          }
+      }         
+      
+      break;
+  }
+
+  if (lhs === rhs)
+    return true;
+
+  return false;
+};
+
 JSIL.ObjectEquals = function (lhs, rhs) {
   if ((lhs === null) || (rhs === null))
     return lhs === rhs;
@@ -9480,13 +9510,14 @@ if (typeof (WeakMap) !== "undefined") {
   };
 }
 
-JSIL.ObjectHashCode = function (obj) {
+JSIL.ObjectHashCode = function (obj, virtualCall, thisType) {
   var type = typeof obj;
 
-  if (type === "object") {
-    if (obj.GetHashCode)
-      return (obj.GetHashCode() | 0);
-
+  if (type === "object" || type == "string") {
+    if (obj.GetHashCode && virtualCall)
+      return (obj.GetHashCode() | 0);   
+    if (!virtualCall && thisType.__PublicInterface__.prototype.GetHashCode)
+      return (thisType.__PublicInterface__.prototype.GetHashCode.call(obj) | 0);   
     return JSIL.HashCodeInternal(obj);
   } else {
     // FIXME: Not an integer. Gross.

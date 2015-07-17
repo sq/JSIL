@@ -564,7 +564,7 @@ namespace JSIL {
         protected JSExpression HandleJSReplacement (
             MethodReference method, Internal.MethodInfo methodInfo, 
             JSExpression thisExpression, JSExpression[] arguments,
-            TypeReference resultType
+            TypeReference resultType, bool explicitThis
         ) {
             var metadata = methodInfo.Metadata;
             if (metadata != null) {
@@ -578,10 +578,17 @@ namespace JSIL {
                         argsDict["this"] = new JSNullLiteral(TypeSystem.Object);
                         argsDict["typeof(this)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition);
                         argsDict["etypeof(this)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition.GetElementType());
-                    } else if (thisExpression != null) {
+                        argsDict["declaringType(method)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition);
+                        argsDict["explicitThis(method)"] = new JSBooleanLiteral(false);
+                    }
+                    else if (thisExpression != null)
+                    {
                         argsDict["this"] = thisExpression;
                         argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
                         argsDict["etypeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem).GetElementType());
+                        argsDict["this"] = thisExpression;
+                        argsDict["declaringType(method)"] = Translate_TypeOf(methodInfo.DeclaringType.Definition);
+                        argsDict["explicitThis(method)"] = new JSBooleanLiteral(explicitThis);
                     } 
 
                     var genericMethod = method as GenericInstanceMethod;
@@ -620,7 +627,7 @@ namespace JSIL {
             var instanceType = newExpression.GetActualType(TypeSystem);
             var jsr = HandleJSReplacement(
                 constructor, constructorInfo, new JSNullLiteral(instanceType), newExpression.Arguments.ToArray(),
-                instanceType
+                instanceType, false
             );
             if (jsr != null)
                 return jsr;
@@ -652,7 +659,7 @@ namespace JSIL {
                 if (metadata != null) {
                     var jsr = HandleJSReplacement(
                         method.Reference, methodInfo, thisExpression, arguments,
-                        method.Reference.ReturnType
+                        method.Reference.ReturnType, explicitThis
                     );
                     if (jsr != null)
                         return jsr;
