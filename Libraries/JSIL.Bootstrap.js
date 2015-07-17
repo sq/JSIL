@@ -3159,7 +3159,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1+Enumerator", funct
           return true;
         } else {
           bucketIndex = ++(state.bucketIndex);
-          valueIndex = 0;
+          valueIndex = state.valueIndex = 0;
         }
       }
 
