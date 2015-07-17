@@ -15,7 +15,8 @@ JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
 JSIL.ImplementExternals("System.Object", function ($) {
   $.RawMethod(true, "CheckType",
     function (value) {
-      return (typeof (value) === "object");
+      var type = typeof (value); 
+      return (type=== "object" || type === "number" || type === "string");
     }
   );
 
