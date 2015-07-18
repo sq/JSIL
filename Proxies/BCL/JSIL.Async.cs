@@ -15,6 +15,13 @@ namespace JSIL.Proxies.Bcl
     [JSProxy("System.Runtime.CompilerServices.AsyncVoidMethodBuilder`1", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared,
         JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
+    public class System_Runtime_CompilerServices_AsyncVoidMethodBuilder_1
+    {
+    }
+
+    [JSProxy("System.Runtime.CompilerServices.AsyncTaskMethodBuilder", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared,
+        JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
     public class System_Runtime_CompilerServices_AsyncTaskMethodBuilder
     {
     }
