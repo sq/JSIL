@@ -562,6 +562,15 @@ namespace JSIL {
 
         private static string GetActualScope (TypeReference tr) {
             var result = tr.Scope.Name;
+            if (tr.GetType() == typeof (TypeReference))
+            {
+                var definition = tr.Resolve();
+                if (definition != null)
+                {
+                    result = definition.Scope.Name;
+                }
+            }
+            
             if (result == "CommonLanguageRuntimeLibrary")
                 result = "mscorlib";
 
