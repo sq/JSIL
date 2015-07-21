@@ -59,6 +59,65 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return fields.Contains(defenition);
             }
 
+            var propertyReference = member as PropertyReference;
+            if (propertyReference != null)
+            {
+                var defenition = propertyReference.Resolve();
+                if (defenition != null)
+                {
+                    if (defenition.GetMethod != null && methods.Contains(defenition.GetMethod))
+                    {
+                        return true;
+                    }
+
+                    if (defenition.SetMethod != null && methods.Contains(defenition.SetMethod))
+                    {
+                        return true;
+                    }
+
+                    if (defenition.OtherMethods != null &&
+                        defenition.OtherMethods.Any(method => methods.Contains(method)))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            var eventReference = member as EventReference;
+            if (eventReference != null)
+            {
+                var defenition = eventReference.Resolve();
+
+                if (defenition != null)
+                {
+                    if (defenition.AddMethod != null && methods.Contains(defenition.AddMethod))
+                    {
+                        return true;
+                    }
+
+                    if (defenition.RemoveMethod != null && methods.Contains(defenition.RemoveMethod))
+                    {
+                        return true;
+                    }
+
+                    if (defenition.InvokeMethod != null && methods.Contains(defenition.InvokeMethod))
+                    {
+                        return true;
+                    }
+
+                    if (defenition.OtherMethods != null &&
+                        defenition.OtherMethods.Any(method => methods.Contains(method)))
+                    {
+                        return true;
+                    }
+                }
+
+
+                return false;
+            }
+
             throw new ArgumentException("Unexpected member reference type");
         }
 
