@@ -46,6 +46,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.DeadCodeAnalyzer", "Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.ExpressionInterpreter", "Upstream\JSIL.ExpressionInterpreter\JSIL.ExpressionInterpreter.csproj", "{B6269EA3-19B6-4684-AD1F-03562FD4AC55}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.DCE", "Tests.DCE\Tests.DCE.csproj", "{7B80860D-B937-44E9-B863-7A5E888429E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|.NET 4.5 x86 = Debug|.NET 4.5 x86
@@ -243,6 +245,14 @@ Global
 		{B6269EA3-19B6-4684-AD1F-03562FD4AC55}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B6269EA3-19B6-4684-AD1F-03562FD4AC55}.Release|x86.ActiveCfg = Release|Any CPU
 		{B6269EA3-19B6-4684-AD1F-03562FD4AC55}.Release|x86.Build.0 = Release|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Debug|.NET 4.5 x86.ActiveCfg = Debug|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|.NET 4.5 x86.ActiveCfg = Release|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
