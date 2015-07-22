@@ -221,24 +221,15 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return;
             }
 
-            TypeDefinition resolvedType;
-
             if (type.IsGenericInstance)
             {
                 var genericType = (GenericInstanceType)type;
-                foreach (var genericArgument in genericType.GenericArguments)
-                {
-                    resolvedType = genericArgument.Resolve();
-
-                    if (resolvedType != null)
-                    {
-                        AddType(resolvedType);
-                    }
+                foreach (var genericArgument in genericType.GenericArguments) {
+                    AddType(genericArgument);
                 }
             }
 
-            resolvedType = type.Resolve();
-
+            TypeDefinition resolvedType = type.Resolve();
             if (resolvedType != null)
             {
                 AddType(resolvedType);
@@ -393,18 +384,18 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 }
             }
 
+            AddType(method.DeclaringType);
+            AddType(method.ReturnType);
+            foreach (var parameterDefinition in method.Parameters)
+            {
+                AddType(parameterDefinition.ParameterType);
+            }
+
             MethodDefinition resolvedMethod = method.Resolve();
 
             if (resolvedMethod == null)
             {
                 return false;
-            }
-
-            AddType(resolvedMethod.DeclaringType);
-            AddType(resolvedMethod.ReturnType);
-            foreach (var parameterDefinition in resolvedMethod.Parameters)
-            {
-                AddType(parameterDefinition.ParameterType);
             }
 
             if (Methods.Add(resolvedMethod) && resolvedMethod.HasBody) {
@@ -434,7 +425,9 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             AddType(field.DeclaringType);
             FieldDefinition resolvedField = field.Resolve();
 
-            Fields.Add(resolvedField);
+            if (resolvedField != null) {
+                Fields.Add(resolvedField);
+            }
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
