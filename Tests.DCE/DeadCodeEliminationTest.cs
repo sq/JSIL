@@ -99,41 +99,33 @@
             DceAssert.HasNo(output, MemberType.Event, "UnusedEventInUsedClass", false);
         }
 
-        private bool HasMethodDefenition(string input, string name, bool isStatic, bool isPublic = true)
+        [Test]
+        public void PreserveTypesReferencedFromFieldDeclaration()
         {
-            var searchPattern = string.Format("$.Method({{Static:{1}, Public:{2}}}, \"{0}\"", name, Padded(isStatic), Padded(isPublic));
-            return input.Contains(searchPattern);
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromFieldDeclaration.cs");
+            DceAssert.Has(output, MemberType.Class, "PreservedType", false);
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
         }
 
-        private bool HasFieldDefenition(string input, string name, bool isStatic, bool isPublic = true)
+        [Test]
+        public void PreserveTypesReferencedFromMethodDeclaration()
         {
-            var searchPattern = string.Format("$.Field({{Static:{1}, Public:{2}}}, \"{0}\"", name, Padded(isStatic), Padded(isPublic));
-            return input.Contains(searchPattern);
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromMethodDeclaration.cs");
+            DceAssert.Has(output, MemberType.Class, "PreservedMethodDeclarationType", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedMethodReturnType", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedMethodFirstArgumentType", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedMethodSecondArgumentType", false);
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
         }
 
-        private bool HasPropertyDefenition(string input, string name, bool isStatic, bool isPublic = true)
+        [Test]
+        public void PreserveTypesReferencedFromGeneric()
         {
-            var searchPattern = string.Format("$.Property({{Static:{1}, Public:{2}}}, \"{0}\"", name, Padded(isStatic), Padded(isPublic));
-            return input.Contains(searchPattern);
-        }
-
-        private bool HasEventDefenition(string input, string name, bool isStatic, bool isPublic = true)
-        {
-            var searchPattern = string.Format("$.Event({{Static:{1}, Public:{2}}}, \"{0}\"", name, Padded(isStatic), Padded(isPublic));
-            return input.Contains(searchPattern);
-        }
-
-        private bool HasClassDefenition(string input, string name, bool isStatic)
-        {
-            var searchPattern = isStatic  
-                ? string.Format("JSIL.MakeStaticClass(\"{0}\"", name)
-                : string.Format("Name: \"{0}\"", name);
-            return input.Contains(searchPattern);
-        }
-
-        private string Padded(bool value)
-        {
-            return value ? "true " : "false";
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromGeneric.cs");
+            DceAssert.Has(output, MemberType.Class, "GenericTypeGen1`1", false);
+            DceAssert.Has(output, MemberType.Class, "GenericTypeGen2`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedType", false);
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
         }
     }
 
@@ -141,7 +133,7 @@
     {
         public static void Has(string input, MemberType memberType, string name, bool isStatic = true, bool isPublic = true)
         {
-            var message = string.Format("No {0} ({1})", input, memberType);
+            var message = string.Format("No {0} ({1})", name, memberType);
             Assert.IsTrue(Contains(input, memberType, name, isStatic, isPublic), message);
         }
 
