@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ICSharpCode.NRefactory.Utils;
 using JSIL.Internal;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -10,29 +9,26 @@ using Mono.Linker.Steps;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
     public class DeadCodeInfoProvider {
-        private readonly HashSet<AssemblyDefinition> assemblies;
-        private readonly HashSet<FieldDefinition> fields;
-        private readonly HashSet<MethodDefinition> methods;
-        private readonly HashSet<TypeDefinition> types;
+        private readonly HashSet<AssemblyDefinition> Assemblies;
+        private readonly HashSet<FieldDefinition> Fields;
+        private readonly HashSet<MethodDefinition> Methods;
+        private readonly HashSet<TypeDefinition> Types;
 
-        private readonly TypeMapStep typeMapStep = new TypeMapStep();
-        private readonly Configuration configuration;
-        private readonly List<Regex> whiteListCache; 
+        private readonly TypeMapStep TypeMapStep = new TypeMapStep();
+        private readonly List<Regex> WhiteListCache; 
 
         public DeadCodeInfoProvider(Configuration configuration) {
-            this.configuration = configuration;
-
-            types = new HashSet<TypeDefinition>();
-            methods = new HashSet<MethodDefinition>();
-            fields = new HashSet<FieldDefinition>();
-            assemblies = new HashSet<AssemblyDefinition>();
+            Types = new HashSet<TypeDefinition>();
+            Methods = new HashSet<MethodDefinition>();
+            Fields = new HashSet<FieldDefinition>();
+            Assemblies = new HashSet<AssemblyDefinition>();
 
             if (configuration.WhiteList != null &&
                 configuration.WhiteList.Count > 0) {
-                whiteListCache = new List<Regex>(configuration.WhiteList.Count);
+                WhiteListCache = new List<Regex>(configuration.WhiteList.Count);
                 foreach (var pattern in configuration.WhiteList) {
-                    Regex compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
-                    whiteListCache.Add(compiledRegex);
+                    var compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
+                    WhiteListCache.Add(compiledRegex);
                 }
             }
         }
@@ -44,19 +40,19 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (typeReference != null)
             {
                 var defenition = typeReference.Resolve();
-                return types.Contains(defenition);
+                return Types.Contains(defenition);
             }
 
             var methodReference = member as MethodReference;
             if (methodReference != null) {
                 var defenition = methodReference.Resolve();
-                return methods.Contains(defenition);
+                return Methods.Contains(defenition);
             }
 
             var fieldReference = member as FieldReference;
             if (fieldReference != null) {
                 var defenition = fieldReference.Resolve();
-                return fields.Contains(defenition);
+                return Fields.Contains(defenition);
             }
 
             var propertyReference = member as PropertyReference;
@@ -65,18 +61,18 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 var defenition = propertyReference.Resolve();
                 if (defenition != null)
                 {
-                    if (defenition.GetMethod != null && methods.Contains(defenition.GetMethod))
+                    if (defenition.GetMethod != null && Methods.Contains(defenition.GetMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.SetMethod != null && methods.Contains(defenition.SetMethod))
+                    if (defenition.SetMethod != null && Methods.Contains(defenition.SetMethod))
                     {
                         return true;
                     }
 
                     if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => methods.Contains(method)))
+                        defenition.OtherMethods.Any(method => Methods.Contains(method)))
                     {
                         return true;
                     }
@@ -92,28 +88,27 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
                 if (defenition != null)
                 {
-                    if (defenition.AddMethod != null && methods.Contains(defenition.AddMethod))
+                    if (defenition.AddMethod != null && Methods.Contains(defenition.AddMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.RemoveMethod != null && methods.Contains(defenition.RemoveMethod))
+                    if (defenition.RemoveMethod != null && Methods.Contains(defenition.RemoveMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.InvokeMethod != null && methods.Contains(defenition.InvokeMethod))
+                    if (defenition.InvokeMethod != null && Methods.Contains(defenition.InvokeMethod))
                     {
                         return true;
                     }
 
                     if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => methods.Contains(method)))
+                        defenition.OtherMethods.Any(method => Methods.Contains(method)))
                     {
                         return true;
                     }
                 }
-
 
                 return false;
             }
@@ -173,25 +168,45 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             var endMemberCount = 0;
             do
             {
-                inintialMemberCount = fields.Count + methods.Count + types.Count;
+                inintialMemberCount = Fields.Count + Methods.Count + Types.Count;
                 ResolveVirtualMethods();
-                endMemberCount = fields.Count + methods.Count + types.Count;
+                endMemberCount = Fields.Count + Methods.Count + Types.Count;
             } while (endMemberCount != inintialMemberCount);
         }
 
-        public void ResolveVirtualMethods() {
-            MethodDefinition[] tempMethods = new MethodDefinition[methods.Count];
-            methods.CopyTo(tempMethods);
+        public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies)
+        {
+            IEnumerable<ModuleDefinition> modules = from assembly in assemblies
+                                                    from module in assembly.Modules
+                                                    select module;
 
-            for (int i = 0; i < tempMethods.Length; i++) {
-                MethodDefinition method = tempMethods[i];
-                if (method.IsVirtual)
+            foreach (ModuleDefinition module in modules)
+            {
+                TypeMapStep.ProcessModule(module);
+
+                foreach (var type in module.Types)
+                {
+                    ProcessWhiteList(type);
+                }
+            }
+
+            Assemblies.UnionWith(assemblies);
+        }
+
+        private void ResolveVirtualMethods() {
+            var tempMethods = new MethodDefinition[Methods.Count];
+            Methods.CopyTo(tempMethods);
+
+            foreach (MethodDefinition method in tempMethods)
+            {
+                if (method.IsVirtual) {
                     ResolveVirtualMethod(method);
+                }
             }
         }
 
         private void ResolveVirtualMethod(MethodDefinition method) {
-            HashSet<MethodDefinition> overrides = new HashSet<MethodDefinition>();
+            var overrides = new HashSet<MethodDefinition>();
             GetAllOverrides(method, overrides);
             foreach (MethodDefinition methodDefinition in overrides) {
                 if (IsUsed(methodDefinition.DeclaringType)) {
@@ -237,7 +252,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return;
             }
 
-            if (types.Add(resolvedType))
+            if (Types.Add(resolvedType))
             {
                 AddType(resolvedType.BaseType);
 
@@ -245,8 +260,9 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 {
                     foreach (CustomAttribute attribute in resolvedType.CustomAttributes)
                     {
-                        if (attribute.HasConstructorArguments)
+                        if (attribute.HasConstructorArguments) {
                             WalkMethod(attribute.Constructor.Resolve());
+                        }
                     }
                 }
 
@@ -391,7 +407,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 AddType(parameterDefinition.ParameterType);
             }
 
-            if (methods.Add(resolvedMethod) && resolvedMethod.HasBody) {
+            if (Methods.Add(resolvedMethod) && resolvedMethod.HasBody) {
                 //if (resolvedMethod.HasCustomAttributes) {
                 //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
                 //        AddType(attribute.AttributeType);
@@ -418,32 +434,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             AddType(field.DeclaringType);
             FieldDefinition resolvedField = field.Resolve();
 
-            fields.Add(resolvedField);
-        }
-
-        public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies) {
-            IEnumerable<ModuleDefinition> modules = from assembly in assemblies
-                                                    from module in assembly.Modules
-                                                    select module;
-            
-            foreach (ModuleDefinition module in modules) {
-                typeMapStep.ProcessModule(module);
-
-                foreach (var type in module.Types) {
-                    ProcessWhiteList(type);
-                }
-            }
-
-            this.assemblies.UnionWith(assemblies);
+            Fields.Add(resolvedField);
         }
 
         private bool IsMemberWhiteListed(MemberReference member) {
-            if (whiteListCache != null)
+            if (WhiteListCache != null)
             {
-                foreach (var regex in whiteListCache)
-                {
-                    if (regex.IsMatch(member.FullName))
-                        return true;
+                if (WhiteListCache.Any(regex => regex.IsMatch(member.FullName))) {
+                    return true;
                 }
             }
 
@@ -459,7 +457,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
             else if (member is MethodReference)
             {
-                MethodDefinition method = ((MethodReference) member).Resolve();
+                MethodDefinition method = ((MethodReference)member).Resolve();
                 if (method != null)
                 {
                     customAttributes = method.CustomAttributes;
@@ -479,19 +477,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return true;
             }
 
-            TypeReference declaringType = null;
-            if (member is TypeReference)
-            {
-                declaringType = ((TypeReference)member).DeclaringType;
-            }
-            else if (member is MethodReference)
-            {
-                declaringType = ((MethodReference) member).DeclaringType;
-            }
-            else if (member is FieldReference)
-            {
-                declaringType = ((FieldReference)member).DeclaringType;
-            }
+            TypeReference declaringType = member.DeclaringType;
 
             if (declaringType != null)
             {
@@ -523,41 +509,50 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 TypeDefinition type = (member as TypeReference).Resolve();
                 
                 if (type != null) {
-                    if (IsMemberWhiteListed(type))
+                    if (IsMemberWhiteListed(type)) {
                         AddType(type);
+                    }
 
                     if (type.HasNestedTypes) {
                         foreach (var nestedType in type.NestedTypes) {
                             ProcessWhiteList(nestedType);
                         }
                     }
+
                     if (type.HasMethods) {
                         foreach (var method in type.Methods) {
-                            if (IsMemberWhiteListed(method))
+                            if (IsMemberWhiteListed(method)) {
                                 ProcessWhiteList(method);
+                            }
                         }
                     }
+
                     if (type.HasFields)
                     {
                         foreach (var field in type.Fields)
                         {
-                            if (IsMemberWhiteListed(field))
+                            if (IsMemberWhiteListed(field)) {
                                 ProcessWhiteList(field);
+                            }
                         }
                     }
                 }
 
                 return;
             }
+
             if (member is MethodReference) {
-                if (IsMemberWhiteListed(member))
+                if (IsMemberWhiteListed(member)) {
                     WalkMethod(member as MethodDefinition);
+                }
 
                 return;
             }
+
             if (member is FieldReference) {
-                if (IsMemberWhiteListed(member))
+                if (IsMemberWhiteListed(member)) {
                     AddField(member as FieldReference);
+                }
 
                 return;
             }
@@ -566,55 +561,20 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private void GetAllOverrides(MethodDefinition method, HashSet<MethodDefinition> deepOverrides) {
-            if (method == null)
+            if (method == null) {
                 return;
+            }
 
-            HashSet<MethodDefinition> overrides = typeMapStep.Annotations.GetOverrides(method);
+            HashSet<MethodDefinition> overrides = TypeMapStep.Annotations.GetOverrides(method);
 
-            if (overrides == null)
+            if (overrides == null) {
                 return;
+            }
 
             deepOverrides.UnionWith(overrides);
             foreach (MethodDefinition overrideMethod in overrides) {
                 GetAllOverrides(overrideMethod, deepOverrides);
             }
-        }
-
-        private static IEnumerable<TypeDefinition> FindDerivedTypes(TypeDefinition type, IEnumerable<ModuleDefinition> assemblies) {
-            foreach (ModuleDefinition module in assemblies) {
-                foreach (TypeDefinition td in TreeTraversal.PreOrder(module.Types, t => t.NestedTypes)) {
-                    if (type.IsInterface && td.HasInterfaces) {
-                        foreach (TypeReference typeRef in td.Interfaces) {
-                            if (IsSameType(typeRef, type)) {
-                                yield return td;
-                            }
-                        }
-                    } else if (!type.IsInterface && td.BaseType != null && IsSameType(td.BaseType, type)) {
-                        yield return td;
-                    }
-                }
-            }
-        }
-
-        private static bool IsSameType(TypeReference typeRef, TypeDefinition type) {
-            if (typeRef.FullName == type.FullName) {
-                return true;
-            }
-            if (typeRef.Name != type.Name || type.Namespace != typeRef.Namespace) {
-                return false;
-            }
-            if (typeRef.IsNested || type.IsNested) {
-                if (!typeRef.IsNested || !type.IsNested || !IsSameType(typeRef.DeclaringType, type.DeclaringType)) {
-                    return false;
-                }
-            }
-            var genericTypeRef = typeRef as GenericInstanceType;
-            if (genericTypeRef != null || type.HasGenericParameters) {
-                if (genericTypeRef == null || !type.HasGenericParameters || genericTypeRef.GenericArguments.Count != type.GenericParameters.Count) {
-                    return false;
-                }
-            }
-            return true;
         }
     }
 }
