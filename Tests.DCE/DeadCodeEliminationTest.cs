@@ -122,10 +122,80 @@
         public void PreserveTypesReferencedFromGeneric()
         {
             var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromGeneric.cs");
-            DceAssert.Has(output, MemberType.Class, "GenericTypeGen1`1", false);
-            DceAssert.Has(output, MemberType.Class, "GenericTypeGen2`1", false);
-            DceAssert.Has(output, MemberType.Class, "PreservedType", false);
+            // Generic type constructor.
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeConstructorGenericTypeGen1`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeConstructorGenericTypeGen2`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeConstructor", false);
+
+            // Generic type static method.
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeStaticMethodGenericTypeGen1`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeStaticMethodGenericTypeGen2`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericTypeStaticMethod", false);
+
+            // Generic type static method.
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericMethodMethodGenericTypeGen1`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericMethodGenericTypeGen2`1", false);
+            DceAssert.Has(output, MemberType.Class, "PreservedFromGenericMethod", false);
+
             DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
+        }
+
+        [Test]
+        public void PreserveTypesGenericBase()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesGenericBase.cs");
+            DceAssert.Has(output, MemberType.Class, "BaseGenericType`2", false);
+            DceAssert.Has(output, MemberType.Class, "DerivedGenericType`1", false);
+            DceAssert.Has(output, MemberType.Class, "NonGenericDerivedType", false);
+            DceAssert.Has(output, MemberType.Class, "TypeForT", false);
+            DceAssert.Has(output, MemberType.Class, "TypeForK", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
+        }
+
+        [Test]
+        public void PreserveStaticConstructorAndReferences()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveStaticConstructorAndReferences.cs");
+            DceAssert.Has(output, MemberType.Class, "PreservedFromTypeReference", false);
+            StringAssert.Contains("Hello from .cctor", output, "Static constructor eliminated, should be preserved.");
+
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
+        }
+
+        [Test]
+        public void PreserveVirtualMethodImplementation()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveVirtualMethodImplementation.cs");
+
+            // Stripped Method from UsedDerivedType that hides used method from BaseType.
+            StringAssert.Contains("BaseType.Method - used", output, "BaseType.Method eliminated, should be preserved");
+            StringAssert.DoesNotContain("UsedDerivedType.Method - used", output, "UsedDerivedType.Method preserved, should be eliminated");
+
+            // Preserve virtual method from used type.
+            StringAssert.Contains("BaseType.MethodFromBaseType - used", output, "BaseType.MethodFromBaseType, should be preserved");
+            StringAssert.Contains("UsedDerivedType.MethodFromBaseType - used", output, "UsedDerivedType.MethodFromBaseType, should be preserved");
+
+            // Preserve used method from used interface from used type.
+            DceAssert.Has(output, MemberType.Interface, "IIterface", false);
+            StringAssert.Contains("UsedDerivedType.MethodFromIIterface - used", output, "UsedDerivedType.MethodFromIIterface eliminated, should be preserved");
+
+            // Stripped not-used method virtual method.
+            StringAssert.DoesNotContain("BaseType.UnusedMethodFromBaseType - used", output, "BaseType.UnusedMethodFromBaseType preserved, should be eliminated");
+            StringAssert.DoesNotContain("UsedDerivedType.UnusedMethodFromBaseType - used", output, "UsedDerivedType.UnusedMethodFromBaseType preserved, should be eliminated");
+
+            // Stripped not-used interface and members.
+            DceAssert.HasNo(output, MemberType.Interface, "IIterfaceNotUsed", false);
+            DceAssert.HasNo(output, MemberType.Method, "UnusedMethodFromIIterfaceNotUsed", false);
+            StringAssert.DoesNotContain("UsedDerivedType.UnusedMethodFromIIterfaceNotUsed - used", output, "UsedDerivedType.UnusedMethodFromIIterfaceNotUsed preserved, should be eliminated");
+
+            // Preserved used members - implementation for not-used interface.
+            StringAssert.DoesNotContain("UsedDerivedType.UsedMethodFromIIterfaceNotUsed - used", output, "UsedDerivedType.UsedMethodFromIIterfaceNotUsed preserved, should be eliminated");
+
+            // Striped fully not-used type
+            StringAssert.DoesNotContain("UnusedDerivedType.Method - used", output, "UnusedDerivedType.Method preserved, should be eliminated");
+            StringAssert.DoesNotContain("UnusedDerivedType.MethodFromIIterface - used", output, "UnusedDerivedType.MethodFromIIterface, should be eliminated");
+            StringAssert.DoesNotContain("UnusedDerivedType.MethodFromBaseType - used", output, "UnusedDerivedType.MethodFromBaseType, should be eliminated");
         }
     }
 
@@ -137,8 +207,7 @@
             Assert.IsTrue(Contains(input, memberType, name, isStatic, isPublic), message);
         }
 
-        public static void HasNo(string input, MemberType memberType, string name, bool isStatic = false,
-            bool isPublic = true)
+        public static void HasNo(string input, MemberType memberType, string name, bool isStatic = true, bool isPublic = true)
         {
             var message = string.Format("{0} ({1}) found, shoud be eliminated", input, memberType);
             Assert.IsFalse(Contains(input, memberType, name, isStatic, isPublic), message);
@@ -154,6 +223,9 @@
                     break;
                 case MemberType.Class:
                     contains = HasClassDefenition(input, name, isStatic);
+                    break;
+                case MemberType.Interface:
+                    contains = HasInterfaceDefenition(input, name, isPublic);
                     break;
                 case MemberType.Method:
                     contains = HasMethodDefenition(input, name, isStatic, isPublic);
@@ -207,6 +279,12 @@
             return input.Contains(searchPattern);
         }
 
+        private static bool HasInterfaceDefenition(string input, string name, bool isPublic)
+        {
+            var searchPattern = string.Format("\"{0}\", {1}, [", name, isPublic.ToString().ToLower());
+            return input.Contains(searchPattern);
+        }
+
         private static bool HasMention(string input, string name)
         {
             return input.Contains(name);
@@ -222,6 +300,7 @@
     {
         Mention,
         Class,
+        Interface,
         Method,
         Field,
         Property,
