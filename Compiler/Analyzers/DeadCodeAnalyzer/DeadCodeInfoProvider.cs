@@ -8,10 +8,15 @@ using Mono.Cecil.Cil;
 using Mono.Linker.Steps;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
+    using ICSharpCode.Decompiler;
+    using ICSharpCode.Decompiler.ILAst;
+
     public class DeadCodeInfoProvider {
         private readonly HashSet<AssemblyDefinition> Assemblies;
         private readonly HashSet<FieldDefinition> Fields;
         private readonly HashSet<MethodDefinition> Methods;
+        private readonly HashSet<MethodDefinition> AllMethods;
+        private readonly HashSet<Tuple<MethodDefinition, TypeDefinition>> VirtualMethods;
         private readonly HashSet<TypeDefinition> Types;
 
         private readonly TypeMapStep TypeMapStep = new TypeMapStep();
@@ -20,6 +25,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         public DeadCodeInfoProvider(Configuration configuration) {
             Types = new HashSet<TypeDefinition>();
             Methods = new HashSet<MethodDefinition>();
+            AllMethods = new HashSet<MethodDefinition>();
+            VirtualMethods = new HashSet<Tuple<MethodDefinition, TypeDefinition>>();
             Fields = new HashSet<FieldDefinition>();
             Assemblies = new HashSet<AssemblyDefinition>();
 
@@ -116,37 +123,50 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             throw new ArgumentException("Unexpected member reference type");
         }
 
-        public void WalkMethod(MethodReference methodReference) {
-            if (!AddMethod(methodReference))
-            {
+        public void WalkMethod(MethodReference methodReference, TypeReference targetType = null, bool virt = false)
+        {
+            if (!AddMethod(methodReference, targetType, virt)) {
                 return;
             }
 
             var method = methodReference.Resolve();
 
+            var context = new DecompilerContext(method.Module)
+            {
+                Settings =
+                {
+                    AnonymousMethods = true,
+                    AsyncAwait = false,
+                    YieldReturn = false,
+                    QueryExpressions = false,
+                    LockStatement = false,
+                    FullyQualifyAmbiguousTypeNames = true,
+                    ForEachStatement = false,
+                    ExpressionTrees = false,
+                    ObjectOrCollectionInitializers = false,
+
+                },
+                CurrentModule = method.Module,
+                CurrentMethod = method,
+                CurrentType = method.DeclaringType
+            };
+
             List<Instruction> foundInstructions = (from instruction in method.Body.Instructions
-                                                   where method.HasBody && method.Body.Instructions != null && instruction.Operand != null
-                                                   select instruction).ToList();
+                where method.HasBody && method.Body.Instructions != null && instruction.Operand != null
+                select instruction).ToList();
 
             IEnumerable<TypeReference> typesFound = from instruction in foundInstructions
-                                                     let tRef = instruction.Operand as TypeReference
-                                                     where tRef != null
-                                                     select tRef;
-
-            IEnumerable<MethodReference> methodsFound = from instruction in foundInstructions
-                                                         let mRef = instruction.Operand as MethodReference
-                                                         where mRef != null && mRef.DeclaringType != null
-                                                         select mRef;
+                let tRef = instruction.Operand as TypeReference
+                where tRef != null
+                select tRef;
 
             IEnumerable<FieldDefinition> fieldsFound = from instruction in foundInstructions
-                                                       let fRef = instruction.Operand as FieldReference
-                                                       where fRef != null && fRef.FieldType != null
-                                                       let fRefResolved = fRef.Resolve()
-                                                       where fRefResolved != null
-                                                       select fRefResolved;
-
-            foreach (TypeReference typeDefinition in typesFound)
-            {
+                let fRef = instruction.Operand as FieldReference
+                where fRef != null && fRef.FieldType != null
+                let fRefResolved = fRef.Resolve()
+                where fRefResolved != null
+                select fRefResolved;
+            foreach (TypeReference typeDefinition in typesFound) {
                 AddType(typeDefinition);
             }
 
@@ -154,10 +174,64 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 AddField(fieldDefinition);
             }
 
-            foreach (MethodReference methodDefinition in methodsFound)
-            {
-                if (methodDefinition != method) {
-                    WalkMethod(methodDefinition);
+            ILBlock ilb;
+            try {
+                var decompiler = new ILAstBuilder();
+                var optimizer = new ILAstOptimizer();
+
+                ilb = new ILBlock(decompiler.Build(method, false, context));
+                optimizer.Optimize(context, ilb);
+
+            }
+            catch (Exception) {
+                IEnumerable<MethodReference> methodsFound = from instruction in foundInstructions
+                    let mRef = instruction.Operand as MethodReference
+                    where mRef != null && mRef.DeclaringType != null
+                    select mRef;
+
+
+                foreach (MethodReference methodDefinition in methodsFound) {
+                    if (methodDefinition != method) {
+                        WalkMethod(methodDefinition);
+                    }
+                }
+                throw;
+            }
+
+            var expressions = ilb.GetSelfAndChildrenRecursive<ILExpression>();
+
+            foreach (var ilExpression in expressions) {
+                var mRef = ilExpression.Operand as MethodReference;
+                if (mRef != null && mRef.DeclaringType != null) {
+                    bool isVirtual = false;
+                    TypeReference thisArg = null;
+
+                    switch (ilExpression.Code) {
+                        case ILCode.Ldftn:
+                        case ILCode.Newobj:
+                            break;
+
+                        case ILCode.Jmp:
+                        case ILCode.Call:
+                        case ILCode.CallGetter:
+                        case ILCode.CallSetter:
+                            thisArg = mRef.HasThis ? ilExpression.Arguments[0].InferredType : null;
+                            break;
+                        case ILCode.CallvirtGetter:
+                        case ILCode.CallvirtSetter:
+                        case ILCode.Callvirt:
+                            isVirtual = true;
+                            thisArg = ilExpression.Arguments[0].InferredType;
+                            break;
+
+                        case ILCode.Ldvirtftn:
+                        case ILCode.Ldtoken:
+                            isVirtual = true;
+                            break;
+                    }
+
+
+                    WalkMethod(mRef, thisArg, isVirtual);
                 }
             }
         }
@@ -168,10 +242,16 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             var endMemberCount = 0;
             do
             {
-                inintialMemberCount = Fields.Count + Methods.Count + Types.Count;
+                inintialMemberCount = Fields.Count + Methods.Count + Types.Count + VirtualMethods.Count;
                 ResolveVirtualMethods();
-                endMemberCount = Fields.Count + Methods.Count + Types.Count;
+                endMemberCount = Fields.Count + Methods.Count + Types.Count + VirtualMethods.Count;
             } while (endMemberCount != inintialMemberCount);
+
+            foreach (var pair in VirtualMethods) {
+                if (pair.Item1.DeclaringType == pair.Item2) {
+                    Methods.Add(pair.Item1);
+                }
+            }
         }
 
         public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies)
@@ -194,25 +274,44 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         private void ResolveVirtualMethods() {
-            var tempMethods = new MethodDefinition[Methods.Count];
-            Methods.CopyTo(tempMethods);
+            var tempMethods = new Tuple<MethodDefinition, TypeDefinition>[VirtualMethods.Count];
+            VirtualMethods.CopyTo(tempMethods);
 
-            foreach (MethodDefinition method in tempMethods)
+            foreach (var pair in tempMethods)
             {
-                if (method.IsVirtual) {
-                    ResolveVirtualMethod(method);
-                }
+                ResolveVirtualMethod(pair.Item1, pair.Item2);
             }
         }
 
-        private void ResolveVirtualMethod(MethodDefinition method) {
+        private void ResolveVirtualMethod(MethodDefinition method, TypeDefinition typeReference) {
             var overrides = new HashSet<MethodDefinition>();
             GetAllOverrides(method, overrides);
             foreach (MethodDefinition methodDefinition in overrides) {
                 if (IsUsed(methodDefinition.DeclaringType)) {
-                    WalkMethod(methodDefinition);
+                    if (typeReference == null || IsDerivedType(typeReference, methodDefinition.DeclaringType.Resolve()))
+                    {
+                        WalkMethod(methodDefinition);
+                    }
                 }
             }
+        }
+
+        private static bool IsDerivedType(TypeDefinition baseType, TypeDefinition probableDerived)
+        {
+            if (baseType.IsInterface) {
+                return true;
+            }
+
+            TypeReference testType = probableDerived;
+            while (testType != null) {
+                var testTypeDef = testType.Resolve();
+                if (testTypeDef == baseType) {
+                    return true;
+                }
+
+                testType = testTypeDef.BaseType;
+            }
+            return false;
         }
 
         private void AddType(TypeReference type) {
@@ -365,7 +464,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             return false;
         }
 
-        private bool AddMethod(MethodReference method) {
+        private bool AddMethod(MethodReference method, TypeReference targetType, bool isVirt) {
             if (method == null || method.DeclaringType.IsArray) {
                 return false;
             }
@@ -398,7 +497,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 return false;
             }
 
-            if (Methods.Add(resolvedMethod) && resolvedMethod.HasBody) {
+            if (AddMethodToList(resolvedMethod, targetType, isVirt) && resolvedMethod.HasBody)
+            {
                 //if (resolvedMethod.HasCustomAttributes) {
                 //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
                 //        AddType(attribute.AttributeType);
@@ -414,6 +514,23 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             return false;
+        }
+
+        private bool AddMethodToList(MethodDefinition method, TypeReference targetType, bool isVirt)
+        {
+            if (isVirt) {
+                if (targetType != null) {
+                    VirtualMethods.Add(Tuple.Create(method, targetType.Resolve()));
+                }
+                else {
+                    VirtualMethods.Add(Tuple.Create(method, (TypeDefinition) null));
+                }
+            }
+            else {
+                Methods.Add(method);
+            }
+
+            return AllMethods.Add(method);           
         }
 
         private void AddField(FieldReference field) {
