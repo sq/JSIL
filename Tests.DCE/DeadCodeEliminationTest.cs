@@ -197,6 +197,22 @@
             StringAssert.DoesNotContain("UnusedDerivedType.MethodFromIIterface - used", output, "UnusedDerivedType.MethodFromIIterface, should be eliminated");
             StringAssert.DoesNotContain("UnusedDerivedType.MethodFromBaseType - used", output, "UnusedDerivedType.MethodFromBaseType, should be eliminated");
         }
+
+        [Test]
+        public void PreserveVirtualMethodFromReallyUsedRootOnly()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveVirtualMethodFromReallyUsedRootOnly.cs");
+
+            DceAssert.Has(output, MemberType.Class, "BaseType", false);
+            DceAssert.Has(output, MemberType.Class, "UsedMiddleDerivedType", false);
+            DceAssert.Has(output, MemberType.Class, "UsedDerivedType", false);
+            DceAssert.Has(output, MemberType.Class, "DerivedTypeWithoudMethodUsage", false);
+
+            StringAssert.DoesNotContain("BaseType.Method - used", output, "BaseType.Method preserved, should be eliminated");
+            StringAssert.Contains("UsedMiddleDerivedType.Method - used", output, "UsedMiddleDerivedType.Method eliminated, should be preserved");
+            StringAssert.Contains("UsedDerivedType.Method - used", output, "UsedDerivedType.Method eliminated, should be preserved");
+            StringAssert.DoesNotContain("DerivedTypeWithoudMethodUsage.Method - used", output, "DerivedTypeWithoudMethodUsage.Method preserved, should be eliminated");
+        }
     }
 
     public static class DceAssert
