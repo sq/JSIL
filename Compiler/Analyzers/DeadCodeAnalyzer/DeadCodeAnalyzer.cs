@@ -29,7 +29,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 Configuration = new Configuration(new Dictionary<string, object>());
             }
 
-            if (Configuration.DeadCodeElimination.GetValueOrDefault(false)) {
+            if (Configuration.DeadCodeElimination) {
                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +
                                   "DeadCodeElimination off and report an issue if you encounter problems!");
             
@@ -38,14 +38,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         public void AddAssemblies(AssemblyDefinition[] assemblies) {
-             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+             if (!Configuration.DeadCodeElimination)
                 return;
 
             assemblyDefinitions.AddRange(assemblies);
         }
 
         public void Analyze(TypeInfoProvider typeInfoProvider) {
-            if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+            if (!Configuration.DeadCodeElimination)
                 return;
 
             deadCodeInfo.TypeInfoProvider = typeInfoProvider;
@@ -73,7 +73,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         }
 
         public bool MemberCanBeSkipped(MemberReference member) {
-             if (!Configuration.DeadCodeElimination.GetValueOrDefault(false))
+             if (!Configuration.DeadCodeElimination)
                 return false;
 
             return !deadCodeInfo.IsUsed(member);

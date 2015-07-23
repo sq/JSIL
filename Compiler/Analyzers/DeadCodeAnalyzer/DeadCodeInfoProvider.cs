@@ -12,24 +12,114 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
     using ICSharpCode.Decompiler.ILAst;
 
     public class DeadCodeInfoProvider {
+        private class MethodUsageInfo
+        {
+            private bool _hasNonVirualUsage;
+
+            private List<TypeDefinition> _virtualUseFromType;
+
+            private MethodDefinition _method;
+
+            public MethodUsageInfo(MethodDefinition method)
+            {
+                if (method.IsVirtual) {
+                    _virtualUseFromType = new List<TypeDefinition>();
+                }
+                else {
+                    _hasNonVirualUsage = true;
+                }
+
+                _method = method;
+            }
+
+            private static bool IsDerivedType(TypeDefinition baseType, TypeDefinition probableDerived)
+            {
+                if (baseType == null || baseType.IsInterface)
+                {
+                    return true;
+                }
+
+                TypeReference testType = probableDerived;
+                while (testType != null)
+                {
+                    var testTypeDef = testType.Resolve();
+                    if (testTypeDef == baseType)
+                    {
+                        return true;
+                    }
+
+                    testType = testTypeDef.BaseType;
+                }
+
+                return false;
+            }
+
+            public void RegisterNonVirtualUsage()
+            {
+                _hasNonVirualUsage = true;
+            }
+
+            public void AddVirtualUsageType(TypeReference typeReference)
+            {
+                if (typeReference == null) {
+                    _virtualUseFromType.Clear();
+                    _virtualUseFromType.Add(null);
+                }
+                else {
+                    var typeDefToAdd = typeReference.Resolve();
+
+                    if (_virtualUseFromType.All(typeDefInList => !IsDerivedType(typeDefInList, typeDefToAdd))) {
+                        var typesToDelete =
+                            _virtualUseFromType.Where(typeDefInList => IsDerivedType(typeDefToAdd, typeDefInList))
+                                .ToList();
+                        _virtualUseFromType.Add(typeDefToAdd);
+                        foreach (var typeToDelete in typesToDelete) {
+                            _virtualUseFromType.Remove(typeToDelete);
+                        }
+                    }
+                }
+            }
+
+            public bool HasVirtualUsage
+            {
+                get
+                {
+                    return _virtualUseFromType != null && _virtualUseFromType.Count > 0;
+                }
+            }
+
+            public bool PresentRealMethodUsage
+            {
+                get
+                {
+                    return _hasNonVirualUsage ||
+                           (_virtualUseFromType.Count == 1 &&
+                            _virtualUseFromType[0] == null || _virtualUseFromType[0] == _method.DeclaringType);
+                }
+            }
+
+            public bool IsIncluded(TypeDefinition typeToTest)
+            {
+                return _virtualUseFromType.Any(typeDefinition => IsDerivedType(typeDefinition, typeToTest));
+            }
+        }
+
         private readonly HashSet<AssemblyDefinition> Assemblies;
         private readonly HashSet<FieldDefinition> Fields;
-        private readonly HashSet<MethodDefinition> Methods;
-        private readonly HashSet<MethodDefinition> AllMethods;
-        private readonly HashSet<Tuple<MethodDefinition, TypeDefinition>> VirtualMethods;
+        private readonly Dictionary<MethodDefinition, MethodUsageInfo> Methods;
         private readonly HashSet<TypeDefinition> Types;
 
         private readonly TypeMapStep TypeMapStep = new TypeMapStep();
-        private readonly List<Regex> WhiteListCache; 
+        private readonly List<Regex> WhiteListCache;
+        private readonly Configuration Configuration; 
 
         public DeadCodeInfoProvider(Configuration configuration) {
             Types = new HashSet<TypeDefinition>();
-            Methods = new HashSet<MethodDefinition>();
-            AllMethods = new HashSet<MethodDefinition>();
-            VirtualMethods = new HashSet<Tuple<MethodDefinition, TypeDefinition>>();
+            Methods = new Dictionary<MethodDefinition, MethodUsageInfo>();
             Fields = new HashSet<FieldDefinition>();
             Assemblies = new HashSet<AssemblyDefinition>();
 
+            Configuration = configuration;
             if (configuration.WhiteList != null &&
                 configuration.WhiteList.Count > 0) {
                 WhiteListCache = new List<Regex>(configuration.WhiteList.Count);
@@ -53,7 +143,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             var methodReference = member as MethodReference;
             if (methodReference != null) {
                 var defenition = methodReference.Resolve();
-                return Methods.Contains(defenition);
+                return Methods.ContainsKey(defenition);
             }
 
             var fieldReference = member as FieldReference;
@@ -68,18 +158,18 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 var defenition = propertyReference.Resolve();
                 if (defenition != null)
                 {
-                    if (defenition.GetMethod != null && Methods.Contains(defenition.GetMethod))
+                    if (defenition.GetMethod != null && Methods.ContainsKey(defenition.GetMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.SetMethod != null && Methods.Contains(defenition.SetMethod))
+                    if (defenition.SetMethod != null && Methods.ContainsKey(defenition.SetMethod))
                     {
                         return true;
                     }
 
                     if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => Methods.Contains(method)))
+                        defenition.OtherMethods.Any(method => Methods.ContainsKey(method)))
                     {
                         return true;
                     }
@@ -95,23 +185,23 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
                 if (defenition != null)
                 {
-                    if (defenition.AddMethod != null && Methods.Contains(defenition.AddMethod))
+                    if (defenition.AddMethod != null && Methods.ContainsKey(defenition.AddMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.RemoveMethod != null && Methods.Contains(defenition.RemoveMethod))
+                    if (defenition.RemoveMethod != null && Methods.ContainsKey(defenition.RemoveMethod))
                     {
                         return true;
                     }
 
-                    if (defenition.InvokeMethod != null && Methods.Contains(defenition.InvokeMethod))
+                    if (defenition.InvokeMethod != null && Methods.ContainsKey(defenition.InvokeMethod))
                     {
                         return true;
                     }
 
                     if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => Methods.Contains(method)))
+                        defenition.OtherMethods.Any(method => Methods.ContainsKey(method)))
                     {
                         return true;
                     }
@@ -144,7 +234,6 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                     ForEachStatement = false,
                     ExpressionTrees = false,
                     ObjectOrCollectionInitializers = false,
-
                 },
                 CurrentModule = method.Module,
                 CurrentMethod = method,
@@ -174,64 +263,69 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 AddField(fieldDefinition);
             }
 
-            ILBlock ilb;
-            try {
-                var decompiler = new ILAstBuilder();
-                var optimizer = new ILAstOptimizer();
+            ILBlock ilb = null;
+            bool useSimpleMethodWalk = Configuration.NonAggressiveVirtualMethodElimination;
+            if (!useSimpleMethodWalk) {
+                try {
+                    var decompiler = new ILAstBuilder();
+                    var optimizer = new ILAstOptimizer();
 
-                ilb = new ILBlock(decompiler.Build(method, false, context));
-                optimizer.Optimize(context, ilb);
-
+                    ilb = new ILBlock(decompiler.Build(method, false, context));
+                    optimizer.Optimize(context, ilb);
+                }
+                catch (Exception) {
+                    useSimpleMethodWalk = true;
+                }
             }
-            catch (Exception) {
-                IEnumerable<MethodReference> methodsFound = from instruction in foundInstructions
-                    let mRef = instruction.Operand as MethodReference
-                    where mRef != null && mRef.DeclaringType != null
-                    select mRef;
 
+            if (!useSimpleMethodWalk) {
+                var expressions = ilb.GetSelfAndChildrenRecursive<ILExpression>();
+
+                foreach (var ilExpression in expressions) {
+                    var mRef = ilExpression.Operand as MethodReference;
+                    if (mRef != null && mRef.DeclaringType != null) {
+                        bool isVirtual = false;
+                        TypeReference thisArg = null;
+
+                        switch (ilExpression.Code)
+                        {
+                            case ILCode.Ldftn:
+                            case ILCode.Newobj:
+                                break;
+
+                            case ILCode.Jmp:
+                            case ILCode.Call:
+                            case ILCode.CallGetter:
+                            case ILCode.CallSetter:
+                                thisArg = mRef.HasThis ? ilExpression.Arguments[0].InferredType : null;
+                                break;
+                            case ILCode.CallvirtGetter:
+                            case ILCode.CallvirtSetter:
+                            case ILCode.Callvirt:
+                                isVirtual = true;
+                                thisArg = ilExpression.Arguments[0].InferredType;
+                                break;
+
+                            case ILCode.Ldvirtftn:
+                            case ILCode.Ldtoken:
+                                isVirtual = true;
+                                break;
+                        }
+
+                        WalkMethod(mRef, thisArg, isVirtual);
+                    }
+                }                
+            }
+            else {
+                IEnumerable<MethodReference> methodsFound = from instruction in foundInstructions
+                                                            let mRef = instruction.Operand as MethodReference
+                                                            where mRef != null && mRef.DeclaringType != null
+                                                            select mRef;
 
                 foreach (MethodReference methodDefinition in methodsFound) {
                     if (methodDefinition != method) {
-                        WalkMethod(methodDefinition);
+                        WalkMethod(methodDefinition, null, true);
                     }
-                }
-                throw;
-            }
-
-            var expressions = ilb.GetSelfAndChildrenRecursive<ILExpression>();
-
-            foreach (var ilExpression in expressions) {
-                var mRef = ilExpression.Operand as MethodReference;
-                if (mRef != null && mRef.DeclaringType != null) {
-                    bool isVirtual = false;
-                    TypeReference thisArg = null;
-
-                    switch (ilExpression.Code) {
-                        case ILCode.Ldftn:
-                        case ILCode.Newobj:
-                            break;
-
-                        case ILCode.Jmp:
-                        case ILCode.Call:
-                        case ILCode.CallGetter:
-                        case ILCode.CallSetter:
-                            thisArg = mRef.HasThis ? ilExpression.Arguments[0].InferredType : null;
-                            break;
-                        case ILCode.CallvirtGetter:
-                        case ILCode.CallvirtSetter:
-                        case ILCode.Callvirt:
-                            isVirtual = true;
-                            thisArg = ilExpression.Arguments[0].InferredType;
-                            break;
-
-                        case ILCode.Ldvirtftn:
-                        case ILCode.Ldtoken:
-                            isVirtual = true;
-                            break;
-                    }
-
-
-                    WalkMethod(mRef, thisArg, isVirtual);
                 }
             }
         }
@@ -242,15 +336,16 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             var endMemberCount = 0;
             do
             {
-                inintialMemberCount = Fields.Count + Methods.Count + Types.Count + VirtualMethods.Count;
+                inintialMemberCount = Fields.Count + Methods.Count + Types.Count;
                 ResolveVirtualMethods();
-                endMemberCount = Fields.Count + Methods.Count + Types.Count + VirtualMethods.Count;
+                endMemberCount = Fields.Count + Methods.Count + Types.Count;
             } while (endMemberCount != inintialMemberCount);
 
-            foreach (var pair in VirtualMethods) {
-                if (pair.Item1.DeclaringType == pair.Item2) {
-                    Methods.Add(pair.Item1);
-                }
+            var methodsToRemove =
+                Methods.Where(item => !item.Value.PresentRealMethodUsage).Select(item => item.Key).ToList();
+
+            foreach (var methodDefinition in methodsToRemove) {
+                Methods.Remove(methodDefinition);
             }
         }
 
@@ -273,45 +368,27 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             Assemblies.UnionWith(assemblies);
         }
 
-        private void ResolveVirtualMethods() {
-            var tempMethods = new Tuple<MethodDefinition, TypeDefinition>[VirtualMethods.Count];
-            VirtualMethods.CopyTo(tempMethods);
+        private void ResolveVirtualMethods()
+        {
+            var tempMethods = Methods.Where(pair => pair.Value.HasVirtualUsage).ToList();
 
             foreach (var pair in tempMethods)
             {
-                ResolveVirtualMethod(pair.Item1, pair.Item2);
+                ResolveVirtualMethod(pair.Key, pair.Value);
             }
         }
 
-        private void ResolveVirtualMethod(MethodDefinition method, TypeDefinition typeReference) {
+        private void ResolveVirtualMethod(MethodDefinition method, MethodUsageInfo usageInfo) {
             var overrides = new HashSet<MethodDefinition>();
             GetAllOverrides(method, overrides);
             foreach (MethodDefinition methodDefinition in overrides) {
                 if (IsUsed(methodDefinition.DeclaringType)) {
-                    if (typeReference == null || IsDerivedType(typeReference, methodDefinition.DeclaringType.Resolve()))
+                    if (usageInfo.IsIncluded(methodDefinition.DeclaringType.Resolve()))
                     {
                         WalkMethod(methodDefinition);
                     }
                 }
             }
-        }
-
-        private static bool IsDerivedType(TypeDefinition baseType, TypeDefinition probableDerived)
-        {
-            if (baseType.IsInterface) {
-                return true;
-            }
-
-            TypeReference testType = probableDerived;
-            while (testType != null) {
-                var testTypeDef = testType.Resolve();
-                if (testTypeDef == baseType) {
-                    return true;
-                }
-
-                testType = testTypeDef.BaseType;
-            }
-            return false;
         }
 
         private void AddType(TypeReference type) {
@@ -518,19 +595,24 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
         private bool AddMethodToList(MethodDefinition method, TypeReference targetType, bool isVirt)
         {
-            if (isVirt) {
-                if (targetType != null) {
-                    VirtualMethods.Add(Tuple.Create(method, targetType.Resolve()));
-                }
-                else {
-                    VirtualMethods.Add(Tuple.Create(method, (TypeDefinition) null));
-                }
-            }
-            else {
-                Methods.Add(method);
+            MethodUsageInfo virualCallsList;
+            bool found = true;
+            if (!Methods.TryGetValue(method, out virualCallsList)) {
+                found = false;
+                virualCallsList = new MethodUsageInfo(method);
+                Methods.Add(method, virualCallsList);
             }
 
-            return AllMethods.Add(method);           
+            if (method.IsVirtual) {
+                if (!isVirt) {
+                    virualCallsList.RegisterNonVirtualUsage();
+                }
+                else {
+                    virualCallsList.AddVirtualUsageType(targetType);
+                }
+            }
+
+            return !found;
         }
 
         private void AddField(FieldReference field) {
@@ -653,7 +735,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             if (member is MethodReference) {
                 if (IsMemberWhiteListed(member)) {
-                    WalkMethod(member as MethodDefinition);
+                    var definition = member as MethodDefinition;
+                    if (definition.IsVirtual) {
+                        WalkMethod(definition, null, true);
+                    }
+                    else {
+                        WalkMethod(definition);
+                    }
                 }
 
                 return;

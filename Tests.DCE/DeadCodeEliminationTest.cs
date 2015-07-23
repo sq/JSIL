@@ -19,6 +19,7 @@
                 AnalyzerSettings = { { "DeadCodeAnalyzer", new Dictionary<string, object>
                 {
                     { "DeadCodeElimination", true },
+                    { "NonAggressiveVirtualMethodElimination", false },
                     { "WhiteList", new List<string> { @"System\.Void Program::Main\(System.String\[\]\)" } }
                 } } }
             };
@@ -212,6 +213,15 @@
             StringAssert.Contains("UsedMiddleDerivedType.Method - used", output, "UsedMiddleDerivedType.Method eliminated, should be preserved");
             StringAssert.Contains("UsedDerivedType.Method - used", output, "UsedDerivedType.Method eliminated, should be preserved");
             StringAssert.DoesNotContain("DerivedTypeWithoudMethodUsage.Method - used", output, "DerivedTypeWithoudMethodUsage.Method preserved, should be eliminated");
+        }
+
+        [Test]
+        public void PreserveUsageThroughConstraint()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveUsageThroughConstraint.cs");
+
+            DceAssert.Has(output, MemberType.Interface, "IIterfaceForGenericMethodTest", false);
+            DceAssert.Has(output, MemberType.Interface, "IIterfaceForGenericClassTest", false);
         }
     }
 
