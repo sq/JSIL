@@ -70,7 +70,7 @@ namespace JSIL {
         public readonly Configuration Configuration;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
-        public readonly AssemblyCache AssemblyCache;
+        public readonly AssemblyDataResolver AssemblyDataResolver;
         public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
@@ -101,7 +101,7 @@ namespace JSIL {
 
         public readonly TypeInfoProvider _TypeInfoProvider;
 
-        protected bool OwnsAssemblyCache;
+        protected bool OwnsAssemblyDataResolver;
         protected bool OwnsTypeInfoProvider;
 
         protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
@@ -125,7 +125,7 @@ namespace JSIL {
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
             AssemblyManifest manifest = null,
-            AssemblyCache assemblyCache = null,
+            AssemblyDataResolver assemblyDataResolver = null,
             AssemblyLoadedHandler onProxyAssemblyLoaded = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
@@ -136,6 +136,10 @@ namespace JSIL {
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
             Manifest = manifest ?? new AssemblyManifest();
+
+            OwnsAssemblyDataResolver = (assemblyDataResolver == null);
+            AssemblyDataResolver = assemblyDataResolver ?? new AssemblyDataResolver(configuration);
+            AssemblyDataResolver.AssemblyResolver.AddSearchDirectory(Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())));
 
             if (typeInfoProvider != null) {
                 _TypeInfoProvider = typeInfoProvider;
@@ -160,9 +164,6 @@ namespace JSIL {
                 foreach (var fn in configuration.Assemblies.Proxies.Distinct())
                     AddProxyAssembly(fn);
             }
-
-            OwnsAssemblyCache = (assemblyCache == null);
-            AssemblyCache = assemblyCache ?? new AssemblyCache();
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
         }
@@ -206,12 +207,9 @@ namespace JSIL {
             };
 
             if (mainAssemblyPath != null) {
-                readerParameters.AssemblyResolver = new AssemblyResolver(new string[] { 
-                    Path.GetDirectoryName(mainAssemblyPath),
-                    Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())) 
-                }, Configuration, AssemblyCache);
-
-                readerParameters.MetadataResolver = new CachingMetadataResolver(readerParameters.AssemblyResolver);
+                AssemblyDataResolver.AssemblyResolver.AddSearchDirectory(Path.GetDirectoryName(mainAssemblyPath));
+                readerParameters.AssemblyResolver = AssemblyDataResolver.AssemblyResolver;
+                readerParameters.MetadataResolver = AssemblyDataResolver.CachingMetadataResolver;
             }
 
             if (useSymbols)
@@ -3215,8 +3213,8 @@ namespace JSIL {
 
             FunctionCache.Dispose();
 
-            if (OwnsAssemblyCache)
-                AssemblyCache.Dispose();
+            if (OwnsAssemblyDataResolver)
+                AssemblyDataResolver.Dispose();
         }
 
         public TypeInfoProvider GetTypeInfoProvider () {

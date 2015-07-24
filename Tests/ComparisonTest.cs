@@ -407,7 +407,7 @@ namespace JSIL.Tests {
 
             TOutput result;
 
-            using (var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache)) {
+            using (var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, new AssemblyDataResolver(configuration, AssemblyCache))) {
                 if (initializeTranslator != null)
                     initializeTranslator(translator);
 

@@ -13,6 +13,53 @@ using Mono.Cecil.Mdb;
 using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
+    public class AssemblyDataResolver : IDisposable
+    {
+        private readonly CachingMetadataResolver _CachingMetadataResolver;
+        private readonly AssemblyResolver _AssemblyResolver;
+        private readonly AssemblyCache _AssemblyCache;
+        private readonly bool OwnsCache;
+
+        public AssemblyDataResolver(IEnumerable<string> dirs, Configuration configuration, AssemblyCache cache = null)
+        {
+            if (cache == null) {
+                cache = new AssemblyCache();
+                OwnsCache = true;
+            }
+
+            _AssemblyCache = cache;
+            _AssemblyResolver = new AssemblyResolver(dirs, configuration, cache);
+            _CachingMetadataResolver = new CachingMetadataResolver(_AssemblyResolver);
+        }
+
+        public AssemblyDataResolver(Configuration configuration, AssemblyCache cache = null) : this(Enumerable.Empty<string>(), configuration, cache)
+        {
+        }
+
+        public CachingMetadataResolver CachingMetadataResolver
+        {
+            get { return _CachingMetadataResolver; }
+        }
+
+        public AssemblyResolver AssemblyResolver
+        {
+            get { return _AssemblyResolver; }
+        }
+
+        public AssemblyCache AssemblyCache
+        {
+            get { return _AssemblyCache; }
+        }
+
+        public void Dispose()
+        {
+            if (OwnsCache) {
+                _AssemblyCache.Dispose();
+            };
+            _AssemblyResolver.Dispose();
+        }
+    }
+    
     public class AssemblyCache : ConcurrentCache<string, AssemblyDefinition> {
         public bool RegisterAssembly (AssemblyDefinition assembly) {
             if (assembly == null)
@@ -39,7 +86,7 @@ namespace JSIL.Internal {
         protected readonly AssemblyCache Cache = new AssemblyCache();
         protected readonly bool OwnsCache;
 
-        public AssemblyResolver (IEnumerable<string> dirs, Configuration configuration, AssemblyCache cache = null) {
+        public AssemblyResolver(IEnumerable<string> dirs, Configuration configuration, AssemblyCache cache = null) {
             Configuration = configuration;
 
             OwnsCache = (cache == null);
