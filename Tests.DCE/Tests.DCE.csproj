@@ -78,6 +78,7 @@
     <None Include="DCETests\PreserveUsageThroughConstraint.cs" />
     <None Include="DCETests\PreserveTypesReferencedFromGenericField.cs" />
     <None Include="DCETests\EmptyProgram.cs" />
+    <None Include="DCETests\Attributes.cs" />
     <Compile Include="DeadCodeEliminationTest.cs" />
     <None Include="app.config" />
     <Compile Include="Properties\AssemblyInfo.cs" />

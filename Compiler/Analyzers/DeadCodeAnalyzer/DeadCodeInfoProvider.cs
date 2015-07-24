@@ -423,18 +423,104 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
         private void ProcessMetaAttributes(IEnumerable<CustomAttribute> attributes)
         {
-            foreach (CustomAttribute attribute in attributes)
-            {
+            foreach (CustomAttribute attribute in attributes) {
                 if (!Types.Contains(attribute.AttributeType.Resolve())) {
                     continue;
                 }
 
-                if (attribute.HasConstructorArguments)
-                {
-                    WalkMethod(attribute.Constructor.Resolve());
+                var attributeDef = attribute.AttributeType.Resolve();
+
+                if (attribute.Constructor != null) {
+                    WalkMethod(attribute.Constructor);
+                }
+
+                if (attribute.ConstructorArguments != null) {
                     foreach (var customAttributeArgument in attribute.ConstructorArguments) {
-                        AddType(customAttributeArgument.Type);
+                        ProcessCustomAttributeArgument(customAttributeArgument);
                     }
+                }
+
+                if (attribute.Properties != null) {
+                    foreach (var argument in attribute.Properties) {
+                        ProcessCustomAttributeArgument(argument.Argument);
+
+                        var currentType = attributeDef;
+                        do {
+                            var members = attributeDef.Properties.Where(item => item.Name == argument.Name).ToArray();
+                            if (members.Any()) {
+                                foreach (var property in members) {
+                                    if (Configuration.NonAggressiveVirtualMethodElimination) {
+                                        WalkMethod(property.GetMethod, null, true);
+                                    }
+                                    else {
+                                        var currentMethodSearchType = attributeDef;
+                                        do {
+                                            var foundMethod =
+                                                currentMethodSearchType.Methods.FirstOrDefault(
+                                                    item => TypeMapStep.MethodMatch(item, property.GetMethod));
+                                            if (foundMethod != null) {
+                                                WalkMethod(property.GetMethod, null, false);
+                                                break;
+                                            }
+
+                                            currentMethodSearchType = currentMethodSearchType.BaseType != null
+                                                ? currentMethodSearchType.BaseType.Resolve()
+                                                : null;
+                                        } while (currentMethodSearchType != null);
+                                    }
+                                }
+                                break;
+                            }
+
+                            currentType = currentType.BaseType != null ? currentType.BaseType.Resolve() : null;
+                        } while (currentType != null);
+                    }
+                }
+
+                if (attribute.Fields != null) {
+                    foreach (var argument in attribute.Fields) {
+                        ProcessCustomAttributeArgument(argument.Argument);
+
+                        var currentType = attributeDef;
+                        do {
+                            var members = attributeDef.Fields.Where(item => item.Name == argument.Name).ToArray();
+                            if (members.Any()) {
+                                foreach (var field in members) {
+                                    Fields.Add(field);
+                                }
+                                break;
+                            }
+
+                            currentType = currentType.BaseType != null ? currentType.BaseType.Resolve() : null;
+                        } while (currentType != null);
+                    }
+                }
+            }
+        }
+
+        private void ProcessCustomAttributeArgument(CustomAttributeArgument argument)
+        {
+            if (argument.Value is CustomAttributeArgument) {
+                ProcessCustomAttributeArgument((CustomAttributeArgument)argument.Value);
+            }
+            else if (argument.Value is CustomAttributeArgument[]) {
+                var values = (CustomAttributeArgument[])argument.Value;
+                foreach (var value in values) {
+                    ProcessCustomAttributeArgument(value);                   
+                }
+            }
+            else if (argument.Value is TypeReference)
+            {
+                var type = ((TypeReference)argument.Value).Resolve();
+                if (type != null) {
+                    Types.Add(type);
+                }
+            }
+            else if (argument.Value != null){
+                var type = argument.Type.Resolve();
+                if (type != null)
+                {
+                    Types.Add(type);
                 }
             }
         }

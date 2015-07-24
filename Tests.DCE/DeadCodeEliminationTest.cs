@@ -235,9 +235,17 @@
         }
 
         [Test]
-        public void EmptyProgram()
+        public void Attributes()
         {
-            var output = GetJavascriptWithDCE(@"DCETests\EmptyProgram.cs");
+            var output = GetJavascriptWithDCE(@"DCETests\Attributes.cs");
+            DceAssert.Has(output, MemberType.Class, "TestAttribute", false);
+            StringAssert.Contains("Test arg", output, "TestAttribute application eliminated, should be preserved");
+            StringAssert.Contains("TestEnum.A", output, "TestAttribute application eliminated, should be preserved");
+            StringAssert.Contains("D_Usage", output, "TestEnum eliminated, should be preserved");
+
+            DceAssert.HasNo(output, MemberType.Mention, "UnusedAttribute", false);
+            StringAssert.DoesNotContain("Unused arg", output, "UnusedAttribute application preserved, should be eliminated");
+            StringAssert.DoesNotContain("C_Usage", output, "UnusedEnum preserved, should be eliminated");
         }
     }
 
