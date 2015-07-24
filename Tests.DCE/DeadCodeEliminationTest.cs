@@ -213,6 +213,8 @@
             StringAssert.Contains("UsedMiddleDerivedType.Method - used", output, "UsedMiddleDerivedType.Method eliminated, should be preserved");
             StringAssert.Contains("UsedDerivedType.Method - used", output, "UsedDerivedType.Method eliminated, should be preserved");
             StringAssert.DoesNotContain("DerivedTypeWithoudMethodUsage.Method - used", output, "DerivedTypeWithoudMethodUsage.Method preserved, should be eliminated");
+
+            StringAssert.Contains("BaseClassWithPreservedMethod.Method - used", output, "BaseClassWithPreservedMethod.Method eliminated, should be preserved");
         }
 
         [Test]

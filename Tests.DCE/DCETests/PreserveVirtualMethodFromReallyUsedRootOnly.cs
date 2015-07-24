@@ -7,9 +7,15 @@ public static class Program
         var obj = new UsedDerivedType();
         Test(obj);
         new DerivedTypeWithoudMethodUsage();
+        Test(new DerivedClassWithoutMethod());
     }
 
     public static void Test(UsedMiddleDerivedType obj)
+    {
+        obj.Method();
+    }
+
+    public static void Test(DerivedClassWithoutMethod obj)
     {
         obj.Method();
     }
@@ -45,4 +51,17 @@ public class DerivedTypeWithoudMethodUsage : BaseType
     {
         Console.WriteLine("DerivedTypeWithoudMethodUsage.Method - used");
     }
+}
+
+public class BaseClassWithPreservedMethod
+{
+    public virtual void Method()
+    {
+        Console.WriteLine("BaseClassWithPreservedMethod.Method - used");
+    }
+}
+
+public class DerivedClassWithoutMethod : BaseClassWithPreservedMethod
+{
+    
 }

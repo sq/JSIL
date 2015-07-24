@@ -24,6 +24,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             {
                 if (method.IsVirtual) {
                     _virtualUseFromType = new List<TypeDefinition>();
+
+                    // We need always preserve interface method signature.
+                    if (method.DeclaringType.IsInterface) {
+                        _hasNonVirualUsage = true;
+                    }
                 }
                 else {
                     _hasNonVirualUsage = true;
@@ -92,7 +97,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             {
                 get
                 {
-                    return _hasNonVirualUsage ||
+                    return _hasNonVirualUsage || 
                            (_virtualUseFromType.Count == 1 &&
                             _virtualUseFromType[0] == null || _virtualUseFromType[0] == _method.DeclaringType);
                 }
@@ -341,11 +346,41 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 endMemberCount = Fields.Count + Methods.Count + Types.Count;
             } while (endMemberCount != inintialMemberCount);
 
-            var methodsToRemove =
-                Methods.Where(item => !item.Value.PresentRealMethodUsage).Select(item => item.Key).ToList();
+            if (!Configuration.NonAggressiveVirtualMethodElimination) {
+                foreach (var type in Types.Where(item => !item.IsInterface)) {
+                    var baseMap = new HashSet<MethodDefinition>();
 
-            foreach (var methodDefinition in methodsToRemove) {
-                Methods.Remove(methodDefinition);
+                    var currentType = type;
+                    do {
+                        foreach (var method in currentType.Methods.Where(item => item.IsVirtual)) {
+                            MethodUsageInfo methodUsageInfo;
+
+                            if (Methods.TryGetValue(method, out methodUsageInfo)) {
+                                if (!baseMap.Contains(method) && methodUsageInfo.IsIncluded(type)) {
+
+                                    methodUsageInfo.RegisterNonVirtualUsage();
+                                }
+                            }
+
+                            var localBase = TypeMapStep.Annotations.GetBaseMethods(method);
+                            if (localBase != null) {
+                                baseMap.UnionWith(localBase);
+                            }
+                        }
+
+                        currentType = currentType.BaseType != null ? currentType.BaseType.Resolve() : null;
+                    } while (currentType != null);
+                }
+
+                var methodsToRemove =
+                    Methods
+                        .Where(item => !item.Value.PresentRealMethodUsage)
+                        .Select(item => item.Key)
+                        .ToList();
+
+                foreach (var methodDefinition in methodsToRemove) {
+                    Methods.Remove(methodDefinition);
+                }
             }
         }
 
