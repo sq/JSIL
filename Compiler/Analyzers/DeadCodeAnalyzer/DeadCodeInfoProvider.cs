@@ -271,14 +271,26 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             ILBlock ilb = null;
             bool useSimpleMethodWalk = Configuration.NonAggressiveVirtualMethodElimination;
             if (!useSimpleMethodWalk) {
-                try {
-                    var decompiler = new ILAstBuilder();
-                    var optimizer = new ILAstOptimizer();
+                var virtCalls = from instruction in foundInstructions
+                    let mRef = instruction.Operand as MethodReference
+                    where (instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Ldvirtftn) &&
+                          mRef.Resolve().IsVirtual
+                    select instruction;
 
-                    ilb = new ILBlock(decompiler.Build(method, false, context));
-                    optimizer.Optimize(context, ilb);
+                if (virtCalls.Any()) {
+                    try {
+                        var decompiler = new ILAstBuilder();
+                        var optimizer = new ILAstOptimizer();
+
+                        ilb = new ILBlock(decompiler.Build(method, false, context));
+                        optimizer.Optimize(context, ilb);
+                    }
+                    catch (Exception) {
+                        useSimpleMethodWalk = true;
+
+                    }
                 }
-                catch (Exception) {
+                else {
                     useSimpleMethodWalk = true;
                 }
             }
@@ -296,22 +308,20 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                         {
                             case ILCode.Ldftn:
                             case ILCode.Newobj:
-                                break;
-
                             case ILCode.Jmp:
                             case ILCode.Call:
                             case ILCode.CallGetter:
                             case ILCode.CallSetter:
-                                thisArg = mRef.HasThis ? ilExpression.Arguments[0].InferredType : null;
                                 break;
+
                             case ILCode.CallvirtGetter:
                             case ILCode.CallvirtSetter:
                             case ILCode.Callvirt:
+                            case ILCode.Ldvirtftn:
                                 isVirtual = true;
-                                thisArg = ilExpression.Arguments[0].InferredType;
+                                thisArg = ilExpression.Arguments.Count >0 ? ilExpression.Arguments[0].InferredType : null;
                                 break;
 
-                            case ILCode.Ldvirtftn:
                             case ILCode.Ldtoken:
                                 isVirtual = true;
                                 break;
