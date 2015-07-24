@@ -225,6 +225,14 @@
             DceAssert.Has(output, MemberType.Interface, "IIterfaceForGenericMethodTest", false);
             DceAssert.Has(output, MemberType.Interface, "IIterfaceForGenericClassTest", false);
         }
+
+        [Test]
+        public void PreserveTypesReferencedFromGenericField()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromGenericField.cs");
+
+            DceAssert.Has(output, MemberType.Class, "NonGenericType", false);
+        }
     }
 
     public static class DceAssert

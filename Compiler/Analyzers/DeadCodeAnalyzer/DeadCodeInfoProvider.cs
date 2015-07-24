@@ -254,17 +254,17 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 where tRef != null
                 select tRef;
 
-            IEnumerable<FieldDefinition> fieldsFound = from instruction in foundInstructions
+            IEnumerable<FieldReference> fieldsFound = from instruction in foundInstructions
                 let fRef = instruction.Operand as FieldReference
                 where fRef != null && fRef.FieldType != null
-                let fRefResolved = fRef.Resolve()
-                where fRefResolved != null
-                select fRefResolved;
+                select fRef;
+
             foreach (TypeReference typeDefinition in typesFound) {
                 AddType(typeDefinition);
             }
 
-            foreach (FieldDefinition fieldDefinition in fieldsFound) {
+            foreach (FieldReference fieldDefinition in fieldsFound)
+            {
                 AddField(fieldDefinition);
             }
 

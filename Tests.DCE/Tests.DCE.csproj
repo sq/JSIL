@@ -76,6 +76,7 @@
     <None Include="DCETests\PreserveVirtualMethodImplementation.cs" />
     <None Include="DCETests\PreserveVirtualMethodFromReallyUsedRootOnly.cs" />
     <None Include="DCETests\PreserveUsageThroughConstraint.cs" />
+    <None Include="DCETests\PreserveTypesReferencedFromGenericField.cs" />
     <Compile Include="DeadCodeEliminationTest.cs" />
     <None Include="app.config" />
     <Compile Include="Properties\AssemblyInfo.cs" />
