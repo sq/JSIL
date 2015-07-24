@@ -801,10 +801,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             return false;
         }
 
-        private void ProcessWhiteList(MemberReference member) {
+        private void ProcessWhiteList(MemberReference member)
+        {
             if (member is TypeReference) {
                 TypeDefinition type = (member as TypeReference).Resolve();
-                
+
                 if (type != null) {
                     if (IsMemberWhiteListed(type)) {
                         AddType(type);
@@ -818,19 +819,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
                     if (type.HasMethods) {
                         foreach (var method in type.Methods) {
-                            if (IsMemberWhiteListed(method)) {
-                                ProcessWhiteList(method);
-                            }
+                            ProcessWhiteList(method);
                         }
                     }
 
-                    if (type.HasFields)
-                    {
-                        foreach (var field in type.Fields)
-                        {
-                            if (IsMemberWhiteListed(field)) {
-                                ProcessWhiteList(field);
-                            }
+                    if (type.HasFields) {
+                        foreach (var field in type.Fields) {
+                            ProcessWhiteList(field);
                         }
                     }
                 }
