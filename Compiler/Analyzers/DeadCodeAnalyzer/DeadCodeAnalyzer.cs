@@ -66,7 +66,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 deadCodeInfo.WalkMethod(method);
             }
 
-            deadCodeInfo.ResolveVirtualMethodsCycle();
+            deadCodeInfo.FinishProcessing();
 
             stopwatchElapsed.Stop();
             Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);

@@ -109,21 +109,18 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
         }
 
-        private readonly HashSet<AssemblyDefinition> Assemblies;
-        private readonly HashSet<FieldDefinition> Fields;
-        private readonly Dictionary<MethodDefinition, MethodUsageInfo> Methods;
-        private readonly HashSet<TypeDefinition> Types;
+        private readonly HashSet<AssemblyDefinition> Assemblies = new HashSet<AssemblyDefinition>();
+        private readonly HashSet<FieldDefinition> Fields = new HashSet<FieldDefinition>();
+        private readonly Dictionary<MethodDefinition, MethodUsageInfo> Methods = new Dictionary<MethodDefinition,MethodUsageInfo>();
+        private readonly HashSet<TypeDefinition> Types = new HashSet<TypeDefinition>();
+        private readonly HashSet<PropertyDefinition> Properties = new HashSet<PropertyDefinition>();
+        private readonly HashSet<EventDefinition> Events = new HashSet<EventDefinition>();
 
         private readonly TypeMapStep TypeMapStep = new TypeMapStep();
         private readonly List<Regex> WhiteListCache;
         private readonly Configuration Configuration; 
 
         public DeadCodeInfoProvider(Configuration configuration) {
-            Types = new HashSet<TypeDefinition>();
-            Methods = new Dictionary<MethodDefinition, MethodUsageInfo>();
-            Fields = new HashSet<FieldDefinition>();
-            Assemblies = new HashSet<AssemblyDefinition>();
-
             Configuration = configuration;
             if (configuration.WhiteList != null &&
                 configuration.WhiteList.Count > 0) {
@@ -161,58 +158,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (propertyReference != null)
             {
                 var defenition = propertyReference.Resolve();
-                if (defenition != null)
-                {
-                    if (defenition.GetMethod != null && Methods.ContainsKey(defenition.GetMethod))
-                    {
-                        return true;
-                    }
-
-                    if (defenition.SetMethod != null && Methods.ContainsKey(defenition.SetMethod))
-                    {
-                        return true;
-                    }
-
-                    if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => Methods.ContainsKey(method)))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return Properties.Contains(defenition);
             }
 
             var eventReference = member as EventReference;
             if (eventReference != null)
             {
                 var defenition = eventReference.Resolve();
-
-                if (defenition != null)
-                {
-                    if (defenition.AddMethod != null && Methods.ContainsKey(defenition.AddMethod))
-                    {
-                        return true;
-                    }
-
-                    if (defenition.RemoveMethod != null && Methods.ContainsKey(defenition.RemoveMethod))
-                    {
-                        return true;
-                    }
-
-                    if (defenition.InvokeMethod != null && Methods.ContainsKey(defenition.InvokeMethod))
-                    {
-                        return true;
-                    }
-
-                    if (defenition.OtherMethods != null &&
-                        defenition.OtherMethods.Any(method => Methods.ContainsKey(method)))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return Events.Contains(defenition);
             }
 
             throw new ArgumentException("Unexpected member reference type");
@@ -345,55 +298,6 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
         }
 
-        public void ResolveVirtualMethodsCycle()
-        {
-            var inintialMemberCount = 0;
-            var endMemberCount = 0;
-            do
-            {
-                inintialMemberCount = Fields.Count + Methods.Count + Types.Count;
-                ResolveVirtualMethods();
-                endMemberCount = Fields.Count + Methods.Count + Types.Count;
-            } while (endMemberCount != inintialMemberCount);
-
-            if (!Configuration.NonAggressiveVirtualMethodElimination) {
-                foreach (var type in Types.Where(item => !item.IsInterface)) {
-                    var baseMap = new HashSet<MethodDefinition>();
-
-                    var currentType = type;
-                    do {
-                        foreach (var method in currentType.Methods.Where(item => item.IsVirtual)) {
-                            MethodUsageInfo methodUsageInfo;
-
-                            if (Methods.TryGetValue(method, out methodUsageInfo)) {
-                                if (!baseMap.Contains(method) && methodUsageInfo.IsIncluded(type)) {
-
-                                    methodUsageInfo.RegisterNonVirtualUsage();
-                                }
-                            }
-
-                            var localBase = TypeMapStep.Annotations.GetBaseMethods(method);
-                            if (localBase != null) {
-                                baseMap.UnionWith(localBase);
-                            }
-                        }
-
-                        currentType = currentType.BaseType != null ? currentType.BaseType.Resolve() : null;
-                    } while (currentType != null);
-                }
-
-                var methodsToRemove =
-                    Methods
-                        .Where(item => !item.Value.PresentRealMethodUsage)
-                        .Select(item => item.Key)
-                        .ToList();
-
-                foreach (var methodDefinition in methodsToRemove) {
-                    Methods.Remove(methodDefinition);
-                }
-            }
-        }
-
         public void AddAssemblies(IEnumerable<AssemblyDefinition> assemblies)
         {
             IEnumerable<ModuleDefinition> modules = from assembly in assemblies
@@ -411,6 +315,178 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             Assemblies.UnionWith(assemblies);
+        }
+
+        public void FinishProcessing()
+        {
+            RepeatUntilStable(() =>
+            {
+                ResolveVirtualMethodsCycle();
+                BuildPropertiesAndEventsList();
+                ProcessMetaAttributes();
+            });
+
+            var methodsToRemove =
+                Methods
+                    .Where(item => !item.Value.PresentRealMethodUsage)
+                    .Select(item => item.Key)
+                    .ToList();
+
+            foreach (var methodDefinition in methodsToRemove) {
+                Methods.Remove(methodDefinition);
+            }
+        }
+
+        private void RepeatUntilStable(Action action)
+        {
+            var inintialMemberCount = 0;
+            var endMemberCount = 0;
+            do
+            {
+                inintialMemberCount = Fields.Count + Methods.Count + Types.Count + Properties.Count + Events.Count;
+                action();
+                endMemberCount = Fields.Count + Methods.Count + Types.Count + Properties.Count + Events.Count;
+            } while (endMemberCount != inintialMemberCount);
+        }
+
+        private void ResolveVirtualMethodsCycle()
+        {
+            RepeatUntilStable(ResolveVirtualMethods);
+
+            if (!Configuration.NonAggressiveVirtualMethodElimination)
+            {
+                foreach (var type in Types.Where(item => !item.IsInterface))
+                {
+                    var baseMap = new HashSet<MethodDefinition>();
+
+                    var currentType = type;
+                    do
+                    {
+                        foreach (var method in currentType.Methods.Where(item => item.IsVirtual))
+                        {
+                            MethodUsageInfo methodUsageInfo;
+
+                            if (Methods.TryGetValue(method, out methodUsageInfo))
+                            {
+                                if (!baseMap.Contains(method) && methodUsageInfo.IsIncluded(type))
+                                {
+
+                                    methodUsageInfo.RegisterNonVirtualUsage();
+                                }
+                            }
+
+                            var localBase = TypeMapStep.Annotations.GetBaseMethods(method);
+                            if (localBase != null)
+                            {
+                                baseMap.UnionWith(localBase);
+                            }
+                        }
+
+                        currentType = currentType.BaseType != null ? currentType.BaseType.Resolve() : null;
+                    } while (currentType != null);
+                }
+            }
+        }
+
+        private void ProcessMetaAttributes()
+        {
+            foreach (var definition in Types.ToList()) {
+                if (definition.HasCustomAttributes) {
+                    ProcessMetaAttributes(definition.CustomAttributes);
+                }
+            }
+
+            foreach (var definition in Fields.ToList()) {
+                if (definition.HasCustomAttributes) {
+                    ProcessMetaAttributes(definition.CustomAttributes);
+                }
+            }
+
+            foreach (var methodPair in Methods.ToList()) {
+                if (methodPair.Value.PresentRealMethodUsage && methodPair.Key.HasCustomAttributes) {
+                    ProcessMetaAttributes(methodPair.Key.CustomAttributes);
+                }
+            }
+
+            foreach (var definition in Properties.ToList()) {
+                if (definition.HasCustomAttributes) {
+                    ProcessMetaAttributes(definition.CustomAttributes);
+                }
+            }
+
+            foreach (var definition in Events.ToList()) {
+                if (definition.HasCustomAttributes) {
+                    ProcessMetaAttributes(definition.CustomAttributes);
+                }
+            }
+        }
+
+        private void ProcessMetaAttributes(IEnumerable<CustomAttribute> attributes)
+        {
+            foreach (CustomAttribute attribute in attributes)
+            {
+                if (!Types.Contains(attribute.AttributeType.Resolve())) {
+                    continue;
+                }
+
+                if (attribute.HasConstructorArguments)
+                {
+                    WalkMethod(attribute.Constructor.Resolve());
+                    foreach (var customAttributeArgument in attribute.ConstructorArguments) {
+                        AddType(customAttributeArgument.Type);
+                    }
+                }
+            }
+        }
+
+        private void BuildPropertiesAndEventsList()
+        {
+            foreach (var typeDefinition in Types) {
+                foreach (var defenition in typeDefinition.Properties) {
+                    if (defenition != null) {
+                        if (defenition.GetMethod != null && Methods.ContainsKey(defenition.GetMethod)) {
+                            Properties.Add(defenition);
+                            continue;
+                        }
+
+                        if (defenition.SetMethod != null && Methods.ContainsKey(defenition.SetMethod)) {
+                            Properties.Add(defenition);
+                            continue;
+                        }
+
+                        if (defenition.OtherMethods != null &&
+                            defenition.OtherMethods.Any(method => Methods.ContainsKey(method))) {
+                            Properties.Add(defenition);
+                            continue;
+                        }
+                    }
+                }
+
+                foreach (var defenition in typeDefinition.Events) {
+                    if (defenition != null) {
+                        if (defenition.AddMethod != null && Methods.ContainsKey(defenition.AddMethod)) {
+                            Events.Add(defenition);
+                            continue;
+                        }
+
+                        if (defenition.RemoveMethod != null && Methods.ContainsKey(defenition.RemoveMethod)) {
+                            Events.Add(defenition);
+                            continue;
+                        }
+
+                        if (defenition.InvokeMethod != null && Methods.ContainsKey(defenition.InvokeMethod)) {
+                            Events.Add(defenition);
+                            continue;
+                        }
+
+                        if (defenition.OtherMethods != null &&
+                            defenition.OtherMethods.Any(method => Methods.ContainsKey(method))) {
+                            Events.Add(defenition);
+                            continue;
+                        }
+                    }
+                }
+            }
         }
 
         private void ResolveVirtualMethods()
@@ -467,16 +543,6 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (Types.Add(resolvedType))
             {
                 AddType(resolvedType.BaseType);
-
-                if (resolvedType.HasCustomAttributes)
-                {
-                    foreach (CustomAttribute attribute in resolvedType.CustomAttributes)
-                    {
-                        if (attribute.HasConstructorArguments) {
-                            WalkMethod(attribute.Constructor.Resolve());
-                        }
-                    }
-                }
 
                 // HACK: force analyze static constructor
                 MethodDefinition cctor = resolvedType.Methods.FirstOrDefault(m => m.Name == ".cctor");
@@ -620,13 +686,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             if (AddMethodToList(resolvedMethod, targetType, isVirt) && resolvedMethod.HasBody)
-            {
-                //if (resolvedMethod.HasCustomAttributes) {
-                //    foreach (CustomAttribute attribute in resolvedMethod.CustomAttributes) {
-                //        AddType(attribute.AttributeType);
-                //    }
-                //}
-                
+            {               
                 if (IsStubOrExternal(method))
                 {
                     return false;

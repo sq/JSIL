@@ -20,7 +20,7 @@
                 {
                     { "DeadCodeElimination", true },
                     { "NonAggressiveVirtualMethodElimination", false },
-                    { "WhiteList", new List<string> { @"System\.Void Program::Main\(System.String\[\]\)" } }
+                    { "WhiteList", new List<string> { @"System\.Void Program::Main\(.*\)" } }
                 } } }
             };
             defaultConfiguration.MergeInto(config);
@@ -232,6 +232,12 @@
             var output = GetJavascriptWithDCE(@"DCETests\PreserveTypesReferencedFromGenericField.cs");
 
             DceAssert.Has(output, MemberType.Class, "NonGenericType", false);
+        }
+
+        [Test]
+        public void EmptyProgram()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\EmptyProgram.cs");
         }
     }
 
