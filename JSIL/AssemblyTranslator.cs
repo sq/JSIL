@@ -3128,6 +3128,11 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
+            if (ShouldSkipMember(property))
+            {
+                return;
+            }
+
             var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
@@ -3169,6 +3174,11 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             EventDefinition @event, JSRawOutputIdentifier dollar
         ) {
+            if (ShouldSkipMember(@event))
+            {
+                return;
+            }
+
             var eventInfo = _TypeInfoProvider.GetMemberInformation<Internal.EventInfo>(@event);
             if ((eventInfo == null) || eventInfo.IsIgnored)
                 return;

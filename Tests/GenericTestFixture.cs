@@ -283,13 +283,13 @@ namespace JSIL.Tests {
             return result;
         }
 
-        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true) {
+        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true, Action<AssemblyTranslator> initializeTranslator = null) {
             long elapsed, temp;
             string generatedJs = null, output;
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration);
+                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
                 } catch {
                     if (dumpJsOnFailure) {
                         // Failures in very large programs can totally choke the test runner

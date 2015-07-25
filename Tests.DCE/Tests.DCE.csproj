@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7B80860D-B937-44E9-B863-7A5E888429E5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>JSIL.Tests.DCE</RootNamespace>
+    <AssemblyName>Tests.DCE</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <OutputPath>..\bin\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>true</CodeAnalysisFailOnMissingRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|.NET 4.5 x86'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\Upstream\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DCETests\BasicDCEFunctions.cs" />
+    <None Include="DCETests\PreserveTypesReferencedFromFieldDeclaration.cs" />
+    <None Include="DCETests\PreserveTypesReferencedFromMethodDeclaration.cs" />
+    <None Include="DCETests\PreserveTypesReferencedFromGeneric.cs" />
+    <None Include="DCETests\PreserveTypesGenericBase.cs" />
+    <None Include="DCETests\PreserveStaticConstructorAndReferences.cs" />
+    <None Include="DCETests\PreserveVirtualMethodImplementation.cs" />
+    <None Include="DCETests\PreserveVirtualMethodFromReallyUsedRootOnly.cs" />
+    <None Include="DCETests\PreserveUsageThroughConstraint.cs" />
+    <None Include="DCETests\PreserveTypesReferencedFromGenericField.cs" />
+    <None Include="DCETests\EmptyProgram.cs" />
+    <None Include="DCETests\Attributes.cs" />
+    <Compile Include="DeadCodeEliminationTest.cs" />
+    <None Include="app.config" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Compiler\Analyzers\DeadCodeAnalyzer\JSIL.DeadCodeAnalyzer.csproj">
+      <Project>{976F07E6-5D98-4A82-ADD0-3ADDB70020C7}</Project>
+      <Name>JSIL.DeadCodeAnalyzer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Compiler\Compiler.csproj">
+      <Project>{C7BF4561-20DD-4E49-8B5A-4E8AF032C47A}</Project>
+      <Name>Compiler</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JSIL\JSIL.csproj">
+      <Project>{DA03D241-B70C-44D7-A465-3CEB5A9416AE}</Project>
+      <Name>JSIL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Tests\Tests.csproj">
+      <Project>{2dbbcb24-54ad-4c66-b7d6-911811ceb185}</Project>
+      <Name>Tests</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+      <Project>{d68133bd-1e63-496e-9ede-4fbdbf77b486}</Project>
+      <Name>Mono.Cecil</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="..\.NET 4.5.targets" />
+</Project>

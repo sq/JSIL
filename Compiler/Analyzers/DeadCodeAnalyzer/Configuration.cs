@@ -6,18 +6,38 @@ using System.Text;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
     public class Configuration {
-        public bool? DeadCodeElimination;
-        public IList<string> WhiteList;
-    
+        private readonly bool _DeadCodeElimination;
+        private readonly bool _NonAggressiveVirtualMethodElimination;
+        private readonly IList<string> _WhiteList;
+  
         public Configuration(Dictionary<string, object> configuration) {
-            DeadCodeElimination = configuration.ContainsKey("DeadCodeElimination") &&
+            _DeadCodeElimination = configuration.ContainsKey("DeadCodeElimination") &&
                                   configuration["DeadCodeElimination"] is bool &&
                                   ((bool) configuration["DeadCodeElimination"]);
+
+            _NonAggressiveVirtualMethodElimination = configuration.ContainsKey("NonAggressiveVirtualMethodElimination") &&
+                                  configuration["NonAggressiveVirtualMethodElimination"] is bool &&
+                                  ((bool)configuration["NonAggressiveVirtualMethodElimination"]);
     
             if (configuration.ContainsKey("WhiteList") &&
                 configuration["WhiteList"] is IList) {
-                WhiteList = ((IList) configuration["WhiteList"]).Cast<string>().ToList();
+                _WhiteList = ((IList) configuration["WhiteList"]).Cast<string>().ToList();
             }
+        }
+
+        public bool DeadCodeElimination
+        {
+            get { return _DeadCodeElimination; }
+        }
+
+        public bool NonAggressiveVirtualMethodElimination
+        {
+            get { return _NonAggressiveVirtualMethodElimination; }
+        }
+
+        public IList<string> WhiteList
+        {
+            get { return _WhiteList; }
         }
     }
 }
