@@ -587,7 +587,7 @@ namespace JSIL.Compiler {
             }
 
             var translator = new AssemblyTranslator(
-                configuration, typeInfoProvider, manifest, assemblyCache, 
+                configuration, typeInfoProvider, manifest, new AssemblyDataResolver(configuration, assemblyCache), 
                 onProxyAssemblyLoaded: (name, classification) => 
                     Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name))                
             );
