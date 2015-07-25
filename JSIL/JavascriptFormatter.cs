@@ -173,12 +173,15 @@ namespace JSIL.Internal {
             "System.SByte", "System.Int16", "System.Int32", "System.Int64",
             "System.Single", "System.Double", "System.String", "System.Object",
             "System.Boolean", "System.Char", "System.IntPtr", "System.UIntPtr"
-        }; 
+        };
+
+        protected readonly Func<MemberReference, bool> ShouldSkipMember;
 
         public JavascriptFormatter (
             TextWriter output, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
-            Configuration configuration, bool stubbed
+            Configuration configuration, Func<MemberReference, bool> shouldSkipMember,
+            bool stubbed
         ) {
             Output = output;
             TypeInfo = typeInfo;
@@ -186,6 +189,7 @@ namespace JSIL.Internal {
             Assembly = assembly;
             Configuration = configuration;
             Stubbed = stubbed;
+            ShouldSkipMember = shouldSkipMember;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
@@ -685,7 +689,8 @@ namespace JSIL.Internal {
         public void TypeReference (TypeReference type, TypeReferenceContext context) {
             if (
                 (context != null) &&
-                (context.EnclosingType != null)
+                (context.EnclosingType != null) &&
+                !ShouldSkipMember(context.EnclosingType)
             ) {
                 if (TypeUtil.TypesAreEqual(type, context.EnclosingType, true)) {
                     // Types can reference themselves, so this prevents recursive initialization.

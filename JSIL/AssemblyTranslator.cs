@@ -882,7 +882,7 @@ namespace JSIL {
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(
-                tw, this._TypeInfoProvider, Manifest, assembly, Configuration, stubbed
+                tw, this._TypeInfoProvider, Manifest, assembly, Configuration, ShouldSkipMember, stubbed
             );
 
             formatter.Comment(GetHeaderText());
@@ -1221,7 +1221,7 @@ namespace JSIL {
             return true;
         }
 
-        protected bool ShouldSkipMember(MemberReference member)
+        public bool ShouldSkipMember(MemberReference member)
         {
             if (member is MethodReference && member.Name == ".cctor")
                 return false;
