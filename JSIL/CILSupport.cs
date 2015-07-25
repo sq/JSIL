@@ -83,7 +83,7 @@ namespace JSIL.Internal {
         };
 
         protected readonly Configuration Configuration;
-        protected readonly AssemblyCache Cache = new AssemblyCache();
+        protected readonly AssemblyCache Cache;
         protected readonly bool OwnsCache;
 
         public AssemblyResolver(IEnumerable<string> dirs, Configuration configuration, AssemblyCache cache = null) {
@@ -142,10 +142,11 @@ namespace JSIL.Internal {
             actualName = FilterRedirectedReferences(name, out redirectedFrom);
 
             var result = Cache.GetOrCreate(actualName.FullName, (fullName) => {
+                var assembly = base.Resolve(actualName, parameters);
                 if (redirectedFrom != null)
                     Console.Error.WriteLine("// Redirected '{0}' to '{1}'", redirectedFrom, actualName.FullName);
 
-                return base.Resolve(actualName, parameters);
+                return assembly;
             });
 
             return result;
