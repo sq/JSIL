@@ -848,7 +848,9 @@ namespace JSIL.Tests {
 1942.5, 1192
 1133, 400
 2353.25, 1204
-2669, 1216";
+2669, 1216"
+    // FIXME: WHYYY
+    .Replace("\r\n", "|").Replace("\n", "|").Replace("|", Environment.NewLine);
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\FNABaseOffset.cs",
