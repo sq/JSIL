@@ -65,13 +65,23 @@ namespace JSIL.Transforms {
             if (!actualMethod.Reference.Name.Contains(correctName)) {
                 var dt = originalMethod.Method.DeclaringType;
 
-                var actualMethodInfo = dt.Members.Values
-                    .OfType<MethodInfo>().FirstOrDefault(
-                        (m) => (
-                            m.Name.Contains(correctName) &&
-                            m.DeclaringType == originalMethod.Method.DeclaringType
-                        )
+                var candidateMethodInfos = dt.Members.Values
+                    .OfType<MethodInfo>().Where(
+                        m => m.Name.Contains(correctName)
                     );
+
+                var actualMethodInfo = candidateMethodInfos.FirstOrDefault(
+                    m => m.DeclaringType == originalMethod.Method.DeclaringType
+                );
+
+                if (actualMethodInfo == null)
+                    return new JSUntranslatableExpression(String.Format(
+                        "{0} to property {1}::{2} could not be translated because {3} could not be found",
+                        pa.IsWrite ? "Write" : "Read",
+                        originalMethod.Reference.DeclaringType.FullName,
+                        pa.Property.Property.Name,
+                        correctName
+                    ));
 
                 MethodReference actualMethodReference = actualMethodInfo.Member;
                 if (originalMethod.Reference is GenericInstanceMethod) {
