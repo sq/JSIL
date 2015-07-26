@@ -393,11 +393,12 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             foreach (var definition in Types.ToList()) {
                 if (definition.HasCustomAttributes) {
                     ProcessMetaAttributes(definition.CustomAttributes);
-                    if (definition.HasGenericParameters) {
-                        foreach (var parameter in definition.GenericParameters) {
-                            if (parameter.HasCustomAttributes) {
-                                ProcessMetaAttributes(parameter.CustomAttributes);
-                            }
+                }
+
+                if (definition.HasGenericParameters) {
+                    foreach (var parameter in definition.GenericParameters) {
+                        if (parameter.HasCustomAttributes) {
+                            ProcessMetaAttributes(parameter.CustomAttributes);
                         }
                     }
                 }
@@ -410,8 +411,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             foreach (var methodPair in Methods.ToList()) {
-                if (methodPair.Value.PresentRealMethodUsage && methodPair.Key.HasCustomAttributes) {
-                    ProcessMetaAttributes(methodPair.Key.CustomAttributes);
+                if (methodPair.Value.PresentRealMethodUsage) {
+                    if (methodPair.Key.HasCustomAttributes) {
+                        ProcessMetaAttributes(methodPair.Key.CustomAttributes);
+                    }
+
                     if (methodPair.Key.HasParameters) {
                         foreach (var parameter in methodPair.Key.Parameters) {
                             if (parameter.HasCustomAttributes) {
@@ -419,12 +423,17 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                             }
                         }
                     }
+
                     if (methodPair.Key.HasGenericParameters) {
                         foreach (var parameter in methodPair.Key.GenericParameters) {
                             if (parameter.HasCustomAttributes) {
                                 ProcessMetaAttributes(parameter.CustomAttributes);
                             }
                         }
+                    }
+
+                    if (methodPair.Key.MethodReturnType.HasCustomAttributes) {
+                        ProcessMetaAttributes(methodPair.Key.MethodReturnType.CustomAttributes);
                     }
                 }
             }
@@ -780,9 +789,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             AddType(method.DeclaringType);
             AddType(method.ReturnType);
+            ProcessMarshallInfo(method.MethodReturnType.MarshalInfo);
             foreach (var parameterDefinition in method.Parameters)
             {
                 AddType(parameterDefinition.ParameterType);
+                ProcessMarshallInfo(parameterDefinition.MarshalInfo);
             }
 
             MethodDefinition resolvedMethod = method.Resolve();
@@ -803,6 +814,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
 
             return false;
+        }
+
+        private void ProcessMarshallInfo(MarshalInfo marshalInfo)
+        {
+            var customMarshalInfo = marshalInfo as CustomMarshalInfo;
+            if (customMarshalInfo != null) {
+                AddType(customMarshalInfo.ManagedType);
+            }
         }
 
         private bool AddMethodToList(MethodDefinition method, TypeReference targetType, bool isVirt)
@@ -834,10 +853,12 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             AddType(field.FieldType);
             AddType(field.DeclaringType);
+
             FieldDefinition resolvedField = field.Resolve();
 
             if (resolvedField != null) {
                 Fields.Add(resolvedField);
+                ProcessMarshallInfo(resolvedField.MarshalInfo);
             }
         }
 
