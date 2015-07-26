@@ -372,6 +372,9 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_BinaryOp_Pointer (ILExpression node, JSBinaryOperator op, JSExpression lhs, JSExpression rhs) {
+            if ((lhs is JSUntranslatableExpression) || (rhs is JSUntranslatableExpression))
+                return new JSUntranslatableExpression(node);
+
             // We can end up with a pointer literal in an arithmetic expression.
             // In this case we want to switch it back to a normal integer literal so that the math operations work.
             var leftPointer = lhs as JSPointerLiteral;
