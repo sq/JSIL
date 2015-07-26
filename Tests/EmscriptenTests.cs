@@ -12,6 +12,8 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class EmscriptenTests : GenericTestFixture {
+        public string DllPath;
+
         [TestFixtureSetUp]
         public void SetUp () {
             var testDir = Path.Combine(ComparisonTest.TestSourceFolder, "EmscriptenTestCases");
@@ -24,6 +26,8 @@ namespace JSIL.Tests {
                 Console.WriteLine(stderr);
                 throw new Exception("Failed to build common.dll.");
             }
+
+            DllPath = Path.Combine(testDir, "common.dll");
 
             exitCode = RunProcess(Path.Combine(testDir, "embuild.bat"), "", null, out stderr, out stdout);
 
@@ -126,7 +130,8 @@ namespace JSIL.Tests {
                 compilerOptions: "/unsafe",
                 getTestRunnerQueryString: (() =>
                     "dll=Tests/EmscriptenTestCases/common.emjs"),
-                scanForProxies: true
+                scanForProxies: true,
+                extraDependencies: new [] { DllPath }
             );
         }
 
