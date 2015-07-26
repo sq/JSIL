@@ -253,7 +253,7 @@ namespace JSIL.Try {
                     // Can't reuse a manifest meaningfully here.
                     null,
                     // Reuse the assembly cache so that mscorlib doesn't get loaded every time.
-                    AssemblyCache
+                    new AssemblyDataResolver(translatorConfiguration, AssemblyCache)
                 )) {
                     translator.CouldNotDecompileMethod += (s, exception) => {
                         lock (translatorOutput)
