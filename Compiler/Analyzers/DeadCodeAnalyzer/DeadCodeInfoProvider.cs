@@ -134,41 +134,63 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
         internal TypeInfoProvider TypeInfoProvider { get; set; }
 
-        public bool IsUsed(MemberReference member) {
+        public bool IsUsed(MemberReference member)
+        {
+            bool? result = null;
             var typeReference = member as TypeReference;
             if (typeReference != null)
             {
-                var defenition = typeReference.Resolve();
-                return Types.Contains(defenition);
+                var definition = typeReference.Resolve();
+                result = Types.Contains(definition);
             }
 
             var methodReference = member as MethodReference;
             if (methodReference != null) {
-                var defenition = methodReference.Resolve();
-                return Methods.ContainsKey(defenition);
+                var definition = methodReference.Resolve();
+                result = Methods.ContainsKey(definition);
             }
 
             var fieldReference = member as FieldReference;
             if (fieldReference != null) {
-                var defenition = fieldReference.Resolve();
-                return Fields.Contains(defenition);
+                var definition = fieldReference.Resolve();
+                result = Fields.Contains(definition);
             }
 
             var propertyReference = member as PropertyReference;
             if (propertyReference != null)
             {
-                var defenition = propertyReference.Resolve();
-                return Properties.Contains(defenition);
+                var definition = propertyReference.Resolve();
+                result = Properties.Contains(definition);
             }
 
             var eventReference = member as EventReference;
             if (eventReference != null)
             {
-                var defenition = eventReference.Resolve();
-                return Events.Contains(defenition);
+                var definition = eventReference.Resolve();
+                result = Events.Contains(definition);
             }
 
-            throw new ArgumentException("Unexpected member reference type");
+            if (!result.HasValue) {
+                throw new ArgumentException("Unexpected member reference type");
+            }
+
+            // HACK to allow whitelist proxy members.
+            if (!result.Value) {
+                if (typeReference == null) {
+                    typeReference = member.DeclaringType;
+                }
+
+                if (typeReference != null)
+                {
+                    var definition = typeReference.Resolve();
+                    if (definition.HasCustomAttributes &&
+                        definition.CustomAttributes.Any(item => item.AttributeType.FullName == "JSIL.Proxy.JSProxy")) {
+                        return IsMemberWhiteListed(member);
+                    }
+                }
+            }
+
+            return result.Value;
         }
 
         public void WalkMethod(MethodReference methodReference, TypeReference targetType = null, bool virt = false)
@@ -454,6 +476,12 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private void ProcessMetaAttributes(IEnumerable<CustomAttribute> attributes)
         {
             foreach (CustomAttribute attribute in attributes) {
+                // Think more about proxy processing.
+                if (attribute.AttributeType.Namespace == "JSIL.Proxy" ||
+                    attribute.AttributeType.Namespace == "JSIL.Meta") {
+                    continue;
+                }
+
                 if (!Types.Contains(attribute.AttributeType.Resolve())) {
                     continue;
                 }
@@ -862,67 +890,51 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
         }
 
-        private bool IsMemberWhiteListed(MemberReference member) {
-            if (WhiteListCache != null)
-            {
+        private bool IsMemberWhiteListed(MemberReference member)
+        {
+            if (WhiteListCache != null) {
                 if (WhiteListCache.Any(regex => regex.IsMatch(member.FullName))) {
                     return true;
                 }
             }
 
-            IEnumerable<CustomAttribute> customAttributes = null;
+            MetadataCollection customAttributes = null;
 
-            if (member is TypeReference)
-            {
-                TypeDefinition type = ((TypeReference)member).Resolve();
-                if (type != null)
-                {
-                    customAttributes = type.CustomAttributes;
+            if (member is TypeReference) {
+                var type = TypeInfoProvider.GetTypeInformation((TypeReference) member);
+                if (type != null) {
+                    customAttributes = type.Metadata;
                 }
             }
-            else if (member is MethodReference)
-            {
-                MethodDefinition method = ((MethodReference)member).Resolve();
-                if (method != null)
-                {
-                    customAttributes = method.CustomAttributes;
+            else if (member is MethodReference) {
+                var method = TypeInfoProvider.GetMemberInformation<MethodInfo>(member);
+                if (method != null) {
+                    customAttributes = method.Metadata;
                 }
             }
-            else if (member is FieldReference)
-            {
-                FieldDefinition field = ((FieldReference)member).Resolve();
-                if (field != null)
-                {
-                    customAttributes = field.CustomAttributes;
+            else if (member is FieldReference) {
+                var field = TypeInfoProvider.GetMemberInformation<FieldInfo>(member);
+                if (field != null) {
+                    customAttributes = field.Metadata;
                 }
             }
 
-            if (customAttributes != null && customAttributes.Any(item => item.AttributeType.Name == "JSDeadCodeEleminationEntryPoint"))
-            {
+            if (customAttributes != null && customAttributes.HasAttribute("JSIL.Meta.JSDeadCodeEleminationEntryPoint")) {
                 return true;
             }
 
-            TypeReference declaringType = member.DeclaringType;
-
-            if (declaringType != null)
-            {
-                var declaringTypeDefenition = declaringType.Resolve();
-                if (declaringTypeDefenition != null && declaringTypeDefenition.CustomAttributes.Any(item => item.AttributeType.Name == "JSDeadCodeEleminationClassEntryPoint"))
-                {
+            if (member.DeclaringType != null) {
+                var declaringType = TypeInfoProvider.GetTypeInformation(member.DeclaringType);
+                if (declaringType.Metadata.HasAttribute("JSIL.Meta.JSDeadCodeEleminationClassEntryPoint")) {
                     return true;
                 }
 
-                while (declaringTypeDefenition != null)
-                {
-                    if (declaringTypeDefenition.CustomAttributes.Any(
-                            item => item.AttributeType.Name == "JSDeadCodeEleminationHierarchyEntryPoint"))
-                    {
+                while (declaringType != null) {
+                    if (declaringType.Metadata.HasAttribute("JSIL.Meta.JSDeadCodeEleminationHierarchyEntryPoint")) {
                         return true;
                     }
 
-                    declaringTypeDefenition = declaringTypeDefenition.BaseType != null
-                                                  ? declaringTypeDefenition.BaseType.Resolve()
-                                                  : null;
+                    declaringType = declaringType.BaseClass;
                 }
             }
 

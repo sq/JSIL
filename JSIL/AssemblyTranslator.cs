@@ -460,12 +460,12 @@ namespace JSIL {
             if (AssembliesLoaded != null)
                 AssembliesLoaded(assemblies);
 
+            if (scanForProxies)
+                _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
+            
             if (AnalyzeStarted != null) {
                 AnalyzeStarted();
             }
-
-            if (scanForProxies)
-                _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
 
             var pr = new ProgressReporter();
             if (Decompiling != null)
