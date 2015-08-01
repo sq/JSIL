@@ -79,6 +79,9 @@
     <None Include="DCETests\PreserveTypesReferencedFromGenericField.cs" />
     <None Include="DCETests\EmptyProgram.cs" />
     <None Include="DCETests\Attributes.cs" />
+    <None Include="DCETests\DCEMetaAttributes.cs" />
+    <None Include="DCETests\DCEMetaAttributesOnProxies.cs" />
+    <None Include="DCETests\StripOuterTypes.cs" />
     <Compile Include="DeadCodeEliminationTest.cs" />
     <None Include="app.config" />
     <Compile Include="Properties\AssemblyInfo.cs" />

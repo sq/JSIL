@@ -25,6 +25,7 @@
             };
             defaultConfiguration.MergeInto(config);
             dce.SetConfiguration(config);
+            config.UseLocalProxies = true;
 
             var generatedJs = GetJavascript(
                 Path.Combine(@"..\Tests.DCE", fileName),
@@ -247,6 +248,69 @@
             StringAssert.DoesNotContain("Unused arg", output, "UnusedAttribute application preserved, should be eliminated");
             StringAssert.DoesNotContain("C_Usage", output, "UnusedEnum preserved, should be eliminated");
         }
+
+        [Test]
+        public void DCEMetaAttributes()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\DCEMetaAttributes.cs");
+            DceAssert.Has(output, MemberType.Field, "UnusedFieldWithAttribute", true);
+            DceAssert.Has(output, MemberType.Method, "UnusedMethodWithAttribute", true);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInUnusedClassWithAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithClassEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInUnusedClassWithClassEntryPointAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithHierarchyEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInUnusedClassWithHierarchyEntryPointAttribute", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "DerivedUnusedClassWithAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInDerivedUnusedClassWithAttribute", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "DerivedUnusedClassWithClassEntryPointAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInDerivedUnusedClassWithClassEntryPointAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "DerivedUnusedClassWithHierarchyEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInDerivedUnusedClassWithHierarchyEntryPointAttribute", false);
+        }
+
+        [Test]
+        public void DCEMetaAttributesOnProxies()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\DCEMetaAttributesOnProxies.cs");
+            DceAssert.Has(output, MemberType.Field, "UnusedFieldWithAttribute", true);
+            DceAssert.Has(output, MemberType.Method, "UnusedMethodWithAttribute", true);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInUnusedClassWithAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithClassEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInUnusedClassWithClassEntryPointAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "UnusedClassWithHierarchyEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInUnusedClassWithHierarchyEntryPointAttribute", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "DerivedUnusedClassWithAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInDerivedUnusedClassWithAttribute", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "DerivedUnusedClassWithClassEntryPointAttribute", false);
+            DceAssert.HasNo(output, MemberType.Mention, "MethodInDerivedUnusedClassWithClassEntryPointAttribute", false);
+
+            DceAssert.Has(output, MemberType.Class, "DerivedUnusedClassWithHierarchyEntryPointAttribute", false);
+            DceAssert.Has(output, MemberType.Method, "MethodInDerivedUnusedClassWithHierarchyEntryPointAttribute", false);
+        }
+
+        [Test]
+        public void StripOuterTypes()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\StripOuterTypes.cs");
+            // Generic type constructor.
+            DceAssert.Has(output, MemberType.Class, "OuterType+InnerType", false);
+            DceAssert.HasNo(output, MemberType.Class, "OuterType", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
+         }
     }
 
     public static class DceAssert
@@ -259,7 +323,7 @@
 
         public static void HasNo(string input, MemberType memberType, string name, bool isStatic = true, bool isPublic = true)
         {
-            var message = string.Format("{0} ({1}) found, shoud be eliminated", input, memberType);
+            var message = string.Format("{0} ({1}) found, shoud be eliminated", name, memberType);
             Assert.IsFalse(Contains(input, memberType, name, isStatic, isPublic), message);
         }
 
