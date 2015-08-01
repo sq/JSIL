@@ -445,7 +445,7 @@ namespace JSIL {
 
                     result = new JSBinaryOperatorExpression(
                         op,
-                        new JSDotExpression(lhs, new JSStringIdentifier("offsetInBytes", TypeSystem.Int32)),
+                        new JSDotExpression(lhs, new JSStringIdentifier("offsetInBytes", TypeSystem.Int32, true)),
                         rhs,
                         TypeSystem.Boolean
                     );
@@ -853,7 +853,7 @@ namespace JSIL {
                         var expression = arguments[0] as JSStringLiteral;
                         if (expression != null)
                             return new JSDotExpression(
-                                JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object)
+                                JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object, true)
                             );
                         else
                             return new JSIndexerExpression(
@@ -871,7 +871,7 @@ namespace JSIL {
                         if (expression == null)
                             throw new InvalidOperationException("JSLocal must recieve a string literal as an index");
 
-                        return new JSStringIdentifier(expression.Value, TypeSystem.Object);
+                        return new JSStringIdentifier(expression.Value, TypeSystem.Object, true);
                     } else {
                         throw new NotImplementedException("JSLocal method not implemented: " + methodName);
                     }
@@ -2183,7 +2183,7 @@ namespace JSIL {
 
         protected JSThrowExpression Translate_Rethrow (ILExpression node) {
             return new JSThrowExpression(new JSStringIdentifier(
-                "$exception", new TypeReference("System", "Exception", TypeSystem.Object.Module, TypeSystem.Object.Scope)
+                "$exception", new TypeReference("System", "Exception", TypeSystem.Object.Module, TypeSystem.Object.Scope), true
             ));
         }
 

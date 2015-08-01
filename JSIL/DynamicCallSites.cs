@@ -463,7 +463,7 @@ namespace JSIL {
 
                 return JSDotExpression.New(
                     thisArgument,
-                    new JSStringIdentifier(MemberName, returnType)
+                    new JSStringIdentifier(MemberName, returnType, true)
                 );
             }
         }
@@ -502,7 +502,7 @@ namespace JSIL {
                     JSOperator.Assignment,
                     JSDotExpression.New(
                         thisArgument,
-                        new JSStringIdentifier(MemberName, returnType)
+                        new JSStringIdentifier(MemberName, returnType, true)
                     ),
                     arguments[2], returnType
                 );

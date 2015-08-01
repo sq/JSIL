@@ -9,14 +9,22 @@ using Mono.Cecil;
 namespace JSIL.Ast {
     public class JSStringIdentifier : JSIdentifier {
         public readonly string Text;
+        private readonly bool _IsLValue;
 
-        public JSStringIdentifier (string text, TypeReference type = null)
+        public JSStringIdentifier (string text, TypeReference type = null, bool isLValue = false)
             : base(type) {
             Text = text;
+            _IsLValue = isLValue;
         }
 
         public override string Identifier {
             get { return Text; }
+        }
+
+        public override bool IsLValue {
+            get {
+                return _IsLValue;
+            }
         }
 
         public override bool IsConstant {

@@ -159,15 +159,15 @@ namespace JSIL.Transforms {
 
             var arrayVariable = new JSVariable(
                 arrayVariableName, arrayType, Function.Method.Reference, 
-                JSDotExpression.New(enumerator, new JSStringIdentifier(arrayMember, arrayType))
+                JSDotExpression.New(enumerator, new JSStringIdentifier(arrayMember, arrayType, true))
             );
             var indexVariable = new JSVariable(
                 indexVariableName, TypeSystem.Int32, Function.Method.Reference, 
-                JSDotExpression.New(enumerator, new JSStringIdentifier(indexMember, TypeSystem.Int32))
+                JSDotExpression.New(enumerator, new JSStringIdentifier(indexMember, TypeSystem.Int32, true))
             );
             var lengthVariable = new JSVariable(
                 lengthVariableName, TypeSystem.Int32, Function.Method.Reference,
-                JSDotExpression.New(enumerator, new JSStringIdentifier(lengthMember, TypeSystem.Int32))
+                JSDotExpression.New(enumerator, new JSStringIdentifier(lengthMember, TypeSystem.Int32, true))
             );
 
             var initializer = new JSVariableDeclarationStatement(
@@ -222,7 +222,7 @@ namespace JSIL.Transforms {
 
             var arrayVariable = new JSVariable(
                 arrayVariableName, arrayType, Function.Method.Reference,
-                JSDotExpression.New(backingStore, new JSStringIdentifier(arrayMember, arrayType))
+                JSDotExpression.New(backingStore, new JSStringIdentifier(arrayMember, arrayType, true))
             );
             var indexVariable = new JSVariable(
                 indexVariableName, TypeSystem.Int32, Function.Method.Reference,
@@ -230,7 +230,7 @@ namespace JSIL.Transforms {
             );
             var lengthVariable = new JSVariable(
                 lengthVariableName, TypeSystem.Int32, Function.Method.Reference,
-                JSDotExpression.New(backingStore, new JSStringIdentifier(lengthMember, TypeSystem.Int32))
+                JSDotExpression.New(backingStore, new JSStringIdentifier(lengthMember, TypeSystem.Int32, true))
             );
 
             var initializer = new JSVariableDeclarationStatement(

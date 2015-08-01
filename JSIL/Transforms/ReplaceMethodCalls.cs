@@ -302,7 +302,7 @@ namespace JSIL.Transforms {
                                 var index = ie.Arguments[0] as JSLiteral;
                                 if (index != null) {
                                     var newDot = JSDotExpression.New(thisExpression, new JSStringIdentifier(
-                                        String.Format("length{0}", Convert.ToInt32(index.Literal)),
+                                        String.Format("length{0}", Convert.ToInt32(index.Literal), true),
                                         TypeSystem.Int32
                                     ));
 

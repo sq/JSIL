@@ -896,6 +896,13 @@ namespace JSIL.Ast {
             : base(target, member) {
         }
 
+        public override bool IsLValue {
+            get {
+                // HACK
+                return Member.IsLValue;
+            }
+        }
+
         public static JSDotExpression New (JSExpression leftMost, params JSIdentifier[] memberNames) {
             if ((memberNames == null) || (memberNames.Length == 0))
                 throw new ArgumentException("memberNames");
