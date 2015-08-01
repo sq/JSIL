@@ -30,7 +30,7 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSReplacement("($this === $rhs)")]
-        public bool Equals (AnyType rhs) {
+        public bool Equals (IntegerProxy rhs) {
             throw new InvalidOperationException();
         }
 
@@ -69,7 +69,7 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSReplacement("($this === $rhs)")]
-        public bool Equals (AnyType rhs) {
+        public bool Equals(NumberProxy rhs) {
             throw new InvalidOperationException();
         }
 

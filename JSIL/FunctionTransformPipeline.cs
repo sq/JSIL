@@ -259,6 +259,8 @@ namespace JSIL.Internal {
 
             // HACK: Something about nullables is broken so we have to do this twice. WTF?
             Enqueue(ReplaceMethodCalls);
+
+            Enqueue(WrapLiterals);
         }
 
 
@@ -505,6 +507,13 @@ namespace JSIL.Internal {
                 ));
             else
                 return true;
+        }
+
+        private bool WrapLiterals()
+        {
+            new WrapLiterals(TypeSystem).Visit(Function);
+
+            return true;
         }
     }
 

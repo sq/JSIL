@@ -86,7 +86,7 @@ $jsilcore.$MakeParseExternals = function ($, type, parse, tryParse) {
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (value === false) || (value === true);
+      return ((value === false) || (value === true)) || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Boolean.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.Boolean, $jsilcore.$ParseBoolean, $jsilcore.$TryParseBoolean);
@@ -97,7 +97,7 @@ JSIL.MakeNumericType(Boolean, "System.Boolean", true);
 JSIL.ImplementExternals(
   "System.Char", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "string") && (value.length == 1);
+      return ((typeof (value) === "string") && (value.length == 1)) || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Char.__TypeId__);
     });
 
 		$.Constant({Public: true, Static: true}, "MaxValue", "\uffff");
@@ -109,7 +109,7 @@ JSIL.MakeNumericType(String, "System.Char", true);
 JSIL.ImplementExternals(
   "System.Byte", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number") && (value >= 0) && (value <= 255);
+      return ((typeof (value) === "number") && (value >= 0) && (value <= 255)) || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Byte.__TypeId__);
     });
     
 		$.Constant({Public: true, Static: true}, "MinValue", 0);
@@ -121,7 +121,7 @@ JSIL.MakeNumericType(Number, "System.Byte", true, "Uint8Array");
 JSIL.ImplementExternals(
   "System.SByte", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number") && (value >= -128) && (value <= 127);
+      return ((typeof (value) === "number") && (value >= -128) && (value <= 127)) || (value !== null && value.__ThisTypeId__ == $jsilcore.System.SByte.__TypeId__);
     });
     
 		$.Constant({Public: true, Static: true}, "MinValue", -128);
@@ -157,7 +157,7 @@ $jsilcore.$TryParseInt = function (text, style, result) {
 JSIL.ImplementExternals(
   "System.UInt16", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number") && (value >= 0);
+      return ((typeof (value) === "number") && (value >= 0))  || (value !== null && value.__ThisTypeId__ == $jsilcore.System.UInt16.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.UInt16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
@@ -171,7 +171,7 @@ JSIL.MakeNumericType(Number, "System.UInt16", true, "Uint16Array");
 JSIL.ImplementExternals(
   "System.Int16", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return (typeof (value) === "number")  || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Int16.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.Int16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
@@ -185,7 +185,7 @@ JSIL.MakeNumericType(Number, "System.Int16", true, "Int16Array");
 JSIL.ImplementExternals(
   "System.UInt32", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number") && (value >= 0);
+      return ((typeof (value) === "number") && (value >= 0))  || (value !== null && value.__ThisTypeId__ == $jsilcore.System.UInt32.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.UInt32, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
@@ -199,7 +199,7 @@ JSIL.MakeNumericType(Number, "System.UInt32", true, "Uint32Array");
 JSIL.ImplementExternals(
   "System.Int32", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return (typeof (value) === "number") || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Int32.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.Int32, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
@@ -250,7 +250,7 @@ $jsilcore.$TryParseFloat = function (text, style, result) {
 JSIL.ImplementExternals(
   "System.Single", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return (typeof (value) === "number")  || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Single.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
@@ -268,7 +268,7 @@ JSIL.MakeNumericType(Number, "System.Single", false, "Float32Array");
 JSIL.ImplementExternals(
   "System.Double", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return (typeof (value) === "number") || (value !== null && value.__ThisTypeId__ == $jsilcore.System.Double.__TypeId__);
     });
 
     $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);

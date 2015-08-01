@@ -550,7 +550,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "Format", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
       function (format) {
-        format = String(format);
+        format = String(JSIL.UnWrap(format));
 
         if (arguments.length === 1)
           return format;
@@ -756,7 +756,7 @@ JSIL.ConcatString = function (/* ...values */) {
     result = String(arguments[0]);
 
   for (var i = 1, l = arguments.length; i < l; i++) {
-    var arg = arguments[i];
+    var arg = JSIL.UnWrap(arguments[i]);
     if (arg === null)
       ;
     else if (typeof (arg) === "string")
