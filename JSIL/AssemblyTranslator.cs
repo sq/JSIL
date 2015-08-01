@@ -407,7 +407,8 @@ namespace JSIL {
                     FullyQualifyAmbiguousTypeNames = true,
                     ForEachStatement = false,
                     ExpressionTrees = false,
-                    ObjectOrCollectionInitializers = false
+                    ObjectOrCollectionInitializers = false,
+                    MakeCompoundAssignmentExpressions = false
                 }
             };
         }
