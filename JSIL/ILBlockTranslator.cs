@@ -1924,11 +1924,10 @@ namespace JSIL {
                 );
             } else if ((invocation != null) && invocation.JSMethod.Identifier.StartsWith("op_")) {
                 // Binary operator using a custom operator method
-                var lhs = invocation.Arguments[0];
+                var lhs = DecomposeMutationOperators.MakeLhsForAssignment(invocation.Arguments[0]);
 
                 result = new JSBinaryOperatorExpression(
-                    JSOperator.Assignment,
-                    DecomposeMutationOperators.MakeLhsForAssignment(lhs), 
+                    JSOperator.Assignment, lhs,
                     invocation, invocation.GetActualType(TypeSystem)
                 );
             } else {

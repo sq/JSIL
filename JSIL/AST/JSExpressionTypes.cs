@@ -2748,6 +2748,13 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsLValue {
+            get {
+                // HACK
+                return true;
+            }
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             var pointerType = Pointer.GetActualType(typeSystem);
             return TypeUtil.GetElementType(pointerType, true);
