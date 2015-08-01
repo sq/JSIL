@@ -2369,14 +2369,16 @@ namespace JSIL {
             return new JSMemberReferenceExpression(result);
         }
 
-        protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
+        protected JSExpression Translate_Stsfld (ILExpression node, FieldReference field) {
+            var lhs = DecomposeMutationOperators.MakeLhsForAssignment(Translate_FieldAbstract(node, field, true));
             var rhs = TranslateNode(node.Arguments[0]);
+
+            if ((lhs is JSUntranslatableExpression) || (rhs is JSUntranslatableExpression))
+                return new JSUntranslatableExpression(node);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                DecomposeMutationOperators.MakeLhsForAssignment(Translate_FieldAbstract(node, field, true)),
-                rhs,
-                rhs.GetActualType(TypeSystem)
+                lhs, rhs, rhs.GetActualType(TypeSystem)
             );
         }
 

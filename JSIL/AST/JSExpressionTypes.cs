@@ -454,6 +454,13 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsLValue {
+            get {
+                // FIXME: Always?
+                return true;
+            }
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return new ByReferenceType(Referent.GetActualType(typeSystem));
         }
@@ -688,6 +695,13 @@ namespace JSIL.Ast {
             }
 
             return typeSystem.Void;
+        }
+
+        public override bool IsLValue {
+            get {
+                // FIXME
+                return true;
+            }
         }
     }
 
@@ -1809,7 +1823,7 @@ namespace JSIL.Ast {
             CheckInvariant();
         }
 
-        private void CheckInvariant () {
+        protected virtual void CheckInvariant () {
             if (!(Operator is JSAssignmentOperator))
                 return;
 
@@ -2506,6 +2520,9 @@ namespace JSIL.Ast {
             ) {
         }
 
+        protected override void CheckInvariant () {
+        }
+
         public override string ToString () {
             return String.Format("{0}.set({1})", Left, Right);
         }
@@ -2667,6 +2684,9 @@ namespace JSIL.Ast {
                 actualType, offsetInBytes, 
                 JSPointerExpressionUtil.OffsetFromBytesToElements(offsetInBytes, actualType)
             ) {
+        }
+
+        protected override void CheckInvariant () {
         }
 
         public JSExpression Pointer {
