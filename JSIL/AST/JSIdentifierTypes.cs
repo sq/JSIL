@@ -40,6 +40,13 @@ namespace JSIL.Ast {
             Arguments = arguments;
         }
 
+        public override bool IsLValue {
+            get {
+                // HACK
+                return true;
+            }
+        }
+
         public override string Identifier {
             get {
                 if ((Arguments != null) && (Arguments.Length > 0))
@@ -491,6 +498,12 @@ namespace JSIL.Ast {
         public virtual bool IsThis {
             get {
                 return false;
+            }
+        }
+
+        public override bool IsLValue {
+            get {
+                return true;
             }
         }
 

@@ -294,6 +294,15 @@ namespace JSIL.Ast {
             }
         }
 
+        /// <summary>
+        /// If true, this expression is a valid assignment/mutation target
+        /// </summary>
+        public virtual bool IsLValue {
+            get {
+                return false;
+            }
+        }
+
         public override bool Equals (object obj) {
             return EqualsImpl(obj, false);
         }

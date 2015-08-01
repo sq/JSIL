@@ -944,6 +944,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsLValue {
+            get {
+                return true;
+            }
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Field.Field.FieldType;
         }
@@ -982,6 +988,12 @@ namespace JSIL.Ast {
         public JSProperty Property {
             get {
                 return (JSProperty)Values[1];
+            }
+        }
+
+        public override bool IsLValue {
+            get {
+                return true;
             }
         }
 
@@ -1035,6 +1047,12 @@ namespace JSIL.Ast {
         public JSExpression Index {
             get {
                 return Values[1];
+            }
+        }
+
+        public override bool IsLValue {
+            get {
+                return true;
             }
         }
 
@@ -1774,6 +1792,7 @@ namespace JSIL.Ast {
             op, actualType, lhs, rhs
         ) {
             CanSimplify = canSimplify;
+            CheckInvariant();
         }
 
         protected JSBinaryOperatorExpression (
@@ -1781,6 +1800,21 @@ namespace JSIL.Ast {
         ) : base(
             op, actualType, new[] { lhs, rhs }.Concat(extraValues).ToArray()
         ) {
+            CheckInvariant();
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            base.ReplaceChild(oldChild, newChild);
+
+            CheckInvariant();
+        }
+
+        private void CheckInvariant () {
+            if (!(Operator is JSAssignmentOperator))
+                return;
+
+            if (!Left.IsLValue)
+                throw new InvalidOperationException("LHS of an assignment expression must be an L-value" + Left);
         }
 
         public JSExpression Left {
@@ -1804,6 +1838,12 @@ namespace JSIL.Ast {
         public override bool HasGlobalStateDependency {
             get {
                 return Left.HasGlobalStateDependency || Right.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsLValue {
+            get {
+                return (Operator is JSAssignmentOperator) && (Left.IsLValue);
             }
         }
 
@@ -1849,6 +1889,22 @@ namespace JSIL.Ast {
 
         public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference actualType)
             : base(op, actualType, expression) {
+
+            CheckInvariant();
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            base.ReplaceChild(oldChild, newChild);
+
+            CheckInvariant();
+        }
+
+        private void CheckInvariant () {
+            if (!(Operator is JSUnaryMutationOperator))
+                return;
+
+            if (!Expression.IsLValue)
+                throw new InvalidOperationException("Target of an unary mutation expression must be an L-value: " + Expression);
         }
 
         public bool IsPostfix {
