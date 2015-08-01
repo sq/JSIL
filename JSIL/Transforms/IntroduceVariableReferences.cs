@@ -27,6 +27,12 @@ namespace JSIL.Transforms {
             Variables = variables;
         }
 
+        public TypeSystem TypeSystem {
+            get {
+                return JSIL.TypeSystem;
+            }
+        }
+
         protected bool MatchesConstructedReference (JSExpression lhs, JSVariable rhs) {
             var jsv = lhs as JSVariable;
             if ((jsv != null) && (jsv.Identifier == rhs.Identifier))
@@ -278,6 +284,12 @@ namespace JSIL.Transforms {
             Variable = variable;
         }
 
+        public TypeSystem TypeSystem {
+            get {
+                return JSIL.TypeSystem;
+            }
+        }
+
         public void VisitNode (JSVariable variable) {
             if (
                 (ParentNode is JSFunctionExpression) &&
@@ -314,6 +326,39 @@ namespace JSIL.Transforms {
             VisitReplacement(replacement);
         }
 
+        public void VisitNode (JSUnaryOperatorExpression uoe) {
+            JSExpression expr;
+
+            if (!JSReferenceExpression.TryDereference(JSIL, uoe.Expression, out expr))
+                expr = uoe.Expression;
+
+            var eVar = expr as JSVariable;
+            var eChangeType = expr as JSChangeTypeExpression;
+
+            if (eChangeType != null)
+                eVar = eChangeType.Expression as JSVariable;
+
+            var type = uoe.Expression.GetActualType(TypeSystem);
+            if (
+                (eVar != null) && 
+                (eVar.Identifier == Variable.Identifier) &&
+                (uoe.Operator is JSUnaryMutationOperator)
+            ) {
+                var newValue = DecomposeMutationOperators.DecomposeUnaryMutation(
+                    uoe, () => TemporaryVariable.ForFunction(
+                        Stack.Last() as JSFunctionExpression, type
+                    ), type, TypeSystem
+                );
+                var replacement = new JSWriteThroughReferenceExpression(
+                    Variable, newValue
+                );
+                ParentNode.ReplaceChild(uoe, replacement);
+                VisitReplacement(replacement);
+            } else {
+                VisitChildren(uoe);
+            }
+        }
+
         public void VisitNode (JSBinaryOperatorExpression boe) {
             JSExpression left;
 
@@ -329,17 +374,14 @@ namespace JSIL.Transforms {
             if (
                 !(ParentNode is JSVariableDeclarationStatement) &&
                 (leftVar != null) && 
-                (leftVar.Identifier == Variable.Identifier)
+                (leftVar.Identifier == Variable.Identifier) &&
+                (boe.Operator is JSAssignmentOperator)
             ) {
-                if (boe.Operator is JSAssignmentOperator) {
-                    var replacement = new JSWriteThroughReferenceExpression(
-                        Variable, boe.Right
-                    );
-                    ParentNode.ReplaceChild(boe, replacement);
-                    VisitReplacement(replacement);
-                } else {
-                    VisitChildren(boe);
-                }
+                var replacement = new JSWriteThroughReferenceExpression(
+                    Variable, boe.Right
+                );
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
             } else if (ParentNode is JSVariableDeclarationStatement) {
                 // Don't walk through the left-hand side of variable declarations.
                 VisitChildren(

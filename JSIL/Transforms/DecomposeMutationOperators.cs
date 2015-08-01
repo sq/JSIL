@@ -31,9 +31,9 @@ namespace JSIL.Transforms {
             return rhs;
         }
 
-        private JSBinaryOperatorExpression MakeUnaryMutation (
+        public static JSBinaryOperatorExpression MakeUnaryMutation (
             JSExpression expressionToMutate, JSBinaryOperator mutationOperator,
-            TypeReference type
+            TypeReference type, TypeSystem typeSystem
         ) {
             var newValue = new JSBinaryOperatorExpression(
                 mutationOperator, expressionToMutate, JSLiteral.New(1),
@@ -44,7 +44,7 @@ namespace JSIL.Transforms {
                 MakeLhsForAssignment(expressionToMutate), newValue, type
             );
 
-            assignment = ConvertReadExpressionToWriteExpression(assignment, TypeSystem);
+            assignment = ConvertReadExpressionToWriteExpression(assignment, typeSystem);
 
             return assignment;
         }
@@ -135,57 +135,65 @@ namespace JSIL.Transforms {
             var isIntegral = TypeUtil.Is32BitIntegral(type);
 
             if (isIntegral && (uoe.Operator is JSUnaryMutationOperator)) {
-                if (
-                    (uoe.Operator == JSOperator.PreIncrement) ||
-                    (uoe.Operator == JSOperator.PreDecrement)
-                ) {
-                    var assignment = MakeUnaryMutation(
-                        uoe.Expression,
-                        (uoe.Operator == JSOperator.PreDecrement)
-                            ? JSOperator.Subtract
-                            : JSOperator.Add,
-                        type
-                    );
-
-                    ParentNode.ReplaceChild(uoe, assignment);
-                    VisitReplacement(assignment);
-                    return;
-
-                } else if (
-                    (uoe.Operator == JSOperator.PostIncrement) ||
-                    (uoe.Operator == JSOperator.PostDecrement)
-                ) {
-                    // FIXME: Terrible hack
-                    var tempVariable = TemporaryVariable.ForFunction(
+                var replacement = DecomposeUnaryMutation(
+                    uoe, 
+                    () => TemporaryVariable.ForFunction(
                         Stack.Last() as JSFunctionExpression, type
-                    );
-                    var makeTempCopy = new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, tempVariable, uoe.Expression, type
-                    );
-                    var assignment = MakeUnaryMutation(
-                        uoe.Expression,
-                        (uoe.Operator == JSOperator.PostDecrement)
-                            ? JSOperator.Subtract
-                            : JSOperator.Add,
-                        type
-                    );
+                    ),
+                    type, TypeSystem
+                );
 
-                    var comma = new JSCommaExpression(
-                        makeTempCopy,
-                        assignment,
-                        tempVariable
-                    );
-
-                    ParentNode.ReplaceChild(uoe, comma);
-                    VisitReplacement(comma);
-                    return;
-
-                } else {
-                    throw new NotImplementedException("Unary mutation not supported: " + uoe);
-                }
+                ParentNode.ReplaceChild(uoe, replacement);
+                VisitReplacement(replacement);
+                return;
             }
 
             VisitChildren(uoe);
+        }
+
+        public static JSExpression DecomposeUnaryMutation (
+            JSUnaryOperatorExpression uoe, Func<JSRawOutputIdentifier> makeTemporaryVariable, TypeReference type, TypeSystem typeSystem
+        ) {
+            if (
+                (uoe.Operator == JSOperator.PreIncrement) ||
+                (uoe.Operator == JSOperator.PreDecrement)
+            ) {
+                var assignment = MakeUnaryMutation(
+                    uoe.Expression,
+                    (uoe.Operator == JSOperator.PreDecrement)
+                        ? JSOperator.Subtract
+                        : JSOperator.Add,
+                    type, typeSystem
+                );
+
+                return assignment;
+            } else if (
+                (uoe.Operator == JSOperator.PostIncrement) ||
+                (uoe.Operator == JSOperator.PostDecrement)
+            ) {
+                // FIXME: Terrible hack
+                var tempVariable = makeTemporaryVariable();
+                var makeTempCopy = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, tempVariable, uoe.Expression, type
+                );
+                var assignment = MakeUnaryMutation(
+                    uoe.Expression,
+                    (uoe.Operator == JSOperator.PostDecrement)
+                        ? JSOperator.Subtract
+                        : JSOperator.Add,
+                    type, typeSystem
+                );
+
+                var comma = new JSCommaExpression(
+                    makeTempCopy,
+                    assignment,
+                    tempVariable
+                );
+
+                return comma;
+            } else {
+                throw new NotImplementedException("Unary mutation not supported: " + uoe);
+            }
         }
     }
 }

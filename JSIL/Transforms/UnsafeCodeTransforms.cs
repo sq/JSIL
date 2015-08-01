@@ -176,5 +176,65 @@ namespace JSIL.Transforms {
             }
         }
 
+        private bool UnpackUnaryMutation (
+            JSUnaryOperatorExpression uoe,
+            out JSUnaryMutationOperator op,
+            out JSExpression target,
+            out TypeReference type
+        ) {
+            type = uoe.Expression.GetActualType(TypeSystem);
+
+            if (
+                TypeUtil.IsPointer(type) &&
+                (uoe.Operator is JSUnaryMutationOperator)
+            ) {
+                target = uoe.Expression;
+                op = (JSUnaryMutationOperator)uoe.Operator;
+                return true;
+            }
+
+            target = null;
+            op = null;
+            return false;
+        }
+
+        public void VisitNode (JSUnaryOperatorExpression uoe) {
+            JSUnaryMutationOperator op;
+            JSExpression target;
+            TypeReference type;
+
+            if (UnpackUnaryMutation(uoe, out op, out target, out type)) {
+                var tempVar = TemporaryVariable.ForFunction(
+                    Stack.Last() as JSFunctionExpression, type
+                );
+                var store = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, tempVar, target, type
+                );
+
+                var delta = (
+                    (op == JSOperator.PostIncrement) ||
+                    (op == JSOperator.PreIncrement)
+                )
+                    ? 1
+                    : -1;
+
+                JSExpression replacement;
+                if (
+                    (op == JSOperator.PostIncrement) ||
+                    (op == JSOperator.PostDecrement)
+                ) {
+                    var mutated = new JSPointerAddExpression(target, JSLiteral.New(delta), false);
+                    replacement = new JSCommaExpression(store, mutated, tempVar);
+                } else {
+                    replacement = new JSPointerAddExpression(target, JSLiteral.New(delta), true);
+                }
+
+                ParentNode.ReplaceChild(uoe, replacement);
+                VisitReplacement(replacement);
+                return;
+            }
+
+            VisitChildren(uoe);
+        }
     }
 }

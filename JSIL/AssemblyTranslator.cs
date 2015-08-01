@@ -408,7 +408,8 @@ namespace JSIL {
                     ForEachStatement = false,
                     ExpressionTrees = false,
                     ObjectOrCollectionInitializers = false,
-                    MakeCompoundAssignmentExpressions = false
+                    // FIXME
+                    MakeCompoundAssignmentExpressions = true
                 }
             };
         }
