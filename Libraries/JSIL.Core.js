@@ -2088,6 +2088,8 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
         return (value | 0);
       }
     );
+    
+    $.Field({ Static: false, Public: false}, "__Value__", $.Object);
   });
 };
 
@@ -5014,6 +5016,8 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       expression.__ThisType__.__IsEnum__
     ) {
       return expression.value;
+    } else if (expression.__Value__ !== undefined) {
+      return Cast_Integer(expression.__Value__);
     } else
       throwCastError(expression);
   };
@@ -5025,6 +5029,17 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       return 0;
     } else if (expression === true) {
       return 1;
+    } else if (expression.__Value__ !== undefined) {
+      return Cast_Number(expression.__Value__);
+    } else
+      throwCastError(expression);
+  };
+  
+  var booleanCastFunction = function Cast_Number (expression) {
+    if (typeof (expression) === "boolean") {
+      return expression;
+    } else if (expression.__Value__ !== undefined) {
+      return Cast_Number(expression.__Value__);
     } else
       throwCastError(expression);
   };
@@ -5145,6 +5160,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       castFunction = numericCastFunction;
 
       break;
+      
+    case "bool":
+      customCheckOnly = true;    
+      asFunction = throwCastError;
+      castFunction = booleanCastFunction;
+
+      break;      
 
     case "int64":
       customCheckOnly = true;
@@ -6212,6 +6234,25 @@ JSIL.Coalesce = function (lhs, rhs) {
     return rhs;
   else
     return lhs;
+};
+
+JSIL.Wrap = function (type, value) {
+  var obj = new type();
+  obj.__Value__ = value;
+  return obj;
+};
+
+JSIL.UnWrap = function (value) {
+    if (value === undefined || value === null) {
+        return value;
+    }
+    
+    var isWrapped = (value.constructor == Number || value.constructor ==  Boolean || value.constructor ==  String) && value.__Value__ !== undefined;    
+    if (isWrapped){
+        return value.__Value__;
+    }
+    
+    return value
 };
 
 JSIL.Dynamic.Cast = function (value, expectedType) {
@@ -9422,6 +9463,8 @@ JSIL.GetEqualsSignature = function () {
 }
 
 JSIL.ObjectEqualsInstance = function (lhs, rhs, virtualCall, thisType) {
+  lhs = JSIL.UnWrap(lhs);
+  rhs = JSIL.UnWrap(rhs);
   switch (typeof (lhs)) {
     case "string":
     case "number":
@@ -9457,6 +9500,8 @@ JSIL.ObjectEquals = function (lhs, rhs) {
   if (lhs === rhs)
     return true;
 
+  lhs = JSIL.UnWrap(lhs);
+  rhs = JSIL.UnWrap(rhs);
   switch (typeof (lhs)) {
     case "string":
     case "number":
@@ -9511,6 +9556,7 @@ if (typeof (WeakMap) !== "undefined") {
 }
 
 JSIL.ObjectHashCode = function (obj, virtualCall, thisType) {
+  obj = JSIL.UnWrap(obj);
   var type = typeof obj;
 
   if (type === "object" || type == "string") {
@@ -10550,7 +10596,7 @@ JSIL.$FormatStringImpl = function (format, values) {
 
     index = parseInt(index);
 
-    var value = values[index];
+    var value = JSIL.UnWrap(values[index]);
 
     if (alignment || valueFormat) {
       return JSIL.NumberToFormattedString(value, alignment, valueFormat);

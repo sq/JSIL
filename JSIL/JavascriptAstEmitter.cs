@@ -958,6 +958,16 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode(JSWrappedLiteral wrappedLiteral)
+        {
+            Output.WriteRaw("JSIL.Wrap");
+            Output.LPar();
+            Visit(wrappedLiteral.OriginalType);
+            Output.Comma();
+            Visit(wrappedLiteral.Literal);
+            Output.RPar();
+        }
+
         public void VisitNode (JSBooleanLiteral b) {
             Output.Value(b.Value);
         }

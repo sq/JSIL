@@ -364,4 +364,26 @@ namespace JSIL.Ast {
             return PointerType;
         }
     }
+
+    public class JSWrappedLiteral : JSExpression
+    {
+        public JSWrappedLiteral(JSLiteral literal, JSType originalType) : base(literal, originalType)
+        {
+        }
+
+        public JSLiteral Literal
+        {
+            get { return (JSLiteral)Values[0]; }
+        }
+
+        public JSType OriginalType
+        {
+            get { return (JSType)Values[1]; }
+        }
+
+        public override TypeReference GetActualType(TypeSystem typeSystem)
+        {
+            return Literal.GetActualType(typeSystem);
+        }
+    }
 }

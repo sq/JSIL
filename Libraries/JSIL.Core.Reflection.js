@@ -959,8 +959,13 @@ JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
       if (parameters !== null) {
         parameters = parameters.slice();
         for (var i = 0; i < parametersCount; i++) {
-          if (parameters[i] === null && parameterTypes[i].IsValueType)
-            parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
+          if (parameterTypes[i].IsValueType) {
+              if (parameters[i] === null ) {
+                  parameters[i] = JSIL.DefaultValue(parameterTypes[i]);
+              } else {
+                  parameters[i] = JSIL.UnWrap(parameters[i]);
+              }
+          }
         }
       }
       
