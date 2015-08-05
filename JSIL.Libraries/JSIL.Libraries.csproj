@@ -47,6 +47,16 @@
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
     <Content Include="gruntfile.js" />
+    <Content Include="Includes\Bootstrap\Core\System.SByte.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Char.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Byte.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Boolean.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Exception.js" />
+    <Content Include="Includes\Bootstrap\Core\System.String.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Int16.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24MakeParseExternals.js" />
+    <Content Include="Includes\Bootstrap\Core\System.UInt16.js" />
     <Content Include="Sources\gamepad.js" />
     <Content Include="Sources\JSIL.Bootstrap.Async.js" />
     <Content Include="Sources\JSIL.Bootstrap.DateTime.js" />
