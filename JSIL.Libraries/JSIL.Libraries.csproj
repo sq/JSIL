@@ -1,0 +1,193 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props" Condition="Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props')" />
+  <Import Project="..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props" Condition="Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props')" />
+  <Import Project="..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props" Condition="Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <LocalNodePath>.bin</LocalNodePath>
+    <LocalNodeModulePath>$(MSBuildProjectDirectory)\node_modules\.bin</LocalNodeModulePath>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B921F386-44A2-4170-9CB7-18467AF9B7B1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ClassLibrary1</RootNamespace>
+    <AssemblyName>ClassLibrary1</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>.\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>.\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="Empty.targets" />
+    <None Include="package.json" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+     <None Include=".bin\git.cmd" />
+    <None Include=".bin\node.cmd" />
+    <None Include=".bin\npm.cmd" />
+    <Content Include="gruntfile.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.%24WrapIComparer.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.ParseDataURL.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.EnumerableToArray.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.Dispose.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Uri.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.BitArray.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Diagnostics.Trace.js" />
+    <Content Include="Includes\Bootstrap\Core\JSIL.DefaultComparer.js" />
+    <Content Include="Includes\Bootstrap\Core\System.WeakReference - Copy.js" />
+    <Content Include="Includes\Bootstrap\Core\System.WeakReference.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Array.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.Comparer.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.LinkedListNode.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.LinkedList.js" />
+    <Content Include="Includes\Bootstrap\Core\System.BitConverter.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Convert.js" />
+    <Content Include="Includes\Bootstrap\Core\System.GC.js" />
+    <Content Include="Includes\Bootstrap\Core\System.ComponentModel.PropertyChangedEventArgs.js" />
+    <Content Include="Includes\Bootstrap\Core\System.EventArgs.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Diagnostics.Stopwatch.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Activator.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Enum.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Diagnostics.StackFrame.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Diagnostics.StackTrace.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Xml.Serialization.XmlSerializer - Copy.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Xml.Serialization.XmlSerializer.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Nullable.js" />
+    <Content Include="Includes\Bootstrap\Core\JSIL.AbstractEnumerator.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.HashSet.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.KeyValuePair.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.Dictionary.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Environment.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Decimal.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Math.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Random.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Threading.Volatile.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Threading.Monitor.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Threading.Interlocked.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.Queue.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.Stack.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.ObjectModel.ReadOnlyCollection.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.ObjectModel.Collection.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.ArrayList.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.List.js" />
+    <Content Include="Includes\Bootstrap\Core\JSIL.ArrayInterfaceOverlay.js" />
+    <Content Include="Includes\Bootstrap\Core\JSIL.ArrayEnumerator.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Threading.Thread.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Diagnostics.Debug.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Console.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Boolean.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Byte.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Char.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Delegate.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Double.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Exception.js" />
+    <Content Include="Includes\Bootstrap\Core\System.FormatException.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Int16.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Int32.js" />
+    <Content Include="Includes\Bootstrap\Core\System.InvalidCastException.js" />
+    <Content Include="Includes\Bootstrap\Core\System.InvalidOperationException.js" />
+    <Content Include="Includes\Bootstrap\Core\System.IO.FileNotFoundException.js" />
+    <Content Include="Includes\Bootstrap\Core\System.MulticastDelegate.js" />
+    <Content Include="Includes\Bootstrap\Core\System.SByte.js" />
+    <Content Include="Includes\Bootstrap\Core\System.Single.js" />
+    <Content Include="Includes\Bootstrap\Core\System.String.js" />
+    <Content Include="Includes\Bootstrap\Core\System.SystemException.js" />
+    <Content Include="Includes\Bootstrap\Core\System.UInt16.js" />
+    <Content Include="Includes\Bootstrap\Core\System.UInt32.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.GetEnumerator.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.hashContainerBase.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ListExternals.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24MakeParseExternals.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
+    <Content Include="Sources\gamepad.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Async.js" />
+    <Content Include="Sources\JSIL.Bootstrap.DateTime.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Int64.js" />
+    <Content Include="Sources\JSIL.Bootstrap.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Linq.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Resources.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Text.js" />
+    <Content Include="Sources\JSIL.Browser.Audio.js" />
+    <Content Include="Sources\JSIL.Browser.js" />
+    <Content Include="Sources\JSIL.Browser.Loaders.js" />
+    <Content Include="Sources\JSIL.Browser.Touch.js" />
+    <Content Include="Sources\JSIL.Core.js" />
+    <Content Include="Sources\JSIL.Core.Reflection.js" />
+    <Content Include="Sources\JSIL.Core.Types.js" />
+    <Content Include="Sources\JSIL.ExpressionInterpreter.js" />
+    <Content Include="Sources\JSIL.Host.js" />
+    <Content Include="Sources\JSIL.IO.js" />
+    <Content Include="Sources\JSIL.js" />
+    <Content Include="Sources\JSIL.JSON.js" />
+    <Content Include="Sources\JSIL.LocalStorage.js" />
+    <Content Include="Sources\JSIL.PInvoke.js" />
+    <Content Include="Sources\JSIL.ReadOnlyStorage.js" />
+    <Content Include="Sources\JSIL.References.js" />
+    <Content Include="Sources\JSIL.Replay.js" />
+    <Content Include="Sources\JSIL.Shell.js" />
+    <Content Include="Sources\JSIL.Shell.Loaders.js" />
+    <Content Include="Sources\JSIL.Storage.js" />
+    <Content Include="Sources\JSIL.TestFixture.js" />
+    <Content Include="Sources\JSIL.Unsafe.js" />
+    <Content Include="Sources\JSIL.XML.js" />
+    <Content Include="Sources\mersenne.js" />
+    <Content Include="Sources\Polyfills.js" />
+    <Content Include="Sources\printStackTrace.js" />
+    <Content Include="Sources\System.Drawing.js" />
+    <Content Include="Sources\System.Windows.js" />
+    <Content Include="Sources\webgl-2d.js" />
+    <Content Include="Sources\XNA\Audio.js" />
+    <Content Include="Sources\XNA\Content.js" />
+    <Content Include="Sources\XNA\Graphics.js" />
+    <Content Include="Sources\XNA\Input.js" />
+    <Content Include="Sources\XNA\Storage.js" />
+    <Content Include="Sources\XNA\XNA4.js" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="Empty.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets'))" />
+  </Target>
+  <Import Project="..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets" Condition="Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets')" />
+  <Import Project="..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets" Condition="Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets')" />
+  <Import Project="..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets" Condition="Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
