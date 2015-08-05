@@ -2,15 +2,15 @@
 // #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseInt.js"
 
 JSIL.ImplementExternals(
-  "System.UInt16", function ($) {
+  "System.UInt32", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= 0);
     });
 
-    $jsilcore.$MakeParseExternals($, $.UInt16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
+    $jsilcore.$MakeParseExternals($, $.UInt32, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
 
-    $.Constant({ Public: true, Static: true }, "MaxValue", 65535);
+    $.Constant({ Public: true, Static: true }, "MaxValue", 4294967295);
     $.Constant({ Public: true, Static: true }, "MinValue", 0);
   }
 );
-JSIL.MakeNumericType(Number, "System.UInt16", true, "Uint16Array");
+JSIL.MakeNumericType(Number, "System.UInt32", true, "Uint32Array");

@@ -4,8 +4,8 @@
       return (typeof (value) === "string") && (value.length == 1);
     });
 
-		$.Constant({Public: true, Static: true}, "MaxValue", "\uffff");
-		$.Constant({Public: true, Static: true}, "MinValue", "\0");
+    $.Constant({ Public: true, Static: true }, "MaxValue", "\uffff");
+    $.Constant({ Public: true, Static: true }, "MinValue", "\0");
   }
 );
 JSIL.MakeNumericType(String, "System.Char", true);
