@@ -113,3 +113,5 @@ desktop.ini
 /httpd
 Tests.DCE/obj
 Tests.DCE//bin
+JSIL.Libraries/node_modules
+JSIL.Libraries/obj

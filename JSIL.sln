@@ -56,6 +56,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.ExpressionInterpreter"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.DCE", "Tests.DCE\Tests.DCE.csproj", "{7B80860D-B937-44E9-B863-7A5E888429E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSIL.Libraries", "JSIL.Libraries\JSIL.Libraries.csproj", "{B921F386-44A2-4170-9CB7-18467AF9B7B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|.NET 4.5 x86 = Debug|.NET 4.5 x86
@@ -292,6 +294,18 @@ Global
 		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|Any CPU.ActiveCfg = Release|.NET 4.5 x86
 		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|x86.ActiveCfg = Release|x86
 		{7B80860D-B937-44E9-B863-7A5E888429E5}.Release|x86.Build.0 = Release|x86
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|.NET 4.5 x86.ActiveCfg = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|.NET 4.5 x86.Build.0 = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Debug|x86.Build.0 = Debug|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|.NET 4.5 x86.ActiveCfg = Release|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|.NET 4.5 x86.Build.0 = Release|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|x86.ActiveCfg = Release|Any CPU
+		{B921F386-44A2-4170-9CB7-18467AF9B7B1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
