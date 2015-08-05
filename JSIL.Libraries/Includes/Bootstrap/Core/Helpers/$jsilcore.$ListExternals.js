@@ -1,6 +1,5 @@
-﻿$jsilcore.InitResizableArray = function (target, elementType, initialSize) {
-  target._items = new Array();
-};
+﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.InitResizableArray.js"
+// #include_once "Bootstrap/Core/Utils/JSIL.$WrapIComparer.js"
 
 $jsilcore.$ListExternals = function ($, T, type) {
   var mscorlib = JSIL.GetCorlib();

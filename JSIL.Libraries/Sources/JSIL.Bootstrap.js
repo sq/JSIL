@@ -89,6 +89,7 @@ JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException",
 // #include "Bootstrap/Core/JSIL.ArrayInterfaceOverlay.js"
 // #include "Bootstrap/Core/System.Threading.Thread.js"
 
+// #include "Bootstrap/Core/Helpers/$jsilcore.$ListExternals.js"
 // #include "Bootstrap/Core/System.Collections.Generic.List.js"
 // #include "Bootstrap/Core/System.Collections.ArrayList.js"
 // #include "Bootstrap/Core/System.Collections.ObjectModel.Collection.js"
@@ -184,7 +185,6 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
 
 // #include "Bootstrap/Core/JSIL.AbstractEnumerator.js"
 // #include "Bootstrap/Core/System.Nullable.js"
-$jsilcore.$tArrayEnumerator = null;
 
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
 
@@ -379,6 +379,5 @@ JSIL.MakeInterface(
     $.Method({}, "GetNativeDataSize", JSIL.MethodSignature.Return($.Int32));
   }, []);
 
-// #include "Bootstrap/Core/Helpers/JSIL.$WrapIComparer.js"
 // #include "Bootstrap/Core/System.Collections.BitArray.js"
 // #include "Bootstrap/Core/System.Uri.js"

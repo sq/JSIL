@@ -1,6 +1,4 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$ListExternals.js"
-
-JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
+﻿JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
   var T = new JSIL.GenericParameter("T", "System.Collections.Generic.List`1");
 
   $jsilcore.$ListExternals($, T, "List");

@@ -1,6 +1,4 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$ListExternals.js"
-
-$jsilcore.$ArrayListExternals = function ($) {
+﻿$jsilcore.$ArrayListExternals = function ($) {
   $jsilcore.$ListExternals($, $.Object, "ArrayList");
 
   var mscorlib = JSIL.GetCorlib();

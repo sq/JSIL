@@ -1,6 +1,4 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$ListExternals.js"
-
-$jsilcore.$CollectionExternals = function ($) {
+﻿$jsilcore.$CollectionExternals = function ($) {
   var T = new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1");
   $jsilcore.$ListExternals($, T, "List");
 

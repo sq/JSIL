@@ -1,4 +1,6 @@
-﻿JSIL.ImplementExternals("System.Array", function ($) {
+﻿// #include_once "Bootstrap/Core/Utils/JSIL.$WrapIComparer.js"
+
+JSIL.ImplementExternals("System.Array", function ($) {
   var copyImpl = function (sourceArray, sourceIndex, destinationArray, destinationIndex, length) {
     if (length < 0)
       throw new System.ArgumentException("length");

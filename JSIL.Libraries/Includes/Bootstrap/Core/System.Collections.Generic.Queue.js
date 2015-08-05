@@ -1,4 +1,6 @@
-﻿JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
+﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.InitResizableArray.js"
+
+JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   var system = JSIL.GetAssembly("System", true);
 
   $.Method({ Static: false, Public: true }, ".ctor",

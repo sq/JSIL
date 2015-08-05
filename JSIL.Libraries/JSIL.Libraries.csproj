@@ -45,11 +45,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-     <None Include=".bin\git.cmd" />
+    <None Include=".bin\git.cmd" />
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
     <Content Include="gruntfile.js" />
-    <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.%24WrapIComparer.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.InitResizableArray.js" />
+    <Content Include="Includes\Bootstrap\Core\Utils\JSIL.%24WrapIComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.ParseDataURL.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.EnumerableToArray.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.Dispose.js" />
@@ -57,7 +59,6 @@
     <Content Include="Includes\Bootstrap\Core\System.Collections.BitArray.js" />
     <Content Include="Includes\Bootstrap\Core\System.Diagnostics.Trace.js" />
     <Content Include="Includes\Bootstrap\Core\JSIL.DefaultComparer.js" />
-    <Content Include="Includes\Bootstrap\Core\System.WeakReference - Copy.js" />
     <Content Include="Includes\Bootstrap\Core\System.WeakReference.js" />
     <Content Include="Includes\Bootstrap\Core\System.Array.js" />
     <Content Include="Includes\Bootstrap\Core\System.Collections.Generic.Comparer.js" />
@@ -73,7 +74,6 @@
     <Content Include="Includes\Bootstrap\Core\System.Enum.js" />
     <Content Include="Includes\Bootstrap\Core\System.Diagnostics.StackFrame.js" />
     <Content Include="Includes\Bootstrap\Core\System.Diagnostics.StackTrace.js" />
-    <Content Include="Includes\Bootstrap\Core\System.Xml.Serialization.XmlSerializer - Copy.js" />
     <Content Include="Includes\Bootstrap\Core\System.Xml.Serialization.XmlSerializer.js" />
     <Content Include="Includes\Bootstrap\Core\System.Nullable.js" />
     <Content Include="Includes\Bootstrap\Core\JSIL.AbstractEnumerator.js" />
@@ -119,7 +119,7 @@
     <Content Include="Includes\Bootstrap\Core\System.UInt32.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.GetEnumerator.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.hashContainerBase.js" />
-    <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ListExternals.js" />
+    <Content Include="Includes\Bootstrap\Core\Helpers\%24jsilcore.%24ListExternals.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24MakeParseExternals.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
