@@ -28,7 +28,7 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Classes/System.Single.js"); writeln();
 //? include("Classes/System.Double.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
@@ -38,7 +38,7 @@ JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.Exp
 //? include("Classes/System.Delegate.js"); writeln();
 //? include("Classes/System.MulticastDelegate.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
 JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
 JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T1", "System.Action`2").in(), new JSIL.GenericParameter("T2", "System.Action`2").in()]));
@@ -64,7 +64,7 @@ JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature
 //? include("Classes/System.IO.FileNotFoundException.js"); writeln();
 //? include("Classes/System.FormatException.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
 JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
 JSIL.MakeClass("System.SystemException", "System.TypeLoadException", true);
@@ -116,7 +116,7 @@ JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException",
 //? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
 //? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IDictionary`2", true, ["TKey", "TValue"], function ($) {
       $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")], []));
@@ -191,7 +191,7 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
 //? include("Classes/JSIL.AbstractEnumerator.js"); writeln();
 //? include("Classes/System.Nullable.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
 //? }
 
@@ -206,7 +206,7 @@ JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, tr
 
 //? include("Classes/System.ComponentModel.PropertyChangedEventArgs.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum(
   "System.IO.FileMode", true, {
       CreateNew: 1,
@@ -221,7 +221,7 @@ JSIL.MakeEnum(
 
 //? include("Classes/System.GC.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum(
   "System.Globalization.NumberStyles", true, {
       None: 0,
@@ -252,7 +252,7 @@ JSIL.MakeEnum(
 //? include("Classes/System.Collections.Generic.LinkedList.js"); writeln();
 //? include("Classes/System.Collections.Generic.LinkedListNode.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.IComparer", true, [],
   function ($) {
@@ -277,7 +277,7 @@ JSIL.MakeInterface(
 //? include("Classes/System.Collections.Generic.Comparer.js"); writeln();
 //? include("Classes/JSIL.DefaultComparer.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.ITuple", false, [], function ($) {
       $.Method({}, "ToString", (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Text.StringBuilder")], [])));
@@ -331,7 +331,7 @@ JSIL.MakeInterface(
 
 //? include("Classes/System.Array.js"); writeln();
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.IConvertible", true, [], function ($) {
       $.Method({}, "GetTypeCode", new JSIL.MethodSignature($jsilcore.TypeRef("System.TypeCode"), [], []));
@@ -365,7 +365,7 @@ JSIL.MakeInterface(
 
 /* interface System.Collections.Generic.IReadOnlyCollection`1 */
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IReadOnlyCollection`1", true, ["out T"], function ($) {
       $.Method({}, "get_Count", new JSIL.MethodSignature($.Int32, [], []));
@@ -377,7 +377,7 @@ JSIL.MakeInterface(
 
 /* interface System.Collections.Generic.IReadOnlyList`1 */
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IReadOnlyList`1", true, ["out T"], function ($) {
       $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out(), [$.Int32], []));

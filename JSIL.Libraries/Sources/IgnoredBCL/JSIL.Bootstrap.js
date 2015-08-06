@@ -1,2 +1,2 @@
-//? GENERATE_STUBS=true;
+//? __out.GENERATE_STUBS=true;
 //? include("../../Includes/Bootstrap/Core/Main.js");

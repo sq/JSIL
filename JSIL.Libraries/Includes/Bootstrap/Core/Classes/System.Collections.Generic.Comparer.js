@@ -8,7 +8,7 @@
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Collections.Generic.Comparer`1", true, ["T"], function ($) {
   var $thisType = $.publicInterface;
 

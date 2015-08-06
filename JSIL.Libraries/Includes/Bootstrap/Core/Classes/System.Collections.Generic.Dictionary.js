@@ -509,7 +509,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
     .Overrides("System.Collections.IEnumerator", "Reset");
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeType({
   BaseType: $jsilcore.TypeRef("System.Object"),
   Name: "System.Collections.Generic.Dictionary`2+KeyCollection",

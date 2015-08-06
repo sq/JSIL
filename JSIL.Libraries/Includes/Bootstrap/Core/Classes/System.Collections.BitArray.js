@@ -65,7 +65,7 @@ JSIL.ImplementExternals("System.Collections.BitArray", function ($) {
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.Collections.BitArray", true, [], function ($) {
   $.Property({ Public: true, Static: false }, "Method");
 });

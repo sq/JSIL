@@ -52,7 +52,7 @@ JSIL.ImplementExternals("System.Threading.Interlocked", function ($) {
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
   $.ExternalMethod({ Public: true, Static: true }, "CompareExchange",
     new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])

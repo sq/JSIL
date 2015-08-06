@@ -64,7 +64,7 @@ JSIL.ImplementExternals("System.Uri", function ($) {
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.Uri", true, [], function ($) {
   $.Property({ Public: true, Static: false }, "LocalPath");
   $.Property({ Public: true, Static: false }, "IsAbsoluteUri");

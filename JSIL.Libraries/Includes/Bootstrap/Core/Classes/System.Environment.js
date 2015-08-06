@@ -24,7 +24,7 @@
 
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Environment", false, [], function ($) {
   $.Property({ Static: true, Public: true }, "CurrentManagedThreadId", $.Int32);
 

@@ -36,6 +36,6 @@
 
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 //? }

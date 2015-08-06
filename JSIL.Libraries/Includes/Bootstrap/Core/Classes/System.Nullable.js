@@ -22,7 +22,7 @@ JSIL.ImplementExternals("System.Nullable`1", function ($) {
   });
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
 });
 

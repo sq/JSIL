@@ -181,7 +181,7 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.Delegate", true, [], function ($) {
   $.Property({ Public: true, Static: false }, "Method");
 });

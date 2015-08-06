@@ -27,7 +27,7 @@
   }
 );
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
   $.Field({ Public: false, Static: true }, "_currentThread", $.Type, function ($) { return null; });
 

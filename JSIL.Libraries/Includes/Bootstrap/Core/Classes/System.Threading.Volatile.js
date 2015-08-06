@@ -14,7 +14,7 @@
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeStaticClass("System.Threading.Volatile", true, [], function ($) {
   $.ExternalMethod({ Public: true, Static: true }, "Read",
     new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("JSIL.Reference", ["!!0"])], ["T"])

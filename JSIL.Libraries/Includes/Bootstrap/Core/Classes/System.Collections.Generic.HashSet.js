@@ -230,7 +230,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     });
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["T"], function ($) {
   $.Property({ Public: true, Static: false }, "Count");
 

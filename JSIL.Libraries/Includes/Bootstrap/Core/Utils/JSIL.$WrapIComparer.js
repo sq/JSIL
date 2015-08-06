@@ -1,4 +1,4 @@
-﻿/*? if (typeof JSIL_$WrapIComparer === 'undefined') { JSIL_$WrapIComparer = true; */
+﻿/*? if ('JSIL_$WrapIComparer' in __out) { __out.JSIL_$WrapIComparer = true; */
 JSIL.$WrapIComparer = function (T, comparer) {
   var compare;
   if (T !== null) {

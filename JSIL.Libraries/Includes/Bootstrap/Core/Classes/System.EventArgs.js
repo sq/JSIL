@@ -6,7 +6,7 @@
   );
 });
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeStruct("System.ValueType", "System.EventArgs", true, [], function ($) {
   $.Field({ Static: true, Public: true }, "Empty", $jsilcore.TypeRef("System.EventArgs"), function ($) {
     return new System.EventArgs();

@@ -34,6 +34,6 @@ JSIL.MulticastDelegate.New = function (delegates) {
   return resultDelegate;
 };
 
-//? if (typeof GENERATE_STUBS !== 'undefined') {
+//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Delegate", "System.MulticastDelegate", true, []);
 //? }
