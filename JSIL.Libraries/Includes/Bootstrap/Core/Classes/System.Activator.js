@@ -52,5 +52,7 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Activator", true, [], function ($) {
 });
+//? }

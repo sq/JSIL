@@ -13,9 +13,6 @@
   );
 });
 
-JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
-});
-
 JSIL.ImplementExternals("System.Nullable`1", function ($) {
   $.RawMethod(true, "CheckType", function (value) {
     if (this.T.$Is(value))
@@ -25,5 +22,10 @@ JSIL.ImplementExternals("System.Nullable`1", function ($) {
   });
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
+});
+
 JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
 });
+//? }

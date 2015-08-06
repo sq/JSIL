@@ -9,4 +9,6 @@
   }
 );
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.SystemException", "System.InvalidOperationException", true);
+//? }

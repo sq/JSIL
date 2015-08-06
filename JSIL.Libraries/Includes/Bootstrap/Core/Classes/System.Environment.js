@@ -24,8 +24,10 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Environment", false, [], function ($) {
   $.Property({ Static: true, Public: true }, "CurrentManagedThreadId", $.Int32);
 
   $.Property({ Static: true, Public: true }, "TickCount");
 });
+//? }

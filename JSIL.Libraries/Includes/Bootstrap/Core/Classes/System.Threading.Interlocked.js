@@ -28,15 +28,6 @@
   }
 );
 
-JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
-  $.ExternalMethod({ Public: true, Static: true }, "CompareExchange",
-    new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])
-  );
-  $.ExternalMethod({ Public: true, Static: true }, "CompareExchange",
-    new JSIL.MethodSignature($.Object, [JSIL.Reference.Of($.Object), $.Object, $.Object], [])
-  );
-});
-
 JSIL.ImplementExternals("System.Threading.Interlocked", function ($) {
   $.Method({ Public: true, Static: true }, "CompareExchange",
     new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"]),
@@ -60,3 +51,14 @@ JSIL.ImplementExternals("System.Threading.Interlocked", function ($) {
     }
   );
 });
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
+  $.ExternalMethod({ Public: true, Static: true }, "CompareExchange",
+    new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])
+  );
+  $.ExternalMethod({ Public: true, Static: true }, "CompareExchange",
+    new JSIL.MethodSignature($.Object, [JSIL.Reference.Of($.Object), $.Object, $.Object], [])
+  );
+});
+//? }

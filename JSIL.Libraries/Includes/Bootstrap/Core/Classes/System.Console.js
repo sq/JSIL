@@ -18,7 +18,9 @@
   });
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Console", true, [], function ($) {
   $.Property({ Static: true, Public: true }, "In");
   $.Property({ Static: true, Public: true }, "Out");
 });
+//? }

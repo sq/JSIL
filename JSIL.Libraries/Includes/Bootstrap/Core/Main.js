@@ -195,8 +195,6 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
 //? }
 
-//? include("Classes/System.Xml.Serialization.XmlSerializer.js"); writeln();
-
 //? include("Classes/System.Diagnostics.StackTrace.js"); writeln();
 //? include("Classes/System.Diagnostics.StackFrame.js"); writeln();
 

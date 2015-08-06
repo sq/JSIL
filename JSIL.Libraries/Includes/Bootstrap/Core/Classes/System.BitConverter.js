@@ -159,8 +159,6 @@ $jsilcore.BytesToDouble = function (bytes, offset) {
 };
 
 JSIL.ImplementExternals("System.BitConverter", function ($) {
-
-
   $.Method({ Static: true, Public: true }, "GetBytes",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Boolean], [])),
     $jsilcore.BytesFromBoolean
@@ -305,5 +303,7 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
   );
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.BitConverter", true, [], function ($) {
 });
+//? }

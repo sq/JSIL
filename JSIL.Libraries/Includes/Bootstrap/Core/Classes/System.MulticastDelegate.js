@@ -7,8 +7,6 @@
   );
 });
 
-JSIL.MakeClass("System.Delegate", "System.MulticastDelegate", true, []);
-
 JSIL.MulticastDelegate.New = function (delegates) {
   var delegatesCopy = Array.prototype.slice.call(delegates);
   var delegateCount = delegates.length;
@@ -35,3 +33,7 @@ JSIL.MulticastDelegate.New = function (delegates) {
 
   return resultDelegate;
 };
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeClass("System.Delegate", "System.MulticastDelegate", true, []);
+//? }

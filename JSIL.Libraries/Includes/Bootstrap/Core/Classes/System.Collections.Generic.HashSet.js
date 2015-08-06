@@ -230,6 +230,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
     });
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["T"], function ($) {
   $.Property({ Public: true, Static: false }, "Count");
 
@@ -250,3 +251,4 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
       /* 2 */ $jsilcore.TypeRef("System.Collections.IEnumerator")
   );
 });
+//? }

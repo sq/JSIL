@@ -101,5 +101,7 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Diagnostics.Stopwatch", true, [], function ($) {
 });
+//? }

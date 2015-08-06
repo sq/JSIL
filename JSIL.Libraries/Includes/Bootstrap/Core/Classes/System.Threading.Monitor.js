@@ -36,4 +36,6 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
+//? }

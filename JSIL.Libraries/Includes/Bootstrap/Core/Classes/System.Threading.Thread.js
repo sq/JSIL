@@ -27,6 +27,7 @@
   }
 );
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
   $.Field({ Public: false, Static: true }, "_currentThread", $.Type, function ($) { return null; });
 
@@ -42,3 +43,4 @@ JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($
   $.Property({ Public: true, Static: true }, "CurrentThread");
   $.Property({ Public: true, Static: true }, "ManagedThreadId");
 });
+//? }

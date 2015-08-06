@@ -75,5 +75,7 @@
   );
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Diagnostics.Trace", true, [], function ($) {
 });
+//? }

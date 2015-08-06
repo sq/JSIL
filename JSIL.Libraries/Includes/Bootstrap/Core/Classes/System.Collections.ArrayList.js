@@ -15,6 +15,7 @@
 // Lazy way of sharing method implementations between ArrayList, Collection<T> and List<T>.
 JSIL.ImplementExternals("System.Collections.ArrayList", $jsilcore.$ArrayListExternals);
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], function ($) {
   $.Property({ Public: true, Static: false }, "Count");
 
@@ -22,3 +23,4 @@ JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], functi
     "System.Collections.IEnumerable"
   );
 });
+//? }

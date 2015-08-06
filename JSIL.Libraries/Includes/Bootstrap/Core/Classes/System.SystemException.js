@@ -16,4 +16,6 @@
   }
 );
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Exception", "System.SystemException", true);
+//? }

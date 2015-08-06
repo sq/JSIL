@@ -1,13 +1,4 @@
-﻿JSIL.MakeStaticClass("System.Threading.Volatile", true, [], function ($) {
-  $.ExternalMethod({ Public: true, Static: true }, "Read",
-    new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("JSIL.Reference", ["!!0"])], ["T"])
-  );
-  $.ExternalMethod({ Public: true, Static: true }, "Write",
-    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", ["!!0"]), "!!0"], ["T"])
-  );
-});
-
-JSIL.ImplementExternals("System.Threading.Volatile", function ($) {
+﻿JSIL.ImplementExternals("System.Threading.Volatile", function ($) {
   $.Method({ Static: true, Public: true }, "Write",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", ["!!0"]), "!!0"], ["T"]),
     function Write(T, /* ref */ location, value) {
@@ -22,3 +13,14 @@ JSIL.ImplementExternals("System.Threading.Volatile", function ($) {
     }
   );
 });
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeStaticClass("System.Threading.Volatile", true, [], function ($) {
+  $.ExternalMethod({ Public: true, Static: true }, "Read",
+    new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("JSIL.Reference", ["!!0"])], ["T"])
+  );
+  $.ExternalMethod({ Public: true, Static: true }, "Write",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", ["!!0"]), "!!0"], ["T"])
+  );
+});
+//? }

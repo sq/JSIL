@@ -1,8 +1,4 @@
-﻿JSIL.MakeClass("System.Object", "System.Collections.BitArray", true, [], function ($) {
-  $.Property({ Public: true, Static: false }, "Method");
-});
-
-function BitArray(length) {
+﻿function BitArray(length) {
   this._bytes = new Uint8Array(Math.ceil(length / 8));
 }
 
@@ -68,3 +64,9 @@ JSIL.ImplementExternals("System.Collections.BitArray", function ($) {
     }
   );
 });
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeClass("System.Object", "System.Collections.BitArray", true, [], function ($) {
+  $.Property({ Public: true, Static: false }, "Method");
+});
+//? }

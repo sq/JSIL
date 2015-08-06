@@ -30,6 +30,7 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2", true, ["TKey", "TValue"], function ($) {
   $.Field({ Static: false, Public: false }, "key", $.GenericParameter("TKey"));
 
@@ -39,3 +40,4 @@ JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2",
 
   $.Property({ Static: false, Public: true }, "Value");
 });
+//? }

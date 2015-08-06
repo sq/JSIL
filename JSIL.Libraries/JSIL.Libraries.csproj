@@ -74,7 +74,6 @@
     <Content Include="Includes\Bootstrap\Core\Classes\System.Enum.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Diagnostics.StackFrame.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Diagnostics.StackTrace.js" />
-    <Content Include="Includes\Bootstrap\Core\Classes\System.Xml.Serialization.XmlSerializer.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Nullable.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\JSIL.AbstractEnumerator.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.HashSet.js" />

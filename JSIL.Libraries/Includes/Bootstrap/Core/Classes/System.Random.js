@@ -45,5 +45,7 @@
   );
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
 });
+//? }

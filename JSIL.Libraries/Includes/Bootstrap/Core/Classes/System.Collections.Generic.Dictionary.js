@@ -418,69 +418,6 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+ValueCollection
     .Overrides("System.Collections.IEnumerator", "Reset");
 });
 
-
-JSIL.MakeType({
-  BaseType: $jsilcore.TypeRef("System.Object"),
-  Name: "System.Collections.Generic.Dictionary`2+KeyCollection",
-  IsPublic: true,
-  IsReferenceType: true,
-  GenericParameters: ["TKey", "TValue"],
-  MaximumConstructorArguments: 1,
-}, function ($) {
-  $.ImplementInterfaces(
-      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection")]),
-      $jsilcore.TypeRef("System.Collections.ICollection"),
-      $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection")]),
-      $jsilcore.TypeRef("System.Collections.IEnumerable")
-  );
-});
-
-JSIL.MakeType({
-  BaseType: $jsilcore.TypeRef("System.Object"),
-  Name: "System.Collections.Generic.Dictionary`2+ValueCollection",
-  IsPublic: true,
-  IsReferenceType: true,
-  GenericParameters: ["TKey", "TValue"],
-  MaximumConstructorArguments: 1,
-}, function ($) {
-  $.ImplementInterfaces(
-      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+ValueCollection")]),
-      $jsilcore.TypeRef("System.Collections.ICollection"),
-      $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+ValueCollection")]),
-      $jsilcore.TypeRef("System.Collections.IEnumerable")
-  );
-});
-
-JSIL.MakeType({
-  BaseType: $jsilcore.TypeRef("System.ValueType"),
-  Name: "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator",
-  IsPublic: true,
-  IsReferenceType: false,
-  GenericParameters: ["TKey", "TValue"],
-  MaximumConstructorArguments: 1,
-}, function ($) {
-  $.ImplementInterfaces(
-      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator")]),
-      $jsilcore.TypeRef("System.IDisposable"),
-      $jsilcore.TypeRef("System.Collections.IEnumerator")
-  );
-});
-
-JSIL.MakeType({
-  BaseType: $jsilcore.TypeRef("System.ValueType"),
-  Name: "System.Collections.Generic.Dictionary`2+ValueCollection+Enumerator",
-  IsPublic: true,
-  IsReferenceType: false,
-  GenericParameters: ["TKey", "TValue"],
-  MaximumConstructorArguments: 1,
-}, function ($) {
-  $.ImplementInterfaces(
-      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator")]),
-      $jsilcore.TypeRef("System.IDisposable"),
-      $jsilcore.TypeRef("System.Collections.IEnumerator")
-  );
-});
-
 JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
@@ -571,3 +508,67 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+Enumerator", fu
   )
     .Overrides("System.Collections.IEnumerator", "Reset");
 });
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeType({
+  BaseType: $jsilcore.TypeRef("System.Object"),
+  Name: "System.Collections.Generic.Dictionary`2+KeyCollection",
+  IsPublic: true,
+  IsReferenceType: true,
+  GenericParameters: ["TKey", "TValue"],
+  MaximumConstructorArguments: 1,
+}, function ($) {
+  $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection")]),
+      $jsilcore.TypeRef("System.Collections.ICollection"),
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection")]),
+      $jsilcore.TypeRef("System.Collections.IEnumerable")
+  );
+});
+
+JSIL.MakeType({
+  BaseType: $jsilcore.TypeRef("System.Object"),
+  Name: "System.Collections.Generic.Dictionary`2+ValueCollection",
+  IsPublic: true,
+  IsReferenceType: true,
+  GenericParameters: ["TKey", "TValue"],
+  MaximumConstructorArguments: 1,
+}, function ($) {
+  $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+ValueCollection")]),
+      $jsilcore.TypeRef("System.Collections.ICollection"),
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+ValueCollection")]),
+      $jsilcore.TypeRef("System.Collections.IEnumerable")
+  );
+});
+
+JSIL.MakeType({
+  BaseType: $jsilcore.TypeRef("System.ValueType"),
+  Name: "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator",
+  IsPublic: true,
+  IsReferenceType: false,
+  GenericParameters: ["TKey", "TValue"],
+  MaximumConstructorArguments: 1,
+}, function ($) {
+  $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator")]),
+      $jsilcore.TypeRef("System.IDisposable"),
+      $jsilcore.TypeRef("System.Collections.IEnumerator")
+  );
+});
+
+JSIL.MakeType({
+  BaseType: $jsilcore.TypeRef("System.ValueType"),
+  Name: "System.Collections.Generic.Dictionary`2+ValueCollection+Enumerator",
+  IsPublic: true,
+  IsReferenceType: false,
+  GenericParameters: ["TKey", "TValue"],
+  MaximumConstructorArguments: 1,
+}, function ($) {
+  $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator")]),
+      $jsilcore.TypeRef("System.IDisposable"),
+      $jsilcore.TypeRef("System.Collections.IEnumerator")
+  );
+});
+//? }

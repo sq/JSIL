@@ -23,6 +23,7 @@
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   $.Property({ Public: true, Static: false }, "Count");
   $.Property({ Public: false, Static: false }, "IsReadOnly");
@@ -111,3 +112,4 @@ JSIL.MakeStruct(
     );
   }
 );
+//? }

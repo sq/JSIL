@@ -69,6 +69,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
 
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
   $.Property({ Public: true, Static: false }, "Count");
 
@@ -77,3 +78,4 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
     "System.Collections.IEnumerable"
 	);
 });
+//? }

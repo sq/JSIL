@@ -484,5 +484,7 @@ JSIL.ImplementExternals("System.Convert", function ($) {
   );
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Convert", true, [], function ($) {
 });
+//? }

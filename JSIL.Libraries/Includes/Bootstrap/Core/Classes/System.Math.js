@@ -70,5 +70,7 @@ JSIL.ImplementExternals("System.Math", function ($) {
   );
 });
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeStaticClass("System.Math", true, [], function ($) {
 });
+//? }

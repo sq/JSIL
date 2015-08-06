@@ -83,7 +83,9 @@ JSIL.ImplementExternals(
   }
 );
 
+//? if (typeof GENERATE_STUBS !== 'undefined') {
 JSIL.MakeClass("System.Object", "System.Exception", true, [], function ($) {
   $.Property({ Public: true, Static: false, Virtual: true }, "Message");
   $.Property({ Public: true, Static: false }, "InnerException");
 });
+//? }

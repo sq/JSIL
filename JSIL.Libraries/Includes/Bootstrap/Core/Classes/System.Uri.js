@@ -24,11 +24,6 @@ function pathSplit(s) {
   return s.split(/\//g).filter(function (x) { return x.length > 0 });
 }
 
-JSIL.MakeClass("System.Object", "System.Uri", true, [], function ($) {
-  $.Property({ Public: true, Static: false }, "LocalPath");
-  $.Property({ Public: true, Static: false }, "IsAbsoluteUri");
-});
-
 JSIL.ImplementExternals("System.Uri", function ($) {
   $.Method({ Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$.String], []),
@@ -68,3 +63,10 @@ JSIL.ImplementExternals("System.Uri", function ($) {
     }
   );
 });
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeClass("System.Object", "System.Uri", true, [], function ($) {
+  $.Property({ Public: true, Static: false }, "LocalPath");
+  $.Property({ Public: true, Static: false }, "IsAbsoluteUri");
+});
+//? }
