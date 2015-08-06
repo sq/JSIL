@@ -241,6 +241,7 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["
       $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")])
   );
 });
+//? }
 
 JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Generic.HashSet`1+Enumerator", false, ["T"], function ($) {
   var T = new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1+Enumerator");
@@ -251,4 +252,3 @@ JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Gener
       /* 2 */ $jsilcore.TypeRef("System.Collections.IEnumerator")
   );
 });
-//? }

@@ -39,6 +39,7 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
     /* 7 */ $jsilcore.TypeRef("System.Collections.IEnumerable")
   );
 });
+//? }
 
 JSIL.MakeStruct(
   "System.ValueType", "System.Collections.Generic.List`1+Enumerator", true, ["T"],
@@ -112,4 +113,3 @@ JSIL.MakeStruct(
     );
   }
 );
-//? }

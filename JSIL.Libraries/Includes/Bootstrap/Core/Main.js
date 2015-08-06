@@ -156,30 +156,6 @@ JSIL.MakeInterface(
 }, [
 $jsilcore.TypeRef("System.Collections.ICollection"),
 $jsilcore.TypeRef("System.Collections.IEnumerable")]);
-
-JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
-    $.Property({ Public: true, Static: false }, "Count");
-    $.Property({ Public: true, Static: false }, "Keys");
-    $.Property({ Public: true, Static: false }, "Values");
-
-    $.ImplementInterfaces(
-        $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]),
-        $jsilcore.TypeRef("System.Collections.IEnumerable"),
-        $jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]),
-        $jsilcore.TypeRef("System.Collections.IDictionary"),
-        $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]),
-        $jsilcore.TypeRef("System.Collections.ICollection")
-    );
-});
-
-JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Generic.Dictionary`2+Enumerator", false, ["TKey", "TValue"], function ($) {
-    $.ImplementInterfaces(
-        /* 0 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+Enumerator"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+Enumerator")])]),
-        /* 1 */ $jsilcore.TypeRef("System.IDisposable"),
-        /* 2 */ $jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"),
-        /* 3 */ $jsilcore.TypeRef("System.Collections.IEnumerator")
-    );
-});
 //? }
 
 //? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
