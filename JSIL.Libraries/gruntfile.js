@@ -1,25 +1,27 @@
-﻿module.exports = function (grunt) {
-    'use strict';
+﻿module.exports = function(grunt) {
+  'use strict';
 
-    grunt.loadNpmTasks('grunt-preprocessor');
+  grunt.loadNpmTasks('grunt-metascript');
 
-    grunt.initConfig({
-        preprocessor: {
-            main: {
-                options:
-                {
-                    root: "Includes"
-                },
-                files: [{
-                    expand: true,
-                    cwd: 'Sources',
-                    src: ['**/*.js'],
-                    dest: '../Libraries'
-                }]
-            }
-        }
-    });
+  grunt.initConfig({
+    metascript: {
+      main: {
+        options:
+        {
+          mode: 'transform'
+        },
+        files: [
+          {
+            expand: true,
+            cwd: 'Sources',
+            src: ['**/*.js'],
+            dest: '../Libraries'
+          }
+        ]
+      }
+    }
+  });
 
-    grunt.registerTask('build-Debug', ['preprocessor']);
-    grunt.registerTask('build-Release', ['preprocessor']);
+  grunt.registerTask('build-Debug', ['metascript']);
+  grunt.registerTask('build-Release', ['metascript']);
 };

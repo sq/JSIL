@@ -1,5 +1,4 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.InitResizableArray.js"
-
+﻿//? include("../Utils/$jsilcore.InitResizableArray.js");
 JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   var system = JSIL.GetAssembly("System", true);
 

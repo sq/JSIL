@@ -1,4 +1,5 @@
-﻿JSIL.$WrapIComparer = function (T, comparer) {
+﻿/*? if (typeof JSIL_$WrapIComparer === 'undefined') { JSIL_$WrapIComparer = true; */
+JSIL.$WrapIComparer = function (T, comparer) {
   var compare;
   if (T !== null) {
     var tComparer = System.Collections.Generic.IComparer$b1.Of(T);
@@ -11,3 +12,4 @@
     return compare.Call(comparer, null, lhs, rhs);
   };
 };
+/*? }*/

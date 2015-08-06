@@ -1,6 +1,5 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$MakeParseExternals.js"
-// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseInt.js"
-
+﻿//? include("../Utils/$jsilcore.$MakeParseExternals.js");
+//? include("../Utils/$jsilcore.$ParseInt.js");
 JSIL.ImplementExternals(
   "System.UInt32", function ($) {
     $.RawMethod(true, "CheckType", function (value) {

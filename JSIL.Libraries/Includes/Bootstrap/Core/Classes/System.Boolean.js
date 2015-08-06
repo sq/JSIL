@@ -1,6 +1,5 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$MakeParseExternals.js"
-// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseBoolean.js"
-
+﻿//? include("../Utils/$jsilcore.$MakeParseExternals.js");
+//? include("../Utils/$jsilcore.$ParseBoolean.js");
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
     $.RawMethod(true, "CheckType", function (value) {

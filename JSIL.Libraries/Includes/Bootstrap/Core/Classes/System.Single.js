@@ -1,6 +1,5 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$MakeParseExternals.js"
-// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseFloat.js"
-
+﻿//? include("../Utils/$jsilcore.$MakeParseExternals.js");
+//? include("../Utils/$jsilcore.$ParseFloat.js");
 JSIL.ImplementExternals(
   "System.Single", function ($) {
     $.RawMethod(true, "CheckType", function (value) {

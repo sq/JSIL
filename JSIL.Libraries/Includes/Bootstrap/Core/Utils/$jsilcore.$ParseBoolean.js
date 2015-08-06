@@ -1,4 +1,5 @@
-﻿$jsilcore.$ParseBoolean = function (text) {
+﻿/*? if (typeof $jsilcore_$ParseBoolean === 'undefined') { $jsilcore_$ParseBoolean = true; */
+$jsilcore.$ParseBoolean = function (text) {
   if (arguments.length !== 1)
     throw new Error("NumberStyles not supported");
 
@@ -22,3 +23,4 @@ $jsilcore.$TryParseBoolean = function (text, result) {
 
   return false;
 };
+/*? }*/

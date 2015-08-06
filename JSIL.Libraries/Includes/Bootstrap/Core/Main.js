@@ -1,0 +1,403 @@
+﻿"use strict";
+
+if (typeof (JSIL) === "undefined")
+    throw new Error("JSIL.Core is required");
+
+if (!$jsilcore)
+    throw new Error("JSIL.Core is required");
+
+JSIL.DeclareNamespace("System.ComponentModel");
+JSIL.DeclareNamespace("System.IO");
+JSIL.DeclareNamespace("System.Text.RegularExpressions");
+JSIL.DeclareNamespace("System.Diagnostics");
+JSIL.DeclareNamespace("System.Collections.Generic");
+JSIL.DeclareNamespace("System.Collections.ObjectModel");
+JSIL.DeclareNamespace("System.Runtime");
+JSIL.DeclareNamespace("System.Runtime.InteropServices");
+
+//? include("Classes/System.String.js"); writeln();
+//? include("Classes/System.Exception.js"); writeln();
+//? include("Classes/System.Boolean.js"); writeln();
+//? include("Classes/System.Char.js"); writeln();
+//? include("Classes/System.Byte.js"); writeln();
+//? include("Classes/System.SByte.js"); writeln();
+//? include("Classes/System.UInt16.js"); writeln();
+//? include("Classes/System.Int16.js"); writeln();
+//? include("Classes/System.UInt32.js"); writeln();
+//? include("Classes/System.Int32.js"); writeln();
+//? include("Classes/System.Single.js"); writeln();
+//? include("Classes/System.Double.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
+JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
+JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
+JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
+//? }
+
+//? include("Classes/System.Delegate.js"); writeln();
+//? include("Classes/System.MulticastDelegate.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
+JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
+JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T1", "System.Action`2").in(), new JSIL.GenericParameter("T2", "System.Action`2").in()]));
+JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"], new JSIL.MethodSignature(null, [
+      new JSIL.GenericParameter("T1", "System.Action`3").in(), new JSIL.GenericParameter("T2", "System.Action`3").in(),
+      new JSIL.GenericParameter("T3", "System.Action`3").in()
+]));
+
+JSIL.MakeDelegate("System.Func`1", true, ["TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`1").out(), null));
+JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`2").out(), [new JSIL.GenericParameter("T", "System.Func`2").in()]));
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`3").out(), [new JSIL.GenericParameter("T1", "System.Func`3").in(), new JSIL.GenericParameter("T2", "System.Func`3").in()]));
+JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`4").out(), [
+      new JSIL.GenericParameter("T1", "System.Func`4").in(), new JSIL.GenericParameter("T2", "System.Func`4").in(),
+      new JSIL.GenericParameter("T3", "System.Func`4").in()
+]));
+
+JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.Predicate`1").in()]));
+//? }
+
+//? include("Classes/System.SystemException.js"); writeln();
+//? include("Classes/System.InvalidCastException.js"); writeln();
+//? include("Classes/System.InvalidOperationException.js"); writeln();
+//? include("Classes/System.IO.FileNotFoundException.js"); writeln();
+//? include("Classes/System.FormatException.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
+JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
+JSIL.MakeClass("System.SystemException", "System.TypeLoadException", true);
+
+JSIL.MakeClass("System.SystemException", "System.ArgumentException", true);
+JSIL.MakeClass("System.SystemException", "System.ArgumentOutOfRangeException", true);
+
+JSIL.MakeClass("System.SystemException", "System.IOException", true);
+JSIL.MakeClass("System.IOException", "System.IO.EndOfStreamException", true);
+
+JSIL.MakeClass("System.SystemException", "System.NullReferenceException", true);
+
+JSIL.MakeClass("System.SystemException", "System.ArithmeticException", true);
+JSIL.MakeClass("System.ArithmeticException", "System.OverflowException", true);
+
+JSIL.MakeClass("System.SystemException", "System.Collections.Generic.KeyNotFoundException", true);
+
+JSIL.MakeClass("System.TypeLoadException", "System.DllNotFoundException", true);
+JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException", true);
+//? }
+
+//? include("Classes/System.Console.js"); writeln();
+//? include("Classes/System.Diagnostics.Debug.js"); writeln();
+
+//? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
+//? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();
+//? include("Classes/System.Threading.Thread.js"); writeln();
+
+//? include("Helpers/$jsilcore.$ListExternals.js"); writeln();
+//? include("Classes/System.Collections.Generic.List.js"); writeln();
+//? include("Classes/System.Collections.ArrayList.js"); writeln();
+//? include("Classes/System.Collections.ObjectModel.Collection.js"); writeln();
+//? include("Classes/System.Collections.ObjectModel.ReadOnlyCollection.js"); writeln();
+//? include("Classes/System.Collections.Generic.Stack.js"); writeln();
+//? include("Classes/System.Collections.Generic.Queue.js"); writeln();
+
+//? include("Classes/System.Threading.Interlocked.js"); writeln();
+//? include("Classes/System.Threading.Monitor.js"); writeln();
+//? include("Classes/System.Threading.Volatile.js"); writeln();
+
+
+//? include("Classes/System.Random.js"); writeln();
+//? include("Classes/System.Math.js"); writeln();
+
+//? include("Classes/System.Decimal.js"); writeln();
+
+//? include("Classes/System.Environment.js"); writeln();
+
+//? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
+//? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.Collections.Generic.IDictionary`2", true, ["TKey", "TValue"], function ($) {
+      $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")], []));
+      $.Method({}, "set_Item", new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")], []));
+      $.Method({}, "get_Keys", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")]), [], []));
+      $.Method({}, "get_Values", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")]), [], []));
+      $.Method({}, "ContainsKey", new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")], []));
+      $.Method({}, "Add", new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")], []));
+      $.Method({}, "Remove", new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")], []));
+      $.Method({}, "TryGetValue", new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2"), $jsilcore.TypeRef("JSIL.Reference", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")])], []));
+      $.Property({}, "Item");
+      $.Property({}, "Keys");
+      $.Property({}, "Values");
+  }, [
+  $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")])]),
+  $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2")])]),
+  $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+
+JSIL.MakeInterface(
+"System.Collections.IDictionary", true, [], function ($) {
+    $.Method({}, "get_Item", new JSIL.MethodSignature($.Object, [$.Object], []));
+    $.Method({}, "set_Item", new JSIL.MethodSignature(null, [$.Object, $.Object], []));
+    $.Method({}, "get_Keys", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.ICollection"), [], []));
+    $.Method({}, "get_Values", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.ICollection"), [], []));
+    $.Method({}, "Contains", new JSIL.MethodSignature($.Boolean, [$.Object], []));
+    $.Method({}, "Add", new JSIL.MethodSignature(null, [$.Object, $.Object], []));
+    $.Method({}, "Clear", JSIL.MethodSignature.Void);
+    $.Method({}, "get_IsReadOnly", new JSIL.MethodSignature($.Boolean, [], []));
+    $.Method({}, "get_IsFixedSize", new JSIL.MethodSignature($.Boolean, [], []));
+    $.Method({}, "GetEnumerator", new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"), [], []));
+    $.Method({}, "Remove", new JSIL.MethodSignature(null, [$.Object], []));
+    $.Property({}, "Item");
+    $.Property({}, "Keys");
+    $.Property({}, "Values");
+    $.Property({}, "IsReadOnly");
+    $.Property({}, "IsFixedSize");
+}, [
+$jsilcore.TypeRef("System.Collections.ICollection"),
+$jsilcore.TypeRef("System.Collections.IEnumerable")]);
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
+    $.Property({ Public: true, Static: false }, "Count");
+    $.Property({ Public: true, Static: false }, "Keys");
+    $.Property({ Public: true, Static: false }, "Values");
+
+    $.ImplementInterfaces(
+        $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]),
+        $jsilcore.TypeRef("System.Collections.IEnumerable"),
+        $jsilcore.TypeRef("System.Collections.Generic.IDictionary`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]),
+        $jsilcore.TypeRef("System.Collections.IDictionary"),
+        $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]),
+        $jsilcore.TypeRef("System.Collections.ICollection")
+    );
+});
+
+JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Generic.Dictionary`2+Enumerator", false, ["TKey", "TValue"], function ($) {
+    $.ImplementInterfaces(
+        /* 0 */ $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+Enumerator"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+Enumerator")])]),
+        /* 1 */ $jsilcore.TypeRef("System.IDisposable"),
+        /* 2 */ $jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"),
+        /* 3 */ $jsilcore.TypeRef("System.Collections.IEnumerator")
+    );
+});
+//? }
+
+//? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
+
+//? include("Helpers/JSIL.Dispose.js"); writeln();
+//? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
+//? include("Helpers/JSIL.GetEnumerator.js"); writeln();
+
+//? include("Classes/JSIL.AbstractEnumerator.js"); writeln();
+//? include("Classes/System.Nullable.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
+//? }
+
+//? include("Classes/System.Xml.Serialization.XmlSerializer.js"); writeln();
+
+//? include("Classes/System.Diagnostics.StackTrace.js"); writeln();
+//? include("Classes/System.Diagnostics.StackFrame.js"); writeln();
+
+//? include("Classes/System.Enum.js"); writeln();
+//? include("Classes/System.Activator.js"); writeln();
+
+//? include("Classes/System.Diagnostics.Stopwatch.js"); writeln();
+//? include("Classes/System.EventArgs.js"); writeln();
+
+//? include("Classes/System.ComponentModel.PropertyChangedEventArgs.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeEnum(
+  "System.IO.FileMode", true, {
+      CreateNew: 1,
+      Create: 2,
+      Open: 3,
+      OpenOrCreate: 4,
+      Truncate: 5,
+      Append: 6
+  }, false
+);
+//? }
+
+//? include("Classes/System.GC.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeEnum(
+  "System.Globalization.NumberStyles", true, {
+      None: 0,
+      AllowLeadingWhite: 1,
+      AllowTrailingWhite: 2,
+      AllowLeadingSign: 4,
+      Integer: 7,
+      AllowTrailingSign: 8,
+      AllowParentheses: 16,
+      AllowDecimalPoint: 32,
+      AllowThousands: 64,
+      Number: 111,
+      AllowExponent: 128,
+      Float: 167,
+      AllowCurrencySymbol: 256,
+      Currency: 383,
+      Any: 511,
+      AllowHexSpecifier: 512,
+      HexNumber: 515
+  }, true
+);
+//? }
+
+//? include("Classes/System.Convert.js"); writeln();
+//? include("Classes/System.BitConverter.js"); writeln();
+//? include("Helpers/JSIL.ParseDataURL.js"); writeln();
+
+//? include("Classes/System.Collections.Generic.LinkedList.js"); writeln();
+//? include("Classes/System.Collections.Generic.LinkedListNode.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.Collections.IComparer", true, [],
+  function ($) {
+      $.Method({}, "Compare",
+        new JSIL.MethodSignature($.Int32, [$.Object, $.Object], [])
+      );
+  }, []
+);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IComparer`1", true, ["in T"],
+  function ($) {
+      var T = new JSIL.GenericParameter("T", "System.Collections.Generic.IComparer`1").in();
+
+      $.Method({}, "Compare",
+        new JSIL.MethodSignature($.Int32, [T, T], [])
+      );
+  }, []
+);
+//? }
+
+//? include("Classes/System.Collections.Generic.Comparer.js"); writeln();
+//? include("Classes/JSIL.DefaultComparer.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.ITuple", false, [], function ($) {
+      $.Method({}, "ToString", (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Text.StringBuilder")], [])));
+      $.Method({}, "GetHashCode", (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Collections.IEqualityComparer")], [])));
+      $.Method({}, "get_Size", (new JSIL.MethodSignature($.Int32, [], [])));
+      $.Property({}, "Size");
+  }, []);
+
+JSIL.MakeStaticClass("System.Tuple", true, [], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`1", true, ["T1"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`2", true, ["T1", "T2"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`3", true, ["T1", "T2", "T3"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`4", true, ["T1", "T2", "T3", "T4"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`5", true, ["T1", "T2", "T3", "T4", "T5"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`6", true, ["T1", "T2", "T3", "T4", "T5", "T6"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`7", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`8", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"], function ($) {
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Tuple`9", true, ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"], function ($) {
+});
+
+JSIL.MakeInterface(
+  "System.IAsyncResult", true, [], function ($) {
+      $.Method({}, "get_IsCompleted", new JSIL.MethodSignature($.Boolean, [], []));
+      $.Method({}, "get_AsyncWaitHandle", new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.WaitHandle"), [], []));
+      $.Method({}, "get_AsyncState", new JSIL.MethodSignature($.Object, [], []));
+      $.Method({}, "get_CompletedSynchronously", new JSIL.MethodSignature($.Boolean, [], []));
+      $.Property({}, "IsCompleted");
+      $.Property({}, "AsyncWaitHandle");
+      $.Property({}, "AsyncState");
+      $.Property({}, "CompletedSynchronously");
+  }, []);
+//? }
+
+//? include("Classes/System.Array.js"); writeln();
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.IConvertible", true, [], function ($) {
+      $.Method({}, "GetTypeCode", new JSIL.MethodSignature($jsilcore.TypeRef("System.TypeCode"), [], []));
+      $.Method({}, "ToBoolean", new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToChar", new JSIL.MethodSignature($.Char, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToSByte", new JSIL.MethodSignature($.SByte, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToByte", new JSIL.MethodSignature($.Byte, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToInt16", new JSIL.MethodSignature($.Int16, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToUInt16", new JSIL.MethodSignature($.UInt16, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToInt32", new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToUInt32", new JSIL.MethodSignature($.UInt32, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToInt64", new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToUInt64", new JSIL.MethodSignature($.UInt64, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToSingle", new JSIL.MethodSignature($.Single, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToDouble", new JSIL.MethodSignature($.Double, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToDecimal", new JSIL.MethodSignature($jsilcore.TypeRef("System.Decimal"), [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToDateTime", new JSIL.MethodSignature($jsilcore.TypeRef("System.DateTime"), [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToString", new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.IFormatProvider")], []));
+      $.Method({}, "ToType", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.IFormatProvider")], []));
+  }, []);
+
+JSIL.MakeInterface(
+  "System.IFormatProvider", true, [], function ($) {
+      $.Method({}, "GetFormat", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], []));
+  }, []);
+//? }
+
+//? include("Classes/System.WeakReference.js"); writeln();
+
+//? include("Classes/System.Diagnostics.Trace.js"); writeln();
+
+/* interface System.Collections.Generic.IReadOnlyCollection`1 */
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.Collections.Generic.IReadOnlyCollection`1", true, ["out T"], function ($) {
+      $.Method({}, "get_Count", new JSIL.MethodSignature($.Int32, [], []));
+      $.Property({}, "Count");
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyCollection`1").out()]), $jsilcore.TypeRef("System.Collections.IEnumerable")])
+  .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
+  .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));
+//? }
+
+/* interface System.Collections.Generic.IReadOnlyList`1 */
+
+//? if (typeof GENERATE_STUBS !== 'undefined') {
+JSIL.MakeInterface(
+  "System.Collections.Generic.IReadOnlyList`1", true, ["out T"], function ($) {
+      $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out(), [$.Int32], []));
+      $.Property({}, "Item");
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IReadOnlyCollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out()]), $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out()]), $jsilcore.TypeRef("System.Collections.IEnumerable")])
+  .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
+  .Attribute($jsilcore.TypeRef("System.Reflection.DefaultMemberAttribute"), function () { return ["Item"]; })
+  .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));
+
+JSIL.MakeInterface(
+  "System.Runtime.InteropServices.ICustomMarshaler", true, [], function ($) {
+      $.Method({}, "MarshalNativeToManaged", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.IntPtr")]));
+      $.Method({}, "MarshalManagedToNative", new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [$.Object]));
+      $.Method({}, "CleanUpNativeData", JSIL.MethodSignature.Action($jsilcore.TypeRef("System.IntPtr")));
+      $.Method({}, "CleanUpManagedData", JSIL.MethodSignature.Action($.Object));
+      $.Method({}, "GetNativeDataSize", JSIL.MethodSignature.Return($.Int32));
+  }, []);
+//? }
+
+//? include("Classes/System.Collections.BitArray.js"); writeln();
+//? include("Classes/System.Uri.js"); writeln();

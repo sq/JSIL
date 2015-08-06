@@ -1,5 +1,4 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.hashContainerBase.js"
-
+﻿//? include("../Utils/$jsilcore.hashContainerBase.js");
 JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", $jsilcore.hashContainerBase);
 
 JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) {

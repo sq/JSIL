@@ -1,7 +1,6 @@
-﻿// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseInt.js"
-// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseFloat.js"
-// #include_once "Bootstrap/Core/Utils/$jsilcore.$ParseBoolean.js"
-
+﻿//? include("../Utils/$jsilcore.$ParseInt.js");
+//? include("../Utils/$jsilcore.$ParseFloat.js");
+//? include("../Utils/$jsilcore.$ParseBoolean.js");
 JSIL.ImplementExternals("System.Convert", function ($) {
   $.Method({ Static: true, Public: true }, "ChangeType",
     (new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Type")], [])),

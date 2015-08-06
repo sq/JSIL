@@ -1,4 +1,5 @@
-﻿$jsilcore.$ParseFloat = function (text, style) {
+﻿/*? if (typeof $jsilcore_$ParseFloat === 'undefined') { $jsilcore_$ParseFloat = true; */
+$jsilcore.$ParseFloat = function (text, style) {
   var temp = new JSIL.BoxedVariable(null);
   if ($jsilcore.$TryParseFloat(text, style, temp))
     return temp.get();
@@ -34,3 +35,4 @@ $jsilcore.$TryParseFloat = function (text, style, result) {
     return true;
   }
 };
+/*? }*/
