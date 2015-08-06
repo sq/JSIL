@@ -123,10 +123,11 @@
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
     <Content Include="Sources\gamepad.js" />
+    <Content Include="Sources\IgnoredBCL\JSIL.Bootstrap.js" />
     <Content Include="Sources\JSIL.Bootstrap.Async.js" />
     <Content Include="Sources\JSIL.Bootstrap.DateTime.js" />
     <Content Include="Sources\JSIL.Bootstrap.Int64.js" />
-    <Content Include="Sources\JSIL.Bootstrap.js" />
+    <Content Include="Sources\StubbedBCL\JSIL.Bootstrap.js" />
     <Content Include="Sources\JSIL.Bootstrap.Linq.js" />
     <Content Include="Sources\JSIL.Bootstrap.Resources.js" />
     <Content Include="Sources\JSIL.Bootstrap.Text.js" />
