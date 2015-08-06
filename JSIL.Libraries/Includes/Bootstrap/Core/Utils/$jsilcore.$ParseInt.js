@@ -1,4 +1,4 @@
-﻿/*? if ('$jsilcore_$ParseInt' in __out) { __out.$jsilcore_$ParseInt = true; */
+﻿/*? if (!('$jsilcore_$ParseInt' in __out)) { __out.$jsilcore_$ParseInt = true; */
 $jsilcore.$ParseInt = function (text, style) {
   var temp = new JSIL.BoxedVariable(null);
   if ($jsilcore.$TryParseInt(text, style, temp))

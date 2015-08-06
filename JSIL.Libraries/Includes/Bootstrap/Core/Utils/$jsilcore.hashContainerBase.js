@@ -1,4 +1,4 @@
-﻿/*? if ('$jsilcore_hashContainerBase' in __out) { __out.$jsilcore_hashContainerBase = true; */
+﻿/*? if (!('$jsilcore_hashContainerBase' in __out)) { __out.$jsilcore_hashContainerBase = true; */
 $jsilcore.hashContainerBase = function ($) {
   var mscorlib = JSIL.GetCorlib();
 

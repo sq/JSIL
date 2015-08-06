@@ -1,4 +1,4 @@
-﻿/*? if ('$jsilcore_$ParseFloat' in __out) { __out.$jsilcore_$ParseFloat = true; */
+﻿/*? if (!('$jsilcore_$ParseFloat' in __out)) { __out.$jsilcore_$ParseFloat = true; */
 $jsilcore.$ParseFloat = function (text, style) {
   var temp = new JSIL.BoxedVariable(null);
   if ($jsilcore.$TryParseFloat(text, style, temp))
