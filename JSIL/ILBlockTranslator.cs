@@ -603,8 +603,10 @@ namespace JSIL {
 
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
-                        argsDict["typeof(" + kvp.Name + ")"] = Translate_TypeOf(kvp.Value.GetActualType(TypeSystem));
-                        argsDict["etypeof(" + kvp.Name + ")"] = Translate_TypeOf(kvp.Value.GetActualType(TypeSystem).GetElementType());
+                        var type = kvp.Value.GetActualType(TypeSystem);
+                        argsDict["typeof(" + kvp.Name + ")"] = Translate_TypeOf(type);
+                        var typeSpecification = type as TypeSpecification;
+                        argsDict["etypeof(" + kvp.Name + ")"] = Translate_TypeOf(typeSpecification != null ? typeSpecification.ElementType : type.GetElementType());
                     }
 
                     var isConstantIfArgumentsAre = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSIsPure");

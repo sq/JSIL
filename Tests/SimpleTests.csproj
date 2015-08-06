@@ -114,6 +114,7 @@
     <None Include="SimpleTestCases\ObjectVirtualMethods.cs" />
     <None Include="SimpleTestCases\RawTypeIsObject_Issue754.cs" />
     <None Include="SimpleTestCases\HashSetSameHash_Issue752.cs" />
+    <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
