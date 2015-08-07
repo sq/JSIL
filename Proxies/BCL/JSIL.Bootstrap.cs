@@ -163,17 +163,6 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
-    [JSProxy(typeof(Dictionary<,>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
-    [JSStubOnly]
-    public class System_Collections_Generic_Dictionary_2
-    {
-    }
-
-    [JSProxy(typeof(KeyValuePair<,>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
-    [JSStubOnly]
-    public class System_Collections_Generic_KeyValuePair_2
-    {
-    }
 
     [JSProxy(typeof(Nullable), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
@@ -226,12 +215,6 @@ namespace JSIL.Proxies.Bcl
     [JSProxy(typeof(GC), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_GC
-    {
-    }
-
-    [JSProxy(typeof(HashSet<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
-    [JSStubOnly]
-    public class System_Collections_Generic_HashSet_1
     {
     }
 

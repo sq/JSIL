@@ -247,11 +247,18 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Unsafe.js");
   environment.loadScript(libraryRoot + "JSIL.PInvoke.js");
 
-  if (config.bclMode === "stubbed" || environment.getUserSetting("bclMode") === "stubbed") {
+  if (!config.bclMode) {
+    config.bclMode = environment.getUserSetting("bclMode");
+  }
+
+  if (config.bclMode === "translated") {
+    environment.loadScript(libraryRoot + "TranslatedBCL/JSIL.Bootstrap.js");
+  } else if (config.bclMode === "stubbed") {
     environment.loadScript(libraryRoot + "StubbedBCL/JSIL.Bootstrap.js");
   } else {
     environment.loadScript(libraryRoot + "IgnoredBCL/JSIL.Bootstrap.js");
   }
+
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Int64.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");

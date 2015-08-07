@@ -113,8 +113,11 @@ JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException",
 
 //? include("Classes/System.Environment.js"); writeln();
 
-//? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
-//? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
+  //? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
+  //? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
+//? }
 
 //? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
@@ -157,8 +160,6 @@ JSIL.MakeInterface(
 $jsilcore.TypeRef("System.Collections.ICollection"),
 $jsilcore.TypeRef("System.Collections.IEnumerable")]);
 //? }
-
-//? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
 
 //? include("Helpers/JSIL.Dispose.js"); writeln();
 //? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
