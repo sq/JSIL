@@ -1,4 +1,5 @@
-﻿$jsilcore.hashContainerBase = function ($) {
+﻿/*? if (!('$jsilcore_hashContainerBase' in __out)) { __out.$jsilcore_hashContainerBase = true; */
+$jsilcore.hashContainerBase = function ($) {
   var mscorlib = JSIL.GetCorlib();
 
   var BucketEntry = function (key, value) {
@@ -59,3 +60,4 @@
     return value;
   });
 };
+/*? }*/

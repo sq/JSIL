@@ -1,4 +1,5 @@
-﻿$jsilcore.$ParseInt = function (text, style) {
+﻿/*? if (!('$jsilcore_$ParseInt' in __out)) { __out.$jsilcore_$ParseInt = true; */
+$jsilcore.$ParseInt = function (text, style) {
   var temp = new JSIL.BoxedVariable(null);
   if ($jsilcore.$TryParseInt(text, style, temp))
     return temp.get();
@@ -21,3 +22,4 @@ $jsilcore.$TryParseInt = function (text, style, result) {
   result.set(parsed = parseInt(text, radix));
   return !isNaN(parsed);
 };
+/*? }*/

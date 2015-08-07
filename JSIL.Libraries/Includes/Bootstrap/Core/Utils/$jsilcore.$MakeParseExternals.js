@@ -1,4 +1,5 @@
-﻿$jsilcore.$MakeParseExternals = function ($, type, parse, tryParse) {
+﻿/*? if (!('$jsilcore_$MakeParseExternals' in __out)) { __out.$jsilcore_$MakeParseExternals = true; */
+$jsilcore.$MakeParseExternals = function ($, type, parse, tryParse) {
   $.Method({ Static: true, Public: true }, "Parse",
     (new JSIL.MethodSignature(type, [$.String], [])),
     parse
@@ -14,3 +15,4 @@
     tryParse
   );
 };
+/*? }*/
