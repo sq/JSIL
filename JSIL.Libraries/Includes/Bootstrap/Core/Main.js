@@ -15,8 +15,14 @@ JSIL.DeclareNamespace("System.Collections.ObjectModel");
 JSIL.DeclareNamespace("System.Runtime");
 JSIL.DeclareNamespace("System.Runtime.InteropServices");
 
-//? include("Classes/System.String.js"); writeln();
-//? include("Classes/System.Exception.js"); writeln();
+//? include("Helpers/$jsilcore.$ListExternals.js"); writeln();
+//? include("Helpers/JSIL.Dispose.js"); writeln();
+//? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
+//? include("Helpers/JSIL.GetEnumerator.js"); writeln();
+
+//? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
+//? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();
+
 //? include("Classes/System.Boolean.js"); writeln();
 //? include("Classes/System.Char.js"); writeln();
 //? include("Classes/System.Byte.js"); writeln();
@@ -28,6 +34,17 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Classes/System.Single.js"); writeln();
 //? include("Classes/System.Double.js"); writeln();
 
+//? include("Classes/System.Array.js"); writeln();
+
+//? include("Classes/System.Delegate.js"); writeln();
+//? include("Classes/System.MulticastDelegate.js"); writeln();
+
+//? include("Classes/System.Decimal.js"); writeln();
+
+//? include("Classes/System.String.js"); writeln();
+//? include("Classes/System.Exception.js"); writeln();
+
+
 //? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
@@ -35,8 +52,6 @@ JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 //? }
 
-//? include("Classes/System.Delegate.js"); writeln();
-//? include("Classes/System.MulticastDelegate.js"); writeln();
 
 //? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
@@ -89,17 +104,16 @@ JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException",
 //? include("Classes/System.Console.js"); writeln();
 //? include("Classes/System.Diagnostics.Debug.js"); writeln();
 
-//? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
-//? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();
 //? include("Classes/System.Threading.Thread.js"); writeln();
 
-//? include("Helpers/$jsilcore.$ListExternals.js"); writeln();
-//? include("Classes/System.Collections.Generic.List.js"); writeln();
-//? include("Classes/System.Collections.ArrayList.js"); writeln();
-//? include("Classes/System.Collections.ObjectModel.Collection.js"); writeln();
-//? include("Classes/System.Collections.ObjectModel.ReadOnlyCollection.js"); writeln();
-//? include("Classes/System.Collections.Generic.Stack.js"); writeln();
-//? include("Classes/System.Collections.Generic.Queue.js"); writeln();
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.Collections.Generic.List.js"); writeln();
+  //? include("Classes/System.Collections.ArrayList.js"); writeln();
+  //? include("Classes/System.Collections.ObjectModel.Collection.js"); writeln();
+  //? include("Classes/System.Collections.ObjectModel.ReadOnlyCollection.js"); writeln();
+  //? include("Classes/System.Collections.Generic.Stack.js"); writeln();
+  //? include("Classes/System.Collections.Generic.Queue.js"); writeln();
+//? }
 
 //? include("Classes/System.Threading.Interlocked.js"); writeln();
 //? include("Classes/System.Threading.Monitor.js"); writeln();
@@ -108,8 +122,6 @@ JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException",
 
 //? include("Classes/System.Random.js"); writeln();
 //? include("Classes/System.Math.js"); writeln();
-
-//? include("Classes/System.Decimal.js"); writeln();
 
 //? include("Classes/System.Environment.js"); writeln();
 
@@ -160,10 +172,6 @@ JSIL.MakeInterface(
 $jsilcore.TypeRef("System.Collections.ICollection"),
 $jsilcore.TypeRef("System.Collections.IEnumerable")]);
 //? }
-
-//? include("Helpers/JSIL.Dispose.js"); writeln();
-//? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
-//? include("Helpers/JSIL.GetEnumerator.js"); writeln();
 
 //? include("Classes/JSIL.AbstractEnumerator.js"); writeln();
 //? include("Classes/System.Nullable.js"); writeln();
@@ -306,7 +314,6 @@ JSIL.MakeInterface(
   }, []);
 //? }
 
-//? include("Classes/System.Array.js"); writeln();
 
 //? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
