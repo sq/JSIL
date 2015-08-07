@@ -23,6 +23,7 @@ namespace JSIL.Internal {
 
     public class TypeReferenceContext {
         private struct _State {
+            public bool EnclosingTypeSkipped;
             public TypeReference EnclosingType;
             public TypeReference DefiningType;
 
@@ -49,9 +50,23 @@ namespace JSIL.Internal {
                 return State.EnclosingType;
             }
             set {
+                State.EnclosingTypeSkipped = false;
                 State.EnclosingType = value;
             }
         }
+
+        public bool EnclosingTypeSkipped
+        {
+            get
+            {
+                return State.EnclosingTypeSkipped;
+            }
+            set
+            {
+                State.EnclosingTypeSkipped = value;
+            }
+        }
+
         public TypeReference DefiningType {
             get {
                 return State.DefiningType;
@@ -175,12 +190,10 @@ namespace JSIL.Internal {
             "System.Boolean", "System.Char", "System.IntPtr", "System.UIntPtr"
         };
 
-        protected readonly Func<MemberReference, bool> ShouldSkipMember;
-
         public JavascriptFormatter (
             TextWriter output, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
-            Configuration configuration, Func<MemberReference, bool> shouldSkipMember,
+            Configuration configuration,
             bool stubbed
         ) {
             Output = output;
@@ -189,7 +202,6 @@ namespace JSIL.Internal {
             Assembly = assembly;
             Configuration = configuration;
             Stubbed = stubbed;
-            ShouldSkipMember = shouldSkipMember;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
@@ -690,7 +702,7 @@ namespace JSIL.Internal {
             if (
                 (context != null) &&
                 (context.EnclosingType != null) &&
-                !ShouldSkipMember(context.EnclosingType)
+                !context.EnclosingTypeSkipped
             ) {
                 if (TypeUtil.TypesAreEqual(type, context.EnclosingType, true)) {
                     // Types can reference themselves, so this prevents recursive initialization.

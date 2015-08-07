@@ -884,7 +884,7 @@ namespace JSIL {
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(
-                tw, this._TypeInfoProvider, Manifest, assembly, Configuration, ShouldSkipMember, stubbed
+                tw, this._TypeInfoProvider, Manifest, assembly, Configuration, stubbed
             );
 
             formatter.Comment(GetHeaderText());
@@ -1253,12 +1253,32 @@ namespace JSIL {
                 stubbed = true;
             }
 
-            if (ShouldSkipMember(typedef))
-            {
-                declaredTypes.Add(typedef);
+            declaredTypes.Add(typedef);
+            bool declareOnlyInternalTypes = ShouldSkipMember(typedef);
+
+            // This type is defined in JSIL.Core so we don't want to cause a name collision.
+            if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
+                output.WriteRaw("JSIL.MakeTypeAlias");
+                output.LPar();
+
+                output.WriteRaw("$jsilcore");
+                output.Comma();
+
+                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
+
+
+                output.RPar();
+                output.Semicolon();
+                output.NewLine();
+
+                declareOnlyInternalTypes = true;
+            }
+
+            if (declareOnlyInternalTypes) {
                 // We still may need to declare inner types.
                 astEmitter.ReferenceContext.Push();
                 astEmitter.ReferenceContext.EnclosingType = typedef;
+                astEmitter.ReferenceContext.EnclosingTypeSkipped = true;
 
                 try
                 {
@@ -1273,32 +1293,11 @@ namespace JSIL {
                 return;
             }
 
-            // This type is defined in JSIL.Core so we don't want to cause a name collision.
-            if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
-                declaredTypes.Add(typedef);
-
-                output.WriteRaw("JSIL.MakeTypeAlias");
-                output.LPar();
-
-                output.WriteRaw("$jsilcore");
-                output.Comma();
-
-                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
-
-                output.RPar();
-                output.Semicolon();
-                output.NewLine();
-
-                return;
-            }
-
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningType = typedef;
             context.CurrentType = typedef;
 
             try {
-                declaredTypes.Add(typedef);
-
                 // type has a JS replacement, we can't correctly emit a stub or definition for it. 
                 // We do want to process nested types, though.
                 if (typeInfo.Replacement != null) {
