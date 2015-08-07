@@ -39,10 +39,16 @@ JSIL.ImplementExternals("System.Array", function ($) {
   };
 
   var sortImpl = function (array, index, length, comparison) {
-    if ((index !== 0) || (length !== array.length))
-      JSIL.RuntimeError("Sorting a subset of an array is not implemented");
+    if (length < 2) {
+      return;
+    }
 
-    Array.prototype.sort.call(array, comparison);
+    if ((index !== 0) || (length !== array.length)) {
+      var sortedArrayPart = Array.prototype.slice.call(array, index, length).sort(comparison);
+      Array.prototype.splice.apply(array, [index, length].concat(sortedArrayPart));
+    } else {
+      Array.prototype.sort.call(array, comparison);
+    }
   };
 
   $.Method({ Static: true, Public: true }, "Copy",
