@@ -129,6 +129,9 @@ var $jsilloaderstate = {
 
   Environment_SpidermonkeyShell.prototype.getUserSetting = function (key) {
     // FIXME
+    if (typeof (jsilEnvironmentSettings) === "object" && key in jsilEnvironmentSettings) {
+      return jsilEnvironmentSettings[key];
+    }
     return false;
   };
 

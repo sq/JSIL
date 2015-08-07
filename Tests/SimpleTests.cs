@@ -27,17 +27,22 @@ namespace JSIL.SimpleTests {
     }
 
     [TestFixture]
-    public class SimpleTestsForBcl : GenericTestFixture {
+    public class SimpleTestCasesForStubbedBcl : GenericTestFixture {
+        protected override Dictionary<string, string> SetupEvaluatorEnvironment()
+        {
+            return new Dictionary<string, string> { { "bclMode", "stubbed" } };
+        }
+
         [Test]
         [TestCaseSource("SimpleTestCasesSourceForStubbedBcl")]
-        public void SimpleTestCasesForStubbedBcl (object[] parameters) {
+        public void TestCases (object[] parameters) {
             Func<Configuration> makeConfiguration = () => {
                 var c = new Configuration {
                     ApplyDefaults = false,
                 };
                 c.Assemblies.Stubbed.Add("mscorlib,");
                 c.Assemblies.Stubbed.Add("^System,");
-                c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
+                c.Assemblies.Stubbed.Add("^System\\.(.+),");
                 c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");
                 c.Assemblies.Stubbed.Add("FSharp.Core,");
 
@@ -72,37 +77,46 @@ namespace JSIL.SimpleTests {
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForStubbedBcl () {
             return FolderTestSource("SimpleTestCasesForStubbedBcl", null, new AssemblyCache());
         }
+    }
+
+    [TestFixture]
+    public class SimpleTestCasesForTranslatedBcl : GenericTestFixture
+    {
+        protected override Dictionary<string, string> SetupEvaluatorEnvironment()
+        {
+            return new Dictionary<string, string> { { "bclMode", "translated" } };
+        }
 
         [Test]
         [TestCaseSource("SimpleTestCasesSourceForTranslatedBcl")]
-        public void SimpleTestCasesForTranslatedBcl(object[] parameters)
+        public void TestCases(object[] parameters)
         {
             Func<Configuration> makeConfiguration = () =>
+            {
+                var c = new Configuration
                 {
-                    var c = new Configuration
-                        {
-                            ApplyDefaults = false,
-                        };
-                    c.CodeGenerator.EnableUnsafeCode = true;
-                    c.Assemblies.Stubbed.Add("^System,");
-                    c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
-                    c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");
-                    c.Assemblies.Stubbed.Add("FSharp.Core,");
-
-                    c.Assemblies.Ignored.Add("Microsoft\\.VisualC,");
-                    c.Assemblies.Ignored.Add("Accessibility,");
-                    c.Assemblies.Ignored.Add("SMDiagnostics,");
-                    c.Assemblies.Ignored.Add("System\\.EnterpriseServices,");
-                    c.Assemblies.Ignored.Add("System\\.Security,");
-                    c.Assemblies.Ignored.Add("System\\.Runtime\\.Serialization\\.Formatters\\.Soap,");
-                    c.Assemblies.Ignored.Add("System\\.Runtime\\.DurableInstancing,");
-                    c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
-                    c.Assemblies.Ignored.Add("JSIL\\.Meta,");
-
-                    c.Assemblies.Proxies.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.Proxies.Bcl.dll"));
-
-                    return c;
+                    ApplyDefaults = false,
                 };
+                c.CodeGenerator.EnableUnsafeCode = true;
+                c.Assemblies.Stubbed.Add("^System,");
+                c.Assemblies.Stubbed.Add("^System\\.(?!Core)(.+),");
+                c.Assemblies.Stubbed.Add("^Microsoft\\.(.+),");
+                c.Assemblies.Stubbed.Add("FSharp.Core,");
+
+                c.Assemblies.Ignored.Add("Microsoft\\.VisualC,");
+                c.Assemblies.Ignored.Add("Accessibility,");
+                c.Assemblies.Ignored.Add("SMDiagnostics,");
+                c.Assemblies.Ignored.Add("System\\.EnterpriseServices,");
+                c.Assemblies.Ignored.Add("System\\.Security,");
+                c.Assemblies.Ignored.Add("System\\.Runtime\\.Serialization\\.Formatters\\.Soap,");
+                c.Assemblies.Ignored.Add("System\\.Runtime\\.DurableInstancing,");
+                c.Assemblies.Ignored.Add("System\\.Data\\.SqlXml,");
+                c.Assemblies.Ignored.Add("JSIL\\.Meta,");
+
+                c.Assemblies.Proxies.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.Proxies.Bcl.dll"));
+
+                return c;
+            };
 
             Action<AssemblyTranslator> initializeTranslator = (at) => {
                 // Suppress stdout spew
@@ -110,7 +124,7 @@ namespace JSIL.SimpleTests {
             };
 
             RunSingleComparisonTestCase(
-                parameters, 
+                parameters,
                 makeConfiguration,
                 new JSEvaluationConfig { ThrowOnUnimplementedExternals = false },
                 initializeTranslator: initializeTranslator

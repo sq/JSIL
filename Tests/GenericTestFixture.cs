@@ -42,7 +42,12 @@ namespace JSIL.Tests {
                     : ComparisonTest.JSShellPath, 
                 JSShellOptions,
                 (e) =>
-                    e.WriteInput(ComparisonTest.EvaluatorSetupCode),
+                {
+                    e.WriteInput(ComparisonTest.EvaluatorSetupCode);
+                    // When we'll find option to read environment variables in SpiderMonkey, delete this.
+                    e.WriteInput(ComparisonTest.EvaluatorPrepareEnvironmentCode(SetupEvaluatorEnvironment()));
+                    e.WriteInput(ComparisonTest.EvaluatorRunCode);
+                },
                 SetupEvaluatorEnvironment()
             );
         }

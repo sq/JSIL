@@ -15,6 +15,11 @@ using NUnit.Framework;
 namespace JSIL.SimpleTests {
     [TestFixture]
     public class ExpressionTests : GenericTestFixture {
+        protected override Dictionary<string, string> SetupEvaluatorEnvironment()
+        {
+            return new Dictionary<string, string> { { "bclMode", "translated" } };
+        }
+
         [Test]
         [TestCaseSource("ExpressionTestCasesSourceForTranslatedBcl")]
         public void ExpressionTestCasesForTranslatedBcl(object[] parameters)
@@ -58,7 +63,7 @@ namespace JSIL.SimpleTests {
                 new JSEvaluationConfig
                 {
                     ThrowOnUnimplementedExternals = false,
-                    AdditionalFilesToLoad = new[] { Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "..", "Libraries", "JSIL.ExpressionInterpreter.js")) }
+                    AdditionalFilesToLoad = new[] { Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "..", "Libraries", "JSIL.ExpressionInterpreter.js")) },
                 },
                 initializeTranslator: initializeTranslator
             );

@@ -15,6 +15,8 @@ using NUnit.Framework;
 using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
+    using System.Web.Script.Serialization;
+
     public class ComparisonTest : IDisposable {
         public static bool IsLinux
         {
@@ -42,6 +44,7 @@ namespace JSIL.Tests {
         public static readonly string DebugJSShellPath;
         public static readonly string LoaderJSPath;
         public static readonly string EvaluatorSetupCode;
+        public static readonly string EvaluatorRunCode;
 
         public string StartupPrologue;
 
@@ -86,11 +89,15 @@ namespace JSIL.Tests {
 
             EvaluatorSetupCode = String.Format(
     @"var jsilConfig = {{
-        libraryRoot: {1},
+        libraryRoot: {0},
         environment: 'spidermonkey_shell'
-    }}; load({0});",
-             Util.EscapeString(LoaderJSPath),
+    }};",
              Util.EscapeString(librarySourceFolder)
+           );
+
+            EvaluatorRunCode = String.Format(
+    @"load({0});",
+             Util.EscapeString(LoaderJSPath)
            );
         }
 
@@ -98,6 +105,17 @@ namespace JSIL.Tests {
             return Regex.Replace(
                 sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll|\\.fs|\\.js|\\.il|\\.cpp)$", "$0.out"
             );
+        }
+
+        public static string EvaluatorPrepareEnvironmentCode(Dictionary<string, string> settings)
+        {
+            if (settings != null)
+            {
+                var jss = new JavaScriptSerializer();
+                return string.Format("var jsilEnvironmentSettings = {0};", jss.Serialize(settings));
+            }
+
+            return string.Empty;
         }
 
         public ComparisonTest (
@@ -605,6 +623,7 @@ namespace JSIL.Tests {
                         StartupPrologue += String.Format("load({0});", Util.EscapeString(file));
                     }
                 }
+
                 StartupPrologue += String.Format("function runMain () {{ " +
                     "print({0}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({1}); print({2} + elapsedTime);" +
                     "}}; shellStartup();",
