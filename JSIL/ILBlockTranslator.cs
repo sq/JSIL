@@ -1749,6 +1749,27 @@ namespace JSIL {
                     }
                 }
             }
+            else if (
+                (node.Arguments[0].ExpectedType == node.Arguments[1].ExpectedType) &&
+                (node.Arguments[0].Code == ILCode.Ldnull || node.Arguments[1].Code == ILCode.Ldnull) &&
+                (node.Arguments[0].Code != node.Arguments[1].Code)
+                )
+            {
+                // x != null may be compiled as (x > null) or (null < x) in IL, 
+                // all this expressions are equivalent, but objects in JS should be checked for not null only with !=.
+                if ((op == JSOperator.GreaterThan && node.Arguments[1].Code == ILCode.Ldnull)
+                    || (op == JSOperator.LessThan && (node.Arguments[0].Code == ILCode.Ldnull)))
+                {
+                    op = JSOperator.NotEqual;
+                }
+                // x == null may be compiled as (null >= x) or (x <= null) in IL, 
+                // all this expressions are equivalent, but objects in JS should be checked for null only with ==.
+                else if ((op == JSOperator.GreaterThanOrEqual && node.Arguments[0].Code == ILCode.Ldnull)
+                         || (op == JSOperator.LessThanOrEqual && (node.Arguments[1].Code == ILCode.Ldnull)))
+                {
+                    op = JSOperator.Equal;
+                }
+            }
 
             return Translate_BinaryOp(node, op);
         }
