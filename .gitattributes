@@ -3,6 +3,8 @@
 *.js text
 *.csproj text
 *.xaml text
+*.config text
+*.json text
 
 *.exe binary
 *.dll binary
@@ -10,5 +12,3 @@
 *.png binary
 *.jpg binary
 *.ico binary
-
-* eol=lf
