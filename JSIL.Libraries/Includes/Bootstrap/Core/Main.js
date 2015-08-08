@@ -383,3 +383,4 @@ JSIL.MakeInterface(
 
 //? include("Classes/System.Collections.BitArray.js"); writeln();
 //? include("Classes/System.Uri.js"); writeln();
+//? include("Classes/System.Collections.Generic.EqualityComparer.js"); writeln();

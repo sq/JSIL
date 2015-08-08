@@ -229,4 +229,23 @@ namespace JSIL.Proxies.Bcl
     public class System_Threading_Volatile
     {
     }
+
+    [JSProxy(typeof(EqualityComparer<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared,
+JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Collections_Generic_EqualityComparer_1
+    {
+    }
+
+    [JSProxy(typeof(BitArray), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public static class System_BitArray
+    {
+    }
+
+    [JSProxy(typeof(Uri), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public static class System_Uri
+    {
+    }
 }

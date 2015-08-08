@@ -67,14 +67,14 @@
   $.Method({ Static: false, Public: true }, "Contains",
     new JSIL.MethodSignature($.Boolean, [T], []),
     function Contains(value) {
-      return JSIL.Array.IndexOf(this._array, this._array.length, value) >= 0;
+      return JSIL.Array.IndexOf(this._array, 0, this._array.length, value) >= 0;
     }
   );
 
   $.Method({ Static: false, Public: true }, "IndexOf",
     new JSIL.MethodSignature($.Int32, [T], []),
     function IndexOf(value) {
-      return JSIL.Array.IndexOf(this._array, this._array.length, value);
+      return JSIL.Array.IndexOf(this._array, 0, this._array.length, value);
     }
   );
 

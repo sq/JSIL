@@ -5,6 +5,8 @@ using JSIL.Proxy;
 
 namespace JSIL.Proxies.Bcl
 {
+    using System.Threading;
+
     [JSProxy("System.Runtime.CompilerServices.AsyncVoidMethodBuilder", JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared,
         JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
@@ -80,6 +82,13 @@ namespace JSIL.Proxies.Bcl
         JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Runtime_CompilerServices_TaskAwaiter_1
+    {
+    }
+
+    [JSProxy(typeof(ManualResetEventSlim), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared,
+    JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Threading_ManualResetEventSlim
     {
     }
 }

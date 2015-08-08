@@ -49,6 +49,7 @@
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
     <Content Include="gruntfile.js" />
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.EqualityComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.InitResizableArray.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\JSIL.%24WrapIComparer.js" />
