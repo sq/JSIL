@@ -108,7 +108,7 @@ namespace JSIL {
             "System.Object", "System.ValueType", "System.Type", "System.RuntimeType",
             "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
             "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
-            "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo",
+            "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo", "System.Reflection.EventInfo",
             "System.Array", "System.Delegate", "System.MulticastDelegate",
             "System.Byte", "System.SByte", 
             "System.UInt16", "System.Int16",
