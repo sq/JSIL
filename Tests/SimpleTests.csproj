@@ -72,7 +72,6 @@
     <None Include="packages.config" />
     <None Include="SimpleTestCases\Issue538.cs" />
     <None Include="SimpleTestCases\Issue567.cs" />
-    <None Include="SimpleTestCasesForTranslatedBcl\Issue585.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\Issue585.cs" />
     <None Include="SimpleTestCases\ConvertEnum.cs" />
     <None Include="SimpleTestCases\DelegateBaseType_Issue449.cs" />
@@ -103,7 +102,8 @@
     <None Include="SimpleTestCases\RefIntIncrement_Issue684.cs" />
     <None Include="SimpleTestCases\EscapeArgumentsVarName.cs" />
     <None Include="SimpleTestCases\ReflectionGenericMethodInvoke.cs" />
-    <Compile Include="ExpressionTests.cs" />
+    <None Include="Bootstappers\BclBootstrapStubbed.cs" />
+    <None Include="Bootstappers\BclBootstrapTranslated.cs" />
     <None Include="SimpleTestCases\StringEscape_Issue687.cs" />
     <None Include="SimpleTestCases\Issue672_2.cs" />
     <None Include="SimpleTestCases\Issue705.cs" />
@@ -115,6 +115,8 @@
     <None Include="SimpleTestCases\RawTypeIsObject_Issue754.cs" />
     <None Include="SimpleTestCases\HashSetSameHash_Issue752.cs" />
     <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
+    <Compile Include="SimpleTestCasesForStubbedBcl.cs" />
+    <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
@@ -467,6 +469,9 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TranslatedBcl\" />
   </ItemGroup>
   <Import Project="..\.NET 4.5.targets" />
 </Project>

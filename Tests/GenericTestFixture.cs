@@ -267,7 +267,8 @@ namespace JSIL.Tests {
                                 makeConfiguration, 
                                 evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                                 onTranslationFailure,
-                                initializeTranslator
+                                initializeTranslator,
+                                shouldWritePrologue: false
                             );
 
                             Console.WriteLine("generated");
@@ -407,7 +408,8 @@ namespace JSIL.Tests {
             Action<AssemblyTranslator> initializeTranslator = null,
             Func<string> getTestRunnerQueryString = null,
             bool? scanForProxies = null,
-            string[] extraDependencies = null
+            string[] extraDependencies = null,
+            bool shouldRunJs = true
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -416,7 +418,7 @@ namespace JSIL.Tests {
             var cache = (AssemblyCache)parameters[2];
             try {
                 return RunComparisonTest(
-                    (string)parameters[0], null, provider, null, null, (string)parameters[3], true, cache,
+                    (string)parameters[0], null, provider, null, null, (string)parameters[3], shouldRunJs, cache,
                     makeConfiguration: makeConfiguration,
                     evaluationConfig: evaluationConfig,
                     onTranslationFailure: onTranslationFailure,

@@ -471,7 +471,8 @@ namespace JSIL.Tests {
             bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null,
             Action<AssemblyTranslator> initializeTranslator = null,
-            bool? scanForProxies = null
+            bool? scanForProxies = null,
+            bool shouldWritePrologue = true
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
             string translatedJs;
@@ -524,7 +525,7 @@ namespace JSIL.Tests {
                 argsJson = "[]";
             }
 
-            var invocationJs = String.Format(
+            var invocationJs = shouldWritePrologue ? String.Format(
                 "var runTestCase = JSIL.Shell.TestPrologue(\r\n  {0}, \r\n  {1}, \r\n  {2}, \r\n  {3}, \r\n  {4}, \r\n  {5}\r\n);",
                 JavascriptExecutionTimeout,
                 Util.EscapeString(testAssemblyName),
@@ -532,9 +533,11 @@ namespace JSIL.Tests {
                 Util.EscapeString(testMethodName),
                 argsJson,
                 throwOnUnimplementedExternals ? "true" : "false"
-            );
+            ) : String.Empty;
 
             generatedJavascript = translatedJs;
+
+            translatedJs = "(function() {" + Environment.NewLine + translatedJs + Environment.NewLine + "})()";
 
             var tempFilename = Path.GetTempFileName();
             File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
@@ -609,6 +612,14 @@ namespace JSIL.Tests {
                     "['Script', {0}]", Util.EscapeString(tempFilename)
                 );
 
+                if (evaluationConfig != null && evaluationConfig.AdditionalFilesToLoad != null)
+                {
+                    foreach (var file in evaluationConfig.AdditionalFilesToLoad)
+                    {
+                        manifest += "," + Environment.NewLine + String.Format("['Script', {0}]", Util.EscapeString(file));
+                    }
+                }
+
                 var dlls = Directory.GetFiles(SourceDirectory, "*.emjs");
                 foreach (var dll in dlls) {
                     manifest += "," + Environment.NewLine +
@@ -617,12 +628,6 @@ namespace JSIL.Tests {
 
                 StartupPrologue =
                     String.Format("contentManifest['Test'] = [{0}]; ", manifest);
-                if (evaluationConfig != null && evaluationConfig.AdditionalFilesToLoad != null){
-                    foreach (var file in evaluationConfig.AdditionalFilesToLoad)
-                    {
-                        StartupPrologue += String.Format("load({0});", Util.EscapeString(file));
-                    }
-                }
 
                 StartupPrologue += String.Format("function runMain () {{ " +
                     "print({0}); try {{ var elapsedTime = runTestCase(Date.now); }} catch (exc) {{ reportException(exc); }} print({1}); print({2} + elapsedTime);" +
