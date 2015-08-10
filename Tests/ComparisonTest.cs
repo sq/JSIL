@@ -167,7 +167,7 @@ namespace JSIL.Tests {
                     if (fns.Length > 1)
                         throw new InvalidOperationException("Multiple binary assemblies provided.");
 
-                    Assembly = Assembly.LoadFile(fns[0]);
+                    Assembly = extensions[0] == ".exe" ? Assembly.ReflectionOnlyLoadFrom(fns[0]) : Assembly.LoadFrom(fns[0]);
                     break;
                 case ".js":
                     JSFilenames = absoluteFilenames.ToArray();

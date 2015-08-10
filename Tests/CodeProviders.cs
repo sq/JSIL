@@ -96,7 +96,7 @@ namespace JSIL.Tests
                 return results;
             }
 
-            results.CompiledAssembly = Assembly.LoadFrom(options.OutputAssembly);
+            results.CompiledAssembly = options.GenerateExecutable ? Assembly.ReflectionOnlyLoadFrom(options.OutputAssembly) : Assembly.LoadFrom(options.OutputAssembly);
             return results;
         }
 
