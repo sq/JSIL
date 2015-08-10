@@ -44,7 +44,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   );
 
   var indexOfImpl = function List_IndexOf(value) {
-    return JSIL.Array.IndexOf(this._items, this._size, value);
+    return JSIL.Array.IndexOf(this._items, 0, this._size, value);
   };
 
   var findIndexImpl = function List_FindIndex(predicate) {
@@ -73,7 +73,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   };
 
   var removeImpl = function (item) {
-    var index = JSIL.Array.IndexOf(this._items, this._size, item);
+    var index = JSIL.Array.IndexOf(this._items, 0, this._size, item);
     if (index === -1)
       return false;
 

@@ -3,6 +3,9 @@ using JSIL.Meta;
 using JSIL.Proxy;
 
 namespace JSIL.Proxies {
+    using System.Collections;
+    using System.Collections.Generic;
+
     [JSProxy(
         typeof(Array),
         memberPolicy: JSProxyMemberPolicy.ReplaceDeclared
@@ -55,23 +58,35 @@ namespace JSIL.Proxies {
         [JSReplacement("$this.Set.apply($this, $indices.concat([$value]))")]
         public abstract void SetValue (AnyType value, AnyType[] indices);
 
-        [JSReplacement("Array.prototype.indexOf.call($array, $value)")]
-        public static int IndexOf (AnyType[] array, AnyType value) {
+        [JSReplacement("JSIL.Array.IndexOf($array, 0, $array.length, $value)")]
+        public static int IndexOf (Array array, AnyType value) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("Array.prototype.indexOf.call($array, $value, $startIndex)")]
-        public static int IndexOf (AnyType[] array, AnyType value, int startIndex) {
+        [JSReplacement("JSIL.Array.IndexOf($array, $startIndex, $array.length - $startIndex, $value)")]
+        public static int IndexOf (Array array, AnyType value, int startIndex) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("Array.prototype.indexOf.call($array, $value)")]
+        [JSReplacement("JSIL.Array.IndexOf($array, $startIndex, $count, $value)")]
+        public static int IndexOf(Array array, AnyType value, int startIndex, int count)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.Array.IndexOf($array, 0, $array.length, $value)")]
         public static int IndexOf<T> (T[] array, T value) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("Array.prototype.indexOf.call($array, $value, $startIndex)")]
+        [JSReplacement("JSIL.Array.IndexOf($array, $startIndex, $array.length - $startIndex, $value)")]
         public static int IndexOf<T> (T[] array, T value, int startIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.Array.IndexOf($array, $startIndex, $count, $value)")]
+        public static int IndexOf<T>(T[] array, T value, int startIndex, int count)
+        {
             throw new InvalidOperationException();
         }
 
@@ -105,5 +120,52 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("JSIL.BinarySearch($$jsilcore.System.Object, Array.prototype.slice.call($array), 0, $array.length, $value, null)")]
+        public static int BinarySearch(Array array, object value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($$jsilcore.System.Object, Array.prototype.slice.call($array), 0, $array.length, $value, $comparer)")]
+        public static int BinarySearch(Array array, object value, IComparer comparer)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($$jsilcore.System.Object, Array.prototype.slice.call($array), $startIndex, $length, $value, null)")]
+        public static int BinarySearch(Array array, int startIndex, int length, object value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($$jsilcore.System.Object, Array.prototype.slice.call($array), $startIndex, $length, $value, $comparer)")]
+        public static int BinarySearch(Array array, int startIndex, int length, object value, IComparer comparer)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($typeof(value), Array.prototype.slice.call($array), 0, $array.length, $value, null)")]
+        public static int BinarySearch<T>(T[] array, T value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($typeof(value), Array.prototype.slice.call($array), 0, $array.length, $value, $comparer)")]
+        public static int BinarySearch<T>(T[] array, T value, IComparer<T> comparer)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($typeof(value), Array.prototype.slice.call($array), $startIndex, $length, $value, null)")]
+        public static int BinarySearch<T>(T[] array, int startIndex, int length, T value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.BinarySearch($typeof(value), Array.prototype.slice.call($array), $startIndex, $length, $value, $comparer)")]
+        public static int BinarySearch<T>(T[] array, int startIndex, int length, T value, IComparer<T> comparer)
+        {
+            throw new InvalidOperationException();
+        }
     }
 }

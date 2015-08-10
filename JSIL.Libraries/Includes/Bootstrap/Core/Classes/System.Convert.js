@@ -145,7 +145,8 @@ JSIL.ImplementExternals("System.Convert", function ($) {
         );
     };
 
-    $.Method(descriptor, methodName, makeSignature($.Object, false), fromObject);
+    $.Method(descriptor, methodName, makeSignature($.Object), fromObject);
+    $.Method(descriptor, methodName, makeSignature($.Object, true), fromObject);
   };
 
   makeConvertMethods("Boolean", $.Boolean, {

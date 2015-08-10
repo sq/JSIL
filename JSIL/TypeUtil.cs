@@ -73,6 +73,11 @@ namespace JSIL {
                         return true;
             }
 
+            if (type is GenericInstanceType)
+            {
+                type = type.Resolve();
+            }
+
             switch (type.MetadataType) {
                 case MetadataType.Object:
                 case MetadataType.Class:

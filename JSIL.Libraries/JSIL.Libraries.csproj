@@ -49,6 +49,7 @@
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
     <Content Include="gruntfile.js" />
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.EqualityComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.InitResizableArray.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\JSIL.%24WrapIComparer.js" />
@@ -123,6 +124,7 @@
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
     <Content Include="Sources\gamepad.js" />
+    <Content Include="Sources\TranslatedBCL\JSIL.Bootstrap.js" />
     <Content Include="Sources\IgnoredBCL\JSIL.Bootstrap.js" />
     <Content Include="Sources\JSIL.Bootstrap.Async.js" />
     <Content Include="Sources\JSIL.Bootstrap.DateTime.js" />

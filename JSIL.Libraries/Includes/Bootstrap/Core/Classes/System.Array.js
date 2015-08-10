@@ -39,10 +39,31 @@ JSIL.ImplementExternals("System.Array", function ($) {
   };
 
   var sortImpl = function (array, index, length, comparison) {
-    if ((index !== 0) || (length !== array.length))
-      JSIL.RuntimeError("Sorting a subset of an array is not implemented");
+    if (length < 2) {
+      return;
+    }
 
-    Array.prototype.sort.call(array, comparison);
+    if ((index !== 0) || (length !== array.length)) {
+      var sortedArrayPart = Array.prototype.slice.call(array, index, index + length).sort(comparison);
+      for (var i = 0; i < length; i++)
+        array[i + index] = sortedArrayPart[i];
+    } else {
+      Array.prototype.sort.call(array, comparison);
+    }
+  };
+
+  var reverseImpl = function (array, index, length) {
+    if (length < 2) {
+      return;
+    }
+
+    if ((index !== 0) || (length !== array.length)) {
+      var reversedArrayPart = Array.prototype.slice.call(array, index, index + length).reverse();
+      for (var i = 0; i < length; i++)
+        array[i + index] = reversedArrayPart[i];
+    } else {
+      Array.prototype.reverse.call(array);
+    }
   };
 
   $.Method({ Static: true, Public: true }, "Copy",
@@ -132,5 +153,23 @@ JSIL.ImplementExternals("System.Array", function ($) {
     function Sort$b1(T, array, comparison) {
       sortImpl(array, 0, array.length, comparison);
     }
-  )
+  );
+
+  $.Method({ Static: true, Public: true }, "Reverse",
+    new JSIL.MethodSignature(null, [
+      $jsilcore.TypeRef("System.Array")
+    ]),
+    function Reverse(array) {
+      reverseImpl(array, 0, array.length);
+    }
+  );
+
+  $.Method({ Static: true, Public: true }, "Reverse",
+    new JSIL.MethodSignature(null, [
+      $jsilcore.TypeRef("System.Array"), $.Int32, $.Int32
+    ]),
+    function Reverse(array, index, length) {
+      reverseImpl(array, index, length);
+    }
+  );
 });

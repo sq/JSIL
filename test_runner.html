@@ -60,11 +60,21 @@
         if (scriptAlreadyRan) {
           setTimeout(function () {
             var newHash = "#" + document.getElementById("scriptname").value;
+            
+            var search = "?autoRun";
+            if (window.location.search.length > 0) {
+              if (window.location.search.indexOf("autoRun") >= 0) {
+                search = window.location.search;
+              } else {
+                search = window.location.search + "&autoRun"
+              }
+            }
+            
             var newUrl = window.location.protocol + 
               "//" +
               window.location.host +
               window.location.pathname + 
-              "?autoRun" +
+              search +
               newHash;
 
             if (window.location.href === newUrl)
@@ -82,9 +92,10 @@
         window.location.hash = "#" + scriptname;
 
         setTimeout(function () {
-          contentManifest["TestRunner"] = [
-            ["Script", scriptname]
-          ];
+          var scriptnames = scriptname.split(";");
+          contentManifest["TestRunner"] = [];
+          for (var i=0; i<scriptnames.length; i++)
+            contentManifest["TestRunner"].push(["Script", scriptnames[i]]);
           onLoad();
           document.getElementById("runscript").disabled = false;
         }, 25);

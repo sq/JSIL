@@ -7,3 +7,5 @@ native = LF
 **.js = native
 **.csproj = native
 **.xaml = native
+**.config = native
+**.json = native

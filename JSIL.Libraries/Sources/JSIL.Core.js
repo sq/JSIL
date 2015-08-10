@@ -10573,8 +10573,8 @@ JSIL.$FormatStringImpl = function (format, values) {
   return format.replace(JSIL.$FormatRegex, matcher);
 };
 
-JSIL.Array.IndexOf = function (array, count, value) {
-  for (var i = 0, l = count; i < l; i++) {
+JSIL.Array.IndexOf = function (array, startIndex, count, value) {
+  for (var i = startIndex, l = startIndex + count; i < l; i++) {
     if (JSIL.ObjectEquals(array[i], value))
       return i;
   }
