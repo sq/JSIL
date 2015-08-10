@@ -506,7 +506,7 @@ namespace JSIL.Compiler {
             return commandLineConfig;
         }
 
-        internal static T CreateExtensionInstance<T>(string fullPath) where T : ICompilerExtension {
+        internal static T CreateExtensionInstance<T>(string fullPath) {
             var assembly = Assembly.LoadFile(fullPath);
 
             foreach (var type in assembly.GetTypes()) {
@@ -720,7 +720,7 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.TranslateAdditional.AddRange(newAdditionalTranslate);
 
                     foreach (var analyzer in analyzers.Values) {
-                        analyzer.SetConfiguration(localConfig);
+                        analyzer.SetConfiguration(localConfig.AnalyzerSettings);
                     }
 
                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {

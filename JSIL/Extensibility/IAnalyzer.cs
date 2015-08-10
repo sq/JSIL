@@ -1,8 +1,10 @@
 ﻿using Mono.Cecil;
 
 namespace JSIL.Compiler.Extensibility {
-    public interface IAnalyzer : ICompilerExtension {
-        void SetConfiguration (Configuration configuration);
+    using System.Collections.Generic;
+
+    public interface IAnalyzer {
+        void SetConfiguration (IDictionary<string, object> analyzerSettings);
 
         void AddAssemblies(AssemblyDefinition[] assemblies);
 
