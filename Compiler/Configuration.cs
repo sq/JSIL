@@ -45,7 +45,7 @@ namespace JSIL.Compiler {
         public string FileOutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
-        public Dictionary<string, object> AnalyzerSettings = new Dictionary<string, object>();
+        public Dictionary<string, Dictionary<string, object>> AnalyzerSettings = new Dictionary<string, Dictionary<string, object>>();
         public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
 
         public override void MergeInto (JSIL.Translator.Configuration result) {

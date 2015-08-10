@@ -11,5 +11,7 @@ namespace JSIL.Compiler.Extensibility {
         void Analyze(TypeInfoProvider typeInfoProvider);
 
         bool MemberCanBeSkipped(MemberReference member);
+
+        string SettingsKey { get; }
     }
 }

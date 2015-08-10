@@ -15,13 +15,10 @@
             var dce = new DeadCodeAnalyzer();
             var analyzerSettings = new Dictionary<string, object>
             {
-                {"AnalyzerSettings", new Dictionary<string, object>{ { "DeadCodeAnalyzer", new Dictionary<string, object>
-                {
-                    { "DeadCodeElimination", true },
-                    { "NonAggressiveVirtualMethodElimination", false },
-                    { "WhiteList", new List<string> { @"System\.Void Program::Main\(.*\)" } }
-                } } }
-            }};
+                {"DeadCodeElimination", true},
+                {"NonAggressiveVirtualMethodElimination", false},
+                {"WhiteList", new List<string> {@"System\.Void Program::Main\(.*\)"}}
+            };
             dce.SetConfiguration(analyzerSettings);
 
             var defaultConfiguration = MakeConfiguration();

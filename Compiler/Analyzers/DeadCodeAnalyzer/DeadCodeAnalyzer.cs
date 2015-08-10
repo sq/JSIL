@@ -17,14 +17,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             assemblyDefinitions = new List<AssemblyDefinition>();
         }
 
+        public string SettingsKey { get { return "DeadCodeAnalyzer"; } }
+
         public void SetConfiguration(IDictionary<string, object> analyzerSettings) {
-            if (analyzerSettings != null && analyzerSettings.ContainsKey("DeadCodeAnalyzer")) {
-                Configuration = new Configuration((Dictionary<string, object>)analyzerSettings["DeadCodeAnalyzer"]);
-            }
-            else
-            {
-                Configuration = new Configuration(new Dictionary<string, object>());
-            }
+            Configuration = new Configuration(analyzerSettings ?? new Dictionary<string, object>());
 
             if (Configuration.DeadCodeElimination) {
                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +

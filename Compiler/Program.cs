@@ -719,8 +719,11 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.TranslateAdditional.Clear();
                     localConfig.Assemblies.TranslateAdditional.AddRange(newAdditionalTranslate);
 
-                    foreach (var analyzer in analyzers.Values) {
-                        analyzer.SetConfiguration(localConfig.AnalyzerSettings);
+                    foreach (var analyzer in analyzers.Values)
+                    {
+                        Dictionary<string, object> settings = null;
+                        localConfig.AnalyzerSettings.TryGetValue(analyzer.SettingsKey, out settings);
+                        analyzer.SetConfiguration(settings);
                     }
 
                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
