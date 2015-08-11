@@ -194,7 +194,7 @@ namespace JSIL.Tests {
                     Console.Error.WriteLine(File.ReadAllText(warningTextPath));
 
                 return new CompileResult(
-                    Assembly.LoadFile(outputAssembly),
+                    generateExecutable ? Assembly.ReflectionOnlyLoadFrom(outputAssembly) : Assembly.LoadFile(outputAssembly),
                     metacomments.ToArray()
                 );
             }

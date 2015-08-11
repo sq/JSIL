@@ -13,20 +13,15 @@
         protected string GetJavascriptWithDCE(string fileName, string expectedText = null)
         {
             var dce = new DeadCodeAnalyzer();
-            var defaultConfiguration = MakeConfiguration();
-            var config = new JSIL.Compiler.Configuration
+            var analyzerSettings = new Dictionary<string, object>
             {
-                AnalyzerSettings = { { "DeadCodeAnalyzer", new Dictionary<string, object>
-                {
-                    { "DeadCodeElimination", true },
-                    { "NonAggressiveVirtualMethodElimination", false },
-                    { "WhiteList", new List<string> { @"System\.Void Program::Main\(.*\)" } }
-                } } }
+                {"DeadCodeElimination", true},
+                {"NonAggressiveVirtualMethodElimination", false},
+                {"WhiteList", new List<string> {@"System\.Void Program::Main\(.*\)"}}
             };
-            defaultConfiguration.MergeInto(config);
-            dce.SetConfiguration(config);
-            config.UseLocalProxies = true;
+            dce.SetConfiguration(analyzerSettings);
 
+            var defaultConfiguration = MakeConfiguration();
             var generatedJs = GetJavascript(
                 Path.Combine(@"..\Tests.DCE", fileName),
                 expectedText,

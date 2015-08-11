@@ -10,7 +10,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private readonly bool _NonAggressiveVirtualMethodElimination;
         private readonly IList<string> _WhiteList;
   
-        public Configuration(Dictionary<string, object> configuration) {
+        public Configuration(IDictionary<string, object> configuration) {
             _DeadCodeElimination = configuration.ContainsKey("DeadCodeElimination") &&
                                   configuration["DeadCodeElimination"] is bool &&
                                   ((bool) configuration["DeadCodeElimination"]);

@@ -9,7 +9,6 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private readonly List<AssemblyDefinition> assemblyDefinitions;
         private DeadCodeInfoProvider deadCodeInfo;
 
-        private Compiler.Configuration compilerConfiguration;
         private Configuration Configuration;
 
         private Stopwatch stopwatchElapsed;
@@ -18,16 +17,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             assemblyDefinitions = new List<AssemblyDefinition>();
         }
 
-        public void SetConfiguration(Compiler.Configuration configuration) {
-            compilerConfiguration = configuration;
+        public string SettingsKey { get { return "DeadCodeAnalyzer"; } }
 
-            if (configuration.AnalyzerSettings != null && configuration.AnalyzerSettings.ContainsKey("DeadCodeAnalyzer")) {
-                Configuration = new Configuration((Dictionary<string, object>) configuration.AnalyzerSettings["DeadCodeAnalyzer"]);
-            }
-            else
-            {
-                Configuration = new Configuration(new Dictionary<string, object>());
-            }
+        public void SetConfiguration(IDictionary<string, object> analyzerSettings) {
+            Configuration = new Configuration(analyzerSettings ?? new Dictionary<string, object>());
 
             if (Configuration.DeadCodeElimination) {
                 Console.WriteLine("// Using dead code elimination (experimental). Turn " +
