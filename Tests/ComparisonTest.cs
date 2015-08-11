@@ -175,7 +175,14 @@ namespace JSIL.Tests {
                     Assembly = null;
                     break;
                 default:
-                    CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+                    try
+                    {
+                        CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+                    }
+                    catch (CompilerNotFoundException exception)
+                    {
+                        Assert.Ignore(exception.Message);
+                    }
                     Assembly = CompileResult.Assembly;
                     break;
             }
@@ -682,7 +689,7 @@ namespace JSIL.Tests {
                 // Strip spurious output from the JS.exe REPL and from the standard libraries
                 trailingOutput = null;
                 if (stdout != null) {
-                    var startOffset = stdout.IndexOf(sentinelStart);
+                    var startOffset = stdout.LastIndexOf(sentinelStart);
 
                     if (startOffset >= 0) {
                         startOffset += sentinelStart.Length;

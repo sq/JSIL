@@ -122,7 +122,8 @@ namespace JSIL.Tests
     {
         protected override string GetCompilerPath()
         {
-            return "../Upstream/ILAsm/ilasm.exe";
+            return 
+                Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "Upstream", "ILAsm", "ilasm.exe");
         }
 
         protected override string GetArguments(string[] filenemas, string outpuAssemblyName, bool isExecutable)
@@ -163,7 +164,7 @@ namespace JSIL.Tests
                 return clPath;
             }
 
-            throw new Exception("C++/CLI compiler not found");
+            throw new CompilerNotFoundException("C++/CLI compiler not found");
         }
 
         protected override string GetArguments(string[] filenemas, string outpuAssemblyName, bool isExecutable)

@@ -270,4 +270,11 @@ namespace JSIL.Tests {
             Metacomments = metacomments;
         }
     }
+
+    public class CompilerNotFoundException : Exception
+    {
+        public CompilerNotFoundException(string message) : base(message)
+        {
+        }
+    }
 }
