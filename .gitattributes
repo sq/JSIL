@@ -5,6 +5,7 @@
 *.xaml text
 *.config text
 *.json text
+*.yml text
 
 *.exe binary
 *.dll binary
