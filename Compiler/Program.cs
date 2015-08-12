@@ -15,7 +15,7 @@ using JSIL.Utilities;
 using Mono.Cecil;
 
 namespace JSIL.Compiler {
-    class Program {
+    public class Program {
         static TypeInfoProvider CachedTypeInfoProvider = null;
         static Configuration CachedTypeInfoProviderConfiguration = null;
 
@@ -626,7 +626,7 @@ namespace JSIL.Compiler {
             return translator;
         }
 
-        static void Main (string[] arguments) {
+        public static void Main (string[] arguments) {
             try {
                 InternalMain(arguments);
             } catch (Exception exc) {
