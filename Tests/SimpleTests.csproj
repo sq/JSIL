@@ -113,7 +113,7 @@
     <None Include="SimpleTestCases\Issue705.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\DelegateComplexTest_Issue624.cs" />
     <None Include="SimpleTestCases\Queue.cs" />
-    <None Include="SimpleTestCases\UriBasic.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\UriBasic.cs" />
     <None Include="SimpleTestCases\NumericRoundTripCasts.cs" />
     <None Include="SimpleTestCases\ObjectVirtualMethods.cs" />
     <None Include="SimpleTestCases\RawTypeIsObject_Issue754.cs" />
@@ -132,12 +132,12 @@
     <None Include="SimpleTestCases\ListGetEnumerator.cs" />
     <None Include="SimpleTestCases\EnumerateStringAsChars.cs" />
     <None Include="SimpleTestCases\Issue194.cs" />
-    <None Include="SimpleTestCases\AssignNewToOut.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\AssignNewToOut.cs" />
     <None Include="SimpleTestCases\ListForEach.cs" />
     <None Include="SimpleTestCases\EnumerableWhere.cs" />
     <None Include="SimpleTestCases\EnumerableRange.cs" />
     <None Include="SimpleTestCases\InvokeInheritedOverloadedMethod.cs" />
-    <None Include="SimpleTestCases\Issue198.fs" />
+    <None Include="SimpleTestCasesFailingOnMono\Issue198.fs" />
     <None Include="SimpleTestCases\Issue173.cs" />
     <None Include="SimpleTestCases\StructHoistingInComplexLoop.cs" />
     <None Include="SimpleTestCases\StructPassedToGeneric_Issue494_1.cs" />
@@ -207,7 +207,7 @@
     <None Include="SimpleTestCases\Issue453.cs" />
     <None Include="SimpleTestCases\Issue372.cs" />
     <None Include="SimpleTestCases\Issue425.cs" />
-    <None Include="SimpleTestCases\Issue445.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\Issue445.cs" />
     <None Include="SimpleTestCases\Issue410.cs" />
     <None Include="SimpleTestCases\Issue411.cs" />
     <None Include="SimpleTestCases\Issue459.cs" />
@@ -244,7 +244,7 @@
     <None Include="SimpleTestCases\StringPad.cs" />
     <None Include="SimpleTestCases\PrivateMoveNext.cs" />
     <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
-    <None Include="SimpleTestCases\GenericFieldInitializer.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\GenericFieldInitializer.cs" />
     <None Include="SimpleTestCases\EnumCompare.cs" />
     <None Include="SimpleTests.dll.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -304,7 +304,7 @@
     <None Include="SimpleTestCases\SmallUnsignedIntOverflowAndUnderflow.cs" />
     <None Include="SimpleTestCases\Int32Multiply.cs" />
     <None Include="SimpleTestCases\CompoundAssignmentWithCustomOperator.cs" />
-    <None Include="SimpleTestCases\CheckedIntegerArithmetic.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\CheckedIntegerArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCustomPlacesNegative.cs" />
     <None Include="SimpleTestCases\GenericCreateInstance.cs" />
     <None Include="SimpleTestCases\GenericSelfConstraint.cs" />
@@ -315,7 +315,7 @@
     <None Include="SimpleTestCases\EnumerableCast.cs" />
     <None Include="SimpleTestCases\EnumerableToList.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
-    <None Include="SimpleTestCases\Issue118_1.fs" />
+    <None Include="SimpleTestCasesFailingOnMono\Issue118_1.fs" />
     <None Include="SimpleTestCases\EnumerableElementAt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="SimpleTestCases\AutoProperties.cs" />
@@ -406,9 +406,9 @@
     <None Include="SimpleTestCases\ArrayEnumerator.cs" />
     <None Include="SimpleTestCases\TryCastDelegate.cs" />
     <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
-    <None Include="SimpleTestCases\ArrayOfNullable.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\ArrayOfNullable.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\ExpressionsTest.cs" />
-    <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
+    <None Include="SimpleTestCasesFailingOnMono\ObjectExpression_Enumerable.fs" />
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />
@@ -422,7 +422,7 @@
     <None Include="SimpleTestCases\Issue364_1.cs" />
     <None Include="SimpleTestCases\Issue364_2.cs" />
     <None Include="SimpleTestCases\Issue364_3.cs" />
-    <None Include="SimpleTestCases\Issue368.cs" />
+    <None Include="SimpleTestCasesFailingOnMono\Issue368.cs" />
     <None Include="SimpleTestCases\ReflectionInterfaceMethodInvoke.cs" />
     <None Include="SimpleTestCases\ReflectionGenericMethodInfoProperties.cs" />
     <None Include="SimpleTestCases\ReflectionTypeGenericInfo.cs" />

@@ -130,7 +130,8 @@ namespace JSIL.SimpleTests
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource()
         {
-            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache);
+            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache)
+                .Concat(FolderTestSource("SimpleTestCasesFailingOnMono", TypeInfoProvider, AssemblyCache));
         }
 
         protected object[] BootstrapArguments()
