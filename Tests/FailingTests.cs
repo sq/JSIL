@@ -22,10 +22,10 @@ namespace JSIL.Tests {
             var testFilename = (string)parameters[0];
             var translationFailures = new List<Exception>();
             Exception thrown = null;
-            CompileResult compileResult = null;
+            IEnumerable<Metacomment> metacomments = null;
 
             try {
-                compileResult = RunSingleComparisonTestCase(
+                metacomments = RunSingleComparisonTestCase(
                     parameters, 
                     makeConfiguration: () => {
                         var cfg = MakeConfiguration();
@@ -46,8 +46,8 @@ namespace JSIL.Tests {
             foreach (var failure in translationFailures)
                 Console.WriteLine(failure.ToString());
 
-            if (compileResult != null) {
-                foreach (var metacomment in compileResult.Metacomments) {
+            if (metacomments != null) {
+                foreach (var metacomment in metacomments) {
                     Console.WriteLine(metacomment);
 
                     switch (metacomment.Command.ToLower()) {

@@ -56,12 +56,12 @@ namespace JSIL.Tests {
         public readonly string[] JSFilenames;
         public readonly string OutputPath;
         public readonly string SourceDirectory;
-        public readonly Assembly Assembly;
-        public readonly CompileResult CompileResult;
+        public readonly AssemblyUtility AssemblyUtility;
+        public readonly Metacomment[] Metacomments;
         public readonly TimeSpan CompilationElapsed;
         public readonly EvaluatorPool EvaluatorPool;
 
-        protected bool? MainAcceptsArguments;
+        private readonly AppDomain AssemblyAppDomain;
 
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
@@ -160,30 +160,48 @@ namespace JSIL.Tests {
 
             JSFilenames = null;
 
+            AssemblyAppDomain = AppDomain.CreateDomain("TestAssemblyDomain", null, new AppDomainSetup
+            {
+                ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
+            });
+
             switch (extensions[0]) {
                 case ".exe":
                 case ".dll":
                     var fns = absoluteFilenames.ToArray();
                     if (fns.Length > 1)
                         throw new InvalidOperationException("Multiple binary assemblies provided.");
-
-                    Assembly = extensions[0] == ".exe" ? Assembly.ReflectionOnlyLoadFrom(fns[0]) : Assembly.LoadFrom(fns[0]);
+                    AssemblyUtility = CrossDomainHelper.CreateFromAssemblyPathOnRemoteDomain(AssemblyAppDomain, fns[0], extensions[0] == ".exe").AssemblyUtility;
                     break;
                 case ".js":
                     JSFilenames = absoluteFilenames.ToArray();
-                    CompileResult = null;
-                    Assembly = null;
+                    Metacomments = null;
+                    AssemblyUtility = null;
                     break;
                 default:
+                    bool ignore = false;
                     try
                     {
-                        CompileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+                        var helper = CrossDomainHelper.CreateFromCompileResultOnRemoteDomain(AssemblyAppDomain, absoluteFilenames, assemblyName,
+                            compilerOptions);
+                        Metacomments = helper.Metacomments;
+                        AssemblyUtility = helper.AssemblyUtility;
+                    }
+                    catch (TargetInvocationException exception)
+                    {
+                        if (exception.InnerException is CompilerNotFoundException)
+                        {
+                            Assert.Ignore(exception.Message);
+                        }
+                        else
+                        {
+                            throw;
+                        }
                     }
                     catch (CompilerNotFoundException exception)
                     {
                         Assert.Ignore(exception.Message);
                     }
-                    Assembly = CompileResult.Assembly;
                     break;
             }
 
@@ -218,30 +236,14 @@ namespace JSIL.Tests {
         }
 
         public void Dispose () {
-        }
-
-        protected MethodInfo GetTestMethod () {
-            var entryPoint = Assembly.EntryPoint;
-
-            if (entryPoint == null) {
-                var program = Assembly.GetType("Program");
-                if (program == null)
-                    throw new Exception("Test missing 'Program' main class");
-
-                var testMethod = program.GetMethod("Main");
-                if (testMethod == null)
-                    throw new Exception("Test missing 'Main' method of 'Program' main class");
-
-                entryPoint = testMethod;
+            if (AssemblyAppDomain != AppDomain.CurrentDomain) {
+                AppDomain.Unload(AssemblyAppDomain);
             }
-
-            MainAcceptsArguments = entryPoint.GetParameters().Length > 0;
-
-            return entryPoint;
         }
+
 
         private int RunCSharpExecutable (string[] args, out string stdout, out string stderr) {
-            var psi = new ProcessStartInfo(Assembly.Location, string.Join(" ", args)) {
+            var psi = new ProcessStartInfo(AssemblyUtility.AssemblyLocation, string.Join(" ", args)) {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
@@ -294,7 +296,7 @@ namespace JSIL.Tests {
                     Environment.CurrentDirectory = this.SourceDirectory;
                 }
 
-                if (Assembly.Location.EndsWith(".exe")) {
+                if (AssemblyUtility.AssemblyLocation.EndsWith(".exe")) {
                     long startedCs = DateTime.UtcNow.Ticks;
 
                     string stdout, stderr;
@@ -306,35 +308,11 @@ namespace JSIL.Tests {
                     if (exitCode != 0)
                         return String.Format("Process exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr);
                     return stdout + stderr;
-                } else {
-                    TextWriter oldStdout = null;
-                    using (var sw = new StringWriter()) {
-                        oldStdout = Console.Out;
-                        try {
-                            oldStdout.Flush();
-                            Console.SetOut(sw);
-
-                            var testMethod = GetTestMethod();
-                            long startedCs = DateTime.UtcNow.Ticks;
-
-                            if (MainAcceptsArguments.Value) {
-                                testMethod.Invoke(null, new object[] { args });
-                            } else {
-                                if ((args != null) && (args.Length > 0))
-                                    throw new ArgumentException("Test case does not accept arguments");
-
-                                testMethod.Invoke(null, new object[] { });
-                            }
-
-                            long endedCs = DateTime.UtcNow.Ticks;
-
-                            elapsed = endedCs - startedCs;
-                            sw.Flush();
-                            return sw.ToString();
-                        } finally {
-                            Console.SetOut(oldStdout);
-                        }
-                    }
+                } else
+                {
+                    string result = null;
+                    long elapsedLocal = 0;
+                    return AssemblyUtility.Run(args, out elapsed);
                 }
             } finally {
                 if (currentDir == null)
@@ -370,8 +348,8 @@ namespace JSIL.Tests {
             var result = new Configuration();
             configuration.MergeInto(result);
 
-            if (this.CompileResult != null)
-            foreach (var metacomment in this.CompileResult.Metacomments) {
+            if (this.Metacomments != null)
+            foreach (var metacomment in this.Metacomments) {
                 if (metacomment.Command != "jsiloption")
                     continue;
 
@@ -436,7 +414,7 @@ namespace JSIL.Tests {
                 if (initializeTranslator != null)
                     initializeTranslator(translator);
 
-                var assemblyPath = Util.GetPathOfAssembly(Assembly);
+                var assemblyPath = AssemblyUtility.GetPathOfAssembly();
                 TranslationResult translationResult = null;
 
                 try {
@@ -463,7 +441,7 @@ namespace JSIL.Tests {
                     // If we're using a preconstructed assembly cache, make sure the test case assembly didn't get into
                     //  the cache, since that would leak memory.
                     if (AssemblyCache != null) {
-                        AssemblyCache.TryRemove(Assembly.FullName);
+                        AssemblyCache.TryRemove(AssemblyUtility.AssemblyFullName);
                     }
 
                 }
@@ -484,12 +462,12 @@ namespace JSIL.Tests {
             var translationStarted = DateTime.UtcNow.Ticks;
             string translatedJs;
 
-            if ((Assembly == null) && (JSFilenames != null)) {
+            if ((AssemblyUtility == null) && (JSFilenames != null)) {
                 translatedJs = String.Join(
                     Environment.NewLine + Environment.NewLine,
                     from fn in JSFilenames select File.ReadAllText(fn)
                 ) + Environment.NewLine;
-            } else if ((Assembly != null) && (JSFilenames == null)) {
+            } else if ((AssemblyUtility != null) && (JSFilenames == null)) {
                 translatedJs = Translate(
                     (tr) => tr.WriteToString(), 
                     makeConfiguration, 
@@ -505,13 +483,13 @@ namespace JSIL.Tests {
 
             string testAssemblyName, testTypeName, testMethodName;
 
-            if (Assembly != null) {
-                var testMethod = GetTestMethod();
-                testAssemblyName = testMethod.Module.Assembly.FullName;
-                testTypeName = testMethod.DeclaringType.FullName;
-                testMethodName = testMethod.Name;
+            bool mainAcceptsArguments = true;
+            if (AssemblyUtility != null) {
+                testAssemblyName = AssemblyUtility.AssemblyFullName;
+                testTypeName = AssemblyUtility.EntryMethodTypeFullName;
+                testMethodName = AssemblyUtility.EntryMethodName;
+                mainAcceptsArguments = AssemblyUtility.EntryMethodAcceptsArguments;
             } else {
-                MainAcceptsArguments = true;
                 testAssemblyName = "Test";
                 testTypeName = "Program";
                 testMethodName = "Main";
@@ -519,7 +497,7 @@ namespace JSIL.Tests {
 
             string argsJson;
 
-            if (MainAcceptsArguments.Value) {
+            if (mainAcceptsArguments) {
                 var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
                 using (var ms2 = new MemoryStream()) {
                     jsonSerializer.WriteObject(ms2, args);
@@ -730,7 +708,7 @@ namespace JSIL.Tests {
 
             args = args ?? new string[0];
 
-            if (Assembly != null) {
+            if (AssemblyUtility != null) {
                 ThreadPool.QueueUserWorkItem((_) => {
                     var oldCulture = Thread.CurrentThread.CurrentCulture;
                     try {
@@ -783,12 +761,12 @@ namespace JSIL.Tests {
                     throw new Exception("C# test failed", errors[0]);
                 else if (errors[1] != null)
                     throw errors[1];
-                else if (Assembly != null)
+                else if (AssemblyUtility != null)
                     Assert.AreEqual(outputs[0], outputs[1]);
                 else
                     Console.WriteLine("// Output validation suppressed (raw JS)");
 
-                if (Assembly == null)
+                if (AssemblyUtility == null)
                     writeJSOutput();
 
                 Console.WriteLine(
@@ -841,5 +819,170 @@ namespace JSIL.Tests {
         public bool ThrowOnUnimplementedExternals { get; set; }
 
         public string[] AdditionalFilesToLoad { get; set; }
+    }
+
+    public class CrossDomainHelper : MarshalByRefObject
+    {
+        private readonly AssemblyUtility _assemblyUtility;
+        private readonly Metacomment[] _metacomments;
+
+        public CrossDomainHelper(string[] absoluteFilenames, string assemblyName, string compilerOptions)
+        {
+            var compileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
+            _assemblyUtility = new AssemblyUtility(compileResult.Assembly);
+            _metacomments = compileResult.Metacomments;
+        }
+
+        public CrossDomainHelper(string assemblyPath, bool reflectionOnly)
+        {
+            _assemblyUtility = new AssemblyUtility(assemblyPath, reflectionOnly);
+        }
+
+        public static CrossDomainHelper CreateFromAssemblyPathOnRemoteDomain(AppDomain domain, string assemblyPath,
+            bool reflectionOnly)
+        {
+            return domain == AppDomain.CurrentDomain
+                ? new CrossDomainHelper(assemblyPath, reflectionOnly)
+                : (CrossDomainHelper) domain.CreateInstanceFromAndUnwrap(
+                    typeof (CrossDomainHelper).Assembly.Location,
+                    typeof (CrossDomainHelper).FullName,
+                    false,
+                    BindingFlags.CreateInstance,
+                    null,
+                    new object[] {assemblyPath, reflectionOnly},
+                    CultureInfo.InvariantCulture,
+                    null
+                    );
+        }
+
+        public static CrossDomainHelper CreateFromCompileResultOnRemoteDomain(AppDomain domain, IEnumerable<string> absoluteFilenames, string assemblyName, string compilerOptions)
+        {
+            return domain == AppDomain.CurrentDomain
+                ? new CrossDomainHelper(absoluteFilenames.ToArray(), assemblyName, compilerOptions)
+                : (CrossDomainHelper) domain.CreateInstanceFromAndUnwrap(
+                    typeof (CrossDomainHelper).Assembly.Location,
+                    typeof (CrossDomainHelper).FullName,
+                    false,
+                    BindingFlags.CreateInstance,
+                    null,
+                    new object[] {absoluteFilenames.ToArray(), assemblyName, compilerOptions},
+                    CultureInfo.InvariantCulture,
+                    null
+                    );
+        }
+
+        public AssemblyUtility AssemblyUtility
+        {
+            get { return _assemblyUtility; }
+        }
+
+        public Metacomment[] Metacomments
+        {
+            get { return _metacomments; }
+        }
+    }
+
+    public class AssemblyUtility : MarshalByRefObject
+    {
+        private readonly Assembly _assembly;
+        private readonly MethodInfo _entryPoint;
+
+        public AssemblyUtility(Assembly assembly)
+        {
+            _assembly = assembly;
+            _entryPoint = GetTestMethod();
+        }
+
+        public AssemblyUtility(string assemblyPath, bool reflectionOnly)
+            : this(reflectionOnly ? Assembly.ReflectionOnlyLoadFrom(assemblyPath) : Assembly.LoadFrom(assemblyPath))
+        { }
+
+        public string AssemblyLocation
+        {
+            get { return _assembly.Location; }
+        }
+
+        public string AssemblyFullName
+        {
+            get { return _assembly.FullName; }
+        }
+
+        public string EntryMethodName
+        {
+            get { return _entryPoint.Name; }
+        }
+
+        public string EntryMethodTypeFullName
+        {
+            get { return _entryPoint.DeclaringType.FullName; }
+        }
+
+        public bool EntryMethodAcceptsArguments
+        {
+            get { return _entryPoint != null ? _entryPoint.GetParameters().Length > 0 : false; }
+        }
+
+        public string Run(string[] args, out long elapsed)
+        {
+            TextWriter oldStdout = null;
+            using (var sw = new StringWriter())
+            {
+                oldStdout = Console.Out;
+                try
+                {
+                    oldStdout.Flush();
+                    Console.SetOut(sw);
+
+                    long startedCs = DateTime.UtcNow.Ticks;
+
+                    if (EntryMethodAcceptsArguments)
+                    {
+                        _entryPoint.Invoke(null, new object[] { args });
+                    }
+                    else
+                    {
+                        if ((args != null) && (args.Length > 0))
+                            throw new ArgumentException("Test case does not accept arguments");
+
+                        _entryPoint.Invoke(null, new object[] { });
+                    }
+
+                    long endedCs = DateTime.UtcNow.Ticks;
+
+                    elapsed = endedCs - startedCs;
+                    sw.Flush();
+                    return sw.ToString();
+                }
+                finally
+                {
+                    Console.SetOut(oldStdout);
+                }
+            }
+        }
+
+        public string GetPathOfAssembly()
+        {
+            return Util.GetPathOfAssembly(_assembly);
+        }
+
+        private MethodInfo GetTestMethod()
+        {
+            var entryPoint = _assembly.EntryPoint;
+
+            if (entryPoint == null)
+            {
+                var program = _assembly.GetType("Program");
+                if (program == null)
+                    throw new Exception("Test missing 'Program' main class");
+
+                var testMethod = program.GetMethod("Main");
+                if (testMethod == null)
+                    throw new Exception("Test missing 'Main' method of 'Program' main class");
+
+                entryPoint = testMethod;
+            }
+
+            return entryPoint;
+        }
     }
 }

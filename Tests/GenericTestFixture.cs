@@ -206,7 +206,7 @@ namespace JSIL.Tests {
             );
         }
 
-        private CompileResult RunComparisonTest (
+        private IEnumerable<Metacomment> RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, 
             TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, 
@@ -220,7 +220,7 @@ namespace JSIL.Tests {
             bool? scanForProxies = null,
             string[] extraDependencies = null
         ) {
-            CompileResult result = null;
+            IEnumerable<Metacomment> result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
             filename = Portability.NormalizeDirectorySeparators(filename);
 
@@ -240,10 +240,10 @@ namespace JSIL.Tests {
                     compilerOptions: compilerOptions
                 )) {
                     test.GetTestRunnerQueryString = getTestRunnerQueryString ?? test.GetTestRunnerQueryString;
-                    result = test.CompileResult;
+                    result = test.Metacomments;
 
                     if (extraDependencies != null) {
-                        var destDir = Path.GetDirectoryName(result.Assembly.Location);
+                        var destDir = Path.GetDirectoryName(test.AssemblyUtility.AssemblyLocation);
 
                         foreach (var dependency in extraDependencies)
                             File.Copy(dependency, Path.Combine(destDir, Path.GetFileName(dependency)), true);
@@ -399,7 +399,7 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected CompileResult RunSingleComparisonTestCase (
+        protected IEnumerable<Metacomment> RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,

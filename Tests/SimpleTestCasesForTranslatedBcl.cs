@@ -100,7 +100,7 @@ namespace JSIL.SimpleTests
             Func<Configuration> makeConfiguration = () =>
             {
                 var c = ComparisonTest.MakeDefaultConfiguration();
-                c.Assemblies.TranslateAdditional.Add("JSIL.ExpressionInterpreter.dll");
+                c.Assemblies.TranslateAdditional.Add(Path.Combine(ComparisonTest.JSILFolder, "JSIL.ExpressionInterpreter.dll"));
                 return c;
             };
 
