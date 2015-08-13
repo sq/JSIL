@@ -414,7 +414,7 @@ namespace JSIL.Tests {
                 if (initializeTranslator != null)
                     initializeTranslator(translator);
 
-                var assemblyPath = AssemblyUtility.GetPathOfAssembly();
+                var assemblyPath = AssemblyUtility.AssemblyLocation;
                 TranslationResult translationResult = null;
 
                 try {
@@ -958,11 +958,6 @@ namespace JSIL.Tests {
                     Console.SetOut(oldStdout);
                 }
             }
-        }
-
-        public string GetPathOfAssembly()
-        {
-            return Util.GetPathOfAssembly(_assembly);
         }
 
         private MethodInfo GetTestMethod()
