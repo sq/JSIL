@@ -106,7 +106,7 @@ namespace JSIL.Tests {
             string[] filenames, string[] stubbedAssemblies = null,
             TypeInfoProvider typeInfo = null,
             Func<string, bool> testPredicate = null,
-            Action<string, string> errorCheckPredicate = null,
+            Action<string, Func<string>> errorCheckPredicate = null,
             Func<Configuration> getConfiguration = null
         ) {
             var started = DateTime.UtcNow.Ticks;
@@ -208,7 +208,7 @@ namespace JSIL.Tests {
 
         private IEnumerable<Metacomment> RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, 
-            TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
+            TypeInfoProvider typeInfo = null, Action<string, Func<string>> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, 
             bool shouldRunJs = true, AssemblyCache asmCache = null,
             Func<Configuration> makeConfiguration = null, 
@@ -258,12 +258,12 @@ namespace JSIL.Tests {
                             scanForProxies: scanForProxies
                         );
                     } else {
-                        string js;
+                        Func<string> getJs;
                         long elapsed;
                         try {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
                             test.GenerateJavascript(
-                                new string[0], out js, out elapsed, 
+                                new string[0], out getJs, out elapsed, 
                                 makeConfiguration, 
                                 evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                                 onTranslationFailure,
@@ -274,7 +274,7 @@ namespace JSIL.Tests {
                             Console.WriteLine("generated");
 
                             if (errorCheckPredicate != null) {
-                                errorCheckPredicate(csOutput, js);
+                                errorCheckPredicate(csOutput, getJs);
                             }
                         } catch (Exception) {
                             Console.WriteLine("error");
@@ -299,17 +299,18 @@ namespace JSIL.Tests {
 
         protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true, Action<AssemblyTranslator> initializeTranslator = null) {
             long elapsed, temp;
-            string generatedJs = null, output;
+            Func<string> generateJs = null;
+            string output;
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
+                    output = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
                 } catch {
                     if (dumpJsOnFailure) {
                         // Failures in very large programs can totally choke the test runner
                         const int limit = 1024 * 16;
 
-                        var truncated = generatedJs;
+                        var truncated = generateJs != null ? generateJs() : string.Empty;
                         if (truncated.Length > limit)
                             truncated = truncated.Substring(0, limit);
 
@@ -322,7 +323,7 @@ namespace JSIL.Tests {
                     Assert.AreEqual(Portability.NormalizeNewLines(expectedText), output.Trim());
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
         protected string GenericTest (
@@ -331,13 +332,13 @@ namespace JSIL.Tests {
             TypeInfoProvider typeInfo = null
         ) {
             long elapsed, temp;
-            string generatedJs = null;
+            Func<string> generateJs = null;
 
             using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
-                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
+                    var jsOutput = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, MakeConfiguration);
 
                     try {
                         Assert.AreEqual(Portability.NormalizeNewLines(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
@@ -351,24 +352,25 @@ namespace JSIL.Tests {
 
                     Assert.AreEqual(Portability.NormalizeNewLines(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {
-                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                     throw;
                 }
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
         protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, string[] stubbedAssemblies = null) {
             long elapsed, temp;
-            string generatedJs = null, jsOutput = null;
+            Func<string> generateJs = null;
+            string jsOutput = null;
 
             using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
+                    jsOutput = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, MakeConfiguration);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptEvaluatorException jse) {
                     bool foundMatch = false;
@@ -382,13 +384,13 @@ namespace JSIL.Tests {
 
                     if (!foundMatch) {
                         Console.Error.WriteLine("// Was looking for a JS exception containing the string '{0}' but didn't find it.", jsErrorSubstring);
-                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                         if (jsOutput != null)
                             Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
                         throw;
                     }
                 } catch {
-                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                     if (jsOutput != null)
                         Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
                     throw;
@@ -396,7 +398,7 @@ namespace JSIL.Tests {
 
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
         protected IEnumerable<Metacomment> RunSingleComparisonTestCase (

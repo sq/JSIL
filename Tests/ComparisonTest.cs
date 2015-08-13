@@ -182,7 +182,8 @@ namespace JSIL.Tests {
                     bool ignore = false;
                     try
                     {
-                        var helper = CrossDomainHelper.CreateFromCompileResultOnRemoteDomain(AssemblyAppDomain, absoluteFilenames, assemblyName,
+                        var helper = CrossDomainHelper.CreateFromCompileResultOnRemoteDomain(AssemblyAppDomain,
+                            absoluteFilenames, assemblyName,
                             compilerOptions);
                         Metacomments = helper.Metacomments;
                         AssemblyUtility = helper.AssemblyUtility;
@@ -451,7 +452,7 @@ namespace JSIL.Tests {
         }
 
         public string GenerateJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation,
+            string[] args, out Func<string> generateJavascript, out long elapsedTranslation,
             Func<Configuration> makeConfiguration = null,
             bool throwOnUnimplementedExternals = true,
             Action<Exception> onTranslationFailure = null,
@@ -460,16 +461,34 @@ namespace JSIL.Tests {
             bool shouldWritePrologue = true
         ) {
             var translationStarted = DateTime.UtcNow.Ticks;
-            string translatedJs;
 
-            if ((AssemblyUtility == null) && (JSFilenames != null)) {
-                translatedJs = String.Join(
-                    Environment.NewLine + Environment.NewLine,
-                    from fn in JSFilenames select File.ReadAllText(fn)
-                ) + Environment.NewLine;
+            Action<Stream> writeResult;
+            if ((AssemblyUtility == null) && (JSFilenames != null))
+            {
+                writeResult = stream =>
+                {
+                    using (var writer = new StreamWriter(stream,Encoding.UTF8, 1024, true))
+                    {
+                        writer.WriteLine();
+                        writer.WriteLine();
+                        foreach (var jsFilename in JSFilenames)
+                        {
+                            using (var reader = new StreamReader(jsFilename))
+                            {
+                                string line;
+                                while ((line = reader.ReadLine()) != null)
+                                {
+                                    writer.WriteLine(line);
+                                }
+                            }
+                        }
+                        writer.WriteLine();
+                        writer.Flush();
+                    }
+                };
             } else if ((AssemblyUtility != null) && (JSFilenames == null)) {
-                translatedJs = Translate(
-                    (tr) => tr.WriteToString(), 
+                writeResult = Translate<Action<Stream>>(
+                    tr => stream => tr.WriteToStream(stream), 
                     makeConfiguration, 
                     onTranslationFailure,
                     initializeTranslator,
@@ -520,12 +539,20 @@ namespace JSIL.Tests {
                 throwOnUnimplementedExternals ? "true" : "false"
             ) : String.Empty;
 
-            generatedJavascript = translatedJs;
-
-            translatedJs = "(function() {" + Environment.NewLine + translatedJs + Environment.NewLine + "})()";
-
             var tempFilename = Path.GetTempFileName();
-            File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
+            using (var stream = File.Create(tempFilename))
+            {
+                using (var writer = new StreamWriter(stream))
+                {
+                    writer.WriteLine("(function() {");
+                    writer.Flush();
+                    writeResult(stream);
+                    writer.WriteLine();
+                    writer.WriteLine("})()");
+                    writer.WriteLine(invocationJs);
+                    writer.Flush();
+                }
+            }
 
             var jsFile = OutputPath;
             if (File.Exists(jsFile))
@@ -534,6 +561,24 @@ namespace JSIL.Tests {
 
             File.Delete(tempFilename);
 
+            string generatedJavascript = null;
+            generateJavascript = () =>
+            {
+                if (generatedJavascript == null)
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        writeResult(memoryStream);
+                        memoryStream.Position = 0;
+                        using (StreamReader reader = new StreamReader(memoryStream, Encoding.UTF8))
+                        {
+                            generatedJavascript = reader.ReadToEnd();
+                        }
+                    }
+                }
+                return generatedJavascript;
+            };
+
             return OutputPath;
         }
 
@@ -541,8 +586,10 @@ namespace JSIL.Tests {
             string[] args, Func<Configuration> makeConfiguration = null,
             Action<Exception> onTranslationFailure = null,
             Action<AssemblyTranslator> initializeTranslator = null
-        ) {
-            string temp1, temp4, temp5;
+        )
+        {
+            Func<string> temp1;
+            string temp4, temp5;
             long temp2, temp3;
 
             return RunJavascript(
@@ -553,7 +600,7 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
+            string[] args, out Func<string> generateJavascript, out long elapsedTranslation, out long elapsedJs,
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
@@ -563,7 +610,7 @@ namespace JSIL.Tests {
             string temp1, temp2;
 
             return RunJavascript(
-                args, out generatedJavascript, out elapsedTranslation, out elapsedJs, 
+                args, out generateJavascript, out elapsedTranslation, out elapsedJs, 
                 out temp1, out temp2,
                 makeConfiguration, evaluationConfig, onTranslationFailure, initializeTranslator,
                 scanForProxies
@@ -571,7 +618,7 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
+            string[] args, out Func<string> generateJavascript, out long elapsedTranslation, out long elapsedJs, out string stderr, out string trailingOutput,
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,
             Action<Exception> onTranslationFailure = null,
@@ -579,7 +626,7 @@ namespace JSIL.Tests {
             bool? scanForProxies = null
         ) {
             var tempFilename = GenerateJavascript(
-                args, out generatedJavascript, out elapsedTranslation, 
+                args, out generateJavascript, out elapsedTranslation, 
                 makeConfiguration, 
                 evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                 onTranslationFailure,
@@ -701,7 +748,7 @@ namespace JSIL.Tests {
             var signals = new[] {
                     new ManualResetEventSlim(false), new ManualResetEventSlim(false)
                 };
-            var generatedJs = new string[1];
+            Func<string> generateJs = null;
             var errors = new Exception[2];
             var outputs = new string[2];
             var elapsed = new long[3];
@@ -729,7 +776,7 @@ namespace JSIL.Tests {
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
                     outputs[1] = RunJavascript(
-                        args, out generatedJs[0], out elapsed[1], out elapsed[2], 
+                        args, out generateJs, out elapsed[1], out elapsed[2], 
                         makeConfiguration: makeConfiguration,
                         evaluationConfig: evaluationConfig,
                         onTranslationFailure: onTranslationFailure,
@@ -803,9 +850,9 @@ namespace JSIL.Tests {
                     writeJSOutput();
                 }
 
-                if (dumpJsOnFailure && (generatedJs[0] != null)) {
+                if (dumpJsOnFailure && (generateJs() != null)) {
                     Console.WriteLine("// Generated javascript begins here //");
-                    Console.WriteLine(generatedJs[0]);
+                    Console.WriteLine(generateJs());
                     Console.WriteLine("// Generated javascript ends here //");
                 }
 
