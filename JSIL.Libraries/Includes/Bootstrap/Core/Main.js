@@ -19,6 +19,7 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Helpers/JSIL.Dispose.js"); writeln();
 //? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
 //? include("Helpers/JSIL.GetEnumerator.js"); writeln();
+//? include("Helpers/JSIL.ParseDataURL.js"); writeln();
 
 //? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
 //? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();
@@ -42,18 +43,77 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Classes/System.Decimal.js"); writeln();
 
 //? include("Classes/System.String.js"); writeln();
+
+//? include("Classes/System.Enum.js"); writeln();
+//? include("Classes/System.Activator.js"); writeln();
+//? include("Classes/System.Nullable.js"); writeln();
+//? include("Classes/System.WeakReference.js"); writeln();
+
 //? include("Classes/System.Exception.js"); writeln();
 
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.SystemException.js"); writeln();
+  //? include("Classes/System.InvalidCastException.js"); writeln();
+  //? include("Classes/System.InvalidOperationException.js"); writeln();
+  //? include("Classes/System.IO.FileNotFoundException.js"); writeln();
+  //? include("Classes/System.FormatException.js"); writeln();
+//? }
+
+//? include("Classes/System.Environment.js"); writeln();
+//? include("Classes/System.Console.js"); writeln();
+//? include("Classes/System.Math.js"); writeln();
+//? include("Classes/System.Convert.js"); writeln();
+//? include("Classes/System.BitConverter.js"); writeln();
+
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.Random.js"); writeln();
+//? }
+
+//? include("Classes/System.Uri.js"); writeln();
+
+//? include("Classes/System.Diagnostics.Debug.js"); writeln();
+//? include("Classes/System.Diagnostics.StackTrace.js"); writeln();
+//? include("Classes/System.Diagnostics.StackFrame.js"); writeln();
+//? include("Classes/System.Diagnostics.Stopwatch.js"); writeln();
+//? include("Classes/System.Diagnostics.Trace.js"); writeln();
+
+//? include("Classes/System.GC.js"); writeln();
+//? include("Classes/System.Threading.Interlocked.js"); writeln();
+//? include("Classes/System.Threading.Monitor.js"); writeln();
+//? include("Classes/System.Threading.Thread.js"); writeln();
+//? include("Classes/System.Threading.Volatile.js"); writeln();
+
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.Collections.Generic.List.js"); writeln();
+  //? include("Classes/System.Collections.ArrayList.js"); writeln();
+  //? include("Classes/System.Collections.ObjectModel.Collection.js"); writeln();
+  //? include("Classes/System.Collections.ObjectModel.ReadOnlyCollection.js"); writeln();
+  //? include("Classes/System.Collections.Generic.Stack.js"); writeln();
+  //? include("Classes/System.Collections.Generic.Queue.js"); writeln();
+  //? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
+  //? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
+  //? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
+  //? include("Classes/System.Collections.Generic.LinkedList.js"); writeln();
+  //? include("Classes/System.Collections.Generic.LinkedListNode.js"); writeln();
+  //? include("Classes/System.Collections.BitArray.js"); writeln();
+//? }
+
+//? include("Classes/System.Collections.Generic.Comparer.js"); writeln();
+//? include("Classes/System.Collections.Generic.EqualityComparer.js"); writeln();
+//? include("Classes/JSIL.DefaultComparer.js"); writeln();
+//? include("Classes/JSIL.AbstractEnumerator.js"); writeln();
+
+//? if (!('TRANSLATED' in  __out)) {
+  //? include("Classes/System.EventArgs.js"); writeln();
+  //? include("Classes/System.ComponentModel.PropertyChangedEventArgs.js"); writeln();
+//? }
 
 //? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
-//? }
 
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
 JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
 JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T1", "System.Action`2").in(), new JSIL.GenericParameter("T2", "System.Action`2").in()]));
@@ -71,15 +131,7 @@ JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"], new JSIL
 ]));
 
 JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.Predicate`1").in()]));
-//? }
 
-//? include("Classes/System.SystemException.js"); writeln();
-//? include("Classes/System.InvalidCastException.js"); writeln();
-//? include("Classes/System.InvalidOperationException.js"); writeln();
-//? include("Classes/System.IO.FileNotFoundException.js"); writeln();
-//? include("Classes/System.FormatException.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
 JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);
 JSIL.MakeClass("System.SystemException", "System.TypeLoadException", true);
@@ -99,39 +151,7 @@ JSIL.MakeClass("System.SystemException", "System.Collections.Generic.KeyNotFound
 
 JSIL.MakeClass("System.TypeLoadException", "System.DllNotFoundException", true);
 JSIL.MakeClass("System.TypeLoadException", "System.EntryPointNotFoundException", true);
-//? }
 
-//? include("Classes/System.Console.js"); writeln();
-//? include("Classes/System.Diagnostics.Debug.js"); writeln();
-
-//? include("Classes/System.Threading.Thread.js"); writeln();
-
-//? if (!('TRANSLATED' in  __out)) {
-  //? include("Classes/System.Collections.Generic.List.js"); writeln();
-  //? include("Classes/System.Collections.ArrayList.js"); writeln();
-  //? include("Classes/System.Collections.ObjectModel.Collection.js"); writeln();
-  //? include("Classes/System.Collections.ObjectModel.ReadOnlyCollection.js"); writeln();
-  //? include("Classes/System.Collections.Generic.Stack.js"); writeln();
-  //? include("Classes/System.Collections.Generic.Queue.js"); writeln();
-//? }
-
-//? include("Classes/System.Threading.Interlocked.js"); writeln();
-//? include("Classes/System.Threading.Monitor.js"); writeln();
-//? include("Classes/System.Threading.Volatile.js"); writeln();
-
-
-//? include("Classes/System.Random.js"); writeln();
-//? include("Classes/System.Math.js"); writeln();
-
-//? include("Classes/System.Environment.js"); writeln();
-
-//? if (!('TRANSLATED' in  __out)) {
-  //? include("Classes/System.Collections.Generic.Dictionary.js"); writeln();
-  //? include("Classes/System.Collections.Generic.KeyValuePair.js"); writeln();
-  //? include("Classes/System.Collections.Generic.HashSet.js"); writeln();
-//? }
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IDictionary`2", true, ["TKey", "TValue"], function ($) {
       $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.IDictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.IDictionary`2")], []));
@@ -171,27 +191,9 @@ JSIL.MakeInterface(
 }, [
 $jsilcore.TypeRef("System.Collections.ICollection"),
 $jsilcore.TypeRef("System.Collections.IEnumerable")]);
-//? }
 
-//? include("Classes/JSIL.AbstractEnumerator.js"); writeln();
-//? include("Classes/System.Nullable.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
-//? }
 
-//? include("Classes/System.Diagnostics.StackTrace.js"); writeln();
-//? include("Classes/System.Diagnostics.StackFrame.js"); writeln();
-
-//? include("Classes/System.Enum.js"); writeln();
-//? include("Classes/System.Activator.js"); writeln();
-
-//? include("Classes/System.Diagnostics.Stopwatch.js"); writeln();
-//? include("Classes/System.EventArgs.js"); writeln();
-
-//? include("Classes/System.ComponentModel.PropertyChangedEventArgs.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum(
   "System.IO.FileMode", true, {
       CreateNew: 1,
@@ -202,11 +204,7 @@ JSIL.MakeEnum(
       Append: 6
   }, false
 );
-//? }
 
-//? include("Classes/System.GC.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeEnum(
   "System.Globalization.NumberStyles", true, {
       None: 0,
@@ -228,16 +226,7 @@ JSIL.MakeEnum(
       HexNumber: 515
   }, true
 );
-//? }
 
-//? include("Classes/System.Convert.js"); writeln();
-//? include("Classes/System.BitConverter.js"); writeln();
-//? include("Helpers/JSIL.ParseDataURL.js"); writeln();
-
-//? include("Classes/System.Collections.Generic.LinkedList.js"); writeln();
-//? include("Classes/System.Collections.Generic.LinkedListNode.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.IComparer", true, [],
   function ($) {
@@ -257,12 +246,7 @@ JSIL.MakeInterface(
       );
   }, []
 );
-//? }
 
-//? include("Classes/System.Collections.Generic.Comparer.js"); writeln();
-//? include("Classes/JSIL.DefaultComparer.js"); writeln();
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.ITuple", false, [], function ($) {
       $.Method({}, "ToString", (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Text.StringBuilder")], [])));
@@ -312,10 +296,7 @@ JSIL.MakeInterface(
       $.Property({}, "AsyncState");
       $.Property({}, "CompletedSynchronously");
   }, []);
-//? }
 
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.IConvertible", true, [], function ($) {
       $.Method({}, "GetTypeCode", new JSIL.MethodSignature($jsilcore.TypeRef("System.TypeCode"), [], []));
@@ -341,15 +322,7 @@ JSIL.MakeInterface(
   "System.IFormatProvider", true, [], function ($) {
       $.Method({}, "GetFormat", new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], []));
   }, []);
-//? }
 
-//? include("Classes/System.WeakReference.js"); writeln();
-
-//? include("Classes/System.Diagnostics.Trace.js"); writeln();
-
-/* interface System.Collections.Generic.IReadOnlyCollection`1 */
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IReadOnlyCollection`1", true, ["out T"], function ($) {
       $.Method({}, "get_Count", new JSIL.MethodSignature($.Int32, [], []));
@@ -357,11 +330,7 @@ JSIL.MakeInterface(
   }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyCollection`1").out()]), $jsilcore.TypeRef("System.Collections.IEnumerable")])
   .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.TypeDependencyAttribute"), function () { return ["System.SZArrayHelper"]; })
   .Attribute($jsilcore.TypeRef("__DynamicallyInvokableAttribute"));
-//? }
 
-/* interface System.Collections.Generic.IReadOnlyList`1 */
-
-//? if ('GENERATE_STUBS' in  __out) {
 JSIL.MakeInterface(
   "System.Collections.Generic.IReadOnlyList`1", true, ["out T"], function ($) {
       $.Method({}, "get_Item", new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IReadOnlyList`1").out(), [$.Int32], []));
@@ -380,7 +349,3 @@ JSIL.MakeInterface(
       $.Method({}, "GetNativeDataSize", JSIL.MethodSignature.Return($.Int32));
   }, []);
 //? }
-
-//? include("Classes/System.Collections.BitArray.js"); writeln();
-//? include("Classes/System.Uri.js"); writeln();
-//? include("Classes/System.Collections.Generic.EqualityComparer.js"); writeln();

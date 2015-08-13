@@ -5,6 +5,12 @@ using JSIL.Proxy;
 
 namespace JSIL.Proxies.Bcl
 {
+    [JSProxy(typeof(XmlSerializer), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Xml_Serialization_XmlSerializer
+    {
+    }
+
     [JSProxy(typeof(XmlSerializationReader), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Xml_Serialization_XmlSerializationReader
