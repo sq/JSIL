@@ -21,10 +21,7 @@ namespace JSIL.SimpleTests {
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource ()
         {
-            var assemblyCache = new AssemblyCache();
-            var typeInfoProvider = MakeDefaultProvider();
-            return FolderTestSource("SimpleTestCases", typeInfoProvider, assemblyCache)
-                .Concat(FolderTestSource("SimpleTestCasesFailingOnMono", typeInfoProvider, assemblyCache));
+            return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
     }
 }

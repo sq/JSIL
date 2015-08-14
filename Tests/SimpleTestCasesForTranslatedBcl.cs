@@ -15,12 +15,13 @@ namespace JSIL.SimpleTests
         public static readonly string BootsrapperFileName =
             Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "Bootstappers", "BclBootstrapTranslated.cs"));
 
-        private static readonly AssemblyCache AssemblyCache = new AssemblyCache();
+        private readonly AssemblyCache AssemblyCache;
         private readonly TypeInfoProvider TypeInfoProvider;
 
         public SimpleTestCasesForTranslatedBcl()
         {
             TypeInfoProvider = MakeDefaultProvider();
+            AssemblyCache = new AssemblyCache();
         }
 
         protected override Dictionary<string, string> SetupEvaluatorEnvironment()
@@ -114,24 +115,23 @@ namespace JSIL.SimpleTests
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
         {
-            return FolderTestSource("SimpleTestCasesForTranslatedBcl", TypeInfoProvider, AssemblyCache);
+            return FolderTestSource("SimpleTestCasesForTranslatedBcl", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected IEnumerable<TestCaseData> ExpressionTestCasesSourceForTranslatedBcl()
         {
             // TODO: Why we cannot reuse TypeInfoProvider here?
-            return FolderTestSource("ExpressionTestCases", null, AssemblyCache);
+            return FolderTestSource("ExpressionTestCases", null, AssemblyCache, false);
         }
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForStubbedBcl()
         {
-            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, new AssemblyCache());
+            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource()
         {
-            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache)
-                .Concat(FolderTestSource("SimpleTestCasesFailingOnMono", TypeInfoProvider, AssemblyCache));
+            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected object[] BootstrapArguments()
@@ -155,6 +155,19 @@ namespace JSIL.SimpleTests
                             .ToArray()
                 }
                 );
+        }
+
+        [TestFixtureTearDown]
+        public void FixtureTearDown()
+        {
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            TypeInfoProvider.Dispose();
+            AssemblyCache.Dispose();
+            base.Dispose();
         }
     }
 }

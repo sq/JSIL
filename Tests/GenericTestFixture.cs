@@ -367,7 +367,7 @@ namespace JSIL.Tests {
 
             using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual(workingOutput, csOutput.Trim());
+                Assert.AreEqual(Portability.NormalizeNewLines(workingOutput), csOutput.Trim());
 
                 try {
                     jsOutput = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, MakeConfiguration);
@@ -440,12 +440,36 @@ namespace JSIL.Tests {
             }
         }
 
-        protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
-            if (!Directory.Exists(testPath)) {
+        protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null, bool markLastTest = true)
+        {
+            var cases = FolderTestSource(folderName, String.Empty, typeInfo, asmCache);
+            if (!markLastTest)
+            {
+                return cases;
+            }
+
+            //Let's mark last test.
+            var array = cases.ToArray();
+            ((object[]) array[array.Length - 1].Arguments[0])[4] = true;
+            return array;
+        }
+
+        private IEnumerable<TestCaseData> FolderTestSource(string folderName, string subfolders, TypeInfoProvider typeInfo, AssemblyCache asmCache)
+        {
+            if (folderName.StartsWith("exclude_", StringComparison.InvariantCultureIgnoreCase))
+            {
+                yield break;
+            }
+
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, subfolders, folderName));
+
+            if (!Directory.Exists(testPath))
+            {
                 Console.WriteLine("WARNING: Folder {0} doesn't exist.", testPath);
                 yield break;
             }
+
+            subfolders = Path.Combine(subfolders, folderName);
 
             var testNames = Directory.GetFiles(testPath, "*.cs")
                 .Concat(Directory.GetFiles(testPath, "*.vb"))
@@ -457,26 +481,38 @@ namespace JSIL.Tests {
 
             string commonFile = null;
 
-            foreach (var testName in testNames) {
-                if (Path.GetFileNameWithoutExtension(testName) == "Common") {
+            foreach (var testName in testNames)
+            {
+                if (Path.GetFileNameWithoutExtension(testName) == "Common")
+                {
                     commonFile = testName;
                     break;
                 }
             }
 
-            for (int i = 0, l = testNames.Length; i < l; i++) {
+            for (int i = 0, l = testNames.Length; i < l; i++)
+            {
                 var testName = testNames[i];
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
 
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
+                var item = (new TestCaseData(new object[] {new object[] {testName, typeInfo, asmCache, commonFile, false}}))
                     .SetName(PickTestNameForFilename(testName))
-                    .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
-                    .SetCategory(folderName);
+                    .SetDescription(String.Format("{0}\\{1}", subfolders, Path.GetFileName(testName)));
+                foreach (var category in subfolders.Split(Path.DirectorySeparatorChar))
+                {
+                    item.SetCategory(category);
+                }
+                yield return item;
             }
+
+            string[] subdirectoryEntries = Directory.GetDirectories(testPath);
+            foreach (string subdirectory in subdirectoryEntries)
+                foreach (var item in FolderTestSource(subdirectory.Split(Path.DirectorySeparatorChar).Last(), subfolders, typeInfo, asmCache))
+                    yield return item;
         }
 
-        protected IEnumerable<TestCaseData> FilenameTestSource (string[] filenames, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
+        protected IEnumerable<TestCaseData> FilenameTestSource (string[] filenames, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null, bool markLastTest = true) {
             var testNames = filenames.OrderBy((s) => s).ToArray();
 
             for (int i = 0, l = testNames.Length; i < l; i++) {
@@ -488,8 +524,18 @@ namespace JSIL.Tests {
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
-                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
+                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, markLastTest && i == (l - 1) } }))
                     .SetName(PickTestNameForFilename(actualTestName));
+
+                var normalTestPathName = Portability.NormalizeDirectorySeparators(actualTestName);
+                var testFileName = Path.GetFileName(normalTestPathName);
+                foreach (var part in normalTestPathName.Split(Path.DirectorySeparatorChar))
+                {
+                    if (part != testFileName)
+                    {
+                        item.SetCategory(part);
+                    }
+                }
 
                 if (isIgnored)
                     item.Ignore();
@@ -519,4 +565,7 @@ namespace JSIL.Tests {
             }
         }
     }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class FailsOnMonoAttribute : CategoryAttribute { }
 }

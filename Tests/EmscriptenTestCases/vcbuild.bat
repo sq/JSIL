@@ -10,7 +10,7 @@
 
 :ok
 @del /Q *.dll
-@call cl /D_USRDLL /D_WINDLL common/common.cpp /link /DLL /OUT:common.dll
+@call cl /D_USRDLL /D_WINDLL exclude_common/common.cpp /link /DLL /OUT:common.dll
 @if errorlevel 1 goto fail
 
 @del /Q *.exp

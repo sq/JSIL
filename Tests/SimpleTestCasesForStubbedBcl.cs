@@ -10,16 +10,18 @@ namespace JSIL.SimpleTests
     using NUnit.Framework;
 
     [TestFixture]
-    public class SimpleTestCasesForStubbedBcl : GenericTestFixture
+    [Category("Stubbed")]
+    public class SimpleTestCasesForStubbedBcl : GenericTestFixture, IDisposable
     {
         public static readonly string BootsrapperFileName =
             Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "Bootstappers", "BclBootstrapStubbed.cs"));
 
-        private static readonly AssemblyCache AssemblyCache = new AssemblyCache();
+        private readonly AssemblyCache AssemblyCache;
         private readonly TypeInfoProvider TypeInfoProvider;
         public SimpleTestCasesForStubbedBcl()
         {
             TypeInfoProvider = MakeDefaultProvider();
+            AssemblyCache = new AssemblyCache();
         }
 
         [TestFixtureSetUp]
@@ -91,13 +93,12 @@ namespace JSIL.SimpleTests
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSourceForStubbedBcl()
         {
-            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, AssemblyCache);
+            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource()
         {
-            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache)
-                .Concat(FolderTestSource("SimpleTestCasesFailingOnMono", TypeInfoProvider, AssemblyCache));
+            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected object[] BootstrapArguments()
@@ -121,6 +122,19 @@ namespace JSIL.SimpleTests
                             .ToArray()
                 }
                 );
+        }
+
+        [TestFixtureTearDown]
+        public void FixtureTearDown()
+        {
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            TypeInfoProvider.Dispose();
+            AssemblyCache.Dispose();
+            base.Dispose();
         }
     }
 }
