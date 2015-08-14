@@ -281,7 +281,7 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\RefParameters.cs",
                     @"TestCases\RefParameterInitializedInConditional.cs",
-                    @"TestCases\RefStruct.cs",
+                    @"TestCases\FailsOnMono\RefStruct.cs",
                     @"TestCases\StructPropertyThis.cs",
                     @"TestCases\RefClass.cs"
                 }, MakeDefaultProvider(), new AssemblyCache()
@@ -316,12 +316,12 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\HashSetCount.cs",
                     @"TestCases\MulticastDelegates.cs",
-                    @"TestCases\GetTypeByName.cs",
-                    @"TestCases\GetGenericTypeByName.cs",
+                    @"TestCases\FailsOnMono\GetTypeByName.cs",
+                    @"TestCases\FailsOnMono\GetGenericTypeByName.cs",
                     @"TestCases\GetGenericTypeWithMultipleArgumentsByName.cs",
                     @"TestCases\ValueTypeMethods.cs",
                     @"TestCases\Events.cs",
-                    @"TestCases\Events.vb",
+                    @"TestCases\FailsOnMono\Events.vb",
                     @"TestCases\ForEach.cs",
                     @"TestCases\CastToBoolean.cs",
                     @"TestCases\CastingFromNull.cs",

@@ -36,6 +36,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void StringSwitch () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringSwitch.cs",
@@ -74,6 +75,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void BigStringSwitch () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\BigStringSwitch.cs",
@@ -155,6 +157,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void EliminateSingleUseExceptionTemporaries () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\SingleUseExceptionTemporaries.cs",
@@ -240,6 +243,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void EnumeratorClassLocalNames () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\EnumeratorClassLocalNames.cs",
@@ -324,6 +328,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void FlagsEnumsWithZeroValues () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\FlagsEnumsWithZeroValues.cs",
@@ -378,6 +383,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void UntranslatableGotos2 () {
             var generatedJs = GetJavascript(
                 @"TestCases\RepeatIterator.cs",
@@ -998,6 +1004,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void PreventFastMethodDispatcherIfHideBase_Issue368()
         {
             var output = "";

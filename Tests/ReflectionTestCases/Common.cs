@@ -88,8 +88,20 @@ namespace Common {
             else
                 attributes = member.GetCustomAttributes(inherit);
 
-            foreach (var attribute in attributes)
-                Console.WriteLine(attribute);
+            WriteSorted(attributes);
+        }
+
+        public static void WriteSorted(object[] items)
+        {
+            string[] itemStrings = new string[items.Length];
+            for (int i = 0; i < items.Length; i++)
+            {
+                itemStrings[i] = items[i].ToString();
+            }
+            Array.Sort(itemStrings);
+
+            foreach (var item in itemStrings)
+                Console.WriteLine(item);
         }
 
         public static void ListMethods (Type type, BindingFlags flags) {

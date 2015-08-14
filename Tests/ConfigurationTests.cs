@@ -46,6 +46,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void MicrosoftAssembliesAreStubbed () {
             var translator = MakeTranslator(LoadDefaultConfiguration());
 
@@ -55,6 +56,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void AssemblyNamedSolarSystemIsNotStubbed () {
             var translator = MakeTranslator(LoadDefaultConfiguration());
 
