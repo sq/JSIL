@@ -277,7 +277,7 @@
     <None Include="ReflectionTestCases\GetInterfaceAttributes.cs" />
     <None Include="ReflectionTestCases\GetParameterAttributes.cs" />
     <None Include="ReflectionTestCases\GetConstructorAttributes.cs" />
-    <None Include="SpecialTestCases\JSReplacementTypeOfThisStatic1.cs" />
+    <None Include="SpecialTestCases\JSReplacementTypeOfThisStatic.cs" />
     <None Include="BinaryTestCases\RoslynUnaryPointerOperation.exe" />
     <None Include="EmscriptenTestCases\exclude_common\common.cpp" />
     <Content Include="JSTestCases\SameNameDifferentReturnTypes.js" />
