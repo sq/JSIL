@@ -151,7 +151,6 @@ namespace JSIL.Tests {
                     new WaitHandle[] { streamsSignal.WaitHandle, _DisposedSignal.WaitHandle },
                     60000
                 );
-                task.Dispose();
             };
         }
 
