@@ -9,9 +9,6 @@ namespace JSIL.Internal
 {
     public class SourceMapBuilder
     {
-        private readonly Dictionary<Tuple<long, long>, SequencePoint> CodeMap =
-            new Dictionary<Tuple<long, long>, SequencePoint>();
-
         private readonly List<Mapping> _mappings = new List<Mapping>(); 
 
         public void AddInfo(int genaratedLine, int generatedColumn, IEnumerable<SequencePoint> info)
@@ -30,7 +27,7 @@ namespace JSIL.Internal
         {
             // Translation of https://github.com/mozilla/source-map/
 
-            if (!CodeMap.Any())
+            if (!_mappings.Any())
             {
                 return false;
             }

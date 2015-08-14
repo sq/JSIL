@@ -83,7 +83,7 @@ namespace JSIL {
         public override void Visit(JSNode node, string name = null)
         {
             base.Visit(node, name);
-            if (Output.SourceMapBuilder != null && node.SymbolInfo != null && node.SymbolInfo.Any())
+            if (Output.SourceMapBuilder != null && node != null && node.SymbolInfo != null && node.SymbolInfo.Any())
             {
                 Output.SourceMapBuilder.AddInfo(Output.Output.Line, Output.Output.FirstNonSpace, node.SymbolInfo);
                 //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
