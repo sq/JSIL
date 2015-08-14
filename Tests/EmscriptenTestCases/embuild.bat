@@ -12,7 +12,7 @@
 )
 @if errorlevel 1 goto fail
 
-@set EMARGS=--memory-init-file 0 -s MODULARIZE=1 -s EXPORT_FUNCTION_TABLES=1 -s RESERVED_FUNCTION_POINTERS=8 -o common.js common/common.cpp
+@set EMARGS=--memory-init-file 0 -s MODULARIZE=1 -s EXPORT_FUNCTION_TABLES=1 -s RESERVED_FUNCTION_POINTERS=8 -o common.js exclude_common/common.cpp
 
 @call emcc -O0 -g4 %EMARGS%
 @if errorlevel 1 goto fail

@@ -95,7 +95,7 @@ namespace JSIL.Tests {
         public PerformanceAnalysisData (ComparisonTest test, Func<Configuration> makeConfiguration = null) {
             string trailingOutput;
             string stderr;
-            string tempS;
+            Func<string> tempS;
             long tempL;
 
             Output = test.RunJavascript(

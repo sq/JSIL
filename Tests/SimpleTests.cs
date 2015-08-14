@@ -9,6 +9,8 @@ using JSIL.Tests;
 using NUnit.Framework;
 
 namespace JSIL.SimpleTests {
+    using System.Linq;
+
     [TestFixture]
     public class SimpleTests : GenericTestFixture {
         [Test]
@@ -17,7 +19,8 @@ namespace JSIL.SimpleTests {
             RunSingleComparisonTestCase(parameters);
         }
 
-        protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
+        protected IEnumerable<TestCaseData> SimpleTestCasesSource ()
+        {
             return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
     }

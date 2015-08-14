@@ -3,9 +3,7 @@ using System.Collections.Generic;
 
 public static class Program {
     public static void Main (string[] args) {
-        foreach (var customAttribute in typeof(IInterface).GetCustomAttributes(false)) {
-            Console.WriteLine(customAttribute);
-        }
+        Common.Util.WriteSorted(typeof(IInterface).GetCustomAttributes(false));
     }
 
     [MyAttribute1, MyAttribute2]

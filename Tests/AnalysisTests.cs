@@ -550,6 +550,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void ImmutableStructThisAssignment () {
             var output = "2 2\r\n1 2\r\n3\r\n3";
 
@@ -719,6 +720,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void Issue199 () {
             var generatedJs = GetJavascript(@"SpecialTestCases\Issue199.fs");
         }

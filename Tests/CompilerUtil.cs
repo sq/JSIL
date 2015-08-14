@@ -11,6 +11,8 @@ using Microsoft.CSharp;
 using Microsoft.VisualBasic;
 
 namespace JSIL.Tests {
+    using System.Runtime.Serialization;
+
     public static class CompilerUtil {
         public static string TempPath;
 
@@ -271,9 +273,22 @@ namespace JSIL.Tests {
         }
     }
 
+    [Serializable]
     public class CompilerNotFoundException : Exception
     {
+        public CompilerNotFoundException()
+        {
+        }
+
         public CompilerNotFoundException(string message) : base(message)
+        {
+        }
+
+        public CompilerNotFoundException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
+        protected CompilerNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

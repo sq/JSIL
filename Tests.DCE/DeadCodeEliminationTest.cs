@@ -161,6 +161,7 @@
         }
 
         [Test]
+        [FailsOnMono]
         public void PreserveVirtualMethodImplementation()
         {
             var output = GetJavascriptWithDCE(@"DCETests\PreserveVirtualMethodImplementation.cs");

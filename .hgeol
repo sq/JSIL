@@ -9,3 +9,5 @@ native = LF
 **.xaml = native
 **.config = native
 **.json = native
+**.yml = native
+.hgeol = native

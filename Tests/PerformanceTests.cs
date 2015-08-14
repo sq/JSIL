@@ -34,6 +34,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void FannkuchRedux () {
             using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
                 test.Run();

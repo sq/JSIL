@@ -106,7 +106,7 @@ namespace JSIL.Tests {
             string[] filenames, string[] stubbedAssemblies = null,
             TypeInfoProvider typeInfo = null,
             Func<string, bool> testPredicate = null,
-            Action<string, string> errorCheckPredicate = null,
+            Action<string, Func<string>> errorCheckPredicate = null,
             Func<Configuration> getConfiguration = null
         ) {
             var started = DateTime.UtcNow.Ticks;
@@ -206,9 +206,9 @@ namespace JSIL.Tests {
             );
         }
 
-        private CompileResult RunComparisonTest (
+        private IEnumerable<Metacomment> RunComparisonTest (
             string filename, string[] stubbedAssemblies = null, 
-            TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
+            TypeInfoProvider typeInfo = null, Action<string, Func<string>> errorCheckPredicate = null,
             List<string> failureList = null, string commonFile = null, 
             bool shouldRunJs = true, AssemblyCache asmCache = null,
             Func<Configuration> makeConfiguration = null, 
@@ -220,7 +220,7 @@ namespace JSIL.Tests {
             bool? scanForProxies = null,
             string[] extraDependencies = null
         ) {
-            CompileResult result = null;
+            IEnumerable<Metacomment> result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
             filename = Portability.NormalizeDirectorySeparators(filename);
 
@@ -240,10 +240,10 @@ namespace JSIL.Tests {
                     compilerOptions: compilerOptions
                 )) {
                     test.GetTestRunnerQueryString = getTestRunnerQueryString ?? test.GetTestRunnerQueryString;
-                    result = test.CompileResult;
+                    result = test.Metacomments;
 
                     if (extraDependencies != null) {
-                        var destDir = Path.GetDirectoryName(result.Assembly.Location);
+                        var destDir = Path.GetDirectoryName(test.AssemblyUtility.AssemblyLocation);
 
                         foreach (var dependency in extraDependencies)
                             File.Copy(dependency, Path.Combine(destDir, Path.GetFileName(dependency)), true);
@@ -258,12 +258,12 @@ namespace JSIL.Tests {
                             scanForProxies: scanForProxies
                         );
                     } else {
-                        string js;
+                        Func<string> getJs;
                         long elapsed;
                         try {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
                             test.GenerateJavascript(
-                                new string[0], out js, out elapsed, 
+                                new string[0], out getJs, out elapsed, 
                                 makeConfiguration, 
                                 evaluationConfig == null || evaluationConfig.ThrowOnUnimplementedExternals, 
                                 onTranslationFailure,
@@ -274,7 +274,7 @@ namespace JSIL.Tests {
                             Console.WriteLine("generated");
 
                             if (errorCheckPredicate != null) {
-                                errorCheckPredicate(csOutput, js);
+                                errorCheckPredicate(csOutput, getJs);
                             }
                         } catch (Exception) {
                             Console.WriteLine("error");
@@ -299,17 +299,18 @@ namespace JSIL.Tests {
 
         protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true, Action<AssemblyTranslator> initializeTranslator = null) {
             long elapsed, temp;
-            string generatedJs = null, output;
+            Func<string> generateJs = null;
+            string output;
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
+                    output = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
                 } catch {
                     if (dumpJsOnFailure) {
                         // Failures in very large programs can totally choke the test runner
                         const int limit = 1024 * 16;
 
-                        var truncated = generatedJs;
+                        var truncated = generateJs != null ? generateJs() : string.Empty;
                         if (truncated.Length > limit)
                             truncated = truncated.Substring(0, limit);
 
@@ -322,7 +323,7 @@ namespace JSIL.Tests {
                     Assert.AreEqual(Portability.NormalizeNewLines(expectedText), output.Trim());
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
         protected string GenericTest (
@@ -331,13 +332,13 @@ namespace JSIL.Tests {
             TypeInfoProvider typeInfo = null
         ) {
             long elapsed, temp;
-            string generatedJs = null;
+            Func<string> generateJs = null;
 
             using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
-                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
+                    var jsOutput = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, MakeConfiguration);
 
                     try {
                         Assert.AreEqual(Portability.NormalizeNewLines(csharpOutput), csOutput.Trim(), "Did not get expected output from C# test");
@@ -351,24 +352,25 @@ namespace JSIL.Tests {
 
                     Assert.AreEqual(Portability.NormalizeNewLines(javascriptOutput), jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {
-                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                     throw;
                 }
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
         protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, string[] stubbedAssemblies = null) {
             long elapsed, temp;
-            string generatedJs = null, jsOutput = null;
+            Func<string> generateJs = null;
+            string jsOutput = null;
 
             using (var test = new ComparisonTest(EvaluatorPool, Portability.NormalizeDirectorySeparators(fileName), stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual(workingOutput, csOutput.Trim());
+                Assert.AreEqual(Portability.NormalizeNewLines(workingOutput), csOutput.Trim());
 
                 try {
-                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
+                    jsOutput = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, MakeConfiguration);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptEvaluatorException jse) {
                     bool foundMatch = false;
@@ -382,13 +384,13 @@ namespace JSIL.Tests {
 
                     if (!foundMatch) {
                         Console.Error.WriteLine("// Was looking for a JS exception containing the string '{0}' but didn't find it.", jsErrorSubstring);
-                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                         if (jsOutput != null)
                             Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
                         throw;
                     }
                 } catch {
-                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generateJs != null ? generateJs() : string.Empty);
                     if (jsOutput != null)
                         Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
                     throw;
@@ -396,10 +398,10 @@ namespace JSIL.Tests {
 
             }
 
-            return generatedJs;
+            return generateJs();
         }
 
-        protected CompileResult RunSingleComparisonTestCase (
+        protected IEnumerable<Metacomment> RunSingleComparisonTestCase (
             object[] parameters, 
             Func<Configuration> makeConfiguration = null,
             JSEvaluationConfig evaluationConfig = null,
@@ -438,12 +440,36 @@ namespace JSIL.Tests {
             }
         }
 
-        protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
-            if (!Directory.Exists(testPath)) {
+        protected IEnumerable<TestCaseData> FolderTestSource (string folderName, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null, bool markLastTest = true)
+        {
+            var cases = FolderTestSource(folderName, String.Empty, typeInfo, asmCache);
+            if (!markLastTest)
+            {
+                return cases;
+            }
+
+            //Let's mark last test.
+            var array = cases.ToArray();
+            ((object[]) array[array.Length - 1].Arguments[0])[4] = true;
+            return array;
+        }
+
+        private IEnumerable<TestCaseData> FolderTestSource(string folderName, string subfolders, TypeInfoProvider typeInfo, AssemblyCache asmCache)
+        {
+            if (folderName.StartsWith("exclude_", StringComparison.InvariantCultureIgnoreCase))
+            {
+                yield break;
+            }
+
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, subfolders, folderName));
+
+            if (!Directory.Exists(testPath))
+            {
                 Console.WriteLine("WARNING: Folder {0} doesn't exist.", testPath);
                 yield break;
             }
+
+            subfolders = Path.Combine(subfolders, folderName);
 
             var testNames = Directory.GetFiles(testPath, "*.cs")
                 .Concat(Directory.GetFiles(testPath, "*.vb"))
@@ -455,26 +481,38 @@ namespace JSIL.Tests {
 
             string commonFile = null;
 
-            foreach (var testName in testNames) {
-                if (Path.GetFileNameWithoutExtension(testName) == "Common") {
+            foreach (var testName in testNames)
+            {
+                if (Path.GetFileNameWithoutExtension(testName) == "Common")
+                {
                     commonFile = testName;
                     break;
                 }
             }
 
-            for (int i = 0, l = testNames.Length; i < l; i++) {
+            for (int i = 0, l = testNames.Length; i < l; i++)
+            {
                 var testName = testNames[i];
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
 
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile, i == (l - 1) } }))
+                var item = (new TestCaseData(new object[] {new object[] {testName, typeInfo, asmCache, commonFile, false}}))
                     .SetName(PickTestNameForFilename(testName))
-                    .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
-                    .SetCategory(folderName);
+                    .SetDescription(String.Format("{0}\\{1}", subfolders, Path.GetFileName(testName)));
+                foreach (var category in subfolders.Split(Path.DirectorySeparatorChar))
+                {
+                    item.SetCategory(category);
+                }
+                yield return item;
             }
+
+            string[] subdirectoryEntries = Directory.GetDirectories(testPath);
+            foreach (string subdirectory in subdirectoryEntries)
+                foreach (var item in FolderTestSource(subdirectory.Split(Path.DirectorySeparatorChar).Last(), subfolders, typeInfo, asmCache))
+                    yield return item;
         }
 
-        protected IEnumerable<TestCaseData> FilenameTestSource (string[] filenames, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null) {
+        protected IEnumerable<TestCaseData> FilenameTestSource (string[] filenames, TypeInfoProvider typeInfo = null, AssemblyCache asmCache = null, bool markLastTest = true) {
             var testNames = filenames.OrderBy((s) => s).ToArray();
 
             for (int i = 0, l = testNames.Length; i < l; i++) {
@@ -486,8 +524,18 @@ namespace JSIL.Tests {
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
-                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, i == (l - 1) } }))
+                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, markLastTest && i == (l - 1) } }))
                     .SetName(PickTestNameForFilename(actualTestName));
+
+                var normalTestPathName = Portability.NormalizeDirectorySeparators(actualTestName);
+                var testFileName = Path.GetFileName(normalTestPathName);
+                foreach (var part in normalTestPathName.Split(Path.DirectorySeparatorChar))
+                {
+                    if (part != testFileName)
+                    {
+                        item.SetCategory(part);
+                    }
+                }
 
                 if (isIgnored)
                     item.Ignore();
@@ -517,4 +565,7 @@ namespace JSIL.Tests {
             }
         }
     }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class FailsOnMonoAttribute : CategoryAttribute { }
 }
