@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace JSIL.Tests {
     public class EvaluatorPool : IDisposable {
-        public const int Capacity = 2;
+        public const int Capacity = 1;
 
         public readonly string JSShellPath;
         public readonly string Options;
@@ -141,34 +141,28 @@ namespace JSIL.Tests {
                     psi.EnvironmentVariables[kvp.Key] = kvp.Value;
             }
 
-            ManualResetEventSlim stdoutSignal, stderrSignal;
-            stdoutSignal = new ManualResetEventSlim(false);
-            stderrSignal = new ManualResetEventSlim(false);
-
             Process = Process.Start(psi);
 
-            ThreadPool.QueueUserWorkItem((_) => {
-                try {
-                    _StdOut = Process.StandardOutput.ReadToEnd();
-                } catch {
-                }
-                stdoutSignal.Set();
-            });
-            ThreadPool.QueueUserWorkItem((_) => {
-                try {
-                    _StdErr = Process.StandardError.ReadToEnd();
-                } catch {
-                }
-                stderrSignal.Set();
-            });
+            var streamsSignal = new ManualResetEventSlim(false);
+            var task = ReadStreams(streamsSignal);
 
             _JoinImpl = () => {
                 WaitHandle.WaitAny(
-                    new WaitHandle[] { stdoutSignal.WaitHandle, stderrSignal.WaitHandle, _DisposedSignal.WaitHandle }
+                    new WaitHandle[] { streamsSignal.WaitHandle, _DisposedSignal.WaitHandle },
+                    60000
                 );
-                stdoutSignal.Dispose();
-                stderrSignal.Dispose();
+                task.Dispose();
             };
+        }
+
+        private async System.Threading.Tasks.Task ReadStreams (ManualResetEventSlim signal) {
+            var stdout = Process.StandardOutput.ReadToEndAsync();
+            var stderr = Process.StandardError.ReadToEndAsync();
+
+            _StdOut = await stdout;
+            _StdErr = await stderr;
+
+            signal.Set();
         }
 
         /// <summary>

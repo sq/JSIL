@@ -62,6 +62,7 @@ namespace JSIL.Tests {
         public readonly EvaluatorPool EvaluatorPool;
 
         private readonly AppDomain AssemblyAppDomain;
+        private Evaluator Evaluator;
 
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
@@ -237,8 +238,19 @@ namespace JSIL.Tests {
         }
 
         public void Dispose () {
+            if (Evaluator != null)
+                Evaluator.Dispose();
+
             if (AssemblyAppDomain != AppDomain.CurrentDomain) {
-                AppDomain.Unload(AssemblyAppDomain);
+                var unloadSignal = new ManualResetEventSlim(false);
+                ThreadPool.QueueUserWorkItem((_) => {
+                    AppDomain.Unload(AssemblyAppDomain);
+                    unloadSignal.Set();
+                });
+
+                unloadSignal.Wait(5000);
+                if (!unloadSignal.IsSet)
+                    throw new ThreadStateException("Timed out in AppDomain.Unload for test " + this.OutputPath);
             }
         }
 
@@ -634,7 +646,7 @@ namespace JSIL.Tests {
                 scanForProxies
             );
 
-            using (var evaluator = EvaluatorPool.Get()) {
+            using (Evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
                 var sentinelStart = "// Test output begins here //";
                 var sentinelEnd = "// Test output ends here //";
@@ -669,16 +681,16 @@ namespace JSIL.Tests {
                     Util.EscapeString(elapsedPrefix)
                 );
 
-                evaluator.WriteInput(StartupPrologue);
+                Evaluator.WriteInput(StartupPrologue);
 
-                evaluator.Join();
+                Evaluator.Join();
 
                 long endedJs = DateTime.UtcNow.Ticks;
                 elapsedJs = endedJs - startedJs;
 
-                if (evaluator.ExitCode != 0) {
-                    var _stdout = (evaluator.StandardOutput ?? "").Trim();
-                    var _stderr = (evaluator.StandardError ?? "").Trim();
+                if (Evaluator.ExitCode != 0) {
+                    var _stdout = (Evaluator.StandardOutput ?? "").Trim();
+                    var _stderr = (Evaluator.StandardError ?? "").Trim();
 
                     var exceptions = new List<JavaScriptException>();
 
@@ -695,11 +707,11 @@ namespace JSIL.Tests {
                     }
 
                     throw new JavaScriptEvaluatorException(
-                        evaluator.ExitCode, _stdout, _stderr, exceptions.ToArray()
+                        Evaluator.ExitCode, _stdout, _stderr, exceptions.ToArray()
                     );
                 }
 
-                var stdout = evaluator.StandardOutput;
+                var stdout = Evaluator.StandardOutput;
 
                 if (stdout != null) {
                     var m = ElapsedRegex.Match(stdout);
@@ -730,7 +742,7 @@ namespace JSIL.Tests {
                     }
                 }
 
-                stderr = evaluator.StandardError;
+                stderr = Evaluator.StandardError;
 
                 return stdout ?? "";
             }
