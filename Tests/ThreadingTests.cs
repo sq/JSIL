@@ -196,6 +196,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void WaitThrowsIfNestedDeadlockWouldHaveOccurred () {
             var lA = new TrackedLock(Locks, "A");
             var lB = new TrackedLock(Locks, "B");
