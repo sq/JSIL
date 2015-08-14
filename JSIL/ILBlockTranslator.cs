@@ -450,7 +450,11 @@ namespace JSIL {
                         TypeSystem.Boolean
                     );
                 } else {
-                    Debugger.Break();
+                    if (Debugger.IsAttached) {
+                        Console.WriteLine("Debugger.Break()");
+                        Console.Error.WriteLine("Debugger.Break()");
+                        Debugger.Break();
+                    }
                 }
             } else if (leftIsPointerish && rightIsPointerish) {
                 if (op == JSOperator.Subtract) {
@@ -460,7 +464,11 @@ namespace JSIL {
                 } else if (op is JSComparisonOperator) {
                     result = new JSPointerComparisonExpression(op, lhs, rhs, TypeSystem.Boolean);
                 } else {
-                    Debugger.Break();
+                    if (Debugger.IsAttached) {
+                        Console.WriteLine("Debugger.Break()");
+                        Console.Error.WriteLine("Debugger.Break()");
+                        Debugger.Break();
+                    }
                 }
             }
 

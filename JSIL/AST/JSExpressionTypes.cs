@@ -1044,7 +1044,8 @@ namespace JSIL.Ast {
                 elementType.HasGenericParameters &&
                 !(elementType is GenericInstanceType)
             ) {
-                Debugger.Break();
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
 
             ElementType = elementType;

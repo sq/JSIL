@@ -275,7 +275,7 @@ namespace JSIL.Tests {
 
                 stdoutSignal.Wait();
                 stderrSignal.Wait();
-                stderrSignal.Dispose();
+                stdoutSignal.Dispose();
                 stderrSignal.Dispose();
 
                 stdout = _stdout;

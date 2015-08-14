@@ -119,6 +119,7 @@ namespace JSIL.Tests {
         private volatile int IsDisposed = 0;
         private volatile int _ExitCode = 0;
         private volatile string _StdOut = null, _StdErr = null;
+        private ManualResetEventSlim _DisposedSignal = new ManualResetEventSlim(false);
         private Action _JoinImpl;
 
         public Evaluator (string jsShellPath, string options, Dictionary<string, string> environmentVariables = null) {
@@ -162,9 +163,10 @@ namespace JSIL.Tests {
             });
 
             _JoinImpl = () => {
-                stdoutSignal.Wait();
-                stderrSignal.Wait();
-                stderrSignal.Dispose();
+                WaitHandle.WaitAny(
+                    new WaitHandle[] { stdoutSignal.WaitHandle, stderrSignal.WaitHandle, _DisposedSignal.WaitHandle }
+                );
+                stdoutSignal.Dispose();
                 stderrSignal.Dispose();
             };
         }
@@ -260,6 +262,8 @@ namespace JSIL.Tests {
             if (Interlocked.CompareExchange(ref IsDisposed, 1, 0) != 0)
                 return;
 
+            _DisposedSignal.Set();
+
             // The Process class likes to throw exceptions randomly in accessors and method calls.
             try {
                 if (!Process.HasExited) {
@@ -272,6 +276,11 @@ namespace JSIL.Tests {
 
             try {
                 Process.Close();
+            } catch {
+            }
+
+            try {
+                Process.Dispose();
             } catch {
             }
         }
