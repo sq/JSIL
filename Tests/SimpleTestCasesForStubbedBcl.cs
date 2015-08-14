@@ -27,6 +27,8 @@ namespace JSIL.SimpleTests
         [TestFixtureSetUp]
         public void SetupFixture()
         {
+            Console.WriteLine("// SimpleTestCasesForStubbedBcl.SetupFixture() {");
+
             Func<Configuration> makeConfiguration = () =>
             {
                 var c = new Configuration
@@ -68,6 +70,7 @@ namespace JSIL.SimpleTests
                 initializeTranslator: initializeTranslator,
                 shouldRunJs: false
                 );
+            Console.WriteLine("// SimpleTestCasesForStubbedBcl.SetupFixture() }");
         }
 
         protected override Dictionary<string, string> SetupEvaluatorEnvironment()
