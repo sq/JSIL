@@ -18,7 +18,7 @@ namespace JSIL.Tests {
     using System.Web.Script.Serialization;
 
     public class ComparisonTest : IDisposable {
-        public const bool UseAppDomains = false;
+        public static readonly bool UseAppDomains = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JsilUseAppDomainsInTest"));
         public float JavascriptExecutionTimeout = 15.0f;
 
         public static bool IsLinux
