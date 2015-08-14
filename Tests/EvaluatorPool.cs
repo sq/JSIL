@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace JSIL.Tests {
     public class EvaluatorPool : IDisposable {
-        public const int Capacity = 1;
+        public const int Capacity = 2;
 
         public readonly string JSShellPath;
         public readonly string Options;

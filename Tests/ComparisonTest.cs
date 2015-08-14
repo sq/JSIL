@@ -18,6 +18,9 @@ namespace JSIL.Tests {
     using System.Web.Script.Serialization;
 
     public class ComparisonTest : IDisposable {
+        public const bool UseAppDomains = false;
+        public float JavascriptExecutionTimeout = 15.0f;
+
         public static bool IsLinux
         {
             get
@@ -26,8 +29,6 @@ namespace JSIL.Tests {
                 return (p == 4) || (p == 6) || (p == 128);
             }
         }
-
-        public float JavascriptExecutionTimeout = 15.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
             @"// elapsed: (?'elapsed'[0-9]+(\.[0-9]*)?)",
@@ -161,10 +162,12 @@ namespace JSIL.Tests {
 
             JSFilenames = null;
 
-            AssemblyAppDomain = AppDomain.CreateDomain("TestAssemblyDomain", null, new AppDomainSetup
-            {
-                ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
-            });
+            if (UseAppDomains)
+                AssemblyAppDomain = AppDomain.CreateDomain("TestAssemblyDomain", null, new AppDomainSetup {
+                    ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
+                });
+            else
+                AssemblyAppDomain = AppDomain.CurrentDomain;
 
             switch (extensions[0]) {
                 case ".exe":
