@@ -296,6 +296,8 @@ namespace JSIL.Tests {
                 stdout = _stdout;
                 stderr = _stderr;
 
+                process.WaitForExit();
+
                 return process.ExitCode;
             }
         }
