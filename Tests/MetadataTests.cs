@@ -266,7 +266,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void RenameClass () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\RenameClass.cs",
@@ -279,7 +278,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void RenameStruct () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\RenameStruct.cs",
@@ -367,7 +365,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void ExternalClass () {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\ExternalClass.cs",

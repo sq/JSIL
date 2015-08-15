@@ -1,5 +1,6 @@
 ﻿{
   "OutputDirectory": "%currentdirectory%",
+  "ProxyWarnings": false,
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",
@@ -23,6 +24,5 @@
   "ProfileSettings": {
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%outputdirectory%/Content"
-  },
-  "ProxyWarnings": false
+  }
 }

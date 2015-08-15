@@ -7,7 +7,7 @@ public static class Program {
 
         try {
             service = JSIL.Services.Get("nonexistent");
-            Console.WriteLine("didn't throw");
+            Console.WriteLine("didn't throw: {0}", service != null);
         } catch {
             Console.WriteLine("threw");
         }
