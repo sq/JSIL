@@ -11,6 +11,11 @@ $jsilcore.$ParseBoolean = function (text) {
 };
 
 $jsilcore.$TryParseBoolean = function (text, result) {
+  if (text === null) {
+      result.set(false);
+      return true;
+  }
+
   text = text.toLowerCase().trim();
 
   if (text === "true") {
