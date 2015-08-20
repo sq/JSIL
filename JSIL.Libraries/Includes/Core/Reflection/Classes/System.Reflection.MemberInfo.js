@@ -11,4 +11,8 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
   $.Property({ Public: true, Static: false, Virtual: true }, "IsStatic");
   $.Property({ Public: true, Static: false, Virtual: true }, "IsSpecialName");
   $.Property({ Public: true, Static: false, Virtual: true }, "MemberType");
+
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Reflection.ICustomAttributeProvider")
+  );
 });

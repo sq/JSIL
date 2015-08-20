@@ -123,6 +123,7 @@
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24MakeParseExternals.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ICustomAttributeProvider.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.AssemblyName.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Attribute.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MemberTypes.js" />

@@ -32,3 +32,5 @@ if (!$jsilcore)
 //? include("Classes/System.Attribute.js"); writeln();
 
 //? include("Classes/System.Reflection.AssemblyName.js"); writeln();
+
+//? include("Classes/System.Reflection.ICustomAttributeProvider.js"); writeln();
