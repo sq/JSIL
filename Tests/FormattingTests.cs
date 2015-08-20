@@ -1004,7 +1004,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void PreventFastMethodDispatcherIfHideBase_Issue368()
         {
             var output = "";

@@ -16,7 +16,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void JSReplacementTypeOfThisStatic () {
             GenericTest(
                 @"SpecialTestCases\JSReplacementTypeOfThisStatic.cs",
@@ -41,7 +40,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void BuiltinsThisEvaluatesToJSThis () {
             GenericTest(
                 @"SpecialTestCases\VerbatimThis.cs",
@@ -50,7 +48,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void GetHostService () {
             GenericTest(
                 @"SpecialTestCases\GetHostService.cs",
