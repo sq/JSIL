@@ -1486,6 +1486,8 @@ JSIL.Initialize = function () {
   JSIL.InitializeType($jsilcore.System.RuntimeType);
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
   JSIL.InitializeType($jsilcore.System.Object);
+  $jsilcore.System.Type.__Type__.__TypeInitialized__ = false;
+  JSIL.InitializeType($jsilcore.System.Type);
 };
 
 JSIL.GenericParameter = function (name, context) {
