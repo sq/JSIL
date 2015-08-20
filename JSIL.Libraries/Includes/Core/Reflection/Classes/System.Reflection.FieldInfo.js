@@ -1,10 +1,4 @@
-﻿//? include("../Utils/$jsilcore.MemberInfoExternals.js");
-
-JSIL.ImplementExternals(
-  "System.Reflection.FieldInfo", $jsilcore.MemberInfoExternals
-);
-
-JSIL.ImplementExternals(
+﻿JSIL.ImplementExternals(
   "System.Reflection.FieldInfo", function ($) {
     $.Method({ Static: false, Public: true }, "get_FieldType",
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])),

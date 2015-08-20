@@ -3,7 +3,7 @@
     $.RawMethod(false, "InitResolvedSignature",
       function InitResolvedSignature() {
         if (this.resolvedSignature === undefined) {
-          this._data.resolvedSignature = this._data.signature.Resolve(this.Name);
+          this._data.resolvedSignature = this._data.signature.Resolve($jsilcore.$MemberInfoGetName(this));
           if (this._data.signature.genericArgumentValues !== undefined) {
             this._data.resolvedSignature = this._data.resolvedSignature.ResolvePositionalGenericParameters(this._data.signature.genericArgumentValues)
           }
@@ -14,16 +14,7 @@
     $.Method({ Static: false, Public: false }, "GetParameterTypes",
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])),
       function GetParameterTypes() {
-        var signature = this._data.signature;
-        var argumentTypes = signature.argumentTypes;
-        var result = [];
-
-        for (var i = 0, l = argumentTypes.length; i < l; i++) {
-          var argumentType = argumentTypes[i];
-          result.push(signature.ResolveTypeReference(argumentType)[1]);
-        }
-
-        return result;
+        return $jsilcore.$MethodGetParameterTypes(this);
       }
     );
 

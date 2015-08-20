@@ -1,10 +1,4 @@
-﻿//? include("../Utils/$jsilcore.MemberInfoExternals.js");
-
-JSIL.ImplementExternals(
-  "System.Reflection.PropertyInfo", $jsilcore.MemberInfoExternals
-);
-
-JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
+﻿JSIL.ImplementExternals("System.Reflection.PropertyInfo", function ($) {
   var getGetMethodImpl = function (nonPublic) {
     var methodName = "get_" + this.get_Name();
     var bf = System.Reflection.BindingFlags;

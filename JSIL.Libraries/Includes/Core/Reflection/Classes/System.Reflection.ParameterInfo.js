@@ -67,7 +67,7 @@
   $.Method({ Static: false, Public: true }, "get_ParameterType",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []),
     function get_ParameterType() {
-      return this.argumentType;
+      return $jsilcore.$ParameterInfoGetParameterType(this);
     }
   );
 

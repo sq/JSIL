@@ -10,7 +10,7 @@ $jsilcore.MemberInfoExternals = function ($) {
   $.Method({ Static: false, Public: true }, "get_Name",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [], []),
     function () {
-      return this._descriptor.Name;
+      return $jsilcore.$MemberInfoGetName(this);
     }
   );
 

@@ -407,7 +407,7 @@
 
       for (var i = 0, l = members.length; i < l; i++) {
         var member = members[i];
-        if (member.Name === name) {
+        if ($jsilcore.$MemberInfoGetName(member) === name) {
           if (!result)
             result = member;
           else

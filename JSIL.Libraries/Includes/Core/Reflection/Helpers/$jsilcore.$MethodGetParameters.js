@@ -25,3 +25,31 @@
 
   return result;
 };
+
+$jsilcore.$MethodGetParameterTypes = function (method) {
+  var signature = method._data.signature;
+  var argumentTypes = signature.argumentTypes;
+  var result = [];
+
+  for (var i = 0, l = argumentTypes.length; i < l; i++) {
+    var argumentType = argumentTypes[i];
+    result.push(signature.ResolveTypeReference(argumentType)[1]);
+  }
+
+  return result;
+};
+
+$jsilcore.$MethodGetReturnType = function (method) {
+  if (!method._data.signature.returnType)
+    return $jsilcore.System.Void.__Type__;
+  method.InitResolvedSignature();
+  return method._data.resolvedSignature.returnType;
+};
+
+$jsilcore.$MemberInfoGetName = function (memberInfo) {
+  return memberInfo._descriptor.Name;
+};
+
+$jsilcore.$ParameterInfoGetParameterType = function (parameterInfo) {
+  return parameterInfo.argumentType;
+};

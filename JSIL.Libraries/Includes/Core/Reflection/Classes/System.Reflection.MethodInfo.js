@@ -9,10 +9,7 @@
   $.Method({ Static: false, Public: true }, "get_ReturnType",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])),
     function get_ReturnType() {
-      if (!this._data.signature.returnType)
-        return $jsilcore.System.Void.__Type__;
-      this.InitResolvedSignature();
-      return this._data.resolvedSignature.returnType;
+      return $jsilcore.$MethodGetReturnType(this);
     }
   );
 
