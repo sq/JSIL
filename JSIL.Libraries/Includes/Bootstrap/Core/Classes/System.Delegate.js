@@ -13,7 +13,7 @@ $jsilcore.$CompareSinglecastDelegate = function (lhs, rhs) {
   if (lhs.__object__ !== rhs.__object__)
     return false;
 
-  if (lhs.__method__ !== rhs.__method__)
+  if (lhs.get_Method() !== rhs.get_Method())
     return false;
 
   return true;

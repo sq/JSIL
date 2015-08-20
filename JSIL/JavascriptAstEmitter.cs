@@ -2530,7 +2530,7 @@ namespace JSIL {
         {
             Output.WriteRaw("function () { return ");
             Visit(function.InnerExpression);
-            Output.WriteRaw("; }");
+            Output.WriteRaw("; }.bind(this)");
         }
     }
 }

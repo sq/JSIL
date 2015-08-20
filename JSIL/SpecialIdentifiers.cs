@@ -111,18 +111,54 @@ namespace JSIL {
             return new JSNewArrayExpression(elementType, dimensions, initializer);
         }
 
-        public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod, JSMethod method) {
+        public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod)
+        {
+            var targetDotExpression = targetMethod as JSDotExpressionBase;
+            var jsMethod = targetDotExpression != null ? targetDotExpression.Member as JSMethod : null;
+
+            JSExpression[] invocationExpressionArguments;
+
+            if (jsMethod == null) {
+                // Not sure if it is possible.
+                invocationExpressionArguments = new[] {thisReference, targetMethod};
+            }
+            else {
+                var jsMethodAccess = targetMethod as JSMethodAccess;
+                var arguments = jsMethod == null
+                    ? null
+                    : jsMethod.Reference.Parameters.Select(
+                            (parameter, index) => (JSExpression) new JSRawOutputIdentifier(parameter.ParameterType, "arguments[{0}]", index))
+                        .ToArray();
+
+                bool isFromDelegate = jsMethod.Reference.Name == "Invoke" && TypeUtil.IsDelegateType(jsMethod.Reference.DeclaringType);
+
+                JSExpression methodInvocation;
+                if (isFromDelegate) {
+                    methodInvocation = targetMethod;
+                }
+                else if (jsMethod.Method.IsStatic) {
+                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeStatic(jsMethod.Reference.DeclaringType, jsMethod, arguments));
+                }
+                else if (jsMethodAccess == null || jsMethodAccess.IsVirtual) {
+                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeMethod(jsMethod.Reference.DeclaringType, jsMethod, thisReference, arguments));
+                }
+                else {
+                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeBaseMethod(jsMethod.Reference.DeclaringType, jsMethod, thisReference, arguments));
+                }
+
+                invocationExpressionArguments = new[] {
+                    thisReference,
+                    methodInvocation,
+                    new JSDeferredExpression(new JSMethodOfExpression(jsMethod.Reference, jsMethod.Method, jsMethod.MethodTypes, jsMethod.GenericArguments))
+                };
+            }
+
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     new JSType(delegateType),
-                    new JSFakeMethod("New", delegateType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
-                ), 
-                method == null ? new [] { thisReference, targetMethod } : new [] {
-                    thisReference, 
-                    targetMethod, 
-                    new JSDeferredExpression(new JSMethodOfExpression(method.Reference, method.Method, method.MethodTypes, method.GenericArguments)),  },
-                true
-            );
+                    new JSFakeMethod("New", delegateType, new[] {TypeSystem.Object, TypeSystem.Object}, MethodTypes)),
+                invocationExpressionArguments,
+                true);
         }
 
         public JSNewArrayElementReference NewElementReference (JSExpression target, JSExpression index) {
