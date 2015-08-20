@@ -29,6 +29,17 @@
       }
     );
 
+    $.Method({ Static: false, Public: true }, "get_DeclaringType",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []),
+      function () {
+        var lastPlusIndex = this.FullName.lastIndexOf("+");
+        if (lastPlusIndex < 0) {
+          return null;
+        }
+        return this.Assembly.GetType(this.FullName.substring(0, lastPlusIndex));
+      }
+    );
+
     $.Method({ Static: false, Public: true }, "get_IsGenericType",
       new JSIL.MethodSignature($.Boolean, []),
       JSIL.TypeObjectPrototype.get_IsGenericType
