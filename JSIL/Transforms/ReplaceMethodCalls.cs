@@ -286,8 +286,11 @@ namespace JSIL.Transforms {
                     VisitReplacement(newIe);
                     return;
                 } else if (
-                    (method.Reference.DeclaringType.Name == "RuntimeHelpers") &&
-                    (method.Method.Name == "InitializeArray")
+                    (method.Reference.DeclaringType.FullName == "System.Runtime.CompilerServices.RuntimeHelpers") &&
+                    (method.Method.Name == "InitializeArray") &&
+                    (method.Method.Parameters.Length == 2) &&
+                    (method.Method.Parameters[0].ParameterType.FullName == "System.Array") &&
+                    (method.Method.Parameters[1].ParameterType.FullName == "System.RuntimeFieldHandle")
                 ) {
                     var array = ie.Arguments[0];
                     var arrayType = array.GetActualType(TypeSystem);
