@@ -220,6 +220,9 @@ namespace JSIL.Internal {
 
             Enqueue(ExpandCastExpressions);
 
+            // We need replace Int64 operations that was introduced by cast expressions
+            Enqueue(EmulateInt64);
+
             // We need another operator simplification pass to simplify expressions created by cast expressions
             Enqueue(SimplifyOperators);
 

@@ -121,6 +121,7 @@
     <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
     <Compile Include="SimpleTestCasesForStubbedBcl.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
+    <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
