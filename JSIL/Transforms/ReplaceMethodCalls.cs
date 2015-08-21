@@ -140,11 +140,30 @@ namespace JSIL.Transforms {
                                 value = ie.Arguments[0];
                             }
 
-                            var boe = new JSBinaryOperatorExpression(
-                                JSOperator.Assignment, ie.ThisReference, value, type.Type
-                            );
-                            ParentNode.ReplaceChild(ie, boe);
-                            VisitReplacement(boe);
+                            JSExpression replacementNode;
+
+                            var readThroughReference = ie.ThisReference as JSReadThroughReferenceExpression;
+                            if (readThroughReference != null)
+                            {
+                                replacementNode = new JSWriteThroughReferenceExpression(readThroughReference.Variable, value);
+                            }
+                            else
+                            {
+                                var readThroughPointer = ie.ThisReference as JSReadThroughPointerExpression;
+                                if (readThroughPointer != null)
+                                {
+                                    replacementNode = new JSWriteThroughPointerExpression(readThroughPointer.Pointer, value,
+                                        type.Type, readThroughPointer.OffsetInBytes);
+                                }
+                                else
+                                {
+                                    replacementNode = new JSBinaryOperatorExpression(JSOperator.Assignment, ie.ThisReference,
+                                        value, type.Type);
+                                }
+                            }
+
+                            ParentNode.ReplaceChild(ie, replacementNode);
+                            VisitReplacement(replacementNode);
 
                             break;
 
