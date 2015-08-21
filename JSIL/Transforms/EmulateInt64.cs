@@ -141,7 +141,7 @@ namespace JSIL.Transforms
                 }
 
                 JSIdentifier method = new JSFakeMethod(
-                    verb, resultType, 
+                    verb, boe.Operator is JSComparisonOperator ? TypeSystem.Boolean : resultType, 
                     new[] { leftType, rightType }, MethodTypeFactory
                 );
 
