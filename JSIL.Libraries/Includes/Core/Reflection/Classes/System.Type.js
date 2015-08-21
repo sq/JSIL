@@ -328,7 +328,7 @@
           $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
       ], []),
       function GetConstructor(bindingAttr, binder, callConvention, types, modifiers) {
-        return getConstructorImpl(this, bindingAttr, types);
+        return getConstructorImpl(this, bindingAttr | System.Reflection.BindingFlags.DeclaredOnly, types);
       }
     );
 
@@ -338,7 +338,7 @@
           $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
       ], []),
       function GetConstructor(bindingAttr, binder, types, modifiers) {
-        return getConstructorImpl(this, bindingAttr, types);
+        return getConstructorImpl(this, bindingAttr | System.Reflection.BindingFlags.DeclaredOnly, types);
       }
     );
 
@@ -363,7 +363,7 @@
       new JSIL.MethodSignature(methodArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "ConstructorInfo"
+          this, flags | System.Reflection.BindingFlags.DeclaredOnly, "ConstructorInfo"
         );
       }
     );
