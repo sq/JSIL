@@ -16,7 +16,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   $.RawMethod(true, "CheckType",
     function (value) {
       var type = typeof (value); 
-      return (type=== "object" || type === "number" || type === "string");
+      return (type=== "object" || type === "number" || type === "string" || type === "boolean");
     }
   );
 
