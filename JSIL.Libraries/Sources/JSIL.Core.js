@@ -1486,6 +1486,8 @@ JSIL.Initialize = function () {
   JSIL.InitializeType($jsilcore.System.RuntimeType);
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
   JSIL.InitializeType($jsilcore.System.Object);
+  $jsilcore.System.Type.__Type__.__TypeInitialized__ = false;
+  JSIL.InitializeType($jsilcore.System.Type);
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -3053,7 +3055,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         case "ConstructorInfo":
           // FIXME: Match signatures
           var matchingMethods = typeObject.$GetMatchingInstanceMethods(
-            member.get_Name(), member.GetParameterTypes(), member.get_ReturnType()
+            $jsilcore.$MemberInfoGetName(member), $jsilcore.$MethodGetParameterTypes(member), $jsilcore.$MethodGetReturnType(member)
           );
 
           if (matchingMethods.length === 0) {
@@ -10233,7 +10235,7 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
     } else {
       for (var j = 0; j < argumentTypes.length; j++) {
         var argumentType = argumentTypes[j];
-        var argumentTypeB = parameterInfos[j].get_ParameterType();
+        var argumentTypeB = $jsilcore.$ParameterInfoGetParameterType(parameterInfos[j]);
 
         if (!JSIL.$DoTypesMatch(argumentType, argumentTypeB)) {
           if (trace)
@@ -10247,7 +10249,7 @@ JSIL.$FilterMethodsByArgumentTypes = function (methods, argumentTypes, returnTyp
 
     if (typeof (returnType) !== "undefined") {
       // FIXME: Do a more complete assignability check
-      if (!JSIL.$DoTypesMatch(returnType, method.get_ReturnType())) {
+      if (!JSIL.$DoTypesMatch(returnType, $jsilcore.$MethodGetReturnType(method))) {
         if (trace)
           console.log("Dropping because wrong return type", returnType.__FullName__, method.get_ReturnType().__FullName__);
 

@@ -123,7 +123,7 @@ namespace JSIL.Tests
         protected override string GetCompilerPath()
         {
             return 
-                Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "Upstream", "ILAsm", "ilasm.exe");
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Upstream", "ILAsm", "ilasm.exe");
         }
 
         protected override string GetArguments(string[] filenemas, string outpuAssemblyName, bool isExecutable)

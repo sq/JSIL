@@ -123,6 +123,26 @@
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24MakeParseExternals.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseFloat.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseInt.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ICustomAttributeProvider.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.AssemblyName.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Attribute.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MemberTypes.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ParameterInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeAssembly.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.EventInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ConstructorInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.RuntimeType.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.Assembly.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MethodInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MethodBase.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.FieldInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.PropertyInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MemberInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Type.js" />
+    <Content Include="Includes\Core\Reflection\Helpers\JSIL.ReflectionGetTypeInternal.js" />
+    <Content Include="Includes\Core\Reflection\Main.js" />
+    <Content Include="Includes\Core\Reflection\Helpers\%24jsilcore.%24MethodGetParameters.js" />
+    <Content Include="Includes\Core\Reflection\Utils\%24jsilcore.MemberInfoExternals.js" />
     <Content Include="Sources\gamepad.js" />
     <Content Include="Sources\TranslatedBCL\JSIL.Bootstrap.js" />
     <Content Include="Sources\IgnoredBCL\JSIL.Bootstrap.js" />
@@ -172,6 +192,10 @@
   <ItemGroup>
     <Content Include="Includes\Bootstrap\Core\Main.js" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="Empty.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
