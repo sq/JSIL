@@ -130,6 +130,13 @@
       JSIL.TypeObjectPrototype.get_AssemblyQualifiedName
     );
 
+    $.Method({ Public: true, Static: false }, "get_IsClass",
+      new JSIL.MethodSignature($.Boolean, []),
+      function () {
+        return this === $jsilcore.System.Object.__Type__ || this.get_BaseType() !== null;
+      }
+    );
+
     $.Method({ Public: true, Static: false }, "toString",
       new JSIL.MethodSignature($.String, []),
       function () {
@@ -596,4 +603,5 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
   $.Property({ Public: true, Static: false }, "IsArray");
   $.Property({ Public: true, Static: false }, "IsValueType");
   $.Property({ Public: true, Static: false }, "IsEnum");
+  $.Property({ Public: true, Static: false }, "IsClass");
 });
