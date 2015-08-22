@@ -2128,6 +2128,10 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
 };
 
 JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
+  if ((typeof (obj) === "function")) {
+    obj = obj.__Type__;
+  }
+
   if ((typeof (obj) !== "object") || (obj === null))
     return null;
 
