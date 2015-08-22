@@ -15,7 +15,7 @@
 
       $.Method({ Static: false, Public: true, Virtual: true }, "IsAssignableFrom",
         new JSIL.MethodSignature($.Boolean, [$.Type]),
-        function IsAssignableFrom(result, testType) {
+        function IsAssignableFrom(testType) {
             return this._type.IsAssignableFrom(testType);
         }
       )
