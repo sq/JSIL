@@ -283,7 +283,6 @@
     <Content Include="JSTestCases\SameNameDifferentReturnTypes.js" />
     <Content Include="JSTestCases\SameNameWithOverride.js" />
     <None Include="AnalysisTestCases\Issue395.cs" />
-    <None Include="FailingTestCases\ReflectionTypeGenericInfo13.cs" />
     <None Include="Int64TestCases\Int64ToString.cs" />
     <None Include="PerformanceTestCases\EnumCasts.cs" />
     <None Include="SpecialTestCases\DoubleFloatCasts.cs" />
