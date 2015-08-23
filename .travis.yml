@@ -13,9 +13,6 @@ install:
 
 script:
   - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
-  - rm bin/nunit.core.dll
-  - rm bin/nunit.core.interfaces.dll
-  - rm bin/nunit.util.dll
   - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)\|\(FailsOnMonoWhenTranslated+Translated\)
 
 env:
