@@ -122,9 +122,17 @@
   );
 
   $.Method({ Static: false, Public: true }, "get_DefinedTypes",
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IEnumerable", [$jsilcore.TypeRef("System.Type")]), [], [])),
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IEnumerable", [$jsilcore.TypeRef("System.TypeInfo")]), [], [])),
     function GetTypes() {
-        return JSIL.GetTypesFromAssembly(this.__PublicInterface__);
+        var typeInfos = [];
+
+        var types = JSIL.GetTypesFromAssembly(this.__PublicInterface__);
+        for (var i = 0; i < types.length; i++) {
+            var typeInfo = System.Reflection.IntrospectionExtensions.GetTypeInfo(types[i]);
+
+            typeInfos.push(typeInfo);
+        }
+        return typeInfos;
     }
   );
 

@@ -14,9 +14,13 @@
       );
 
       $.Method({ Static: false, Public: true, Virtual: true }, "IsAssignableFrom",
-        new JSIL.MethodSignature($.Boolean, [$.Type]),
-        function IsAssignableFrom(testType) {
-            return this._type.IsAssignableFrom(testType);
+        new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.TypeInfo")]),
+        function IsAssignableFrom(testTypeInfo) {
+            var tTestType = testTypeInfo.AsType();
+            if (!tTestType.__TypeInitialized__) {
+                JSIL.InitializeType(tTestType);
+            }
+            return this._type.IsAssignableFrom(tTestType);
         }
       )
 
