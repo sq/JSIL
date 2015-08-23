@@ -1,5 +1,5 @@
 language: csharp
-solution: JSIL_NoXNA_NoLibraries.sln
+solution: JSIL.sln
 
 before_install:
   - wget -P /tmp/avim -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
@@ -8,14 +8,11 @@ before_install:
 
 install:
   - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
-  - nuget restore JSIL_NoXNA_NoLibraries.sln
+  - nuget restore JSIL.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
-  - cd JSIL.Libraries
-  - npm install 
-  - cd ..
 
 script:
-  - xbuild /p:Configuration=Release /v:m JSIL_NoXNA.sln
+  - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
   - rm bin/nunit.core.dll
   - rm bin/nunit.core.interfaces.dll
   - rm bin/nunit.util.dll
