@@ -2,9 +2,11 @@
   "name": "JSIL.Libraries",
   "version": "0.0.0",
   "devDependencies": {
-    "grunt": "~0.4.*",
-    "grunt-metascript": "*",
-    "grunt-cli": "*"
+    "gulp": "*",
+    "gulp-util": "*",
+    "gulp-cli": "*",
+    "gulp-metascript": "*",
+    "through2" : "*"
   },
   "scripts": {
         "test": "grunt build-Release"

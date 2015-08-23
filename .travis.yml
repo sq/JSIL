@@ -7,6 +7,7 @@ before_install:
   - export PATH=$PATH:/tmp/js
 
 install:
+  - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
   - nuget restore JSIL_NoXNA_NoLibraries.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
   - cd JSIL.Libraries
@@ -14,10 +15,7 @@ install:
   - cd ..
 
 script:
-  - xbuild /p:Configuration=Release /v:m JSIL_NoXNA_NoLibraries.sln
-  - cd JSIL.Libraries
-  - npm test
-  - cd ..
+  - xbuild /p:Configuration=Release /v:m JSIL_NoXNA.sln
   - rm bin/nunit.core.dll
   - rm bin/nunit.core.interfaces.dll
   - rm bin/nunit.util.dll
@@ -26,6 +24,7 @@ script:
 env:
   global:
     - JsilUseAppDomainsInTest=true
+    - NODEJS_VERSION=0.10
   matrix:
     - TestRun=JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
     - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl

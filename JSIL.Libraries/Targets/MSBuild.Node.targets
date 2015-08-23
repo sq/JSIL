@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="EnsureNode">
+        <PropertyGroup>
+            <UnknownNodePath>Global NodeJS installation not found. Please set the 'NODEJS' environment variable for a global installation or set the 'LocalNodePath' property in your project file for a local installation.</UnknownNodePath>
+            <InvalidGlobalNodePath>Invalid global node path.</InvalidGlobalNodePath>
+            <InvalidLocalNodePath>Invalid local node path.</InvalidLocalNodePath>
+            <EnsureNodeInPathCmd></EnsureNodeInPathCmd>
+        </PropertyGroup>
+        <Message Text="Ensuring NodeJS is installed" Importance="low" />
+
+        <Error Condition=" '$(LocalNodePath)' != '' AND !Exists('$(LocalNodePath)')" Text="$(InvalidLocalNodePath) $(LocalNodePath)" />
+        <PropertyGroup Condition=" '$(LocalNodePath)' != '' ">
+            <NodePath>$(LocalNodePath)</NodePath>
+            <EnsureNodeInPathCmd>SETLOCAL &amp; SET PATH=$(NodePath);%PATH% &amp;</EnsureNodeInPathCmd>
+        </PropertyGroup>
+
+        <Exec Command="$(WINDIR)\system32\where.exe node"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            ConsoleToMsBuild="true"
+            Condition=" '$(NodePath)' == '' ">
+            <Output TaskParameter="ExitCode" PropertyName="WhereExitCode"/>
+            <Output TaskParameter="ConsoleOutput" PropertyName="NodeExecutable" />
+        </Exec>
+        <PropertyGroup Condition=" '$(WhereExitCode)' == '0' ">
+            <NodePath>$([System.IO.Path]::GetDirectoryName('$(NodeExecutable)'))</NodePath>
+        </PropertyGroup>
+        <Error Condition=" '$(NodePath)' == '' " Text="$(UnknownNodePath)" />
+        <Error Condition=" !Exists('$(NodePath)') " Text="$(InvalidGlobalNodePath) $(NodePath)" />
+
+        <Message Text="NodeJS path is: '$(NodePath)'" />
+    </Target>
+
+    <Target Name="EnsureNodeModules" DependsOnTargets="EnsureNode">
+        <PropertyGroup>
+            <UnknownNodeModulePath>Global node modules not found. Please set the 'LocalNodeModulePath' property in your project file.</UnknownNodeModulePath>
+            <InvalidGlobalNodeModulePath>Invalid global node module path.</InvalidGlobalNodeModulePath>
+            <InvalidLocalNodeModulePath>Invalid local node module path.</InvalidLocalNodeModulePath>
+            <NpmGetPrefix>""$(NodePath)\npm.cmd" config get prefix"</NpmGetPrefix>
+        </PropertyGroup>
+        <Message Text="Ensuring global npm path" Importance="low" />
+
+        <Error Condition=" '$(LocalNodeModulePath)' != '' AND !Exists('$(LocalNodeModulePath)')" Text="'$(InvalidLocalNodeModulePath)'" />
+        <PropertyGroup Condition=" '$(LocalNodeModulePath)' != '' ">
+            <NodeModulePath>$(LocalNodeModulePath)</NodeModulePath>
+        </PropertyGroup>
+
+        <Exec Command="$(WINDIR)\system32\cmd.exe /C $(NpmGetPrefix)"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            ConsoleToMsBuild="true"
+            Condition=" !Exists('$(NodeModulePath)') ">
+            <Output TaskParameter="ExitCode" PropertyName="NpmExitCode"/>
+            <Output TaskParameter="ConsoleOutput" PropertyName="NodeModulePath" />
+        </Exec>
+        <Error Condition=" '$(NodeModulePath)' == '' " Text="$(UnknownNodeModulePath)" />
+        <Error Condition=" !Exists('$(NodeModulePath)') " Text="$(InvalidGlobalNodeModulePath) $(NodeModulePath)" />
+
+        <Message Text="Node module path is: '$(NodeModulePath)'" />
+    </Target>
+<!-- vim: set ft=xml sw=4 :-->
+</Project>
