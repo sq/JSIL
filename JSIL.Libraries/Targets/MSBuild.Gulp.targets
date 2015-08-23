@@ -10,7 +10,7 @@
         </PropertyGroup>
         <Message Text="Ensuring Gulp is installed" Importance="low" />
 
-        <Exec Command="$(WINDIR)\system32\where.exe gulp"
+        <!--<Exec Command="$(WINDIR)\system32\where.exe gulp"
             ContinueOnError="true"
             IgnoreExitCode="true"
             ConsoleToMsBuild="true"
@@ -18,7 +18,7 @@
             <Output TaskParameter="ExitCode" PropertyName="GulpExitCode"/>
             <Output TaskParameter="ConsoleOutput" PropertyName="GulpExecutable" />
         </Exec>
-        <Error Condition=" '$(GulpExitCode)' != '0' " Text="'$(GulpNotFoundError)'" />
+        <Error Condition=" '$(GulpExitCode)' != '0' " Text="'$(GulpNotFoundError)'" />-->
 
         <!-- Deprecated Warning & Fallback -->
         <Warning Condition=" '$(GulpTask)' != '' " Text="'$(GulpTaskDeprecationWarning)'" />
