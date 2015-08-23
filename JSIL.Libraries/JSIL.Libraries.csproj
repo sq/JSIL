@@ -184,6 +184,7 @@
     <Content Include="Includes\Bootstrap\Text\Helpers\%24jsilcore.makeByteReader.js" />
     <Content Include="Includes\Bootstrap\Text\Utils\%24jsilcore.charCodeAt.js" />
     <Content Include="Includes\Bootstrap\Text\Utils\%24jsilcore.fromCharCode.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.CustomAttributeExtensions.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ICustomAttributeProvider.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.AssemblyName.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Attribute.js" />
