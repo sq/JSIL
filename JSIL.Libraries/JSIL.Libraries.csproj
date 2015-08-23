@@ -58,6 +58,7 @@
     <Content Include="Includes\Bootstrap\Async\Interfaces\System.Runtime.CompilerServices.INotifyCompletion.js" />
     <Content Include="Includes\Bootstrap\Async\Interfaces\System.Runtime.CompilerServices.IAsyncStateMachine.js" />
     <Content Include="Includes\Bootstrap\Async\Main.js" />
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Concurrent.ConcurrentQueue.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.EqualityComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Threading.SemaphoreSlim.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
