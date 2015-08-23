@@ -140,11 +140,30 @@ namespace JSIL.Transforms {
                                 value = ie.Arguments[0];
                             }
 
-                            var boe = new JSBinaryOperatorExpression(
-                                JSOperator.Assignment, ie.ThisReference, value, type.Type
-                            );
-                            ParentNode.ReplaceChild(ie, boe);
-                            VisitReplacement(boe);
+                            JSExpression replacementNode;
+
+                            var readThroughReference = ie.ThisReference as JSReadThroughReferenceExpression;
+                            if (readThroughReference != null)
+                            {
+                                replacementNode = new JSWriteThroughReferenceExpression(readThroughReference.Variable, value);
+                            }
+                            else
+                            {
+                                var readThroughPointer = ie.ThisReference as JSReadThroughPointerExpression;
+                                if (readThroughPointer != null)
+                                {
+                                    replacementNode = new JSWriteThroughPointerExpression(readThroughPointer.Pointer, value,
+                                        type.Type, readThroughPointer.OffsetInBytes);
+                                }
+                                else
+                                {
+                                    replacementNode = new JSBinaryOperatorExpression(JSOperator.Assignment, ie.ThisReference,
+                                        value, type.Type);
+                                }
+                            }
+
+                            ParentNode.ReplaceChild(ie, replacementNode);
+                            VisitReplacement(replacementNode);
 
                             break;
 
@@ -267,8 +286,11 @@ namespace JSIL.Transforms {
                     VisitReplacement(newIe);
                     return;
                 } else if (
-                    (method.Reference.DeclaringType.Name == "RuntimeHelpers") &&
-                    (method.Method.Name == "InitializeArray")
+                    (method.Reference.DeclaringType.FullName == "System.Runtime.CompilerServices.RuntimeHelpers") &&
+                    (method.Method.Name == "InitializeArray") &&
+                    (method.Method.Parameters.Length == 2) &&
+                    (method.Method.Parameters[0].ParameterType.FullName == "System.Array") &&
+                    (method.Method.Parameters[1].ParameterType.FullName == "System.RuntimeFieldHandle")
                 ) {
                     var array = ie.Arguments[0];
                     var arrayType = array.GetActualType(TypeSystem);

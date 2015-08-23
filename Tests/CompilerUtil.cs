@@ -35,42 +35,57 @@ namespace JSIL.Tests {
             IEnumerable<string> filenames, string assemblyName, string compilerOptions = ""
         ) {
             var extension = Path.GetExtension(filenames.First()).ToLower();
-            Func<CodeDomProvider> provider = null;
+            Func<CompileOptions, CodeDomProvider> provider = null;
 
             switch (extension) {
                 case ".cs":
-                    provider = () => new CSharpCodeProvider(new Dictionary<string, string>() { 
-                        { "CompilerVersion", "v4.0" } 
-                    });
+                    provider = options =>
+                    {
+                        var providerOptions = new Dictionary<string, string>();
+                        if (options.UseRoslyn)
+                        {
+                            providerOptions.Add(
+                                "CompilerDirectoryPath", 
+                                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "packages", "Microsoft.Net.Compilers.1.0.0", "tools"));
+                        }
+                        else
+                        {
+                            providerOptions.Add("CompilerVersion", "v4.0");
+                        }
+
+                        return new CSharpCodeProvider(providerOptions);
+                    };
                     break;
 
                 case ".vb":
-                    provider = () => new VBCodeProvider(new Dictionary<string, string>() { 
-                        { "CompilerVersion", "v4.0" } 
-                    });
+                    provider = options =>
+                    {
+                        var providerOptions = new Dictionary<string, string>();
+                        if (options.UseRoslyn)
+                        {
+                            providerOptions.Add(
+                                "CompilerDirectoryPath",
+                                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "packages", "Microsoft.Net.Compilers.1.0.0", "tools"));
+                        }
+                        else
+                        {
+                            providerOptions.Add("CompilerVersion", "v4.0");
+                        }
+
+                        return new VBCodeProvider(providerOptions);
+                    };
                     break;
 
                 case ".fs":
-                    provider = () => {
-                        var result = new FSharpCodeProvider();
-                        return result;
-                    };
+                    provider = options => new FSharpCodeProvider();
                     break;
 
                 case ".il":
-                    provider = () =>
-                    {
-                        var result = new CILCodeProvider();
-                        return result;
-                    };
+                    provider = options => new CILCodeProvider();
                     break;
 
                 case ".cpp":
-                    provider = () =>
-                    {
-                        var result = new CPPCodeProvider();
-                        return result;
-                    };
+                    provider = options => new CPPCodeProvider();
                     break;
                 default:
                     throw new NotImplementedException("Extension '" + extension + "' cannot be compiled for test cases");
@@ -139,7 +154,7 @@ namespace JSIL.Tests {
         }
 
         private static CompileResult Compile (
-            Func<CodeDomProvider> getProvider, IEnumerable<string> _filenames, string assemblyName, string compilerOptions
+            Func<CompileOptions, CodeDomProvider> getProvider, IEnumerable<string> _filenames, string assemblyName, string compilerOptions
         ) {
             var filenames = _filenames.ToArray();
             var tempPath = Path.Combine(TempPath, assemblyName);
@@ -158,6 +173,8 @@ namespace JSIL.Tests {
 
             bool generateExecutable = false;
 
+            var compilerCreationOptions = new CompileOptions();
+
             var metacomments = new List<Metacomment>();
             foreach (var sourceFile in filenames) {
                 var sourceText = File.ReadAllText(sourceFile);
@@ -175,6 +192,10 @@ namespace JSIL.Tests {
 
                         case "generateexecutable":
                             generateExecutable = true;
+                            break;
+
+                        case "useroslyn":
+                            compilerCreationOptions.UseRoslyn = true;
                             break;
                     }
                 }
@@ -217,11 +238,11 @@ namespace JSIL.Tests {
                 TempFiles = new TempFileCollection(tempPath, true),
                 OutputAssembly = outputAssembly,
                 WarningLevel = 4,
-                TreatWarningsAsErrors = false
+                TreatWarningsAsErrors = false,
             };
 
             CompilerResults results;
-            using (var provider = getProvider()) {
+            using (var provider = getProvider(compilerCreationOptions)) {
                 results = provider.CompileAssemblyFromFile(
                     parameters,
                     filenames.ToArray()
@@ -277,6 +298,11 @@ namespace JSIL.Tests {
                 results.CompiledAssembly,
                 metacomments.ToArray()
             );
+        }
+
+        private class CompileOptions
+        {
+            public bool UseRoslyn { get; set; } 
         }
     }
 
