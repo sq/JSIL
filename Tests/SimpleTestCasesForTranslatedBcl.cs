@@ -10,6 +10,7 @@ namespace JSIL.SimpleTests
     using NUnit.Framework;
 
     [TestFixture]
+    [Category("Translated")]
     public class SimpleTestCasesForTranslatedBcl : GenericTestFixture
     {
         public static readonly string BootsrapperFileName =
@@ -97,6 +98,7 @@ namespace JSIL.SimpleTests
 
         [Test]
         [TestCaseSource("ExpressionTestCasesSourceForTranslatedBcl")]
+        [FailsOnMono]
         public void ExpressionTestCasesForTranslatedBcl(object[] parameters)
         {
             Func<Configuration> makeConfiguration = () =>

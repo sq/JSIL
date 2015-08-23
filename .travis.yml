@@ -5,15 +5,14 @@ before_install:
   - wget -P /tmp/avim -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
   - unzip -d /tmp/js /tmp/avim/jsshell-linux-x86_64.zip
   - export PATH=$PATH:/tmp/js
-  - export JsilUseAppDomainsInTest=true
-  
+
 install:
   - nuget restore JSIL_NoXNA_NoLibraries.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
   - cd JSIL.Libraries
   - npm install 
   - cd ..
-  
+
 script:
   - xbuild /p:Configuration=Release /v:m JSIL_NoXNA_NoLibraries.sln
   - cd JSIL.Libraries
@@ -22,9 +21,12 @@ script:
   - rm bin/nunit.core.dll
   - rm bin/nunit.core.interfaces.dll
   - rm bin/nunit.util.dll
-  - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)
+  - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)\|\(FailsOnMonoWhenTranslated+Translated\)
 
 env:
-  - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl,JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
-  - TestRun=JSIL.SimpleTests.SimpleTestCasesForTranslatedBcl
-  
+  global:
+    - JsilUseAppDomainsInTest=true
+  matrix:
+    - TestRun=JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
+    - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl
+    - TestRun=JSIL.SimpleTests.SimpleTestCasesForTranslatedBcl
