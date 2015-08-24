@@ -302,8 +302,12 @@ JSIL.$GetSpecialType = function (name) {
   JSIL.TypeObjectPrototype.get_Assembly = function() { 
     return this.__Context__.__Assembly__; 
   };
-  JSIL.TypeObjectPrototype.get_BaseType = function() { 
-    return this.__BaseType__; 
+  JSIL.TypeObjectPrototype.get_BaseType = function () {
+    if (typeof (this.__BaseType__) !== "function")
+      return this.__BaseType__;
+
+    // Workaround for numeric types
+    return $jsilcore.System.ValueType.__Type__;
   };
   JSIL.TypeObjectPrototype.get_Namespace = function() { 
     // FIXME: Probably wrong for nested types.

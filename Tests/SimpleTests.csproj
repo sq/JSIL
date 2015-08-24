@@ -125,6 +125,7 @@
     <None Include="SimpleTestCases\NullableByRef_Issue810.cs" />
     <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\ListConstructor.cs" />
     <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\ListICollection.cs" />
+    <None Include="SimpleTestCases\NumericTypesBase_Issue812.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

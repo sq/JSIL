@@ -6,6 +6,7 @@ public static class Program
     {
         IsType<object>("qwerty");
         IsType<object>(1);
+        IsType<object>(true);
         IsType<object>(new object());
     }
 
