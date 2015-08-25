@@ -13,16 +13,16 @@ if (!$jsilcore)
 //? include("Classes/System.ValueType.js"); writeln();
 
 //? include("Interfaces/System.IDisposable.js"); writeln();
-//? include("Interfaces/System.IEquatable`1.js"); writeln();
+//? include("Interfaces/System.IEquatable.js"); writeln();
 //? include("Interfaces/System.Collections.IEnumerator.js"); writeln();
 //? include("Interfaces/System.Collections.IDictionaryEnumerator.js"); writeln();
 //? include("Interfaces/System.Collections.IEnumerable.js"); writeln();
-//? include("Interfaces/System.Collections.Generic.IEnumerator`1.js"); writeln();
-//? include("Interfaces/System.Collections.Generic.IEnumerable`1.js"); writeln();
+//? include("Interfaces/System.Collections.Generic.IEnumerator.js"); writeln();
+//? include("Interfaces/System.Collections.Generic.IEnumerable.js"); writeln();
 //? include("Interfaces/System.Collections.ICollection.js"); writeln();
 //? include("Interfaces/System.Collections.IList.js"); writeln();
-//? include("Interfaces/System.Collections.Generic.ICollection`1.js"); writeln();
-//? include("Interfaces/System.Collections.Generic.IList`1.js"); writeln();
+//? include("Interfaces/System.Collections.Generic.ICollection.js"); writeln();
+//? include("Interfaces/System.Collections.Generic.IList.js"); writeln();
 
 //? include("Classes/System.Array.js"); writeln();
 //? include("Classes/JSIL.MultidimensionalArray.js"); writeln();

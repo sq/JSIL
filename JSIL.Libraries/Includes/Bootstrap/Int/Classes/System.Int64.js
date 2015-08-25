@@ -1,4 +1,6 @@
-﻿JSIL.ImplementExternals("System.Int64", function ($) {
+﻿//? include("../Utils/JSIL.Make64BitInt.js");
+
+JSIL.ImplementExternals("System.Int64", function ($) {
 
     // The unsigned range 0 to 0x7FFFFFFFFFFFFFFF (= Int64.MaxValue) is positive: 0 to 9223372036854775807
     // The directly following unsigned range 0x8000000000000000 (= Int64.MaxValue + 1 = Int64.MinValue) to 0xFFFFFFFFFFFFFFFF is negative: -9223372036854775808 to -1

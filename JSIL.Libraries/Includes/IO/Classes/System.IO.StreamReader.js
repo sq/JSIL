@@ -1,68 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.IO.TextReader"), "System.IO.StreamReader", true, [], function ($) {
-    var $thisType = $.publicInterface;
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $.Boolean], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [
-          $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"),
-          $.Boolean
-      ], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [
-          $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"),
-          $.Boolean, $.Int32
-      ], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$.String], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$.String, $.Boolean], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.Text.Encoding")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [
-          $.String, $jsilcore.TypeRef("System.Text.Encoding"),
-          $.Boolean
-      ], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [
-          $.String, $jsilcore.TypeRef("System.Text.Encoding"),
-          $.Boolean, $.Int32
-      ], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "Close",
-      JSIL.MethodSignature.Void
-    );
-
-    $.ExternalMethod({ Static: false, Public: false }, "Dispose",
-      new JSIL.MethodSignature(null, [$.Boolean], [])
-    );
-
-    $.Property({ Static: false, Public: true }, "EndOfStream");
-});
+﻿//? include("../Utils/$jsilio.ReadCharFromStream.js");
 
 JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
     var UTF8 = function () { return $jsilcore.System.Text.Encoding.get_UTF8(); };
@@ -215,3 +151,71 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
     );
 
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.IO.TextReader"), "System.IO.StreamReader", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $.Boolean], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"),
+        $.Boolean
+    ], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [
+        $jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding"),
+        $.Boolean, $.Int32
+    ], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$.String], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$.String, $.Boolean], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.Text.Encoding")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [
+        $.String, $jsilcore.TypeRef("System.Text.Encoding"),
+        $.Boolean
+    ], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [
+        $.String, $jsilcore.TypeRef("System.Text.Encoding"),
+        $.Boolean, $.Int32
+    ], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, "Close",
+    JSIL.MethodSignature.Void
+  );
+
+  $.ExternalMethod({ Static: false, Public: false }, "Dispose",
+    new JSIL.MethodSignature(null, [$.Boolean], [])
+  );
+
+  $.Property({ Static: false, Public: true }, "EndOfStream");
+});
+//? }

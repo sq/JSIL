@@ -1,4 +1,7 @@
-﻿JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
+﻿//? include("../Utils/JSIL.XML.ReaderFromStream.js");
+//? include("../Utils/JSIL.XML.WriterForStream.js");
+
+JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
     $.Method({ Static: false, Public: true }, ".ctor",
       (new JSIL.MethodSignature(null, [$xmlasms[5].TypeRef("System.Type")], [])),
       function _ctor(type) {

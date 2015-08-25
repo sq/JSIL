@@ -1,10 +1,4 @@
-﻿JSIL.MakeClass("System.Object", "System.Xml.XmlNameTable", true, [], function ($) {
-    $.ExternalMembers(false,
-      ".ctor", "Add", "Get"
-    );
-});
-
-JSIL.ImplementExternals("System.Xml.XmlNameTable", function ($) {
+﻿JSIL.ImplementExternals("System.Xml.XmlNameTable", function ($) {
     $.Method({ Static: false, Public: false }, ".ctor",
       JSIL.MethodSignature.Void,
       function () {
@@ -37,3 +31,11 @@ JSIL.ImplementExternals("System.Xml.XmlNameTable", function ($) {
     );
 
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass("System.Object", "System.Xml.XmlNameTable", true, [], function ($) {
+  $.ExternalMembers(false,
+    ".ctor", "Add", "Get"
+  );
+});
+//? }

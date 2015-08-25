@@ -1,15 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Xml.XmlWriter", true, [], function ($) {
-    $.Field({ Static: false, Public: false }, "writeNodeBuffer", $jsilcore.TypeRef("System.Array", [$.Char]));
-
-    $.Constant({ Static: true, Public: false }, "WriteNodeBufferSize", 1024);
-
-    $.Property({ Static: false, Public: true }, "Settings");
-    $.Property({ Static: false, Public: true }, "WriteState");
-    $.Property({ Static: false, Public: true }, "XmlLang");
-    $.Property({ Static: false, Public: true }, "XmlSpace");
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
+﻿//? include("../Utils/JSIL.XML.WriterForStream.js");
 
 JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
 
@@ -624,3 +613,18 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
     );
 
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Xml.XmlWriter", true, [], function ($) {
+  $.Field({ Static: false, Public: false }, "writeNodeBuffer", $jsilcore.TypeRef("System.Array", [$.Char]));
+
+  $.Constant({ Static: true, Public: false }, "WriteNodeBufferSize", 1024);
+
+  $.Property({ Static: false, Public: true }, "Settings");
+  $.Property({ Static: false, Public: true }, "WriteState");
+  $.Property({ Static: false, Public: true }, "XmlLang");
+  $.Property({ Static: false, Public: true }, "XmlSpace");
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+});
+//? }

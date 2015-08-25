@@ -1,28 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.Stream", true, [], function ($) {
-    $.Constant({ Static: true, Public: false }, "_DefaultBufferSize", 4096);
-
-    $.Field({ Static: true, Public: true }, "Null", $.Type);
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanRead");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanSeek");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanTimeout");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanWrite");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "Length");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "Position");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "ReadTimeout");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "WriteTimeout");
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
-
-JSIL.ImplementExternals("System.IO.Stream", function ($) {
+﻿JSIL.ImplementExternals("System.IO.Stream", function ($) {
     var readByteBuffer = null;
 
     $.Method({ Static: false, Public: true }, "ReadByte",
@@ -75,3 +51,29 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
         return null;
     });
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.Stream", true, [], function ($) {
+  $.Constant({ Static: true, Public: false }, "_DefaultBufferSize", 4096);
+
+  $.Field({ Static: true, Public: true }, "Null", $.Type);
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanRead");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanSeek");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanTimeout");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanWrite");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "Length");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "Position");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "ReadTimeout");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "WriteTimeout");
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+});
+//? }

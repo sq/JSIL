@@ -1,26 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryWriter", true, [], function ($) {
-    var $thisType = $.publicInterface;
-
-    $.ExternalMethod({ Static: false, Public: false }, ".ctor",
-      JSIL.MethodSignature.Void
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: false }, "Dispose",
-      new JSIL.MethodSignature(null, [$.Boolean], [])
-    );
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
-
-JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
+﻿JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
     $.Method({ Static: false, Public: true }, ".ctor",
       (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])),
       function _ctor(output) {
@@ -221,3 +199,27 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
       }
     );
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryWriter", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({ Static: false, Public: false }, ".ctor",
+    JSIL.MethodSignature.Void
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: false }, "Dispose",
+    new JSIL.MethodSignature(null, [$.Boolean], [])
+  );
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"));
+});
+//? }

@@ -1,5 +1,4 @@
-﻿
-JSIL.ImplementExternals("System.Array", function ($) {
+﻿JSIL.ImplementExternals("System.Array", function ($) {
     $.RawMethod(true, "CheckType", JSIL.IsSystemArray);
 
     $.RawMethod(true, "Of", function Array_Of() {

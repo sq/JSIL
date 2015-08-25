@@ -1,4 +1,6 @@
-﻿JSIL.ImplementExternals("System.UInt64", function ($) {
+﻿//? include("../Utils/JSIL.Make64BitInt.js");
+
+JSIL.ImplementExternals("System.UInt64", function ($) {
     var mscorlib = JSIL.GetCorlib();
 
     var locals = JSIL.Make64BitInt($, function () {

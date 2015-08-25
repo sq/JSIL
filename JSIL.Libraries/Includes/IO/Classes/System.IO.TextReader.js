@@ -1,10 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.TextReader", true, [], function ($) {
-    var $thisType = $.publicInterface;
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
-
-JSIL.ImplementExternals("System.IO.TextReader", function ($) {
+﻿JSIL.ImplementExternals("System.IO.TextReader", function ($) {
     $.Method({ Static: false, Public: true }, "Dispose",
       (JSIL.MethodSignature.Void),
       function Dispose() {
@@ -17,3 +11,11 @@ JSIL.ImplementExternals("System.IO.TextReader", function ($) {
       }
     );
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.TextReader", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+});
+//? }

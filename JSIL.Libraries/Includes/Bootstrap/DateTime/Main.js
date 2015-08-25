@@ -6,7 +6,8 @@ if (typeof (JSIL) === "undefined")
 if (!$jsilcore)
     throw new Error("JSIL.Core is required");
 
-//? include("Structs/System.TimeSpan.js"); writeln();
+//? include("Classes/System.TimeSpan.js"); writeln();
+//? include("Classes/System.DateTime.js"); writeln();
 
 JSIL.MakeEnum(
   "System.DateTimeKind", true, {
@@ -15,5 +16,3 @@ JSIL.MakeEnum(
       Local: 2
   }, false
 );
-
-//? include("Structs/System.DateTime.js"); writeln();

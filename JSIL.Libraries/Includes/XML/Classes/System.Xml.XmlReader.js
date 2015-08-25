@@ -1,25 +1,5 @@
-﻿JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
-    $.ExternalMembers(false,
-      "Read", "MoveToContent",
-      "get_AdvanceCount", "get_AttributeCount",
-      "get_IsEmptyElement",
-      "get_LocalName", "get_NameTable",
-      "get_NodeType", "get_Name",
-      "get_NamespaceURI", "get_Value"
-    );
+﻿//? include("../Utils/JSIL.XML.ReaderFromStream.js");
 
-    $.Property({ Static: false, Public: false }, "AdvanceCount");
-    $.Property({ Static: false, Public: true }, "AttributeCount");
-    $.Property({ Static: false, Public: true }, "IsEmptyElement");
-    $.Property({ Static: false, Public: true }, "LocalName");
-    $.Property({ Static: false, Public: true }, "NodeType");
-    $.Property({ Static: false, Public: true }, "Name");
-    $.Property({ Static: false, Public: true }, "NameTable");
-    $.Property({ Static: false, Public: true }, "NamespaceURI");
-    $.Property({ Static: false, Public: true }, "Value");
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
 JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     var ntNone = System.Xml.XmlNodeType.None;
     var ntElement = System.Xml.XmlNodeType.Element;
@@ -736,5 +716,29 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
           // FIXME
       }
     );
-
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
+  $.ExternalMembers(false,
+    "Read", "MoveToContent",
+    "get_AdvanceCount", "get_AttributeCount",
+    "get_IsEmptyElement",
+    "get_LocalName", "get_NameTable",
+    "get_NodeType", "get_Name",
+    "get_NamespaceURI", "get_Value"
+  );
+
+  $.Property({ Static: false, Public: false }, "AdvanceCount");
+  $.Property({ Static: false, Public: true }, "AttributeCount");
+  $.Property({ Static: false, Public: true }, "IsEmptyElement");
+  $.Property({ Static: false, Public: true }, "LocalName");
+  $.Property({ Static: false, Public: true }, "NodeType");
+  $.Property({ Static: false, Public: true }, "Name");
+  $.Property({ Static: false, Public: true }, "NameTable");
+  $.Property({ Static: false, Public: true }, "NamespaceURI");
+  $.Property({ Static: false, Public: true }, "Value");
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+});
+//? }

@@ -1,4 +1,6 @@
-﻿JSIL.ImplementExternals("System.IO.FileStream", function ($) {
+﻿//? include("../Utils/$bytestream.js");
+
+JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     $.Method({ Static: false, Public: false }, ".ctor",
       (JSIL.MethodSignature.Void),
       function _ctor() {

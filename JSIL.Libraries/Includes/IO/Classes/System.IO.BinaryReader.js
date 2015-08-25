@@ -1,24 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryReader", true, [], function ($) {
-    var $thisType = $.publicInterface;
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "Close",
-      JSIL.MethodSignature.Void
-    );
-
-    $.ExternalMethod({ Static: false, Public: false }, "Dispose",
-      new JSIL.MethodSignature(null, [$.Boolean], [])
-    );
-
-    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
-});
+﻿//? include("../Utils/$jsilio.ReadCharFromStream.js");
 
 JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     $.Method({ Static: false, Public: true }, ".ctor",
@@ -314,3 +294,27 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     );
 
 });
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryReader", true, [], function ($) {
+  var $thisType = $.publicInterface;
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])
+  );
+
+  $.ExternalMethod({ Static: false, Public: true }, "Close",
+    JSIL.MethodSignature.Void
+  );
+
+  $.ExternalMethod({ Static: false, Public: false }, "Dispose",
+    new JSIL.MethodSignature(null, [$.Boolean], [])
+  );
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+});
+//? }

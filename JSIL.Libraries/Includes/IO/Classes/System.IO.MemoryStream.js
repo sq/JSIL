@@ -1,36 +1,4 @@
-﻿JSIL.MakeClass($jsilcore.TypeRef("System.IO.Stream"), "System.IO.MemoryStream", true, [], function ($) {
-    $.Field({ Static: false, Public: false }, "_buffer", $jsilcore.TypeRef("System.Array", [$.Byte]));
-
-    $.Field({ Static: false, Public: false }, "_capacity", $.Int32);
-
-    $.Field({ Static: false, Public: false }, "_expandable", $.Boolean);
-
-    $.Field({ Static: false, Public: false }, "_exposable", $.Boolean);
-
-    $.Field({ Static: false, Public: false }, "_isOpen", $.Boolean);
-
-    $.Field({ Static: false, Public: false }, "_length", $.Int32);
-
-    $.Field({ Static: false, Public: false }, "_origin", $.Int32);
-
-    $.Field({ Static: false, Public: false }, "_position", $.Int32);
-
-    $.Field({ Static: false, Public: false }, "_writable", $.Boolean);
-
-    $.Constant({ Static: true, Public: false }, "MemStreamMaxLength", 2147483647);
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanRead");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanSeek");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "CanWrite");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "Capacity");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "Length");
-
-    $.Property({ Static: false, Public: true, Virtual: true }, "Position");
-});
+﻿//? include("../Utils/$bytestream.js");
 
 JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
     var ctorBytesImpl = function (self, bytes, index, count, writable) {
@@ -91,3 +59,39 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
 JSIL.ImplementExternals(
   "System.IO.MemoryStream", $bytestream
 );
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass($jsilcore.TypeRef("System.IO.Stream"), "System.IO.MemoryStream", true, [], function ($) {
+  $.Field({ Static: false, Public: false }, "_buffer", $jsilcore.TypeRef("System.Array", [$.Byte]));
+
+  $.Field({ Static: false, Public: false }, "_capacity", $.Int32);
+
+  $.Field({ Static: false, Public: false }, "_expandable", $.Boolean);
+
+  $.Field({ Static: false, Public: false }, "_exposable", $.Boolean);
+
+  $.Field({ Static: false, Public: false }, "_isOpen", $.Boolean);
+
+  $.Field({ Static: false, Public: false }, "_length", $.Int32);
+
+  $.Field({ Static: false, Public: false }, "_origin", $.Int32);
+
+  $.Field({ Static: false, Public: false }, "_position", $.Int32);
+
+  $.Field({ Static: false, Public: false }, "_writable", $.Boolean);
+
+  $.Constant({ Static: true, Public: false }, "MemStreamMaxLength", 2147483647);
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanRead");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanSeek");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "CanWrite");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "Capacity");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "Length");
+
+  $.Property({ Static: false, Public: true, Virtual: true }, "Position");
+});
+//? }
