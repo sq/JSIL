@@ -998,14 +998,18 @@ namespace JSIL {
 
             Formatter.Comma();
             Formatter.OpenFunction(null, (f) => 
-                f.Identifier("$")
+                f.Identifier("$ib")
             );
+
+            Formatter.WriteRaw("$ = $ib;");
+            Formatter.NewLine();
 
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.EnclosingType = typedef;
         }
 
         public void EndEmitTypeDefinition (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef) {
+            Formatter.NewLine();
             Formatter.NewLine();
             Formatter.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
             Formatter.Semicolon(false);
