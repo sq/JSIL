@@ -80,6 +80,11 @@ namespace JSIL.Ast {
                         continue;
 
                     var nodeType = parameters[0].ParameterType;
+
+                    // HACK so overriding VisitNode works
+                    if (nodeType.Name == "JSNode")
+                        methods.Remove(nodeType);
+
                     methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
                 }
 
