@@ -886,7 +886,6 @@ namespace JSIL {
 
         protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = IsStubbed(assembly);
-            bool skeletons = Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(
@@ -895,7 +894,7 @@ namespace JSIL {
 
             var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, formatter);
 
-            assemblyEmitter.EmitHeader(stubbed, skeletons);
+            assemblyEmitter.EmitHeader(stubbed);
 
             if (assembly.EntryPoint != null)
                 TranslateEntryPoint(assemblyEmitter, assembly);
@@ -955,8 +954,8 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
         }
 
-        protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef, bool makingSkeletons) {
-            if (TypeDeclarationsToSuppress.Contains(typedef.FullName) && !makingSkeletons)
+        protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef) {
+            if (TypeDeclarationsToSuppress.Contains(typedef.FullName))
                 return false;
 
             return true;
@@ -978,8 +977,6 @@ namespace JSIL {
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
-            var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
@@ -996,27 +993,18 @@ namespace JSIL {
             bool declareOnlyInternalTypes = ShouldSkipMember(typedef);
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
-            if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
-                assemblyEmitter.DeclareTypeAlias(typedef);
+            if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef)) {
+                assemblyEmitter.EmitTypeAlias(typedef);
 
                 declareOnlyInternalTypes = true;
             }
 
             if (declareOnlyInternalTypes) {
-                // We still may need to declare inner types.
-                astEmitter.ReferenceContext.Push();
-                astEmitter.ReferenceContext.EnclosingType = typedef;
-                astEmitter.ReferenceContext.EnclosingTypeSkipped = true;
-
-                try
-                {
-                    foreach (var nestedTypeDef in typedef.NestedTypes)
-                        DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
-                }
-                finally
-                {
-                    astEmitter.ReferenceContext.Pop();
-                }
+                DeclareNestedTypes(
+                    context, typedef, 
+                    astEmitter, assemblyEmitter, 
+                    declaredTypes, stubbed, true
+                );
 
                 return;
             }
@@ -1029,57 +1017,17 @@ namespace JSIL {
                 // type has a JS replacement, we can't correctly emit a stub or definition for it. 
                 // We do want to process nested types, though.
                 if (typeInfo.Replacement != null) {
-                    output.NewLine();
-
-                    astEmitter.ReferenceContext.Push();
-                    astEmitter.ReferenceContext.EnclosingType = typedef;
-
-                    try {
-                        foreach (var nestedTypeDef in typedef.NestedTypes)
-                            DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
-                    } finally {
-                        astEmitter.ReferenceContext.Pop();
-                    }
+                    DeclareNestedTypes(
+                        context, typedef, 
+                        astEmitter, assemblyEmitter, 
+                        declaredTypes, stubbed, false
+                    );
 
                     return;
                 }
 
-                output.DeclareNamespace(typedef.Namespace);
-
-                if (typeInfo.IsExternal) {
-                    output.Identifier("JSIL.MakeExternalType", EscapingMode.None);
-                    output.LPar();
-
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-                    output.Comma();
-                    output.Value(typedef.IsPublic);
-
-                    output.RPar();
-                    output.Semicolon();
-                    output.NewLine();
+                if (!assemblyEmitter.EmitTypeDeclarationHeader(context, astEmitter, typedef, typeInfo))
                     return;
-                } else if (typedef.IsInterface) {
-                    output.Comment("interface {0}", Util.DemangleCecilTypeName(typedef.FullName));
-                    output.NewLine();
-                    output.NewLine();
-
-                    TranslateInterface(context, astEmitter, assemblyEmitter, typedef);
-                    return;
-                } else if (typedef.IsEnum) {
-                    output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
-                    output.NewLine();
-                    output.NewLine();
-
-                    TranslateEnum(context, assemblyEmitter, typedef, astEmitter);
-                    return;
-                } else if (typeInfo.IsDelegate) {
-                    output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
-                    output.NewLine();
-                    output.NewLine();
-
-                    TranslateDelegate(context, assemblyEmitter, typedef, typeInfo, astEmitter);
-                    return;
-                }
 
                 var declaringType = typedef.DeclaringType;
                 if (declaringType != null)
@@ -1100,27 +1048,19 @@ namespace JSIL {
                 output.NewLine();
                 output.NewLine();
 
-                if (!makingSkeletons) {
-                    output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                    output.Indent();
-                    output.NewLine();
-                }
+                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+                output.Indent();
+                output.NewLine();
 
                 JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
                 var cachers = EmitTypeMethodExpressions(
-                    context, typedef, astEmitter, assemblyEmitter, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
+                    context, typedef, astEmitter, assemblyEmitter, stubbed, dollar, ref nextDisambiguatedId
                 );
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
-                if (makingSkeletons) {
-                    output.Identifier("JSIL.ImplementExternals", EscapingMode.None);
-                    output.LPar();
-
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-
-                } else if (isStatic) {
+                if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
                     output.LPar();
 
@@ -1251,7 +1191,7 @@ namespace JSIL {
                     TranslateTypeDefinition(
                         context, typedef, 
                         astEmitter, assemblyEmitter, 
-                        stubbed, dollar, makingSkeletons, 
+                        stubbed, dollar, 
                         cachers
                     );
 
@@ -1264,8 +1204,7 @@ namespace JSIL {
 
                     output.RPar();
 
-                    if (!makingSkeletons)
-                        TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, assemblyEmitter);
+                    assemblyEmitter.EmitCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter);
 
                     output.Semicolon();
                     output.NewLine();
@@ -1273,18 +1212,32 @@ namespace JSIL {
                     astEmitter.ReferenceContext.Pop();
                 }
 
-                if (!makingSkeletons) {
-                    output.Unindent();
-                    output.WriteRaw("})();");
-                    output.NewLine();
-                }
-
+                output.Unindent();
+                output.WriteRaw("})();");
+                output.NewLine();
                 output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
             } catch (Exception exc) {
                 throw new Exception(String.Format("An error occurred while declaring the type '{0}'", typedef.FullName), exc);
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+        }
+
+        private void DeclareNestedTypes (
+            DecompilerContext context, TypeDefinition typedef, 
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
+            HashSet<TypeDefinition> declaredTypes, bool stubbed, bool skipped
+        ) {
+            astEmitter.ReferenceContext.Push();
+            astEmitter.ReferenceContext.EnclosingType = typedef;
+            astEmitter.ReferenceContext.EnclosingTypeSkipped = skipped;
+
+            try {
+                foreach (var nestedTypeDef in typedef.NestedTypes)
+                    DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
@@ -1311,61 +1264,10 @@ namespace JSIL {
             return true;
         }
 
-        protected void TranslatePrimitiveDefinition (
-            DecompilerContext context, IAssemblyEmitter assemblyEmitter,
-            TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
-        ) {
-            bool isIntegral = false;
-            bool isNumeric = false;
-
-            switch (typedef.FullName) {
-                case "System.Boolean":
-                    isIntegral = true;
-                    isNumeric = true;
-                    break;
-                case "System.Char":
-                    isIntegral = true;
-                    isNumeric = true;
-                    break;
-                case "System.Byte":
-                case "System.SByte":
-                case "System.UInt16":
-                case "System.Int16":
-                case "System.UInt32":
-                case "System.Int32":
-                case "System.UInt64":
-                case "System.Int64":
-                    isIntegral = true;
-                    isNumeric = true;
-                    break;
-                case "System.Single":
-                case "System.Double":
-                case "System.Decimal":
-                    isIntegral = false;
-                    isNumeric = true;
-                    break;
-            }
-
-            var setValue = (Action<string, bool>)((name, value) => {
-                dollar.WriteTo(output);
-                output.Dot();
-                output.Identifier("SetValue", EscapingMode.None);
-                output.LPar();
-                output.Value(name);
-                output.Comma();
-                output.Value(value);
-                output.RPar();
-                output.Semicolon(true);
-            });
-
-            setValue("__IsIntegral__", isIntegral);
-            setValue("__IsNumeric__", isNumeric);
-        }
-
         protected Cachers EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
-            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
+            bool stubbed, JSRawOutputIdentifier dollar,
             ref int nextDisambiguatedId
         ) {
             var typeCacher = new TypeExpressionCacher(typedef);
@@ -1376,10 +1278,8 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return new Cachers(typeCacher, signatureCacher, baseMethodCacher);
 
-            if (!makingSkeletons) {
-                output.WriteRaw("var $, $thisType");
-                output.Semicolon(true);
-            }
+            output.WriteRaw("var $, $thisType");
+            output.Semicolon(true);
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToList();
 
@@ -1388,7 +1288,9 @@ namespace JSIL {
             // FIXME: This is *incredibly* slow in both V8 and SpiderMonkey presently.
             var cacheBaseMethods = Configuration.CodeGenerator.CacheBaseMethodHandles.GetValueOrDefault(false);
 
-            if (cacheTypes || cacheSignatures) {
+            var caching = cacheTypes || cacheSignatures || cacheBaseMethods;
+
+            if (caching) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
@@ -1410,67 +1312,7 @@ namespace JSIL {
                         baseMethodCacher.CacheMethodsForFunction(functionBody);
                 }
 
-                var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
-                if (cts.Length > 0) {
-                    foreach (var ct in cts) {
-                        output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
-                        output.OpenBrace();
-                        output.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
-                        output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
-                        output.WriteRaw(")) ()");
-                        output.Semicolon(true);
-                        output.CloseBrace(false);
-                        output.Semicolon(true);
-                    }
-                }
-
-                var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
-                if (css.Length > 0) {
-                    foreach (var cs in css) {
-                        output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
-                        output.OpenBrace();
-                        output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
-                        output.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
-                        output.WriteRaw(")) ()");
-                        output.Semicolon(true);
-                        output.CloseBrace(false);
-                        output.Semicolon(true);
-                    }
-                }
-
-                var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
-                if (bms.Length > 0) {
-                    foreach (var bm in bms) {
-                        output.WriteRaw("var $BM{0:X2} = function () ", bm.Index);
-                        output.OpenBrace();
-                        output.WriteRaw("return ($BM{0:X2} = JSIL.Memoize(", bm.Index);
-                        output.WriteRaw("Function.call.bind(");
-                        output.Identifier(bm.Method.Reference, astEmitter.ReferenceContext, true);
-                        output.WriteRaw("))) ()");
-                        output.Semicolon(true);
-                        output.CloseBrace(false);
-                        output.Semicolon(true);
-                    }
-                }
-
-                var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
-                if (cims.Length > 0) {
-                    foreach (var cim in cims) {
-                        output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
-                        output.OpenBrace();
-                        output.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
-                        output.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
-                        output.Dot();
-                        output.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
-                        output.WriteRaw(")) ()");
-                        output.Semicolon(true);
-                        output.CloseBrace(false);
-                        output.Semicolon(true);
-                    }
-                }
-
-                if ((cts.Length > 0) || (css.Length > 0))
-                    output.NewLine();
+                EmitCachedValues(astEmitter, typeCacher, signatureCacher, baseMethodCacher);
             }
 
             var cachers = new Cachers(typeCacher, signatureCacher, baseMethodCacher);
@@ -1492,20 +1334,85 @@ namespace JSIL {
             return cachers;
         }
 
+        private static void EmitCachedValues (IAstEmitter _astEmitter, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, BaseMethodCacher baseMethodCacher) {
+            // HACK: Fix this??? How though???
+            var astEmitter = (JavascriptAstEmitter)_astEmitter;
+            var output = astEmitter.Output;
+
+            var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
+            if (cts.Length > 0) {
+                foreach (var ct in cts) {
+                    output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
+                    output.OpenBrace();
+                    output.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
+                    output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
+                    output.WriteRaw(")) ()");
+                    output.Semicolon(true);
+                    output.CloseBrace(false);
+                    output.Semicolon(true);
+                }
+            }
+
+            var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
+            if (css.Length > 0) {
+                foreach (var cs in css) {
+                    output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
+                    output.OpenBrace();
+                    output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
+                    output.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
+                    output.WriteRaw(")) ()");
+                    output.Semicolon(true);
+                    output.CloseBrace(false);
+                    output.Semicolon(true);
+                }
+            }
+
+            var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
+            if (bms.Length > 0) {
+                foreach (var bm in bms) {
+                    output.WriteRaw("var $BM{0:X2} = function () ", bm.Index);
+                    output.OpenBrace();
+                    output.WriteRaw("return ($BM{0:X2} = JSIL.Memoize(", bm.Index);
+                    output.WriteRaw("Function.call.bind(");
+                    output.Identifier(bm.Method.Reference, astEmitter.ReferenceContext, true);
+                    output.WriteRaw("))) ()");
+                    output.Semicolon(true);
+                    output.CloseBrace(false);
+                    output.Semicolon(true);
+                }
+            }
+
+            var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
+            if (cims.Length > 0) {
+                foreach (var cim in cims) {
+                    output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
+                    output.OpenBrace();
+                    output.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
+                    output.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                    output.Dot();
+                    output.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                    output.WriteRaw(")) ()");
+                    output.Semicolon(true);
+                    output.CloseBrace(false);
+                    output.Semicolon(true);
+                }
+            }
+
+            if ((cts.Length > 0) || (css.Length > 0))
+                output.NewLine();
+        }
+
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
-            bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
+            bool stubbed, JSRawOutputIdentifier dollar,
             Cachers cachers
         ) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            if (makingSkeletons)
-                output.WriteRaw("var $ = $interfaceBuilder");
-            else
-                output.WriteRaw("$ = $interfaceBuilder");
+            output.WriteRaw("$ = $interfaceBuilder");
             output.Semicolon(true);
 
             context.CurrentType = typedef;
@@ -1523,40 +1430,38 @@ namespace JSIL {
                 if (method.Name == ".cctor")
                     continue;
 
-                DefineMethod(
-                    context, method, method, astEmitter, assemblyEmitter,
-                    stubbed, dollar
+                assemblyEmitter.EmitMethodDefinition(
+                    context, method, method, astEmitter, stubbed, dollar
                 );
             }
 
             Action translateProperties = () => {
                 foreach (var property in typedef.Properties)
-                    TranslateProperty(context, astEmitter, assemblyEmitter, property, dollar);
+                    assemblyEmitter.EmitProperty(context, astEmitter, property, dollar);
             };
 
             Action translateEvents = () => {
                 foreach (var @event in typedef.Events)
-                    TranslateEvent(context, astEmitter, assemblyEmitter, @event, dollar);
+                    assemblyEmitter.EmitEvent(context, astEmitter, @event, dollar);
             };
 
-            if (!makingSkeletons)
-                TranslateTypeStaticConstructor(
-                    context, typedef, astEmitter, 
-                    output, typeInfo.StaticConstructor, 
-                    stubbed, dollar,
-                    cachers
-                );
+            TranslateTypeStaticConstructor(
+                context, typedef, astEmitter, 
+                assemblyEmitter, typeInfo.StaticConstructor, 
+                stubbed, dollar,
+                cachers
+            );
 
-            if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
+            if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0) {
                 translateProperties();
             }
 
-            if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Events.Count) > 0)) {
+            if ((typeInfo.MethodGroups.Count + typedef.Events.Count) > 0) {
                 translateEvents();
             }
 
             var interfaces = typeInfo.AllInterfacesRecursive;
-            if (!makingSkeletons && (interfaces.Count > 0)) {
+            if (interfaces.Count > 0) {
                 output.NewLine();
 
                 dollar.WriteTo(output);
@@ -1594,8 +1499,7 @@ namespace JSIL {
             }
 
             output.NewLine();
-            if (!makingSkeletons)
-                output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+            output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
 
             output.Semicolon(false);
         }
@@ -2194,12 +2098,13 @@ namespace JSIL {
                 (fd) => {
                     var expr = TranslateField(fd, fieldDefaults, false, dollar, fieldSelfIdentifier);
                     if (expr != null) {
-                        output.NewLine();
+                        assemblyEmitter.EmitSpacer();
+
                         astEmitter.Emit(expr);
 
-                        TranslateCustomAttributes(context, typedef, fd, astEmitter, assemblyEmitter);
+                        assemblyEmitter.EmitCustomAttributes(context, typedef, fd, astEmitter);
 
-                        output.Semicolon(false);
+                        assemblyEmitter.EmitSemicolon();
                     }
                 };
 
@@ -2223,7 +2128,7 @@ namespace JSIL {
             int temp = 0;
 
             if ((cctor != null) && !stubbed) {
-                output.NewLine();
+                assemblyEmitter.EmitSpacer();
 
                 EmitAndDefineMethod(
                     context, cctor, cctor, 
@@ -2243,7 +2148,7 @@ namespace JSIL {
                         typeInfo, identifier, fakeCctor, new ArraySegment<ProxyInfo>(), null
                     );
 
-                output.NewLine();
+                assemblyEmitter.EmitSpacer();
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
@@ -2261,7 +2166,7 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, 
+                    assemblyEmitter, false, dollar, 
                     cachers, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
@@ -2392,8 +2297,8 @@ namespace JSIL {
                 astEmitter, assemblyEmitter, stubbed, cachers,
                 ref nextDisambiguatedId, methodInfo, bodyTransformer
             );
-            DefineMethod(
-                context, methodRef, method, astEmitter, assemblyEmitter, stubbed, dollar, methodInfo
+            assemblyEmitter.EmitMethodDefinition(
+                context, methodRef, method, astEmitter, stubbed, dollar, methodInfo
             );
         }
 
@@ -2414,8 +2319,6 @@ namespace JSIL {
             ))
                 return;
 
-            var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-
             JSFunctionExpression function = GetFunctionBodyForMethod(
                 isExternal, methodInfo
             );
@@ -2428,10 +2331,8 @@ namespace JSIL {
             astEmitter.ReferenceContext.EnclosingMethod = null;
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
-            if (methodIsProxied) {
-                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
-                output.NewLine();
-            }
+            if (methodIsProxied)
+                assemblyEmitter.EmitProxyComment(methodInfo.Member.DeclaringType.FullName);
 
             try {
                 // Generating the function as a statement instead of an argument allows SpiderMonkey to apply more optimizations
@@ -2458,248 +2359,12 @@ namespace JSIL {
                         astEmitter.ReferenceContext.Pop();
                     }
 
-                    output.Semicolon();
-                    output.NewLine();
+                    assemblyEmitter.EmitSemicolon();
+                    assemblyEmitter.EmitSpacer();
                 }
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
-        }
-
-        protected void DefineMethod (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
-            JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
-        ) {
-            if (methodInfo == null)
-                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
-
-            bool isExternal, isReplaced, methodIsProxied;
-
-            if (!ShouldTranslateMethodBody(
-                method, methodInfo, stubbed,
-                out isExternal, out isReplaced, out methodIsProxied
-            ))
-                return;
-
-            var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-
-            if (
-                makeSkeleton &&
-                method.IsPrivate &&
-                method.IsCompilerGenerated()
-            )
-                return;
-
-            if (
-                makeSkeleton &&
-                (methodInfo.DeclaringEvent != null) &&
-                Configuration.CodeGenerator.AutoGenerateEventAccessorsInSkeletons.GetValueOrDefault(true)
-            ) {
-                if (method.Name.StartsWith("add_")) {
-                    output.WriteRaw("$.MakeEventAccessors");
-                    output.LPar();
-                    output.NewLine();
-                    output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
-                    output.Comma();
-                    output.Value(methodInfo.DeclaringEvent.Name);
-                    output.Comma();
-                    output.NewLine();
-                    output.TypeReference(methodInfo.DeclaringEvent.ReturnType, astEmitter.ReferenceContext);
-                    output.NewLine();
-                    output.RPar();
-                    output.Semicolon();
-                    output.NewLine();
-                }
-
-                return;
-            }
-
-            JSFunctionExpression function = GetFunctionBodyForMethod(
-                isExternal, methodInfo
-            );
-
-            astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
-            astEmitter.ReferenceContext.EnclosingMethod = null;
-
-            output.NewLine();
-
-            astEmitter.ReferenceContext.Push();
-            astEmitter.ReferenceContext.DefiningMethod = methodRef;
-
-            try {
-                dollar.WriteTo(output);
-                output.Dot();
-                if (methodInfo.IsPInvoke)
-                    // FIXME: Write out dll name from DllImport
-                    // FIXME: Write out alternate method name if provided
-                    output.Identifier("PInvokeMethod", EscapingMode.None);
-                else if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
-                    output.Identifier("ExternalMethod", EscapingMode.None);
-                else
-                    output.Identifier("Method", EscapingMode.None);
-                output.LPar();
-
-                // FIXME: Include IsVirtual?
-                output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
-
-                output.Comma();
-                output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
-
-                output.Comma();
-                output.NewLine();
-
-                output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
-
-                if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
-                    output.Comma();
-                    output.NewLine();
-                    TranslatePInvokeInfo(
-                        methodRef, method, astEmitter, assemblyEmitter
-                    );
-                } else if (!isExternal) {
-                    output.Comma();
-                    output.NewLine();
-
-                    if (function != null) {
-                        output.WriteRaw(Util.EscapeIdentifier(function.DisplayName));
-                    } else {
-                        output.Identifier("JSIL.UntranslatableFunction", EscapingMode.None);
-                        output.LPar();
-                        output.Value(method.FullName);
-                        output.RPar();
-                    }
-                } else if (makeSkeleton) {
-                    output.Comma();
-                    output.NewLine();
-
-                    output.OpenFunction(
-                        methodInfo.Name,
-                        (o) => output.WriteParameterList(
-                            (from gpn in methodInfo.GenericParameterNames
-                             select
-                                 new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
-                            .Concat(from p in methodInfo.Parameters
-                                    select
-                                        new JSParameter(p.Name, p.ParameterType, methodRef))
-                        )
-                    );
-
-                    output.WriteRaw("throw new Error('Not implemented');");
-                    output.NewLine();
-
-                    output.CloseBrace(false);
-                }
-
-                output.NewLine();
-                output.RPar();
-
-                astEmitter.ReferenceContext.AttributesMethod = methodRef;
-
-                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, assemblyEmitter);
-
-                if (!makeSkeleton)
-                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
-
-                if (!makeSkeleton)
-                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
-
-                output.Semicolon();
-            } finally {
-                astEmitter.ReferenceContext.Pop();
-            }
-        }
-
-        protected void TranslateProperty (
-            DecompilerContext context, 
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
-            PropertyDefinition property, JSRawOutputIdentifier dollar
-        ) {
-            if (ShouldSkipMember(property))
-            {
-                return;
-            }
-
-            var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
-            if ((propertyInfo == null) || propertyInfo.IsIgnored)
-                return;
-
-            var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
-
-            output.NewLine();
-
-            dollar.WriteTo(output);
-            output.Dot();
-
-            if (propertyInfo.IsExternal)
-                output.Identifier("ExternalProperty", EscapingMode.None);
-            else if (property.DeclaringType.HasGenericParameters && isStatic)
-                output.Identifier("GenericProperty", EscapingMode.None);
-            else
-                output.Identifier("Property", EscapingMode.None);
-
-            output.LPar();
-
-            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic, propertyInfo.IsVirtual);
-
-            output.Comma();
-
-            output.Value(Util.EscapeIdentifier(propertyInfo.Name, EscapingMode.String));
-
-            output.Comma();
-            output.TypeReference(property.PropertyType, astEmitter.ReferenceContext);
-
-            output.RPar();
-
-            TranslateCustomAttributes(context, property.DeclaringType, property, astEmitter, assemblyEmitter);
-
-            output.Semicolon();
-        }
-
-        protected void TranslateEvent (
-            DecompilerContext context,
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
-            EventDefinition @event, JSRawOutputIdentifier dollar
-        ) {
-            if (ShouldSkipMember(@event))
-            {
-                return;
-            }
-
-            var eventInfo = _TypeInfoProvider.GetMemberInformation<Internal.EventInfo>(@event);
-            if ((eventInfo == null) || eventInfo.IsIgnored)
-                return;
-
-            var isStatic = (@event.AddMethod ?? @event.RemoveMethod).IsStatic;
-
-            output.NewLine();
-
-            dollar.WriteTo(output);
-            output.Dot();
-
-            if (eventInfo.IsExternal)
-                output.Identifier("ExternalEvent", EscapingMode.None);
-            else if (@event.DeclaringType.HasGenericParameters && isStatic)
-                output.Identifier("GenericEvent", EscapingMode.None);
-            else
-                output.Identifier("Event", EscapingMode.None);
-
-            output.LPar();
-
-            output.MemberDescriptor(eventInfo.IsPublic, eventInfo.IsStatic, eventInfo.IsVirtual);
-
-            output.Comma();
-
-            output.Value(Util.EscapeIdentifier(eventInfo.Name, EscapingMode.String));
-
-            output.Comma();
-            output.TypeReference(@event.EventType, astEmitter.ReferenceContext);
-
-            output.RPar();
-
-            TranslateCustomAttributes(context, @event.DeclaringType, @event, astEmitter, assemblyEmitter);
-
-            output.Semicolon();
         }
 
         public void Dispose () {

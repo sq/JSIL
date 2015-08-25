@@ -1,9 +1,0 @@
-{
-  "OutputDirectory": "%configdirectory%",
-  "GenerateSkeletonsForStubbedAssemblies": true,
-  "Assemblies": {
-    "Proxies": [
-      "%jsildirectory%/JSIL.Proxies.XNA4.dll"
-    ] 
-  }
-}

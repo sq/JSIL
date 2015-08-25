@@ -37,7 +37,7 @@ namespace JSIL {
             }
         }
 
-        public void EmitHeader (bool stubbed, bool skeletons) {
+        public void EmitHeader (bool stubbed) {
             Formatter.Comment(AssemblyTranslator.GetHeaderText());
             Formatter.NewLine();
 
@@ -45,11 +45,7 @@ namespace JSIL {
             Formatter.NewLine();
 
             if (stubbed) {
-                if (skeletons) {
-                    Formatter.Comment("Generating type skeletons");
-                } else {
-                    Formatter.Comment("Generating type stubs only");
-                }
+                Formatter.Comment("Generating type stubs only");
                 Formatter.NewLine();
             }
 
@@ -209,13 +205,13 @@ namespace JSIL {
 
             Formatter.RPar();
 
-            TranslateCustomAttributes(context, iface, iface, astEmitter);
+            EmitCustomAttributes(context, iface, iface, astEmitter);
 
             Formatter.Semicolon();
             Formatter.NewLine();
         }
 
-        private void TranslateCustomAttributes (
+        public void EmitCustomAttributes (
             DecompilerContext context, 
             TypeReference declaringType,
             ICustomAttributeProvider member, 
@@ -273,7 +269,7 @@ namespace JSIL {
             }
         }
 
-        private void TranslateParameterAttributes (
+        private void EmitParameterAttributes (
             DecompilerContext context,
             TypeReference declaringType,
             MethodDefinition method,
@@ -300,7 +296,7 @@ namespace JSIL {
 
                 Formatter.Identifier("_");
 
-                TranslateCustomAttributes(context, declaringType, parameter, astEmitter, false);
+                EmitCustomAttributes(context, declaringType, parameter, astEmitter, false);
 
                 Formatter.NewLine();
 
@@ -327,39 +323,6 @@ namespace JSIL {
                 out isExternal, out isReplaced, out methodIsProxied
             ))
                 return;
-
-            var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-
-            if (
-                makeSkeleton &&
-                method.IsPrivate &&
-                method.IsCompilerGenerated()
-            )
-                return;
-
-            if (
-                makeSkeleton &&
-                (methodInfo.DeclaringEvent != null) &&
-                Configuration.CodeGenerator.AutoGenerateEventAccessorsInSkeletons.GetValueOrDefault(true)
-            ) {
-                if (method.Name.StartsWith("add_")) {
-                    Formatter.WriteRaw("$.MakeEventAccessors");
-                    Formatter.LPar();
-                    Formatter.NewLine();
-                    Formatter.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
-                    Formatter.Comma();
-                    Formatter.Value(methodInfo.DeclaringEvent.Name);
-                    Formatter.Comma();
-                    Formatter.NewLine();
-                    Formatter.TypeReference(methodInfo.DeclaringEvent.ReturnType, astEmitter.ReferenceContext);
-                    Formatter.NewLine();
-                    Formatter.RPar();
-                    Formatter.Semicolon();
-                    Formatter.NewLine();
-                }
-
-                return;
-            }
 
             JSFunctionExpression function = Translator.GetFunctionBodyForMethod(
                 isExternal, methodInfo
@@ -415,26 +378,6 @@ namespace JSIL {
                         Formatter.Value(method.FullName);
                         Formatter.RPar();
                     }
-                } else if (makeSkeleton) {
-                    Formatter.Comma();
-                    Formatter.NewLine();
-
-                    Formatter.OpenFunction(
-                        methodInfo.Name,
-                        (o) => Formatter.WriteParameterList(
-                            (from gpn in methodInfo.GenericParameterNames
-                             select
-                                 new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
-                            .Concat(from p in methodInfo.Parameters
-                                    select
-                                        new JSParameter(p.Name, p.ParameterType, methodRef))
-                        )
-                    );
-
-                    Formatter.WriteRaw("throw new Error('Not implemented');");
-                    Formatter.NewLine();
-
-                    Formatter.CloseBrace(false);
                 }
 
                 Formatter.NewLine();
@@ -444,11 +387,9 @@ namespace JSIL {
 
                 EmitOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter);
 
-                if (!makeSkeleton)
-                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter);
+                EmitCustomAttributes(context, method.DeclaringType, method, astEmitter);
 
-                if (!makeSkeleton)
-                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter);
+                EmitParameterAttributes(context, method.DeclaringType, method, astEmitter);
 
                 Formatter.Semicolon();
             } finally {
@@ -600,7 +541,7 @@ namespace JSIL {
             Formatter.CloseBrace(false);
         }
 
-        protected void EmitEnum (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition enm, IAstEmitter astEmitter) {
+        protected void EmitEnum (DecompilerContext context, TypeDefinition enm, IAstEmitter astEmitter) {
             var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
 
             if (typeInformation == null)
@@ -657,7 +598,7 @@ namespace JSIL {
             Formatter.NewLine();
         }
 
-        protected void EmitDelegate (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
+        protected void EmitDelegate (DecompilerContext context, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
             Formatter.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             Formatter.LPar();
 
@@ -708,7 +649,7 @@ namespace JSIL {
             Formatter.NewLine();
         }
 
-        public void DeclareTypeAlias (TypeDefinition typedef) {
+        public void EmitTypeAlias (TypeDefinition typedef) {
             Formatter.WriteRaw("JSIL.MakeTypeAlias");
             Formatter.LPar();
 
@@ -720,6 +661,199 @@ namespace JSIL {
             Formatter.RPar();
             Formatter.Semicolon();
             Formatter.NewLine();
+        }
+
+        public bool EmitTypeDeclarationHeader (DecompilerContext context, IAstEmitter astEmitter, TypeDefinition typedef, TypeInfo typeInfo) {
+            Formatter.DeclareNamespace(typedef.Namespace);
+
+            if (typeInfo.IsExternal) {
+                Formatter.Identifier("JSIL.MakeExternalType", EscapingMode.None);
+                Formatter.LPar();
+
+                Formatter.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
+                Formatter.Comma();
+                Formatter.Value(typedef.IsPublic);
+
+                Formatter.RPar();
+                Formatter.Semicolon();
+                Formatter.NewLine();
+                return false;
+            } else if (typedef.IsInterface) {
+                Formatter.Comment("interface {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                Formatter.NewLine();
+                Formatter.NewLine();
+
+                EmitInterfaceDefinition(context, astEmitter, typedef);
+                return false;
+            } else if (typedef.IsEnum) {
+                Formatter.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                Formatter.NewLine();
+                Formatter.NewLine();
+
+                EmitEnum(context, typedef, astEmitter);
+                return false;
+            } else if (typeInfo.IsDelegate) {
+                Formatter.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
+                Formatter.NewLine();
+                Formatter.NewLine();
+
+                EmitDelegate(context, typedef, typeInfo, astEmitter);
+                return false;
+            }
+
+            return true;
+        }
+
+        protected void EmitPrimitiveDefinition (
+            DecompilerContext context, IAssemblyEmitter assemblyEmitter,
+            TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
+        ) {
+            bool isIntegral = false;
+            bool isNumeric = false;
+
+            switch (typedef.FullName) {
+                case "System.Boolean":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Char":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Byte":
+                case "System.SByte":
+                case "System.UInt16":
+                case "System.Int16":
+                case "System.UInt32":
+                case "System.Int32":
+                case "System.UInt64":
+                case "System.Int64":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Single":
+                case "System.Double":
+                case "System.Decimal":
+                    isIntegral = false;
+                    isNumeric = true;
+                    break;
+            }
+
+            var setValue = (Action<string, bool>)((name, value) => {
+                dollar.WriteTo(Formatter);
+                Formatter.Dot();
+                Formatter.Identifier("SetValue", EscapingMode.None);
+                Formatter.LPar();
+                Formatter.Value(name);
+                Formatter.Comma();
+                Formatter.Value(value);
+                Formatter.RPar();
+                Formatter.Semicolon(true);
+            });
+
+            setValue("__IsIntegral__", isIntegral);
+            setValue("__IsNumeric__", isNumeric);
+        }
+
+        // HACK
+        public void EmitSpacer () {
+            Formatter.NewLine();
+        }
+
+        // HACK
+        public void EmitSemicolon () {
+            Formatter.Semicolon(false);
+        }
+
+        public void EmitProxyComment (string name) {
+            Formatter.Comment("Proxied method implementation from {0}", name);
+            Formatter.NewLine();
+        }
+
+        protected void EmitProperty (
+            DecompilerContext context, IAstEmitter astEmitter,
+            PropertyDefinition property, JSRawOutputIdentifier dollar
+        ) {
+            if (Translator.ShouldSkipMember(property))
+                return;
+
+            var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
+            if ((propertyInfo == null) || propertyInfo.IsIgnored)
+                return;
+
+            var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
+
+            Formatter.NewLine();
+
+            dollar.WriteTo(Formatter);
+            Formatter.Dot();
+
+            if (propertyInfo.IsExternal)
+                Formatter.Identifier("ExternalProperty", EscapingMode.None);
+            else if (property.DeclaringType.HasGenericParameters && isStatic)
+                Formatter.Identifier("GenericProperty", EscapingMode.None);
+            else
+                Formatter.Identifier("Property", EscapingMode.None);
+
+            Formatter.LPar();
+
+            Formatter.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic, propertyInfo.IsVirtual);
+
+            Formatter.Comma();
+
+            Formatter.Value(Util.EscapeIdentifier(propertyInfo.Name, EscapingMode.String));
+
+            Formatter.Comma();
+            Formatter.TypeReference(property.PropertyType, astEmitter.ReferenceContext);
+
+            Formatter.RPar();
+
+            EmitCustomAttributes(context, property.DeclaringType, property, astEmitter);
+
+            Formatter.Semicolon();
+        }
+
+        protected void EmitEvent (
+            DecompilerContext context, IAstEmitter astEmitter, 
+            EventDefinition @event, JSRawOutputIdentifier dollar
+        ) {
+            if (Translator.ShouldSkipMember(@event))
+                return;
+
+            var eventInfo = _TypeInfoProvider.GetMemberInformation<Internal.EventInfo>(@event);
+            if ((eventInfo == null) || eventInfo.IsIgnored)
+                return;
+
+            var isStatic = (@event.AddMethod ?? @event.RemoveMethod).IsStatic;
+
+            Formatter.NewLine();
+
+            dollar.WriteTo(Formatter);
+            Formatter.Dot();
+
+            if (eventInfo.IsExternal)
+                Formatter.Identifier("ExternalEvent", EscapingMode.None);
+            else if (@event.DeclaringType.HasGenericParameters && isStatic)
+                Formatter.Identifier("GenericEvent", EscapingMode.None);
+            else
+                Formatter.Identifier("Event", EscapingMode.None);
+
+            Formatter.LPar();
+
+            Formatter.MemberDescriptor(eventInfo.IsPublic, eventInfo.IsStatic, eventInfo.IsVirtual);
+
+            Formatter.Comma();
+
+            Formatter.Value(Util.EscapeIdentifier(eventInfo.Name, EscapingMode.String));
+
+            Formatter.Comma();
+            Formatter.TypeReference(@event.EventType, astEmitter.ReferenceContext);
+
+            Formatter.RPar();
+
+            EmitCustomAttributes(context, @event.DeclaringType, @event, astEmitter);
+
+            Formatter.Semicolon();
         }
     }
 }
