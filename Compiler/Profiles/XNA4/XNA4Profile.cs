@@ -27,7 +27,7 @@ namespace JSIL.Compiler.Profiles {
             result.FrameworkVersion = 4.0;
             result.Assemblies.Proxies.Add("%jsildirectory%/JSIL.Proxies.XNA4.dll");
 
-            return result;
+            return (Configuration)result;
         }
 
         public override TranslationResult Translate (

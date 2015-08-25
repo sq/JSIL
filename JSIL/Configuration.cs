@@ -112,6 +112,12 @@ namespace JSIL.Translator {
         public readonly AssemblyConfiguration Assemblies = new AssemblyConfiguration();
         public readonly CodeGeneratorConfiguration CodeGenerator = new CodeGeneratorConfiguration();
 
+        public virtual Configuration Clone () {
+            var result = new Configuration();
+            MergeInto(result);
+            return result;
+        }
+
         public virtual void MergeInto (Configuration result) {
             if (ApplyDefaults.HasValue)
                 result.ApplyDefaults = ApplyDefaults;

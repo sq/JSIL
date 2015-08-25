@@ -75,12 +75,15 @@ namespace JSIL {
         public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
+        public readonly System.Collections.ObjectModel.ReadOnlyCollection<IAnalyzer> Analyzers;
+
         public readonly List<Exception> Failures = new List<Exception>();
 
         public event AssemblyLoadedHandler AssemblyLoaded;
         public event AssemblyLoadedHandler AssemblyNotLoaded;
         public event AssemblyLoadedHandler ProxyAssemblyLoaded;
 
+        public event ProgressHandler RunningAnalyzers;
         public event ProgressHandler Decompiling;
         public event ProgressHandler RunningTransforms;
         public event ProgressHandler Writing;
@@ -95,10 +98,6 @@ namespace JSIL {
 
         public event Action<TypeIdentifier> ProxyNotMatched;
         public event Action<QualifiedMemberIdentifier> ProxyMemberNotMatched;
-
-        public event Action<AssemblyDefinition[]> AssembliesLoaded;
-        public event Action AnalyzeStarted;
-        public event Func<MemberReference, bool> MemberCanBeSkipped;
 
         public readonly TypeInfoProvider _TypeInfoProvider;
         public readonly IEmitterFactory EmitterFactory;
@@ -130,21 +129,28 @@ namespace JSIL {
             AssemblyManifest manifest = null,
             AssemblyDataResolver assemblyDataResolver = null,
             AssemblyLoadedHandler onProxyAssemblyLoaded = null,
-            IEmitterFactory emitterFactory = null
+            IEmitterFactory emitterFactory = null,
+            IEnumerable<IAnalyzer> analyzers = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
             Warning = (s) =>
                 Console.Error.WriteLine("// {0}", s);
 
-            Configuration = configuration;
-            bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
-
             Manifest = manifest ?? new AssemblyManifest();
             EmitterFactory = emitterFactory ?? new JavascriptEmitterFactory();
+
+            Configuration = EmitterFactory.FilterConfiguration(configuration);
+            bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
             OwnsAssemblyDataResolver = (assemblyDataResolver == null);
             AssemblyDataResolver = assemblyDataResolver ?? new AssemblyDataResolver(configuration);
             AssemblyDataResolver.AssemblyResolver.AddSearchDirectory(Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())));
+
+            var analyzerList = new List<IAnalyzer>();
+            if (analyzers != null)
+                analyzerList.AddRange(analyzers);
+
+            analyzerList.AddRange(EmitterFactory.GetAnalyzers());
 
             if (typeInfoProvider != null) {
                 _TypeInfoProvider = typeInfoProvider;
@@ -171,6 +177,7 @@ namespace JSIL {
             }
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
+            Analyzers = analyzerList.AsReadOnly();
         }
 
         public static Assembly GetDefaultProxyAssembly (double frameworkVersion) {
@@ -464,17 +471,20 @@ namespace JSIL {
                 .SelectMany(LoadAssembly).Distinct(new FullNameAssemblyComparer()).ToArray();
             var parallelOptions = GetParallelOptions();
 
-            if (AssembliesLoaded != null)
-                AssembliesLoaded(assemblies);
-
             if (scanForProxies)
                 _TypeInfoProvider.AddProxyAssemblies(OnProxiesFoundHandler, assemblies);
             
-            if (AnalyzeStarted != null) {
-                AnalyzeStarted();
-            }
-
             var pr = new ProgressReporter();
+            if (RunningAnalyzers != null)
+                RunningAnalyzers(pr);
+
+            foreach (var analyzer in Analyzers)
+                analyzer.Analyze(this, assemblies, _TypeInfoProvider);
+
+            TriggerAutomaticGC();
+            pr.OnFinished();
+
+            pr = new ProgressReporter();
             if (Decompiling != null)
                 Decompiling(pr);
 
@@ -490,7 +500,6 @@ namespace JSIL {
             );
 
             TriggerAutomaticGC();
-
             pr.OnFinished();
 
             pr = new ProgressReporter();
@@ -968,8 +977,9 @@ namespace JSIL {
             if (member is MethodReference && member.Name == ".cctor")
                 return false;
 
-            if (MemberCanBeSkipped != null)
-                return MemberCanBeSkipped(member);
+            foreach (var analyzer in Analyzers)
+                if (analyzer.ShouldSkipMember(member))
+                    return true;
 
             return false;
         }
@@ -2103,5 +2113,12 @@ namespace JSIL {
             );
         }
 
+        public IEnumerable<IAnalyzer> GetAnalyzers () {
+            yield break;
+        }
+
+        public Configuration FilterConfiguration (Configuration configuration) {
+            return configuration;
+        }
     }
 }

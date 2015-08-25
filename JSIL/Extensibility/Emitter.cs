@@ -18,6 +18,9 @@ namespace JSIL.Compiler.Extensibility {
             AssemblyTranslator assemblyTranslator,
             JavascriptFormatter formatter
         );
+
+        IEnumerable<IAnalyzer> GetAnalyzers ();
+        Configuration FilterConfiguration (Configuration configuration);
     }
 
     public interface IAssemblyEmitter {

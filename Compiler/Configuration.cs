@@ -53,7 +53,7 @@ namespace JSIL.Compiler {
 
             var cc = result as JSIL.Compiler.Configuration;
             if (cc == null)
-                throw new ArgumentException("Result must be a Compiler.Configuration", "result");
+                throw new ArgumentException("Result must be a Compiler.Configuration but was " + result.GetType(), "result");
 
             if (AutoLoadConfigFiles.HasValue)
                 cc.AutoLoadConfigFiles = AutoLoadConfigFiles;
@@ -86,7 +86,7 @@ namespace JSIL.Compiler {
             cc.ContributingPaths = cc.ContributingPaths.Concat(ContributingPaths).ToArray();
         }
 
-        public Configuration Clone () {
+        public override Translator.Configuration Clone () {
             var result = new Configuration();
             MergeInto(result);
             return result;

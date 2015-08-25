@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
@@ -13,13 +14,13 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
         private Stopwatch stopwatchElapsed;
 
-        public DeadCodeAnalyzer() {
+        public DeadCodeAnalyzer () {
             assemblyDefinitions = new List<AssemblyDefinition>();
         }
 
         public string SettingsKey { get { return "DeadCodeAnalyzer"; } }
 
-        public void SetConfiguration(IDictionary<string, object> analyzerSettings) {
+        public void SetConfiguration (IDictionary<string, object> analyzerSettings) {
             Configuration = new Configuration(analyzerSettings ?? new Dictionary<string, object>());
 
             if (Configuration.DeadCodeElimination) {
@@ -30,16 +31,12 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             }
         }
 
-        public void AddAssemblies(AssemblyDefinition[] assemblies) {
-             if (!Configuration.DeadCodeElimination)
-                return;
-
-            assemblyDefinitions.AddRange(assemblies);
-        }
-
-        public void Analyze(TypeInfoProvider typeInfoProvider) {
+        public void Analyze (AssemblyTranslator translator, AssemblyDefinition[] assemblies, TypeInfoProvider typeInfoProvider) {
             if (!Configuration.DeadCodeElimination)
                 return;
+
+            assemblyDefinitions.Clear();
+            assemblyDefinitions.AddRange(assemblies);
 
             deadCodeInfo.TypeInfoProvider = typeInfoProvider;
 
@@ -65,11 +62,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
         }
 
-        public bool MemberCanBeSkipped(MemberReference member) {
+        public bool ShouldSkipMember (MemberReference member) {
              if (!Configuration.DeadCodeElimination)
                 return false;
 
             return !deadCodeInfo.IsUsed(member);
+        }
+
+        public void InitializeTransformPipeline (FunctionTransformPipeline transformPipeline) {
         }
     }
 }

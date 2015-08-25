@@ -26,12 +26,8 @@
                 Path.Combine(@"..\Tests.DCE", fileName),
                 expectedText,
                 makeConfiguration: () => defaultConfiguration,
-                initializeTranslator: (translator) =>
-                {
-                    translator.AssembliesLoaded += dce.AddAssemblies;
-                    translator.AnalyzeStarted += () => dce.Analyze(translator._TypeInfoProvider);
-                    translator.MemberCanBeSkipped += dce.MemberCanBeSkipped;
-                });
+                analyzers: new[] { dce }
+            );
 
             return generatedJs;
         }

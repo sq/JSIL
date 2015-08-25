@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Translator;
 using Microsoft.Win32;
@@ -298,14 +299,26 @@ namespace JSIL.Tests {
             return result;
         }
 
-        protected string GetJavascript (string fileName, string expectedText = null, Func<Configuration> makeConfiguration = null, bool dumpJsOnFailure = true, Action<AssemblyTranslator> initializeTranslator = null) {
+        protected string GetJavascript (
+            string fileName, string expectedText = null, 
+            Func<Configuration> makeConfiguration = null, 
+            bool dumpJsOnFailure = true, 
+            Action<AssemblyTranslator> initializeTranslator = null,
+            IEnumerable<IAnalyzer> analyzers = null
+        ) {
             long elapsed, temp;
             Func<string> generateJs = null;
             string output;
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generateJs, out temp, out elapsed, makeConfiguration ?? MakeConfiguration, initializeTranslator: initializeTranslator);
+                    output = test.RunJavascript(
+                        new string[0], out generateJs, 
+                        out temp, out elapsed, 
+                        makeConfiguration ?? MakeConfiguration, 
+                        initializeTranslator: initializeTranslator,
+                        analyzers: analyzers
+                    );
                 } catch {
                     if (dumpJsOnFailure) {
                         // Failures in very large programs can totally choke the test runner

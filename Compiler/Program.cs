@@ -72,7 +72,7 @@ namespace JSIL.Compiler {
             foreach (var m in toMerge)
                 m.MergeInto(result);
 
-            return result;
+            return (Configuration)result;
         }
 
         /// <summary>
@@ -612,7 +612,8 @@ namespace JSIL.Compiler {
 
         static AssemblyTranslator CreateTranslator (
             Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache,
-            Dictionary<string, IEmitterFactory> emitterFactories
+            Dictionary<string, IEmitterFactory> emitterFactories,
+            Dictionary<string, IAnalyzer> analyzers
         ) {
             TypeInfoProvider typeInfoProvider = null;
 
@@ -637,7 +638,8 @@ namespace JSIL.Compiler {
                 configuration, typeInfoProvider, manifest, new AssemblyDataResolver(configuration, assemblyCache), 
                 onProxyAssemblyLoaded: (name, classification) => 
                     Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name)),
-                emitterFactory: emitterFactory
+                emitterFactory: emitterFactory,
+                analyzers: analyzers.Values
             );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
@@ -777,31 +779,12 @@ namespace JSIL.Compiler {
 
                     emitterFactories["JavascriptEmitterFactory"] = new JavascriptEmitterFactory();
 
-                    using (var translator = CreateTranslator(localConfig, manifest, assemblyCache, emitterFactories)) {
+                    using (var translator = CreateTranslator(
+                        localConfig, manifest, assemblyCache, emitterFactories, analyzers
+                    )) {
                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
                         translator.IgnoredMethod += (methodName, variableNames) =>
                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
-
-                        translator.AssembliesLoaded += definitions => {
-                                foreach (var analyzer in analyzers.Values) {
-                                    analyzer.AddAssemblies(definitions);
-                                }
-                            };
-
-                        translator.AnalyzeStarted += () => {
-                                foreach (var analyzer in analyzers.Values) {
-                                    analyzer.Analyze(translator._TypeInfoProvider);
-                                }
-                            };
-
-                        translator.MemberCanBeSkipped += member => {
-                                foreach (var analyzer in analyzers.Values) {
-                                    if (analyzer.MemberCanBeSkipped(member))
-                                        return true;
-                                }
-
-                                return false;
-                            }; 
 
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)
