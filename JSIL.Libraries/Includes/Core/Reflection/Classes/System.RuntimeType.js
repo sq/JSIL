@@ -1,3 +1,3 @@
-﻿JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
+﻿JSIL.MakeClass("System.Reflection.TypeInfo", "System.RuntimeType", false, [], function ($) {
   $jsilcore.RuntimeTypeInitialized = true;
 });

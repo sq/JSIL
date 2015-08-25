@@ -105,7 +105,8 @@ namespace JSIL {
         protected bool OwnsTypeInfoProvider;
 
         protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
-            "System.Object", "System.ValueType", "System.Type", "System.RuntimeType",
+            "System.Object", "System.ValueType",
+            "System.Type", "System.Reflection.TypeInfo", "System.RuntimeType",
             "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
             "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
             "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo", "System.Reflection.EventInfo",

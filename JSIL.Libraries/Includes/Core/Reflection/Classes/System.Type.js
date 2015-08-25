@@ -464,13 +464,6 @@
       }
     );
 
-    $.Method({ Public: true, Static: false }, "GetType",
-      new JSIL.MethodSignature($.Type, []),
-      function () {
-        return $jsilcore.System.Type.__Type__;
-      }
-    );
-
     $.Method({ Public: true, Static: false }, "get_IsGenericParameter",
       new JSIL.MethodSignature($.Type, []),
       JSIL.TypeObjectPrototype.get_IsGenericParameter

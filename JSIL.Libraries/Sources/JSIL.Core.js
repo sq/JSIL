@@ -9577,7 +9577,7 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
   var memberType = memberInfo.GetType().get_FullName();
 
   if (inherit) {
-    if (memberType !== "System.Type")
+    if (memberType !== "System.RuntimeType")
       throw new System.NotImplementedException("Inherited attributes only supported for types");
 
     if (!result)
