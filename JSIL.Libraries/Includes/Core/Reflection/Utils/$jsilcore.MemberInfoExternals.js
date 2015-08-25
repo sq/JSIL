@@ -49,6 +49,13 @@ $jsilcore.MemberInfoExternals = function ($) {
     }
   );
 
+  $.Method({ Static: false, Public: true }, "IsDefined",
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Type"), $.Boolean], [])),
+    function GetCustomAttributes(attributeType, inherit) {
+      return JSIL.GetMemberAttributes(this, inherit, attributeType).length > 0;
+    }
+  );
+
   $.Method({ Static: false, Public: true }, "GetCustomAttributesData",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IList`1", [$jsilcore.TypeRef("System.Reflection.CustomAttributeData")]), [], [])),
     function GetCustomAttributesData() {
