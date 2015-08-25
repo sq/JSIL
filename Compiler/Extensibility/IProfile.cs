@@ -21,7 +21,7 @@ namespace JSIL.Compiler.Extensibility {
             Configuration configuration, string assemblyPath, TranslationResult result
         );
         void WriteOutputs (
-            VariableSet variables, TranslationResult result, string path, string manifestPrefix
+            VariableSet variables, TranslationResult result, string path, string manifestPrefix, bool quiet
         );
     }
 }

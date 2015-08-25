@@ -29,13 +29,15 @@ namespace JSIL.Compiler.Profiles {
         ) {
         }
 
-        public virtual void WriteOutputs (VariableSet variables, TranslationResult result, string path, string manifestPrefix) {
+        public virtual void WriteOutputs (VariableSet variables, TranslationResult result, string path, string manifestPrefix, bool quiet) {
             AssemblyTranslator.GenerateManifest(result.AssemblyManifest, result.AssemblyPath, result);
 
-            Console.WriteLine(manifestPrefix + "manifest.js");
+            if (!quiet) {
+                Console.WriteLine(manifestPrefix + "manifest.js");
 
-            foreach (var fe in result.OrderedFiles)
-                Console.WriteLine(fe.Filename);
+                foreach (var fe in result.OrderedFiles)
+                    Console.WriteLine(fe.Filename);
+            }
 
             result.WriteToDirectory(path, manifestPrefix);
         }

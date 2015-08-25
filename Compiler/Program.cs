@@ -828,7 +828,7 @@ namespace JSIL.Compiler {
 
                         EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
-                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
+                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".", Quiet);
 
                         totalFailureCount += translator.Failures.Count;
                     }
