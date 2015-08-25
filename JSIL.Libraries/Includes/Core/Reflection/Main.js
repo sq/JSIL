@@ -10,6 +10,8 @@ if (!$jsilcore)
 //? include("Helpers/$jsilcore.$MethodGetParameters.js"); writeln();
 
 //? include("Classes/System.Type.js"); writeln();
+//? include("Classes/System.Reflection.TypeInfo.js"); writeln();
+//? include("Classes/System.Reflection.IntrospectionExtensions.js"); writeln();
 //? include("Classes/System.Reflection.MemberInfo.js"); writeln();
 //? include("Classes/System.Reflection.PropertyInfo.js"); writeln();
 //? include("Classes/System.Reflection.FieldInfo.js"); writeln();

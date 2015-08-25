@@ -121,7 +121,23 @@
     }
   );
 
+  $.Method({ Static: false, Public: true }, "get_DefinedTypes",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IEnumerable", [$jsilcore.TypeRef("System.TypeInfo")]), [], [])),
+    function GetTypes() {
+        var typeInfos = [];
+
+        var types = JSIL.GetTypesFromAssembly(this.__PublicInterface__);
+        for (var i = 0; i < types.length; i++) {
+            var typeInfo = System.Reflection.IntrospectionExtensions.GetTypeInfo(types[i]);
+
+            typeInfos.push(typeInfo);
+        }
+        return typeInfos;
+    }
+  );
+
   $.Property({ Static: false, Public: true }, "CodeBase");
   $.Property({ Static: false, Public: true }, "Location");
   $.Property({ Static: false, Public: true }, "FullName");
+  $.Property({ Static: false, Public: true }, "DefinedTypes");
 });

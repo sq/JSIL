@@ -378,6 +378,13 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
     combineImpl
   );
 
+  $.Method({ Static: true, Public: true }, "Combine",
+    new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.String])], []),
+    function Combine(pathSegments) {
+        return pathSegments.join("\\");
+    }
+  );
+
   $.Method({Static:true , Public:true }, "GetInvalidPathChars", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [], [])), 
     function GetInvalidPathChars () {
