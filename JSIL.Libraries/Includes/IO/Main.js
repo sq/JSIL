@@ -18,7 +18,7 @@ $private = $jsilcore;
     );
 //? }
 
-var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
+//? include("Helpers/$bytestream.js");
 
 //? include("Classes/System.MarshalByRefObject.js"); writeln();
 //? include("Classes/System.IO.Stream.js"); writeln();
@@ -28,6 +28,11 @@ var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
 //? include("Classes/System.IO.TextReader.js"); writeln();
 //? include("Classes/System.IO.StreamReader.js"); writeln();
 //? include("Classes/System.IO.TextWriter.js"); writeln();
+
+var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
+
+//? include("Helpers/$jsilio.ReadCharFromStream.js");
+
 //? include("Classes/System.Environment.js"); writeln();
 //? include("Classes/System.IO.File.js"); writeln();
 //? include("Classes/System.IO.Path.js"); writeln();

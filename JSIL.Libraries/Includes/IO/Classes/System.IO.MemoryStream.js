@@ -1,6 +1,4 @@
-﻿//? include("../Utils/$bytestream.js");
-
-JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
+﻿JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
     var ctorBytesImpl = function (self, bytes, index, count, writable) {
         System.IO.Stream.prototype._ctor.call(self);
 

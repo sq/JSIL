@@ -193,8 +193,8 @@
     <Content Include="Includes\IO\Classes\System.IO.TextWriter.js" />
     <Content Include="Includes\IO\Classes\System.MarshalByRefObject.js" />
     <Content Include="Includes\IO\Main.js" />
-    <Content Include="Includes\IO\Utils\%24bytestream.js" />
-    <Content Include="Includes\IO\Utils\%24jsilio.ReadCharFromStream.js" />
+    <Content Include="Includes\IO\Helpers\%24bytestream.js" />
+    <Content Include="Includes\IO\Helpers\%24jsilio.ReadCharFromStream.js" />
     <Content Include="Includes\Reference\Classes\JSIL.ArrayElementReference.js" />
     <Content Include="Includes\Reference\Classes\JSIL.BoxedVariable.js" />
     <Content Include="Includes\Reference\Classes\JSIL.MemberReference.js" />

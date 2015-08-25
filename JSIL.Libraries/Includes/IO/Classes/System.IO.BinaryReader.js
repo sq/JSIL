@@ -1,6 +1,4 @@
-﻿//? include("../Utils/$jsilio.ReadCharFromStream.js");
-
-JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
+﻿JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     $.Method({ Static: false, Public: true }, ".ctor",
       (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])),
       function _ctor(input) {

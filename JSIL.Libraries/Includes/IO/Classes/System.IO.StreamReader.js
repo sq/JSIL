@@ -1,6 +1,4 @@
-﻿//? include("../Utils/$jsilio.ReadCharFromStream.js");
-
-JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
+﻿JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
     var UTF8 = function () { return $jsilcore.System.Text.Encoding.get_UTF8(); };
     var UTF16LE = function () { return $jsilcore.System.Text.Encoding.get_Unicode(); };
     var UTF16BE = function () { return $jsilcore.System.Text.Encoding.get_BigEndianUnicode(); };

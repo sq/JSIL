@@ -1,5 +1,4 @@
-﻿/*? if (!('$jsilio_ReadCharFromStream' in __out)) { __out.$jsilio_ReadCharFromStream = true; */
-$jsilio.ReadCharFromStream = function ReadCharFromStream(stream, encoding) {
+﻿$jsilio.ReadCharFromStream = function ReadCharFromStream(stream, encoding) {
   encoding.fallbackCharacter = "\uFFFF";
   var oldPosition = stream.Position;
   var firstChar = null, actualLength;
@@ -28,4 +27,3 @@ $jsilio.ReadCharFromStream = function ReadCharFromStream(stream, encoding) {
 
   return null;
 };
-/*? }*/

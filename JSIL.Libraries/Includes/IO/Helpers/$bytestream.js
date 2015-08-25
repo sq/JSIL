@@ -1,5 +1,4 @@
-﻿/*? if (!('$bytestream' in __out)) { __out.$bytestream = true; */
-var $bytestream = function ($) {
+﻿var $bytestream = function ($) {
   $.Method({ Static: false, Public: true }, "Read",
     (new JSIL.MethodSignature($.Int32, [
           $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32,
@@ -139,4 +138,3 @@ var $bytestream = function ($) {
   );
 
 };
-/*? }*/
