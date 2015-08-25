@@ -37,6 +37,7 @@ namespace JSIL.Compiler {
 
         public readonly SolutionBuildConfiguration SolutionBuilder = new SolutionBuildConfiguration();
 
+        public bool? Quiet;
         public bool? AutoLoadConfigFiles;
         public bool? UseLocalProxies;
         public bool? ReuseTypeInfoAcrossAssemblies;
@@ -55,6 +56,8 @@ namespace JSIL.Compiler {
             if (cc == null)
                 throw new ArgumentException("Result must be a Compiler.Configuration but was " + result.GetType(), "result");
 
+            if (Quiet.HasValue)
+                cc.Quiet = Quiet;
             if (AutoLoadConfigFiles.HasValue)
                 cc.AutoLoadConfigFiles = AutoLoadConfigFiles;
             if (UseLocalProxies.HasValue)

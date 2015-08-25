@@ -16,6 +16,8 @@ using Mono.Cecil;
 
 namespace JSIL.Compiler {
     public class Program {
+        private static bool Quiet = false;
+
         static TypeInfoProvider CachedTypeInfoProvider = null;
         static Configuration CachedTypeInfoProviderConfiguration = null;
 
@@ -42,7 +44,7 @@ namespace JSIL.Compiler {
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
                 result.ContributingPaths = new[] { Path.GetFullPath(filename) };
 
-                Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
+                InformationWriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
                 return result;
             } catch (Exception ex) {
@@ -147,7 +149,7 @@ namespace JSIL.Compiler {
                     // If an executable references a DLL, we can be sure the DLL is going to get built anyway.
                     foreach (var anr in kvpInner.AllReferencesRecursive) {
                         if (anr.FullName == kvpOuter.Assembly.FullName) {
-                            Console.Error.WriteLine("// Not translating '{0}' directly because '{1}' references it.", Path.GetFileName(kvpOuter.Filename), Path.GetFileName(kvpInner.Filename));
+                            InformationWriteLine("// Not translating '{0}' directly because '{1}' references it.", Path.GetFileName(kvpOuter.Filename), Path.GetFileName(kvpInner.Filename));
                             skippedAssemblies.Add(kvpOuter.Filename);
                             goto skip;
                         }
@@ -186,6 +188,9 @@ namespace JSIL.Compiler {
                     {"o=|out=", 
                         "Specifies the output directory for generated javascript and manifests.",
                         (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
+                    {"q|quiet",
+                        "Suppresses non-error/non-warning stderr messages.",
+                        (_) => commandLineConfig.Quiet = Quiet = true },
                     {"nac|noautoconfig", 
                         "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
                         (b) => commandLineConfig.AutoLoadConfigFiles = b == null },
@@ -418,7 +423,7 @@ namespace JSIL.Compiler {
                     if (!candidateProfile.IsAppropriateForSolution(buildResult))
                         continue;
 
-                    Console.Error.WriteLine("// Auto-selected the profile '{0}' for this project.", candidateProfile.GetType().Name);
+                    InformationWriteLine("// Auto-selected the profile '{0}' for this project.", candidateProfile.GetType().Name);
                     profile = candidateProfile;
                     break;
                 }
@@ -565,7 +570,8 @@ namespace JSIL.Compiler {
             const int scale = 40;
 
             return (progress) => {
-                Console.Error.Write("// {0} ", description);
+                if (!Quiet)
+                    Console.Error.Write("// {0} ", description);
 
                 var previous = new int[1] { 0 };
 
@@ -575,17 +581,22 @@ namespace JSIL.Compiler {
                     if (delta > 0) {
                         previous[0] = current;
 
-                        for (var i = 0; i < delta; i++)
-                            Console.Error.Write(".");
+                        if (!Quiet) {
+                            for (var i = 0; i < delta; i++)
+                                Console.Error.Write(".");
+                        }
                     }
                 };
 
                 progress.Finished += (s, e) => {
                     var delta = scale - previous[0];
-                    for (var i = 0; i < delta; i++)
-                        Console.Error.Write(".");
 
-                    Console.Error.WriteLine(" done.");
+                    if (!Quiet) {
+                        for (var i = 0; i < delta; i++)
+                            Console.Error.Write(".");
+                    }
+
+                    InformationWriteLine(" done.");
                 };
             };
         }
@@ -617,7 +628,7 @@ namespace JSIL.Compiler {
         ) {
             TypeInfoProvider typeInfoProvider = null;
 
-            Console.Error.WriteLine(
+            InformationWriteLine(
                 "// Using .NET framework {0} in {1} GC mode. Tuned GC {2}.",
                 Environment.Version.ToString(),
                 System.Runtime.GCSettings.IsServerGC ? "server" : "workstation",
@@ -637,7 +648,7 @@ namespace JSIL.Compiler {
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, new AssemblyDataResolver(configuration, assemblyCache), 
                 onProxyAssemblyLoaded: (name, classification) => 
-                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name)),
+                    InformationWriteLine("// Loaded proxies from '{0}'", ShortenPath(name)),
                 emitterFactory: emitterFactory,
                 analyzers: analyzers.Values
             );
@@ -647,7 +658,7 @@ namespace JSIL.Compiler {
             translator.Writing += MakeProgressHandler           ("Writing JS  ");
 
             translator.AssemblyLoaded += (fn, classification) =>
-                Console.Error.WriteLine("// Loaded {0} ({1})", ShortenPath(fn), classification);
+                InformationWriteLine("// Loaded {0} ({1})", ShortenPath(fn), classification);
             translator.CouldNotLoadSymbols += (fn, ex) => {
             };
             translator.CouldNotResolveAssembly += (fn, ex) => 
@@ -713,7 +724,7 @@ namespace JSIL.Compiler {
                     if (config.Assemblies.Ignored.Any(
                         (ignoreRegex) => Regex.IsMatch(filename, ignoreRegex, RegexOptions.IgnoreCase))
                     ) {
-                        Console.Error.WriteLine("// Ignoring build result '{0}' based on configuration.", Path.GetFileName(filename));
+                        InformationWriteLine("// Ignoring build result '{0}' based on configuration.", Path.GetFileName(filename));
                         continue;
                     }
 
@@ -795,7 +806,7 @@ namespace JSIL.Compiler {
                                 if (processedAssemblies.Contains(sa))
                                     continue;
 
-                                Console.Error.WriteLine("// Processing '{0}'", Path.GetFileName(sa));
+                                InformationWriteLine("// Processing '{0}'", Path.GetFileName(sa));
                                 processedAssemblies.Add(sa);
 
                                 buildGroup.Profile.ProcessSkippedAssembly(
@@ -807,13 +818,13 @@ namespace JSIL.Compiler {
                         var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
                         CopiedOutputGatherer.EnsureDirectoryExists(outputDir);
 
-                        Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
+                        InformationWriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 
                         // Ensures that the log file contains the name of the profile that was actually used.
                         localConfig.Profile = localProfile.GetType().Name;
 
                         if (ignoredMethods.Count > 0)
-                            Console.Error.WriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
+                            InformationWriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
 
                         EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
@@ -865,6 +876,13 @@ namespace JSIL.Compiler {
                 Path.Combine(logPath, String.Format("{0}.jsillog", Path.GetFileName(inputFile))),
                 logText.ToString()
             );
+        }
+
+        public static void InformationWriteLine (string text, params object[] values) {
+            if (Quiet)
+                return;
+
+            Console.Error.WriteLine(text, values);
         }
     }
 }
