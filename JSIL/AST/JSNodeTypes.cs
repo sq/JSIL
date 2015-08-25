@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,9 +18,14 @@ using Mono.Cecil;
 
 namespace JSIL.Ast {
     public abstract class JSNode {
+        // Add your assembly to this list if you define custom node types.
+        public static readonly List<Assembly> NodeAssemblies = new List<Assembly>();
+
+        private static bool     AreTypeIdsAssigned = false;
         private static readonly Dictionary<Type, int> TypeIds = new Dictionary<Type, int>(new ReferenceComparer<Type>());
-        public static readonly int[][] NodeSelfAndBaseTypeIds;
-        public static readonly Type[] NodeTypes;
+
+        private static int[][] _NodeSelfAndBaseTypeIds;
+        private static Type[] _NodeTypes;
 
         public readonly int TypeId;
         public readonly JSNodeChildren Children;
@@ -28,8 +34,44 @@ namespace JSIL.Ast {
         public readonly JSNodeChildrenRecursive SelfAndChildrenRecursive;
 
         static JSNode () {
+            NodeAssemblies.Add(typeof(JSNode).Assembly);
+        }
+
+        public static int[][] NodeSelfAndBaseTypeIds {
+            get {
+                EnsureTypeIdsAreAssigned();
+                return _NodeSelfAndBaseTypeIds;
+            }
+        }
+
+        public static Type[] NodeTypes {
+            get {
+                EnsureTypeIdsAreAssigned();
+                return _NodeTypes;
+            }
+        }
+
+        private static IEnumerable<Type> TypesToWalk (Assembly assembly) {
+            var myAssembly = typeof(JSNode).Assembly;
+            if (myAssembly == assembly)
+                return assembly.GetTypes();
+            else
+                return assembly.ExportedTypes;
+        }
+
+        public static void EnsureTypeIdsAreAssigned () {
+            if (AreTypeIdsAssigned)
+                return;
+
+            AreTypeIdsAssigned = true;
+
             var tNode = typeof(JSNode);
-            var typesToWalk = (from t in tNode.Assembly.GetTypes() where tNode.IsAssignableFrom(t) select t).ToArray();
+            var typesToWalk = (
+                    from a in NodeAssemblies
+                    from t in TypesToWalk(a)
+                    where tNode.IsAssignableFrom(t)
+                    select t
+                ).ToList();
             var nodeTypesById = new List<Type>();
 
             // Assign a unique ID to all node types in the type hierarchy
@@ -49,14 +91,14 @@ namespace JSIL.Ast {
                 }
             }
 
-            NodeTypes = nodeTypesById.ToArray();
-            NodeSelfAndBaseTypeIds = new int[NodeTypes.Length][];
+            _NodeTypes = nodeTypesById.ToArray();
+            _NodeSelfAndBaseTypeIds = new int[_NodeTypes.Length][];
 
             var ids = new List<int>();
-            for (var i = 0; i < NodeTypes.Length; i++) {
+            for (var i = 0; i < _NodeTypes.Length; i++) {
                 ids.Clear();
 
-                var type = NodeTypes[i];
+                var type = _NodeTypes[i];
                 while (type != null) {
                     ids.Add(GetTypeId(type));
                     if (type == tNode)
@@ -65,7 +107,7 @@ namespace JSIL.Ast {
                     type = type.BaseType;
                 }
 
-                NodeSelfAndBaseTypeIds[i] = ids.ToArray();
+                _NodeSelfAndBaseTypeIds[i] = ids.ToArray();
             }
 
             JSExpression.Initialize();
@@ -73,11 +115,17 @@ namespace JSIL.Ast {
         }
 
         public static int GetTypeId (Type nodeType) {
-            return TypeIds[nodeType];
+            EnsureTypeIdsAreAssigned();
+
+            int result;
+            if (!TypeIds.TryGetValue(nodeType, out result))
+                throw new InvalidOperationException(string.Format("Node type '{0}' was loaded after JSNode initialization", nodeType.FullName));
+
+            return result;
         }
 
         protected JSNode () {
-            TypeId = TypeIds[GetType()];
+            TypeId = GetTypeId(GetType());
 
             var td = JSNodeTraversalData.Get(TypeId);
 

@@ -76,6 +76,7 @@ namespace JSIL {
         public readonly AssemblyManifest Manifest;
 
         public readonly System.Collections.ObjectModel.ReadOnlyCollection<IAnalyzer> Analyzers;
+        internal readonly IFunctionTransformer[] FunctionTransformers;
 
         public readonly List<Exception> Failures = new List<Exception>();
 
@@ -178,6 +179,8 @@ namespace JSIL {
 
             FunctionCache = new FunctionCache(TypeInfoProvider);
             Analyzers = analyzerList.AsReadOnly();
+
+            FunctionTransformers = analyzerList.SelectMany(a => a.FunctionTransformers).ToArray();
         }
 
         public static Assembly GetDefaultProxyAssembly (double frameworkVersion) {
@@ -1482,10 +1485,14 @@ namespace JSIL {
         ) {
             FunctionTransformPipeline pipeline;
 
-            if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline))
+            if (!FunctionCache.ActiveTransformPipelines.TryGetValue(memberIdentifier, out pipeline)) {
                 pipeline = new FunctionTransformPipeline(
                     this, memberIdentifier, function, si
                 );
+
+                foreach (var functionTransformer in FunctionTransformers)
+                    functionTransformer.InitializeTransformPipeline(this, pipeline);
+            }
 
             bool completed = pipeline.RunUntilCompletion();
 
@@ -2054,19 +2061,7 @@ namespace JSIL {
 
                     function.DisplayName = displayName;
 
-                    astEmitter.ReferenceContext.Push();
-                    astEmitter.ReferenceContext.EnclosingMethod = method;
-
-                    try {
-                        astEmitter.Emit(function);
-                    } catch (Exception exc) {
-                        throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
-                    } finally {
-                        astEmitter.ReferenceContext.Pop();
-                    }
-
-                    assemblyEmitter.EmitSemicolon();
-                    assemblyEmitter.EmitSpacer();
+                    assemblyEmitter.EmitFunctionBody(astEmitter, method, function);
                 }
             } finally {
                 astEmitter.ReferenceContext.Pop();

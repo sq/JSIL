@@ -59,6 +59,7 @@ namespace JSIL.Compiler.Extensibility {
         void EndEmitTypeDefinition (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef);
         void EmitInterfaceList (TypeInfo typeInfo, IAstEmitter astEmitter, JSRawOutputIdentifier dollar);
         void EmitCachedValues (IAstEmitter astEmitter, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, BaseMethodCacher baseMethodCacher);
+        void EmitFunctionBody (IAstEmitter astEmitter, MethodDefinition method, JSFunctionExpression function);
     }
 
     public interface IAstEmitter {

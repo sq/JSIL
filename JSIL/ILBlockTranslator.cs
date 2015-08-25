@@ -8,6 +8,7 @@ using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
@@ -44,6 +45,7 @@ namespace JSIL {
         static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>.CreatorFunction GetNodeTranslatorsUncached; 
 
         protected readonly Func<TypeReference, TypeReference> TypeReferenceReplacer;
+        protected readonly IFunctionTransformer[] FunctionTransformers;
 
         static ILBlockTranslator () {
             GetNodeTranslatorsUncached = (code) => {
@@ -123,6 +125,8 @@ namespace JSIL {
             }
 
             AutoCastingState.Push(true);
+
+            FunctionTransformers = Translator.FunctionTransformers;
         }
 
         protected TypeReference FixupReference (TypeReference reference) {
@@ -586,6 +590,17 @@ namespace JSIL {
             JSExpression thisExpression, JSExpression[] arguments,
             TypeReference resultType, bool explicitThis
         ) {
+            foreach (var transformer in FunctionTransformers) {
+                var externalReplacement = transformer.MaybeReplaceMethodCall(
+                    method, methodInfo, 
+                    thisExpression, arguments, 
+                    resultType, explicitThis
+                );
+
+                if (externalReplacement != null)
+                    return externalReplacement;
+            }
+
             var metadata = methodInfo.Metadata;
             if (metadata != null) {
                 var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");

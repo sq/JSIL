@@ -1229,5 +1229,21 @@ namespace JSIL {
             if ((cts.Length > 0) || (css.Length > 0))
                 Formatter.NewLine();
         }
+
+        public void EmitFunctionBody (IAstEmitter astEmitter, MethodDefinition method, JSFunctionExpression function) {
+            astEmitter.ReferenceContext.Push();
+            astEmitter.ReferenceContext.EnclosingMethod = method;
+
+            try {
+                astEmitter.Emit(function);
+            } catch (Exception exc) {
+                throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+
+            EmitSemicolon();
+            EmitSpacer();
+        }
     }
 }

@@ -69,7 +69,10 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             return !deadCodeInfo.IsUsed(member);
         }
 
-        public void InitializeTransformPipeline (AssemblyTranslator translator, FunctionTransformPipeline transformPipeline) {
+        public IEnumerable<IFunctionTransformer> FunctionTransformers {
+            get {
+                yield break;
+            }
         }
     }
 }
