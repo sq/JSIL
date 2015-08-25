@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
+using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 
@@ -1165,19 +1166,68 @@ namespace JSIL {
             Formatter.Semicolon();
         }
 
-        /*
-        public void EmitFieldInitializer (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef, FieldDefinition fd, JSExpression expr) {
-            if (expr != null) {
-                EmitSpacer();
-
-                astEmitter.Emit(expr);
-
-                // FIXME: Is this right?
-                EmitCustomAttributes(context, typedef, fd, astEmitter);
-
-                EmitSemicolon();
+        public void EmitCachedValues (IAstEmitter astEmitter, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, BaseMethodCacher baseMethodCacher) {
+            var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
+            if (cts.Length > 0) {
+                foreach (var ct in cts) {
+                    Formatter.WriteRaw("var $T{0:X2} = function () ", ct.Index);
+                    Formatter.OpenBrace();
+                    Formatter.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
+                    Formatter.Identifier(ct.Type, astEmitter.ReferenceContext, false);
+                    Formatter.WriteRaw(")) ()");
+                    Formatter.Semicolon(true);
+                    Formatter.CloseBrace(false);
+                    Formatter.Semicolon(true);
+                }
             }
+
+            var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
+            if (css.Length > 0) {
+                foreach (var cs in css) {
+                    Formatter.WriteRaw("var $S{0:X2} = function () ", cs.Value);
+                    Formatter.OpenBrace();
+                    Formatter.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
+                    Formatter.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
+                    Formatter.WriteRaw(")) ()");
+                    Formatter.Semicolon(true);
+                    Formatter.CloseBrace(false);
+                    Formatter.Semicolon(true);
+                }
+            }
+
+            var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
+            if (bms.Length > 0) {
+                foreach (var bm in bms) {
+                    Formatter.WriteRaw("var $BM{0:X2} = function () ", bm.Index);
+                    Formatter.OpenBrace();
+                    Formatter.WriteRaw("return ($BM{0:X2} = JSIL.Memoize(", bm.Index);
+                    Formatter.WriteRaw("Function.call.bind(");
+                    Formatter.Identifier(bm.Method.Reference, astEmitter.ReferenceContext, true);
+                    Formatter.WriteRaw("))) ()");
+                    Formatter.Semicolon(true);
+                    Formatter.CloseBrace(false);
+                    Formatter.Semicolon(true);
+                }
+            }
+
+            var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
+            if (cims.Length > 0) {
+                foreach (var cim in cims) {
+                    Formatter.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
+                    Formatter.OpenBrace();
+                    Formatter.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
+                    Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                    Formatter.Dot();
+                    Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                    Formatter.WriteRaw(")) ()");
+                    Formatter.Semicolon(true);
+                    Formatter.CloseBrace(false);
+                    Formatter.Semicolon(true);
+                }
+            }
+
+            if ((cts.Length > 0) || (css.Length > 0))
+                Formatter.NewLine();
         }
-        */
     }
 }

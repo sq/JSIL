@@ -1161,7 +1161,7 @@ namespace JSIL {
                         baseMethodCacher.CacheMethodsForFunction(functionBody);
                 }
 
-                EmitCachedValues(astEmitter, typeCacher, signatureCacher, baseMethodCacher);
+                assemblyEmitter.EmitCachedValues(astEmitter, typeCacher, signatureCacher, baseMethodCacher);
             }
 
             var cachers = new Cachers(typeCacher, signatureCacher, baseMethodCacher);
@@ -1181,74 +1181,6 @@ namespace JSIL {
             }
 
             return cachers;
-        }
-
-        private static void EmitCachedValues (IAstEmitter _astEmitter, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, BaseMethodCacher baseMethodCacher) {
-            // HACK: Fix this??? How though???
-            var astEmitter = (JavascriptAstEmitter)_astEmitter;
-            var output = astEmitter.Output;
-
-            var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
-            if (cts.Length > 0) {
-                foreach (var ct in cts) {
-                    output.WriteRaw("var $T{0:X2} = function () ", ct.Index);
-                    output.OpenBrace();
-                    output.WriteRaw("return ($T{0:X2} = JSIL.Memoize(", ct.Index);
-                    output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
-                    output.WriteRaw(")) ()");
-                    output.Semicolon(true);
-                    output.CloseBrace(false);
-                    output.Semicolon(true);
-                }
-            }
-
-            var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
-            if (css.Length > 0) {
-                foreach (var cs in css) {
-                    output.WriteRaw("var $S{0:X2} = function () ", cs.Value);
-                    output.OpenBrace();
-                    output.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
-                    output.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
-                    output.WriteRaw(")) ()");
-                    output.Semicolon(true);
-                    output.CloseBrace(false);
-                    output.Semicolon(true);
-                }
-            }
-
-            var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
-            if (bms.Length > 0) {
-                foreach (var bm in bms) {
-                    output.WriteRaw("var $BM{0:X2} = function () ", bm.Index);
-                    output.OpenBrace();
-                    output.WriteRaw("return ($BM{0:X2} = JSIL.Memoize(", bm.Index);
-                    output.WriteRaw("Function.call.bind(");
-                    output.Identifier(bm.Method.Reference, astEmitter.ReferenceContext, true);
-                    output.WriteRaw("))) ()");
-                    output.Semicolon(true);
-                    output.CloseBrace(false);
-                    output.Semicolon(true);
-                }
-            }
-
-            var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
-            if (cims.Length > 0) {
-                foreach (var cim in cims) {
-                    output.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
-                    output.OpenBrace();
-                    output.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
-                    output.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
-                    output.Dot();
-                    output.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
-                    output.WriteRaw(")) ()");
-                    output.Semicolon(true);
-                    output.CloseBrace(false);
-                    output.Semicolon(true);
-                }
-            }
-
-            if ((cts.Length > 0) || (css.Length > 0))
-                output.NewLine();
         }
 
         protected void TranslateTypeDefinition (
