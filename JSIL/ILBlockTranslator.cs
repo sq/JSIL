@@ -404,8 +404,10 @@ namespace JSIL {
 
             var leftType = lhs.GetActualType(TypeSystem);
             var rightType = rhs.GetActualType(TypeSystem);
-            var leftIsPointerish = TypeUtil.IsPointer(leftType) || TypeUtil.IsNativeInteger(leftType);
-            var rightIsPointerish = TypeUtil.IsPointer(rightType) || TypeUtil.IsNativeInteger(rightType);
+            var leftIsNativeInt = TypeUtil.IsNativeInteger(leftType);
+            var rightIsNativeInt = TypeUtil.IsNativeInteger(rightType);
+            var leftIsPointerish = TypeUtil.IsPointer(leftType) || leftIsNativeInt;
+            var rightIsPointerish = TypeUtil.IsPointer(rightType) || rightIsNativeInt;
 
             JSExpression result = null;
             if (leftIsPointerish && TypeUtil.IsIntegral(rightType)) {
@@ -463,6 +465,11 @@ namespace JSIL {
                     );
                 } else if (op is JSComparisonOperator) {
                     result = new JSPointerComparisonExpression(op, lhs, rhs, TypeSystem.Boolean);
+                } else if ((op == JSOperator.Add) && (leftIsNativeInt || rightIsNativeInt)) {
+                    if (leftIsNativeInt)
+                        return new JSPointerAddExpression(rhs, lhs, false);
+                    else /* if (rightIsNativeInt) */
+                        return new JSPointerAddExpression(lhs, rhs, false);
                 } else {
                     if (Debugger.IsAttached) {
                         Console.WriteLine("Debugger.Break()");
