@@ -855,9 +855,12 @@ namespace JSIL.Tests {
                         .Where(str => !string.IsNullOrEmpty(str))
                         .ToArray());
 
-                var files =
-                    Enumerable.Repeat(OutputPath, 1)
-                        .Concat(evaluationConfig.AdditionalFilesToLoad ?? Enumerable.Empty<string>());
+                var files = new List<string> { OutputPath };
+
+                if (evaluationConfig != null) {
+                    if (evaluationConfig.AdditionalFilesToLoad != null)
+                        files.AddRange(evaluationConfig.AdditionalFilesToLoad);
+                }
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(files, querySting));
 
