@@ -1684,24 +1684,9 @@ namespace JSIL {
                         fieldInfo.FieldType
                     );
                 } else {
-                    JSExpression[] args;
-                    if (defaultValue != null) {
-                        args = new JSExpression[] {
-                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression, defaultValue
-                        };
-                    } else {
-                        args = new JSExpression[] {
-                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression
-                        };
-                    }
-
-                    var fieldExpression = JSInvocationExpression.InvokeStatic(
-                        JSDotExpression.New(
-                            dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
-                        ), args
+                    return new JSFieldDeclaration(
+                        fieldInfo, descriptor, fieldName, fieldTypeExpression, defaultValue
                     );
-
-                    return fieldExpression;
                 }
             }
         }
@@ -1904,14 +1889,14 @@ namespace JSIL {
             Action<FieldDefinition> doTranslateField =
                 (fd) => {
                     var expr = TranslateField(fd, fieldDefaults, false, dollar, fieldSelfIdentifier);
-                    if (expr != null) {
-                        assemblyEmitter.EmitSpacer();
-
+                    var fde = expr as JSFieldDeclaration;
+                    if (fde != null)
+                        assemblyEmitter.EmitField(context, astEmitter, fd, dollar, fde.DefaultValue);
+                    else {
+                        // FIXME: This probably isn't right
                         astEmitter.Emit(expr);
-
-                        assemblyEmitter.EmitCustomAttributes(context, typedef, fd, astEmitter);
-
                         assemblyEmitter.EmitSemicolon();
+                        assemblyEmitter.EmitSpacer();
                     }
                 };
 

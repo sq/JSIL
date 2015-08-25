@@ -31,7 +31,7 @@ namespace JSIL.Compiler.Extensibility {
             TypeInfoProvider typeInfoProvider, Configuration configuration
         );
         void EmitTypeAlias (TypeDefinition typedef);
-        // Returns false if the caller should abort
+        // Returns false if the caller should skip this type
         bool EmitTypeDeclarationHeader (
             DecompilerContext context, IAstEmitter astEmitter, TypeDefinition typedef, TypeInfo typeInfo
         );
@@ -48,6 +48,7 @@ namespace JSIL.Compiler.Extensibility {
         void EmitProxyComment (string fullName);
         void EmitEvent (DecompilerContext context, IAstEmitter astEmitter, EventDefinition @event, JSRawOutputIdentifier dollar);
         void EmitProperty (DecompilerContext context, IAstEmitter astEmitter, PropertyDefinition property, JSRawOutputIdentifier dollar);
+        void EmitField (DecompilerContext context, IAstEmitter astEmitter, FieldDefinition field, JSRawOutputIdentifier dollar, JSExpression defaultValue);
         void EmitPrimitiveDefinition (DecompilerContext context, TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar);
         void BeginEmitTypeDeclaration (TypeDefinition typedef);
         void BeginEmitTypeDefinition (IAstEmitter astEmitter, TypeDefinition typedef, TypeInfo typeInfo, TypeReference baseClass);

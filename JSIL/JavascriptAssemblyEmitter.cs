@@ -1122,5 +1122,62 @@ namespace JSIL {
             Formatter.RPar();
             Formatter.Semicolon(true);
         }
+
+        public void EmitField (DecompilerContext context, IAstEmitter astEmitter, FieldDefinition field, JSRawOutputIdentifier dollar, JSExpression defaultValue) {
+            var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
+            if ((fieldInfo == null) || fieldInfo.IsIgnored)
+                return;
+
+            Formatter.NewLine();
+
+            dollar.WriteTo(Formatter);
+            Formatter.Dot();
+            Formatter.Identifier("Field", EscapingMode.None);
+            Formatter.LPar();
+
+            Formatter.MemberDescriptor(
+                field.IsPublic, fieldInfo.IsStatic,
+                isReadonly: field.IsInitOnly,
+                offset: field.DeclaringType.IsExplicitLayout 
+                    ? (int?)field.Offset 
+                    : null
+            );
+
+            Formatter.Comma();
+
+            var fieldName = Util.EscapeIdentifier(fieldInfo.Name, EscapingMode.MemberIdentifier);
+
+            Formatter.Value(fieldName);
+
+            Formatter.Comma();
+
+            Formatter.TypeReference(fieldInfo.FieldType, astEmitter.ReferenceContext);
+
+            if (defaultValue != null) {
+                Formatter.Comma();
+                astEmitter.Emit(defaultValue);
+            }
+
+            Formatter.RPar();
+
+            EmitCustomAttributes(context, field.DeclaringType, field, astEmitter);
+
+            Formatter.Semicolon();
+        }
+
+        /*
+        public void EmitFieldInitializer (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef, FieldDefinition fd, JSExpression expr) {
+            if (expr != null) {
+                EmitSpacer();
+
+                astEmitter.Emit(expr);
+
+                // FIXME: Is this right?
+                EmitCustomAttributes(context, typedef, fd, astEmitter);
+
+                EmitSemicolon();
+            }
+        }
+        */
     }
 }

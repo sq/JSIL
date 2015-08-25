@@ -3232,4 +3232,34 @@ namespace JSIL.Ast {
             return "((" + Invocation.ToString() + "))";
         }
     }
+
+    public class JSFieldDeclaration : JSExpression {
+        public readonly FieldInfo Field;
+        public readonly string Name;
+
+        public JSFieldDeclaration (FieldInfo fieldInfo, JSExpression descriptor, string name, JSExpression fieldType, JSExpression defaultValue) 
+            : base (descriptor, fieldType, defaultValue)
+        {
+            Field = fieldInfo;
+            Name = name;
+        }
+
+        public JSExpression Descriptor {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression FieldType {
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSExpression DefaultValue {
+            get {
+                return Values[2];
+            }
+        }
+    }
 }
