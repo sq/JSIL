@@ -20,12 +20,6 @@ namespace JSIL.Tests {
             private set;
         }
 
-        protected virtual bool UseDebugJSShell {
-            get {
-                return false;
-            }
-        }
-
         protected virtual Dictionary<string, string> SetupEvaluatorEnvironment () {
             return null;
         }
@@ -38,17 +32,22 @@ namespace JSIL.Tests {
 
         [TestFixtureSetUp]
         public void FixtureSetUp () {
+            var setupCodePath = 
+
             EvaluatorPool = new EvaluatorPool(
-                UseDebugJSShell 
-                    ? ComparisonTest.DebugJSShellPath 
-                    : ComparisonTest.JSShellPath, 
+                ComparisonTest.JSShellPath, 
                 JSShellOptions,
                 (e) =>
                 {
-                    e.WriteInput(ComparisonTest.EvaluatorSetupCode);
-                    // When we'll find option to read environment variables in SpiderMonkey, delete this.
-                    e.WriteInput(ComparisonTest.EvaluatorPrepareEnvironmentCode(SetupEvaluatorEnvironment()));
-                    e.WriteInput(ComparisonTest.EvaluatorRunCode);
+                    var initCode =
+                        ComparisonTest.EvaluatorSetupCode +
+                        Environment.NewLine +
+                        // When we'll find option to read environment variables in SpiderMonkey, delete this.
+                        ComparisonTest.EvaluatorPrepareEnvironmentCode(SetupEvaluatorEnvironment()) +
+                        Environment.NewLine +
+                        ComparisonTest.EvaluatorRunCode;
+
+                    e.WriteInput(initCode);
                 },
                 SetupEvaluatorEnvironment()
             );

@@ -42,7 +42,6 @@ namespace JSIL.Tests {
         public static readonly string JSILFolder;
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string DebugJSShellPath;
         public static readonly string LoaderJSPath;
         public static readonly string EvaluatorSetupCode;
         public static readonly string EvaluatorRunCode;
@@ -77,10 +76,8 @@ namespace JSIL.Tests {
 
             if (IsLinux) {
                 JSShellPath = "js";
-                DebugJSShellPath = "js";
             } else {
                 JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "js.exe"));
-                DebugJSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, "..", "Upstream", "SpiderMonkey", "debug", "js.exe"));
             }
 
             var librarySourceFolder = Path.GetFullPath(Path.Combine(TestSourceFolder, "..", "Libraries"));
