@@ -1,5 +1,7 @@
 ﻿using System;
 
+#pragma warning disable 0169
+
 public struct IntFloatPair {
     public int Int;
     public float Float;
@@ -54,3 +56,5 @@ public static class Util {
         Console.WriteLine();
     }
 }
+
+#pragma warning restore 0169
