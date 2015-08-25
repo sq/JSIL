@@ -518,7 +518,7 @@ namespace JSIL {
 
             Action<int> writeAssembly = (i) => {
                 var assembly = assemblies[i];
-                var outputPath = FormatOutputFilename(assembly.Name) + ".js";
+                var outputPath = FormatOutputFilename(assembly.Name) + EmitterFactory.FileExtension;
 
                 long existingSize;
 
@@ -544,7 +544,7 @@ namespace JSIL {
                     lock (result.Assemblies)
                         result.Assemblies.Add(assembly);
                 } else {
-                    Console.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                    Console.WriteLine("Skipping '{0}' because it is already translated...", assembly.Name);
 
                     result.AddExistingFile("Script", outputPath, existingSize);
                 }
@@ -886,33 +886,19 @@ namespace JSIL {
 
         protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = IsStubbed(assembly);
+            bool skeletons = Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(
                 tw, this._TypeInfoProvider, Manifest, assembly, Configuration, stubbed
             );
 
-            formatter.Comment(GetHeaderText());
-            formatter.NewLine();
+            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, formatter);
 
-            formatter.WriteRaw("'use strict';");
-            formatter.NewLine();
+            assemblyEmitter.EmitHeader(stubbed, skeletons);
 
-            if (stubbed) {
-                if (Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
-                    formatter.Comment("Generating type skeletons");
-                } else {
-                    formatter.Comment("Generating type stubs only");
-                }
-                formatter.NewLine();
-            }
-
-            formatter.DeclareAssembly();
-            formatter.NewLine();
-
-            if (assembly.EntryPoint != null) {
-                TranslateEntryPoint(assembly, formatter);
-            }
+            if (assembly.EntryPoint != null)
+                TranslateEntryPoint(assemblyEmitter, assembly);
 
             var sealedTypes = new HashSet<TypeDefinition>();
             var declaredTypes = new HashSet<TypeDefinition>();
@@ -923,53 +909,32 @@ namespace JSIL {
                     continue;
                 }
 
-                TranslateModule(context, formatter, module, sealedTypes, declaredTypes, stubbed);
+                TranslateModule(context, assemblyEmitter, module, sealedTypes, declaredTypes, stubbed);
             }
 
             tw.Flush();
         }
 
         protected void TranslateEntryPoint (
-            AssemblyDefinition assembly,
-            JavascriptFormatter output
+            IAssemblyEmitter emitter,
+            AssemblyDefinition assembly
         ) {
             var entryMethod = assembly.EntryPoint;
 
-            output.WriteRaw("JSIL.SetEntryPoint");
-            output.LPar();
-
-            output.AssemblyReference(assembly);
-
-            output.Comma();
-
-            var context = new TypeReferenceContext();
-            output.TypeReference(entryMethod.DeclaringType, context);
-
-            output.Comma();
-
-            output.Value(entryMethod.Name);
-
-            output.Comma();
-
-            output.MethodSignature(
-                entryMethod, 
-                new MethodSignature(
-                    _TypeInfoProvider, 
-                    entryMethod.ReturnType, 
-                    (from p in entryMethod.Parameters select p.ParameterType).ToArray(), 
-                    null
-                ), 
-                context
+            var signature = new MethodSignature(
+                _TypeInfoProvider,
+                entryMethod.ReturnType,
+                (from p in entryMethod.Parameters select p.ParameterType).ToArray(),
+                null
             );
 
-            output.RPar();
-            output.Semicolon(true);
-
-            output.NewLine();
+            emitter.EmitAssemblyEntryPoint(
+                assembly, entryMethod, signature
+            );
         }
 
         protected void TranslateModule (
-            DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, 
+            DecompilerContext context, IAssemblyEmitter assemblyEmitter, ModuleDefinition module, 
             HashSet<TypeDefinition> sealedTypes, HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
             var moduleInfo = _TypeInfoProvider.GetModuleInformation(module);
@@ -981,139 +946,16 @@ namespace JSIL {
             var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
             var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, this._TypeInfoProvider, js);
 
-            var astEmitter = EmitterFactory.MakeAstEmitter(
-                output, jsil, 
-                context.CurrentModule.TypeSystem, this._TypeInfoProvider,
-                Configuration
+            var astEmitter = assemblyEmitter.MakeAstEmitter(
+                jsil, context.CurrentModule.TypeSystem, 
+                _TypeInfoProvider, Configuration
             );
 
             foreach (var typedef in module.Types)
-                DeclareType(context, typedef, astEmitter, output, declaredTypes, stubbed);
+                DeclareType(context, typedef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
         }
 
-        protected void TranslateInterface (
-            DecompilerContext context, IAstEmitter astEmitter, 
-            JavascriptFormatter output, TypeDefinition iface
-        ) {
-            output.Identifier("JSIL.MakeInterface", EscapingMode.None);
-            output.LPar();
-            output.NewLine();
-            
-            output.Value(Util.DemangleCecilTypeName(iface.FullName));
-            output.Comma();
-
-            output.Value(iface.IsPublic);
-            output.Comma();
-
-            output.OpenBracket();
-            WriteGenericParameterNames(output, iface.GenericParameters);
-            output.CloseBracket();
-
-            output.Comma();
-            output.OpenFunction(null, (f) =>
-                f.Identifier("$")
-            );
-
-            var refContext = new TypeReferenceContext {
-                EnclosingType = iface,
-                DefiningType = iface
-            };
-
-            bool isFirst = true;
-            foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
-                foreach (var m in methodGroup) {
-                    if (ShouldSkipMember(m))
-                        continue;
-
-                    var methodInfo = _TypeInfoProvider.GetMethod(m);
-
-                    if ((methodInfo == null) || methodInfo.IsIgnored)
-                        continue;
-
-                    output.Identifier("$", EscapingMode.None);
-                    output.Dot();
-                    output.Identifier("Method", EscapingMode.None);
-                    output.LPar();
-
-                    output.WriteRaw("{}");
-                    output.Comma();
-
-                    output.Value(Util.EscapeIdentifier(m.Name, EscapingMode.String));
-                    output.Comma();
-
-                    output.MethodSignature(m, methodInfo.Signature, refContext);
-
-                    output.RPar();
-                    output.Semicolon(true);
-                }
-            }
-
-            foreach (var p in iface.Properties) {
-                var propertyInfo = _TypeInfoProvider.GetProperty(p);
-                if ((propertyInfo != null) && propertyInfo.IsIgnored)
-                    continue;
-
-                output.Identifier("$", EscapingMode.None);
-                output.Dot();
-                output.Identifier("Property", EscapingMode.None);
-                output.LPar();
-
-                output.WriteRaw("{}");
-                output.Comma();
-
-                output.Value(Util.EscapeIdentifier(p.Name, EscapingMode.String));
-
-                output.RPar();
-                output.Semicolon(true);
-            }
-
-            output.CloseBrace(false);
-
-            output.Comma();
-
-            refContext = new TypeReferenceContext {
-                EnclosingType = iface.DeclaringType,
-                DefiningType = iface
-            };
-
-            output.OpenBracket();
-            foreach (var i in iface.Interfaces) {
-                if (!isFirst) {
-                    output.Comma();
-                }
-
-                output.TypeReference(i, refContext);
-
-                isFirst = false;
-            }
-            output.CloseBracket();
-
-            output.RPar();
-
-            TranslateCustomAttributes(context, iface, iface, astEmitter, output);
-
-            output.Semicolon();
-            output.NewLine();
-        }
-
-        private string PickGenericParameterName (GenericParameter gp) {
-            var result = gp.Name;
-
-            if ((gp.Attributes & GenericParameterAttributes.Covariant) == GenericParameterAttributes.Covariant)
-                result = "out " + result;
-            if ((gp.Attributes & GenericParameterAttributes.Contravariant) == GenericParameterAttributes.Contravariant)
-                result = "in " + result;
-
-            return result;
-        }
-
-        private void WriteGenericParameterNames (JavascriptFormatter output, IEnumerable<GenericParameter> parameters) {
-            output.CommaSeparatedList(
-                (from p in parameters select PickGenericParameterName(p)), null, ListValueType.Primitive
-            );
-        }
-
-        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm, IAstEmitter astEmitter) {
+        protected void TranslateEnum (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition enm, IAstEmitter astEmitter) {
             var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
 
             if (typeInformation == null)
@@ -1170,7 +1012,7 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
+        protected void TranslateDelegate (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
@@ -1211,7 +1053,7 @@ namespace JSIL {
                     invokeMethod.Parameters.Any(p => p.HasMarshalInfo)
                 ) {
                     output.Comma();
-                    TranslatePInvokeInfo(invokeMethod, invokeMethod, astEmitter, output);
+                    TranslatePInvokeInfo(invokeMethod, invokeMethod, astEmitter, assemblyEmitter);
                     output.NewLine();
                 }
             }
@@ -1241,7 +1083,7 @@ namespace JSIL {
 
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
-            IAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
             var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
@@ -1288,7 +1130,7 @@ namespace JSIL {
                 try
                 {
                     foreach (var nestedTypeDef in typedef.NestedTypes)
-                        DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                        DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
                 }
                 finally
                 {
@@ -1313,7 +1155,7 @@ namespace JSIL {
 
                     try {
                         foreach (var nestedTypeDef in typedef.NestedTypes)
-                            DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                            DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
                     } finally {
                         astEmitter.ReferenceContext.Pop();
                     }
@@ -1340,27 +1182,27 @@ namespace JSIL {
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateInterface(context, astEmitter, output, typedef);
+                    TranslateInterface(context, astEmitter, assemblyEmitter, typedef);
                     return;
                 } else if (typedef.IsEnum) {
                     output.Comment("enum {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateEnum(context, output, typedef, astEmitter);
+                    TranslateEnum(context, assemblyEmitter, typedef, astEmitter);
                     return;
                 } else if (typeInfo.IsDelegate) {
                     output.Comment("delegate {0}", Util.DemangleCecilTypeName(typedef.FullName));
                     output.NewLine();
                     output.NewLine();
 
-                    TranslateDelegate(context, output, typedef, typeInfo, astEmitter);
+                    TranslateDelegate(context, assemblyEmitter, typedef, typeInfo, astEmitter);
                     return;
                 }
 
                 var declaringType = typedef.DeclaringType;
                 if (declaringType != null)
-                    DeclareType(context, declaringType, astEmitter, output, declaredTypes, IsStubbed(declaringType.Module.Assembly));
+                    DeclareType(context, declaringType, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(declaringType.Module.Assembly));
 
                 var baseClass = typedef.BaseType;
                 if (baseClass != null) {
@@ -1369,7 +1211,7 @@ namespace JSIL {
                         (resolved != null) &&
                         (resolved.Module.Assembly == typedef.Module.Assembly)
                     ) {
-                        DeclareType(context, resolved, astEmitter, output, declaredTypes, IsStubbed(resolved.Module.Assembly));
+                        DeclareType(context, resolved, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(resolved.Module.Assembly));
                     }
                 }
 
@@ -1386,7 +1228,7 @@ namespace JSIL {
                 JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
                 var cachers = EmitTypeMethodExpressions(
-                    context, typedef, astEmitter, output, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
+                    context, typedef, astEmitter, assemblyEmitter, stubbed, dollar, makingSkeletons, ref nextDisambiguatedId
                 );
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
@@ -1527,7 +1369,7 @@ namespace JSIL {
 
                     TranslateTypeDefinition(
                         context, typedef, 
-                        astEmitter, output, 
+                        astEmitter, assemblyEmitter, 
                         stubbed, dollar, makingSkeletons, 
                         cachers
                     );
@@ -1542,7 +1384,7 @@ namespace JSIL {
                     output.RPar();
 
                     if (!makingSkeletons)
-                        TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, output);
+                        TranslateCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter, assemblyEmitter);
 
                     output.Semicolon();
                     output.NewLine();
@@ -1559,7 +1401,7 @@ namespace JSIL {
                 output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
-                    DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                    DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
             } catch (Exception exc) {
                 throw new Exception(String.Format("An error occurred while declaring the type '{0}'", typedef.FullName), exc);
             } finally {
@@ -1589,7 +1431,7 @@ namespace JSIL {
         }
 
         protected void TranslatePrimitiveDefinition (
-            DecompilerContext context, JavascriptFormatter output,
+            DecompilerContext context, IAssemblyEmitter assemblyEmitter,
             TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
         ) {
             bool isIntegral = false;
@@ -1641,7 +1483,7 @@ namespace JSIL {
 
         protected Cachers EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
-            IAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
             bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
@@ -1761,7 +1603,7 @@ namespace JSIL {
                     continue;
 
                 EmitMethodBody(
-                    context, method, method, astEmitter, output,
+                    context, method, method, astEmitter, assemblyEmitter,
                     stubbed, cachers, ref nextDisambiguatedId
                 );
             }
@@ -1771,7 +1613,7 @@ namespace JSIL {
 
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
-            IAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
             bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             Cachers cachers
         ) {
@@ -1788,7 +1630,7 @@ namespace JSIL {
             context.CurrentType = typedef;
 
             if (typedef.IsPrimitive)
-                TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
+                TranslatePrimitiveDefinition(context, assemblyEmitter, typedef, stubbed, dollar);
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
@@ -1801,19 +1643,19 @@ namespace JSIL {
                     continue;
 
                 DefineMethod(
-                    context, method, method, astEmitter, output,
+                    context, method, method, astEmitter, assemblyEmitter,
                     stubbed, dollar
                 );
             }
 
             Action translateProperties = () => {
                 foreach (var property in typedef.Properties)
-                    TranslateProperty(context, astEmitter, output, property, dollar);
+                    TranslateProperty(context, astEmitter, assemblyEmitter, property, dollar);
             };
 
             Action translateEvents = () => {
                 foreach (var @event in typedef.Events)
-                    TranslateEvent(context, astEmitter, output, @event, dollar);
+                    TranslateEvent(context, astEmitter, assemblyEmitter, @event, dollar);
             };
 
             if (!makingSkeletons)
@@ -2274,7 +2116,7 @@ namespace JSIL {
 
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
-            IAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
             MethodDefinition cctor, bool stubbed, JSRawOutputIdentifier dollar,
             Cachers cachers
         ) {
@@ -2474,7 +2316,7 @@ namespace JSIL {
                         output.NewLine();
                         astEmitter.Emit(expr);
 
-                        TranslateCustomAttributes(context, typedef, fd, astEmitter, output);
+                        TranslateCustomAttributes(context, typedef, fd, astEmitter, assemblyEmitter);
 
                         output.Semicolon(false);
                     }
@@ -2504,7 +2346,7 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, cctor, cctor, 
-                    astEmitter, output, false, dollar, 
+                    astEmitter, assemblyEmitter, false, dollar, 
                     cachers, ref temp, null, fixupCctor
                 );
             } else if (fieldsToEmit.Length > 0) {
@@ -2527,7 +2369,7 @@ namespace JSIL {
 
                 EmitAndDefineMethod(
                     context, fakeCctor, fakeCctor, 
-                    astEmitter, output, false, dollar, 
+                    astEmitter, assemblyEmitter, false, dollar, 
                     cachers, ref temp, null, fixupCctor
                 );
             }
@@ -2554,7 +2396,7 @@ namespace JSIL {
             }
         }
 
-        private JSExpression TranslateAttributeConstructorArgument (
+        public JSExpression TranslateAttributeConstructorArgument (
             TypeSystem typeSystem, TypeReference context, CustomAttributeArgument ca
         ) {
             if (ca.Value == null) {
@@ -2592,106 +2434,6 @@ namespace JSIL {
                 }
             }
         }
-
-        private void TranslateCustomAttributes (
-            DecompilerContext context, 
-            TypeReference declaringType,
-            Mono.Cecil.ICustomAttributeProvider member, 
-            IAstEmitter astEmitter, 
-            JavascriptFormatter output,
-            bool standalone = true
-        ) {
-            astEmitter.ReferenceContext.Push();
-            try {
-                astEmitter.ReferenceContext.EnclosingType = null;
-                astEmitter.ReferenceContext.DefiningType = null;
-
-                if (standalone)
-                    output.Indent();
-
-                bool isFirst = true;
-
-                foreach (var attribute in member.CustomAttributes) {
-                    if (ShouldSkipMember(attribute.AttributeType))
-                        continue;
-
-                    if (!isFirst || standalone)
-                        output.NewLine();
-                        
-                    output.Dot();
-                    output.Identifier("Attribute");
-                    output.LPar();
-                    output.TypeReference(attribute.AttributeType, astEmitter.ReferenceContext);
-
-                    var constructorArgs = attribute.ConstructorArguments.ToArray();
-                    if (constructorArgs.Length > 0) {
-                        output.Comma();
-
-                        output.WriteRaw("function () { return ");
-                        output.OpenBracket(false);
-                        // HACK: This whole operation should be hoisted elsewhere so it can 
-                        ((JavascriptAstEmitter)astEmitter).CommaSeparatedList(
-                            (from ca in constructorArgs
-                             select TranslateAttributeConstructorArgument(
-                                astEmitter.TypeSystem, declaringType, ca
-                             ))
-                        );
-                        output.CloseBracket(false);
-                        output.WriteRaw("; }");
-                    }
-
-                    output.RPar();
-
-                    isFirst = false;
-                }
-
-                if (standalone)
-                    output.Unindent();
-            } finally {
-                astEmitter.ReferenceContext.Pop();
-            }
-        }
-
-        private void TranslateParameterAttributes (
-            DecompilerContext context,
-            TypeReference declaringType,
-            MethodDefinition method,
-            IAstEmitter astEmitter,
-            JavascriptFormatter output
-        ) {
-            output.Indent();
-
-            foreach (var parameter in method.Parameters) {
-                if (!parameter.HasCustomAttributes && !Configuration.CodeGenerator.EmitAllParameterNames.GetValueOrDefault(false))
-                    continue;
-
-                output.NewLine();
-                output.Dot();
-                output.Identifier("Parameter");
-                output.LPar();
-
-                output.Value(parameter.Index);
-                output.Comma();
-
-                output.Value(parameter.Name);
-                output.Comma();
-
-                output.OpenFunction(null, (jf) => jf.Identifier("_"));
-
-                output.Identifier("_");
-
-                TranslateCustomAttributes(context, declaringType, parameter, astEmitter, output, false);
-
-                output.NewLine();
-
-                output.CloseBrace(false);
-
-                output.RPar();
-            }
-
-            output.Unindent();
-        }
-
         protected void CreateMethodInformation (
             MethodInfo methodInfo, bool stubbed,
             out bool isExternal, out bool isJSReplaced, 
@@ -2758,24 +2500,24 @@ namespace JSIL {
 
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
             JSRawOutputIdentifier dollar, Cachers cachers,
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             EmitMethodBody(
                 context, methodRef, method,
-                astEmitter, output, stubbed, cachers,
+                astEmitter, assemblyEmitter, stubbed, cachers,
                 ref nextDisambiguatedId, methodInfo, bodyTransformer
             );
             DefineMethod(
-                context, methodRef, method, astEmitter, output, stubbed, dollar, methodInfo
+                context, methodRef, method, astEmitter, assemblyEmitter, stubbed, dollar, methodInfo
             );
         }
 
         protected void EmitMethodBody (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
             Cachers cachers, ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
@@ -2844,7 +2586,7 @@ namespace JSIL {
 
         private void TranslatePInvokeInfo (
             MethodReference methodRef, MethodDefinition method, 
-            IAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
         ) {
             var pii = method.PInvokeInfo;
 
@@ -2891,7 +2633,7 @@ namespace JSIL {
                     TranslateMarshalInfo(
                         methodRef, method,
                         p.Attributes, p.MarshalInfo, 
-                        astEmitter, output
+                        astEmitter, assemblyEmitter
                     );
                 } else if (isArgsDictOpen) {
                     output.WriteRaw(", null");
@@ -2911,7 +2653,7 @@ namespace JSIL {
                 TranslateMarshalInfo(
                     methodRef, method,
                     method.MethodReturnType.Attributes, method.MethodReturnType.MarshalInfo, 
-                    astEmitter, output
+                    astEmitter, assemblyEmitter
                 );
                 output.NewLine();
             }
@@ -2922,7 +2664,7 @@ namespace JSIL {
         private void TranslateMarshalInfo (
             MethodReference methodRef, MethodDefinition method,
             Mono.Cecil.ParameterAttributes attributes, MarshalInfo mi, 
-            IAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
         ) {
             output.OpenBrace();
 
@@ -2956,7 +2698,7 @@ namespace JSIL {
 
         protected void DefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
             JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
             if (methodInfo == null)
@@ -3043,7 +2785,7 @@ namespace JSIL {
                     output.Comma();
                     output.NewLine();
                     TranslatePInvokeInfo(
-                        methodRef, method, astEmitter, output
+                        methodRef, method, astEmitter, assemblyEmitter
                     );
                 } else if (!isExternal) {
                     output.Comma();
@@ -3084,13 +2826,13 @@ namespace JSIL {
 
                 astEmitter.ReferenceContext.AttributesMethod = methodRef;
 
-                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, output);
+                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, assemblyEmitter);
 
                 if (!makeSkeleton)
-                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, output);
+                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
 
                 if (!makeSkeleton)
-                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, output);
+                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
 
                 output.Semicolon();
             } finally {
@@ -3101,7 +2843,7 @@ namespace JSIL {
         protected void TranslateOverrides (
             DecompilerContext context, TypeInfo typeInfo,
             MethodDefinition method, MethodInfo methodInfo,
-            IAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
         ) {
             astEmitter.ReferenceContext.Push();
             try {
@@ -3132,7 +2874,7 @@ namespace JSIL {
 
         protected void TranslateProperty (
             DecompilerContext context, 
-            IAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
             PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
             if (ShouldSkipMember(property))
@@ -3171,14 +2913,14 @@ namespace JSIL {
 
             output.RPar();
 
-            TranslateCustomAttributes(context, property.DeclaringType, property, astEmitter, output);
+            TranslateCustomAttributes(context, property.DeclaringType, property, astEmitter, assemblyEmitter);
 
             output.Semicolon();
         }
 
         protected void TranslateEvent (
             DecompilerContext context,
-            IAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter,
             EventDefinition @event, JSRawOutputIdentifier dollar
         ) {
             if (ShouldSkipMember(@event))
@@ -3217,7 +2959,7 @@ namespace JSIL {
 
             output.RPar();
 
-            TranslateCustomAttributes(context, @event.DeclaringType, @event, astEmitter, output);
+            TranslateCustomAttributes(context, @event.DeclaringType, @event, astEmitter, assemblyEmitter);
 
             output.Semicolon();
         }
@@ -3256,18 +2998,20 @@ namespace JSIL {
     }
 
     public class JavascriptEmitterFactory : IEmitterFactory {
-        public IAssemblyEmitter MakeAssemblyEmitter () {
-            throw new NotImplementedException();
+        public string FileExtension {
+            get {
+                return ".js";
+            }
         }
 
-        public IAstEmitter MakeAstEmitter (
-            JavascriptFormatter output, JSILIdentifier jsil, 
-            TypeSystem typeSystem, ITypeInfoSource typeInfo,
-            Configuration configuration
+        public IAssemblyEmitter MakeAssemblyEmitter (
+            AssemblyTranslator assemblyTranslator,
+            JavascriptFormatter formatter
         ) {
-            return new JavascriptAstEmitter(
-                output, jsil, typeSystem, typeInfo, configuration
+            return new JavascriptAssemblyEmitter(
+                assemblyTranslator, formatter
             );
         }
+
     }
 }

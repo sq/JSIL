@@ -11,15 +11,25 @@ using Mono.Cecil;
 
 namespace JSIL.Compiler.Extensibility {
     public interface IEmitterFactory {
-        IAssemblyEmitter MakeAssemblyEmitter ();
-        IAstEmitter      MakeAstEmitter (
-            JavascriptFormatter output, JSILIdentifier jsil, 
-            TypeSystem typeSystem, ITypeInfoSource typeInfo,
-            Configuration configuration
+        string FileExtension { get; }
+
+        IAssemblyEmitter MakeAssemblyEmitter (
+            AssemblyTranslator assemblyTranslator,
+            JavascriptFormatter formatter
         );
     }
 
     public interface IAssemblyEmitter {
+        void EmitHeader (
+            bool stubbed, bool skeletons
+        );
+        void EmitAssemblyEntryPoint (
+            AssemblyDefinition assembly, MethodDefinition entryMethod, MethodSignature signature
+        );
+        IAstEmitter MakeAstEmitter (
+            JSILIdentifier jsil, TypeSystem typeSystem, 
+            TypeInfoProvider typeInfoProvider, Configuration configuration
+        );
     }
 
     public interface IAstEmitter {
