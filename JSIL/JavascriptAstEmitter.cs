@@ -22,7 +22,7 @@ namespace JSIL {
         Do
     }
 
-    public class JavascriptAstEmitter : JSAstVisitor, Compiler.Extensibility.IAstEmitter {
+    public class JavascriptAstEmitter : JSAstVisitor, IAstEmitter {
         public readonly ITypeInfoSource TypeInfo;
         public readonly JavascriptFormatter Output;
         public readonly Configuration Configuration;

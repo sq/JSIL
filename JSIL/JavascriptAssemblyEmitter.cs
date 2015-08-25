@@ -863,6 +863,9 @@ namespace JSIL {
             Formatter.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
             Formatter.Indent();
             Formatter.NewLine();
+
+            Formatter.WriteRaw("var $, $thisType");
+            Formatter.Semicolon(true);
         }
 
         public void BeginEmitTypeDefinition (
@@ -987,6 +990,90 @@ namespace JSIL {
 
                 Formatter.CloseBrace(false);
             }
+
+            // Hack to force the indent level for type definitions to be 1 instead of 2.
+            Formatter.Unindent();
+
+            Formatter.Comma();
+            Formatter.OpenFunction(null, (f) => 
+                f.Identifier("$")
+            );
+
+            astEmitter.ReferenceContext.Push();
+            astEmitter.ReferenceContext.EnclosingType = typedef;
+        }
+
+        public void EndEmitTypeDefinition (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef) {
+            Formatter.NewLine();
+
+            Formatter.CloseBrace(false);
+
+            // Hack to force the indent level for type definitions to be 1 instead of 2.
+            Formatter.Indent();
+
+            Formatter.RPar();
+
+            EmitCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter);
+
+            Formatter.Semicolon();
+            Formatter.NewLine();
+
+            astEmitter.ReferenceContext.Pop();
+
+            Formatter.NewLine();
+            Formatter.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+
+            Formatter.Semicolon(false);
+
+            Formatter.Unindent();
+            Formatter.WriteRaw("})();");
+            Formatter.NewLine();
+            Formatter.NewLine();
+        }
+
+        public void EmitInterfaceList (
+            TypeInfo typeInfo, 
+            IAstEmitter astEmitter,
+            JSRawOutputIdentifier dollar
+        ) {
+            var interfaces = typeInfo.AllInterfacesRecursive;
+            if (interfaces.Count <= 0)
+                return;
+
+            Formatter.NewLine();
+
+            dollar.WriteTo(Formatter);
+            Formatter.Dot();
+            Formatter.Identifier("ImplementInterfaces", EscapingMode.None);
+            Formatter.LPar();
+
+            bool firstInterface = true;
+
+            for (var i = 0; i < interfaces.Count; i++) {
+                var elt = interfaces.Array[interfaces.Offset + i];
+                if (elt.ImplementingType != typeInfo)
+                    continue;
+                if (elt.ImplementedInterface.Info.IsIgnored)
+                    continue;
+                if (Translator.ShouldSkipMember(elt.ImplementedInterface.Reference))
+                    continue;
+
+                var @interface = elt.ImplementedInterface.Reference;
+
+                if (firstInterface)
+                    firstInterface = false;
+                else
+                    Formatter.Comma();
+
+                Formatter.NewLine();
+
+                Formatter.Comment("{0}", i);
+                Formatter.TypeReference(@interface, astEmitter.ReferenceContext);
+            }
+
+            Formatter.NewLine();
+            Formatter.RPar();
+            Formatter.Semicolon(true);
         }
     }
 }

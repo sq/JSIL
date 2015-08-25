@@ -1056,46 +1056,16 @@ namespace JSIL {
                     astEmitter, typedef, typeInfo, baseClass
                 );
 
-                astEmitter.ReferenceContext.Push();
-                astEmitter.ReferenceContext.EnclosingType = typedef;
-
                 try {
-                    // Hack to force the indent level for type definitions to be 1 instead of 2.
-                    output.Unindent();
-
-                    output.Comma();
-                    output.OpenFunction(null, (f) => 
-                        f.Identifier("$")
-                    );
-
                     TranslateTypeDefinition(
                         context, typedef, 
                         astEmitter, assemblyEmitter, 
                         stubbed, dollar, 
                         cachers
                     );
-
-                    output.NewLine();
-
-                    output.CloseBrace(false);
-
-                    // Hack to force the indent level for type definitions to be 1 instead of 2.
-                    output.Indent();
-
-                    output.RPar();
-
-                    assemblyEmitter.EmitCustomAttributes(context, typedef.DeclaringType, typedef, astEmitter);
-
-                    output.Semicolon();
-                    output.NewLine();
                 } finally {
-                    astEmitter.ReferenceContext.Pop();
+                    assemblyEmitter.EndEmitTypeDefinition(astEmitter, context, typedef);
                 }
-
-                output.Unindent();
-                output.WriteRaw("})();");
-                output.NewLine();
-                output.NewLine();
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
@@ -1157,9 +1127,6 @@ namespace JSIL {
             _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return new Cachers(typeCacher, signatureCacher, baseMethodCacher);
-
-            output.WriteRaw("var $, $thisType");
-            output.Semicolon(true);
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToList();
 
@@ -1337,48 +1304,9 @@ namespace JSIL {
                 translateEvents();
             }
 
-            var interfaces = typeInfo.AllInterfacesRecursive;
-            if (interfaces.Count > 0) {
-                output.NewLine();
-
-                dollar.WriteTo(output);
-                output.Dot();
-                output.Identifier("ImplementInterfaces", EscapingMode.None);
-                output.LPar();
-
-                bool firstInterface = true;
-
-                for (var i = 0; i < interfaces.Count; i++) {
-                    var elt = interfaces.Array[interfaces.Offset + i];
-                    if (elt.ImplementingType != typeInfo)
-                        continue;
-                    if (elt.ImplementedInterface.Info.IsIgnored)
-                        continue;
-                    if (ShouldSkipMember(elt.ImplementedInterface.Reference))
-                        continue;
-
-                    var @interface = elt.ImplementedInterface.Reference;
-
-                    if (firstInterface)
-                        firstInterface = false;
-                    else
-                        output.Comma();
-
-                    output.NewLine();
-
-                    output.Comment("{0}", i);
-                    output.TypeReference(@interface, astEmitter.ReferenceContext);
-                }
-
-                output.NewLine();
-                output.RPar();
-                output.Semicolon(true);
-            }
-
-            output.NewLine();
-            output.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
-
-            output.Semicolon(false);
+            assemblyEmitter.EmitInterfaceList(
+                typeInfo, astEmitter, dollar
+            );
         }
 
         internal JSFunctionExpression TranslateMethodExpression (

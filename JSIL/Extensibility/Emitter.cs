@@ -52,6 +52,8 @@ namespace JSIL.Compiler.Extensibility {
         void EmitPrimitiveDefinition (DecompilerContext context, TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar);
         void BeginEmitTypeDeclaration (TypeDefinition typedef);
         void BeginEmitTypeDefinition (IAstEmitter astEmitter, TypeDefinition typedef, TypeInfo typeInfo, TypeReference baseClass);
+        void EndEmitTypeDefinition (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef);
+        void EmitInterfaceList (TypeInfo typeInfo, IAstEmitter astEmitter, JSRawOutputIdentifier dollar);
     }
 
     public interface IAstEmitter {
