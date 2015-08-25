@@ -13,6 +13,8 @@ namespace JSIL.Tests {
     public class GenericTestFixture : IDisposable {
         protected TypeInfoProvider DefaultTypeInfoProvider;
 
+        protected string NameSuffix = "";
+
         public EvaluatorPool EvaluatorPool {
             get;
             private set;
@@ -497,7 +499,7 @@ namespace JSIL.Tests {
                     continue;
 
                 var item = (new TestCaseData(new object[] {new object[] {testName, typeInfo, asmCache, commonFile, false}}))
-                    .SetName(PickTestNameForFilename(testName))
+                    .SetName(PickTestNameForFilename(testName) + NameSuffix)
                     .SetDescription(String.Format("{0}\\{1}", subfolders, Path.GetFileName(testName)));
                 foreach (var category in subfolders.Split(Path.DirectorySeparatorChar))
                 {
@@ -525,7 +527,7 @@ namespace JSIL.Tests {
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
                 var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null, markLastTest && i == (l - 1) } }))
-                    .SetName(PickTestNameForFilename(actualTestName));
+                    .SetName(PickTestNameForFilename(actualTestName) + NameSuffix);
 
                 var normalTestPathName = Portability.NormalizeDirectorySeparators(actualTestName);
                 var testFileName = Path.GetFileName(normalTestPathName);
@@ -546,6 +548,7 @@ namespace JSIL.Tests {
 
         public static string PickTestNameForFilename (string filename) {
             var result = Path.GetFileNameWithoutExtension(filename);
+            var containingFolder = Path.GetFileName(Path.GetDirectoryName(filename));
 
             switch (Path.GetExtension(filename).ToLowerInvariant()) {
                 case ".cs":

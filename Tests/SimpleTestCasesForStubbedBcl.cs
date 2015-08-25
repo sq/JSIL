@@ -18,10 +18,12 @@ namespace JSIL.SimpleTests
 
         private readonly AssemblyCache AssemblyCache;
         private readonly TypeInfoProvider TypeInfoProvider;
+
         public SimpleTestCasesForStubbedBcl()
         {
             TypeInfoProvider = MakeDefaultProvider();
             AssemblyCache = new AssemblyCache();
+            NameSuffix = " (Stubbed BCL)";
         }
 
         [TestFixtureSetUp]

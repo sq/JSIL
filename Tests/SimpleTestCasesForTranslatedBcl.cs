@@ -23,6 +23,7 @@ namespace JSIL.SimpleTests
         {
             TypeInfoProvider = MakeDefaultProvider();
             AssemblyCache = new AssemblyCache();
+            NameSuffix = " (Translated BCL)";
         }
 
         protected override Dictionary<string, string> SetupEvaluatorEnvironment()
@@ -125,11 +126,6 @@ namespace JSIL.SimpleTests
         {
             // TODO: Why we cannot reuse TypeInfoProvider here?
             return FolderTestSource("ExpressionTestCases", null, AssemblyCache, false);
-        }
-
-        protected IEnumerable<TestCaseData> SimpleTestCasesSourceForStubbedBcl()
-        {
-            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected IEnumerable<TestCaseData> SimpleTestCasesSource()
