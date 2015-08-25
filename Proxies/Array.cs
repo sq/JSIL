@@ -167,5 +167,24 @@ namespace JSIL.Proxies {
         {
             throw new InvalidOperationException();
         }
+
+        /*Mono methods*/
+        [JSReplacement("$array[$index]")]
+        internal static T UnsafeLoad<T>(T[] array, int index)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$array[$index] = $value")]
+        internal static void UnsafeStore<T>(T[] array, int index, T value)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$instance")]
+        internal static R UnsafeMov<S, R>(S instance)
+        {
+            throw new InvalidOperationException();
+        }
     }
 }
