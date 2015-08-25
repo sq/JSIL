@@ -105,6 +105,7 @@ namespace JSIL.Translator {
         public bool? TuneGarbageCollection;
         public string FilenameEscapeRegex;
         public string AssemblyCollectionName;
+        public string EmitterFactoryName;
 
         public double? FrameworkVersion;
 
@@ -138,6 +139,8 @@ namespace JSIL.Translator {
                 result.FilenameEscapeRegex = FilenameEscapeRegex;
             if (AssemblyCollectionName != null)
                 result.AssemblyCollectionName = AssemblyCollectionName;
+            if (EmitterFactoryName != null)
+                result.EmitterFactoryName = EmitterFactoryName;
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);

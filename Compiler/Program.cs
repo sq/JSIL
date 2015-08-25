@@ -167,6 +167,7 @@ namespace JSIL.Compiler {
         static Configuration ParseCommandLine (
             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
             Dictionary<string, IProfile> profiles, Dictionary<string, IAnalyzer> analyzers,
+            Dictionary<string, IEmitterFactory> emitterFactories,
             AssemblyCache assemblyCache
         ) {
             var baseConfig = new Configuration();
@@ -174,9 +175,10 @@ namespace JSIL.Compiler {
             IProfile defaultProfile = new Profiles.Default();
             var profileAssemblies = new List<string>();
             var analyzerAssemblies = new List<string>();
-            bool[] autoloadProfiles = new bool[] { true };
+            var emitterAssemblies = new List<string>();
+            bool[] autoloadProfiles  = new bool[] { true };
             bool[] autoloadAnalyzers = new bool[] { true };
-            string[] newDefaultProfile = new string[] { null };
+            bool[] autoloadEmitters  = new bool[] { true };
             List<string> filenames;
 
             {
@@ -241,9 +243,6 @@ namespace JSIL.Compiler {
                     {"pa=|profileAssembly=",
                         "Loads one or more project profiles from the specified profile assembly. Note that this does not force the profiles to be used.",
                         profileAssemblies.Add},
-                    {"dp=|defaultProfile=",
-                        "Overrides the default profile to use for projects by specifying the name of the new default profile.",
-                        (profileName) => newDefaultProfile[0] = profileName},
 
                     "CodeGenerator options",
                     {"os", 
@@ -258,6 +257,17 @@ namespace JSIL.Compiler {
                     {"ol", 
                         "Suppresses simplification of loop blocks.",
                         (b) => commandLineConfig.CodeGenerator.SimplifyLoops = b == null},
+
+                    "Emitter options",
+                    {"nae|noautoloademitters",
+                        "Disables automatic loading of emitter assemblies from the compiler directory.",
+                        (b) => autoloadEmitters[0] = (b == null)},
+                    {"ea=|emitterAssembly=",
+                        "Specifies an assembly to load emitters from.",
+                        emitterAssemblies.Add},
+                    {"e=|emitter=",
+                        "Specifies an emitter factory to use instead of the default.",
+                        (emitterName) => commandLineConfig.EmitterFactoryName = emitterName}
                 };
 
                 filenames = os.Parse(arguments);
@@ -288,6 +298,12 @@ namespace JSIL.Compiler {
                         "JSIL.Analysis.*.dll"
                     ));
 
+                if (autoloadEmitters[0])
+                    emitterAssemblies.AddRange(Directory.GetFiles(
+                        GetJSILDirectory(), 
+                        "JSIL.Emitters.*.dll"
+                    ));
+
                 foreach (var filename in profileAssemblies) {
                     var fullPath = Path.GetFullPath(filename);
 
@@ -309,6 +325,18 @@ namespace JSIL.Compiler {
                             analyzers.Add(analyzerInstance.GetType().Name, analyzerInstance);
                     } catch (Exception exc) {
                         Console.Error.WriteLine("Warning: Failed to load analyzer '{0}': {1}", filename, exc);
+                    }
+                }
+
+                foreach (var filename in emitterAssemblies) {
+                    var fullPath = Path.GetFullPath(filename);
+
+                    try {
+                        IEmitterFactory factoryInstance = CreateExtensionInstance<IEmitterFactory>(fullPath);
+                        if (factoryInstance != null)
+                            emitterFactories.Add(factoryInstance.GetType().Name, factoryInstance);
+                    } catch (Exception exc) {
+                        Console.Error.WriteLine("Warning: Failed to load emitter '{0}': {1}", filename, exc);
                     }
                 }
             }
@@ -562,8 +590,27 @@ namespace JSIL.Compiler {
             };
         }
 
+        static IEmitterFactory GetEmitterFactory (
+            Configuration configuration,
+            Dictionary<string, IEmitterFactory> emitterFactories
+        ) {
+            if (configuration.EmitterFactoryName == null)
+                return null;
+
+            IEmitterFactory result;
+            if (!emitterFactories.TryGetValue(configuration.EmitterFactoryName, out result)) {
+                Console.WriteLine("// Loaded emitter factories:");
+                foreach (var kvp in emitterFactories)
+                    Console.WriteLine(kvp.Key);
+                throw new Exception("No emitter factory named '" + configuration.EmitterFactoryName + "'");
+            }
+
+            return result;
+        }
+
         static AssemblyTranslator CreateTranslator (
-            Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache
+            Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache,
+            Dictionary<string, IEmitterFactory> emitterFactories
         ) {
             TypeInfoProvider typeInfoProvider = null;
 
@@ -582,10 +629,13 @@ namespace JSIL.Compiler {
                     typeInfoProvider = CachedTypeInfoProvider;
             }
 
+            IEmitterFactory emitterFactory = GetEmitterFactory(configuration, emitterFactories);
+
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, new AssemblyDataResolver(configuration, assemblyCache), 
                 onProxyAssemblyLoaded: (name, classification) => 
-                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name))                
+                    Console.Error.WriteLine("// Loaded proxies from '{0}'", ShortenPath(name)),
+                emitterFactory: emitterFactory
             );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
@@ -638,11 +688,12 @@ namespace JSIL.Compiler {
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
             var analyzers = new Dictionary<string, IAnalyzer>();
+            var emitterFactories = new Dictionary<string, IEmitterFactory>();
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
             var processedAssemblies = new HashSet<string>();
 
-            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, assemblyCache);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, emitterFactories, assemblyCache);
 
             if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
@@ -722,7 +773,9 @@ namespace JSIL.Compiler {
                         analyzer.SetConfiguration(settings);
                     }
 
-                    using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
+                    emitterFactories["JavascriptEmitterFactory"] = new JavascriptEmitterFactory();
+
+                    using (var translator = CreateTranslator(localConfig, manifest, assemblyCache, emitterFactories)) {
                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
                         translator.IgnoredMethod += (methodName, variableNames) =>
                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
