@@ -96,7 +96,7 @@
     <None Include="SimpleTestCases\Issue491_3.cs" />
     <None Include="SimpleTestCases\Issue682.cs" />
     <None Include="SimpleTestCases\Issue681.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\Issue679.cs" />
+    <None Include="SimpleTestCases\Issue679.cs" />
     <None Include="SimpleTestCases\Issue678.cs" />
     <None Include="SimpleTestCases\Issue676.cs" />
     <None Include="SimpleTestCases\Issue672.cs" />
@@ -123,8 +123,8 @@
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
     <None Include="SimpleTestCases\NullableByRef_Issue810.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\ListConstructor.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\ListICollection.cs" />
+    <None Include="SimpleTestCases\ListConstructor.cs" />
+    <None Include="SimpleTestCases\ListICollection.cs" />
     <None Include="SimpleTestCases\NumericTypesBase_Issue812.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
@@ -186,10 +186,10 @@
     <None Include="SimpleTestCases\ArrayICollection.cs" />
     <None Include="SimpleTestCases\StringJoinEnumerable.cs" />
     <None Include="SimpleTestCases\Issue268.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\Issue271.cs" />
+    <None Include="SimpleTestCases\Issue271.cs" />
     <None Include="SimpleTestCases\DiagnosticsTrace.cs" />
     <None Include="SimpleTestCases\HashSetToArray.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\BitConverter.cs" />
+    <None Include="SimpleTestCases\BitConverter.cs" />
     <None Include="SimpleTestCases\ArrayCopy5Arg.cs" />
     <None Include="SimpleTestCases\Issue304.cs" />
     <None Include="SimpleTestCases\Issue307.cs" />
@@ -215,12 +215,12 @@
     <None Include="SimpleTestCases\FailsOnMono\Issue445.cs" />
     <None Include="SimpleTestCases\Issue410.cs" />
     <None Include="SimpleTestCases\Issue411.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\Issue459.cs" />
+    <None Include="SimpleTestCases\Issue459.cs" />
     <None Include="SimpleTestCases\Issue464.cs" />
     <None Include="SimpleTestCases\Issue378_2.cs" />
     <None Include="SimpleTestCases\Issue466.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\Issue529.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\Issue530.cs" />
+    <None Include="SimpleTestCases\Issue529.cs" />
+    <None Include="SimpleTestCases\Issue530.cs" />
     <None Include="SimpleTestCases\Issue508.cs" />
     <None Include="SimpleTestCases\Issue381.cs" />
     <None Include="SimpleTestCases\UInt32Multiply.cs" />
@@ -241,7 +241,7 @@
     <None Include="SimpleTestCases\ListInsert.cs" />
     <None Include="SimpleTestCases\StructGenericParameterReferenceEquality.cs" />
     <None Include="SimpleTestCases\ArrayListIndexer.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\ListIList.cs" />
+    <None Include="SimpleTestCases\ListIList.cs" />
     <None Include="SimpleTestCases\MultiDimArrayClone.cs" />
     <None Include="SimpleTestCases\NestedInitializer.cs" />
     <None Include="SimpleTestCases\StringPad.cs" />
@@ -316,7 +316,7 @@
     <None Include="SimpleTestCases\DecimalEquality.cs" />
     <None Include="SimpleTestCases\StringFromCharArray.cs" />
     <None Include="SimpleTestCases\EnumerableCast.cs" />
-    <None Include="SimpleTestCases\FailsOnMonoWhenTranslated\EnumerableToList.cs" />
+    <None Include="SimpleTestCases\EnumerableToList.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
     <None Include="SimpleTestCases\FailsOnMono\Issue118_1.fs" />
     <None Include="SimpleTestCases\EnumerableElementAt.cs" />
