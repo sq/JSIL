@@ -76,11 +76,21 @@ namespace JSIL.SimpleTests
                 );
         }
 
+        protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
+        {
+            return FolderTestSource("SimpleTestCasesForTranslatedBcl", TypeInfoProvider, AssemblyCache, false);
+        }
+
         [Test]
         [TestCaseSource("SimpleTestCasesSourceForTranslatedBcl")]
         public void TestCasesTranslatedBcl(object[] parameters)
         {
             RunTestCase(parameters, null, null);
+        }
+
+        protected IEnumerable<TestCaseData> SimpleTestCasesSourceForStubbedBcl()
+        {
+            return FolderTestSource("SimpleTestCasesForStubbedBcl", TypeInfoProvider, AssemblyCache, false);
         }
 
         [Test]
@@ -90,11 +100,22 @@ namespace JSIL.SimpleTests
             RunTestCase(parameters, null, null);
         }
 
+        protected IEnumerable<TestCaseData> SimpleTestCasesSource()
+        {
+            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache, false);
+        }
+
         [Test]
         [TestCaseSource("SimpleTestCasesSource")]
         public void SimpleTestCases(object[] parameters)
         {
             RunTestCase(parameters, null, null);
+        }
+
+        protected IEnumerable<TestCaseData> ExpressionTestCasesSourceForTranslatedBcl()
+        {
+            // TODO: Why we cannot reuse TypeInfoProvider here?
+            return FolderTestSource("ExpressionTestCases", null, AssemblyCache, false);
         }
 
         [Test]
@@ -115,22 +136,6 @@ namespace JSIL.SimpleTests
                     Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "..", "Libraries",
                         "JSIL.ExpressionInterpreter.js"))
                 });
-        }
-
-        protected IEnumerable<TestCaseData> SimpleTestCasesSourceForTranslatedBcl()
-        {
-            return FolderTestSource("SimpleTestCasesForTranslatedBcl", TypeInfoProvider, AssemblyCache, false);
-        }
-
-        protected IEnumerable<TestCaseData> ExpressionTestCasesSourceForTranslatedBcl()
-        {
-            // TODO: Why we cannot reuse TypeInfoProvider here?
-            return FolderTestSource("ExpressionTestCases", null, AssemblyCache, false);
-        }
-
-        protected IEnumerable<TestCaseData> SimpleTestCasesSource()
-        {
-            return FolderTestSource("SimpleTestCases", TypeInfoProvider, AssemblyCache, false);
         }
 
         protected object[] BootstrapArguments()
