@@ -2526,7 +2526,7 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public void VisitNode(JSDefferedExpression function)
+        public void VisitNode(JSDeferredExpression function)
         {
             Output.WriteRaw("function () { return ");
             Visit(function.InnerExpression);

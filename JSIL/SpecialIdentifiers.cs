@@ -120,7 +120,7 @@ namespace JSIL {
                 method == null ? new [] { thisReference, targetMethod } : new [] {
                     thisReference, 
                     targetMethod, 
-                    new JSDefferedExpression(new JSMethodOfExpression(method.Reference, method.Method, method.MethodTypes, method.GenericArguments)),  },
+                    new JSDeferredExpression(new JSMethodOfExpression(method.Reference, method.Method, method.MethodTypes, method.GenericArguments)),  },
                 true
             );
         }

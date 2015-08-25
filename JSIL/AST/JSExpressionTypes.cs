@@ -3187,10 +3187,10 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSDefferedExpression : JSExpression {
+    public class JSDeferredExpression : JSExpression {
         public JSExpression InnerExpression { get; private set; }
 
-        public JSDefferedExpression(JSExpression innerExpression)
+        public JSDeferredExpression(JSExpression innerExpression)
         {
             InnerExpression = innerExpression;
         }
