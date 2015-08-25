@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props" Condition="Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props')" />
-  <Import Project="..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props" Condition="Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props')" />
-  <Import Project="..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props" Condition="Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props')" />
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="Targets\MSBuild.Gulp.props" />
+  <Import Project="Targets\MSBuild.Npm.props" />
+  <Import Project="Targets\MSBuild.Node.props" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
-    <LocalNodePath>.bin</LocalNodePath>
+    <LocalNodePath Condition="'$(OS)' != 'Unix'">.bin</LocalNodePath>
     <LocalNodeModulePath>$(MSBuildProjectDirectory)\node_modules\.bin</LocalNodeModulePath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -16,8 +16,6 @@
     <AssemblyName>ClassLibrary1</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -38,7 +36,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="Empty.targets" />
     <None Include="package.json" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
@@ -48,7 +45,7 @@
     <None Include=".bin\git.cmd" />
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
-    <Content Include="gruntfile.js" />
+    <Content Include="gulpfile.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.EqualityComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.InitResizableArray.js" />
@@ -196,21 +193,10 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup />
-  <Import Project="Empty.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.props'))" />
-    <Error Condition="!Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets'))" />
-    <Error Condition="!Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.props'))" />
-    <Error Condition="!Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets'))" />
-    <Error Condition="!Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.props'))" />
-    <Error Condition="!Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets'))" />
-  </Target>
-  <Import Project="..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets" Condition="Exists('..\packages\MSBuild.Node.0.4.4\build\MSBuild.Node.targets')" />
-  <Import Project="..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets" Condition="Exists('..\packages\MSBuild.Grunt.0.4.4\build\MSBuild.Grunt.targets')" />
-  <Import Project="..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets" Condition="Exists('..\packages\MSBuild.Npm.0.4.4\build\MSBuild.Npm.targets')" />
+  <Import Project="Targets\Empty.targets" />
+  <Import Project="Targets\MSBuild.Node.targets" />
+  <Import Project="Targets\MSBuild.Npm.targets" />
+  <Import Project="Targets\MSBuild.Gulp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

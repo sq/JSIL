@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="EnsureGulp">
+        <PropertyGroup>
+            <GulpNotFoundError>Gulp module not found. Please install Gulp in the node module path '$(NodeModulePath)'.</GulpNotFoundError>
+            <GulpExecutable>$(NodeModulePath)\gulp</GulpExecutable>
+            <GulpOut>$([System.IO.Path]::GetTempFileName())</GulpOut>
+            <GulpExitCode>0</GulpExitCode>
+            <GulpTaskDeprecationWarning>The 'GulpTask' property is deprecated and will be removed in a future version. Please use 'GulpBuildTask' instead.</GulpTaskDeprecationWarning>
+        </PropertyGroup>
+        <Message Text="Ensuring Gulp is installed" Importance="low" />
+
+        <!--<Exec Command="$(WINDIR)\system32\where.exe gulp"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            ConsoleToMsBuild="true"
+            Condition=" !Exists('$(GulpExecutable)') ">
+            <Output TaskParameter="ExitCode" PropertyName="GulpExitCode"/>
+            <Output TaskParameter="ConsoleOutput" PropertyName="GulpExecutable" />
+        </Exec>
+        <Error Condition=" '$(GulpExitCode)' != '0' " Text="'$(GulpNotFoundError)'" />-->
+
+        <!-- Deprecated Warning & Fallback -->
+        <Warning Condition=" '$(GulpTask)' != '' " Text="'$(GulpTaskDeprecationWarning)'" />
+        <PropertyGroup Condition=" '$(GulpTask)' != '' ">
+            <GulpBuildTask>$(GulpTask)</GulpBuildTask>
+        </PropertyGroup>
+
+        <PropertyGroup>
+            <RunGulpBuildCmd>$(EnsureNodeInPathCmd) "$(GulpExecutable)" $(GulpBuildTask) > "$(GulpOut)"</RunGulpBuildCmd>
+            <RunGulpCleanCmd>$(EnsureNodeInPathCmd) "$(GulpExecutable)" $(GulpCleanTask) > "$(GulpOut)"</RunGulpCleanCmd>
+
+            <GulpBuildTaskError>Error running gulp task '$(GulpBuildTask)'. See Warnings for details.</GulpBuildTaskError>
+            <GulpCleanTaskError>Error running gulp task '$(GulpCleanTask)'. See Warnings for details.</GulpCleanTaskError>
+        </PropertyGroup>
+
+        <Message Text="Gulp found: '$(GulpExecutable)'" />
+    </Target>
+
+    <Target Name="RunGulpBuild"
+        DependsOnTargets="EnsureNodeModules;EnsureGulp"
+        BeforeTargets="Build"
+        Condition=" Exists('$(GulpFile)') AND '$(GulpBuildTask)' != '' " >
+        <Message Text="Running Gulp: '$(GulpBuildTask)'" />
+        <Exec Command="$(RunGulpBuildCmd)"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(GulpWorkingDirectory)" >
+            <Output TaskParameter="ExitCode" PropertyName="GulpExitCode"/>
+        </Exec>
+        <ReadLinesFromFile File="$(GulpOut)">
+            <Output TaskParameter="Lines" ItemName="GulpOutLines"/>
+        </ReadLinesFromFile>
+        <Delete Files="$(GulpOut)"/>
+        <Warning Condition=" '$(GulpExitCode)' != '0' " Text="%(GulpOutLines.Identity)" />
+        <Error Condition=" '$(GulpExitCode)' != '0' " Text="$(GulpBuildTaskError)" />
+    </Target>
+
+    <Target Name="RunGulpClean"
+        DependsOnTargets="EnsureNodeModules;EnsureGulp"
+        AfterTargets="Clean"
+        Condition=" Exists('$(GulpFile)') AND '$(GulpCleanTask)' != '' " >
+        <Message Text="Running Gulp: '$(GulpCleanTask)'" />
+        <Exec Command="$(RunGulpCleanCmd)"
+            ContinueOnError="true"
+            IgnoreExitCode="true"
+            WorkingDirectory="$(GulpWorkingDirectory)" >
+            <Output TaskParameter="ExitCode" PropertyName="GulpExitCode"/>
+        </Exec>
+        <ReadLinesFromFile File="$(GulpOut)">
+            <Output TaskParameter="Lines" ItemName="GulpOutLines"/>
+        </ReadLinesFromFile>
+        <Delete Files="$(GulpOut)"/>
+        <Warning Condition=" '$(GulpExitCode)' != '0' " Text="%(GulpOutLines.Identity)" />
+        <Error Condition=" '$(GulpExitCode)' != '0' " Text="$(GulpCleanTaskError)" />
+    </Target>
+<!-- vim: set ft=xml sw=4 :-->
+</Project>

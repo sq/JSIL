@@ -221,23 +221,25 @@ namespace JSIL.Tests {
             CompilationElapsed = TimeSpan.FromTicks(ended - started);
         }
 
-        public static string GetTestRunnerLink (string testFile, string queryString = "") {
+        public static string GetTestRunnerLink(IEnumerable<string> testFile, string queryString = "") {
             var rootPath = Path.GetFullPath(Path.Combine(
                 Path.GetDirectoryName(LoaderJSPath),
-                @"..\"
-            ));
+                @"..\"));
 
-            var uri = new Uri(
-                Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
-            );
+            var scriptFiles = string.Join(";", testFile.Select(item => MapSourceFileToTestFile(Path.GetFullPath(item))));
+
+            var uri = new Uri(Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute);
 
             return String.Format(
                 "{0}?{1}#{2}", uri,
                 queryString,
-                MapSourceFileToTestFile(Path.GetFullPath(testFile))
+                scriptFiles
                     .Replace(rootPath, "")
-                    .Replace("\\", "/")
-            );
+                    .Replace("\\", "/"));
+        }
+        
+        public static string GetTestRunnerLink (string testFile, string queryString = "") {
+            return GetTestRunnerLink(Enumerable.Repeat(testFile, 1), queryString);
         }
 
         public void Dispose () {
@@ -844,7 +846,20 @@ namespace JSIL.Tests {
                 var jsex = ex as JavaScriptEvaluatorException;
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
-                Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath, GetTestRunnerQueryString()));
+
+                var querySting = string.Join(
+                    "&",
+                    (EvaluatorPool.EnvironmentVariables ?? new Dictionary<string, string>())
+                        .Select(item => string.Format("{0}={1}", item.Key, item.Value))
+                        .Concat(Enumerable.Repeat(GetTestRunnerQueryString(), 1))
+                        .Where(str => !string.IsNullOrEmpty(str))
+                        .ToArray());
+
+                var files =
+                    Enumerable.Repeat(OutputPath, 1)
+                        .Concat(evaluationConfig.AdditionalFilesToLoad ?? Enumerable.Empty<string>());
+
+                Console.WriteLine("// {0}", GetTestRunnerLink(files, querySting));
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;

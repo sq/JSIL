@@ -1,5 +1,5 @@
 language: csharp
-solution: JSIL_NoXNA_NoLibraries.sln
+solution: JSIL.sln
 
 before_install:
   - wget -P /tmp/avim -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
@@ -7,25 +7,18 @@ before_install:
   - export PATH=$PATH:/tmp/js
 
 install:
-  - nuget restore JSIL_NoXNA_NoLibraries.sln
+  - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
+  - nuget restore JSIL.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
-  - cd JSIL.Libraries
-  - npm install 
-  - cd ..
 
 script:
-  - xbuild /p:Configuration=Release /v:m JSIL_NoXNA_NoLibraries.sln
-  - cd JSIL.Libraries
-  - npm test
-  - cd ..
-  - rm bin/nunit.core.dll
-  - rm bin/nunit.core.interfaces.dll
-  - rm bin/nunit.util.dll
+  - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
   - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)\|\(FailsOnMonoWhenTranslated+Translated\)
 
 env:
   global:
     - JsilUseAppDomainsInTest=true
+    - NODEJS_VERSION=0.10
   matrix:
     - TestRun=JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
     - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl
