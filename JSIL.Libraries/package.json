@@ -4,7 +4,10 @@
   "devDependencies": {
     "gulp": "~3.9.0",
     "gulp-cli": "~0.3.0",
-    "gulp-metascript": "~0.0.3"
+    "gulp-metascript": "~0.0.3",
+    "gulp-header": "~1.7.1",
+    "gulp-chmod": "~1.2.0",
+    "gulp-clean": "~0.3.1"
   },
   "scripts": {
         "test": "grunt build-Release"
