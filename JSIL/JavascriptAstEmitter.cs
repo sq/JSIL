@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Transforms;
 using JSIL.Translator;
@@ -21,7 +22,7 @@ namespace JSIL {
         Do
     }
 
-    public class JavascriptAstEmitter : JSAstVisitor {
+    public class JavascriptAstEmitter : JSAstVisitor, Compiler.Extensibility.IAstEmitter {
         public readonly ITypeInfoSource TypeInfo;
         public readonly JavascriptFormatter Output;
         public readonly Configuration Configuration;
@@ -31,7 +32,9 @@ namespace JSIL {
         public readonly TypeReferenceContext ReferenceContext = new TypeReferenceContext();
 
         // FIXME: Eliminate this by using ast node replacement like type caching does.
-        public SignatureCacher SignatureCacher = null;
+        public SignatureCacher SignatureCacher {
+            get; set;
+        }
 
         protected readonly Dictionary<JSClosureVariable, string> AssignedClosureVariableNames = new Dictionary<JSClosureVariable, string>();
         protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
@@ -57,6 +60,22 @@ namespace JSIL {
             OverflowCheckStack.Push(false);
 
             VisitNestedFunctions = true;
+        }
+
+        TypeSystem IAstEmitter.TypeSystem {
+            get {
+                return TypeSystem;
+            }
+        }
+
+        TypeReferenceContext IAstEmitter.ReferenceContext {
+            get {
+                return ReferenceContext;
+            }
+        }
+
+        void IAstEmitter.Emit (JSNode node) {
+            this.Visit(node);
         }
 
         public void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {

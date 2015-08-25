@@ -17,6 +17,7 @@ using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+using JSIL.Compiler.Extensibility;
 
 using GenericParameterAttributes = Mono.Cecil.GenericParameterAttributes;
 using MethodInfo = JSIL.Internal.MethodInfo;
@@ -100,6 +101,7 @@ namespace JSIL {
         public event Func<MemberReference, bool> MemberCanBeSkipped;
 
         public readonly TypeInfoProvider _TypeInfoProvider;
+        public readonly IEmitterFactory EmitterFactory;
 
         protected bool OwnsAssemblyDataResolver;
         protected bool OwnsTypeInfoProvider;
@@ -127,7 +129,8 @@ namespace JSIL {
             TypeInfoProvider typeInfoProvider = null,
             AssemblyManifest manifest = null,
             AssemblyDataResolver assemblyDataResolver = null,
-            AssemblyLoadedHandler onProxyAssemblyLoaded = null
+            AssemblyLoadedHandler onProxyAssemblyLoaded = null,
+            IEmitterFactory emitterFactory = null
         ) {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
             Warning = (s) =>
@@ -137,6 +140,7 @@ namespace JSIL {
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
             Manifest = manifest ?? new AssemblyManifest();
+            EmitterFactory = emitterFactory ?? new JavascriptEmitterFactory();
 
             OwnsAssemblyDataResolver = (assemblyDataResolver == null);
             AssemblyDataResolver = assemblyDataResolver ?? new AssemblyDataResolver(configuration);
@@ -977,7 +981,7 @@ namespace JSIL {
             var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
             var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, this._TypeInfoProvider, js);
 
-            var astEmitter = new JavascriptAstEmitter(
+            var astEmitter = EmitterFactory.MakeAstEmitter(
                 output, jsil, 
                 context.CurrentModule.TypeSystem, this._TypeInfoProvider,
                 Configuration
@@ -988,7 +992,7 @@ namespace JSIL {
         }
 
         protected void TranslateInterface (
-            DecompilerContext context, JavascriptAstEmitter astEmitter, 
+            DecompilerContext context, IAstEmitter astEmitter, 
             JavascriptFormatter output, TypeDefinition iface
         ) {
             output.Identifier("JSIL.MakeInterface", EscapingMode.None);
@@ -1109,7 +1113,7 @@ namespace JSIL {
             );
         }
 
-        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm, JavascriptAstEmitter astEmitter) {
+        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm, IAstEmitter astEmitter) {
             var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
 
             if (typeInformation == null)
@@ -1166,7 +1170,7 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo, JavascriptAstEmitter astEmitter) {
+        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
             output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
             output.LPar();
 
@@ -1237,7 +1241,7 @@ namespace JSIL {
 
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, JavascriptFormatter output, 
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
             var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
@@ -1637,7 +1641,7 @@ namespace JSIL {
 
         protected Cachers EmitTypeMethodExpressions (
             DecompilerContext context, TypeDefinition typedef,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, JavascriptFormatter output,
             bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             ref int nextDisambiguatedId
         ) {
@@ -1767,7 +1771,7 @@ namespace JSIL {
 
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, JavascriptFormatter output, 
             bool stubbed, JSRawOutputIdentifier dollar, bool makingSkeletons,
             Cachers cachers
         ) {
@@ -2270,7 +2274,7 @@ namespace JSIL {
 
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            IAstEmitter astEmitter, JavascriptFormatter output, 
             MethodDefinition cctor, bool stubbed, JSRawOutputIdentifier dollar,
             Cachers cachers
         ) {
@@ -2468,7 +2472,7 @@ namespace JSIL {
                     var expr = TranslateField(fd, fieldDefaults, false, dollar, fieldSelfIdentifier);
                     if (expr != null) {
                         output.NewLine();
-                        astEmitter.Visit(expr);
+                        astEmitter.Emit(expr);
 
                         TranslateCustomAttributes(context, typedef, fd, astEmitter, output);
 
@@ -2593,7 +2597,7 @@ namespace JSIL {
             DecompilerContext context, 
             TypeReference declaringType,
             Mono.Cecil.ICustomAttributeProvider member, 
-            JavascriptAstEmitter astEmitter, 
+            IAstEmitter astEmitter, 
             JavascriptFormatter output,
             bool standalone = true
         ) {
@@ -2625,7 +2629,8 @@ namespace JSIL {
 
                         output.WriteRaw("function () { return ");
                         output.OpenBracket(false);
-                        astEmitter.CommaSeparatedList(
+                        // HACK: This whole operation should be hoisted elsewhere so it can 
+                        ((JavascriptAstEmitter)astEmitter).CommaSeparatedList(
                             (from ca in constructorArgs
                              select TranslateAttributeConstructorArgument(
                                 astEmitter.TypeSystem, declaringType, ca
@@ -2651,7 +2656,7 @@ namespace JSIL {
             DecompilerContext context,
             TypeReference declaringType,
             MethodDefinition method,
-            JavascriptAstEmitter astEmitter,
+            IAstEmitter astEmitter,
             JavascriptFormatter output
         ) {
             output.Indent();
@@ -2753,7 +2758,7 @@ namespace JSIL {
 
         protected void EmitAndDefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
             JSRawOutputIdentifier dollar, Cachers cachers,
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
@@ -2770,7 +2775,7 @@ namespace JSIL {
 
         protected void EmitMethodBody (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
             Cachers cachers, ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
@@ -2822,7 +2827,7 @@ namespace JSIL {
                     astEmitter.ReferenceContext.EnclosingMethod = method;
 
                     try {
-                        astEmitter.Visit(function);
+                        astEmitter.Emit(function);
                     } catch (Exception exc) {
                         throw new Exception("Error occurred while generating javascript for method '" + method.FullName + "'.", exc);
                     } finally {
@@ -2839,7 +2844,7 @@ namespace JSIL {
 
         private void TranslatePInvokeInfo (
             MethodReference methodRef, MethodDefinition method, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, JavascriptFormatter output
         ) {
             var pii = method.PInvokeInfo;
 
@@ -2917,7 +2922,7 @@ namespace JSIL {
         private void TranslateMarshalInfo (
             MethodReference methodRef, MethodDefinition method,
             Mono.Cecil.ParameterAttributes attributes, MarshalInfo mi, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, JavascriptFormatter output
         ) {
             output.OpenBrace();
 
@@ -2951,7 +2956,7 @@ namespace JSIL {
 
         protected void DefineMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
+            IAstEmitter astEmitter, JavascriptFormatter output, bool stubbed,
             JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
             if (methodInfo == null)
@@ -3096,7 +3101,7 @@ namespace JSIL {
         protected void TranslateOverrides (
             DecompilerContext context, TypeInfo typeInfo,
             MethodDefinition method, MethodInfo methodInfo,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output
+            IAstEmitter astEmitter, JavascriptFormatter output
         ) {
             astEmitter.ReferenceContext.Push();
             try {
@@ -3127,7 +3132,7 @@ namespace JSIL {
 
         protected void TranslateProperty (
             DecompilerContext context, 
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, JavascriptFormatter output,
             PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
             if (ShouldSkipMember(property))
@@ -3173,7 +3178,7 @@ namespace JSIL {
 
         protected void TranslateEvent (
             DecompilerContext context,
-            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
+            IAstEmitter astEmitter, JavascriptFormatter output,
             EventDefinition @event, JSRawOutputIdentifier dollar
         ) {
             if (ShouldSkipMember(@event))
@@ -3247,6 +3252,22 @@ namespace JSIL {
             }
 
             return _CachedSpecialIdentifiers;
+        }
+    }
+
+    public class JavascriptEmitterFactory : IEmitterFactory {
+        public IAssemblyEmitter MakeAssemblyEmitter () {
+            throw new NotImplementedException();
+        }
+
+        public IAstEmitter MakeAstEmitter (
+            JavascriptFormatter output, JSILIdentifier jsil, 
+            TypeSystem typeSystem, ITypeInfoSource typeInfo,
+            Configuration configuration
+        ) {
+            return new JavascriptAstEmitter(
+                output, jsil, typeSystem, typeInfo, configuration
+            );
         }
     }
 }

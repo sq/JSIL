@@ -340,7 +340,7 @@ namespace JSIL.Transforms {
         /// Writes an interface member reference to the output.
         /// </summary>
         public void WriteInterfaceMemberToOutput (
-            JavascriptFormatter output, JavascriptAstEmitter emitter, JSFunctionExpression enclosingFunction,
+            JavascriptFormatter output, Compiler.Extensibility.IAstEmitter astEmitter, JSFunctionExpression enclosingFunction,
             JSMethod jsMethod, JSExpression method,
             TypeReferenceContext referenceContext
         ) {
@@ -363,7 +363,7 @@ namespace JSIL.Transforms {
             if (!Global.InterfaceMembers.TryGetValue(record, out index)) {
                 output.Identifier(jsMethod.Reference.DeclaringType, referenceContext, false);
                 output.Dot();
-                emitter.Visit(method);
+                astEmitter.Emit(method);
             } else
                 output.WriteRaw("$IM{0:X2}()", index);
         }

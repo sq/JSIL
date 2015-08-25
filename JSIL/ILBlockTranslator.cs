@@ -452,10 +452,12 @@ namespace JSIL {
                         TypeSystem.Boolean
                     );
                 } else {
+                    // TODO: Implement ptr * <native-int>
+                    // TODO: Implement ptr & <mask>
                     if (Debugger.IsAttached) {
                         Console.WriteLine("Debugger.Break()");
                         Console.Error.WriteLine("Debugger.Break()");
-                        Debugger.Break();
+                        // Debugger.Break();
                     }
                 }
             } else if (leftIsPointerish && rightIsPointerish) {
@@ -474,7 +476,7 @@ namespace JSIL {
                     if (Debugger.IsAttached) {
                         Console.WriteLine("Debugger.Break()");
                         Console.Error.WriteLine("Debugger.Break()");
-                        Debugger.Break();
+                        // Debugger.Break();
                     }
                 }
             }

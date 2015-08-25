@@ -77,11 +77,13 @@
     <Compile Include="BugChecks.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Extensibility\Emitter.cs" />
     <Compile Include="Extensibility\IAnalyzer.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
     <Compile Include="FunctionTransformPipeline.cs" />
     <Compile Include="HTMLColor.cs" />
+    <Compile Include="JavascriptAssemblyEmitter.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />
