@@ -1044,13 +1044,7 @@ namespace JSIL {
                     }
                 }
 
-                output.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
-                output.NewLine();
-                output.NewLine();
-
-                output.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
-                output.Indent();
-                output.NewLine();
+                assemblyEmitter.BeginEmitTypeDeclaration(typedef);
 
                 JSRawOutputIdentifier dollar = new JSRawOutputIdentifier(astEmitter.TypeSystem.Object, "$");
                 int nextDisambiguatedId = 0;
@@ -1058,123 +1052,9 @@ namespace JSIL {
                     context, typedef, astEmitter, assemblyEmitter, stubbed, dollar, ref nextDisambiguatedId
                 );
 
-                bool isStatic = typedef.IsAbstract && typedef.IsSealed;
-
-                if (isStatic) {
-                    output.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
-                    output.LPar();
-
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-                    output.Comma();
-                    output.Value(typedef.IsPublic);
-
-                    output.Comma();
-                    output.OpenBracket();
-                    if (typedef.HasGenericParameters)
-                        WriteGenericParameterNames(output, typedef.GenericParameters);
-                    output.CloseBracket();
-
-                } else {
-                    output.Identifier("JSIL.MakeType", EscapingMode.None);
-
-                    output.LPar();
-                    output.OpenBrace();
-
-                    output.WriteRaw("BaseType: ");
-
-                    if (baseClass == null) {
-                        if (typedef.FullName != "System.Object") {
-                            throw new InvalidDataException(String.Format(
-                                "Type '{0}' has no base class and isn't System.Object.",
-                                typedef.FullName
-                            ));
-                        }
-
-                        output.Identifier("$jsilcore");
-                        output.Dot();
-                        output.Identifier("TypeRef");
-                        output.LPar();
-                        output.Value("System.Object");
-                        output.RPar();
-                    } else if (typedef.FullName == "System.ValueType") {
-                        output.Identifier("$jsilcore");
-                        output.Dot();
-                        output.Identifier("TypeRef");
-                        output.LPar();
-                        output.Value("System.ValueType");
-                        output.RPar();
-                    } else {
-                        output.TypeReference(baseClass, astEmitter.ReferenceContext);
-                    }
-
-                    output.Comma();
-                    output.NewLine();
-
-                    output.WriteRaw("Name: ");
-                    output.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
-                    output.Comma();
-                    output.NewLine();
-
-                    output.WriteRaw("IsPublic: ");
-                    output.Value(typedef.IsPublic);
-                    output.Comma();
-                    output.NewLine();
-
-                    output.WriteRaw("IsReferenceType: ");
-                    output.Value(!typedef.IsValueType);
-                    output.Comma();
-                    output.NewLine();
-
-                    if (typedef.HasGenericParameters) {
-                        output.WriteRaw("GenericParameters: ");
-                        output.OpenBracket();
-                        WriteGenericParameterNames(output, typedef.GenericParameters);
-                        output.CloseBracket();
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    var constructors = typedef.Methods.Where((m) => m.IsConstructor).ToList();
-                    if ((constructors.Count != 0) || typedef.IsValueType) {
-                        output.WriteRaw("MaximumConstructorArguments: ");
-
-                        if (typedef.IsValueType && (constructors.Count == 0))
-                            output.Value(0);
-                        else
-                            output.Value(constructors.Max((m) => m.Parameters.Count));
-
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    if (typedef.IsExplicitLayout) {
-                        output.WriteRaw("ExplicitLayout: true");
-                        output.Comma();
-                        output.NewLine();
-                    } else if (typedef.IsSequentialLayout) {
-                        output.WriteRaw("SequentialLayout: true");
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    if (typedef.HasLayoutInfo) {
-                        if (typedef.PackingSize != 0) {
-                            output.WriteRaw("Pack: ");
-                            output.Value(typedef.PackingSize);
-                            output.Comma();
-                            output.NewLine();
-                        }
-
-                        if (typedef.ClassSize != 0) {
-                            output.WriteRaw("SizeBytes: ");
-                            output.Value(typedef.ClassSize);
-                            output.Comma();
-                            output.NewLine();
-                        }
-                    }
-
-                    output.CloseBrace(false);
-                }
+                assemblyEmitter.BeginEmitTypeDefinition(
+                    astEmitter, typedef, typeInfo, baseClass
+                );
 
                 astEmitter.ReferenceContext.Push();
                 astEmitter.ReferenceContext.EnclosingType = typedef;
@@ -1185,7 +1065,7 @@ namespace JSIL {
 
                     output.Comma();
                     output.OpenFunction(null, (f) => 
-                        f.Identifier("$interfaceBuilder")
+                        f.Identifier("$")
                     );
 
                     TranslateTypeDefinition(
@@ -1412,13 +1292,10 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
-            output.WriteRaw("$ = $interfaceBuilder");
-            output.Semicolon(true);
-
             context.CurrentType = typedef;
 
             if (typedef.IsPrimitive)
-                TranslatePrimitiveDefinition(context, assemblyEmitter, typedef, stubbed, dollar);
+                assemblyEmitter.EmitPrimitiveDefinition(context, typedef, stubbed, dollar);
 
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 

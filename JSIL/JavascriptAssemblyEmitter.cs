@@ -704,9 +704,8 @@ namespace JSIL {
             return true;
         }
 
-        protected void EmitPrimitiveDefinition (
-            DecompilerContext context, IAssemblyEmitter assemblyEmitter,
-            TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
+        public void EmitPrimitiveDefinition (
+            DecompilerContext context, TypeDefinition typedef, bool stubbed, JSRawOutputIdentifier dollar
         ) {
             bool isIntegral = false;
             bool isNumeric = false;
@@ -770,7 +769,7 @@ namespace JSIL {
             Formatter.NewLine();
         }
 
-        protected void EmitProperty (
+        public void EmitProperty (
             DecompilerContext context, IAstEmitter astEmitter,
             PropertyDefinition property, JSRawOutputIdentifier dollar
         ) {
@@ -813,7 +812,7 @@ namespace JSIL {
             Formatter.Semicolon();
         }
 
-        protected void EmitEvent (
+        public void EmitEvent (
             DecompilerContext context, IAstEmitter astEmitter, 
             EventDefinition @event, JSRawOutputIdentifier dollar
         ) {
@@ -854,6 +853,140 @@ namespace JSIL {
             EmitCustomAttributes(context, @event.DeclaringType, @event, astEmitter);
 
             Formatter.Semicolon();
+        }
+
+        public void BeginEmitTypeDeclaration (TypeDefinition typedef) {
+            Formatter.Comment("{0} {1}", typedef.IsValueType ? "struct" : "class", Util.DemangleCecilTypeName(typedef.FullName));
+            Formatter.NewLine();
+            Formatter.NewLine();
+
+            Formatter.WriteRaw("(function {0}$Members () {{", Util.EscapeIdentifier(typedef.Name));
+            Formatter.Indent();
+            Formatter.NewLine();
+        }
+
+        public void BeginEmitTypeDefinition (
+            IAstEmitter astEmitter, 
+            TypeDefinition typedef, TypeInfo typeInfo,
+            TypeReference baseClass
+        ) {
+            bool isStaticClass = typedef.IsAbstract && typedef.IsSealed;
+
+            if (isStaticClass) {
+                Formatter.Identifier("JSIL.MakeStaticClass", EscapingMode.None);
+                Formatter.LPar();
+
+                Formatter.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
+                Formatter.Comma();
+                Formatter.Value(typedef.IsPublic);
+
+                Formatter.Comma();
+                Formatter.OpenBracket();
+                if (typedef.HasGenericParameters)
+                    WriteGenericParameterNames(typedef.GenericParameters);
+                Formatter.CloseBracket();
+
+            } else {
+                Formatter.Identifier("JSIL.MakeType", EscapingMode.None);
+
+                Formatter.LPar();
+                Formatter.OpenBrace();
+
+                Formatter.WriteRaw("BaseType: ");
+
+                if (baseClass == null) {
+                    if (typedef.FullName != "System.Object") {
+                        throw new InvalidDataException(String.Format(
+                            "Type '{0}' has no base class and isn't System.Object.",
+                            typedef.FullName
+                        ));
+                    }
+
+                    Formatter.Identifier("$jsilcore");
+                    Formatter.Dot();
+                    Formatter.Identifier("TypeRef");
+                    Formatter.LPar();
+                    Formatter.Value("System.Object");
+                    Formatter.RPar();
+                } else if (typedef.FullName == "System.ValueType") {
+                    Formatter.Identifier("$jsilcore");
+                    Formatter.Dot();
+                    Formatter.Identifier("TypeRef");
+                    Formatter.LPar();
+                    Formatter.Value("System.ValueType");
+                    Formatter.RPar();
+                } else {
+                    Formatter.TypeReference(baseClass, astEmitter.ReferenceContext);
+                }
+
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                Formatter.WriteRaw("Name: ");
+                Formatter.Value(Util.DemangleCecilTypeName(typeInfo.FullName));
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                Formatter.WriteRaw("IsPublic: ");
+                Formatter.Value(typedef.IsPublic);
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                Formatter.WriteRaw("IsReferenceType: ");
+                Formatter.Value(!typedef.IsValueType);
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                if (typedef.HasGenericParameters) {
+                    Formatter.WriteRaw("GenericParameters: ");
+                    Formatter.OpenBracket();
+                    WriteGenericParameterNames(typedef.GenericParameters);
+                    Formatter.CloseBracket();
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                }
+
+                var constructors = typedef.Methods.Where((m) => m.IsConstructor).ToList();
+                if ((constructors.Count != 0) || typedef.IsValueType) {
+                    Formatter.WriteRaw("MaximumConstructorArguments: ");
+
+                    if (typedef.IsValueType && (constructors.Count == 0))
+                        Formatter.Value(0);
+                    else
+                        Formatter.Value(constructors.Max((m) => m.Parameters.Count));
+
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                }
+
+                if (typedef.IsExplicitLayout) {
+                    Formatter.WriteRaw("ExplicitLayout: true");
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                } else if (typedef.IsSequentialLayout) {
+                    Formatter.WriteRaw("SequentialLayout: true");
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                }
+
+                if (typedef.HasLayoutInfo) {
+                    if (typedef.PackingSize != 0) {
+                        Formatter.WriteRaw("Pack: ");
+                        Formatter.Value(typedef.PackingSize);
+                        Formatter.Comma();
+                        Formatter.NewLine();
+                    }
+
+                    if (typedef.ClassSize != 0) {
+                        Formatter.WriteRaw("SizeBytes: ");
+                        Formatter.Value(typedef.ClassSize);
+                        Formatter.Comma();
+                        Formatter.NewLine();
+                    }
+                }
+
+                Formatter.CloseBrace(false);
+            }
         }
     }
 }
