@@ -9577,19 +9577,27 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
   var memberType = memberInfo.GetType().get_FullName();
 
   if (inherit) {
-    if (memberType !== "System.RuntimeType")
-      throw new System.NotImplementedException("Inherited attributes only supported for types");
-
     if (!result)
       result = [];
 
-    var currentType = memberInfo;
-    while (currentType && currentType.GetType) {
-      JSIL.GetMemberAttributes(currentType, false, attributeType, result);
-      currentType = currentType.__BaseType__;
-    }
+    if (memberType === "System.RuntimeType") {
+      var currentType = memberInfo;
+      while (currentType && currentType.GetType) {
+        JSIL.GetMemberAttributes(currentType, false, attributeType, result);
+        currentType = currentType.__BaseType__;
+      }
 
-    return result;
+      return result;
+    } else if (memberType === "System.Reflection.MethodInfo" && memberInfo._descriptor.Virtual) {
+      var currentType = memberInfo.get_DeclaringType();
+      while (currentType && currentType.GetType) {
+        var foundMethod = JSIL.GetMethodInfo(currentType.__PublicInterface__, memberInfo.get_Name(), memberInfo._data.signature, false, null);
+        if (foundMethod != null) {
+          JSIL.GetMemberAttributes(foundMethod, false, attributeType, result);
+        }
+        currentType = currentType.__BaseType__;
+      }
+    }
   }
 
   var attributes = memberInfo.__CachedAttributes__;

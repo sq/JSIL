@@ -68,7 +68,7 @@
       <HintPath>..\packages\NUnitTestAdapter.2.0.0\lib\nunit.core.interfaces.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL" >
+    <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
@@ -296,6 +296,7 @@
     <None Include="SpecialTestCases\TranslateMethodInStubbedType.cs" />
     <None Include="FailingTestCases\DelegateMethod_ResolveInterface_Issue604.cs" />
     <None Include="PerformanceTestCases\GenericMethodCalls.cs" />
+    <None Include="ReflectionTestCases\GetInheritedAttributesFromMethods.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
