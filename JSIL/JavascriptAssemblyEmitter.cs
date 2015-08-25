@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ICSharpCode.Decompiler;
+using JSIL.Ast;
 using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Translator;
@@ -275,8 +277,7 @@ namespace JSIL {
             DecompilerContext context,
             TypeReference declaringType,
             MethodDefinition method,
-            IAstEmitter astEmitter,
-            IAssemblyEmitter assemblyEmitter
+            IAstEmitter astEmitter
         ) {
             Formatter.Indent();
 
@@ -321,7 +322,7 @@ namespace JSIL {
 
             bool isExternal, isReplaced, methodIsProxied;
 
-            if (!ShouldTranslateMethodBody(
+            if (!Translator.ShouldTranslateMethodBody(
                 method, methodInfo, stubbed,
                 out isExternal, out isReplaced, out methodIsProxied
             ))
@@ -342,85 +343,85 @@ namespace JSIL {
                 Configuration.CodeGenerator.AutoGenerateEventAccessorsInSkeletons.GetValueOrDefault(true)
             ) {
                 if (method.Name.StartsWith("add_")) {
-                    output.WriteRaw("$.MakeEventAccessors");
-                    output.LPar();
-                    output.NewLine();
-                    output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
-                    output.Comma();
-                    output.Value(methodInfo.DeclaringEvent.Name);
-                    output.Comma();
-                    output.NewLine();
-                    output.TypeReference(methodInfo.DeclaringEvent.ReturnType, astEmitter.ReferenceContext);
-                    output.NewLine();
-                    output.RPar();
-                    output.Semicolon();
-                    output.NewLine();
+                    Formatter.WriteRaw("$.MakeEventAccessors");
+                    Formatter.LPar();
+                    Formatter.NewLine();
+                    Formatter.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
+                    Formatter.Comma();
+                    Formatter.Value(methodInfo.DeclaringEvent.Name);
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                    Formatter.TypeReference(methodInfo.DeclaringEvent.ReturnType, astEmitter.ReferenceContext);
+                    Formatter.NewLine();
+                    Formatter.RPar();
+                    Formatter.Semicolon();
+                    Formatter.NewLine();
                 }
 
                 return;
             }
 
-            JSFunctionExpression function = GetFunctionBodyForMethod(
+            JSFunctionExpression function = Translator.GetFunctionBodyForMethod(
                 isExternal, methodInfo
             );
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
 
-            output.NewLine();
+            Formatter.NewLine();
 
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
             try {
-                dollar.WriteTo(output);
-                output.Dot();
+                dollar.WriteTo(Formatter);
+                Formatter.Dot();
                 if (methodInfo.IsPInvoke)
                     // FIXME: Write out dll name from DllImport
                     // FIXME: Write out alternate method name if provided
-                    output.Identifier("PInvokeMethod", EscapingMode.None);
+                    Formatter.Identifier("PInvokeMethod", EscapingMode.None);
                 else if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
-                    output.Identifier("ExternalMethod", EscapingMode.None);
+                    Formatter.Identifier("ExternalMethod", EscapingMode.None);
                 else
-                    output.Identifier("Method", EscapingMode.None);
-                output.LPar();
+                    Formatter.Identifier("Method", EscapingMode.None);
+                Formatter.LPar();
 
                 // FIXME: Include IsVirtual?
-                output.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
+                Formatter.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
 
-                output.Comma();
-                output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
+                Formatter.Comma();
+                Formatter.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
 
-                output.Comma();
-                output.NewLine();
+                Formatter.Comma();
+                Formatter.NewLine();
 
-                output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
+                Formatter.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
-                    output.Comma();
-                    output.NewLine();
-                    TranslatePInvokeInfo(
-                        methodRef, method, astEmitter, assemblyEmitter
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                    EmitPInvokeInfo(
+                        methodRef, method, astEmitter
                     );
                 } else if (!isExternal) {
-                    output.Comma();
-                    output.NewLine();
+                    Formatter.Comma();
+                    Formatter.NewLine();
 
                     if (function != null) {
-                        output.WriteRaw(Util.EscapeIdentifier(function.DisplayName));
+                        Formatter.WriteRaw(Util.EscapeIdentifier(function.DisplayName));
                     } else {
-                        output.Identifier("JSIL.UntranslatableFunction", EscapingMode.None);
-                        output.LPar();
-                        output.Value(method.FullName);
-                        output.RPar();
+                        Formatter.Identifier("JSIL.UntranslatableFunction", EscapingMode.None);
+                        Formatter.LPar();
+                        Formatter.Value(method.FullName);
+                        Formatter.RPar();
                     }
                 } else if (makeSkeleton) {
-                    output.Comma();
-                    output.NewLine();
+                    Formatter.Comma();
+                    Formatter.NewLine();
 
-                    output.OpenFunction(
+                    Formatter.OpenFunction(
                         methodInfo.Name,
-                        (o) => output.WriteParameterList(
+                        (o) => Formatter.WriteParameterList(
                             (from gpn in methodInfo.GenericParameterNames
                              select
                                  new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
@@ -430,29 +431,295 @@ namespace JSIL {
                         )
                     );
 
-                    output.WriteRaw("throw new Error('Not implemented');");
-                    output.NewLine();
+                    Formatter.WriteRaw("throw new Error('Not implemented');");
+                    Formatter.NewLine();
 
-                    output.CloseBrace(false);
+                    Formatter.CloseBrace(false);
                 }
 
-                output.NewLine();
-                output.RPar();
+                Formatter.NewLine();
+                Formatter.RPar();
 
                 astEmitter.ReferenceContext.AttributesMethod = methodRef;
 
-                TranslateOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter, assemblyEmitter);
+                EmitOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter);
 
                 if (!makeSkeleton)
-                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
+                    TranslateCustomAttributes(context, method.DeclaringType, method, astEmitter);
 
                 if (!makeSkeleton)
-                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
+                    TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter);
 
-                output.Semicolon();
+                Formatter.Semicolon();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
+        }
+
+        protected void EmitOverrides (
+            DecompilerContext context, TypeInfo typeInfo,
+            MethodDefinition method, MethodInfo methodInfo,
+            IAstEmitter astEmitter
+        ) {
+            astEmitter.ReferenceContext.Push();
+            try {
+                astEmitter.ReferenceContext.EnclosingType = null;
+                astEmitter.ReferenceContext.DefiningType = null;
+
+                Formatter.Indent();
+
+                foreach (var @override in methodInfo.Overrides) {
+                    Formatter.NewLine();
+                    Formatter.Dot();
+                    Formatter.Identifier("Overrides");
+                    Formatter.LPar();
+
+                    Formatter.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);
+
+                    Formatter.Comma();
+                    Formatter.Value(@override.MemberIdentifier.Name);
+
+                    Formatter.RPar();
+                }
+
+                Formatter.Unindent();
+            } finally {
+                astEmitter.ReferenceContext.Pop();
+            }
+        }
+
+        private void EmitPInvokeInfo (
+            MethodReference methodRef, MethodDefinition method, 
+            IAstEmitter astEmitter
+        ) {
+            var pii = method.PInvokeInfo;
+
+            Formatter.OpenBrace();
+
+            if (pii != null) {
+                Formatter.WriteRaw("Module: ");
+                Formatter.Value(pii.Module.Name);
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                if (pii.IsCharSetAuto) {
+                    Formatter.WriteRaw("CharSet: 'auto',");
+                    Formatter.NewLine();
+                } else if (pii.IsCharSetUnicode) {
+                    Formatter.WriteRaw("CharSet: 'unicode',");
+                    Formatter.NewLine();
+                } else if (pii.IsCharSetAnsi) {
+                    Formatter.WriteRaw("CharSet: 'ansi',");
+                    Formatter.NewLine();
+                }
+
+                if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
+                    Formatter.WriteRaw("EntryPoint: ");
+                    Formatter.Value(pii.EntryPoint);
+                    Formatter.Comma();
+                    Formatter.NewLine();
+                }
+            }
+
+            bool isArgsDictOpen = false;
+
+            foreach (var p in method.Parameters) {
+                if (p.HasMarshalInfo) {
+                    if (!isArgsDictOpen) {
+                        isArgsDictOpen = true;
+                        Formatter.WriteRaw("Parameters: ");
+                        Formatter.OpenBracket(true);
+                    } else {
+                        Formatter.Comma();
+                        Formatter.NewLine();
+                    }
+
+                    EmitMarshalInfo(
+                        methodRef, method,
+                        p.Attributes, p.MarshalInfo, 
+                        astEmitter
+                    );
+                } else if (isArgsDictOpen) {
+                    Formatter.WriteRaw(", null");
+                    Formatter.NewLine();
+                }
+            }
+
+            if (isArgsDictOpen)
+                Formatter.CloseBracket(true);
+
+            if (method.MethodReturnType.HasMarshalInfo) {
+                if (isArgsDictOpen)
+                    Formatter.Comma();
+
+                Formatter.WriteRaw("Result: ");
+
+                EmitMarshalInfo(
+                    methodRef, method,
+                    method.MethodReturnType.Attributes, method.MethodReturnType.MarshalInfo, 
+                    astEmitter
+                );
+                Formatter.NewLine();
+            }
+
+            Formatter.CloseBrace(false);
+        }
+
+        private void EmitMarshalInfo (
+            MethodReference methodRef, MethodDefinition method,
+            Mono.Cecil.ParameterAttributes attributes, MarshalInfo mi, 
+            IAstEmitter astEmitter
+        ) {
+            Formatter.OpenBrace();
+
+            if (mi.NativeType == NativeType.CustomMarshaler) {
+                var cmi = (CustomMarshalInfo)mi;
+
+                Formatter.WriteRaw("CustomMarshaler: ");
+                Formatter.TypeReference(cmi.ManagedType, astEmitter.ReferenceContext);
+
+                if (cmi.Cookie != null) {
+                    Formatter.Comma();
+                    Formatter.WriteRaw("Cookie: ");
+                    Formatter.Value(cmi.Cookie);
+                }
+            } else {
+                Formatter.WriteRaw("NativeType: ");
+                Formatter.Value(mi.NativeType.ToString());
+            }
+
+            if (attributes.HasFlag(Mono.Cecil.ParameterAttributes.Out)) {
+                Formatter.Comma();
+                Formatter.NewLine();
+                Formatter.WriteRaw("Out: true");
+                Formatter.NewLine();
+            } else {
+                Formatter.NewLine();
+            }
+
+            Formatter.CloseBrace(false);
+        }
+
+        protected void EmitEnum (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition enm, IAstEmitter astEmitter) {
+            var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
+
+            if (typeInformation == null)
+                throw new InvalidDataException(String.Format(
+                    "No type information for enum '{0}'!",
+                    enm.FullName
+                ));
+
+            Formatter.Identifier("JSIL.MakeEnum", EscapingMode.None);
+            Formatter.LPar();
+            Formatter.NewLine();
+
+            Formatter.OpenBrace();
+
+            Formatter.WriteRaw("FullName: ");
+            Formatter.Value(Util.DemangleCecilTypeName(typeInformation.FullName));
+            Formatter.Comma();
+            Formatter.NewLine();
+
+            Formatter.WriteRaw("BaseType: ");
+            // FIXME: Will this work on Mono?
+            Formatter.TypeReference(enm.Fields.First(f => f.Name == "value__").FieldType, astEmitter.ReferenceContext);
+            Formatter.Comma();
+            Formatter.NewLine();
+
+            Formatter.WriteRaw("IsPublic: ");
+            Formatter.Value(enm.IsPublic);
+            Formatter.Comma();
+            Formatter.NewLine();
+
+            Formatter.WriteRaw("IsFlags: ");
+            Formatter.Value(typeInformation.IsFlagsEnum);
+            Formatter.Comma();
+            Formatter.NewLine();
+
+            Formatter.CloseBrace(false);
+            Formatter.Comma();
+            Formatter.NewLine();
+
+            Formatter.OpenBrace();
+
+            foreach (var em in typeInformation.EnumMembers.Values.OrderBy((em) => em.Value)) {
+                Formatter.Identifier(em.Name);
+                Formatter.WriteRaw(": ");
+                Formatter.Value(em.Value);
+                Formatter.Comma();
+                Formatter.NewLine();
+            }
+
+            Formatter.CloseBrace();
+
+            Formatter.RPar();
+            Formatter.Semicolon();
+            Formatter.NewLine();
+        }
+
+        protected void EmitDelegate (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
+            Formatter.Identifier("JSIL.MakeDelegate", EscapingMode.None);
+            Formatter.LPar();
+
+            Formatter.Value(Util.DemangleCecilTypeName(del.FullName));
+            Formatter.Comma();
+
+            Formatter.Value(del.IsPublic);
+
+            Formatter.Comma();
+            Formatter.OpenBracket();
+            if (del.HasGenericParameters)
+                WriteGenericParameterNames(del.GenericParameters);
+            Formatter.CloseBracket();
+
+            var invokeMethod = del.Methods.FirstOrDefault(method => method.Name == "Invoke");
+            if (invokeMethod != null)
+            {
+                Formatter.Comma();
+                Formatter.NewLine();
+
+                astEmitter.ReferenceContext.Push();
+                astEmitter.ReferenceContext.DefiningType = del;
+                try
+                {
+                    Formatter.MethodSignature(invokeMethod,
+                                           typeInfo.MethodSignatures.GetOrCreateFor("Invoke").First(),
+                                           astEmitter.ReferenceContext);
+
+                }
+                finally
+                {
+                    astEmitter.ReferenceContext.Pop();
+                }
+
+                if (
+                    invokeMethod.HasPInvokeInfo || 
+                    invokeMethod.MethodReturnType.HasMarshalInfo ||
+                    invokeMethod.Parameters.Any(p => p.HasMarshalInfo)
+                ) {
+                    Formatter.Comma();
+                    EmitPInvokeInfo(invokeMethod, invokeMethod, astEmitter);
+                    Formatter.NewLine();
+                }
+            }
+
+            Formatter.RPar();
+            Formatter.Semicolon();
+            Formatter.NewLine();
+        }
+
+        public void DeclareTypeAlias (TypeDefinition typedef) {
+            Formatter.WriteRaw("JSIL.MakeTypeAlias");
+            Formatter.LPar();
+
+            Formatter.WriteRaw("$jsilcore");
+            Formatter.Comma();
+
+            Formatter.Value(Util.DemangleCecilTypeName(typedef.FullName));
+
+            Formatter.RPar();
+            Formatter.Semicolon();
+            Formatter.NewLine();
         }
     }
 }

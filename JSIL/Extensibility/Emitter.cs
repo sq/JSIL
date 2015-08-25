@@ -30,6 +30,7 @@ namespace JSIL.Compiler.Extensibility {
             JSILIdentifier jsil, TypeSystem typeSystem, 
             TypeInfoProvider typeInfoProvider, Configuration configuration
         );
+        void DeclareTypeAlias (TypeDefinition typedef);
     }
 
     public interface IAstEmitter {

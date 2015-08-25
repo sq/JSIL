@@ -955,114 +955,6 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
         }
 
-        protected void TranslateEnum (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition enm, IAstEmitter astEmitter) {
-            var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
-
-            if (typeInformation == null)
-                throw new InvalidDataException(String.Format(
-                    "No type information for enum '{0}'!",
-                    enm.FullName
-                ));
-
-            output.Identifier("JSIL.MakeEnum", EscapingMode.None);
-            output.LPar();
-            output.NewLine();
-
-            output.OpenBrace();
-
-            output.WriteRaw("FullName: ");
-            output.Value(Util.DemangleCecilTypeName(typeInformation.FullName));
-            output.Comma();
-            output.NewLine();
-
-            output.WriteRaw("BaseType: ");
-            // FIXME: Will this work on Mono?
-            output.TypeReference(enm.Fields.First(f => f.Name == "value__").FieldType, astEmitter.ReferenceContext);
-            output.Comma();
-            output.NewLine();
-
-            output.WriteRaw("IsPublic: ");
-            output.Value(enm.IsPublic);
-            output.Comma();
-            output.NewLine();
-
-            output.WriteRaw("IsFlags: ");
-            output.Value(typeInformation.IsFlagsEnum);
-            output.Comma();
-            output.NewLine();
-
-            output.CloseBrace(false);
-            output.Comma();
-            output.NewLine();
-
-            output.OpenBrace();
-
-            foreach (var em in typeInformation.EnumMembers.Values.OrderBy((em) => em.Value)) {
-                output.Identifier(em.Name);
-                output.WriteRaw(": ");
-                output.Value(em.Value);
-                output.Comma();
-                output.NewLine();
-            }
-
-            output.CloseBrace();
-
-            output.RPar();
-            output.Semicolon();
-            output.NewLine();
-        }
-
-        protected void TranslateDelegate (DecompilerContext context, IAssemblyEmitter assemblyEmitter, TypeDefinition del, TypeInfo typeInfo, IAstEmitter astEmitter) {
-            output.Identifier("JSIL.MakeDelegate", EscapingMode.None);
-            output.LPar();
-
-            output.Value(Util.DemangleCecilTypeName(del.FullName));
-            output.Comma();
-
-            output.Value(del.IsPublic);
-
-            output.Comma();
-            output.OpenBracket();
-            if (del.HasGenericParameters)
-                WriteGenericParameterNames(output, del.GenericParameters);
-            output.CloseBracket();
-
-            var invokeMethod = del.Methods.FirstOrDefault(method => method.Name == "Invoke");
-            if (invokeMethod != null)
-            {
-                output.Comma();
-                output.NewLine();
-
-                astEmitter.ReferenceContext.Push();
-                astEmitter.ReferenceContext.DefiningType = del;
-                try
-                {
-                    output.MethodSignature(invokeMethod,
-                                           typeInfo.MethodSignatures.GetOrCreateFor("Invoke").First(),
-                                           astEmitter.ReferenceContext);
-
-                }
-                finally
-                {
-                    astEmitter.ReferenceContext.Pop();
-                }
-
-                if (
-                    invokeMethod.HasPInvokeInfo || 
-                    invokeMethod.MethodReturnType.HasMarshalInfo ||
-                    invokeMethod.Parameters.Any(p => p.HasMarshalInfo)
-                ) {
-                    output.Comma();
-                    TranslatePInvokeInfo(invokeMethod, invokeMethod, astEmitter, assemblyEmitter);
-                    output.NewLine();
-                }
-            }
-
-            output.RPar();
-            output.Semicolon();
-            output.NewLine();
-        }
-
         protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef, bool makingSkeletons) {
             if (TypeDeclarationsToSuppress.Contains(typedef.FullName) && !makingSkeletons)
                 return false;
@@ -1105,18 +997,7 @@ namespace JSIL {
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
             if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
-                output.WriteRaw("JSIL.MakeTypeAlias");
-                output.LPar();
-
-                output.WriteRaw("$jsilcore");
-                output.Comma();
-
-                output.Value(Util.DemangleCecilTypeName(typedef.FullName));
-
-
-                output.RPar();
-                output.Semicolon();
-                output.NewLine();
+                assemblyEmitter.DeclareTypeAlias(typedef);
 
                 declareOnlyInternalTypes = true;
             }
@@ -2434,6 +2315,7 @@ namespace JSIL {
                 }
             }
         }
+
         protected void CreateMethodInformation (
             MethodInfo methodInfo, bool stubbed,
             out bool isExternal, out bool isJSReplaced, 
@@ -2446,7 +2328,7 @@ namespace JSIL {
             isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
         }
 
-        protected bool ShouldTranslateMethodBody (
+        internal bool ShouldTranslateMethodBody (
             MethodDefinition method, MethodInfo methodInfo, bool stubbed,
             out bool isExternal, out bool isJSReplaced,
             out bool methodIsProxied
@@ -2487,7 +2369,7 @@ namespace JSIL {
             return true;
         }
 
-        protected JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {
+        internal JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {
             if (!isExternal) {
                 return FunctionCache.GetExpression(new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier,
@@ -2582,118 +2464,6 @@ namespace JSIL {
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
-        }
-
-        private void TranslatePInvokeInfo (
-            MethodReference methodRef, MethodDefinition method, 
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
-        ) {
-            var pii = method.PInvokeInfo;
-
-            output.OpenBrace();
-
-            if (pii != null) {
-                output.WriteRaw("Module: ");
-                output.Value(pii.Module.Name);
-                output.Comma();
-                output.NewLine();
-
-                if (pii.IsCharSetAuto) {
-                    output.WriteRaw("CharSet: 'auto',");
-                    output.NewLine();
-                } else if (pii.IsCharSetUnicode) {
-                    output.WriteRaw("CharSet: 'unicode',");
-                    output.NewLine();
-                } else if (pii.IsCharSetAnsi) {
-                    output.WriteRaw("CharSet: 'ansi',");
-                    output.NewLine();
-                }
-
-                if ((pii.EntryPoint != null) && (pii.EntryPoint != method.Name)) {
-                    output.WriteRaw("EntryPoint: ");
-                    output.Value(pii.EntryPoint);
-                    output.Comma();
-                    output.NewLine();
-                }
-            }
-
-            bool isArgsDictOpen = false;
-
-            foreach (var p in method.Parameters) {
-                if (p.HasMarshalInfo) {
-                    if (!isArgsDictOpen) {
-                        isArgsDictOpen = true;
-                        output.WriteRaw("Parameters: ");
-                        output.OpenBracket(true);
-                    } else {
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    TranslateMarshalInfo(
-                        methodRef, method,
-                        p.Attributes, p.MarshalInfo, 
-                        astEmitter, assemblyEmitter
-                    );
-                } else if (isArgsDictOpen) {
-                    output.WriteRaw(", null");
-                    output.NewLine();
-                }
-            }
-
-            if (isArgsDictOpen)
-                output.CloseBracket(true);
-
-            if (method.MethodReturnType.HasMarshalInfo) {
-                if (isArgsDictOpen)
-                    output.Comma();
-
-                output.WriteRaw("Result: ");
-
-                TranslateMarshalInfo(
-                    methodRef, method,
-                    method.MethodReturnType.Attributes, method.MethodReturnType.MarshalInfo, 
-                    astEmitter, assemblyEmitter
-                );
-                output.NewLine();
-            }
-
-            output.CloseBrace(false);
-        }
-
-        private void TranslateMarshalInfo (
-            MethodReference methodRef, MethodDefinition method,
-            Mono.Cecil.ParameterAttributes attributes, MarshalInfo mi, 
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
-        ) {
-            output.OpenBrace();
-
-            if (mi.NativeType == NativeType.CustomMarshaler) {
-                var cmi = (CustomMarshalInfo)mi;
-
-                output.WriteRaw("CustomMarshaler: ");
-                output.TypeReference(cmi.ManagedType, astEmitter.ReferenceContext);
-
-                if (cmi.Cookie != null) {
-                    output.Comma();
-                    output.WriteRaw("Cookie: ");
-                    output.Value(cmi.Cookie);
-                }
-            } else {
-                output.WriteRaw("NativeType: ");
-                output.Value(mi.NativeType.ToString());
-            }
-
-            if (attributes.HasFlag(Mono.Cecil.ParameterAttributes.Out)) {
-                output.Comma();
-                output.NewLine();
-                output.WriteRaw("Out: true");
-                output.NewLine();
-            } else {
-                output.NewLine();
-            }
-
-            output.CloseBrace(false);
         }
 
         protected void DefineMethod (
@@ -2835,38 +2605,6 @@ namespace JSIL {
                     TranslateParameterAttributes(context, method.DeclaringType, method, astEmitter, assemblyEmitter);
 
                 output.Semicolon();
-            } finally {
-                astEmitter.ReferenceContext.Pop();
-            }
-        }
-
-        protected void TranslateOverrides (
-            DecompilerContext context, TypeInfo typeInfo,
-            MethodDefinition method, MethodInfo methodInfo,
-            IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter
-        ) {
-            astEmitter.ReferenceContext.Push();
-            try {
-                astEmitter.ReferenceContext.EnclosingType = null;
-                astEmitter.ReferenceContext.DefiningType = null;
-
-                output.Indent();
-
-                foreach (var @override in methodInfo.Overrides) {
-                    output.NewLine();
-                    output.Dot();
-                    output.Identifier("Overrides");
-                    output.LPar();
-
-                    output.TypeReference(@override.InterfaceType, astEmitter.ReferenceContext);
-
-                    output.Comma();
-                    output.Value(@override.MemberIdentifier.Name);
-
-                    output.RPar();
-                }
-
-                output.Unindent();
             } finally {
                 astEmitter.ReferenceContext.Pop();
             }
