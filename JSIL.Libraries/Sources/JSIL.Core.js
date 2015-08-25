@@ -1015,7 +1015,13 @@ JSIL.ResolvedName.prototype.setLazy = function (getter) {
   JSIL.SetLazyValueProperty(this.parent, this.key, getter);
 };
 JSIL.ResolvedName.prototype.define = function (declaration) {
-  Object.defineProperty(this.parent, this.key, declaration);
+  var target = this.parent;
+
+  var isWindow = (Object.getPrototypeOf(target) === Object.getPrototypeOf(JSIL.GlobalNamespace));
+  if (isWindow && "configurable" in declaration)
+    delete declaration["configurable"];  
+
+  Object.defineProperty(target, this.key, declaration);
 
   var descriptor = Object.getOwnPropertyDescriptor(this.parent, this.key);
 

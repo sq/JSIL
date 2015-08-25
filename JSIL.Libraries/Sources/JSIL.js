@@ -20,7 +20,6 @@
     globalNamespace, "JSIL",
     {
       value: JSIL,
-      configurable: false,
       enumerable: true,
       writable: false
     }
