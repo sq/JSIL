@@ -211,6 +211,45 @@ namespace JSIL {
             Formatter.NewLine();
         }
 
+        public JSExpression TranslateAttributeConstructorArgument (
+            TypeSystem typeSystem, TypeReference context, CustomAttributeArgument ca
+        ) {
+            if (ca.Value == null) {
+                return JSLiteral.Null(ca.Type);
+            } else if (ca.Value is CustomAttributeArgument) {
+                // :|
+                return TranslateAttributeConstructorArgument(
+                    typeSystem, context, (CustomAttributeArgument)ca.Value
+                );
+            } else if (ca.Value is CustomAttributeArgument[]) {
+                // Issue #141. WTF.
+                var valueArray = (CustomAttributeArgument[])ca.Value;
+                return new JSArrayExpression(typeSystem.Object, 
+                    (from value in valueArray select TranslateAttributeConstructorArgument(
+                        typeSystem, context, value
+                    )).ToArray()
+                );
+            } else if (ca.Type.FullName == "System.Type") {
+                return new JSTypeOfExpression((TypeReference)ca.Value);
+            } else if (TypeUtil.IsEnum(ca.Type)) {
+                var longValue = Convert.ToInt64(ca.Value);
+                var result = JSEnumLiteral.TryCreate(
+                    _TypeInfoProvider.GetExisting(ca.Type),
+                    longValue
+                );
+                if (result != null)
+                    return result;
+                else
+                    return JSLiteral.New(longValue);
+            } else {
+                try {
+                    return JSLiteral.New(ca.Value as dynamic);
+                } catch (Exception) {
+                    throw new NotImplementedException(String.Format("Attribute arguments of type '{0}' are not implemented.", ca.Type.FullName));
+                }
+            }
+        }
+
         public void EmitCustomAttributes (
             DecompilerContext context, 
             TypeReference declaringType,
@@ -249,7 +288,7 @@ namespace JSIL {
                         // FIXME: Get rid of this gross cast
                         ((JavascriptAstEmitter)astEmitter).CommaSeparatedList(
                             (from ca in constructorArgs
-                             select Translator.TranslateAttributeConstructorArgument(
+                             select TranslateAttributeConstructorArgument(
                                 astEmitter.TypeSystem, declaringType, ca
                              ))
                         );
