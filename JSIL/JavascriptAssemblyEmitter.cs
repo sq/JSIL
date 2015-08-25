@@ -53,6 +53,9 @@ namespace JSIL {
             Formatter.NewLine();
         }
 
+        public void EmitFooter () {
+        }
+
         public void EmitAssemblyEntryPoint (AssemblyDefinition assembly, MethodDefinition entryMethod, MethodSignature signature) {
             Formatter.WriteRaw("JSIL.SetEntryPoint");
             Formatter.LPar();

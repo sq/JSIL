@@ -21,9 +21,8 @@ namespace JSIL.Compiler.Extensibility {
     }
 
     public interface IAssemblyEmitter {
-        void EmitHeader (
-            bool stubbed
-        );
+        void EmitHeader (bool stubbed);
+        void EmitFooter ();
         void EmitAssemblyEntryPoint (
             AssemblyDefinition assembly, MethodDefinition entryMethod, MethodSignature signature
         );

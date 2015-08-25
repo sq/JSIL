@@ -911,6 +911,8 @@ namespace JSIL {
                 TranslateModule(context, assemblyEmitter, module, sealedTypes, declaredTypes, stubbed);
             }
 
+            assemblyEmitter.EmitFooter();
+
             tw.Flush();
         }
 

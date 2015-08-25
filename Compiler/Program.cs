@@ -599,10 +599,12 @@ namespace JSIL.Compiler {
 
             IEmitterFactory result;
             if (!emitterFactories.TryGetValue(configuration.EmitterFactoryName, out result)) {
-                Console.WriteLine("// Loaded emitter factories:");
-                foreach (var kvp in emitterFactories)
-                    Console.WriteLine(kvp.Key);
-                throw new Exception("No emitter factory named '" + configuration.EmitterFactoryName + "'");
+                if (!emitterFactories.TryGetValue(configuration.EmitterFactoryName + "EmitterFactory", out result)) {
+                    Console.WriteLine("// Loaded emitter factories:");
+                    foreach (var kvp in emitterFactories)
+                        Console.WriteLine(kvp.Key);
+                    throw new Exception("No emitter factory named '" + configuration.EmitterFactoryName + "' or '" + configuration.EmitterFactoryName + "EmitterFactory'");
+                }
             }
 
             return result;
