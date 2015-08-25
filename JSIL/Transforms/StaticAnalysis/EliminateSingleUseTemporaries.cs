@@ -441,6 +441,10 @@ namespace JSIL.Transforms {
                         if (fieldAccess.IsRead)
                             continue;
 
+                        // If the field is initonly/immutable it can't change
+                        if (fieldAccess.Field.Field.IsImmutable)
+                            continue;
+
                         if (TraceLevel >= 2)
                             Console.WriteLine(String.Format("Cannot eliminate {0}; {1} is potentially mutated later", v, fieldAccess.Field.Field));
 
