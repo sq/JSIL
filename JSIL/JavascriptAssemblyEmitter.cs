@@ -873,6 +873,8 @@ namespace JSIL {
             TypeDefinition typedef, TypeInfo typeInfo,
             TypeReference baseClass
         ) {
+            Formatter.NewLine();
+
             bool isStaticClass = typedef.IsAbstract && typedef.IsSealed;
 
             if (isStaticClass) {
@@ -1005,6 +1007,10 @@ namespace JSIL {
 
         public void EndEmitTypeDefinition (IAstEmitter astEmitter, DecompilerContext context, TypeDefinition typedef) {
             Formatter.NewLine();
+            Formatter.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
+            Formatter.Semicolon(false);
+
+            Formatter.NewLine();
 
             Formatter.CloseBrace(false);
 
@@ -1019,11 +1025,6 @@ namespace JSIL {
             Formatter.NewLine();
 
             astEmitter.ReferenceContext.Pop();
-
-            Formatter.NewLine();
-            Formatter.WriteRaw("return function (newThisType) { $thisType = newThisType; }");
-
-            Formatter.Semicolon(false);
 
             Formatter.Unindent();
             Formatter.WriteRaw("})();");

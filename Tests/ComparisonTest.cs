@@ -846,8 +846,7 @@ namespace JSIL.Tests {
                 var jsex = ex as JavaScriptEvaluatorException;
                 Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
-
-                var querySting = string.Join(
+                var queryString = string.Join(
                     "&",
                     (EvaluatorPool.EnvironmentVariables ?? new Dictionary<string, string>())
                         .Select(item => string.Format("{0}={1}", item.Key, item.Value))
@@ -862,7 +861,7 @@ namespace JSIL.Tests {
                         files.AddRange(evaluationConfig.AdditionalFilesToLoad);
                 }
 
-                Console.WriteLine("// {0}", GetTestRunnerLink(files, querySting));
+                Console.WriteLine("// {0}", GetTestRunnerLink(files, queryString));
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;

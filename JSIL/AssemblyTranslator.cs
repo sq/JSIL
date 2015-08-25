@@ -2136,6 +2136,8 @@ namespace JSIL {
             astEmitter.ReferenceContext.EnclosingMethod = null;
             astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
+            assemblyEmitter.EmitSpacer();
+
             if (methodIsProxied)
                 assemblyEmitter.EmitProxyComment(methodInfo.Member.DeclaringType.FullName);
 
