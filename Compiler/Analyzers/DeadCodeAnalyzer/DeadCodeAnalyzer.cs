@@ -62,14 +62,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             Console.WriteLine("// Dead code analysis took {0} ms", stopwatchElapsed.ElapsedMilliseconds);
         }
 
-        public bool ShouldSkipMember (MemberReference member) {
+        public bool ShouldSkipMember (AssemblyTranslator translator, MemberReference member) {
              if (!Configuration.DeadCodeElimination)
                 return false;
 
             return !deadCodeInfo.IsUsed(member);
         }
 
-        public void InitializeTransformPipeline (FunctionTransformPipeline transformPipeline) {
+        public void InitializeTransformPipeline (AssemblyTranslator translator, FunctionTransformPipeline transformPipeline) {
         }
     }
 }

@@ -189,7 +189,7 @@ namespace JSIL {
 
         public ITypeInfoSource TypeInfo {
             get {
-                return Translator._TypeInfoProvider;
+                return Translator.TypeInfoProvider;
             }
         }
 

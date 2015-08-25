@@ -81,7 +81,7 @@ namespace JSIL.Internal {
 
         public TypeInfoProvider TypeInfoProvider {
             get {
-                return Translator._TypeInfoProvider;
+                return Translator.TypeInfoProvider;
             }
         }
 

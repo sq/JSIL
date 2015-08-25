@@ -16,6 +16,7 @@ namespace JSIL.Compiler.Extensibility {
 
         IAssemblyEmitter MakeAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
+            AssemblyDefinition assembly,
             JavascriptFormatter formatter
         );
 

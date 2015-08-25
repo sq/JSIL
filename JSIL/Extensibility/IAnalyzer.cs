@@ -8,8 +8,8 @@ namespace JSIL.Compiler.Extensibility {
 
         void Analyze (AssemblyTranslator translator, AssemblyDefinition[] assemblies, TypeInfoProvider typeInfoProvider);
 
-        void InitializeTransformPipeline (FunctionTransformPipeline transformPipeline);
-        bool ShouldSkipMember (MemberReference member);
+        void InitializeTransformPipeline (AssemblyTranslator translator, FunctionTransformPipeline transformPipeline);
+        bool ShouldSkipMember (AssemblyTranslator translator, MemberReference member);
 
         string SettingsKey { get; }
     }

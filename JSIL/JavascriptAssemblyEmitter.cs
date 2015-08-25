@@ -28,7 +28,7 @@ namespace JSIL {
         // HACK
         private TypeInfoProvider _TypeInfoProvider {
             get {
-                return Translator._TypeInfoProvider;
+                return Translator.TypeInfoProvider;
             }
         }
 
