@@ -20,6 +20,12 @@ JSIL.StructFormatWarnings = false;
 JSIL.$NextAssemblyId = 0;
 JSIL.PrivateNamespaces = {};
 JSIL.AssemblyShortNames = {};
+
+JSIL.ReservedIdentifiers = [
+  "name", "length", "arity", "constructor",
+  "caller", "arguments", "call", "apply", "bind"
+];
+
 var $private = null;
 
 
@@ -6002,6 +6008,10 @@ JSIL.MakeEnum = function (_descriptor, _members) {
       if (typeof (value) === "function")
         continue;
 
+      var escapedKey = key;
+      if (JSIL.ReservedIdentifiers.indexOf(key) >= 0)
+        escapedKey = "$" + key;
+
       value = Math.floor(value);
 
       $.__Type__.__Names__.push(key);
@@ -6013,7 +6023,7 @@ JSIL.MakeEnum = function (_descriptor, _members) {
         }
       };
 
-      JSIL.SetLazyValueProperty($, key, makeGetter(key, value));
+      JSIL.SetLazyValueProperty($, escapedKey, makeGetter(key, value));
 
       var memberDescriptor = ib.ParseDescriptor({Public: true, Static: true}, key);
       var mb = new JSIL.MemberBuilder(context);

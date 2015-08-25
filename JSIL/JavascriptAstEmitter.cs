@@ -971,7 +971,12 @@ namespace JSIL {
             Output.Dot();
 
             if (enm.Names.Length == 1) {
-                Output.Identifier(enm.Names[0]);
+                var name = enm.Names[0];
+                // HACK (#789): We can't define an enum member named 'name' so it will be '$name' instead.
+                if (Util.ReservedIdentifiers.Contains(name))
+                    name = "$" + name;
+
+                Output.Identifier(name);
             } else {
                 Output.WriteRaw("$Flags");
                 Output.LPar();
