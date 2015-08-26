@@ -207,6 +207,12 @@ namespace JSIL.Internal {
             Manifest.AssignIdentifiers();
         }
 
+        public bool PreviousWasLineBreak {
+            get {
+                return _IndentNeeded;
+            }
+        }
+
         protected void WriteToken (AssemblyManifest.Token token) {
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                 int id = int.Parse(token.IDString.Replace("$asm", ""), NumberStyles.HexNumber);
