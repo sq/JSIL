@@ -1558,12 +1558,10 @@ namespace JSIL {
                     constant = JSLiteral.New(field.Constant as dynamic);
                 }
 
-                return JSInvocationExpression.InvokeStatic(
-                    JSDotExpression.New(
-                        dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
-                    ), new JSExpression[] {
-                        descriptor, JSLiteral.New(fieldName), constant
-                    }
+                JSExpression fieldTypeExpression = new JSTypeReference(fieldInfo.FieldType, field.DeclaringType);
+
+                return new JSConstantDeclaration(
+                    fieldInfo, descriptor, fieldName, fieldTypeExpression, constant 
                 );
             } else {
                 bool forCctor = false;
@@ -1848,8 +1846,12 @@ namespace JSIL {
                 (fd) => {
                     var expr = TranslateField(fd, fieldDefaults, false, dollar, fieldSelfIdentifier);
                     var fde = expr as JSFieldDeclaration;
+                    var cde = expr as JSConstantDeclaration;
+
                     if (fde != null)
                         assemblyEmitter.EmitField(context, astEmitter, fd, dollar, fde.DefaultValue);
+                    else if (cde != null)
+                        assemblyEmitter.EmitConstant(context, astEmitter, fd, dollar, cde.Value);
                     else {
                         // FIXME: This probably isn't right
                         astEmitter.Emit(expr);

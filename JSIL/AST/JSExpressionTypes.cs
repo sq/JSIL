@@ -3262,4 +3262,34 @@ namespace JSIL.Ast {
             }
         }
     }
+
+    public class JSConstantDeclaration : JSExpression {
+        public readonly FieldInfo Field;
+        public readonly string Name;
+
+        public JSConstantDeclaration (FieldInfo fieldInfo, JSExpression descriptor, string name, JSExpression fieldType, JSExpression value) 
+            : base (descriptor, fieldType, value)
+        {
+            Field = fieldInfo;
+            Name = name;
+        }
+
+        public JSExpression Descriptor {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression ConstantType {
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSExpression Value {
+            get {
+                return Values[2];
+            }
+        }
+    }
 }

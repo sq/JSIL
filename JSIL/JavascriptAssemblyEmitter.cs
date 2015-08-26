@@ -1124,7 +1124,11 @@ namespace JSIL {
             Formatter.Semicolon(true);
         }
 
-        public void EmitField (DecompilerContext context, IAstEmitter astEmitter, FieldDefinition field, JSRawOutputIdentifier dollar, JSExpression defaultValue) {
+        private void EmitFieldOrConstant (
+            DecompilerContext context, IAstEmitter astEmitter, 
+            FieldDefinition field, JSRawOutputIdentifier dollar, 
+            JSExpression defaultValue, bool isConstant
+        ) {
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored)
                 return;
@@ -1133,7 +1137,11 @@ namespace JSIL {
 
             dollar.WriteTo(Formatter);
             Formatter.Dot();
-            Formatter.Identifier("Field", EscapingMode.None);
+            Formatter.Identifier(
+                isConstant 
+                    ? "Constant"
+                    : "Field", EscapingMode.None
+            );
             Formatter.LPar();
 
             Formatter.MemberDescriptor(
@@ -1244,6 +1252,14 @@ namespace JSIL {
 
             EmitSemicolon();
             EmitSpacer();
+        }
+
+        public void EmitField (DecompilerContext context, IAstEmitter astEmitter, FieldDefinition field, JSRawOutputIdentifier dollar, JSExpression defaultValue) {
+            EmitFieldOrConstant(context, astEmitter, field, dollar, defaultValue, false);
+        }
+
+        public void EmitConstant (DecompilerContext context, IAstEmitter astEmitter, FieldDefinition field, JSRawOutputIdentifier dollar, JSExpression value) {
+            EmitFieldOrConstant(context, astEmitter, field, dollar, value, true);
         }
     }
 }
