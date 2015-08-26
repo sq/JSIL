@@ -4,7 +4,7 @@ var headerPipe = require('gulp-header');
 var chmod = require('gulp-chmod');
 var clean = require('gulp-clean');
 
-gulp.task('metascript', function () {
+gulp.task('metascript', ['clean'], function () {
   return gulp.src('Sources/**/*.js')
     .pipe(metascriptPipe())
     .pipe(headerPipe("/* It is auto-generated file. Do not modify it. */\n"))
@@ -14,12 +14,12 @@ gulp.task('metascript', function () {
 });
 
 gulp.task('clean', function () {
-  return gulp.src('../Libraries/', { read: false })
+  return gulp.src('../Libraries', { read: false })
     .pipe(clean({ force: true }));
 });
 
-gulp.task('build-Debug', ['clean', 'metascript']);
-gulp.task('build-Release', ['clean', 'metascript']);
+gulp.task('build-Debug', ['metascript']);
+gulp.task('build-Release', ['metascript']);
 
 
 
