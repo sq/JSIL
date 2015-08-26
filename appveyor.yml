@@ -1,0 +1,8 @@
+version: 1.0.{build}
+install:
+- git submodule update --init --recursive
+- nuget restore JSIL.sln
+build_script:
+- msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
+test_script:
+- nunit-console-x86 bin\Tests.DCE.dll bin\SimpleTests.dll bin\Tests.dll /include:"FailsOnMono|(FailsOnMonoWhenStubbed+Stubbed)|(FailsOnMonoWhenStubbed+Translated)"
