@@ -128,6 +128,7 @@
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeAssembly.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.EventInfo.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ConstructorInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.TypeInfo.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.RuntimeType.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.Assembly.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MethodInfo.js" />

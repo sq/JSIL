@@ -130,6 +130,13 @@
       JSIL.TypeObjectPrototype.get_AssemblyQualifiedName
     );
 
+    $.Method({ Public: true, Static: false }, "get_IsClass",
+      new JSIL.MethodSignature($.Boolean, []),
+      function () {
+        return this === $jsilcore.System.Object.__Type__ || this.get_BaseType() !== null;
+      }
+    );
+
     $.Method({ Public: true, Static: false }, "toString",
       new JSIL.MethodSignature($.String, []),
       function () {
@@ -328,7 +335,7 @@
           $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
       ], []),
       function GetConstructor(bindingAttr, binder, callConvention, types, modifiers) {
-        return getConstructorImpl(this, bindingAttr, types);
+        return getConstructorImpl(this, bindingAttr | System.Reflection.BindingFlags.DeclaredOnly, types);
       }
     );
 
@@ -338,7 +345,7 @@
           $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])
       ], []),
       function GetConstructor(bindingAttr, binder, types, modifiers) {
-        return getConstructorImpl(this, bindingAttr, types);
+        return getConstructorImpl(this, bindingAttr | System.Reflection.BindingFlags.DeclaredOnly, types);
       }
     );
 
@@ -363,7 +370,7 @@
       new JSIL.MethodSignature(methodArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "ConstructorInfo"
+          this, flags | System.Reflection.BindingFlags.DeclaredOnly, "ConstructorInfo"
         );
       }
     );
@@ -461,13 +468,6 @@
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.PropertyInfo"), [$.String, $jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (name, flags) {
         return getSingleFiltered(this, name, flags, "PropertyInfo");
-      }
-    );
-
-    $.Method({ Public: true, Static: false }, "GetType",
-      new JSIL.MethodSignature($.Type, []),
-      function () {
-        return $jsilcore.System.Type.__Type__;
       }
     );
 
@@ -603,4 +603,5 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
   $.Property({ Public: true, Static: false }, "IsArray");
   $.Property({ Public: true, Static: false }, "IsValueType");
   $.Property({ Public: true, Static: false }, "IsEnum");
+  $.Property({ Public: true, Static: false }, "IsClass");
 });

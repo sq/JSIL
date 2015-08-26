@@ -10,7 +10,11 @@
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
   };
 
-  var getSetMethodImpl = function (nonPublic) {
+  var getValueImpl = function(obj, index) {
+    return getGetMethodImpl.call(this, true).Invoke(obj, index);
+  };
+
+  var getSetMethodImpl = function(nonPublic) {
     var methodName = "set_" + this.get_Name();
     var bf = System.Reflection.BindingFlags;
     var instanceOrStatic = this.get_IsStatic() ? "Static" : "Instance";
@@ -19,6 +23,10 @@
       : bf.$Flags("DeclaredOnly", instanceOrStatic, "Public")
     );
     return this.get_DeclaringType().GetMethod(methodName, bindingFlags);
+  };
+
+  var setValueImpl = function(obj, value, index) {
+    return getSetMethodImpl.call(this, true).Invoke(obj, index !== null ? Array.prototype.concat(index, value) : [value]);
   };
 
   var getAccessorsImpl = function (nonPublic) {
@@ -80,6 +88,30 @@
 
       return [];
     }
+  );
+
+  $.Method({ Static: false, Public: true }, "GetValue",
+    (new JSIL.MethodSignature($.Object, [$.Object], [], [])),
+    function GetValue(obj) {
+      return getValueImpl.call(this, obj, null);
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "GetValue",
+    (new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Array", [$.Object])], [], [])),
+    getValueImpl
+  );
+
+  $.Method({ Static: false, Public: true }, "SetValue",
+    (new JSIL.MethodSignature($.Object, [$.Object, $.Object], [], [])),
+    function GetValue(obj, value) {
+      return setValueImpl.call(this, obj, value, null);
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "SetValue",
+    (new JSIL.MethodSignature($.Object, [$.Object, $.Object, $jsilcore.TypeRef("System.Array", [$.Object])], [], [])),
+    setValueImpl
   );
 
   $.Method({ Static: false, Public: true }, "get_PropertyType",

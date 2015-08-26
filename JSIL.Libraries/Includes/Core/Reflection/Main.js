@@ -18,6 +18,8 @@ if (!$jsilcore)
 //? include("Classes/System.Reflection.MethodInfo.js"); writeln();
 
 //? include("Classes/System.RuntimeType.js"); writeln();
+//? include("Classes/System.Reflection.TypeInfo.js"); writeln();
+
 //? include("Classes/System.Reflection.ConstructorInfo.js"); writeln();
 //? include("Classes/System.Reflection.EventInfo.js"); writeln();
 
