@@ -605,6 +605,13 @@ namespace JSIL.Ast {
     }
 
     [JSAstIgnoreInheritedMembers]
+    public class JSTemporaryVariable : JSVariable {
+        public JSTemporaryVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null) 
+            : base (name, type, function, defaultValue) {
+        }
+    }
+
+    [JSAstIgnoreInheritedMembers]
     public class JSParameter : JSVariable {
         internal JSParameter (string name, TypeReference type, MethodReference function, bool escapeName = true)
             : base(MaybeEscapeName(name, escapeName), type, function) {

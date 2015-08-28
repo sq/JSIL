@@ -735,7 +735,7 @@ namespace JSIL.Internal {
     }
 
     public static class TemporaryVariable {
-        public static JSVariable ForFunction (
+        public static JSTemporaryVariable ForFunction (
             JSFunctionExpression function, TypeReference type
         ) {
             var index = function.TemporaryVariableTypes.Count;
@@ -746,7 +746,7 @@ namespace JSIL.Internal {
                 methodRef = function.Method.Reference;
 
             var id = string.Format("$temp{0:X2}", index);
-            var result = new JSVariable(id, type, methodRef);
+            var result = new JSTemporaryVariable(id, type, methodRef);
 
             function.AllVariables.Add(id, result);
 

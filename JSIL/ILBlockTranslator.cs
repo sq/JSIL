@@ -1971,13 +1971,13 @@ namespace JSIL {
             return result;
         }
 
-        private JSVariable MakeTemporaryVariable (TypeReference type) {
+        private JSTemporaryVariable MakeTemporaryVariable (TypeReference type) {
             var index = TemporaryVariableTypes.Count;
             TemporaryVariableTypes.Add(type);
 
             var id = string.Format("$temp{0:X2}", index);
 
-            var result = new JSVariable(id, type, ThisMethodReference);
+            var result = new JSTemporaryVariable(id, type, ThisMethodReference);
             Variables.Add(id, result);
             return result;
         }
