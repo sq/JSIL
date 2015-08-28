@@ -41,9 +41,7 @@ namespace JSIL.Transforms {
                 commaElements.Add(thisBoe);
                 return thisBoe.Left;
             } else {
-                var tempVar = new JSRawOutputIdentifier(
-                    type, "$temp{0:X2}", Function.TemporaryVariableCount++
-                );
+                var tempVar = TemporaryVariable.ForFunction(Function, type);
 
                 commaElements.Add(new JSBinaryOperatorExpression(
                     JSOperator.Assignment, tempVar, expression, type

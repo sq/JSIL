@@ -64,10 +64,11 @@ namespace JSIL.Transforms {
         private readonly List<PendingDeclaration> ToDeclare = 
             new List<PendingDeclaration>();
 
-        private readonly Dictionary<VariableCacheKey, JSRawOutputIdentifier> CachedHoistedVariables =
-            new Dictionary<VariableCacheKey, JSRawOutputIdentifier>();
+        private readonly Dictionary<VariableCacheKey, JSVariable> CachedHoistedVariables =
+            new Dictionary<VariableCacheKey, JSVariable>();
 
         private FunctionAnalysis1stPass FirstPass = null;
+        private int HoistedVariableCount = 0;
 
         private JSFunctionExpression Function;
 
@@ -91,29 +92,36 @@ namespace JSIL.Transforms {
             if (ToDeclare.Count > 0) {
                 int i = 0;
 
+                var vds = new JSVariableDeclarationStatement();
+
                 foreach (var pd in ToDeclare) {
-                    var es = new JSExpressionStatement(
+                    vds.Declarations.Add(
                         new JSBinaryOperatorExpression(
                             JSOperator.Assignment, pd.Expression,
                             pd.DefaultValue ?? new JSDefaultValueLiteral(pd.Type),
                             pd.Type
-                    ));
-
-                    fn.Body.Statements.Insert(i++, es);
+                        )
+                    );
                 }
+
+                fn.Body.Statements.Insert(i++, vds);
 
                 InvalidateFirstPass();
             }
         }
 
-        private JSRawOutputIdentifier MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
-            string _id = id = String.Format("$temp{0:X2}", Function.TemporaryVariableCount++);
-            var result = new Identifier(_id, new JSRawOutputIdentifier(
-                type, _id
-            ));
-            ToDeclare.Add(new PendingDeclaration(id, type, result.Object, defaultValue));
+        private JSVariable MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
+            string _id = id = String.Format("$hoisted{0:X2}", HoistedVariableCount++);
+            MethodReference methodRef = null;
+            if (Function.Method != null)
+                methodRef = Function.Method.Reference;
 
-            return result.Object;
+            // So introspection knows about it
+            var result = new JSVariable(id, type, methodRef, defaultValue);
+            Function.AllVariables.Add(_id, result);
+            ToDeclare.Add(new PendingDeclaration(id, type, result, defaultValue));
+
+            return result;
         }
 
         bool DoesValueEscapeFromInvocation (JSInvocationExpression invocation, JSExpression argumentExpression, bool includeReturn) {
@@ -236,7 +244,7 @@ namespace JSIL.Transforms {
         }
 
         private JSExpression CreateHoistedVariable(
-            Func<JSRawOutputIdentifier, JSExpression> update, 
+            Func<JSVariable, JSExpression> update, 
             TypeReference type,
             JSExpression defaultValue = null
         ) {
@@ -247,7 +255,7 @@ namespace JSIL.Transforms {
         }
 
         private JSExpression CreateHoistedVariable (
-            Func<JSRawOutputIdentifier, JSExpression> update,
+            Func<JSVariable, JSExpression> update,
             TypeReference type,
             JSExpression array,
             JSExpression index,
@@ -264,7 +272,7 @@ namespace JSIL.Transforms {
                 );
 
             var key = new VariableCacheKey(array, index);
-            JSRawOutputIdentifier hoistedVariable;
+            JSVariable hoistedVariable;
 
             if (!CachedHoistedVariables.TryGetValue(key, out hoistedVariable)) {
                 string id;

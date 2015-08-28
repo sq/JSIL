@@ -470,6 +470,8 @@ namespace JSIL.Internal {
             var la = new LabelAnalyzer();
             la.BuildLabelGroups(Function);
 
+            Function.LabelGroupCount = la.LabelGroups.Count;
+
             return true;
         }
 

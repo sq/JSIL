@@ -1406,7 +1406,7 @@ namespace JSIL {
                     methodInfo, methodDef, method, identifier,
                     translator, parameters.ToArray(), body
                 );
-                function.TemporaryVariableCount += translator.TemporaryVariableCount;
+                function.TemporaryVariableTypes.AddRange(translator.TemporaryVariableTypes);
 
                 pr.OnFinished();
                 return function;

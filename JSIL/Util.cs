@@ -734,14 +734,23 @@ namespace JSIL.Internal {
         }
     }
 
-    public class TemporaryVariable {
-        public static JSRawOutputIdentifier ForFunction (
+    public static class TemporaryVariable {
+        public static JSVariable ForFunction (
             JSFunctionExpression function, TypeReference type
         ) {
-            return new JSRawOutputIdentifier(
-                type,
-                "$temp{0:X2}", function.TemporaryVariableCount++
-            );
+            var index = function.TemporaryVariableTypes.Count;
+            function.TemporaryVariableTypes.Add(type);
+
+            MethodReference methodRef = null;
+            if (function.Method != null)
+                methodRef = function.Method.Reference;
+
+            var id = string.Format("$temp{0:X2}", index);
+            var result = new JSVariable(id, type, methodRef);
+
+            function.AllVariables.Add(id, result);
+
+            return result;
         }
     }
 

@@ -152,7 +152,7 @@ namespace JSIL.Transforms {
         }
 
         public static JSExpression DecomposeUnaryMutation (
-            JSUnaryOperatorExpression uoe, Func<JSRawOutputIdentifier> makeTemporaryVariable, TypeReference type, TypeSystem typeSystem
+            JSUnaryOperatorExpression uoe, Func<JSVariable> makeTemporaryVariable, TypeReference type, TypeSystem typeSystem
         ) {
             if (
                 (uoe.Operator == JSOperator.PreIncrement) ||

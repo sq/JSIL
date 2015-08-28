@@ -26,7 +26,8 @@ namespace JSIL.Ast {
         [JSAstTraverse(1)]
         public readonly JSBlockStatement Body;
 
-        public int TemporaryVariableCount = 0;
+        public readonly List<TypeReference> TemporaryVariableTypes = new List<TypeReference>();
+        public int LabelGroupCount = 0;
 
         public string DisplayName = null;
 

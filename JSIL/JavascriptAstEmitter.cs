@@ -1413,12 +1413,13 @@ namespace JSIL {
                 (o) => o.WriteParameterList(function.Parameters) 
             );
 
-            if (function.TemporaryVariableCount > 0) {
+            var temporaryVarCount = function.TemporaryVariableTypes.Count;
+            if (temporaryVarCount > 0) {
                 Output.WriteRaw("var ");
-                for (var i = 0; i < function.TemporaryVariableCount; i++) {
+                for (var i = 0; i < temporaryVarCount; i++) {
                     Output.WriteRaw("$temp{0:X2}", i);
 
-                    if (i < (function.TemporaryVariableCount - 1))
+                    if (i < (temporaryVarCount - 1))
                         Output.WriteRaw(", ");
                     else
                         Output.Semicolon();
