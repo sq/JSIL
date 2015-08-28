@@ -19,7 +19,7 @@ gulp.task('metascript', ['clean'], function () {
 });
 
 gulp.task('clean', function () {
-  return gulp.src('../Libraries', { read: false })
+  return gulp.src('../Libraries/*', { read: false })
     .pipe(clean({ force: true }));
 });
 
