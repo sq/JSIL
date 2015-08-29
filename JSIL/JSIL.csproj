@@ -64,7 +64,6 @@
   <ItemGroup>
     <Compile Include="AssemblyManifest.cs" />
     <Compile Include="AST\Enumerators.cs" />
-    <Compile Include="AST\JSAstCursor.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSExpressionTypes.cs" />
     <Compile Include="AST\JSIdentifierTypes.cs" />
