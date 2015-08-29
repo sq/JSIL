@@ -9083,6 +9083,8 @@ JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
     return 0;
   } else if (typeObject.__IsEnum__) {
     return typePublicInterface[typeObject.__ValueToName__[0]];
+  } else if (typeObject.__IsNullable__) {
+    return null;
   } else {
     return new typePublicInterface();
   }
@@ -9140,18 +9142,21 @@ JSIL.Array.$GetEraseImplementation = function (elementTypeObject, elementTypePub
       ""
     ];
 
+    var isStruct = !elementTypeObject.__IsNullable__ &&
+      elementTypeObject.__IsStruct__;
+
     if (elementTypeObject.__IsNativeType__) {
       body.push("var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);");
     } else if (elementTypeObject.__IsEnum__) {
       body.push("var defaultValue = elementTypePublicInterface.$Cast(0);");
-    } else if (!elementTypeObject.__IsStruct__) {
+    } else if (!isStruct) {
       body.push("var defaultValue = null;");
     }
 
     body.push("");
     body.push("for (var i = 0; i < length; i = (i + 1) | 0)");
 
-    if (elementTypeObject.__IsStruct__) {
+    if (isStruct) {
       body.push("  elements[(i + startIndex) | 0] = new elementTypePublicInterface();");
     } else {
       body.push("  elements[(i + startIndex) | 0] = defaultValue;");
