@@ -14,15 +14,18 @@ namespace JSIL.Transforms {
         public readonly Configuration Configuration;
         public readonly TypeSystem TypeSystem;
         public readonly MethodTypeFactory MethodTypes;
+        public readonly IFunctionSource FunctionSource;
 
         public UnsafeCodeTransforms (
             Configuration configuration,
             TypeSystem typeSystem, 
-            MethodTypeFactory methodTypes
+            MethodTypeFactory methodTypes,
+            IFunctionSource functionSource
         ) {
             Configuration = configuration;
             TypeSystem = typeSystem;
             MethodTypes = methodTypes;
+            FunctionSource = functionSource;
         }
 
         public void VisitNode (JSResultReferenceExpression rre) {
@@ -205,7 +208,7 @@ namespace JSIL.Transforms {
 
             if (UnpackUnaryMutation(uoe, out op, out target, out type)) {
                 var tempVar = TemporaryVariable.ForFunction(
-                    Stack.Last() as JSFunctionExpression, type
+                    Stack.Last() as JSFunctionExpression, type, FunctionSource
                 );
                 var store = new JSBinaryOperatorExpression(
                     JSOperator.Assignment, tempVar, target, type

@@ -736,7 +736,8 @@ namespace JSIL.Internal {
 
     public static class TemporaryVariable {
         public static JSTemporaryVariable ForFunction (
-            JSFunctionExpression function, TypeReference type
+            JSFunctionExpression function, TypeReference type,
+            IFunctionSource functionSource
         ) {
             var index = function.TemporaryVariableTypes.Count;
             function.TemporaryVariableTypes.Add(type);
@@ -749,6 +750,13 @@ namespace JSIL.Internal {
             var result = new JSTemporaryVariable(id, type, methodRef);
 
             function.AllVariables.Add(id, result);
+
+            // HACK: If the static analysis data for the function is stale, this temporary
+            //  variable might get eliminated later despite being in use.
+            // We should really just fix all the transforms that aren't invalidating static
+            //  analysis data when they should, but this is good enough for now.
+            if (function.Method != null)
+                functionSource.InvalidateFirstPass(function.Method.QualifiedIdentifier);
 
             return result;
         }

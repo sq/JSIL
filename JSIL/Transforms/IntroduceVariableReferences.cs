@@ -14,6 +14,7 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> TransformedVariables = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly JSILIdentifier JSIL;
+        public readonly IFunctionSource FunctionSource;
 
         protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>(
             new ReferenceComparer<JSPassByReferenceExpression>()
@@ -22,9 +23,10 @@ namespace JSIL.Transforms {
             new ReferenceComparer<JSVariableDeclarationStatement>()
         );
 
-        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables) {
+        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables, IFunctionSource functionSource) {
             JSIL = jsil;
             Variables = variables;
+            FunctionSource = functionSource;
         }
 
         public TypeSystem TypeSystem {
@@ -218,7 +220,7 @@ namespace JSIL.Transforms {
                 if (!p.IsReference)
                     continue;
 
-                var vrat = new VariableReferenceAccessTransformer(JSIL, p);
+                var vrat = new VariableReferenceAccessTransformer(JSIL, p, FunctionSource);
                 vrat.Visit(fn);
             }
 
@@ -269,7 +271,7 @@ namespace JSIL.Transforms {
                     );
                 }
 
-                var vrat = new VariableReferenceAccessTransformer(JSIL, cr);
+                var vrat = new VariableReferenceAccessTransformer(JSIL, cr, FunctionSource);
                 vrat.Visit(fn);
             }
         }
@@ -278,10 +280,12 @@ namespace JSIL.Transforms {
     public class VariableReferenceAccessTransformer : JSAstVisitor {
         public readonly JSVariable Variable;
         public readonly JSILIdentifier JSIL;
+        public readonly IFunctionSource FunctionSource;
 
-        public VariableReferenceAccessTransformer (JSILIdentifier jsil, JSVariable variable) {
+        public VariableReferenceAccessTransformer (JSILIdentifier jsil, JSVariable variable, IFunctionSource functionSource) {
             JSIL = jsil;
             Variable = variable;
+            FunctionSource = functionSource;
         }
 
         public TypeSystem TypeSystem {
@@ -346,7 +350,7 @@ namespace JSIL.Transforms {
             ) {
                 var newValue = DecomposeMutationOperators.DecomposeUnaryMutation(
                     uoe, () => TemporaryVariable.ForFunction(
-                        Stack.Last() as JSFunctionExpression, type
+                        Stack.Last() as JSFunctionExpression, type, FunctionSource
                     ), type, TypeSystem
                 );
                 var replacement = new JSWriteThroughReferenceExpression(

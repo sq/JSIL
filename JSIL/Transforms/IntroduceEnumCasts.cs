@@ -14,6 +14,7 @@ namespace JSIL.Transforms {
         public readonly TypeInfoProvider TypeInfo;
         public readonly MethodTypeFactory MethodTypes;
         public readonly JSSpecialIdentifiers JS;
+        public readonly IFunctionSource FunctionSource;
 
         private readonly HashSet<JSOperator> LogicalOperators;
         private readonly HashSet<JSOperator> BitwiseOperators;
@@ -32,11 +33,16 @@ namespace JSIL.Transforms {
             { JSOperator.BitwiseXorAssignment, JSOperator.BitwiseXor },
         };
 
-        public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
+        public IntroduceEnumCasts (
+            TypeSystem typeSystem, JSSpecialIdentifiers js, 
+            TypeInfoProvider typeInfo, MethodTypeFactory methodTypes,
+            IFunctionSource functionSource
+        ) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
             MethodTypes = methodTypes;
             JS = js;
+            FunctionSource = functionSource;
 
             LogicalOperators = new HashSet<JSOperator>() {
                 JSOperator.LogicalAnd,
@@ -164,7 +170,7 @@ namespace JSIL.Transforms {
                     ) {
                         // FIXME: Terrible hack
                         var tempVariable = TemporaryVariable.ForFunction(
-                            Stack.Last() as JSFunctionExpression, type
+                            Stack.Last() as JSFunctionExpression, type, FunctionSource
                         );
                         var makeTempCopy = new JSBinaryOperatorExpression(
                             JSOperator.Assignment, tempVariable, uoe.Expression, type

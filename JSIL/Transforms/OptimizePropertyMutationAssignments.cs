@@ -10,10 +10,15 @@ namespace JSIL.Transforms {
     class OptimizePropertyMutationAssignments : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly ITypeInfoSource TypeInfo;
+        public readonly IFunctionSource FunctionSource;
 
-        public OptimizePropertyMutationAssignments (TypeSystem typeSystem, ITypeInfoSource typeInfo) {
+        public OptimizePropertyMutationAssignments (
+            TypeSystem typeSystem, ITypeInfoSource typeInfo,
+            IFunctionSource functionSource
+        ) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
+            FunctionSource = functionSource;
         }
 
         public bool IsPropertyAccess (
@@ -36,7 +41,7 @@ namespace JSIL.Transforms {
                 // FIXME: Terrible hack
                 var type = pa.GetActualType(TypeSystem);
                 var tempVariable = TemporaryVariable.ForFunction(
-                    Stack.Last() as JSFunctionExpression, type
+                    Stack.Last() as JSFunctionExpression, type, FunctionSource
                 );
                 var replacement = new JSCommaExpression(
                     new JSBinaryOperatorExpression(

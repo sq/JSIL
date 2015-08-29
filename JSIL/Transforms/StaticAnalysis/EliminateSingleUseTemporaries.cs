@@ -301,7 +301,7 @@ namespace JSIL.Transforms {
             ExemptVariablesFromEffectivelyConstantStatus();
 
             foreach (var v in fn.AllVariables.Values.ToArray()) {
-                if (v.IsThis || v.IsParameter || (v is JSTemporaryVariable))
+                if (v.IsThis || v.IsParameter)
                     continue;
 
                 var assignments = (from a in FirstPass.Assignments where v.Identifier.Equals(a.Target) select a).ToArray();

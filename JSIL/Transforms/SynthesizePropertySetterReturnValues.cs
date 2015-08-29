@@ -12,12 +12,17 @@ namespace JSIL.Transforms {
     class SynthesizePropertySetterReturnValues : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly ITypeInfoSource TypeInfo;
+        public readonly IFunctionSource FunctionSource;
 
         private JSFunctionExpression Function;
 
-        public SynthesizePropertySetterReturnValues (TypeSystem typeSystem, ITypeInfoSource typeInfo) {
+        public SynthesizePropertySetterReturnValues (
+            TypeSystem typeSystem, ITypeInfoSource typeInfo,
+            IFunctionSource functionSource
+        ) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
+            FunctionSource = functionSource;
         }
 
         public void VisitNode (JSFunctionExpression function) {
@@ -41,7 +46,7 @@ namespace JSIL.Transforms {
                 commaElements.Add(thisBoe);
                 return thisBoe.Left;
             } else {
-                var tempVar = TemporaryVariable.ForFunction(Function, type);
+                var tempVar = TemporaryVariable.ForFunction(Function, type, FunctionSource);
 
                 commaElements.Add(new JSBinaryOperatorExpression(
                     JSOperator.Assignment, tempVar, expression, type

@@ -269,14 +269,14 @@ namespace JSIL.Internal {
 
         private bool DecomposeMutationOperators () {
             if (Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true))
-                new DecomposeMutationOperators(TypeSystem, TypeInfoProvider).Visit(Function);
+                new DecomposeMutationOperators(TypeSystem, TypeInfoProvider, FunctionSource).Visit(Function);
 
             return true;
         }
 
         private bool FixupPointerArithmetic () {
             if (Configuration.CodeGenerator.EnableUnsafeCode.GetValueOrDefault(false))
-                new UnsafeCodeTransforms(Configuration, TypeSystem, MethodTypes).Visit(Function);
+                new UnsafeCodeTransforms(Configuration, TypeSystem, MethodTypes, FunctionSource).Visit(Function);
 
             return true;
         }
@@ -288,7 +288,7 @@ namespace JSIL.Internal {
         }
 
         private bool SynthesizePropertySetterReturnValues () {
-            new SynthesizePropertySetterReturnValues(TypeSystem, TypeInfoProvider).Visit(Function);
+            new SynthesizePropertySetterReturnValues(TypeSystem, TypeInfoProvider, FunctionSource).Visit(Function);
 
             return true;
         }
@@ -296,12 +296,12 @@ namespace JSIL.Internal {
         private bool OptimizeAccessorMethods () {
             if (Configuration.CodeGenerator.PreferAccessorMethods.GetValueOrDefault(true)) {
                 new OptimizePropertyMutationAssignments(
-                    TypeSystem, TypeInfoProvider
-                    ).Visit(Function);
+                    TypeSystem, TypeInfoProvider, FunctionSource
+                ).Visit(Function);
 
                 new ConvertPropertyAccessesToInvocations(
                     TypeSystem, TypeInfoProvider
-                    ).Visit(Function);
+                ).Visit(Function);
             }
 
             return true;
@@ -381,8 +381,8 @@ namespace JSIL.Internal {
 
         private bool IntroduceEnumCasts () {
             new IntroduceEnumCasts(
-                TypeSystem, SpecialIdentifiers.JS, TypeInfoProvider, MethodTypes
-                ).Visit(Function);
+                TypeSystem, SpecialIdentifiers.JS, TypeInfoProvider, MethodTypes, FunctionSource
+            ).Visit(Function);
 
             return true;
         }
@@ -407,7 +407,7 @@ namespace JSIL.Internal {
             new ReplaceMethodCalls(
                 Function.Method.Reference,
                 SpecialIdentifiers.JSIL, SpecialIdentifiers.JS, TypeSystem
-                ).Visit(Function);
+            ).Visit(Function);
 
             return true;
         }
@@ -416,7 +416,7 @@ namespace JSIL.Internal {
             if (Configuration.CodeGenerator.SimplifyOperators.GetValueOrDefault(true))
                 new SimplifyOperators(
                     SpecialIdentifiers.JSIL, SpecialIdentifiers.JS, TypeSystem
-                    ).Visit(Function);
+                ).Visit(Function);
 
             return true;
         }
@@ -425,7 +425,7 @@ namespace JSIL.Internal {
             if (Configuration.CodeGenerator.SimplifyLoops.GetValueOrDefault(true))
                 new SimplifyLoops(
                     TypeSystem, false
-                    ).Visit(Function);
+                ).Visit(Function);
 
             return true;
         }
@@ -434,12 +434,13 @@ namespace JSIL.Internal {
             new IntroduceVariableDeclarations(
                 Function.AllVariables,
                 TypeInfoProvider
-                ).Visit(Function);
+            ).Visit(Function);
 
             new IntroduceVariableReferences(
                 SpecialIdentifiers.JSIL,
-                Function.AllVariables
-                ).Visit(Function);
+                Function.AllVariables, 
+                FunctionSource
+            ).Visit(Function);
 
             return true;
         }

@@ -12,10 +12,12 @@ namespace JSIL.Transforms {
     public class DecomposeMutationOperators : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly TypeInfoProvider TypeInfo;
+        public readonly IFunctionSource FunctionSource;
 
-        public DecomposeMutationOperators (TypeSystem typeSystem, TypeInfoProvider typeInfo) {
+        public DecomposeMutationOperators (TypeSystem typeSystem, TypeInfoProvider typeInfo, IFunctionSource functionSource) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
+            FunctionSource = functionSource;
         }
 
         public static JSExpression MakeLhsForAssignment (JSExpression rhs) {
@@ -138,13 +140,14 @@ namespace JSIL.Transforms {
                 var replacement = DecomposeUnaryMutation(
                     uoe, 
                     () => TemporaryVariable.ForFunction(
-                        Stack.Last() as JSFunctionExpression, type
+                        Stack.Last() as JSFunctionExpression, type, FunctionSource
                     ),
                     type, TypeSystem
                 );
 
                 ParentNode.ReplaceChild(uoe, replacement);
                 VisitReplacement(replacement);
+                
                 return;
             }
 
