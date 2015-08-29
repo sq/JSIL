@@ -241,7 +241,8 @@ namespace JSIL.Internal {
             // We need another loop simplification pass because control flow has probably changed after the previous passes
             Enqueue(SimplifyLoops);
 
-            Enqueue(EliminateUnusedLoopNames);
+            if (Configuration.CodeGenerator.StripUnusedLoopNames.GetValueOrDefault(true))
+                Enqueue(EliminateUnusedLoopNames);
 
             // We need to expand cast expressions again because previous passes may have made some more necessary
             Enqueue(ExpandCastExpressions);

@@ -128,6 +128,7 @@
     <None Include="SimpleTestCases\ListICollection.cs" />
     <None Include="SimpleTestCases\NumericTypesBase_Issue812.cs" />
     <None Include="SimpleTestCases\Issue789.cs" />
+    <None Include="SimpleTestCases\Issue827.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

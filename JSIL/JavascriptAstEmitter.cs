@@ -1688,7 +1688,18 @@ namespace JSIL {
                 Output.Space();
                 Output.Identifier(String.Format("$loop{0}", cont.TargetLoop.Value));
             } else if (GotoStack.Count > 0) {
-                GotoStack.Peek()(null);
+                // HACK: If we do an unlabelled 'continue' that will just loop through the labelgroup; we want to
+                //  continue the outer loop instead.
+                var enclosingLoop = Stack.OfType<JSLoopStatement>().First();
+                Output.WriteRaw("continue");
+
+                // FIXME: If unused loop names are stripped this won't work and everything is hosed!!!
+                if (enclosingLoop.Index.HasValue) {
+                    Output.Space();
+                    Output.Identifier(String.Format("$loop{0}", enclosingLoop.Index));
+                } else {
+                    Output.WriteRaw("/* WARNING: target loop had no index */");
+                }
             } else {
                 Output.WriteRaw("continue");
             }

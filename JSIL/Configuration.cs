@@ -49,6 +49,7 @@ namespace JSIL.Translator {
             public bool? AutoGenerateEventAccessorsInSkeletons;
             public bool? AggressivelyUseElementProxies;
             public bool? EmitAllParameterNames;
+            public bool? StripUnusedLoopNames;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -91,6 +92,8 @@ namespace JSIL.Translator {
                     result.AggressivelyUseElementProxies = AggressivelyUseElementProxies;
                 if (EmitAllParameterNames.HasValue)
                     result.EmitAllParameterNames = EmitAllParameterNames;
+                if (StripUnusedLoopNames.HasValue)
+                    result.StripUnusedLoopNames = StripUnusedLoopNames;
             }
         }
 

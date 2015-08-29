@@ -37,6 +37,16 @@ namespace JSIL.Transforms {
             VisitChildren(ce);
         }
 
+        public void VisitNode (JSLabelGroupStatement lgs) {
+            // HACK: Issue #827 depends on loops containing labelgroups having an index
+            //  so that continues and breaks can be targeted.
+
+            foreach (var ls in Stack.OfType<JSLoopStatement>())
+                UsedLoops.Add(ls.Index.Value);
+
+            VisitChildren(lgs);
+        }
+
         public void EliminateUnusedLoopNames () {
             foreach (var kvp in Loops) {
                 if (!UsedLoops.Contains(kvp.Key))
