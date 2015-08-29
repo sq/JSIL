@@ -3049,6 +3049,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     for (var j = 0; j < members.length; j++) {
       var member = members[j];
       var qualifiedName = JSIL.$GetSignaturePrefixForType(iface) + member._descriptor.EscapedName;
+      var originalName = member._descriptor.OriginalName;
       var signature = member._data.signature || null;
       var signatureQualifiedName = null;
 
@@ -6539,6 +6540,11 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
     result.Static = descriptor.Static = false;
   }
 
+  if (typeof (descriptor.OriginalName) === "string")
+    result.OriginalName = descriptor.OriginalName;
+  else
+    result.OriginalName = null;
+
   result.Name = name;
   result.EscapedName = escapedName;
 
@@ -8244,6 +8250,15 @@ JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
   var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature, this.parameterInfo);
   result.fallbackMethod = this.fallbackMethod;
   return result;
+};
+
+JSIL.InterfaceMethod.prototype.$StaticMethodNotFound = function (thisReference, methodName) {
+  JSIL.RuntimeErrorFormat(
+    "Interface method '{0}' not found in context '{1}'", [
+      this.signature.toString(this.methodName),
+      thisReference
+    ]
+  );
 };
 
 JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {

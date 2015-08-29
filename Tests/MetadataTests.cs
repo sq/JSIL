@@ -225,6 +225,17 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void RenameInterfaceMethod () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameInterfaceMethod.cs",
+                "Method",
+                "Method"
+            );
+
+            Assert.IsTrue(generatedJs.Contains("RenamedMethod"));
+        }
+
+        [Test]
         public void RenameField () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\RenameField.cs",

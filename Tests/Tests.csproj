@@ -297,6 +297,7 @@
     <None Include="FailingTestCases\DelegateMethod_ResolveInterface_Issue604.cs" />
     <None Include="PerformanceTestCases\GenericMethodCalls.cs" />
     <None Include="ReflectionTestCases\GetInheritedAttributesFromMethods.cs" />
+    <None Include="SpecialTestCases\RenameInterfaceMethod.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

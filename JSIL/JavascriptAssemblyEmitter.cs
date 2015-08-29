@@ -154,10 +154,16 @@ namespace JSIL {
                     Formatter.Identifier("Method", EscapingMode.None);
                     Formatter.LPar();
 
-                    Formatter.WriteRaw("{}");
+                    if (methodInfo.Name != m.Name) {
+                        Formatter.WriteRaw("{OriginalName: ");
+                        Formatter.Value(m.Name);
+                        Formatter.WriteRaw("}");
+                    } else {
+                        Formatter.WriteRaw("{}");
+                    }
                     Formatter.Comma();
 
-                    Formatter.Value(Util.EscapeIdentifier(m.Name, EscapingMode.String));
+                    Formatter.Value(Util.EscapeIdentifier(methodInfo.Name, EscapingMode.String));
                     Formatter.Comma();
 
                     Formatter.MethodSignature(m, methodInfo.Signature, refContext);
