@@ -3075,9 +3075,24 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         case "MethodInfo":
         case "ConstructorInfo":
           // FIXME: Match signatures
+          var parameterTypes = $jsilcore.$MethodGetParameterTypes(member);
+          var returnType = $jsilcore.$MethodGetReturnType(member);
+          var expectedInstanceName = $jsilcore.$MemberInfoGetName(member);
+
           var matchingMethods = typeObject.$GetMatchingInstanceMethods(
-            $jsilcore.$MemberInfoGetName(member), $jsilcore.$MethodGetParameterTypes(member), $jsilcore.$MethodGetReturnType(member)
+            expectedInstanceName, parameterTypes, returnType
           );
+
+          // HACK: If this interface method was renamed at compile time,
+          //  look for unqualified instance methods using the old name.
+          if ((originalName !== null) && (matchingMethods.length === 0)) {
+            if (trace)
+              console.log("Search for " + expectedInstanceName + " failed, looking for " + originalName);
+
+            matchingMethods = typeObject.$GetMatchingInstanceMethods(
+              originalName, parameterTypes, returnType
+            );
+          }
 
           if (matchingMethods.length === 0) {
             isMissing = true;
