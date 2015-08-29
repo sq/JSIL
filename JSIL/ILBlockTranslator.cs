@@ -592,6 +592,7 @@ namespace JSIL {
         ) {
             foreach (var transformer in FunctionTransformers) {
                 var externalReplacement = transformer.MaybeReplaceMethodCall(
+                    ThisMethodReference,
                     method, methodInfo, 
                     thisExpression, arguments, 
                     resultType, explicitThis

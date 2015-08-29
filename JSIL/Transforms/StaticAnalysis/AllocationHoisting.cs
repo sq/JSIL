@@ -243,7 +243,7 @@ namespace JSIL.Transforms {
             }
         }
 
-        private JSExpression CreateHoistedVariable(
+        private JSExpression CreateHoistedVariable (
             Func<JSVariable, JSExpression> update, 
             TypeReference type,
             JSExpression defaultValue = null
