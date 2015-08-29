@@ -901,7 +901,7 @@ namespace JSIL.Tests {
                     writeJSOutput();
                 }
 
-                if (dumpJsOnFailure && (generateJs() != null)) {
+                if (dumpJsOnFailure && (generateJs != null)) {
                     Console.WriteLine("// Generated javascript begins here //");
                     Console.WriteLine(generateJs());
                     Console.WriteLine("// Generated javascript ends here //");
