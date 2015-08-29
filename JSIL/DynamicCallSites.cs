@@ -195,7 +195,8 @@ namespace JSIL {
                     new JSFakeMethod(
                         memberName, returnType, 
                         (from av in argumentValues select av.GetActualType(translator.TypeSystem)).ToArray(),
-                        translator.MethodTypes, TypeArguments
+                        translator.MethodTypes, TypeArguments,
+                        escape: true
                     ), thisArgument,
                     arguments.Skip(2).ToArray()
                 );
