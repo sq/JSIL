@@ -855,7 +855,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFakeMethod fakeMethod) {
-            Output.Identifier(fakeMethod.Name);
+            Output.Identifier(fakeMethod.Name, EscapingMode.None);
 
             var ga = fakeMethod.GenericArguments;
             if (ga != null) {
