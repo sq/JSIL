@@ -111,13 +111,13 @@ namespace JSIL.Transforms {
         }
 
         private JSVariable MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
-            string _id = id = String.Format("$hoisted{0:X2}", HoistedVariableCount++);
+            string _id = id = string.Format("$hoisted{0:X2}", HoistedVariableCount++);
             MethodReference methodRef = null;
             if (Function.Method != null)
                 methodRef = Function.Method.Reference;
 
             // So introspection knows about it
-            var result = new JSVariable(id, type, methodRef, defaultValue);
+            var result = new JSVariable(id, type, methodRef);
             Function.AllVariables.Add(_id, result);
             ToDeclare.Add(new PendingDeclaration(id, type, result, defaultValue));
 
@@ -248,6 +248,9 @@ namespace JSIL.Transforms {
             TypeReference type,
             JSExpression defaultValue = null
         ) {
+            if (update == null)
+                throw new ArgumentNullException("update");
+
             string id;
             var hoistedVariable = MakeTemporaryVariable(type, out id, defaultValue);
             var replacement = update(hoistedVariable);
@@ -265,8 +268,16 @@ namespace JSIL.Transforms {
                     (e is JSUnaryOperatorExpression) ||
                     (e is JSInvocationExpression);
 
+            if (update == null)
+                throw new ArgumentNullException("update");
+
             // If the array or index expressions are not simple, don't attempt to cache.
-            if (index.AllChildrenRecursive.Any(filter) || array.AllChildrenRecursive.Any(filter))
+            if (
+                (array == null) ||
+                (index == null) ||
+                index.AllChildrenRecursive.Any(filter) || 
+                array.AllChildrenRecursive.Any(filter)
+            )
                 return CreateHoistedVariable(
                     update, type, defaultValue
                 );
