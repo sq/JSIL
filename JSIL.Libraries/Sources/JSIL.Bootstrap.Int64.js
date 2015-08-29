@@ -648,6 +648,12 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
           return truncated;
         }
     });
+
+    $.Method({ Static: false, Public: true }, "GetHashCode",
+    (new JSIL.MethodSignature($.Int32, [], [])),
+    function UInt64_GetHashCode () {
+        return this.a | ((this.b & 0xff) << 24);
+    });
 });
 
 JSIL.ImplementExternals("System.Int64", function ($) {
@@ -932,6 +938,12 @@ JSIL.ImplementExternals("System.Int64", function ($) {
             return -r;
         else
             return r;
+    });
+
+    $.Method({ Static: false, Public: true }, "GetHashCode",
+    (new JSIL.MethodSignature($.Int32, [], [])),
+    function Int64_GetHashCode () {
+        return this.a | ((this.b & 0xff) << 24);
     });
 
     // Not present in mscorlib
