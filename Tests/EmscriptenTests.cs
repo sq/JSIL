@@ -70,6 +70,8 @@ namespace JSIL.Tests {
             psi.RedirectStandardInput = true;
             psi.RedirectStandardError = true;
             psi.RedirectStandardOutput = true;
+            psi.CreateNoWindow = true;
+            psi.WindowStyle = ProcessWindowStyle.Hidden;
 
             using (var process = Process.Start(psi)) {
                 var stdinStream = process.StandardInput.BaseStream;
