@@ -298,6 +298,7 @@
     <None Include="PerformanceTestCases\GenericMethodCalls.cs" />
     <None Include="ReflectionTestCases\GetInheritedAttributesFromMethods.cs" />
     <None Include="SpecialTestCases\RenameInterfaceMethod.cs" />
+    <None Include="SpecialTestCases\RenameInterface.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

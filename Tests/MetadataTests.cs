@@ -236,6 +236,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void RenameInterface () {
+            var output = "Impl.Method" + Environment.NewLine + "Impl.Method2";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameInterface.cs",
+                output, output
+            );
+
+            Assert.IsTrue(generatedJs.Contains("IRenamedInterface"));
+            Assert.IsFalse(generatedJs.Contains("JSIL.Meta.JSChangeName"));
+        }
+
+        [Test]
         public void RenameField () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\RenameField.cs",
@@ -286,6 +298,7 @@ namespace JSIL.Tests {
 
             Assert.IsFalse(generatedJs.Contains(".MyClass()"));
             Assert.IsTrue(generatedJs.Contains(".RenamedClass()"));
+            Assert.IsFalse(generatedJs.Contains("JSIL.Meta.JSChangeName"));
         }
 
         [Test]
