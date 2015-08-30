@@ -156,7 +156,12 @@ namespace JSIL {
                     Formatter.Identifier("Method", EscapingMode.None);
                     Formatter.LPar();
 
-                    if (methodInfo.Name != m.Name) {
+                    var renamedName = methodInfo.Name;
+                    var offset = renamedName.IndexOf("`");
+                    if (offset > 0)
+                        renamedName = renamedName.Substring(0, offset);
+
+                    if (renamedName != m.Name) {
                         Formatter.WriteRaw("{OriginalName: ");
                         Formatter.Value(m.Name);
                         Formatter.WriteRaw("}");
@@ -165,7 +170,7 @@ namespace JSIL {
                     }
                     Formatter.Comma();
 
-                    Formatter.Value(Util.EscapeIdentifier(methodInfo.Name, EscapingMode.String));
+                    Formatter.Value(Util.EscapeIdentifier(renamedName, EscapingMode.String));
                     Formatter.Comma();
 
                     Formatter.MethodSignature(m, methodInfo.Signature, refContext);
