@@ -220,7 +220,8 @@ namespace JSIL.Tests {
             Action<AssemblyTranslator> initializeTranslator = null,
             Func<string> getTestRunnerQueryString = null,
             bool? scanForProxies = null,
-            string[] extraDependencies = null
+            string[] extraDependencies = null,
+            string testFolderNameOverride = null
         ) {
             IEnumerable<Metacomment> result = null;
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
@@ -231,12 +232,21 @@ namespace JSIL.Tests {
                 if (commonFile != null)
                     testFilenames.Add(commonFile);
 
+                var testDirectoryName = testFolderNameOverride??
+                    TestContext.CurrentContext.Test.FullName.Replace(
+                        "." + TestContext.CurrentContext.Test.Name, String.Empty);
+                var testFileDirectory = Path.Combine(
+                    ComparisonTest.TestSourceFolder,
+                    Path.GetDirectoryName(filename));
+                var testDirectory = Path.Combine(testFileDirectory, testDirectoryName);
+                Directory.CreateDirectory(testDirectory);
+
                 using (var test = new ComparisonTest(
                     EvaluatorPool,
                     testFilenames,
                     Path.Combine(
-                        ComparisonTest.TestSourceFolder,
-                        ComparisonTest.MapSourceFileToTestFile(filename)
+                        testDirectory,
+                        ComparisonTest.MapSourceFileToTestFile(Path.GetFileName(filename))
                     ),
                     stubbedAssemblies, typeInfo, asmCache,
                     compilerOptions: compilerOptions
@@ -425,7 +435,8 @@ namespace JSIL.Tests {
             Func<string> getTestRunnerQueryString = null,
             bool? scanForProxies = null,
             string[] extraDependencies = null,
-            bool shouldRunJs = true
+            bool shouldRunJs = true,
+            string testFolderNameOverride = null
         ) {
             if (parameters.Length != 5)
                 throw new ArgumentException("Wrong number of test case data parameters.");
@@ -442,7 +453,8 @@ namespace JSIL.Tests {
                     initializeTranslator: initializeTranslator,
                     getTestRunnerQueryString: getTestRunnerQueryString,
                     scanForProxies: scanForProxies,
-                    extraDependencies: extraDependencies
+                    extraDependencies: extraDependencies,
+                    testFolderNameOverride: testFolderNameOverride
                 );
             } finally {
                 if ((bool)parameters[4]) {
