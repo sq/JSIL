@@ -141,6 +141,7 @@
     <Content Include="Includes\Bootstrap\Int\Utils\JSIL.Make64BitInt.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\JSIL.AbstractEnumerable.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Enumerable.js" />
+    <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.BinaryExpression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.ConstantExpression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.Expression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.LambdaExpression.js" />
