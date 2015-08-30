@@ -14,7 +14,7 @@ namespace JSIL.SimpleTests
     public class SimpleTestCasesForStubbedBcl : GenericTestFixture, IDisposable
     {
         public static readonly string BootsrapperFileName =
-            Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "Bootstappers", "BclBootstrapStubbed.cs"));
+            Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "Bootstappers", "BclBootstrap.cs"));
 
         private readonly AssemblyCache AssemblyCache;
         private readonly TypeInfoProvider TypeInfoProvider;
@@ -71,7 +71,8 @@ namespace JSIL.SimpleTests
                 makeConfiguration,
                 new JSEvaluationConfig { ThrowOnUnimplementedExternals = false },
                 initializeTranslator: initializeTranslator,
-                shouldRunJs: false
+                shouldRunJs: false,
+                testFolderNameOverride: GetType().Name
                 );
             Console.WriteLine("// SimpleTestCasesForStubbedBcl.SetupFixture() }");
         }
@@ -116,6 +117,11 @@ namespace JSIL.SimpleTests
 
         private void RunTestCase(object[] parameters, Func<Configuration> makeConfiguration, IEnumerable<string> additionalFilesToLoad)
         {
+            var bootstrapFileName = Path.Combine(
+                Path.GetDirectoryName(BootsrapperFileName),
+                GetType().Name,
+                ComparisonTest.MapSourceFileToTestFile(Path.GetFileName(BootsrapperFileName)));
+
             RunSingleComparisonTestCase(
                 parameters,
                 makeConfiguration,
@@ -123,7 +129,7 @@ namespace JSIL.SimpleTests
                 {
                     ThrowOnUnimplementedExternals = false,
                     AdditionalFilesToLoad =
-                        Enumerable.Repeat(BootsrapperFileName + ".out", 1)
+                        Enumerable.Repeat(bootstrapFileName, 1)
                             .Concat(additionalFilesToLoad ?? Enumerable.Empty<string>())
                             .ToArray()
                 }
