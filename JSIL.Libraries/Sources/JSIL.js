@@ -67,10 +67,19 @@ var $jsilloaderstate = {
       }
     }
 
+    var libraryPrefix;
+    if (config.bclMode === "translated") {
+      libraryPrefix = "TranslatedBCL/";
+    } else if (config.bclMode === "stubbed") {
+      libraryPrefix = "StubbedBCL/";
+    } else {
+      libraryPrefix = "IgnoredBCL/";
+    }
+
     contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.IO.js"]);
+    contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.IO.js"]);
     contentManifest["JSIL"].push(["Library", "JSIL.JSON.js"]);  
-    contentManifest["JSIL"].push(["Library", "JSIL.XML.js"]);
+    contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.XML.js"]);
   };
 
   Environment_Browser.prototype.getUserSetting = function (key) {
@@ -121,9 +130,18 @@ var $jsilloaderstate = {
     var self = this;
     this.config = config;
 
+    var libraryPrefix;
+    if (config.bclMode === "translated") {
+      libraryPrefix = "TranslatedBCL/";
+    } else if (config.bclMode === "stubbed") {
+      libraryPrefix = "StubbedBCL/";
+    } else {
+      libraryPrefix = "IgnoredBCL/";
+    }
+
     contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.IO.js"]);
-    contentManifest["JSIL"].push(["Library", "JSIL.XML.js"]);
+    contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.IO.js"]);
+    contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.XML.js"]);
   };
 
   Environment_SpidermonkeyShell.prototype.getUserSetting = function (key) {
