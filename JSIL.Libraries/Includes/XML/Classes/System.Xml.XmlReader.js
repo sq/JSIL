@@ -405,6 +405,16 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       }
     );
 
+    $.Method({ Static: false, Public: true }, "ReadSubtree",
+      (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlReader"), [], [])),
+      function ReadSubtree() {
+        var result = JSIL.CreateInstanceOfType(System.Xml.XmlReader.__Type__, "$fromDOMNode", [this._current.cloneNode(true)]);
+
+        this._state = sSiblings;
+        return result;
+      }
+    );
+
     $.RawMethod(false, "SetupReadElementContent", function () {
         if (this._nodeType != ntElement)
             throw new System.Exception("Invalid start node for ReadElementContent");
