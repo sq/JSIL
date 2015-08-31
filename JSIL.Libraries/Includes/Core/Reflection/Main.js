@@ -15,6 +15,7 @@ if (!$jsilcore)
 //? include("Classes/System.Reflection.FieldInfo.js"); writeln();
 
 //? include("Classes/System.Reflection.CustomAttributeExtensions.js"); writeln();
+//? include("Classes/System.Reflection.IntrospectionExtensions.js"); writeln();
 
 //? include("Classes/System.Reflection.MethodBase.js"); writeln();
 //? include("Classes/System.Reflection.MethodInfo.js"); writeln();

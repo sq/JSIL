@@ -36,6 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />
     <None Include="package.json" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
