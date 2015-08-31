@@ -1,8 +1,9 @@
 #!/bin/bash
 
-if curl "jsil.org/ci/download.aspx?key=travisci-compilecache&password=$JSIL_STORAGE_PASSWORD" -o "/tmp/compilecache.zip"; then
+if curl -S "jsil.org/ci/download.aspx?key=travisci&tag=$JSIL_STORAGE_TAG&password=$JSIL_STORAGE_PASSWORD" -o "/tmp/compilecache.zip"; then
     echo "Failed to download compile cache."
 else
-    echo "Downloaded and unpacked compile cache."
+    echo "Downloaded compile cache."
     unzip -o "/tmp/compilecache.zip" -d /tmp/JSIL Tests/
+    echo "Unpacked compile cache."
 fi

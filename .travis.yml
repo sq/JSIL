@@ -23,5 +23,8 @@ env:
     - NODEJS_VERSION=0.10
   matrix:
     - TestRun=JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
+      JSIL_STORAGE_TAG=misc-tests
     - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl
+      JSIL_STORAGE_TAG=stubbed-tests
     - TestRun=JSIL.SimpleTests.SimpleTestCasesForTranslatedBcl
+      JSIL_STORAGE_TAG=translated-tests

@@ -39,6 +39,8 @@ public abstract class JSONPage : System.Web.UI.Page {
             return false;
         }
 
+        var tag = Request.Params["tag"] ?? "";
+
         var targetDir = Path.Combine(
             Path.GetTempPath(),
             "JSIL CI"
@@ -47,7 +49,10 @@ public abstract class JSONPage : System.Web.UI.Page {
         if (!Directory.Exists(targetDir))
             Directory.CreateDirectory(targetDir);
 
-        targetPath = Path.Combine(targetDir, key + ".bin");
+        targetPath = Path.Combine(
+            targetDir, 
+            string.Format("{0}-{1}.bin", key, tag)
+        );
         return true;
     }
 }
