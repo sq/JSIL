@@ -7,12 +7,21 @@ using Mono.Cecil;
 
 namespace JSIL.Ast {
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
+        public class Token {
+        }
+
         public int? CachedTypeIndex;
 
         public JSDefaultValueLiteral (TypeReference type)
             : base(type) {
             if (type == null)
                 throw new ArgumentNullException("type");
+        }
+
+        public override object Literal {
+            get {
+                return new Token();
+            }
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
