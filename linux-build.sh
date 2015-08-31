@@ -16,7 +16,12 @@ fi
 
 # restore nuget packages
 echo // Installing NuGet packages
-nuget.exe restore
+NUGET=`which nuget.exe`
+mono $NUGET restore
+
+NODEBIN=`which node`
+export NODEJS=`dirname $NODEBIN`
+echo using node from $NODEJS
 
 # build with xna projects disabled
 echo // Building
