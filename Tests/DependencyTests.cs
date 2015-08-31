@@ -17,7 +17,7 @@ namespace JSIL.Tests {
                     @"SpecialTestCases",
                     "EnumeratesAssemblyDependencies.cs"
                 )
-            }, Path.Combine("DependencyTests", "EnumeratesAssemblyDependencies"));
+            }, Path.Combine("DependencyTests", "EnumeratesAssemblyDependencies"), "", ComparisonTest.CurrentMetaRevision);
             var assembly = cr.Assembly;
 
             var translator = new AssemblyTranslator(

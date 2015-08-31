@@ -12,11 +12,10 @@ using Microsoft.VisualBasic;
 
 namespace JSIL.Tests {
     using System.Runtime.Serialization;
+    using System.Security.Cryptography;
 
     public static class CompilerUtil {
         public static string TempPath;
-
-        public static readonly string CurrentMetaRevision;
 
         // Attempt to clean up stray assembly files from previous test runs
         //  since the assemblies would have remained locked and undeletable 
@@ -25,15 +24,10 @@ namespace JSIL.Tests {
             TempPath = Path.Combine(Path.GetTempPath(), "JSIL Tests");
             if (!Directory.Exists(TempPath))
                 Directory.CreateDirectory(TempPath);
-
-            Console.WriteLine("Compile cache located at {0}", TempPath);
-
-            if (TryGetMetaVersion(out CurrentMetaRevision))
-                Console.WriteLine("Using JSIL.Meta {0}", CurrentMetaRevision);
         }
 
         public static CompileResult Compile (
-            IEnumerable<string> filenames, string assemblyName, string compilerOptions = ""
+            IEnumerable<string> filenames, string assemblyName, string compilerOptions, string currentMetaRevision
         ) {
             var extension = Path.GetExtension(filenames.First()).ToLower();
             Func<CompileOptions, CodeDomProvider> provider = null;
@@ -93,11 +87,32 @@ namespace JSIL.Tests {
             }
 
             return Compile(
-                provider, filenames, assemblyName, compilerOptions
+                provider, filenames, assemblyName, compilerOptions, currentMetaRevision
             );
         }
 
-        private static bool CheckCompileManifest (IEnumerable<string> inputs, string outputDirectory, string expectedMetaVersion) {
+        private static string GetFileMD5 (string path) {
+            using (var md5 = MD5.Create())
+            using (var stream = File.OpenRead(path)) {
+                var hashBytes = md5.ComputeHash(stream);
+                return Convert.ToBase64String(hashBytes);
+            }
+        }
+
+        private static Dictionary<string, string> BuildCompileManifest (IEnumerable<string> inputs, string metaVersion) {
+            var manifest = new Dictionary<string, string>();
+
+            manifest["metaVersion"] = metaVersion;
+
+            foreach (var input in inputs) {
+                var hash = GetFileMD5(input);
+                manifest["md5-" + input] = hash;
+            }
+
+            return manifest;
+        }
+
+        private static bool CheckCompileManifest (string outputDirectory, Dictionary<string, string> expectedManifest) {
             var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
             if (!File.Exists(manifestPath))
                 return false;
@@ -105,50 +120,30 @@ namespace JSIL.Tests {
             var jss = new JavaScriptSerializer();
             var manifest = jss.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifestPath));
 
-            string metaVersion;
-            if (!manifest.TryGetValue("metaVersion", out metaVersion)) {
+            var expectedKeys = expectedManifest.Keys.ToArray();
+            Array.Sort(expectedKeys);
+
+            var actualKeys = manifest.Keys.ToArray();
+            Array.Sort(actualKeys);
+
+            if (!expectedKeys.SequenceEqual(actualKeys))
                 return false;
-            }
 
-            if (metaVersion != expectedMetaVersion) {
-                return false;
-            }
-
-            foreach (var input in inputs) {
-                var fi = new FileInfo(input);
-                var key = Path.GetFileName(input);
-
-                if (!manifest.ContainsKey(key))
+            foreach (var key in expectedKeys) {
+                if (expectedManifest[key] != manifest[key])
                     return false;
-
-                var previousTimestamp = DateTime.Parse(manifest[key]);
-
-                var delta = fi.LastWriteTime - previousTimestamp;
-                if (Math.Abs(delta.TotalSeconds) >= 1) {
-                    return false;
-                }
             }
 
             return true;
         }
 
-        private static void WriteCompileManifest (IEnumerable<string> inputs, string outputDirectory, string metaVersion) {
-            var manifest = new Dictionary<string, string>();
-
-            manifest["metaVersion"] = metaVersion;
-
-            foreach (var input in inputs) {
-                var fi = new FileInfo(input);
-                var key = Path.GetFileName(input);
-                manifest[key] = fi.LastWriteTime.ToString("O");
-            }
-
+        private static void WriteCompileManifest (string outputDirectory, Dictionary<string, string> manifest) {
             var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
             var jss = new JavaScriptSerializer();
             File.WriteAllText(manifestPath, jss.Serialize(manifest));
         }
 
-        private static bool TryGetMetaVersion (out string version) {
+        public static bool TryGetMetaVersion (out string version) {
             string stderr, stdout;
             var metaSourceDirectory = Path.Combine(ComparisonTest.JSILFolder, "..", "Meta"); 
 
@@ -190,7 +185,7 @@ namespace JSIL.Tests {
         }
 
         private static CompileResult Compile (
-            Func<CompileOptions, CodeDomProvider> getProvider, IEnumerable<string> _filenames, string assemblyName, string compilerOptions
+            Func<CompileOptions, CodeDomProvider> getProvider, IEnumerable<string> _filenames, string assemblyName, string compilerOptions, string currentMetaRevision
         ) {
             var filenames = _filenames.ToArray();
             var tempPath = Path.Combine(TempPath, assemblyName);
@@ -245,9 +240,11 @@ namespace JSIL.Tests {
                 (generateExecutable ? ".exe" : ".dll")
             );
 
+            var manifest = BuildCompileManifest(filenames, currentMetaRevision);
+
             if (
                 File.Exists(outputAssembly) &&
-                CheckCompileManifest(filenames, tempPath, CurrentMetaRevision)
+                CheckCompileManifest(tempPath, manifest)
             ) {
                 if (File.Exists(warningTextPath))
                     Console.Error.WriteLine(File.ReadAllText(warningTextPath));
@@ -329,7 +326,7 @@ namespace JSIL.Tests {
                 );
             }
 
-            WriteCompileManifest(filenames, tempPath, CurrentMetaRevision);
+            WriteCompileManifest(tempPath, manifest);
 
             return new CompileResult(
                 results.CompiledAssembly,
@@ -340,7 +337,7 @@ namespace JSIL.Tests {
 
         private class CompileOptions
         {
-            public bool UseRoslyn { get; set; } 
+            public bool UseRoslyn { get; set; }
         }
     }
 
