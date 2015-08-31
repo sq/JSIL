@@ -47,6 +47,20 @@
       }
     );
 
+    $.Method({ Static: false, Public: true }, "CopyToAsync",
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.IO.Stream")], [])),
+      function CopyToAsync(stream) {
+          var tcs = new (System.Threading.Tasks.TaskCompletionSource$b1.Of(System.Boolean))();
+          if (this._buffer) {
+              stream.Write(this._buffer, 0, this._length);
+          } else {
+              throw new Error("Copying not implemented for this stream type");
+          }
+          tcs.TrySetResult(true);
+          return tcs.Task;
+      }
+    );
+
     $.RawMethod(false, "$GetURI", function () {
         return null;
     });

@@ -85,6 +85,14 @@
     }
   );
 
+  $.Method({ Static: false, Public: true }, "get_DefinedTypes",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IEnumerable", [$jsilcore.TypeRef("System.TypeInfo")]), [], [])),
+    function get_DefinedTypes() {
+        return JSIL.GetTypesFromAssembly(this.__PublicInterface__);
+    }
+  );
+
+
   $.Method({ Static: true, Public: true }, "GetEntryAssembly",
     (new JSIL.MethodSignature($.Type, [], [])),
     function GetEntryAssembly() {
@@ -124,4 +132,5 @@
   $.Property({ Static: false, Public: true }, "CodeBase");
   $.Property({ Static: false, Public: true }, "Location");
   $.Property({ Static: false, Public: true }, "FullName");
+  $.Property({ Static: false, Public: true }, "DefinedTypes");
 });

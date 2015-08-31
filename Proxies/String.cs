@@ -328,5 +328,23 @@ namespace JSIL.Proxies {
         public void CopyTo (int sourceIndex, char[] destination, int destinationIndex, int count) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("(System.String.Compare($this, $rhs, $comparison) == 0)")]
+        [JSIsPure]
+        public bool Equals(string rhs, StringComparison comparison) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$lhs === $rhs")]
+        [JSIsPure]
+        public static bool Equals(string lhs, string rhs) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("(System.String.Compare($lhs, $rhs, $comparison) === 0)")]
+        [JSIsPure]
+        public static bool Equals(string lhs, string rhs, StringComparison comparison) {
+            throw new InvalidOperationException();
+        }
     }
 }

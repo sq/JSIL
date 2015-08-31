@@ -15,11 +15,40 @@
       }
     );
 
+    $.Method({ Static: false, Public: true }, ".ctor",
+      (new JSIL.MethodSignature(null, [$.Int64, $jsilcore.TypeRef("System.DateTimeKind")], [])),
+      function _ctor(ticks, kind) {
+          this.dateData = ticks.ToUInt64();
+          this.kind = kind;
+      }
+    );
+
     $.Method({ Static: false, Public: false }, ".ctor",
       (new JSIL.MethodSignature(null, [$.UInt64], [])),
       function _ctor(dateData) {
           this.dateData = dateData;
           this.kind = $jsilcore.System.DateTimeKind.Unspecified;
+      }
+    );
+
+    $.Method({ Static: false, Public: true }, "ToBinary",
+      (new JSIL.MethodSignature($.Int64, [], [])),
+      function ToBinary() {
+          // FIXME: this.kind is not properly copied on MemberwiseClone
+          if (this.kind === undefined)
+              this.kind = $jsilcore.System.DateTimeKind.Unspecified;
+          return ($jsilcore.System.Int64.op_BitwiseOr(this.dateData, $jsilcore.System.Int64.op_LeftShift(this.kind, 62)));
+      }
+    );
+
+    $.Method({ Static: true, Public: true }, "FromBinary",
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.DateTime"), [$.Int64], [])),
+      function FromBinary(dateData) {
+          var ticks = $jsilcore.System.Int64.op_BitwiseAnd(dateData,
+                                                           $jsilcore.System.Int64.Create(16777215, 16777215, 16383) /* 0x3FFFFFFFFFFFFFFF */);
+          var kind = $jsilcore.System.Int64.op_RightShift(dateData, 62);
+
+          return new System.DateTime(ticks, $jsilcore.System.DateTimeKind.$Cast(kind));
       }
     );
 

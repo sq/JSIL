@@ -257,6 +257,12 @@ namespace JSIL.Proxies.Bcl
 
         [JSExternal]
         [JSReplaceConstructor]
+        public System_DateTime(long ticks, DateTimeKind kind) {
+            throw new NotImplementedException();
+        }
+
+        [JSExternal]
+        [JSReplaceConstructor]
         public System_DateTime(int year, int month, int day)
         {
             throw new NotImplementedException();
@@ -290,6 +296,16 @@ namespace JSIL.Proxies.Bcl
         [JSExternal]
         public string ToLongTimeString()
         {
+            throw new NotImplementedException();
+        }
+
+        [JSExternal]
+        public long ToBinary() {
+            throw new NotImplementedException();
+        }
+
+        [JSExternal]
+        public static DateTime FromBinary(long dateData) {
             throw new NotImplementedException();
         }
     }

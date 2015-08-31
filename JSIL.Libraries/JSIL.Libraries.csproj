@@ -36,6 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />
     <None Include="package.json" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
@@ -58,7 +59,9 @@
     <Content Include="Includes\Bootstrap\Async\Interfaces\System.Runtime.CompilerServices.INotifyCompletion.js" />
     <Content Include="Includes\Bootstrap\Async\Interfaces\System.Runtime.CompilerServices.IAsyncStateMachine.js" />
     <Content Include="Includes\Bootstrap\Async\Main.js" />
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Concurrent.ConcurrentQueue.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.EqualityComparer.js" />
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Threading.SemaphoreSlim.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.%24ParseBoolean.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\%24jsilcore.InitResizableArray.js" />
     <Content Include="Includes\Bootstrap\Core\Utils\JSIL.%24WrapIComparer.js" />
@@ -141,6 +144,7 @@
     <Content Include="Includes\Bootstrap\Int\Utils\JSIL.Make64BitInt.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\JSIL.AbstractEnumerable.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Enumerable.js" />
+    <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.BinaryExpression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.ConstantExpression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.Expression.js" />
     <Content Include="Includes\Bootstrap\Linq\Classes\System.Linq.Expressions.LambdaExpression.js" />
@@ -182,6 +186,7 @@
     <Content Include="Includes\Bootstrap\Text\Helpers\%24jsilcore.makeByteReader.js" />
     <Content Include="Includes\Bootstrap\Text\Utils\%24jsilcore.charCodeAt.js" />
     <Content Include="Includes\Bootstrap\Text\Utils\%24jsilcore.fromCharCode.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.CustomAttributeExtensions.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ICustomAttributeProvider.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.AssemblyName.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Attribute.js" />

@@ -82,6 +82,9 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Classes/System.Threading.Monitor.js"); writeln();
 //? include("Classes/System.Threading.Thread.js"); writeln();
 //? include("Classes/System.Threading.Volatile.js"); writeln();
+//? include("Classes/System.Threading.SemaphoreSlim.js"); writeln();
+
+//? include("Classes/System.Collections.Concurrent.ConcurrentQueue.js"); writeln();
 
 //? if (!('TRANSLATED' in  __out)) {
   //? include("Classes/System.Collections.Generic.List.js"); writeln();
