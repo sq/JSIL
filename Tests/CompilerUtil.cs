@@ -154,9 +154,7 @@ namespace JSIL.Tests {
 
         private static bool TryGetMetaVersion (out string version) {
             string stderr, stdout;
-            // FIXME
-            var binDirectory = Path.GetDirectoryName(typeof(JSIL.Meta.JSChangeName).Assembly.Location);
-            var metaSourceDirectory = Path.Combine(binDirectory, "..", "Meta"); 
+            var metaSourceDirectory = Path.Combine(ComparisonTest.JSILFolder, "..", "Meta"); 
 
             try {
                 var exitCode = ProcessUtil.Run(
