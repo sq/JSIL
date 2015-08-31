@@ -60,6 +60,7 @@ namespace JSIL.Tests {
         public readonly AssemblyUtility AssemblyUtility;
         public readonly Metacomment[] Metacomments;
         public readonly TimeSpan CompilationElapsed;
+        public readonly bool     CompilationCacheHit;
         public readonly EvaluatorPool EvaluatorPool;
 
         private readonly AppDomain AssemblyAppDomain;
@@ -189,6 +190,7 @@ namespace JSIL.Tests {
                             compilerOptions);
                         Metacomments = helper.Metacomments;
                         AssemblyUtility = helper.AssemblyUtility;
+                        CompilationCacheHit = helper.WasCached;
                     }
                     catch (TargetInvocationException exception)
                     {
@@ -852,9 +854,15 @@ namespace JSIL.Tests {
                 if (AssemblyUtility == null)
                     writeJSOutput();
 
+                string compileTime;
+                if (CompilationCacheHit)
+                    compileTime = "cached";
+                else
+                    compileTime = string.Format("{0:0000}ms", CompilationElapsed.TotalMilliseconds);
+
                 Console.WriteLine(
-                    "passed: CL:{0:0000}ms TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
-                    CompilationElapsed.TotalMilliseconds,
+                    "passed: CL:{0} TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
+                    compileTime,
                     TimeSpan.FromTicks(elapsed[0]).TotalMilliseconds,
                     TimeSpan.FromTicks(elapsed[1]).TotalMilliseconds,
                     TimeSpan.FromTicks(elapsed[2]).TotalMilliseconds
@@ -923,12 +931,14 @@ namespace JSIL.Tests {
     {
         private readonly AssemblyUtility _assemblyUtility;
         private readonly Metacomment[] _metacomments;
+        private readonly bool _wasCached;
 
         public CrossDomainHelper(string[] absoluteFilenames, string assemblyName, string compilerOptions)
         {
             var compileResult = CompilerUtil.Compile(absoluteFilenames, assemblyName, compilerOptions: compilerOptions);
             _assemblyUtility = new AssemblyUtility(compileResult.Assembly);
             _metacomments = compileResult.Metacomments;
+            _wasCached = compileResult.WasCached;
         }
 
         public CrossDomainHelper(string assemblyPath, bool reflectionOnly)
@@ -977,6 +987,10 @@ namespace JSIL.Tests {
         public Metacomment[] Metacomments
         {
             get { return _metacomments; }
+        }
+
+        public bool WasCached {
+            get { return _wasCached; }
         }
     }
 

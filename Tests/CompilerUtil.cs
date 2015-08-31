@@ -218,7 +218,8 @@ namespace JSIL.Tests {
 
                 return new CompileResult(
                     generateExecutable ? Assembly.ReflectionOnlyLoadFrom(outputAssembly) : Assembly.LoadFile(outputAssembly),
-                    metacomments.ToArray()
+                    metacomments.ToArray(),
+                    true
                 );
             }
 
@@ -296,7 +297,8 @@ namespace JSIL.Tests {
 
             return new CompileResult(
                 results.CompiledAssembly,
-                metacomments.ToArray()
+                metacomments.ToArray(),
+                false
             );
         }
 
@@ -307,12 +309,14 @@ namespace JSIL.Tests {
     }
 
     public class CompileResult {
-        public readonly Assembly Assembly;
+        public readonly Assembly      Assembly;
         public readonly Metacomment[] Metacomments;
+        public readonly bool          WasCached;
 
-        public CompileResult (Assembly assembly, Metacomment[] metacomments) {
+        public CompileResult (Assembly assembly, Metacomment[] metacomments, bool wasCached) {
             Assembly = assembly;
             Metacomments = metacomments;
+            WasCached = wasCached;
         }
     }
 
