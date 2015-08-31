@@ -4,13 +4,6 @@ using System.Web.Script.Serialization;
 
 public partial class UploadPage : JSONPage {
     protected void Page_Load (object sender, EventArgs e) {
-        /*
-        if (Request.RequestType != "POST") {
-            Fail("Request must be a POST");
-            return;
-        }
-        */
-
         string targetPath;
         if (!SetupRequest(out targetPath))
             return;

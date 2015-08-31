@@ -8,14 +8,16 @@ before_install:
 
 install:
   - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
+  - ci/download-asset.sh packages .
   - nuget restore JSIL.sln
+  - ci/upload-asset.sh packages packages &
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
 
 script:
   - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
-  - ci/download-compile-cache.sh
+  - ci/download-asset.sh compilecache /
   - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)
-  - ci/upload-compile-cache.sh
+  - ci/upload-asset.sh compilecache "/tmp/JSIL Tests"
 
 env:
   global:

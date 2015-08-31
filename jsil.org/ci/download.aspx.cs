@@ -5,16 +5,21 @@ using System.Web.Script.Serialization;
 public partial class DownloadPage : JSONPage {
     protected void Page_Load (object sender, EventArgs e) {
         if (Request.RequestType != "GET") {
-            Fail("Request must be a GET");
+            Response.Clear();
+            Response.StatusCode = 400;
             return;
         }
         
         string targetPath;
-        if (!SetupRequest(out targetPath))
+        if (!SetupRequest(out targetPath)) {
+            Response.Clear();
+            Response.StatusCode = 400;
             return;
+        }
 
         if (!File.Exists(targetPath)) {
-            Fail("File not found");
+            Response.Clear();
+            Response.StatusCode = 404;
             return;
         }
 
@@ -22,6 +27,7 @@ public partial class DownloadPage : JSONPage {
         Response.StatusCode = 200;
         Response.ContentType = "application/octet-stream";
         Response.AddHeader("Content-Disposition", "attachment; filename=\"" + Path.GetFileName(targetPath) + "\"");
+        Response.Buffer = false;
         Response.Flush();
 
         using (var fileStream = File.OpenRead(targetPath))
