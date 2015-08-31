@@ -26,11 +26,7 @@ namespace JSIL.Tests {
             if (!Directory.Exists(TempPath))
                 Directory.CreateDirectory(TempPath);
 
-            foreach (var filename in Directory.GetFiles(TempPath))
-                try {
-                    File.Delete(filename);
-                } catch {
-                }
+            Console.WriteLine("Compile cache located at {0}", TempPath);
 
             if (TryGetMetaVersion(out CurrentMetaRevision))
                 Console.WriteLine("Using JSIL.Meta {0}", CurrentMetaRevision);

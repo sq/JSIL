@@ -1,6 +1,5 @@
 version: 1.0.{build}
 cache:
-  - "%TEMP%\\JSIL Tests" # preserve test compilation cache
   - packages -> **\packages.config  # preserve "packages" directory in the root of build folder but will reset it if packages.config is modified
 install:
   - git submodule update --init --recursive
