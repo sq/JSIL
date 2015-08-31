@@ -16,6 +16,8 @@ namespace JSIL.Tests {
     public static class CompilerUtil {
         public static string TempPath;
 
+        public static readonly string CurrentMetaRevision;
+
         // Attempt to clean up stray assembly files from previous test runs
         //  since the assemblies would have remained locked and undeletable 
         //  due to being loaded
@@ -29,6 +31,9 @@ namespace JSIL.Tests {
                     File.Delete(filename);
                 } catch {
                 }
+
+            if (TryGetMetaVersion(out CurrentMetaRevision))
+                Console.WriteLine("Using JSIL.Meta {0}", CurrentMetaRevision);
         }
 
         public static CompileResult Compile (
@@ -96,11 +101,7 @@ namespace JSIL.Tests {
             );
         }
 
-        private static DateTime GetJSILMetaTimestamp () {
-            return File.GetLastWriteTimeUtc(typeof(JSIL.Meta.JSChangeName).Assembly.Location);
-        }
-
-        private static bool CheckCompileManifest (IEnumerable<string> inputs, string outputDirectory) {
+        private static bool CheckCompileManifest (IEnumerable<string> inputs, string outputDirectory, string expectedMetaVersion) {
             var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
             if (!File.Exists(manifestPath))
                 return false;
@@ -108,14 +109,12 @@ namespace JSIL.Tests {
             var jss = new JavaScriptSerializer();
             var manifest = jss.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifestPath));
 
-            var expectedMetaTimestamp = GetJSILMetaTimestamp().ToString();
-
-            string metaTimestamp;
-            if (!manifest.TryGetValue("metaTimestamp", out metaTimestamp)) {
+            string metaVersion;
+            if (!manifest.TryGetValue("metaVersion", out metaVersion)) {
                 return false;
             }
 
-            if (metaTimestamp != expectedMetaTimestamp) {
+            if (metaVersion != expectedMetaVersion) {
                 return false;
             }
 
@@ -137,10 +136,10 @@ namespace JSIL.Tests {
             return true;
         }
 
-        private static void WriteCompileManifest (IEnumerable<string> inputs, string outputDirectory) {
+        private static void WriteCompileManifest (IEnumerable<string> inputs, string outputDirectory, string metaVersion) {
             var manifest = new Dictionary<string, string>();
 
-            manifest["metaTimestamp"] = GetJSILMetaTimestamp().ToString();
+            manifest["metaVersion"] = metaVersion;
 
             foreach (var input in inputs) {
                 var fi = new FileInfo(input);
@@ -151,6 +150,49 @@ namespace JSIL.Tests {
             var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
             var jss = new JavaScriptSerializer();
             File.WriteAllText(manifestPath, jss.Serialize(manifest));
+        }
+
+        private static bool TryGetMetaVersion (out string version) {
+            string stderr, stdout;
+            // FIXME
+            var binDirectory = Path.GetDirectoryName(typeof(JSIL.Meta.JSChangeName).Assembly.Location);
+            var metaSourceDirectory = Path.Combine(binDirectory, "..", "Meta"); 
+
+            try {
+                var exitCode = ProcessUtil.Run(
+                    "git", "rev-parse --verify HEAD", null, out stderr, out stdout,
+                    cwd: metaSourceDirectory
+                );
+
+                if (exitCode != 0) {
+                    Console.WriteLine("revparse exited with code {0}. stdout='{1}' stderr='{2}'", exitCode, stdout, stderr);
+                    version = null;
+                    return false;
+                }
+
+                version = stdout.Trim();
+
+                exitCode = ProcessUtil.Run(
+                    "git", "diff-files --name-only --ignore-submodules", null, out stderr, out stdout,
+                    cwd: metaSourceDirectory
+                );
+
+                if (exitCode != 0) {
+                    Console.WriteLine("diff-files exited with code {0}. stdout='{1}' stderr='{2}'", exitCode, stdout, stderr);
+                    version = null;
+                    return false;
+                } else if (stdout.Trim().Length > 0) {
+                    Console.WriteLine("Suppressing Meta caching because of local modifications");
+                    version = null;
+                    return false;
+                }
+
+                return true;
+            } catch {
+                Console.WriteLine("Looked for meta submodule in {0}", metaSourceDirectory);
+                throw;
+            }
+            return false;
         }
 
         private static CompileResult Compile (
@@ -211,7 +253,7 @@ namespace JSIL.Tests {
 
             if (
                 File.Exists(outputAssembly) &&
-                CheckCompileManifest(filenames, tempPath)
+                CheckCompileManifest(filenames, tempPath, CurrentMetaRevision)
             ) {
                 if (File.Exists(warningTextPath))
                     Console.Error.WriteLine(File.ReadAllText(warningTextPath));
@@ -293,7 +335,7 @@ namespace JSIL.Tests {
                 );
             }
 
-            WriteCompileManifest(filenames, tempPath);
+            WriteCompileManifest(filenames, tempPath, CurrentMetaRevision);
 
             return new CompileResult(
                 results.CompiledAssembly,
