@@ -1,8 +1,11 @@
 version: 1.0.{build}
+cache:
+  - "%TEMP%\\JSIL Tests" # preserve test compilation cache
+  - packages -> **\packages.config  # preserve "packages" directory in the root of build folder but will reset it if packages.config is modified
 install:
-- git submodule update --init --recursive
-- nuget restore JSIL.sln
+  - git submodule update --init --recursive
+  - nuget restore JSIL.sln
 build_script:
-- msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
+  - msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
 test_script:
-- nunit-console-x86 bin\Tests.DCE.dll bin\SimpleTests.dll bin\Tests.dll /include:"FailsOnMono|(FailsOnMonoWhenStubbed+Stubbed)|(FailsOnMonoWhenStubbed+Translated)"
+  - nunit-console-x86 bin\Tests.DCE.dll bin\SimpleTests.dll bin\Tests.dll /include:"FailsOnMono|(FailsOnMonoWhenStubbed+Stubbed)|(FailsOnMonoWhenStubbed+Translated)"
