@@ -1580,7 +1580,11 @@ JSIL.GenericParameter.prototype.__IsClosed__ = false;
 
 JSIL.PositionalGenericParameter = function (name, context) {
   this.index = parseInt(name.substr(2));
-  JSIL.SetValueProperty(this, "__TypeId__", name);
+  var realName = name;
+  if (typeof (context) !== "undefined" && typeof (context.genericArgumentNames) !== "undefined") {
+    realName = context.genericArgumentNames[this.index];
+  }
+  JSIL.SetValueProperty(this, "__TypeId__", realName);
   this.__Context__ = context || $jsilcore;
 
   var fullNameDecl = {
@@ -1596,7 +1600,7 @@ JSIL.PositionalGenericParameter = function (name, context) {
 JSIL.PositionalGenericParameter.prototype = Object.create(JSIL.TypeObjectPrototype);
 
 JSIL.PositionalGenericParameter.prototype.getFullName = function () {
-  return "!!" + this.index;
+  return this.__TypeId__;
 };
 
 JSIL.PositionalGenericParameter.prototype.get = function (context) {
@@ -1624,7 +1628,7 @@ JSIL.PositionalGenericParameter.prototype.get_IsGenericParameter = function () {
 };
 
 JSIL.PositionalGenericParameter.prototype.get_Name = function () {
-  return "!!" + this.index;
+  return this.__TypeId__;
 };
 
 JSIL.PositionalGenericParameter.prototype.__IsClosed__ = false;
