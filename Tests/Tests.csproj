@@ -291,6 +291,7 @@
     <None Include="ReflectionTestCases\GetInheritedAttributesFromMethods.cs" />
     <None Include="SpecialTestCases\RenameInterfaceMethod.cs" />
     <None Include="SpecialTestCases\RenameInterface.cs" />
+    <None Include="ReflectionTestCases\FailsOnMono\GetParentDefinition.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />
