@@ -8976,14 +8976,14 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   var makeTypeInstance = function (type) {
     // Construct the appropriate subclass of MemberInfo
-    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
+    var parsedTypeName = JSIL.ParseTypeName("System.Reflection.Runtime" + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
     var info = JSIL.CreateInstanceOfType(infoType, null);
 
     /*
     // Don't trigger type initialization machinery
     // FIXME: This will break if any of the memberinfo types rely on static constructors.
-    var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
+    var infoType = JSIL.GetTypeByName("System.Reflection.Runtime" + type, $jsilcore);
     var info = Object.create(infoType.prototype);
     */
 
@@ -9082,7 +9082,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
     else if (instanceOnly && member._descriptor.Static)
       continue;
 
-    var currentMemberType = member.__ThisType__.__ShortName__;  
+    var currentMemberType = member.__MemberType__;  
     if (methodOrConstructor) {
       if (
         (currentMemberType != "MethodInfo") &&
@@ -9668,7 +9668,7 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
       }
 
       return result;
-    } else if (memberType === "System.Reflection.MethodInfo" && memberInfo._descriptor.Virtual) {
+    } else if (memberType === "System.Reflection.RuntimeMethodInfo" && memberInfo._descriptor.Virtual) {
       var currentType = memberInfo.get_DeclaringType();
       while (currentType && currentType.GetType) {
         var foundMethod = JSIL.GetMethodInfo(currentType.__PublicInterface__, memberInfo.get_Name(), memberInfo._data.signature, false, null);

@@ -7,7 +7,7 @@
 
     var argumentTypes = method._data.resolvedSignature.argumentTypes;
     var parameterInfos = method._data.parameterInfo;
-    var tParameterInfo = $jsilcore.System.Reflection.ParameterInfo.__Type__;
+    var tParameterInfo = $jsilcore.System.Reflection.RuntimeParameterInfo.__Type__;
 
     if (argumentTypes) {
       for (var i = 0; i < argumentTypes.length; i++) {

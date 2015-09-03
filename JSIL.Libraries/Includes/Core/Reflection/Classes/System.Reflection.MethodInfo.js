@@ -94,7 +94,7 @@
       if (result)
         return result;
 
-      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.MethodInfo");
+      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.RuntimeMethodInfo");
       var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
       var info = JSIL.CreateInstanceOfType(infoType, null);
       info._typeObject = this._typeObject;

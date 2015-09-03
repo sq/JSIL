@@ -39,3 +39,10 @@ if (!$jsilcore)
 //? include("Classes/System.Reflection.AssemblyName.js"); writeln();
 
 //? include("Classes/System.Reflection.ICustomAttributeProvider.js"); writeln();
+
+//? include("Classes/System.Reflection.RuntimeConstructorInfo.js"); writeln();
+//? include("Classes/System.Reflection.RuntimeEventInfo.js"); writeln();
+//? include("Classes/System.Reflection.RuntimeFieldInfo.js"); writeln();
+//? include("Classes/System.Reflection.RuntimeMethodInfo.js"); writeln();
+//? include("Classes/System.Reflection.RuntimeParameterInfo.js"); writeln();
+//? include("Classes/System.Reflection.RuntimePropertyInfo.js"); writeln();
