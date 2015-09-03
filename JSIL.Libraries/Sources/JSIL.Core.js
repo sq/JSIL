@@ -1572,7 +1572,7 @@ JSIL.GenericParameter.prototype.get_IsGenericParameter = function () {
 };
 
 JSIL.GenericParameter.prototype.get_Name = function () {
-  return this.name.humanReadable;
+  return this.__ShortName__;
 };
 
 JSIL.GenericParameter.prototype.__IsClosed__ = false;
