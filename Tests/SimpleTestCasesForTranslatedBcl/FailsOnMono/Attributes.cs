@@ -5,7 +5,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        WriteInfo(typeof(Derived).GetProperty("Prop", BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public));
+        WriteInfo(typeof(Derived).GetProperty("Prop"));
     }
 
     public static void WriteInfo(MemberInfo item)

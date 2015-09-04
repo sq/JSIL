@@ -9019,7 +9019,8 @@ JSIL.GetReflectionCache = function (typeObject) {
 // Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
 // If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
 // If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
-JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
+JSIL.GetMembersInternal = function (typeObject, flags, memberType, name, hideMembers) {
+  hideMembers |= false;
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
@@ -9043,61 +9044,115 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
   if (staticOnly && instanceOnly)
     staticOnly = instanceOnly = false;
 
-  var members = [];
+  var processedProperties = {};
+  var processedEvents = {};
+
+  var shouldProcessProperty= function(property, processed) {
+    if (property._descriptor.Name in processed) {
+      var processedList = processed[property._descriptor.Name];
+      for (var i = 0, l = processedList.length; i < l; i++) {
+        if ($jsilcore.System.Type.op_Equality(processedList[i].get_PropertyType(), property.get_PropertyType())) {
+          var processedParameters = processedList[i].GetIndexParameters();
+          var currentParameters = property.GetIndexParameters();
+          if (processedParameters.length !== currentParameters.length) {
+            continue;
+          }
+          for (var pi = 0, pl = processedParameters.length; pi < pl; pi++) {
+            if ($jsilcore.System.Type.op_Inequality(processedParameters[pi].get_ParameterType(), currentParameters[pi].get_ParameterType())) {
+              continue;
+            }
+          }
+          return false;
+        }
+      }
+      processedList.push(property);
+    } else {
+      processed[property._descriptor.Name] = [property];
+    }
+    return true;
+  }
+  var shouldProcessEvent = function(event, processed) {
+    if (event._descriptor.Name in processed) {
+      return false;
+    } else {
+      processed[event._descriptor.Name] = [event._descriptor.Name];
+    }
+    return true;
+  }
+
   var target = typeObject;
 
+  var baseTypeProcessing = false;
   while (target !== null) {
     var targetMembers = JSIL.GetReflectionCache(target);
     if (targetMembers === null)
       break;
 
-    members = targetMembers.concat(members);
+    for (var i = 0, l = targetMembers.length; i < l; i++) {
+      var member = targetMembers[i];
+
+      // HACK: Reflection never seems to enumerate static constructors. This is probably because
+      //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
+      if (
+        !allMethodsIncludingSpecialNames &&
+          member._descriptor.Static &&
+          member._descriptor.SpecialName &&
+          member._descriptor.Name.indexOf("cctor") >= 0
+      )
+        continue;
+
+      if (publicOnly && !member._descriptor.Public)
+        continue;
+      else if (nonPublicOnly && member._descriptor.Public)
+        continue;
+
+      if (staticOnly && !member._descriptor.Static)
+        continue;
+      else if (instanceOnly && member._descriptor.Static)
+        continue;
+
+      var currentMemberType = member.__MemberType__;
+      if (methodOrConstructor) {
+        if (
+          (currentMemberType !== "MethodInfo") &&
+          (currentMemberType !== "ConstructorInfo")
+        )
+          continue;
+      } else if ((typeof (memberType) === "string") && (memberType !== currentMemberType)) {
+        continue;
+      }
+
+      if ((typeof (name) === "string") && (name !== member._descriptor.Name)) {
+        continue;
+      }
+
+      if (hideMembers) {
+        if (baseTypeProcessing) {
+          if (currentMemberType === "ConstructorInfo")
+            continue;
+
+          // HACK: Do this check only if type system already prepared.
+          if (currentMemberType === "PropertyInfo" && !shouldProcessProperty(member, processedProperties))
+            continue;
+
+          if (currentMemberType === "EventInfo" && !shouldProcessEvent(member, processedEvents))
+            continue;
+        } else {
+          if (currentMemberType === "PropertyInfo")
+            shouldProcessProperty(member, processedProperties);
+          if (currentMemberType === "EventInfo")
+            shouldProcessEvent(member, processedProperties);
+        }
+      }
+
+      result.push(member);
+    }
 
     if (!allowInherited)
       break;
 
+    baseTypeProcessing = true;
     target = target.__BaseType__;
-  }
-
-  for (var i = 0, l = members.length; i < l; i++) {
-    var member = members[i];
-
-    // HACK: Reflection never seems to enumerate static constructors. This is probably because
-    //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
-    if (
-      !allMethodsIncludingSpecialNames &&
-      member._descriptor.Static && 
-      member._descriptor.SpecialName && 
-      member._descriptor.Name.indexOf("cctor") >= 0
-    )
-      continue;
-
-    if (publicOnly && !member._descriptor.Public)
-      continue;
-    else if (nonPublicOnly && member._descriptor.Public)
-      continue;
-
-    if (staticOnly && !member._descriptor.Static)
-      continue;
-    else if (instanceOnly && member._descriptor.Static)
-      continue;
-
-    var currentMemberType = member.__MemberType__;  
-    if (methodOrConstructor) {
-      if (
-        (currentMemberType != "MethodInfo") &&
-        (currentMemberType != "ConstructorInfo")
-      )
-        continue;
-    } else if ((typeof (memberType) === "string") && (memberType != currentMemberType)) {
-      continue;
-    }
-
-    if ((typeof (name) === "string") && (name != member._descriptor.Name)) {
-      continue;
-    }
-
-    result.push(member);
   }
 
   return result;

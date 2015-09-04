@@ -171,7 +171,10 @@
       function () {
         return JSIL.GetMembersInternal(
           this,
-          defaultFlags()
+          defaultFlags(),
+          undefined,
+          undefined,
+          true
         );
       }
     );
@@ -180,7 +183,11 @@
       new JSIL.MethodSignature(memberArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags
+          this,
+          flags,
+          undefined,
+          undefined,
+          true
         );
       }
     );
@@ -281,7 +288,9 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "EventInfo"
+          "EventInfo",
+          undefined,
+          true
         );
       }
     );
@@ -290,14 +299,14 @@
       new JSIL.MethodSignature(eventArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "EventInfo"
+          this, flags, "EventInfo", undefined, true
         );
       }
     );
 
     var getConstructorImpl = function (self, flags, argumentTypes) {
       var constructors = JSIL.GetMembersInternal(
-        self, flags, "ConstructorInfo"
+        self, flags, "ConstructorInfo", undefined, true
       );
 
       JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
@@ -405,7 +414,9 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "PropertyInfo"
+          "PropertyInfo",
+          undefined,
+          true
         );
       }
     );
@@ -414,13 +425,13 @@
       new JSIL.MethodSignature(propertyArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "PropertyInfo"
+          this, flags, "PropertyInfo", undefined, true
         );
       }
     );
 
     var getSingleFiltered = function (self, name, flags, type) {
-      var members = JSIL.GetMembersInternal(self, flags, type);
+      var members = JSIL.GetMembersInternal(self, flags, type, undefined, true);
       var result = null;
 
       for (var i = 0, l = members.length; i < l; i++) {
