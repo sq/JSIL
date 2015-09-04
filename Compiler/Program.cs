@@ -188,6 +188,9 @@ namespace JSIL.Compiler {
                     {"o=|out=", 
                         "Specifies the output directory for generated javascript and manifests.",
                         (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
+                    {"outputFile=",
+                        "Specifies the exact location and name of the output file for the main assembly.",
+                        (path) => commandLineConfig.OutputFileName = Path.GetFullPath(path) },
                     {"q|quiet",
                         "Suppresses non-error/non-warning stderr messages.",
                         (_) => commandLineConfig.Quiet = Quiet = true },
@@ -794,8 +797,16 @@ namespace JSIL.Compiler {
                         localConfig, manifest, assemblyCache, emitterFactories, analyzers
                     )) {
                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
+
                         translator.IgnoredMethod += (methodName, variableNames) =>
                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
+                        translator.ChooseCustomAssemblyName = 
+                            (isMainAssembly, fullName) => {
+                                if (isMainAssembly)
+                                    return localConfig.OutputFileName;
+                                else
+                                    return null;
+                            };
 
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)

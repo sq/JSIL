@@ -100,6 +100,8 @@ namespace JSIL {
         public event Action<TypeIdentifier> ProxyNotMatched;
         public event Action<QualifiedMemberIdentifier> ProxyMemberNotMatched;
 
+        public Func<bool, string, string> ChooseCustomAssemblyName;
+
         public readonly TypeInfoProvider TypeInfoProvider;
         public readonly IEmitterFactory EmitterFactory;
 
@@ -468,7 +470,6 @@ namespace JSIL {
         private TranslationResult TranslateInternal (
             string assemblyPath, bool scanForProxies = true
         ) {
-
             var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
             var assemblies = new [] {assemblyPath}.Union(this.Configuration.Assemblies.TranslateAdditional).Distinct()
                 .SelectMany(LoadAssembly).Distinct(new FullNameAssemblyComparer()).ToArray();
@@ -530,7 +531,15 @@ namespace JSIL {
 
             Action<int> writeAssembly = (i) => {
                 var assembly = assemblies[i];
-                var outputPath = FormatOutputFilename(assembly.Name) + EmitterFactory.FileExtension;
+
+                string outputPath = null;
+
+                if (ChooseCustomAssemblyName != null)
+                    outputPath = ChooseCustomAssemblyName(
+                        i == 0, assembly.Name.ToString()
+                    );
+                if (outputPath == null)
+                    outputPath = FormatOutputFilename(assembly.Name) + EmitterFactory.FileExtension;
 
                 long existingSize;
 
