@@ -172,4 +172,11 @@ JSIL.ImplementExternals("System.Array", function ($) {
       reverseImpl(array, index, length);
     }
   );
+
+  $.Method({ Static: true, Public: true }, "Empty",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [], ["T"]),
+    function Empty(T) {
+      return [];
+    }
+  );
 });
