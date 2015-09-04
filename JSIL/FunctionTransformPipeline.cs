@@ -381,17 +381,21 @@ namespace JSIL.Internal {
         }
 
         private bool IntroduceEnumCasts () {
-            new IntroduceEnumCasts(
-                TypeSystem, SpecialIdentifiers.JS, TypeInfoProvider, MethodTypes, FunctionSource
-            ).Visit(Function);
+            if (Configuration.CodeGenerator.IntroduceEnumCasts.GetValueOrDefault(true)) {
+                new IntroduceEnumCasts(
+                    TypeSystem, SpecialIdentifiers.JS, TypeInfoProvider, MethodTypes, FunctionSource
+                ).Visit(Function);
+            }
 
             return true;
         }
 
         private bool IntroduceCharCasts () {
-            new IntroduceCharCasts(
-                TypeSystem, SpecialIdentifiers.JS
+            if (Configuration.CodeGenerator.IntroduceCharCasts.GetValueOrDefault(true)) {
+                new IntroduceCharCasts(
+                    TypeSystem, SpecialIdentifiers.JS
                 ).Visit(Function);
+            }
 
             return true;
         }
