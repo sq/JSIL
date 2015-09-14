@@ -133,7 +133,7 @@ namespace JSIL {
                         {
                             using (var tw = new StreamWriter(fs))
                             {
-                                tw.Write("//# sourceMappingURL=" + new Uri(Path.Combine(path, (kvp.Key + ".map").Replace(" ", ""))));
+                                tw.Write("//# sourceMappingURL=" + new Uri(Path.GetFullPath(Path.Combine(path, (kvp.Key + ".map").Replace(" ", "")))));
                             }
                         }
                     }
