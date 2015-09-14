@@ -45,7 +45,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public SequencePoint[] SymbolInfo { get; set; }
+        public IEnumerable<SequencePoint> SymbolInfo { get; set; }
 
         public static Type[] NodeTypes {
             get {

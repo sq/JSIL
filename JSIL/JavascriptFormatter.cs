@@ -168,7 +168,8 @@ namespace JSIL.Internal {
     }
 
     public class JavascriptFormatter {
-        public readonly PositionInfoTextWriter Output;
+        public readonly PositionInfoTextWriter OutputWithPositionInfo;
+        public readonly TextWriter Output;
         public readonly AssemblyManifest Manifest;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
@@ -197,7 +198,16 @@ namespace JSIL.Internal {
             Configuration configuration,
             bool stubbed
         ) {
-            Output = new PositionInfoTextWriter(output);
+            if (sourceMapBuilder != null)
+            {
+                OutputWithPositionInfo = new PositionInfoTextWriter(output);
+                Output = OutputWithPositionInfo;
+            }
+            else
+            {
+                Output = output;
+            }
+
             SourceMapBuilder = sourceMapBuilder;
             TypeInfo = typeInfo;
             Manifest = manifest;

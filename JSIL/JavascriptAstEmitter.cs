@@ -62,6 +62,11 @@ namespace JSIL {
             OverflowCheckStack.Push(false);
 
             VisitNestedFunctions = true;
+
+            if (output.SourceMapBuilder != null)
+            {
+                AfterNodeProcessed += AddSourceMapInfo;
+            }
         }
 
         TypeSystem IAstEmitter.TypeSystem {
@@ -78,16 +83,6 @@ namespace JSIL {
 
         void IAstEmitter.Emit (JSNode node) {
             this.Visit(node);
-        }
-
-        public override void Visit(JSNode node, string name = null)
-        {
-            base.Visit(node, name);
-            if (Output.SourceMapBuilder != null && node != null && node.SymbolInfo != null && node.SymbolInfo.Any())
-            {
-                Output.SourceMapBuilder.AddInfo(Output.Output.Line, Output.Output.FirstNonSpace, node.SymbolInfo);
-                //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
-            }
         }
 
         public void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {
@@ -2559,6 +2554,15 @@ namespace JSIL {
             Output.WriteRaw("function () { return ");
             Visit(function.InnerExpression);
             Output.WriteRaw("; }.bind(this)");
+        }
+
+        private void AddSourceMapInfo(object source, NodeProcessedEventArg eventArgs)
+        {
+            if (eventArgs.Node.SymbolInfo != null && eventArgs.Node.SymbolInfo.Any())
+            {
+                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.FirstNonSpace, eventArgs.Node.SymbolInfo);
+                //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
+            }
         }
     }
 }

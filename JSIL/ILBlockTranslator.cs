@@ -78,7 +78,8 @@ namespace JSIL {
 
         public ILBlockTranslator (
             AssemblyTranslator translator, DecompilerContext context, 
-            MethodReference methodReference, MethodDefinition methodDefinition, 
+            MethodReference methodReference, MethodDefinition methodDefinition,
+            MethodSymbols methodSymbols,
             ILBlock ilb, IEnumerable<ILVariable> parameters, 
             IEnumerable<ILVariable> allVariables,
             Func<TypeReference, TypeReference> referenceReplacer = null
@@ -89,12 +90,8 @@ namespace JSIL {
             ThisMethod = methodDefinition;
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
-            
-            if (methodDefinition.Module.HasSymbols)
-            {
-                Symbols = new MethodSymbols(methodDefinition.MetadataToken);
-                methodDefinition.Module.SymbolReader.Read(Symbols);
-            }
+
+            Symbols = methodSymbols;
 
             SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
 
@@ -1144,19 +1141,22 @@ namespace JSIL {
 
                 if (expression != null)
                 {
-                    var ranges =
-                        node.GetSelfAndChildrenRecursive<ILExpression>(item => true).SelectMany(item => item.ILRanges);
-                    var symbolInfo = Symbols != null
-                        ? ranges
+                    if (Symbols != null)
+                    {
+                        // TODO: Don't use node.GetSelfAndChildrenRecursive as it is costly.
+                        var ranges =
+                            node.GetSelfAndChildrenRecursive<ILExpression>(item => true)
+                                .SelectMany(item => item.ILRanges);
+                        var symbolInfo = ranges
                             .SelectMany(
                                 range =>
                                     Symbols.Instructions.Where(
                                         item => range.From <= item.Offset && item.Offset < range.To))
                             .Select(item => item.SequencePoint)
                             .Where(item => !(item.StartLine == item.EndLine && item.StartColumn == item.EndColumn))
-                            .ToArray()
-                        : null;
-                    expression.SymbolInfo = symbolInfo;
+                            .ToList();
+                        expression.SymbolInfo = symbolInfo;
+                    }
 
                     statement = new JSExpressionStatement(expression);
                 }

@@ -19,6 +19,21 @@ namespace JSIL.Ast {
             public string ChildName;
         }
 
+        public class NodeProcessedEventArg : EventArgs
+        {
+            public JSNode Node { get; }
+
+            public NodeProcessedEventArg(JSNode node)
+            {
+                if (node == null)
+                {
+                    throw new ArgumentNullException("node");
+                }
+
+                Node = node;
+            }
+        }
+
         public const int DefaultStackSize = 32;
 
         public readonly Stack<JSNode> Stack = new Stack<JSNode>(DefaultStackSize);
@@ -39,6 +54,8 @@ namespace JSIL.Ast {
         protected readonly VisitorCache Visitors;
 
         protected bool VisitNestedFunctions = false;
+
+        protected event EventHandler<NodeProcessedEventArg> AfterNodeProcessed;
 
         protected JSAstVisitor () {
             Visitors = VisitorCache.Get(this);
@@ -169,7 +186,7 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         /// <param name="name">The name to annotate the node with, if any.</param>
-        public virtual void Visit (JSNode node, string name = null) {
+        public void Visit (JSNode node, string name = null) {
             if (node is JSFunctionExpression) {
                 // HACK: No better place to put this at present.
                 // AST visitors shouldn't recurse into nested functions because those function(s)
@@ -215,6 +232,11 @@ namespace JSIL.Ast {
 
                 NodeIndex = oldNodeIndex;
                 StatementIndex = oldStatementIndex;
+            }
+
+            if (node != null && AfterNodeProcessed != null)
+            {
+                AfterNodeProcessed(this, new NodeProcessedEventArg(node));
             }
         }
 

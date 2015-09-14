@@ -16,6 +16,7 @@ using JSIL.Internal;
 using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 using ICSharpCode.Decompiler;
 using JSIL.Compiler.Extensibility;
 
@@ -1373,6 +1374,7 @@ namespace JSIL {
 
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef,
+                    ReadMethodSymbolsIfSourceMapEnabled(methodDef),
                     ilb, decompiler.Parameters, allVariables,
                     typeReplacer
                 );
@@ -1722,7 +1724,7 @@ namespace JSIL {
                     // We need a translator to map the IL expressions for the default
                     //  values into JSAst expressions.
                     var translator = new ILBlockTranslator(
-                        this, ctx, realCctor, realCctor, block, astBuilder.Parameters, variables
+                        this, ctx, realCctor, realCctor, ReadMethodSymbolsIfSourceMapEnabled(realCctor), block, astBuilder.Parameters, variables
                     );
 
                     // We may end up with nested blocks since we didn't run all the optimization passes.
@@ -2110,6 +2112,19 @@ namespace JSIL {
             }
 
             return _CachedSpecialIdentifiers;
+        }
+
+        private MethodSymbols ReadMethodSymbolsIfSourceMapEnabled(MethodDefinition methodDef)
+        {
+            var methodSymbols = Configuration.BuildSourceMap.GetValueOrDefault() && methodDef.Module.HasSymbols
+                ? new MethodSymbols(methodDef.MetadataToken)
+                : null;
+            if (methodSymbols != null)
+            {
+                methodDef.Module.SymbolReader.Read(methodSymbols);
+            }
+
+            return methodSymbols;
         }
     }
 
