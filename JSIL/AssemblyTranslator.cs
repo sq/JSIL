@@ -1803,7 +1803,10 @@ namespace JSIL {
 
                             var es = new JSExpressionStatement(defaultValue);
                             var ece = new ExpandCastExpressions(
-                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo, FunctionCache.MethodTypes
+                                translator.TypeSystem, translator.SpecialIdentifiers.JS, 
+                                translator.SpecialIdentifiers.JSIL, translator.TypeInfo, 
+                                FunctionCache.MethodTypes,
+                                Configuration.CodeGenerator.EmulateInt64.GetValueOrDefault(true)
                             );
                             ece.Visit(es);
 

@@ -52,6 +52,7 @@ namespace JSIL.Translator {
             public bool? StripUnusedLoopNames;
             public bool? IntroduceCharCasts;
             public bool? IntroduceEnumCasts;
+            public bool? EmulateInt64;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -100,6 +101,8 @@ namespace JSIL.Translator {
                     result.IntroduceCharCasts = IntroduceCharCasts;
                 if (IntroduceEnumCasts.HasValue)
                     result.IntroduceEnumCasts = IntroduceEnumCasts;
+                if (EmulateInt64.HasValue)
+                    result.EmulateInt64 = EmulateInt64;
             }
         }
 

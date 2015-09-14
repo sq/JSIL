@@ -15,13 +15,19 @@ namespace JSIL.Transforms {
         public readonly JSILIdentifier JSIL;
         public readonly ITypeInfoSource TypeInfo;
         public readonly MethodTypeFactory MethodTypeFactory;
+        public readonly bool EmulateInt64;
 
-        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo, MethodTypeFactory methodTypeFactory) {
+        public ExpandCastExpressions (
+            TypeSystem typeSystem, JSSpecialIdentifiers js, 
+            JSILIdentifier jsil, ITypeInfoSource typeInfo, 
+            MethodTypeFactory methodTypeFactory, bool emulateInt64
+        ) {
             TypeSystem = typeSystem;
             JS = js;
             JSIL = jsil;
             TypeInfo = typeInfo;
             MethodTypeFactory = methodTypeFactory;
+            EmulateInt64 = emulateInt64;
         }
 
         public void VisitNode (JSCastExpression ce) {
@@ -143,7 +149,9 @@ namespace JSIL.Transforms {
                     newExpression = innerCast.Expression;
 
                 } else if (currentType.MetadataType == MetadataType.Int64) {
-                    if (targetType.MetadataType == MetadataType.UInt64) {
+                    if (!EmulateInt64) {
+                        newExpression = ce;
+                    } else if (targetType.MetadataType == MetadataType.UInt64) {
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
@@ -159,7 +167,9 @@ namespace JSIL.Transforms {
                     }
 
                 } else if (currentType.MetadataType == MetadataType.UInt64) { 
-                    if (targetType.MetadataType == MetadataType.Int64) { 
+                    if (!EmulateInt64) {
+                        newExpression = ce;
+                    } else if (targetType.MetadataType == MetadataType.Int64) { 
                         newExpression = JSInvocationExpression
                             .InvokeMethod(
                                 TypeSystem.Int64,
@@ -175,18 +185,26 @@ namespace JSIL.Transforms {
                     }
 
                 } else if (targetType.MetadataType == MetadataType.Int64) {
-                    newExpression = JSInvocationExpression.InvokeStatic(
-                        new JSType(TypeSystem.Int64),
-                        new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
-                        new[] { ce.Expression },
-                        true);
+                    if (!EmulateInt64) {
+                        newExpression = ce;
+                    } else {
+                        newExpression = JSInvocationExpression.InvokeStatic(
+                            new JSType(TypeSystem.Int64),
+                            new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
+                            new[] { ce.Expression }, true
+                        );
+                    }
 
                 } else if (targetType.MetadataType == MetadataType.UInt64) {
-                    newExpression = JSInvocationExpression.InvokeStatic(
-                        new JSType(TypeSystem.UInt64),
-                        new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
-                        new[] { ce.Expression },
-                        true);
+                    if (!EmulateInt64) {
+                        newExpression = ce;
+                    } else {
+                        newExpression = JSInvocationExpression.InvokeStatic(
+                            new JSType(TypeSystem.UInt64),
+                            new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
+                            new[] { ce.Expression }, true
+                        );
+                    }
 
                 } else if (TypeUtil.IsIntegral(currentType)) {
                     if (!TypeUtil.IsIntegral(targetType)) {
@@ -211,7 +229,7 @@ namespace JSIL.Transforms {
                 // newExpression = JSIL.Cast(ce.Expression, targetType);
             }
 
-            if (newExpression != null) {
+            if ((newExpression != null) && (newExpression != ce)) {
                 ParentNode.ReplaceChild(ce, newExpression);
                 VisitReplacement(newExpression);
             } else {
