@@ -21,7 +21,7 @@ namespace JSIL.Ast {
 
         public class NodeProcessedEventArg : EventArgs
         {
-            public JSNode Node { get; }
+            public JSNode Node { get; private set; }
 
             public NodeProcessedEventArg(JSNode node)
             {
