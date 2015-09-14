@@ -972,8 +972,23 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool Equals (object o) {
+            var fa = o as JSFieldAccess;
+            if (fa == null)
+                return base.Equals(o);
+
+            if (fa.IsWrite != IsWrite)
+                return false;
+
+            return base.Equals(o);
+        }
+
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Field.Field.FieldType;
+        }
+
+        public override string ToString () {
+            return String.Format("{0}.{1} ({2})", Target, Member, IsWrite ? "w" : "r");
         }
     }
 
@@ -1023,6 +1038,27 @@ namespace JSIL.Ast {
             get {
                 return false;
             }
+        }
+
+        public override bool Equals (object o) {
+            var pa = o as JSPropertyAccess;
+            if (pa == null)
+                return base.Equals(o);
+
+            if (pa.IsWrite != IsWrite)
+                return false;
+            else if (pa.IsVirtualCall != IsVirtualCall)
+                return false;
+            else if (pa.TypeQualified != TypeQualified)
+                return false;
+            else if (pa.OriginalMethod != OriginalMethod)
+                return false;
+
+            return base.Equals(o);
+        }
+
+        public override string ToString () {
+            return String.Format("{0}.{1} ({2})", Target, Member, IsWrite ? "w" : "r");
         }
     }
 
