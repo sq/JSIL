@@ -15,6 +15,7 @@ using JSIL.Ast.Traversal;
 using JSIL.Internal;
 using JSIL.Transforms;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace JSIL.Ast {
     public abstract class JSNode {
@@ -43,6 +44,8 @@ namespace JSIL.Ast {
                 return _NodeSelfAndBaseTypeIds;
             }
         }
+
+        public SequencePoint[] SymbolInfo { get; set; }
 
         public static Type[] NodeTypes {
             get {

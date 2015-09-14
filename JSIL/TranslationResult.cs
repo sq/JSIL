@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using JSIL.Internal;
 using JSIL.Translator;
 using Mono.Cecil;
 
@@ -14,6 +15,7 @@ namespace JSIL {
             public long Size;
             public ArraySegment<byte> Contents;
             public Dictionary<string, object> Properties;
+            public SourceMapBuilder SourceMapBuilder;
         }
 
         public readonly string AssemblyPath;
@@ -47,7 +49,8 @@ namespace JSIL {
             string filename, 
             ArraySegment<byte> bytes, 
             int? position = null,
-            Dictionary<string, object> properties = null
+            Dictionary<string, object> properties = null,
+            SourceMapBuilder sourceMapBuilder = null
         ) {
             lock (Files) {
                 if (position.HasValue)
@@ -60,7 +63,8 @@ namespace JSIL {
                     Filename = filename,
                     Contents = bytes,
                     Size = bytes.Count,
-                    Properties = properties
+                    Properties = properties,
+                    SourceMapBuilder = sourceMapBuilder
                 });
             }
         }
@@ -121,7 +125,19 @@ namespace JSIL {
 
             foreach (var kvp in Files) {
                 if (kvp.Value.Contents.Count > 0)
+                {
                     WriteBytesToFile(path, kvp.Key, kvp.Value.Contents);
+                    if (kvp.Value.SourceMapBuilder != null && kvp.Value.SourceMapBuilder.Build(path, kvp.Key))
+                    {
+                        using (var fs = File.Open(Path.Combine(path, kvp.Key), FileMode.Append, FileAccess.Write, FileShare.Read))
+                        {
+                            using (var tw = new StreamWriter(fs))
+                            {
+                                tw.Write("//# sourceMappingURL=" + (kvp.Key +".map").Replace(" ", ""));
+                            }
+                        }
+                    }
+                }
             }
         }
 

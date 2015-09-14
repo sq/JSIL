@@ -169,7 +169,7 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         /// <param name="name">The name to annotate the node with, if any.</param>
-        public void Visit (JSNode node, string name = null) {
+        public virtual void Visit (JSNode node, string name = null) {
             if (node is JSFunctionExpression) {
                 // HACK: No better place to put this at present.
                 // AST visitors shouldn't recurse into nested functions because those function(s)

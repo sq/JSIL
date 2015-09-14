@@ -13,6 +13,7 @@ using JSIL.Internal;
 using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 using TypeInfo = JSIL.Internal.TypeInfo;
 
@@ -22,6 +23,7 @@ namespace JSIL {
         public readonly DecompilerContext Context;
         public readonly MethodReference ThisMethodReference;
         public readonly MethodDefinition ThisMethod;
+        public readonly MethodSymbols Symbols;
         public readonly ILBlock Block;
         public readonly JavascriptFormatter Output = null;
 
@@ -87,6 +89,12 @@ namespace JSIL {
             ThisMethod = methodDefinition;
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
+            
+            if (methodDefinition.Module.HasSymbols)
+            {
+                Symbols = new MethodSymbols(methodDefinition.MetadataToken);
+                methodDefinition.Module.SymbolReader.Read(Symbols);
+            }
 
             SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
 
@@ -1130,11 +1138,28 @@ namespace JSIL {
             var translated = TranslateNode(node as dynamic);
 
             var statement = translated as JSStatement;
-            if (statement == null) {
-                var expression = (JSExpression)translated;
+            if (statement == null)
+            {
+                var expression = (JSExpression) translated;
 
                 if (expression != null)
+                {
+                    var ranges =
+                        node.GetSelfAndChildrenRecursive<ILExpression>(item => true).SelectMany(item => item.ILRanges);
+                    var symbolInfo = Symbols != null
+                        ? ranges
+                            .SelectMany(
+                                range =>
+                                    Symbols.Instructions.Where(
+                                        item => range.From <= item.Offset && item.Offset < range.To))
+                            .Select(item => item.SequencePoint)
+                            .Where(item => !(item.StartLine == item.EndLine && item.StartColumn == item.EndColumn))
+                            .ToArray()
+                        : null;
+                    expression.SymbolInfo = symbolInfo;
+
                     statement = new JSExpressionStatement(expression);
+                }
                 else
                     Translator.WarningFormat("Null statement: {0}", node);
             }
