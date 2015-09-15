@@ -835,7 +835,7 @@ namespace JSIL.Compiler {
                         localConfig.Profile = localProfile.GetType().Name;
 
                         if (ignoredMethods.Count > 0)
-                            InformationWriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
+                            Console.Error.WriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
 
                         EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
