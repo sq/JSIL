@@ -15,6 +15,7 @@
     <OutputPath>..\jsil.org\try\bin\</OutputPath>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <TargetFrameworkProfile />
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DebugSymbols>true</DebugSymbols>
