@@ -107,6 +107,10 @@ namespace JSIL.Transforms {
                         return false;
                     }
 
+                    var fa = source as JSFieldAccess;
+                    if (fa != null)
+                        return fa.Field.Field.IsImmutable;
+
                     return true;
                 }
             }
