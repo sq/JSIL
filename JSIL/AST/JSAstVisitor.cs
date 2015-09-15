@@ -19,21 +19,6 @@ namespace JSIL.Ast {
             public string ChildName;
         }
 
-        public class NodeProcessedEventArg : EventArgs
-        {
-            public JSNode Node { get; private set; }
-
-            public NodeProcessedEventArg(JSNode node)
-            {
-                if (node == null)
-                {
-                    throw new ArgumentNullException("node");
-                }
-
-                Node = node;
-            }
-        }
-
         public const int DefaultStackSize = 32;
 
         public readonly Stack<JSNode> Stack = new Stack<JSNode>(DefaultStackSize);
@@ -55,7 +40,7 @@ namespace JSIL.Ast {
 
         protected bool VisitNestedFunctions = false;
 
-        protected event EventHandler<NodeProcessedEventArg> AfterNodeProcessed;
+        protected event Action<JSNode> AfterNodeProcessed;
 
         protected JSAstVisitor () {
             Visitors = VisitorCache.Get(this);
@@ -236,7 +221,7 @@ namespace JSIL.Ast {
 
             if (node != null && AfterNodeProcessed != null)
             {
-                AfterNodeProcessed(this, new NodeProcessedEventArg(node));
+                AfterNodeProcessed(node);
             }
         }
 

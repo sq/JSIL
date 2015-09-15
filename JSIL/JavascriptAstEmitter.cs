@@ -2556,11 +2556,11 @@ namespace JSIL {
             Output.WriteRaw("; }.bind(this)");
         }
 
-        private void AddSourceMapInfo(object source, NodeProcessedEventArg eventArgs)
+        private void AddSourceMapInfo(JSNode node)
         {
-            if (eventArgs.Node.SymbolInfo != null && eventArgs.Node.SymbolInfo.Any())
+            if (node.SymbolInfo != null && node.SymbolInfo.Any())
             {
-                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.FirstNonSpace, eventArgs.Node.SymbolInfo);
+                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.FirstNonSpace, node.SymbolInfo);
                 //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
             }
         }
