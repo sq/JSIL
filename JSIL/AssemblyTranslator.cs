@@ -109,24 +109,6 @@ namespace JSIL {
         protected bool OwnsAssemblyDataResolver;
         protected bool OwnsTypeInfoProvider;
 
-        protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
-            "System.Object", "System.ValueType",
-            "System.Type", "System.Reflection.TypeInfo", "System.RuntimeType",
-            "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
-            "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
-            "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo", "System.Reflection.EventInfo",
-            "System.Array", "System.Delegate", "System.MulticastDelegate",
-            "System.Byte", "System.SByte", 
-            "System.UInt16", "System.Int16",
-            "System.UInt32", "System.Int32",
-            "System.UInt64", "System.Int64",
-            "System.Single", "System.Double", 
-            "System.Boolean", "System.Char",
-            "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
-            "System.Attribute", "System.Decimal",
-            "System.IntPtr", "System.UIntPtr"
-        }; 
-
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
@@ -997,13 +979,6 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
         }
 
-        protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef) {
-            if (TypeDeclarationsToSuppress.Contains(typedef.FullName))
-                return false;
-
-            return true;
-        }
-
         public bool ShouldSkipMember (MemberReference member) {
             if (member is MethodReference && member.Name == ".cctor")
                 return false;
@@ -1036,7 +1011,7 @@ namespace JSIL {
             bool declareOnlyInternalTypes = ShouldSkipMember(typedef);
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
-            if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef)) {
+            if (!declareOnlyInternalTypes && typeInfo.IsSuppressDeclaration) {
                 assemblyEmitter.EmitTypeAlias(typedef);
 
                 declareOnlyInternalTypes = true;

@@ -532,6 +532,7 @@ namespace JSIL.Internal {
         protected bool _IsExternal = false;
         protected bool _IsStubOnly = false;
         protected bool _IsUnstubbable = false;
+        protected bool _IsSuppressDeclaration = false;
         protected bool _MethodGroupsInitialized = false;
 
         protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
@@ -636,6 +637,7 @@ namespace JSIL.Internal {
 
             _IsStubOnly = Metadata.HasAttribute("JSIL.Meta.JSStubOnly");
             _IsUnstubbable = Metadata.HasAttribute("JSIL.Meta.JSNeverStub");
+            _IsSuppressDeclaration = Metadata.HasAttribute("JSIL.Meta.JSSuppressTypeDeclaration");
 
             if (_IsUnstubbable) {
                 _IsStubOnly = false;
@@ -985,6 +987,24 @@ namespace JSIL.Internal {
                 }
 
                 return _IsStubOnly;
+            }
+        }
+
+        public bool IsSuppressDeclaration
+        {
+            get
+            {
+                if (_FullyInitialized)
+                    return _IsSuppressDeclaration;
+
+                /*if (Definition.DeclaringType != null)
+                {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsSuppressDeclaration)
+                        return true;
+                }*/
+
+                return _IsSuppressDeclaration;
             }
         }
 
