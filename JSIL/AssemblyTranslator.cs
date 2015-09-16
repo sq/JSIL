@@ -921,8 +921,16 @@ namespace JSIL {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
+
+            string assemblyDeclarationReplacement = null;
+            var metadata = new MetadataCollection(assembly);
+            if (metadata.HasAttribute("JSIL.Meta.JSRepaceAssemblyDeclaration"))
+            {
+                assemblyDeclarationReplacement = (string) metadata.GetAttributeParameters("JSIL.Meta.JSRepaceAssemblyDeclaration")[0].Value;
+            }
+
             var formatter = new JavascriptFormatter(
-                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, stubbed
+                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, assemblyDeclarationReplacement, stubbed
             );
 
             var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter);
