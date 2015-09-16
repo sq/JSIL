@@ -934,6 +934,8 @@ namespace JSIL {
                 TranslateModule(context, assemblyEmitter, module, sealedTypes, declaredTypes, stubbed);
             }
 
+            TranslateImportedTypes(assembly, assemblyEmitter, declaredTypes, stubbed);
+
             assemblyEmitter.EmitFooter();
 
             tw.Flush();
@@ -955,6 +957,58 @@ namespace JSIL {
             emitter.EmitAssemblyEntryPoint(
                 assembly, entryMethod, signature
             );
+        }
+
+        protected void TranslateImportedTypes(AssemblyDefinition assembly, IAssemblyEmitter assemblyEmitter,
+            HashSet<TypeDefinition> declaredTypes, bool stubbed)
+        {
+            var typesToImport = assembly
+                .Modules
+                .SelectMany(item => item.Types)
+                .Select(type => TypeInfoProvider.GetTypeInformation(type))
+                .Where(item => item.IsProxy && item.Metadata.HasAttribute("JSIL.Meta.JSImportType"))
+                .Select(item => TypeInfoProvider.FindTypeProxy(new TypeIdentifier(item.Definition)))
+                .SelectMany(item => item.ProxiedTypes)
+                .Select(item => item.Resolve())
+                .GroupBy(item => item.Module)
+                .GroupBy(item => item.Key.Assembly).ToList();
+
+            if (typesToImport.Count == 0)
+            {
+                return;
+            }
+
+            var methods = new ConcurrentBag<MethodToAnalyze>();
+            foreach (var method in typesToImport.SelectMany(m => m).SelectMany(t => t).SelectMany(item => item.Methods))
+            {
+                methods.Add(new MethodToAnalyze(method));
+            }
+            AnalyzeFunctions(GetParallelOptions(), typesToImport.Select(item => item.Key).ToArray(), methods,
+                new ProgressReporter());
+
+            foreach (var byAssembly in typesToImport)
+            {
+                var context = MakeDecompilerContext(byAssembly.Key.MainModule);
+                foreach (var byModule in byAssembly)
+                {
+                    context.CurrentModule = byModule.Key;
+
+                    var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
+                    var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem,
+                        this.TypeInfoProvider, js);
+
+                    var astEmitter = assemblyEmitter.MakeAstEmitter(
+                        jsil, context.CurrentModule.TypeSystem,
+                        TypeInfoProvider, Configuration
+                        );
+
+                    foreach (var typeDefinition in byModule)
+                    {
+                        DeclareType(context, typeDefinition, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                    }
+
+                }
+            }
         }
 
         protected void TranslateModule (
