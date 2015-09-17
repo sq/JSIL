@@ -155,7 +155,7 @@ namespace JSIL.Internal
             sourceMap.AppendLine(string.Format("\t\"mappings\" : \"{0}\"", result));
             sourceMap.AppendLine("}");
 
-            using (var file = File.Create(Path.Combine(path, (sourceName + ".map").Replace(" ", ""))))
+            using (var file = File.Create(GetFullMapPath(path, sourceName)))
             {
                 using (var tw = new StreamWriter(file))
                 {
@@ -309,6 +309,18 @@ namespace JSIL.Internal
                 }
                 throw new ArgumentException("Must be between 0 and 63: " + number);
             }
+        }
+
+        public void WriteSourceMapLink(Stream outputStream, string path, string sourceName)
+        {
+            var writer = new StreamWriter(outputStream);
+            writer.Write("//# sourceMappingURL=" + new Uri(GetFullMapPath(path, sourceName)));
+            writer.Flush();
+        }
+
+        private string GetFullMapPath(string path, string sourceName)
+        {
+            return Path.GetFullPath(Path.Combine(path, sourceName + ".map")).Replace(" ", "");
         }
     }
 }

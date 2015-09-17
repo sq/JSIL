@@ -98,14 +98,18 @@ namespace JSIL {
             }
         }
 
-        private static void WriteBytesToFile (string folder, string name, ArraySegment<byte> bytes) {
+        private static void WriteBytesToFile (string folder, string name, ArraySegment<byte> bytes, SourceMapBuilder sourceMapBuilder = null) {
             var filePath = Path.Combine(folder, name);
             var fileMode = File.Exists(filePath) ? FileMode.Truncate : FileMode.CreateNew;
 
             EnsureDirectoryExists(Path.GetDirectoryName(filePath));
 
-            using (var fs = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read)) {
+            bool writeMapLink = sourceMapBuilder != null && sourceMapBuilder.Build(folder, name);
+            using (var fs = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read))
+            {
                 fs.Write(bytes.Array, bytes.Offset, bytes.Count);
+                if (writeMapLink)
+                    sourceMapBuilder.WriteSourceMapLink(fs, folder, name);
                 fs.Flush();
             }
         }
@@ -125,19 +129,7 @@ namespace JSIL {
 
             foreach (var kvp in Files) {
                 if (kvp.Value.Contents.Count > 0)
-                {
-                    WriteBytesToFile(path, kvp.Key, kvp.Value.Contents);
-                    if (kvp.Value.SourceMapBuilder != null && kvp.Value.SourceMapBuilder.Build(path, kvp.Key))
-                    {
-                        using (var fs = File.Open(Path.Combine(path, kvp.Key), FileMode.Append, FileAccess.Write, FileShare.Read))
-                        {
-                            using (var tw = new StreamWriter(fs))
-                            {
-                                tw.Write("//# sourceMappingURL=" + new Uri(Path.GetFullPath(Path.Combine(path, (kvp.Key + ".map").Replace(" ", "")))));
-                            }
-                        }
-                    }
-                }
+                    WriteBytesToFile(path, kvp.Key, kvp.Value.Contents, kvp.Value.SourceMapBuilder);
             }
         }
 
