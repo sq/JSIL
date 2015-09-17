@@ -96,7 +96,7 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="defaults.jsilconfig">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
