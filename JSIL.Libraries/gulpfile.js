@@ -8,7 +8,7 @@ var eol = require('gulp-eol');
 var header = "/* It is auto-generated file. Do not modify it. */";
 
 gulp.task('metascript', ['clean'], function () {
-  return gulp.src('Sources/**/*.js')
+  return gulp.src(['Sources/**/*.js', 'Generated/**/*.js'])
     .pipe(metascriptPipe())
     .pipe(replace(/^\uFEFF/gm, '')) // remove BOM from file internal parts
     .pipe(replace(/(.)/, '\uFEFF' + header + '\n$1')) // add BOM with header

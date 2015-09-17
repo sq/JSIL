@@ -1,6 +1,7 @@
 ﻿namespace JSIL.Proxies
 {
     using System;
+    using System.Globalization;
     using System.Reflection;
     using JSIL.Meta;
     using JSIL.Proxy;
@@ -23,7 +24,8 @@
             typeof (Assembly),
             typeof (Attribute),
             typeof (Decimal),
-            typeof (IntPtr), typeof (UIntPtr)
+            typeof (IntPtr), typeof (UIntPtr),
+            typeof (NumberFormatInfo)
         },
         inheritable: false)]
     [JSSuppressTypeDeclaration]

@@ -1,0 +1,5 @@
+﻿{
+  "OutputFileName": "../../JSIL.Libraries/Generated/JSIL.mscorlib.js",
+  "OutputDirectory": "%AssemblyDirectory%",
+  "IncludeDependencies": false
+}
