@@ -126,6 +126,7 @@
     <None Include="SimpleTestCasesForStubbedBcl\Issue721.cs" />
     <None Include="SimpleTestCases\Issue325.cs" />
     <None Include="SimpleTestCases\Issue743.cs" />
+    <None Include="SimpleTestCases\UInt64_Issue855.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

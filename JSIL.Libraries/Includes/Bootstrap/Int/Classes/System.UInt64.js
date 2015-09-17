@@ -307,7 +307,8 @@ JSIL.ImplementExternals("System.UInt64", function ($) {
     $.Method({ Static: true, Public: false }, "FromNumber",
     (new JSIL.MethodSignature($.Type, [$.Double], [])),
     function UInt64_FromNumber(n) {
-        return me().FromNumberImpl(n, ctor);
+        var sum = n < 0 ? 0x100000000 : 0;
+        return me().FromNumberImpl(sum + n, ctor);
     });
 
     // Not present in mscorlib
