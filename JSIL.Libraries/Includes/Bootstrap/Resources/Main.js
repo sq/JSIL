@@ -8,7 +8,7 @@ if (!$jsilcore)
 
 $jsilcore.getCurrentUICultureImpl = function () {
   var language;
-  var svc = JSIL.Host.getService("window", false);
+  var svc = JSIL.Host.getService("window", true);
 
   if (svc) {
     language = svc.getNavigatorLanguage() || "en-US";
