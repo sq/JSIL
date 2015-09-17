@@ -21,6 +21,12 @@ namespace JSIL.Proxies.Bcl
     [JSProxy(typeof(CultureInfo), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     public class System_Globalization_CultureInfo
     {
+        [JSReplaceConstructor]
+        static System_Globalization_CultureInfo()
+        {
+
+        }
+
         [JSExternal]
         [JSReplaceConstructor]
         public System_Globalization_CultureInfo(string cultureId)
@@ -105,6 +111,24 @@ namespace JSIL.Proxies.Bcl
         }
 
         public static CultureInfo CurrentCulture
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool IsReadOnly
+        {
+            [JSExternal]
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public NumberFormatInfo NumberFormat
         {
             [JSExternal]
             get
