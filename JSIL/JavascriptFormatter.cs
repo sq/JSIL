@@ -1182,6 +1182,19 @@ namespace JSIL.Internal {
             }
         }
 
+        public void WriteReferencesOverrides(IDictionary<AssemblyManifest.Token, string> overrides)
+        {
+            foreach (var reference in overrides)
+            {
+                WriteRaw("var");
+                Space();
+                Identifier(reference.Key.IDString);
+                WriteRaw(" = ");
+                WriteRaw(reference.Value);
+                Semicolon();
+            }
+        }
+
         public void DeclareNamespace (string ns) {
             if (String.IsNullOrEmpty(ns))
                 return;

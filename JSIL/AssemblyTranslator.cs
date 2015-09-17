@@ -911,11 +911,20 @@ namespace JSIL {
                 assemblyDeclarationReplacement = (string) metadata.GetAttributeParameters("JSIL.Meta.JSRepaceAssemblyDeclaration")[0].Value;
             }
 
+            var overrides =
+                assembly.CustomAttributes.Where(
+                    item => item.AttributeType.FullName == "JSIL.Meta.JSOverrideAssemblyReference")
+                    .ToDictionary(
+                        item =>
+                            Manifest.GetPrivateToken(
+                                ((TypeReference) (item.ConstructorArguments[0].Value)).Resolve().Module.Assembly),
+                        item => (string) (item.ConstructorArguments[1].Value));
+
             var formatter = new JavascriptFormatter(
                 tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, assemblyDeclarationReplacement, stubbed
             );
 
-            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter);
+            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter, overrides.Count > 0 ? overrides : null);
 
             assemblyEmitter.EmitHeader(stubbed);
 
@@ -983,8 +992,9 @@ namespace JSIL {
             {
                 methods.Add(new MethodToAnalyze(method));
             }
-            AnalyzeFunctions(GetParallelOptions(), typesToImport.Select(item => item.Key).ToArray(), methods,
-                new ProgressReporter());
+            var pOptions = GetParallelOptions();
+            AnalyzeFunctions(pOptions, typesToImport.Select(item => item.Key).ToArray(), methods, new ProgressReporter());
+            RunTransformsOnAllFunctions(pOptions, new ProgressReporter(), new StringBuilder());
 
             foreach (var byAssembly in typesToImport)
             {
@@ -1004,7 +1014,7 @@ namespace JSIL {
 
                     foreach (var typeDefinition in byModule)
                     {
-                        DeclareType(context, typeDefinition, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                        DeclareType(context, typeDefinition, astEmitter, assemblyEmitter, declaredTypes, stubbed, true);
                     }
 
                 }
@@ -1047,7 +1057,7 @@ namespace JSIL {
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
-            HashSet<TypeDefinition> declaredTypes, bool stubbed
+            HashSet<TypeDefinition> declaredTypes, bool stubbed, bool isImported = false
         ) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
@@ -1065,13 +1075,13 @@ namespace JSIL {
             bool declareOnlyInternalTypes = ShouldSkipMember(typedef);
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
-            if (!declareOnlyInternalTypes && typeInfo.IsSuppressDeclaration) {
+            if (!declareOnlyInternalTypes && typeInfo.IsSuppressDeclaration && !isImported) {
                 assemblyEmitter.EmitTypeAlias(typedef);
 
                 declareOnlyInternalTypes = true;
             }
 
-            if (declareOnlyInternalTypes) {
+            if (declareOnlyInternalTypes && !isImported) {
                 DeclareNestedTypes(
                     context, typedef, 
                     astEmitter, assemblyEmitter, 
@@ -1088,7 +1098,7 @@ namespace JSIL {
             try {
                 // type has a JS replacement, we can't correctly emit a stub or definition for it. 
                 // We do want to process nested types, though.
-                if (typeInfo.Replacement != null) {
+                if (typeInfo.Replacement != null && !isImported) {
                     DeclareNestedTypes(
                         context, typedef, 
                         astEmitter, assemblyEmitter, 
@@ -1102,7 +1112,7 @@ namespace JSIL {
                     return;
 
                 var declaringType = typedef.DeclaringType;
-                if (declaringType != null)
+                if (declaringType != null && !isImported)
                     DeclareType(context, declaringType, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(declaringType.Module.Assembly));
 
                 var baseClass = typedef.BaseType;
@@ -1111,6 +1121,7 @@ namespace JSIL {
                     if (
                         (resolved != null) &&
                         (resolved.Module.Assembly == typedef.Module.Assembly)
+                        && !isImported
                     ) {
                         DeclareType(context, resolved, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(resolved.Module.Assembly));
                     }
@@ -1139,8 +1150,11 @@ namespace JSIL {
                     assemblyEmitter.EndEmitTypeDefinition(astEmitter, context, typedef);
                 }
 
-                foreach (var nestedTypeDef in typedef.NestedTypes)
-                    DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                if (!isImported)
+                {
+                    foreach (var nestedTypeDef in typedef.NestedTypes)
+                        DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                }
             } catch (Exception exc) {
                 throw new Exception(String.Format("An error occurred while declaring the type '{0}'", typedef.FullName), exc);
             } finally {
@@ -2175,10 +2189,11 @@ namespace JSIL {
         public IAssemblyEmitter MakeAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
             AssemblyDefinition assembly,
-            JavascriptFormatter formatter
+            JavascriptFormatter formatter,
+            IDictionary<AssemblyManifest.Token, string> referenceOverrides
         ) {
             return new JavascriptAssemblyEmitter(
-                assemblyTranslator, formatter
+                assemblyTranslator, formatter, referenceOverrides
             );
         }
 
