@@ -3,7 +3,7 @@
     using global::System;
     using global::System.Globalization;
     using JSIL.Meta;
-    using JSIL.Proxy;
+    using JSIL.Proxy; 
 
     [JSProxy(typeof(NumberFormatInfo))]
     [JSImportType]
