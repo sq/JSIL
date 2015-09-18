@@ -2117,7 +2117,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
     $.RawMethod(
       true, "$ToString",
       function $ToString(self, format, formatProvider) {
-        return $formatSignature().CallStatic($jsilcore.JSIL.System.NumberFormatter, "NumberToString", null, format, self, formatProvider);
+        return $formatSignature().CallStatic($jsilcore.JSIL.System.NumberFormatter, "NumberToString", null, format, self, formatProvider).toString();
       }
     );
   });

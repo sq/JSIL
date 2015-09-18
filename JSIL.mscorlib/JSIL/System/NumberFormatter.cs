@@ -826,6 +826,25 @@ namespace JSIL.System
                     threadNumberFormatter = this;
             }
 
+            public static string NumberToString(string format, short value, IFormatProvider fp)
+            {
+                return NumberToString(format, (int) value, fp);
+            }
+
+            public static string NumberToString(string format, ushort value, IFormatProvider fp)
+            {
+                return NumberToString(format, (int) value, fp);
+            }
+
+            public static string NumberToString(string format, byte value, IFormatProvider fp)
+            {
+                return NumberToString(format, (int)value, fp);
+            }
+            public static string NumberToString(string format, sbyte value, IFormatProvider fp)
+            {
+                return NumberToString(format, (int)value, fp);
+            }
+
             public static string NumberToString(string format, uint value, IFormatProvider fp)
             {
                 NumberFormatter inst = GetInstance(fp);
@@ -1141,7 +1160,8 @@ namespace JSIL.System
                 ulong val = _val1 | ((ulong) _val2 << 32);
                 while (size > 0)
                 {
-                    _cbuf[--size] = digits[val & 0xf];
+                    //TODO: Remove (uint) cast and report JSIL bug.
+                    _cbuf[--size] = digits[(uint)(val & 0xf)];
                     val >>= 4;
                 }
                 return new string(_cbuf, 0, _ind);
