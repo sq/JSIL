@@ -2006,7 +2006,7 @@ namespace JSIL {
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
                 !methodInfo.IsExternal && !isJSReplaced;
 
-            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
+            isExternal = methodInfo.IsExternal || (stubbed && !methodInfo.IsUnstubbable);
         }
 
         internal bool ShouldTranslateMethodBody (
