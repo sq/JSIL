@@ -40,6 +40,8 @@ namespace JSIL.Ast {
 
         protected bool VisitNestedFunctions = false;
 
+        protected event Action<JSNode> AfterNodeProcessed;
+
         protected JSAstVisitor () {
             Visitors = VisitorCache.Get(this);
         }
@@ -215,6 +217,11 @@ namespace JSIL.Ast {
 
                 NodeIndex = oldNodeIndex;
                 StatementIndex = oldStatementIndex;
+            }
+
+            if (node != null && AfterNodeProcessed != null)
+            {
+                AfterNodeProcessed(node);
             }
         }
 

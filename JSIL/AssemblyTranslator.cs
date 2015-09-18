@@ -16,6 +16,7 @@ using JSIL.Internal;
 using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 using ICSharpCode.Decompiler;
 using JSIL.Compiler.Extensibility;
 
@@ -545,10 +546,11 @@ namespace JSIL {
 
                 if (!Manifest.GetExistingSize(assembly, out existingSize)) {
                     using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
+                        var sourceMapBuilder = Configuration.BuildSourceMap.GetValueOrDefault() ? new SourceMapBuilder() : null;
                         var context = MakeDecompilerContext(assembly.MainModule);
 
                         try {
-                            TranslateSingleAssemblyInternal(context, assembly, outputStream);
+                            TranslateSingleAssemblyInternal(context, assembly, outputStream, sourceMapBuilder);
                         } catch (Exception exc) {
                             throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
                         }
@@ -557,7 +559,7 @@ namespace JSIL {
                             outputStream.GetBuffer(), 0, (int)outputStream.Length
                         );
 
-                        result.AddFile("Script", outputPath, segment);
+                        result.AddFile("Script", outputPath, segment, sourceMapBuilder:sourceMapBuilder);
 
                         Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
                     }
@@ -915,12 +917,12 @@ namespace JSIL {
             );
         }
 
-        protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
+        protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream, SourceMapBuilder sourceMapBuilder) {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(
-                tw, this.TypeInfoProvider, Manifest, assembly, Configuration, stubbed
+                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, stubbed
             );
 
             var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter);
@@ -1372,6 +1374,7 @@ namespace JSIL {
 
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef,
+                    ReadMethodSymbolsIfSourceMapEnabled(methodDef),
                     ilb, decompiler.Parameters, allVariables,
                     typeReplacer
                 );
@@ -1721,7 +1724,7 @@ namespace JSIL {
                     // We need a translator to map the IL expressions for the default
                     //  values into JSAst expressions.
                     var translator = new ILBlockTranslator(
-                        this, ctx, realCctor, realCctor, block, astBuilder.Parameters, variables
+                        this, ctx, realCctor, realCctor, ReadMethodSymbolsIfSourceMapEnabled(realCctor), block, astBuilder.Parameters, variables
                     );
 
                     // We may end up with nested blocks since we didn't run all the optimization passes.
@@ -2109,6 +2112,19 @@ namespace JSIL {
             }
 
             return _CachedSpecialIdentifiers;
+        }
+
+        private MethodSymbols ReadMethodSymbolsIfSourceMapEnabled(MethodDefinition methodDef)
+        {
+            var methodSymbols = Configuration.BuildSourceMap.GetValueOrDefault() && methodDef.Module.HasSymbols
+                ? new MethodSymbols(methodDef.MetadataToken)
+                : null;
+            if (methodSymbols != null)
+            {
+                methodDef.Module.SymbolReader.Read(methodSymbols);
+            }
+
+            return methodSymbols;
         }
     }
 

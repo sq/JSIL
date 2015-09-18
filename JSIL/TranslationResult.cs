@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using JSIL.Internal;
 using JSIL.Translator;
 using Mono.Cecil;
 
@@ -14,6 +15,7 @@ namespace JSIL {
             public long Size;
             public ArraySegment<byte> Contents;
             public Dictionary<string, object> Properties;
+            public SourceMapBuilder SourceMapBuilder;
         }
 
         public readonly string AssemblyPath;
@@ -47,7 +49,8 @@ namespace JSIL {
             string filename, 
             ArraySegment<byte> bytes, 
             int? position = null,
-            Dictionary<string, object> properties = null
+            Dictionary<string, object> properties = null,
+            SourceMapBuilder sourceMapBuilder = null
         ) {
             lock (Files) {
                 if (position.HasValue)
@@ -60,7 +63,8 @@ namespace JSIL {
                     Filename = filename,
                     Contents = bytes,
                     Size = bytes.Count,
-                    Properties = properties
+                    Properties = properties,
+                    SourceMapBuilder = sourceMapBuilder
                 });
             }
         }
@@ -94,14 +98,18 @@ namespace JSIL {
             }
         }
 
-        private static void WriteBytesToFile (string folder, string name, ArraySegment<byte> bytes) {
+        private static void WriteBytesToFile (string folder, string name, ArraySegment<byte> bytes, SourceMapBuilder sourceMapBuilder = null) {
             var filePath = Path.Combine(folder, name);
             var fileMode = File.Exists(filePath) ? FileMode.Truncate : FileMode.CreateNew;
 
             EnsureDirectoryExists(Path.GetDirectoryName(filePath));
 
-            using (var fs = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read)) {
+            bool writeMapLink = sourceMapBuilder != null && sourceMapBuilder.Build(folder, name);
+            using (var fs = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read))
+            {
                 fs.Write(bytes.Array, bytes.Offset, bytes.Count);
+                if (writeMapLink)
+                    sourceMapBuilder.WriteSourceMapLink(fs, folder, name);
                 fs.Flush();
             }
         }
@@ -121,7 +129,7 @@ namespace JSIL {
 
             foreach (var kvp in Files) {
                 if (kvp.Value.Contents.Count > 0)
-                    WriteBytesToFile(path, kvp.Key, kvp.Value.Contents);
+                    WriteBytesToFile(path, kvp.Key, kvp.Value.Contents, kvp.Value.SourceMapBuilder);
             }
         }
 

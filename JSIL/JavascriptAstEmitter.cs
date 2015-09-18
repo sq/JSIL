@@ -14,6 +14,8 @@ using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL {
+    using Mono.Cecil.Cil;
+
     public enum BlockType {
         Switch,
         While,
@@ -60,6 +62,11 @@ namespace JSIL {
             OverflowCheckStack.Push(false);
 
             VisitNestedFunctions = true;
+
+            if (output.SourceMapBuilder != null)
+            {
+                AfterNodeProcessed += AddSourceMapInfo;
+            }
         }
 
         TypeSystem IAstEmitter.TypeSystem {
@@ -2547,6 +2554,15 @@ namespace JSIL {
             Output.WriteRaw("function () { return ");
             Visit(function.InnerExpression);
             Output.WriteRaw("; }.bind(this)");
+        }
+
+        private void AddSourceMapInfo(JSNode node)
+        {
+            if (node.SymbolInfo != null && node.SymbolInfo.Any())
+            {
+                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.FirstNonSpace, node.SymbolInfo);
+                //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
+            }
         }
     }
 }

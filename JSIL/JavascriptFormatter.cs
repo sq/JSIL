@@ -168,12 +168,14 @@ namespace JSIL.Internal {
     }
 
     public class JavascriptFormatter {
+        public readonly PositionInfoTextWriter OutputWithPositionInfo;
         public readonly TextWriter Output;
         public readonly AssemblyManifest Manifest;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
         public readonly AssemblyManifest.Token PrivateToken;
         public readonly Configuration Configuration;
+        public readonly SourceMapBuilder SourceMapBuilder;
 
         public MethodReference CurrentMethod = null;
 
@@ -191,12 +193,22 @@ namespace JSIL.Internal {
         };
 
         public JavascriptFormatter (
-            TextWriter output, ITypeInfoSource typeInfo, 
+            TextWriter output, SourceMapBuilder sourceMapBuilder, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
             Configuration configuration,
             bool stubbed
         ) {
-            Output = output;
+            if (sourceMapBuilder != null)
+            {
+                OutputWithPositionInfo = new PositionInfoTextWriter(output);
+                Output = OutputWithPositionInfo;
+            }
+            else
+            {
+                Output = output;
+            }
+
+            SourceMapBuilder = sourceMapBuilder;
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
@@ -1297,6 +1309,69 @@ namespace JSIL.Internal {
             }
 
             RPar();
+        }
+    }
+
+    public class PositionInfoTextWriter : TextWriter
+    {
+        private readonly TextWriter _writer;
+        private int _newLineByteToCompare;
+        private int _line;
+        private int _column;
+        private long _position;
+        private int _firstNonSpace;
+
+
+        public PositionInfoTextWriter(TextWriter writer)
+        {
+            _writer = writer;
+        }
+
+        public override Encoding Encoding { get { return _writer.Encoding; } }
+
+        public int Line
+        {
+            get { return _line; }
+        }
+
+        public int Column
+        {
+            get { return _column; }
+        }
+
+        public long Position
+        {
+            get { return _position; }
+        }
+
+        public int FirstNonSpace
+        {
+            get { return _firstNonSpace < 0 ? _column : _firstNonSpace; }
+        }
+
+        public override void Write(char value)
+        {
+            if (_firstNonSpace < 0 && value != ' ')
+            {
+                _firstNonSpace = _column;
+            }
+
+            _position++;
+            _column++;
+
+            if (value == NewLine[_newLineByteToCompare])
+            {
+                _newLineByteToCompare ++;
+                if (_newLineByteToCompare == NewLine.Length)
+                {
+                    _newLineByteToCompare = 0;
+                    _column = 0;
+                    _firstNonSpace = -1;
+                    _line++;
+                }
+            }
+
+            _writer.Write(value);
         }
     }
 }

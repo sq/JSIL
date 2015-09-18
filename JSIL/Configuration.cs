@@ -115,6 +115,7 @@ namespace JSIL.Translator {
         public string FilenameEscapeRegex;
         public string AssemblyCollectionName;
         public string EmitterFactoryName;
+        public bool? BuildSourceMap;
 
         public double? FrameworkVersion;
 
@@ -156,6 +157,9 @@ namespace JSIL.Translator {
                 result.AssemblyCollectionName = AssemblyCollectionName;
             if (EmitterFactoryName != null)
                 result.EmitterFactoryName = EmitterFactoryName;
+
+            if (BuildSourceMap != null)
+                result.BuildSourceMap = BuildSourceMap;
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);
