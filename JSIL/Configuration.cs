@@ -53,6 +53,7 @@ namespace JSIL.Translator {
             public bool? IntroduceCharCasts;
             public bool? IntroduceEnumCasts;
             public bool? EmulateInt64;
+            public bool? DecomposeAllMutationOperators;
 
             public void MergeInto (CodeGeneratorConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -103,6 +104,8 @@ namespace JSIL.Translator {
                     result.IntroduceEnumCasts = IntroduceEnumCasts;
                 if (EmulateInt64.HasValue)
                     result.EmulateInt64 = EmulateInt64;
+                if (DecomposeAllMutationOperators.HasValue)
+                    result.DecomposeAllMutationOperators = DecomposeAllMutationOperators;
             }
         }
 

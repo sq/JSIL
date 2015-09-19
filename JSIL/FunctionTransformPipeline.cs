@@ -273,8 +273,15 @@ namespace JSIL.Internal {
         // Pipeline stage implementations
 
         private bool DecomposeMutationOperators () {
-            if (Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true))
-                new DecomposeMutationOperators(TypeSystem, TypeInfoProvider, FunctionSource).Visit(Function);
+            if (
+                Configuration.CodeGenerator.HintIntegerArithmetic.GetValueOrDefault(true) ||
+                Configuration.CodeGenerator.DecomposeAllMutationOperators.GetValueOrDefault(false)
+            ) {
+                new DecomposeMutationOperators(
+                    TypeSystem, TypeInfoProvider, FunctionSource,
+                    Configuration.CodeGenerator.DecomposeAllMutationOperators.GetValueOrDefault(false)
+                ).Visit(Function);
+            }
 
             return true;
         }

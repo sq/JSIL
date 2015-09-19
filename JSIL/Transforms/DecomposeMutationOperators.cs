@@ -13,11 +13,16 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly TypeInfoProvider TypeInfo;
         public readonly IFunctionSource FunctionSource;
+        public readonly bool DecomposeAllMutations;
 
-        public DecomposeMutationOperators (TypeSystem typeSystem, TypeInfoProvider typeInfo, IFunctionSource functionSource) {
+        public DecomposeMutationOperators (
+            TypeSystem typeSystem, TypeInfoProvider typeInfo, 
+            IFunctionSource functionSource, bool decomposeAllMutations
+        ) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
             FunctionSource = functionSource;
+            DecomposeAllMutations = decomposeAllMutations;
         }
 
         public static JSExpression MakeLhsForAssignment (JSExpression rhs) {
@@ -123,7 +128,7 @@ namespace JSIL.Transforms {
             JSExpression replacement;
 
             if (
-                (resultIsIntegral) &&
+                (resultIsIntegral || DecomposeAllMutations) &&
                 ((replacement = DeconstructMutationAssignment(ParentNode, boe, TypeSystem, resultType)) != null)
             ) {
                 ParentNode.ReplaceChild(boe, replacement);
