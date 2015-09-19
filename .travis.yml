@@ -8,15 +8,17 @@ before_install:
 
 install:
   - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
+  - export FSHARPINSTALLDIR=$PWD/packages/FSharp.Compiler.Tools.4.0.0.1/tools/
   - ci/download-asset.sh packages .
   - nuget restore JSIL.sln
+  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory packages 
+  - nuget install FSharp.Compiler.Tools -Version 4.0.0.1 -OutputDirectory packages 
   - ci/upload-asset.sh packages packages &
-  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner 
 
 script:
   - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
   - ci/download-asset.sh compilecache /
-  - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)
+  - mono ./packages/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)
   - ci/upload-asset.sh compilecache "/tmp/JSIL Tests"
 
 env:
