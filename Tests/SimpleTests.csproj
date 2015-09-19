@@ -263,7 +263,7 @@
     <None Include="SimpleTestCases\StringFormatCustomPlacesDecimal.cs" />
     <None Include="SimpleTestCases\StringFormatQuotedString.cs" />
     <None Include="SimpleTestCases\StringFormatPlaceSeparators.cs" />
-    <None Include="SimpleTestCases\IntegerToStringFormatted.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\IntegerToStringFormatted.cs" />
     <None Include="SimpleTestCases\JaggedArrayReference.cs" />
     <None Include="SimpleTestCases\JaggedStructArrayReference.cs" />
     <None Include="SimpleTestCases\IfReferenceBool.cs" />
