@@ -825,11 +825,19 @@ namespace JSIL {
 
                         typeList.AddRange(type.NestedTypes);
 
-                        if (!ShouldTranslateMethods(type))
+                        if (!ShouldTranslateMethods(type)) {
+                            var info = TypeInfoProvider.GetTypeInformation(type);
+                            if (info != null)
+                            {
+                                if (info.IsProxy && info.Metadata.HasAttribute("JSIL.Meta.JSImportType"))
+                                {
+                                    typeList.AddRange(TypeInfoProvider.FindTypeProxy(new TypeIdentifier(info.Definition)).ProxiedTypes.Select(item => item.Resolve()));
+                                }
+                            }
                             return typeList;
+                        }
 
                         IEnumerable<MethodDefinition> methods = type.Methods;
-
                         var typeInfo = TypeInfoProvider.GetExisting(type);
                         if (typeInfo != null) {
                             if (typeInfo.StaticConstructor != null) {
@@ -987,15 +995,6 @@ namespace JSIL {
                 return;
             }
 
-            var methods = new ConcurrentBag<MethodToAnalyze>();
-            foreach (var method in typesToImport.SelectMany(m => m).SelectMany(t => t).SelectMany(item => item.Methods))
-            {
-                methods.Add(new MethodToAnalyze(method));
-            }
-            var pOptions = GetParallelOptions();
-            AnalyzeFunctions(pOptions, typesToImport.Select(item => item.Key).ToArray(), methods, new ProgressReporter());
-            RunTransformsOnAllFunctions(pOptions, new ProgressReporter(), new StringBuilder());
-
             foreach (var byAssembly in typesToImport)
             {
                 var context = MakeDecompilerContext(byAssembly.Key.MainModule);
@@ -1016,7 +1015,6 @@ namespace JSIL {
                     {
                         DeclareType(context, typeDefinition, astEmitter, assemblyEmitter, declaredTypes, stubbed, true);
                     }
-
                 }
             }
         }
