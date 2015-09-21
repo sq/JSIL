@@ -816,11 +816,15 @@ namespace JSIL {
                 Output.RPar();
         }
 
-        public void VisitNode (JSDoubleToFloatExpression itfe) {
+        public void VisitNode (JSDoubleToFloatExpression dtfe) {
             Output.WriteRaw("Math.fround");
             Output.LPar();
-            Visit(itfe.Expression);
+            Visit(dtfe.Expression);
             Output.RPar();
+        }
+
+        public void VisitNode (JSFloatToDoubleExpression ftde) {
+            Visit(ftde.Expression);
         }
 
         public void VisitNode (JSChangeTypeExpression cte) {

@@ -223,7 +223,7 @@ namespace JSIL.Transforms {
                     newExpression = new JSDoubleToFloatExpression(ce.Expression);
                 } else {
                     // Widening float -> double conversion
-                    newExpression = ce.Expression;
+                    newExpression = new JSFloatToDoubleExpression(ce.Expression);
                 }
             } else {
                 // newExpression = JSIL.Cast(ce.Expression, targetType);

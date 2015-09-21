@@ -2371,6 +2371,38 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSFloatToDoubleExpression : JSSpecialNumericCastExpression {
+        public JSFloatToDoubleExpression (JSExpression inner)
+            : base(inner) {
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Single;
+        }
+
+        public override string ToString () {
+            return String.Format("(float){0}", Expression);
+        }
+    }
+
     public class JSValueOfNullableExpression : JSExpression {
         public JSValueOfNullableExpression (JSExpression inner)
             : base(inner) {
