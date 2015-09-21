@@ -226,7 +226,7 @@ namespace JSIL.Transforms {
                     (op == JSOperator.PostIncrement) ||
                     (op == JSOperator.PostDecrement)
                 ) {
-                    var mutated = new JSPointerAddExpression(target, JSLiteral.New(delta), false);
+                    var mutated = new JSPointerAddExpression(target, JSLiteral.New(delta), true);
                     replacement = new JSCommaExpression(store, mutated, tempVar);
                 } else {
                     replacement = new JSPointerAddExpression(target, JSLiteral.New(delta), true);
