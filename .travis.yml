@@ -20,9 +20,11 @@ before_script:
 script:
   - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
   - mono ./packages/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)
+
+before_cache:
+  - mv "/tmp/JSIL Tests" /tmp/JSIL_Tests  
   
 after_script:
-  - mv "/tmp/JSIL Tests" /tmp/JSIL_Tests  
   - true && [ -z "$JSIL_STORAGE_TAG" ] && export BUILD_TAG=TRAVIS_${TRAVIS_JOB_NUMBER##*.} || export BUILD_TAG=$JSIL_STORAGE_TAG
   - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
   - export UPLOAD_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -T - \"https://webdav.yandex.com/JSIL/_\""  
