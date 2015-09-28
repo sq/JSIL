@@ -2,25 +2,37 @@ language: csharp
 solution: JSIL.sln
 
 before_install:
-  - wget -P /tmp/avim -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
-  - unzip -d /tmp/js /tmp/avim/jsshell-linux-x86_64.zip
+  - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
+  - wget -P /tmp/ -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
+  - unzip -d /tmp/js /tmp/jsshell-linux-x86_64.zip
   - export PATH=$PATH:/tmp/js
 
 install:
   - export NODEJS=$(dirname `nvm which $NODEJS_VERSION`)
   - export FSHARPINSTALLDIR=$PWD/packages/FSharp.Compiler.Tools.4.0.0.1/tools/
-  - ci/download-asset.sh packages .
   - nuget restore JSIL.sln
   - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory packages 
   - nuget install FSharp.Compiler.Tools -Version 4.0.0.1 -OutputDirectory packages 
-  - ci/upload-asset.sh packages packages &
+
+before_script:
+  - mv /tmp/JSIL_Tests "/tmp/JSIL Tests" || true
 
 script:
   - xbuild /p:Configuration=Release /p:Platform=NoXna /v:m JSIL.sln
-  - ci/download-asset.sh compilecache /
   - mono ./packages/NUnit.Runners.2.6.4/tools/nunit-console.exe ./bin/Tests.DCE.dll ./bin/SimpleTests.dll ./bin/Tests.dll --run:$TestRun  --exclude:FailsOnMono\|\(FailsOnMonoWhenStubbed+Stubbed\)\|\(FailsOnMonoWhenStubbed+Translated\)
-  - ci/upload-asset.sh compilecache "/tmp/JSIL Tests"
-
+  
+after_script:
+  - mv "/tmp/JSIL Tests" /tmp/JSIL_Tests  
+  - true && [ -z "$JSIL_STORAGE_TAG" ] && export BUILD_TAG=TRAVIS_${TRAVIS_JOB_NUMBER##*.} || export BUILD_TAG=$JSIL_STORAGE_TAG
+  - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
+  - export UPLOAD_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -T - \"https://webdav.yandex.com/JSIL/_\""  
+  - export MKDIR_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -X MKCOL \"https://webdav.yandex.com/JSIL/_\""  
+  - true && [ -z "$JSIL_STORAGE_KEY" ] || eval ${MKDIR_COMMAND/_/$BUILD_TAG}
+  - true && [ -z "$JSIL_STORAGE_KEY" ] || eval ${MKDIR_COMMAND/_/$CACHE_PATH}
+  - true && [ -z "$JSIL_STORAGE_KEY" ] || zip -3 -r - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache.zip}
+  - true && [ -z "$JSIL_STORAGE_KEY" ] || zip -3 -r - bin Libraries | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/binaries.zip}
+  - true && [ -z "$JSIL_STORAGE_KEY" ] || zip -3 -r - -@ Libraries test_runner.html < <(find . -name *.out) | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/tests.zip}
+  
 env:
   global:
     - JsilUseAppDomainsInTest=true
@@ -32,3 +44,8 @@ env:
       JSIL_STORAGE_TAG=stubbed-tests
     - TestRun=JSIL.SimpleTests.SimpleTestCasesForTranslatedBcl
       JSIL_STORAGE_TAG=translated-tests
+
+cache:
+  directories:
+  - packages
+  - /tmp/JSIL_Tests
