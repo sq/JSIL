@@ -19,6 +19,7 @@ public partial class DownloadPage : JSONPage {
 
         if (!File.Exists(targetPath)) {
             Response.Clear();
+            Response.AddHeader("TargetPath", targetPath);
             Response.StatusCode = 404;
             return;
         }
@@ -27,6 +28,7 @@ public partial class DownloadPage : JSONPage {
         Response.StatusCode = 200;
         Response.ContentType = "application/octet-stream";
         Response.AddHeader("Content-Disposition", "attachment; filename=\"" + Path.GetFileName(targetPath) + "\"");
+        Response.AddHeader("TargetPath", targetPath);
         Response.Buffer = false;
         Response.Flush();
 

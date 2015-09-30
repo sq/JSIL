@@ -18,7 +18,8 @@ public partial class UploadPage : JSONPage {
         Response.StatusCode = 200;
         WriteResponseJSON(new {
             ok = true,
-            size = (new FileInfo(targetPath)).Length
+            size = (new FileInfo(targetPath)).Length,
+            targetPath = targetPath
         });
     }
 }
