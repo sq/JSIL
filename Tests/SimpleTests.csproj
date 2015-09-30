@@ -48,9 +48,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Compiler.CodeDom, Version=0.9.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\FSharp.Compiler.CodeDom.0.9.1\lib\net40\FSharp.Compiler.CodeDom.dll</HintPath>
+    <Reference Include="FSharp.Compiler.CodeDom, Version=0.9.3.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\FSharp.Compiler.CodeDom.0.9.3.0\lib\net40\FSharp.Compiler.CodeDom.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
@@ -142,7 +142,7 @@
     <None Include="SimpleTestCases\EnumerableWhere.cs" />
     <None Include="SimpleTestCases\EnumerableRange.cs" />
     <None Include="SimpleTestCases\InvokeInheritedOverloadedMethod.cs" />
-    <None Include="SimpleTestCases\FailsOnMono\Issue198.fs" />
+    <None Include="SimpleTestCases\Issue198.fs" />
     <None Include="SimpleTestCases\Issue173.cs" />
     <None Include="SimpleTestCases\StructHoistingInComplexLoop.cs" />
     <None Include="SimpleTestCases\StructPassedToGeneric_Issue494_1.cs" />
@@ -318,7 +318,7 @@
     <None Include="SimpleTestCases\EnumerableCast.cs" />
     <None Include="SimpleTestCases\EnumerableToList.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
-    <None Include="SimpleTestCases\FailsOnMono\Issue118_1.fs" />
+    <None Include="SimpleTestCases\Issue118_1.fs" />
     <None Include="SimpleTestCases\EnumerableElementAt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="SimpleTestCases\AutoProperties.cs" />
@@ -409,9 +409,9 @@
     <None Include="SimpleTestCases\ArrayEnumerator.cs" />
     <None Include="SimpleTestCases\TryCastDelegate.cs" />
     <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
-    <None Include="SimpleTestCases\FailsOnMono\ArrayOfNullable.cs" />
+    <None Include="SimpleTestCases\ArrayOfNullable.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\ExpressionsTest.cs" />
-    <None Include="SimpleTestCases\FailsOnMono\ObjectExpression_Enumerable.fs" />
+    <None Include="SimpleTestCases\ObjectExpression_Enumerable.fs" />
     <None Include="SimpleTestCases\InheritedAndOverwrittenMethods.cs" />
     <None Include="SimpleTestCases\InterfaceGenericCall_Issue348.cs" />
     <None Include="SimpleTestCases\InnerClassNameInLibrary_Issue352.cs" />

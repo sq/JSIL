@@ -720,7 +720,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        [FailsOnMono]
         public void Issue199 () {
             var generatedJs = GetJavascript(@"SpecialTestCases\Issue199.fs");
         }
