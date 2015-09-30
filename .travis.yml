@@ -2,7 +2,6 @@ language: csharp
 solution: JSIL.sln
 
 before_install:
-  - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
   - wget -P /tmp/ -N https://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip
   - unzip -d /tmp/js /tmp/jsshell-linux-x86_64.zip
   - export PATH=$PATH:/tmp/js
