@@ -6,7 +6,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number");
     });
 
-    $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
+    $jsilcore.$MakeParseExternals($, $.Double, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
 
     $.Constant({ Public: true, Static: true }, "MinValue", -1.7976931348623157E+308);
     $.Constant({ Public: true, Static: true }, "MaxValue", 1.7976931348623157E+308);
