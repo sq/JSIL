@@ -28,6 +28,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$typeof(this).__PublicInterface__.$$ToString($this, null, $formatProvider)")]
+        public string ToString(IFormatProvider formatProvider)
+        {
+            throw new InvalidOperationException();
+        }
+
         [JSIsPure]
         [JSReplacement("($this === $rhs)")]
         public bool Equals (IntegerProxy rhs) {
@@ -62,6 +68,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$typeof(this).__PublicInterface__.$$ToString($this, null, $formatProvider)")]
+        public string ToString(IFormatProvider formatProvider)
+        {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("isNaN($value)")]
         public static bool IsNaN (NumberProxy value) {
             throw new InvalidOperationException();
@@ -91,17 +103,21 @@ namespace JSIL.Proxies {
             return base.ToString();
         }
 
-        // FIXME
-        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format)")]
-        [JSReplacement("($this).toString()")]
-        public string ToString (string format) {
+        [JSReplacement("$typeof(this).__PublicInterface__.$$ToString($this, $format, null)")]
+        public string ToString(string format)
+        {
             throw new InvalidOperationException();
         }
 
-        // FIXME
-        // [JSReplacement("JSIL.NumberToFormattedString($this, null, $format, $formatProvider)")]
-        [JSReplacement("($this).toString()")]
-        public string ToString (string format, IFormatProvider formatProvider) {
+        [JSReplacement("$typeof(this).__PublicInterface__.$$ToString($this, $format, $formatProvider)")]
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$typeof(this).__PublicInterface__.$$ToString($this, null, $formatProvider)")]
+        public string ToString(IFormatProvider formatProvider)
+        {
             throw new InvalidOperationException();
         }
     }

@@ -20,6 +20,7 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Helpers/JSIL.EnumerableToArray.js"); writeln();
 //? include("Helpers/JSIL.GetEnumerator.js"); writeln();
 //? include("Helpers/JSIL.ParseDataURL.js"); writeln();
+//? include("Helpers/JSIL.MakeIConvertibleMethods.js"); writeln();
 
 //? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
 //? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();

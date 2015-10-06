@@ -16,4 +16,4 @@ JSIL.ImplementExternals(
     $.Constant({ Public: true, Static: true }, "NaN", NaN);
   }
 );
-JSIL.MakeNumericType(Number, "System.Double", false, "Float64Array");
+JSIL.MakeNumericType(Number, "System.Double", false, "Float64Array", JSIL.MakeIConvertibleMethods);
