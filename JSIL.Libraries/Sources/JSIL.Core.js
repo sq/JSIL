@@ -2120,8 +2120,24 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
         return $formatSignature().CallStatic($jsilcore.JSIL.System.NumberFormatter, "NumberToString", null, format, self, formatProvider).toString();
       }
     );
+    JSIL.MakeBoxMethod($);
+
   });
 };
+
+JSIL.MakeBoxMethod = function($) {
+  var $boxedConstructor = function () {
+    var ctor = JSIL.Box.Of($.publicInterface);
+    JSIL.Box.$addTypeMethods(ctor, $.publicInterface);
+    return ($boxedConstructor = JSIL.Memoize(ctor))();
+  };
+
+  $.RawMethod(true, "$Box",
+    function (value) {
+      return new ($boxedConstructor())(value);
+    }
+  );
+}
 
 JSIL.MakeIndirectProperty = function (target, key, source) {
   var hasValue = false, state;
@@ -4932,7 +4948,6 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   var typeId = typeObject.__TypeId__;
   var assignableFromTypes = typeObject.__AssignableFromTypes__ || {};
 
-  typeObject.__CastSpecialType__ = specialType;
   var typeName = JSIL.GetTypeName(typeObject);
 
   var throwCastError = function (value) {
@@ -4981,7 +4996,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       "if (!bypassCustomCheckMethod && checkMethod(expression))\r\n" +
       "  return true;\r\n" +
       "if (expression) {\r\n" +
-      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
       "  return (expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]);\r\n" +
       "} else\r\n" +
       "  return false;\r\n",
@@ -4996,7 +5011,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       typeName + ".$Is", 
       ["expression"],
       "if (expression) {\r\n" +
-      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
       "  return (expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]);\r\n" +
       "} else\r\n" +
       "  return false;\r\n",
@@ -5014,7 +5029,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       "if (checkMethod(expression))\r\n" +
       "  return expression;\r\n" +
       "else if (expression) {\r\n" +
-      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
       "  if ((expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]))\r\n" +
       "    return expression;\r\n" +
       "}\r\n\r\n" +
@@ -5030,7 +5045,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       typeName + ".$As", 
       ["expression"],
       "if (expression) {\r\n" +
-      "  var expressionTypeId = expression.__ThisTypeId__;\r\n" +
+      "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
       "  if ((expressionTypeId === typeId) || (!!assignableFromTypes[expressionTypeId]))\r\n" +
       "    return expression;\r\n" +
       "}\r\n\r\n" +
@@ -5042,7 +5057,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     );
   }
 
-  castFunction = function Cast (expression) {
+  castFunction = function Cast(expression) {
     if (isFunction(expression))
       return expression;
     else if (expression === null)
@@ -5051,7 +5066,34 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       throwCastError(expression);
   };
 
-  var integerCastFunction = function Cast_Integer (expression) {
+  var nullableCastFunction = function Cast_Nullable(expression) {
+    return JSIL.Nullable_Cast(expression, publicInterface.T);
+  };
+
+  var booleanCastFunction = function Cast_Boolean(expression) {
+    if (expression.__IsBox__) {
+      if (publicInterface.__Type__ === expression.TValue) {
+        expression = expression.valueOf();
+      } else {
+        throwCastError(expression);
+      }
+    }
+
+    if (typeof (expression) === "boolean") {
+      return expression;
+    } else
+      throwCastError(expression);
+  };
+
+  var integerCastFunction = function Cast_Integer(expression) {
+    if (expression.__IsBox__) {
+      if (publicInterface.__Type__ === expression.TValue) {
+        expression = expression.valueOf();
+      } else {
+        throwCastError(expression);
+      }
+    }
+
     if (typeof (expression) === "number") {
       var max = publicInterface.MaxValue | 0;
       var result = (expression | 0) & max;
@@ -5070,7 +5112,15 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       throwCastError(expression);
   };
 
-  var numericCastFunction = function Cast_Number (expression) {
+  var numericCastFunction = function Cast_Number(expression) {
+    if (expression.__IsBox__) {
+      if (publicInterface.__Type__ === expression.TValue) {
+        expression = expression.valueOf();
+      } else {
+        throwCastError(expression);
+      }
+    }
+    
     if (typeof (expression) === "number") {
       return expression;
     } else if (expression === false) {
@@ -5081,7 +5131,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       throwCastError(expression);
   };
 
-  var int64CastFunction = function Cast_Int64_Impl (expression) {
+  var int64CastFunction = function Cast_Int64_Impl(expression) {
     if (expression === false)
       return System.Int64.Zero;
     else if (expression === true)
@@ -5191,6 +5241,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
       break;
 
+    case "bool":
+      customCheckOnly = true;
+      asFunction = throwCastError;
+      castFunction = booleanCastFunction;
+
+      break;
+
     case "number":
       customCheckOnly = true;    
       asFunction = throwCastError;
@@ -5205,6 +5262,9 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       castFunction = function Cast_Int64 (expression) {
         return int64CastFunction(expression);
       };
+      break;
+    case "nullable":
+      castFunction = nullableCastFunction;
       break;
   }
 
@@ -5262,6 +5322,8 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
 JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
   var state = null;
+
+  typeObject.__CastSpecialType__ = specialType;
 
   var doLazyInitialize = function () {
     if (state === null)
@@ -5646,7 +5708,9 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
-    JSIL.MakeCastMethods(staticClassObject, typeObject, null);
+    var isNullable = fullName === "System.Nullable`1";
+
+    JSIL.MakeCastMethods(staticClassObject, typeObject, isNullable ? "nullable" : null);
 
     delete $jsilcore.InFlightObjectConstructions[fullName];
 
@@ -5887,9 +5951,9 @@ JSIL.MakeEnum = function (_descriptor, _members) {
     typeObject.__TypeInitialized__ = false;
 
     if (descriptor.BaseType) {
-      typeObject.__StorageType__ = JSIL.ResolveTypeReference(descriptor.BaseType)[1];
+      JSIL.SetLazyValueProperty(typeObject, "__StorageType__", function () { return JSIL.ResolveTypeReference(descriptor.BaseType)[1]; });
     } else {
-      typeObject.__StorageType__ = $jsilcore.System.Int32.__Type__;
+      JSIL.SetLazyValueProperty(typeObject, "__StorageType__", function () { return $jsilcore.System.Int32.__Type__; });
     }
 
     var typeId = JSIL.AssignTypeId(context, descriptor.FullName);
@@ -6159,7 +6223,9 @@ JSIL.GetType = function (value) {
 
   if ((type === "object") || (type === "function")) {
     var tt;
-    if (tt = value.__ThisType__)
+    if (value.__IsBox__)
+      return value.TValue;
+    else if (tt = value.__ThisType__)
       return tt;
     else if (value.GetType)
       return value.GetType();
@@ -9599,6 +9665,11 @@ if (typeof (WeakMap) !== "undefined") {
 JSIL.ObjectHashCode = function (obj, virtualCall, thisType) {
   var type = typeof obj;
 
+  if (type === "number") {
+    //TODO: correct implementation for double/float
+    return (obj | 0);
+  }
+
   if (type === "object" || type == "string") {
     if (obj.GetHashCode && virtualCall)
       return (obj.GetHashCode() | 0);   
@@ -10647,12 +10718,12 @@ JSIL.$FormatStringImpl = function (format, values) {
     var value = values[index];
 
     if (alignment || valueFormat) {
-      return JSIL.NumberToFormattedString(value, alignment, valueFormat);
+      return JSIL.NumberToFormattedString(value.valueOf(), alignment, valueFormat);
 
     } else {
 
-      if (typeof (value) === "boolean") {
-        if (value)
+      if (JSIL.GetType(value) === $jsilcore.System.Boolean.__Type__) {
+        if (value.valueOf())
           return "True";
         else
           return "False";

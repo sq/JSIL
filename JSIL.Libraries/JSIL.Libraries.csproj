@@ -248,6 +248,7 @@
     <Content Include="Includes\IO\Helpers\%24bytestream.js" />
     <Content Include="Includes\IO\Helpers\%24jsilio.ReadCharFromStream.js" />
     <Content Include="Includes\Reference\Classes\JSIL.ArrayElementReference.js" />
+    <Content Include="Includes\Reference\Classes\JSIL.Box.js" />
     <Content Include="Includes\Reference\Classes\JSIL.BoxedVariable.js" />
     <Content Include="Includes\Reference\Classes\JSIL.MemberReference.js" />
     <Content Include="Includes\Reference\Classes\JSIL.Reference.js" />

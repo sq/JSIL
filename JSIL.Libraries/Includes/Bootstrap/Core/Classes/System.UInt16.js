@@ -3,7 +3,7 @@
 JSIL.ImplementExternals(
   "System.UInt16", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number") && (value >= 0);
+      return ((typeof (value) === "number") && (value >= 0)) || JSIL.Box.IsBoxedOfType(value, $.Type);
     });
 
     $jsilcore.$MakeParseExternals($, $.UInt16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);

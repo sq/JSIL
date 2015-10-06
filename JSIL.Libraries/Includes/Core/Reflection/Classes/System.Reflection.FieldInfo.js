@@ -79,7 +79,8 @@
     $.Method({ Static: false, Public: true, Virtual: true }, "SetValue",
       (new JSIL.MethodSignature($.Object, [$.Object, $.Object], [])),
       function SetValue(obj, value) {
-        if (!this.get_FieldType().$Is(value))
+        var fieldType = this.get_FieldType();
+        if (!fieldType.$Is(value))
           throw new System.ArgumentException("value");
 
         if (this.IsStatic) {
@@ -93,6 +94,10 @@
 
         if (!this.DeclaringType.IsAssignableFrom(obj.__ThisType__)) {
           throw new System.Exception("Field is not defined on the target object.");
+        }
+
+        if (fieldType.IsValueType) {
+          value = fieldType.__PublicInterface__.$Cast(value);
         }
 
         obj[this._descriptor.Name] = value;

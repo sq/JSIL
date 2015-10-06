@@ -226,6 +226,34 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSWrapExpression : JSExpression
+    {
+        public JSWrapExpression(JSExpression originalValue, JSType originalType)
+            : base(originalValue, originalType) {
+        }
+
+        public JSExpression OriginalValue
+        {
+            get
+            {
+                return Values[0];
+            }
+        }
+
+        public JSType OriginalType
+        {
+            get
+            {
+                return (JSType)Values[1];
+            }
+        }
+
+        public override TypeReference GetActualType(TypeSystem typeSystem)
+        {
+            return OriginalValue.GetActualType(typeSystem);
+        }
+    }
+
     // Indicates that the contained expression is a constructed reference to a JS value.
     public class JSReferenceExpression : JSExpression {
         protected JSReferenceExpression (JSExpression referent)

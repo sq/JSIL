@@ -3,7 +3,7 @@
 JSIL.ImplementExternals(
   "System.Single", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return (typeof (value) === "number") || JSIL.Box.IsBoxedOfType(value, $.Type);
     });
 
     $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);

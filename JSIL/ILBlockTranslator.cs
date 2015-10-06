@@ -49,6 +49,8 @@ namespace JSIL {
         protected readonly Func<TypeReference, TypeReference> TypeReferenceReplacer;
         protected readonly IFunctionTransformer[] FunctionTransformers;
 
+        private readonly HashSet<TypeReference> _rawTypes;
+
         static ILBlockTranslator () {
             GetNodeTranslatorsUncached = (code) => {
                 var methodName = String.Format("Translate_{0}", code);
@@ -94,6 +96,20 @@ namespace JSIL {
             Symbols = methodSymbols;
 
             SpecialIdentifiers = translator.GetSpecialIdentifiers(TypeSystem);
+
+            _rawTypes = new HashSet<TypeReference>
+            {
+                TypeSystem.Boolean,
+                TypeSystem.SByte,
+                TypeSystem.Byte,
+                TypeSystem.Int16,
+                TypeSystem.UInt16,
+                TypeSystem.Int32,
+                TypeSystem.UInt32,
+                TypeSystem.Single,
+                TypeSystem.Double,
+                TypeSystem.Char
+            };
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -3158,7 +3174,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
             var value = TranslateNode(node.Arguments[0]);
-            return JSReferenceExpression.New(value);
+            var originalType = value.GetActualType(TypeSystem);
+            var refenrence = JSReferenceExpression.New(value);
+            // Hack, but I don't know how get System.Decimal reference.
+            return _rawTypes.Contains(originalType) 
+                ? new JSWrapExpression(refenrence, new JSType(originalType))
+                : refenrence;
         }
 
         protected JSExpression Translate_Br (ILExpression node, ILLabel targetLabel) {
