@@ -1,5 +1,7 @@
 ﻿//
-// mono/mono/metadata/number-formatter.h
+// mono/metadata/number-formatter.h
+// originally ported from Grassshopper
+// MIT/X11 licanse granted by Eyal Alaluf
 //
 
 namespace JSIL.System

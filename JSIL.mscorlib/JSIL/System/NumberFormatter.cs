@@ -1,5 +1,5 @@
 //
-// mcs/class/corlib/System/System.NumberFormatter.cs
+// mcs/class/corlib/System/NumberFormatter.cs
 //
 // Author:
 //   Kazuki Oikawa (kazuki@panicode.com)

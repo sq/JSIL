@@ -41,15 +41,6 @@
         }
     }
 
-    /*[JSProxy(typeof(ExecutionContext), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
-    public class System_Threading_ExecutionContext
-    {
-        [JSReplaceConstructor]
-        static System_Threading_ExecutionContext()
-        {
-        }
-    }*/
-
     [JSProxy(typeof(SecurityContext), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     public class System_Security_SecurityContext
     {

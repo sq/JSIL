@@ -181,7 +181,7 @@ namespace JSIL.Internal {
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
         protected readonly bool Stubbed;
-        protected readonly string AssmeblyDeclarationReplacement;
+        protected readonly string AssemblyDeclarationReplacement;
 
         protected uint _IndentLevel = 0;
         protected bool _IndentNeeded = false;
@@ -216,7 +216,7 @@ namespace JSIL.Internal {
             Assembly = assembly;
             Configuration = configuration;
             Stubbed = stubbed;
-            AssmeblyDeclarationReplacement = assemblyDeclarationReplacement;
+            AssemblyDeclarationReplacement = assemblyDeclarationReplacement;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
@@ -1167,7 +1167,7 @@ namespace JSIL.Internal {
                 Space();
                 Identifier(PrivateToken.IDString);
                 WriteRaw(" = ");
-                if (AssmeblyDeclarationReplacement == null)
+                if (AssemblyDeclarationReplacement == null)
                 {
                     WriteRaw("JSIL.DeclareAssembly");
                     LPar();
@@ -1176,7 +1176,7 @@ namespace JSIL.Internal {
                 }
                 else
                 {
-                    WriteRaw(AssmeblyDeclarationReplacement);
+                    WriteRaw(AssemblyDeclarationReplacement);
                 }
                 Semicolon();
             }
