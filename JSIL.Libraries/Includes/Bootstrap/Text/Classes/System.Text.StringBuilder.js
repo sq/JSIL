@@ -284,6 +284,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  $.Method({ Static: false, Public: true }, "Remove",
+    (new JSIL.MethodSignature($.Type, [$.Int32, $.Int32], [])),
+    function Remove(startIndex, length) {
+      this._str = this._str.substr(0, startIndex) + this._str.substring(startIndex + length, length);
+      return this;
+    }
+  );
+
   var replace = function (self, oldText, newText, startIndex, count) {
     var prefix = self._str.substr(0, startIndex);
     var suffix = self._str.substr(startIndex + count);
@@ -328,6 +336,35 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  var insert = function (self, string, startIndex, count) {
+    while (startIndex > self._str.length - 1 && self._str.length < self._capacity) {
+      self._str += "\0";
+    }
+
+    var suffix = self._str.substr(startIndex);
+    self._str = self._str.substr(0, startIndex);
+    for (var i = 0; i < count; i++) {
+      self._str += string;
+    }
+    self._str += suffix;
+    self._capacity = Math.max(self._capacity, self._str.length);
+    return self;
+  };
+
+  $.Method({ Static: false, Public: true }, "Insert",
+    (new JSIL.MethodSignature($.Type, [$.Int32, $.String], [])),
+    function Insert(index, value) {
+      return insert(this, index, value, 1);
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "Insert",
+    (new JSIL.MethodSignature($.Type, [$.Int32, $.String, $.Int32], [])),
+    function Insert(index, value, count) {
+      return insert(this, index, value, count);
+    }
+  );
+
   $.Method({ Static: false, Public: true }, "set_Length",
     (new JSIL.MethodSignature(null, [$.Int32], [])),
     function set_Length(value) {
@@ -355,6 +392,9 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "set_Chars",
     (new JSIL.MethodSignature(null, [$.Int32, $.Char], [])),
     function set_Chars(i, value) {
+      while (i > this._str.length - 1) {
+        this._str += "\0";
+      }
       this._str =
         this._str.substr(0, i) +
         value +

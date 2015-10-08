@@ -278,7 +278,8 @@ var $jsilloaderstate = {
   } else {
     environment.loadScript(libraryRoot + "IgnoredBCL/JSIL.Bootstrap.js");
   }
-
+  
+  environment.loadScript(libraryRoot + "JSIL.mscorlib.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Int64.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");

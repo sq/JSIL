@@ -75,7 +75,23 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
       return $jsilcore.System.Globalization.CultureInfo.GetCultureInfo(name);
     }
   );
-
+  
+  $.Method({ Static: false, Public: true }, "get_IsReadOnly",
+    (new JSIL.MethodSignature($.Boolean, [], [])),
+    function get_IsReadOnly() {
+      return true;
+    }
+  );
+  
+  $.Method({ Static: false, Public: true }, "get_NumberFormat",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.NumberFormatInfo"), [], [])),
+    function get_NumberFormat() {
+      if (this.numInfo === null) {
+          this.numInfo = new $jsilcore.System.Globalization.NumberFormatInfo();
+      }
+      return this.numInfo;
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
@@ -94,3 +110,7 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
     }
   );
 });
+
+JSIL.MakeClass("System.Object", "System.Globalization.CultureInfo", true, [], function ($) {
+  $.Field({ Public: false, Static: false }, "numInfo", $jsilcore.TypeRef("System.Globalization.NumberFormatInfo"));
+})

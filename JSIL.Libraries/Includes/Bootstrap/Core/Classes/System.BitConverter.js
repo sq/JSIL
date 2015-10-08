@@ -301,6 +301,13 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
     (new JSIL.MethodSignature($.Double, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])),
     $jsilcore.BytesToDouble
   );
+
+  $.Method({ Static: true, Public: true }, "DoubleToInt64Bits",
+    (new JSIL.MethodSignature($.Int64, [$.Double], [])),
+    function DoubleToInt64Bits(double) {
+      return $jsilcore.BytesToInt64($jsilcore.BytesFromDouble(double), 0);
+    }
+  );
 });
 
 //? if ('GENERATE_STUBS' in  __out) {

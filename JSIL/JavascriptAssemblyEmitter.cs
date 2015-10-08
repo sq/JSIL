@@ -16,13 +16,16 @@ namespace JSIL {
     class JavascriptAssemblyEmitter : IAssemblyEmitter {
         public readonly AssemblyTranslator  Translator;
         public readonly JavascriptFormatter Formatter;
+        private readonly IDictionary<AssemblyManifest.Token, string> _referenceOverrides;
 
         public JavascriptAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
-            JavascriptFormatter formatter
+            JavascriptFormatter formatter,
+            IDictionary<AssemblyManifest.Token, string> referenceOverrides
         ) {
             Translator = assemblyTranslator;
             Formatter = formatter;
+            _referenceOverrides = referenceOverrides;
         }
 
         // HACK
@@ -50,11 +53,29 @@ namespace JSIL {
                 Formatter.NewLine();
             }
 
+            if (_referenceOverrides != null)
+            {
+                Formatter.LPar();
+                Formatter.OpenFunction(string.Empty, null);
+            }
+
             Formatter.DeclareAssembly();
             Formatter.NewLine();
+
+            if (_referenceOverrides != null) {
+                Formatter.WriteReferencesOverrides(_referenceOverrides);
+            }
         }
 
         public void EmitFooter () {
+            if (_referenceOverrides != null)
+            {
+                Formatter.CloseBrace();
+                Formatter.RPar();
+                Formatter.LPar();
+                Formatter.RPar();
+                Formatter.Semicolon();
+            }
         }
 
         public void EmitAssemblyEntryPoint (AssemblyDefinition assembly, MethodDefinition entryMethod, MethodSignature signature) {

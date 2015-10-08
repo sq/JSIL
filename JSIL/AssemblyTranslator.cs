@@ -109,24 +109,6 @@ namespace JSIL {
         protected bool OwnsAssemblyDataResolver;
         protected bool OwnsTypeInfoProvider;
 
-        protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
-            "System.Object", "System.ValueType",
-            "System.Type", "System.Reflection.TypeInfo", "System.RuntimeType",
-            "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
-            "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
-            "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo", "System.Reflection.EventInfo",
-            "System.Array", "System.Delegate", "System.MulticastDelegate",
-            "System.Byte", "System.SByte", 
-            "System.UInt16", "System.Int16",
-            "System.UInt32", "System.Int32",
-            "System.UInt64", "System.Int64",
-            "System.Single", "System.Double", 
-            "System.Boolean", "System.Char",
-            "System.Reflection.Assembly", "System.Reflection.RuntimeAssembly",
-            "System.Attribute", "System.Decimal",
-            "System.IntPtr", "System.UIntPtr"
-        }; 
-
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
@@ -843,11 +825,19 @@ namespace JSIL {
 
                         typeList.AddRange(type.NestedTypes);
 
-                        if (!ShouldTranslateMethods(type))
+                        if (!ShouldTranslateMethods(type)) {
+                            var info = TypeInfoProvider.GetTypeInformation(type);
+                            if (info != null)
+                            {
+                                if (info.IsProxy && info.Metadata.HasAttribute("JSIL.Meta.JSImportType"))
+                                {
+                                    typeList.AddRange(TypeInfoProvider.FindTypeProxy(new TypeIdentifier(info.Definition)).ProxiedTypes.Select(item => item.Resolve()));
+                                }
+                            }
                             return typeList;
+                        }
 
                         IEnumerable<MethodDefinition> methods = type.Methods;
-
                         var typeInfo = TypeInfoProvider.GetExisting(type);
                         if (typeInfo != null) {
                             if (typeInfo.StaticConstructor != null) {
@@ -921,11 +911,28 @@ namespace JSIL {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
+
+            string assemblyDeclarationReplacement = null;
+            var metadata = new MetadataCollection(assembly);
+            if (metadata.HasAttribute("JSIL.Meta.JSRepaceAssemblyDeclaration"))
+            {
+                assemblyDeclarationReplacement = (string) metadata.GetAttributeParameters("JSIL.Meta.JSRepaceAssemblyDeclaration")[0].Value;
+            }
+
+            var overrides =
+                assembly.CustomAttributes.Where(
+                    item => item.AttributeType.FullName == "JSIL.Meta.JSOverrideAssemblyReference")
+                    .ToDictionary(
+                        item =>
+                            Manifest.GetPrivateToken(
+                                ((TypeReference) (item.ConstructorArguments[0].Value)).Resolve().Module.Assembly),
+                        item => (string) (item.ConstructorArguments[1].Value));
+
             var formatter = new JavascriptFormatter(
-                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, stubbed
+                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, assemblyDeclarationReplacement, stubbed
             );
 
-            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter);
+            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter, overrides.Count > 0 ? overrides : null);
 
             assemblyEmitter.EmitHeader(stubbed);
 
@@ -943,6 +950,8 @@ namespace JSIL {
 
                 TranslateModule(context, assemblyEmitter, module, sealedTypes, declaredTypes, stubbed);
             }
+
+            TranslateImportedTypes(assembly, assemblyEmitter, declaredTypes, stubbed);
 
             assemblyEmitter.EmitFooter();
 
@@ -967,6 +976,49 @@ namespace JSIL {
             );
         }
 
+        protected void TranslateImportedTypes(AssemblyDefinition assembly, IAssemblyEmitter assemblyEmitter,
+            HashSet<TypeDefinition> declaredTypes, bool stubbed)
+        {
+            var typesToImport = assembly
+                .Modules
+                .SelectMany(item => item.Types)
+                .Select(type => TypeInfoProvider.GetTypeInformation(type))
+                .Where(item => item.IsProxy && item.Metadata.HasAttribute("JSIL.Meta.JSImportType"))
+                .Select(item => TypeInfoProvider.FindTypeProxy(new TypeIdentifier(item.Definition)))
+                .SelectMany(item => item.ProxiedTypes)
+                .Select(item => item.Resolve())
+                .GroupBy(item => item.Module)
+                .GroupBy(item => item.Key.Assembly).ToList();
+
+            if (typesToImport.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var byAssembly in typesToImport)
+            {
+                var context = MakeDecompilerContext(byAssembly.Key.MainModule);
+                foreach (var byModule in byAssembly)
+                {
+                    context.CurrentModule = byModule.Key;
+
+                    var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
+                    var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem,
+                        this.TypeInfoProvider, js);
+
+                    var astEmitter = assemblyEmitter.MakeAstEmitter(
+                        jsil, context.CurrentModule.TypeSystem,
+                        TypeInfoProvider, Configuration
+                        );
+
+                    foreach (var typeDefinition in byModule)
+                    {
+                        DeclareType(context, typeDefinition, astEmitter, assemblyEmitter, declaredTypes, stubbed, true);
+                    }
+                }
+            }
+        }
+
         protected void TranslateModule (
             DecompilerContext context, IAssemblyEmitter assemblyEmitter, ModuleDefinition module, 
             HashSet<TypeDefinition> sealedTypes, HashSet<TypeDefinition> declaredTypes, bool stubbed
@@ -989,13 +1041,6 @@ namespace JSIL {
                 DeclareType(context, typedef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
         }
 
-        protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef) {
-            if (TypeDeclarationsToSuppress.Contains(typedef.FullName))
-                return false;
-
-            return true;
-        }
-
         public bool ShouldSkipMember (MemberReference member) {
             if (member is MethodReference && member.Name == ".cctor")
                 return false;
@@ -1010,7 +1055,7 @@ namespace JSIL {
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, 
-            HashSet<TypeDefinition> declaredTypes, bool stubbed
+            HashSet<TypeDefinition> declaredTypes, bool stubbed, bool isImported = false
         ) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
@@ -1028,13 +1073,13 @@ namespace JSIL {
             bool declareOnlyInternalTypes = ShouldSkipMember(typedef);
 
             // This type is defined in JSIL.Core so we don't want to cause a name collision.
-            if (!declareOnlyInternalTypes && !ShouldGenerateTypeDeclaration(typedef)) {
+            if (!declareOnlyInternalTypes && typeInfo.IsSuppressDeclaration && !isImported) {
                 assemblyEmitter.EmitTypeAlias(typedef);
 
                 declareOnlyInternalTypes = true;
             }
 
-            if (declareOnlyInternalTypes) {
+            if (declareOnlyInternalTypes && !isImported) {
                 DeclareNestedTypes(
                     context, typedef, 
                     astEmitter, assemblyEmitter, 
@@ -1051,7 +1096,7 @@ namespace JSIL {
             try {
                 // type has a JS replacement, we can't correctly emit a stub or definition for it. 
                 // We do want to process nested types, though.
-                if (typeInfo.Replacement != null) {
+                if (typeInfo.Replacement != null && !isImported) {
                     DeclareNestedTypes(
                         context, typedef, 
                         astEmitter, assemblyEmitter, 
@@ -1065,7 +1110,7 @@ namespace JSIL {
                     return;
 
                 var declaringType = typedef.DeclaringType;
-                if (declaringType != null)
+                if (declaringType != null && !isImported)
                     DeclareType(context, declaringType, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(declaringType.Module.Assembly));
 
                 var baseClass = typedef.BaseType;
@@ -1074,6 +1119,7 @@ namespace JSIL {
                     if (
                         (resolved != null) &&
                         (resolved.Module.Assembly == typedef.Module.Assembly)
+                        && !isImported
                     ) {
                         DeclareType(context, resolved, astEmitter, assemblyEmitter, declaredTypes, IsStubbed(resolved.Module.Assembly));
                     }
@@ -1102,8 +1148,11 @@ namespace JSIL {
                     assemblyEmitter.EndEmitTypeDefinition(astEmitter, context, typedef);
                 }
 
-                foreach (var nestedTypeDef in typedef.NestedTypes)
-                    DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                if (!isImported)
+                {
+                    foreach (var nestedTypeDef in typedef.NestedTypes)
+                        DeclareType(context, nestedTypeDef, astEmitter, assemblyEmitter, declaredTypes, stubbed);
+                }
             } catch (Exception exc) {
                 throw new Exception(String.Format("An error occurred while declaring the type '{0}'", typedef.FullName), exc);
             } finally {
@@ -1958,7 +2007,7 @@ namespace JSIL {
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
                 !methodInfo.IsExternal && !isJSReplaced;
 
-            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied && !methodInfo.IsUnstubbable);
+            isExternal = methodInfo.IsExternal || (stubbed && !methodInfo.IsUnstubbable);
         }
 
         internal bool ShouldTranslateMethodBody (
@@ -2141,10 +2190,11 @@ namespace JSIL {
         public IAssemblyEmitter MakeAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
             AssemblyDefinition assembly,
-            JavascriptFormatter formatter
+            JavascriptFormatter formatter,
+            IDictionary<AssemblyManifest.Token, string> referenceOverrides
         ) {
             return new JavascriptAssemblyEmitter(
-                assemblyTranslator, formatter
+                assemblyTranslator, formatter, referenceOverrides
             );
         }
 

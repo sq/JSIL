@@ -115,6 +115,10 @@ Tests.DCE/obj
 Tests.DCE//bin
 JSIL.Libraries/node_modules
 JSIL.Libraries/obj
+JSIL.Libraries/Generated
+JSIL.Libraries/bin
 Libraries/
 .vs/
 /mono
+JSIL.mscorlib/obj/
+JSIL.mscorlib/bin/

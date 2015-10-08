@@ -1,7 +1,10 @@
 ﻿namespace JSIL.Proxies.Bcl
 {
     using System.Collections.Generic;
+    using System.Globalization;
+    using System.Security;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using JSIL.Meta;
     using JSIL.Proxy;
 
@@ -27,5 +30,23 @@
     [JSStubOnly]
     public class System_Security_Cryptography_X509Certificates_X509Utils
     {
+    }
+
+    [JSProxy(typeof(DateTimeFormatInfo), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    public class System_Globalization_DateTimeFormatInfo
+    {
+        [JSReplaceConstructor]
+        static System_Globalization_DateTimeFormatInfo()
+        {
+        }
+    }
+
+    [JSProxy(typeof(SecurityContext), JSProxyMemberPolicy.ReplaceDeclared, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    public class System_Security_SecurityContext
+    {
+        [JSReplaceConstructor]
+        static System_Security_SecurityContext()
+        {
+        }
     }
 }

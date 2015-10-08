@@ -40,6 +40,7 @@
     <Compile Include="Collections.cs" />
     <Compile Include="Char.cs" />
     <Compile Include="Net46.cs" />
+    <Compile Include="SuppressDeclaration.cs" />
     <Compile Include="Unsafe.cs" />
     <Compile Include="DateTime.cs" />
     <Compile Include="IO.cs" />

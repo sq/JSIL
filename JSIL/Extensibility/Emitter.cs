@@ -17,7 +17,8 @@ namespace JSIL.Compiler.Extensibility {
         IAssemblyEmitter MakeAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
             AssemblyDefinition assembly,
-            JavascriptFormatter formatter
+            JavascriptFormatter formatter,
+            IDictionary<AssemblyManifest.Token, string> referenceOverrides
         );
 
         IEnumerable<IAnalyzer> GetAnalyzers ();

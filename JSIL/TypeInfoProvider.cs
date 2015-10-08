@@ -341,6 +341,13 @@ namespace JSIL {
             }
         }
 
+        public ProxyInfo FindTypeProxy(TypeIdentifier identifier)
+        {
+            ProxyInfo proxy;
+            TypeProxies.TryGetValue(identifier, out proxy);
+            return proxy;
+        }
+
         public ModuleInfo GetModuleInformation (ModuleDefinition module) {
             if (module == null)
                 throw new ArgumentNullException("module");
