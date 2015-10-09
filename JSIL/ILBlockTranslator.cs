@@ -743,8 +743,9 @@ namespace JSIL {
             result = DoJSILMethodReplacement(
                 method.Method.DeclaringType.FullName, 
                 method.Method.Name, 
+                method,
                 method.GenericArguments,
-                arguments, false
+                arguments
             );
             if (result != null)
                 return result;
@@ -812,14 +813,14 @@ namespace JSIL {
 
         internal JSExpression DoJSILMethodReplacement (
             string typeName,
-            string methodName, 
+            string methodName,
+            JSMethod method, 
             IEnumerable<TypeReference> genericArguments, 
-            JSExpression[] arguments,
-            bool forDynamic
+            JSExpression[] arguments
         ) {
             switch (typeName) {
                 case "JSIL.Builtins":
-                    return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments, forDynamic);
+                    return DoJSILBuiltinsMethodReplacement(methodName, genericArguments, arguments, method == null);
 
                 case "JSIL.Verbatim": {
                     if (
@@ -837,8 +838,8 @@ namespace JSIL {
                             var argumentsExpression = arguments[1];
                             var argumentsArray = argumentsExpression as JSNewArrayExpression;
 
-                            if (forDynamic) {
-                                // This call was made dynamically, so the parameters are not an array.
+                            if (method == null || method.Method.Parameters[1].ParameterType is GenericParameter) {
+                                // This call was made dynamically or through generic version of method, so the parameters are not an array.
 
                                 argumentsDict = new Dictionary<string, JSExpression>();
 
