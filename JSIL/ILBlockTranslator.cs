@@ -824,8 +824,7 @@ namespace JSIL {
 
                 case "JSIL.Verbatim": {
                     if (
-                        (methodName == "Expression") ||
-                        (methodName == "Expression`1")
+                        (methodName == "Expression") || methodName.StartsWith("Expression`")
                     ) {
                         var expression = arguments[0] as JSStringLiteral;
                         if (expression == null)
