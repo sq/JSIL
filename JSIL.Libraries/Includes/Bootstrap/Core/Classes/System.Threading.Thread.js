@@ -24,6 +24,12 @@
         return 0;
       }
     );
+
+    $.Method({ Static: true, Public: true }, "MemoryBarrier",
+      JSIL.MethodSignature.Void,
+      function thread_MemoryBarrier() {
+      }
+    );
   }
 );
 
