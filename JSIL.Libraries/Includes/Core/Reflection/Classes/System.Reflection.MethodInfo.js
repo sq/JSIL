@@ -143,6 +143,21 @@
       return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
     }
   );
+
+  $.Method({ Static: false, Public: true }, "GetBaseDefinition",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    function getBaseDefinition() {
+      var previous;
+      var current = this;
+
+      do {
+        previous = current;
+        current = current.GetParentDefinition();
+      } while (current !== null)
+
+      return previous;
+    }
+  );
 });
 
 JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
