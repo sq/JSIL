@@ -28,6 +28,13 @@ $jsilcore.MemberInfoExternals = function ($) {
     }
   );
 
+  $.Method({ Static: false, Public: true }, "get_IsPrivate",
+  new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
+  function () {
+    return !this._descriptor.Public;
+  }
+);
+
   $.Method({ Static: false, Public: true }, "get_IsStatic",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
     function () {
