@@ -8153,7 +8153,18 @@ JSIL.ConstructorSignature.prototype.$MakeConstructMethod = function () {
 
   JSIL.RunStaticConstructors(publicInterface, typeObject);
 
-  if (typeObject.__IsNativeType__) {
+  if (typeObject.__FullName__ === "System.String") {
+    closure.constructor = this.$MakeBoundConstructor(
+      argumentNames
+    );
+
+    JSIL.MethodSignature.$EmitInvocation(
+      body, "new constructor", null,
+      "var objString = ", argumentTypes
+    );
+    body.push("return objString.valueOf();");
+  }
+  else if (typeObject.__IsNativeType__) {
     closure.ctor = publicInterface.prototype["_ctor"];
 
     JSIL.MethodSignature.$EmitInvocation(
