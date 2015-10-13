@@ -8,7 +8,14 @@ JSIL.ImplementExternals("System.Enum", function ($) {
     $.Method({ Static: true, Public: true }, "ToObject",
       (new JSIL.MethodSignature($.Object, ["System.Type", $.Int32], [])),
       function ToObject(enumType, value) {
-          return enumType[enumType.__ValueToName__[value]];
+        return enumType.__PublicInterface__[enumType.__ValueToName__[value]];
+      }
+    );
+
+    $.Method({ Static: true, Public: true }, "ToObject",
+      (new JSIL.MethodSignature($.Object, ["System.Type", $.Object], [])),
+      function ToObject(enumType, value) {
+        return enumType.__PublicInterface__[enumType.__ValueToName__[value.valueOf()]];
       }
     );
 
