@@ -136,6 +136,7 @@
     <None Include="SimpleTestCases\Issue844.cs" />
     <None Include="SimpleTestCases\FailsOnMono\ArrayEmpty.cs" />
     <None Include="SimpleTestCases\NumericTypesIConvertible.cs" />
+    <Compile Include="SimpleTestCases\StringAsIConvertible.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

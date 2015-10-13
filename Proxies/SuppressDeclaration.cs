@@ -26,7 +26,9 @@
             typeof (Decimal),
             typeof (IntPtr), typeof (UIntPtr),
             typeof (NumberFormatInfo),
-            typeof (Convert), typeof(DBNull)
+            typeof (Convert), typeof(DBNull),
+            typeof (IConvertible),
+            typeof (string)
         },
         inheritable: false)]
     [JSSuppressTypeDeclaration]
