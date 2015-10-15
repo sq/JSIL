@@ -6170,13 +6170,12 @@ JSIL.GetType = function (value) {
     else if (JSIL.IsTypedArray(value))
       return JSIL.$GetTypeForTypedArray(value);
     else if (JSIL.IsArray(value))
-      return System.Array.__Type__;
+      return System.Array.Of(System.Object).__Type__;
     else
       return System.Object.__Type__;
 
   } else if (type === "string") {
     return System.String.__Type__;
-
   } else if (type === "number") {
     if (value === (value | 0))
       return System.Int32.__Type__;
