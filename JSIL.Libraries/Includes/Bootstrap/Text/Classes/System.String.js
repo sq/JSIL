@@ -271,9 +271,17 @@ JSIL.ImplementExternals(
         }
       }
     );
+
+    $.Method({ Static: false, Public: true }, "get_Length",
+      new JSIL.MethodSignature($.Int32, [], []),
+      function() {
+        return this.length;
+      }
+    );
   }
 );
 
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.Field({ Static: true, Public: true }, "Empty", $.String, "");
+  $.Property({ Public: true, Static: false }, "Length");
 });
