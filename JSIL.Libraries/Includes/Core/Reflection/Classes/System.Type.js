@@ -612,6 +612,13 @@
       }
     );
 
+    $.Method({ Static: true, Public: true }, "get_EmptyTypes",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), []),
+      function get_EmptyTypes() {
+        return JSIL.Array.New($jsilcore.System.Type, 0);
+      }
+    );
+
   }
 );
 
@@ -629,4 +636,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
   $.Property({ Public: true, Static: false }, "IsValueType");
   $.Property({ Public: true, Static: false }, "IsEnum");
   $.Property({ Public: true, Static: false }, "IsClass");
+
+  // HACK - it should really be field.
+  $.Property({ Public: true, Static: true }, "EmptyTypes");
 });
