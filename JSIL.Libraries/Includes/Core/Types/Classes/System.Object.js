@@ -111,25 +111,5 @@
 });
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-    $.ExternalMethod({ Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [], [], $jsilcore)
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "GetType",
-      new JSIL.MethodSignature("System.Type", [], [], $jsilcore)
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "Object.Equals",
-      new JSIL.MethodSignature("System.Boolean", [$.Type], [], $jsilcore)
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "MemberwiseClone",
-      new JSIL.MethodSignature("System.Object", [], [], $jsilcore)
-    );
-
-    $.ExternalMethod({ Static: false, Public: true }, "toString",
-      new JSIL.MethodSignature("System.String", [], [], $jsilcore)
-    );
-
     $jsilcore.SystemObjectInitialized = true;
 });
