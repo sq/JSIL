@@ -96,6 +96,10 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
     $.RawMethod(true, "Of$NoInitialize", of);
     $.RawMethod(true, "Of", of);
+
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.IEnumerable")
+  );
 });
 
 JSIL.ImplementExternals(
