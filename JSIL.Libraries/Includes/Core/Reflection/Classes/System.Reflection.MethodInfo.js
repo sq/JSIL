@@ -123,6 +123,13 @@
     }
   );
 
+  $.Method({ Public: true, Static: false }, "get_IsVirtual",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethod() {
+      return this._descriptor.Virtual;
+    }
+  );
+
   $.Method({ Public: true, Static: false }, "get_IsGenericMethodDefinition",
     new JSIL.MethodSignature($.Type, []),
     function get_IsGenericMethodDefinition() {

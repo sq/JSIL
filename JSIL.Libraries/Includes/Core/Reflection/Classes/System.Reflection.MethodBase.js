@@ -26,6 +26,13 @@
         return this._data.signature.toString(this.Name);
       }
     );
+
+    $.Method({ Public: true, Static: false }, "get_IsConstructor",
+      new JSIL.MethodSignature($.Boolean, []),
+      function get_IsConstructor() {
+        return $jsilcore.System.Reflection.ConstructorInfo.$Is(this) && !this.get_IsStatic();
+      }
+    );
   }
 );
 
