@@ -111,6 +111,7 @@
     <None Include="SimpleTestCases\HashSetSameHash_Issue752.cs" />
     <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
     <Compile Include="SimpleTestCasesForStubbedBcl.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\FailsOnMono\Attributes.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
     <None Include="SimpleTestCases\DelegateOverload_Issue806.cs" />

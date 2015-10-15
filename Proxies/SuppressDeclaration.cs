@@ -23,7 +23,6 @@
             typeof (Single), typeof (Double),
             typeof (Boolean), typeof (Char),
             typeof (Assembly),
-            typeof (Attribute),
             typeof (Decimal),
             typeof (IntPtr), typeof (UIntPtr),
             typeof (NumberFormatInfo)
