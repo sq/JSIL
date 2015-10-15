@@ -128,6 +128,7 @@
     <None Include="SimpleTestCases\Issue743.cs" />
     <None Include="SimpleTestCases\UInt64_Issue855.cs" />
     <None Include="SimpleTestCases\StringFromCtor.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\Stack.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

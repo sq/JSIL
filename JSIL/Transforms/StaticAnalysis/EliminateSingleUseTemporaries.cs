@@ -72,18 +72,6 @@ namespace JSIL.Transforms {
                 }
             }
 
-            // Handle special cases where our interpretation of 'constant' needs to be more flexible
-            {
-                var ie = source as JSIndexerExpression;
-                if (ie != null) {
-                    if (
-                        IsEffectivelyConstant(target, ie.Target) &&
-                        IsEffectivelyConstant(target, ie.Index)
-                    )
-                        return true;
-                }
-            }
-
             {
                 var ae = source as JSArrayExpression;
                 if (
