@@ -62,5 +62,17 @@ $jsilcore.MemberInfoExternals = function ($) {
       throw new Error('Not implemented');
     }
   );
+
+  $.Method({ Public: true, Static: true }, "op_Equality",
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.MemberInfo"), $jsilcore.TypeRef("System.Reflection.MemberInfo")]),
+    JSIL.ObjectEquals
+  );
+
+  $.Method({ Public: true, Static: true }, "op_Inequality",
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.MemberInfo"), $jsilcore.TypeRef("System.Reflection.MemberInfo")]),
+    function (lhs, rhs) {
+      return !JSIL.ObjectEquals(lhs, rhs);
+    }
+  );
 };
 /*? }*/

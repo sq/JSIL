@@ -471,6 +471,20 @@
       }
     );
 
+    $.Method({ Public: true, Static: false }, "GetProperty",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.PropertyInfo"), [
+        $.String,
+        $jsilcore.TypeRef("System.Reflection.BindingFlags"),
+        $jsilcore.TypeRef("System.Reflection.Binder"),
+        $jsilcore.TypeRef("System.Type"),
+        $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]),
+        $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])]),
+      function (name, flags) {
+        //TODO: Implement it.
+        return getSingleFiltered(this, name, flags, "PropertyInfo");
+      }
+    );
+
     $.Method({ Public: true, Static: false }, "get_IsGenericParameter",
       new JSIL.MethodSignature($.Type, []),
       JSIL.TypeObjectPrototype.get_IsGenericParameter
