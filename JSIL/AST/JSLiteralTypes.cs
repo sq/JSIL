@@ -244,6 +244,20 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSDecimalLiteral : JSLiteralBase<Decimal>
+    {
+        public JSDecimalLiteral(decimal value)
+            : base(value)
+        {
+        }
+
+        public override TypeReference GetActualType(TypeSystem typeSystem)
+        {
+            return new TypeReference(typeSystem.Double.Namespace, "Decimal", typeSystem.Double.Module,
+                typeSystem.Double.Scope, true);
+        }
+    }
+
     public class JSNumberLiteral : JSLiteralBase<double> {
         public readonly Type OriginalType;
 
@@ -260,8 +274,6 @@ namespace JSIL.Ast {
                         return typeSystem.Single;
                     case "System.Double":
                         return typeSystem.Double;
-                    case "System.Decimal":
-                        return new TypeReference(typeSystem.Double.Namespace, "Decimal", typeSystem.Double.Module, typeSystem.Double.Scope, true);
                     default:
                         throw new NotImplementedException(String.Format(
                             "Unsupported number literal type: {0}",
