@@ -172,8 +172,8 @@
         return JSIL.GetMembersInternal(
           this,
           defaultFlags(),
-          undefined,
-          undefined,
+          null,
+          null,
           true
         );
       }
@@ -185,8 +185,8 @@
         return JSIL.GetMembersInternal(
           this,
           flags,
-          undefined,
-          undefined,
+          null,
+          null,
           true
         );
       }
@@ -289,7 +289,7 @@
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
           "EventInfo",
-          undefined,
+          null,
           true
         );
       }
@@ -299,14 +299,14 @@
       new JSIL.MethodSignature(eventArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "EventInfo", undefined, true
+          this, flags, "EventInfo", null, true
         );
       }
     );
 
     var getConstructorImpl = function (self, flags, argumentTypes) {
       var constructors = JSIL.GetMembersInternal(
-        self, flags, "ConstructorInfo", undefined, true
+        self, flags, "ConstructorInfo", null, true
       );
 
       JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
@@ -415,7 +415,7 @@
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
           "PropertyInfo",
-          undefined,
+          null,
           true
         );
       }
@@ -425,13 +425,13 @@
       new JSIL.MethodSignature(propertyArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "PropertyInfo", undefined, true
+          this, flags, "PropertyInfo", null, true
         );
       }
     );
 
     var getSingleFiltered = function (self, name, flags, type) {
-      var members = JSIL.GetMembersInternal(self, flags, type, undefined, true);
+      var members = JSIL.GetMembersInternal(self, flags, type, null, true);
       var result = null;
 
       for (var i = 0, l = members.length; i < l; i++) {
