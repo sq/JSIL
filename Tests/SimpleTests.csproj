@@ -130,7 +130,7 @@
     <None Include="SimpleTestCases\UInt64_Issue855.cs" />
     <None Include="SimpleTestCases\StringFromCtor.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Stack.cs" />
-    <None Include="SimpleTestCases\ReflectionTypes.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\ReflectionTypes.cs" />
     <None Include="SimpleTestCases\ReflectionPositionalGenericNames_Issue509.cs" />
     <None Include="SimpleTestCases\ArrayType.cs" />
     <None Include="SimpleTestCases\Issue844.cs" />
