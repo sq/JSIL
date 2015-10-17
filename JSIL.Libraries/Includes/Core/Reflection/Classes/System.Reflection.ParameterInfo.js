@@ -1,23 +1,6 @@
 ﻿JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
-  $.RawMethod(false, "$fromArgumentTypeAndPosition", function (argumentType, position) {
-    this.argumentType = argumentType;
-    this.position = position;
-    this._name = null;
-    this.__Attributes__ = [];
-  });
-
-  $.RawMethod(false, "$populateWithParameterInfo", function (parameterInfo) {
-    this._name = parameterInfo.name || null;
-
-    if (parameterInfo.attributes) {
-      var mb = new JSIL.MemberBuilder(null);
-      parameterInfo.attributes(mb);
-      this.__Attributes__ = mb.attributes;
-    }
-  });
-
   $.Method({ Static: false, Public: true }, "get_Attributes",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ParameterAttributes"), [], []),
     function get_Attributes() {

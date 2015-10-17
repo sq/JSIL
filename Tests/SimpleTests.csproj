@@ -111,6 +111,7 @@
     <None Include="SimpleTestCases\HashSetSameHash_Issue752.cs" />
     <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
     <Compile Include="SimpleTestCasesForStubbedBcl.cs" />
+    <None Include="SimpleTestCasesForTranslatedBcl\FailsOnMono\Attributes.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
     <None Include="SimpleTestCases\DelegateOverload_Issue806.cs" />
@@ -129,6 +130,11 @@
     <None Include="SimpleTestCases\UInt64_Issue855.cs" />
     <None Include="SimpleTestCases\StringFromCtor.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Stack.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\ReflectionTypes.cs" />
+    <None Include="SimpleTestCases\ReflectionPositionalGenericNames_Issue509.cs" />
+    <None Include="SimpleTestCases\ArrayType.cs" />
+    <None Include="SimpleTestCases\Issue844.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\ArrayEmpty.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

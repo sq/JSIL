@@ -191,6 +191,12 @@
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.AssemblyName.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Attribute.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.MemberTypes.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeParameterInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeFieldInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeEventInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimePropertyInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeConstructorInfo.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeMethodInfo.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ParameterInfo.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.RuntimeAssembly.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.EventInfo.js" />

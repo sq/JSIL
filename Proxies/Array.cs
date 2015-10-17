@@ -168,6 +168,30 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("JSIL.Array.New($elementType, $size)")]
+        internal static System.Array UnsafeCreateInstance(Type elementType, Int32 size)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.MultidimensionalArray.New.apply(null, [$elementType].concat($sizes))")]
+        internal static System.Array UnsafeCreateInstance(Type elementType, AnyType[] sizes)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY)")]
+        internal static System.Array UnsafeCreateInstance(Type elementType, AnyType sizeX, AnyType sizeY)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY, $sizeZ)")]
+        internal static System.Array UnsafeCreateInstance(Type elementType, AnyType sizeX, AnyType sizeY, AnyType sizeZ)
+        {
+            throw new InvalidOperationException();
+        }
+
         /*Mono methods*/
         [JSReplacement("$array[$index]")]
         internal static T UnsafeLoad<T>(T[] array, int index)

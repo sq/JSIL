@@ -94,7 +94,7 @@
       if (result)
         return result;
 
-      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.MethodInfo");
+      var parsedTypeName = JSIL.ParseTypeName("System.Reflection.RuntimeMethodInfo");
       var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
       var info = JSIL.CreateInstanceOfType(infoType, null);
       info._typeObject = this._typeObject;
@@ -123,6 +123,13 @@
     }
   );
 
+  $.Method({ Public: true, Static: false }, "get_IsVirtual",
+    new JSIL.MethodSignature($.Type, []),
+    function get_IsGenericMethod() {
+      return this._descriptor.Virtual;
+    }
+  );
+
   $.Method({ Public: true, Static: false }, "get_IsGenericMethodDefinition",
     new JSIL.MethodSignature($.Type, []),
     function get_IsGenericMethodDefinition() {
@@ -134,6 +141,21 @@
     new JSIL.MethodSignature($.Type, []),
     function get_IsGenericMethodDefinition() {
       return this.DeclaringType.get_ContainsGenericParameters() || (this._data.signature.genericArgumentNames.length !== 0 && this._data.signature.genericArgumentValues === undefined);
+    }
+  );
+
+  $.Method({ Static: false, Public: true }, "GetBaseDefinition",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.MethodInfo"), [], [])),
+    function getBaseDefinition() {
+      var previous;
+      var current = this;
+
+      do {
+        previous = current;
+        current = current.GetParentDefinition();
+      } while (current !== null)
+
+      return previous;
     }
   );
 });

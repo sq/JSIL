@@ -142,6 +142,12 @@ namespace JSIL.Proxies.Bcl
     {
     }
 
+    [JSProxy(typeof(SemaphoreSlim), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Threading_SemaphoreSlim
+    {
+    }
+
     [JSProxy(typeof(Comparer<>), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
     [JSStubOnly]
     public class System_Collections_Generic_Comparer_1

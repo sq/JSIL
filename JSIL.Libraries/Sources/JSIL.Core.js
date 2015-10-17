@@ -1572,7 +1572,7 @@ JSIL.GenericParameter.prototype.get_IsGenericParameter = function () {
 };
 
 JSIL.GenericParameter.prototype.get_Name = function () {
-  return this.name.humanReadable;
+  return this.__ShortName__;
 };
 
 JSIL.GenericParameter.prototype.__IsClosed__ = false;
@@ -1580,7 +1580,11 @@ JSIL.GenericParameter.prototype.__IsClosed__ = false;
 
 JSIL.PositionalGenericParameter = function (name, context) {
   this.index = parseInt(name.substr(2));
-  JSIL.SetValueProperty(this, "__TypeId__", name);
+  var realName = name;
+  if (typeof (context) !== "undefined" && typeof (context.genericArgumentNames) !== "undefined") {
+    realName = context.genericArgumentNames[this.index];
+  }
+  JSIL.SetValueProperty(this, "__TypeId__", realName);
   this.__Context__ = context || $jsilcore;
 
   var fullNameDecl = {
@@ -1596,7 +1600,7 @@ JSIL.PositionalGenericParameter = function (name, context) {
 JSIL.PositionalGenericParameter.prototype = Object.create(JSIL.TypeObjectPrototype);
 
 JSIL.PositionalGenericParameter.prototype.getFullName = function () {
-  return "!!" + this.index;
+  return this.__TypeId__;
 };
 
 JSIL.PositionalGenericParameter.prototype.get = function (context) {
@@ -1624,7 +1628,7 @@ JSIL.PositionalGenericParameter.prototype.get_IsGenericParameter = function () {
 };
 
 JSIL.PositionalGenericParameter.prototype.get_Name = function () {
-  return "!!" + this.index;
+  return this.__TypeId__;
 };
 
 JSIL.PositionalGenericParameter.prototype.__IsClosed__ = false;
@@ -6166,13 +6170,12 @@ JSIL.GetType = function (value) {
     else if (JSIL.IsTypedArray(value))
       return JSIL.$GetTypeForTypedArray(value);
     else if (JSIL.IsArray(value))
-      return System.Array.__Type__;
+      return System.Array.Of(System.Object).__Type__;
     else
       return System.Object.__Type__;
 
   } else if (type === "string") {
     return System.String.__Type__;
-
   } else if (type === "number") {
     if (value === (value | 0))
       return System.Int32.__Type__;
@@ -8972,14 +8975,14 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   var makeTypeInstance = function (type) {
     // Construct the appropriate subclass of MemberInfo
-    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
+    var parsedTypeName = JSIL.ParseTypeName("System.Reflection.Runtime" + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
     var info = JSIL.CreateInstanceOfType(infoType, null);
 
     /*
     // Don't trigger type initialization machinery
     // FIXME: This will break if any of the memberinfo types rely on static constructors.
-    var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
+    var infoType = JSIL.GetTypeByName("System.Reflection.Runtime" + type, $jsilcore);
     var info = Object.create(infoType.prototype);
     */
 
@@ -9015,7 +9018,8 @@ JSIL.GetReflectionCache = function (typeObject) {
 // Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
 // If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
 // If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
-JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
+JSIL.GetMembersInternal = function (typeObject, flags, memberType, name, hideMembers) {
+  hideMembers |= false;
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
@@ -9039,61 +9043,115 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, name) {
   if (staticOnly && instanceOnly)
     staticOnly = instanceOnly = false;
 
-  var members = [];
+  var processedProperties = {};
+  var processedEvents = {};
+
+  var shouldProcessProperty= function(property, processed) {
+    if (property._descriptor.Name in processed) {
+      var processedList = processed[property._descriptor.Name];
+      for (var i = 0, l = processedList.length; i < l; i++) {
+        if ($jsilcore.System.Type.op_Equality(processedList[i].get_PropertyType(), property.get_PropertyType())) {
+          var processedParameters = processedList[i].GetIndexParameters();
+          var currentParameters = property.GetIndexParameters();
+          if (processedParameters.length !== currentParameters.length) {
+            continue;
+          }
+          for (var pi = 0, pl = processedParameters.length; pi < pl; pi++) {
+            if ($jsilcore.System.Type.op_Inequality(processedParameters[pi].get_ParameterType(), currentParameters[pi].get_ParameterType())) {
+              continue;
+            }
+          }
+          return false;
+        }
+      }
+      processedList.push(property);
+    } else {
+      processed[property._descriptor.Name] = [property];
+    }
+    return true;
+  }
+  var shouldProcessEvent = function(event, processed) {
+    if (event._descriptor.Name in processed) {
+      return false;
+    } else {
+      processed[event._descriptor.Name] = [event._descriptor.Name];
+    }
+    return true;
+  }
+
   var target = typeObject;
 
+  var baseTypeProcessing = false;
   while (target !== null) {
     var targetMembers = JSIL.GetReflectionCache(target);
     if (targetMembers === null)
       break;
 
-    members = targetMembers.concat(members);
+    for (var i = 0, l = targetMembers.length; i < l; i++) {
+      var member = targetMembers[i];
+
+      // HACK: Reflection never seems to enumerate static constructors. This is probably because
+      //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
+      if (
+        !allMethodsIncludingSpecialNames &&
+          member._descriptor.Static &&
+          member._descriptor.SpecialName &&
+          member._descriptor.Name.indexOf("cctor") >= 0
+      )
+        continue;
+
+      if (publicOnly && !member._descriptor.Public)
+        continue;
+      else if (nonPublicOnly && member._descriptor.Public)
+        continue;
+
+      if (staticOnly && !member._descriptor.Static)
+        continue;
+      else if (instanceOnly && member._descriptor.Static)
+        continue;
+
+      var currentMemberType = member.__MemberType__;
+      if (methodOrConstructor) {
+        if (
+          (currentMemberType !== "MethodInfo") &&
+          (currentMemberType !== "ConstructorInfo")
+        )
+          continue;
+      } else if ((typeof (memberType) === "string") && (memberType !== currentMemberType)) {
+        continue;
+      }
+
+      if ((typeof (name) === "string") && (name !== member._descriptor.Name)) {
+        continue;
+      }
+
+      if (hideMembers) {
+        if (baseTypeProcessing) {
+          if (currentMemberType === "ConstructorInfo")
+            continue;
+
+          // HACK: Do this check only if type system already prepared.
+          if (currentMemberType === "PropertyInfo" && !shouldProcessProperty(member, processedProperties))
+            continue;
+
+          if (currentMemberType === "EventInfo" && !shouldProcessEvent(member, processedEvents))
+            continue;
+        } else {
+          if (currentMemberType === "PropertyInfo")
+            shouldProcessProperty(member, processedProperties);
+          if (currentMemberType === "EventInfo")
+            shouldProcessEvent(member, processedProperties);
+        }
+      }
+
+      result.push(member);
+    }
 
     if (!allowInherited)
       break;
 
+    baseTypeProcessing = true;
     target = target.__BaseType__;
-  }
-
-  for (var i = 0, l = members.length; i < l; i++) {
-    var member = members[i];
-
-    // HACK: Reflection never seems to enumerate static constructors. This is probably because
-    //  it doesn't make any sense to invoke them explicitly anyway, and they don't have arguments...
-    if (
-      !allMethodsIncludingSpecialNames &&
-      member._descriptor.Static && 
-      member._descriptor.SpecialName && 
-      member._descriptor.Name.indexOf("cctor") >= 0
-    )
-      continue;
-
-    if (publicOnly && !member._descriptor.Public)
-      continue;
-    else if (nonPublicOnly && member._descriptor.Public)
-      continue;
-
-    if (staticOnly && !member._descriptor.Static)
-      continue;
-    else if (instanceOnly && member._descriptor.Static)
-      continue;
-
-    var currentMemberType = member.__ThisType__.__ShortName__;  
-    if (methodOrConstructor) {
-      if (
-        (currentMemberType != "MethodInfo") &&
-        (currentMemberType != "ConstructorInfo")
-      )
-        continue;
-    } else if ((typeof (memberType) === "string") && (memberType != currentMemberType)) {
-      continue;
-    }
-
-    if ((typeof (name) === "string") && (name != member._descriptor.Name)) {
-      continue;
-    }
-
-    result.push(member);
   }
 
   return result;
@@ -9664,7 +9722,7 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
       }
 
       return result;
-    } else if (memberType === "System.Reflection.MethodInfo" && memberInfo._descriptor.Virtual) {
+    } else if (memberType === "System.Reflection.RuntimeMethodInfo" && memberInfo._descriptor.Virtual) {
       var currentType = memberInfo.get_DeclaringType();
       while (currentType && currentType.GetType) {
         var foundMethod = JSIL.GetMethodInfo(currentType.__PublicInterface__, memberInfo.get_Name(), memberInfo._data.signature, false, null);

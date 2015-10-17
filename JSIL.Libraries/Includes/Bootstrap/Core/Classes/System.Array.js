@@ -172,4 +172,23 @@ JSIL.ImplementExternals("System.Array", function ($) {
       reverseImpl(array, index, length);
     }
   );
+
+  $.Method({ Static: true, Public: true }, "Empty",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [], ["T"]),
+    function Empty(T) {
+      return $jsilcore.System.Array_EmptyArray$b1.Of(T).Value;
+    }
+  );
+});
+
+
+JSIL.MakeStaticClass("System.Array+EmptyArray`1", false, ["T"], function($) {
+  $.Field({ Static: true, Public: true, ReadOnly: true }, "Value", $jsilcore.TypeRef("System.Array", [$.GenericParameter("T")]));
+
+  $.Method({ Static: true, Public: false }, ".cctor",
+    JSIL.MethodSignature.Void,
+    function EmptyArray$b1__cctor() {
+      this.Value = JSIL.Array.New(this.T, 0);
+    }
+  );
 });

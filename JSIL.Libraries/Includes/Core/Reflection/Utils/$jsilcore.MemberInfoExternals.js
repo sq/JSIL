@@ -28,6 +28,13 @@ $jsilcore.MemberInfoExternals = function ($) {
     }
   );
 
+  $.Method({ Static: false, Public: true }, "get_IsPrivate",
+  new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
+  function () {
+    return !this._descriptor.Public;
+  }
+);
+
   $.Method({ Static: false, Public: true }, "get_IsStatic",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
     function () {
@@ -60,6 +67,18 @@ $jsilcore.MemberInfoExternals = function ($) {
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IList`1", [$jsilcore.TypeRef("System.Reflection.CustomAttributeData")]), [], [])),
     function GetCustomAttributesData() {
       throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({ Public: true, Static: true }, "op_Equality",
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.MemberInfo"), $jsilcore.TypeRef("System.Reflection.MemberInfo")]),
+    JSIL.ObjectEquals
+  );
+
+  $.Method({ Public: true, Static: true }, "op_Inequality",
+    new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.MemberInfo"), $jsilcore.TypeRef("System.Reflection.MemberInfo")]),
+    function (lhs, rhs) {
+      return !JSIL.ObjectEquals(lhs, rhs);
     }
   );
 };

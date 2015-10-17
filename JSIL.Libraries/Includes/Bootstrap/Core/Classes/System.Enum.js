@@ -141,5 +141,12 @@
         return result;
       }
     );
+
+    $.Method({ Static: true, Public: true }, "GetUnderlyingType",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$jsilcore.TypeRef("System.Type")], []),
+      function (enm) {
+        return enm.__StorageType__;
+      }
+    );
   }
 );

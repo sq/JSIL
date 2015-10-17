@@ -5,7 +5,7 @@ JSIL.StringFromCharArray = function (chars, startIndex, length) {
     length = chars.length;
 
   if (arguments.length > 1) {
-    var arr = chars.slice(startIndex, length);
+    var arr = chars.slice(startIndex, startIndex + length);
     return arr.join("");
   } else {
     return chars.join("");

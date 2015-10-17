@@ -14,6 +14,7 @@
             typeof (MemberInfo), typeof (MethodBase),
             typeof (MethodInfo), typeof (FieldInfo),
             typeof (ConstructorInfo), typeof (PropertyInfo), typeof (EventInfo),
+            typeof (ParameterInfo),
             typeof (Array), typeof (Delegate), typeof (MulticastDelegate),
             typeof (Byte), typeof (SByte),
             typeof (UInt16), typeof (Int16),
@@ -22,7 +23,6 @@
             typeof (Single), typeof (Double),
             typeof (Boolean), typeof (Char),
             typeof (Assembly),
-            typeof (Attribute),
             typeof (Decimal),
             typeof (IntPtr), typeof (UIntPtr),
             typeof (NumberFormatInfo)
@@ -37,7 +37,13 @@
         new[]
         {
             "System.Reflection.TypeInfo", "System.RuntimeType",
-            "System.Reflection.RuntimeAssembly"
+            "System.Reflection.RuntimeAssembly",
+            "System.Reflection.RuntimeMethodInfo",
+            "System.Reflection.RuntimeFieldInfo",
+            "System.Reflection.RuntimeConstructorInfo",
+            "System.Reflection.RuntimePropertyInfo",
+            "System.Reflection.RuntimeEventInfo",
+            "System.Reflection.RuntimeParameterInfo",
         },
         inheritable: false)]
     [JSSuppressTypeDeclaration]

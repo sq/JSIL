@@ -171,7 +171,10 @@
       function () {
         return JSIL.GetMembersInternal(
           this,
-          defaultFlags()
+          defaultFlags(),
+          null,
+          null,
+          true
         );
       }
     );
@@ -180,7 +183,11 @@
       new JSIL.MethodSignature(memberArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags
+          this,
+          flags,
+          null,
+          null,
+          true
         );
       }
     );
@@ -281,7 +288,9 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "EventInfo"
+          "EventInfo",
+          null,
+          true
         );
       }
     );
@@ -290,14 +299,14 @@
       new JSIL.MethodSignature(eventArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "EventInfo"
+          this, flags, "EventInfo", null, true
         );
       }
     );
 
     var getConstructorImpl = function (self, flags, argumentTypes) {
       var constructors = JSIL.GetMembersInternal(
-        self, flags, "ConstructorInfo"
+        self, flags, "ConstructorInfo", null, true
       );
 
       JSIL.$FilterMethodsByArgumentTypes(constructors, argumentTypes);
@@ -405,7 +414,9 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "PropertyInfo"
+          "PropertyInfo",
+          null,
+          true
         );
       }
     );
@@ -414,13 +425,13 @@
       new JSIL.MethodSignature(propertyArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "PropertyInfo"
+          this, flags, "PropertyInfo", null, true
         );
       }
     );
 
     var getSingleFiltered = function (self, name, flags, type) {
-      var members = JSIL.GetMembersInternal(self, flags, type);
+      var members = JSIL.GetMembersInternal(self, flags, type, null, true);
       var result = null;
 
       for (var i = 0, l = members.length; i < l; i++) {
@@ -467,6 +478,20 @@
     $.Method({ Public: true, Static: false }, "GetProperty",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.PropertyInfo"), [$.String, $jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (name, flags) {
+        return getSingleFiltered(this, name, flags, "PropertyInfo");
+      }
+    );
+
+    $.Method({ Public: true, Static: false }, "GetProperty",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.PropertyInfo"), [
+        $.String,
+        $jsilcore.TypeRef("System.Reflection.BindingFlags"),
+        $jsilcore.TypeRef("System.Reflection.Binder"),
+        $jsilcore.TypeRef("System.Type"),
+        $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]),
+        $jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Reflection.ParameterModifier")])]),
+      function (name, flags) {
+        //TODO: Implement it.
         return getSingleFiltered(this, name, flags, "PropertyInfo");
       }
     );
@@ -587,6 +612,13 @@
       }
     );
 
+    $.Method({ Static: true, Public: true }, "get_EmptyTypes",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), []),
+      function get_EmptyTypes() {
+        return JSIL.Array.New($jsilcore.System.Type, 0);
+      }
+    );
+
   }
 );
 
@@ -604,4 +636,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
   $.Property({ Public: true, Static: false }, "IsValueType");
   $.Property({ Public: true, Static: false }, "IsEnum");
   $.Property({ Public: true, Static: false }, "IsClass");
+
+  // HACK - it should really be field.
+  $.Property({ Public: true, Static: true }, "EmptyTypes");
 });

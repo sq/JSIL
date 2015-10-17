@@ -65,6 +65,13 @@
     }
   );
 
+  $.Method({ Static: true, Public: true }, "Load",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.Assembly"), [$.String], [])),
+    function Load(assemblyName) {
+      return JSIL.GetAssembly(assemblyName).__Assembly__;
+    }
+  );
+
   $.Method({ Static: false, Public: true }, "GetType",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [
           $.String, $.Boolean,
