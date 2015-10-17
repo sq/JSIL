@@ -494,8 +494,8 @@ namespace JSIL.Ast {
             return new JSNumberLiteral(value, typeof(double));
         }
 
-        public static JSNumberLiteral New (decimal value) {
-            return new JSNumberLiteral((double)value, typeof(decimal));
+        public static JSDecimalLiteral New (decimal value) {
+            return new JSDecimalLiteral(value);
         }
 
         public static JSDefaultValueLiteral DefaultValue (TypeReference type) {

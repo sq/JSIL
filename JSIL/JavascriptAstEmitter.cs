@@ -992,6 +992,11 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode(JSDecimalLiteral number)
+        {
+            VisitNode(new JSNewExpression(number.GetActualType(TypeSystem), null, null, JSLiteral.New((double) number.Value)));
+        }
+
         public void VisitNode (JSBooleanLiteral b) {
             Output.Value(b.Value);
         }
