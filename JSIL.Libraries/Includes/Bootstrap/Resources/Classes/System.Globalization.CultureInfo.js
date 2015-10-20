@@ -125,5 +125,8 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
 });
 
 JSIL.MakeClass("System.Object", "System.Globalization.CultureInfo", true, [], function ($) {
+  $.ExternalMethod({ Static: false, Public: true, Virtual: true }, "GetFormat", (new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], [])));
   $.Field({ Public: false, Static: false }, "numInfo", $jsilcore.TypeRef("System.Globalization.NumberFormatInfo"));
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IFormatProvider"));
 })
