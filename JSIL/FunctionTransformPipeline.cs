@@ -218,8 +218,6 @@ namespace JSIL.Internal {
 
             Enqueue(HandleBooleanAsInteger);
 
-            Enqueue(IntroduceCharCasts);
-
             Enqueue(IntroduceEnumCasts);
 
             Enqueue(ExpandCastExpressions);
@@ -396,16 +394,6 @@ namespace JSIL.Internal {
             if (Configuration.CodeGenerator.IntroduceEnumCasts.GetValueOrDefault(true)) {
                 new IntroduceEnumCasts(
                     TypeSystem, SpecialIdentifiers.JS, TypeInfoProvider, MethodTypes, FunctionSource
-                ).Visit(Function);
-            }
-
-            return true;
-        }
-
-        private bool IntroduceCharCasts () {
-            if (Configuration.CodeGenerator.IntroduceCharCasts.GetValueOrDefault(true)) {
-                new IntroduceCharCasts(
-                    TypeSystem, SpecialIdentifiers.JS
                 ).Visit(Function);
             }
 

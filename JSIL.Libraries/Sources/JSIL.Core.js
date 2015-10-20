@@ -9225,9 +9225,7 @@ JSIL.ApplyCollectionInitializer = function (target, values) {
 
 JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
   var fullName = typeObject.__FullName__;
-  if (fullName === "System.Char") {
-    return "\0";
-  } else if (fullName === "System.Boolean") {
+  if (fullName === "System.Boolean") {
     return false;
   } else if (typeObject.__IsReferenceType__) {
     return null;
@@ -9604,7 +9602,7 @@ JSIL.StringToCharArray = function (text) {
   var result = JSIL.Array.New(System.Char, text.length);
 
   for (var i = 0, l = text.length; i < l; i++)
-    result[i] = text[i];
+    result[i] = text.charCodeAt(i);
 
   return result;
 };
@@ -10734,14 +10732,15 @@ JSIL.$FormatStringImpl = function (format, values) {
 
     if (alignment || valueFormat) {
       return JSIL.NumberToFormattedString(value.valueOf(), alignment, valueFormat);
-
     } else {
-
-      if (JSIL.GetType(value) === $jsilcore.System.Boolean.__Type__) {
+      var type = JSIL.GetType(value);
+      if (type === $jsilcore.System.Boolean.__Type__) {
         if (value.valueOf())
           return "True";
         else
           return "False";
+      } else if (type === $jsilcore.System.Char.__Type__) {
+        return String.fromCharCode(value.valueOf());
       } else if (value === null) {
         return "";
       } else {

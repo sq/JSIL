@@ -12,30 +12,33 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class CharProxy {
-        [JSReplacement("$c.toLowerCase()")]
+        [JSReplacement("String.fromCharCode($c).toLowerCase().charCodeAt(0)")]
         [JSIsPure]
         public static char ToLower (char c) {
             throw new InvalidOperationException();
         }
 
         // FIXME: Are ECMAScript strings always normalized?
-        [JSReplacement("$c.toLowerCase()")]
+        [JSReplacement("String.fromCharCode($c).toLowerCase().charCodeAt(0)")]
         [JSIsPure]
         public static char ToLowerInvariant (char c) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$c.toUpperCase()")]
+        [JSReplacement("String.fromCharCode($c).toUpperCase().charCodeAt(0)")]
         [JSIsPure]
         public static char ToUpper (char c) {
             throw new InvalidOperationException();
         }
 
         // FIXME: Are ECMAScript strings always normalized?
-        [JSReplacement("$c.toUpperCase()")]
+        [JSReplacement("String.fromCharCode($c).toUpperCase().charCodeAt(0)")]
         [JSIsPure]
         public static char ToUpperInvariant (char c) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("String.fromCharCode($this)")]
+        new abstract public string ToString();
     }
 }

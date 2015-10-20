@@ -10,6 +10,8 @@ JSIL.ConcatString = function (/* ...values */) {
       ;
     else if (typeof (arg) === "string")
       result += arg;
+    else if ($jsilcore.System.Char.$Is(arg))
+      result += String.fromCharCode(arg.valueOf());
     else
       result += String(arg);
   }

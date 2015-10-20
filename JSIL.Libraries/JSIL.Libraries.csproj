@@ -36,6 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Includes\Bootstrap\Core\Classes\JSIL.StringEnumerator.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.MakeIConvertibleMethods.js" />
     <Content Include="Includes\Bootstrap\Core\Interfaces\System.IConvertible.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />

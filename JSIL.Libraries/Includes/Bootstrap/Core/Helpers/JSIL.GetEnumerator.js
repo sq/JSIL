@@ -15,6 +15,21 @@ JSIL.MakeArrayEnumerator = function (array, elementType) {
   return new tArrayEnumerator(array, -1);
 };
 
+JSIL.MakeStringEnumerator = function (array, elementType) {
+  var tArrayEnumerator;
+
+  if (!elementType) {
+    if ($jsilcore.$tArrayEnumerator === null)
+      $jsilcore.$tArrayEnumerator = JSIL.StringEnumerator.Of(System.Object);
+
+    tArrayEnumerator = $jsilcore.$tArrayEnumerator;
+  } else {
+    tArrayEnumerator = JSIL.StringEnumerator.Of(elementType);
+  }
+
+  return new tArrayEnumerator(array, -1);
+};
+
 JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     JSIL.RuntimeError("Enumerable is null or undefined");
@@ -33,7 +48,7 @@ JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   else if (enumerable.__IsArray__)
     result = JSIL.MakeArrayEnumerator(enumerable.Items, elementType);
   else if (typeof (enumerable) === "string")
-    result = JSIL.MakeArrayEnumerator(enumerable, elementType);
+    result = JSIL.MakeStringEnumerator(enumerable, elementType);
   else if ((fallbackMethodInvoke !== true) && tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
     result = tIEnumerable$b1.GetEnumerator.Call(enumerable);
   else if ((fallbackMethodInvoke !== true) && tIEnumerable.$Is(enumerable))

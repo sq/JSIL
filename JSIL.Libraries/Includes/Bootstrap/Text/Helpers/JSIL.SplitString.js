@@ -5,22 +5,22 @@ JSIL.SplitString = function (str, separators, options) {
   if (!separators) {
     // Whitespace characters from Unicode 6.0
     separators = [
-      "\u0009", "\u000A", "\u000B", "\u000C", "\u000D", "\u0020", "\u0085", "\u00A0",
-      "\u1680", "\u180E", "\u2000", "\u2001", "\u2002", "\u2003", "\u2004", "\u2005",
-      "\u2006", "\u2007", "\u2008", "\u2009", "\u200A", "\u2028", "\u2029", "\u202F",
-      "\u205F", "\u3000"
+      0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x0020, 0x0085, 0x00A0,
+      0x1680, 0x180E, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
+      0x2006, 0x2007, 0x2008, 0x2009, 0x200A, 0x2028, 0x2029, 0x202F,
+      0x205F, 0x3000
     ];
   }
 
   if (separators.length === 1) {
-    return str.split(separators[0]);
+    return str.split(String.fromCharCode(separators[0]));
   } else {
     var regexText = "";
     for (var i = 0; i < separators.length; i++) {
       if (i > 0)
         regexText += "|"
 
-      regexText += JSIL.EscapeJSRegex(separators[i]);
+      regexText += JSIL.EscapeJSRegex(String.fromCharCode(separators[i]));
     }
     var regex = new RegExp(regexText, "g");
 

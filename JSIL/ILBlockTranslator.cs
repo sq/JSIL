@@ -3022,12 +3022,7 @@ namespace JSIL {
             var valueType = value.GetActualType(TypeSystem);
 
             if (
-                !TypeUtil.TypesAreAssignable(TypeInfo, targetType, valueType) ||
-                // HACK: Compensate for char not being assignable to int
-                (
-                    (targetType.FullName == "System.Char") ||
-                    (valueType.FullName == "System.Char")
-                )
+                !TypeUtil.TypesAreAssignable(TypeInfo, targetType, valueType)
             )
                 value = Translate_Conv(value, targetType);
 

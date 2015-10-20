@@ -43,20 +43,6 @@ namespace JSIL.Transforms {
                 VisitReplacement(replacement);
                 return;
             } else if (
-                TypeUtil.IsIntegralOrEnum(currentType) &&
-                (targetType.MetadataType == MetadataType.Char)
-            ) {
-                newExpression = JSInvocationExpression.InvokeStatic(
-                    JS.fromCharCode, new[] { ce.Expression }, true
-                );
-            } else if (
-                (currentType.MetadataType == MetadataType.Char) &&
-                TypeUtil.IsIntegral(targetType)
-            ) {
-                newExpression = JSInvocationExpression.InvokeMethod(
-                    JS.charCodeAt, ce.Expression, new[] { JSLiteral.New(0) }, true
-                );
-            } else if (
                 IntroduceEnumCasts.IsEnumOrNullableEnum(currentType)
             ) {
                 TypeInfo enumInfo;

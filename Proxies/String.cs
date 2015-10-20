@@ -73,7 +73,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$lhs + $ch")]
+        [JSReplacement("$lhs + String.fromCharCode($ch)")]
         [JSIsPure]
         public static string Concat (string lhs, char ch) {
             throw new InvalidOperationException();
@@ -104,7 +104,7 @@ namespace JSIL.Proxies {
         [JSNeverReplace]
         abstract public int Length { get; }
 
-        [JSReplacement("$this[$index]")]
+        [JSReplacement("$this.charCodeAt($index)")]
         [JSIsPure]
         abstract public char get_Chars (int index);
 
@@ -183,13 +183,13 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$this.indexOf($value)")]
+        [JSReplacement("$this.indexOf(String.fromCharCode($value))")]
         [JSIsPure]
         public int IndexOf (char value) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$this.indexOf($value, $startIndex)")]
+        [JSReplacement("$this.indexOf(String.fromCharCode($value), $startIndex)")]
         [JSIsPure]
         public int IndexOf (char value, int startIndex) {
             throw new InvalidOperationException();
@@ -207,7 +207,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$this.lastIndexOf($value)")]
+        [JSReplacement("$this.lastIndexOf(String.fromCharCode($value))")]
         [JSIsPure]
         public int LastIndexOf (char value) {
             throw new InvalidOperationException();
@@ -271,7 +271,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("System.String.Replace($this, $oldChar, $newChar)")]
+        [JSReplacement("System.String.Replace($this, String.fromCharCode($oldChar), String.fromCharCode($newChar))")]
         [JSIsPure]
         public string Replace (char oldChar, char newChar) {
             throw new InvalidOperationException();
@@ -288,13 +288,13 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("System.String.PadLeft($this, $length, ' ')")]
+        [JSReplacement("System.String.PadLeft($this, $length, 32)")]
         [JSIsPure]
         public string PadLeft (int length) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("System.String.PadRight($this, $length, ' ')")]
+        [JSReplacement("System.String.PadRight($this, $length, 32)")]
         [JSIsPure]
         public string PadRight (int length) {
             throw new InvalidOperationException();
