@@ -278,6 +278,13 @@ JSIL.ImplementExternals(
         return this.length;
       }
     );
+
+    $.Method({ Static: true, Public: false }, "UseRandomizedHashing",
+      new JSIL.MethodSignature($.Boolean, [], []),
+      function() {
+        return false;
+      }
+    );
   }
 );
 
