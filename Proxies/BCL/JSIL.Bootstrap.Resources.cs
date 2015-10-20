@@ -47,6 +47,13 @@ namespace JSIL.Proxies.Bcl
             throw new NotImplementedException();
         }
 
+        [JSExternal]
+        public virtual object GetFormat(Type formatType)
+        {
+            throw new NotImplementedException();
+        }
+
+
         public string Name
         {
             [JSExternal]
