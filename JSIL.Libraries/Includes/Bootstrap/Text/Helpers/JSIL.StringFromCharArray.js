@@ -6,8 +6,8 @@ JSIL.StringFromCharArray = function (chars, startIndex, length) {
   if (arguments.length < 3)
     length = chars.length;
 
-  for (var i = startIndex; i < length - startIndex; i++) {
-    result += String.fromCharCode(chars[i]);
+  for (var i = 0; i < length; i++) {
+    result += String.fromCharCode(chars[startIndex + i]);
   }
 
   return result;
