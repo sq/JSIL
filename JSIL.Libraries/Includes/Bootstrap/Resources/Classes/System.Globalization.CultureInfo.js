@@ -113,10 +113,10 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
   $.Method({ Static: false, Public: true, Virtual: true }, "GetFormat",
     (new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], [])),
     function CultureInfo_GetFormat(formatType) {
-      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.NumberFormatInfo)) {
+      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.NumberFormatInfo.__Type__)) {
         return this.get_NumberFormat();
       }
-      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.DateTimeFormatInfo)) {
+      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.DateTimeFormatInfo.__Type__)) {
         return this.get_DateTimeFormat();
       }
       return null;
