@@ -10,7 +10,7 @@ JSIL.ConcatString = function (/* ...values */) {
       ;
     else if (typeof (arg) === "string")
       result += arg;
-    else if ($jsilcore.System.Char.$Is(arg))
+    else if ($jsilcore.JSIL.Box.IsBoxedOfType(arg, $jsilcore.System.Char))
       result += String.fromCharCode(arg.valueOf());
     else
       result += String(arg);
