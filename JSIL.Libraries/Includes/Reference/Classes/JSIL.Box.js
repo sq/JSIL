@@ -49,7 +49,7 @@
 
   $.RawMethod(true, "IsBoxedOfType",
     function isBoxedOfType(value, type) {
-      return value !== null && value !== undefined && value.__IsBox__ && value.TValue.__TypeId__ === type.__TypeId__;
+      return value !== null && value !== undefined && (value.__IsBox__ || false) && value.TValue.__TypeId__ === type.__TypeId__;
     }
   );
 
