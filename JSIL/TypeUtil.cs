@@ -142,6 +142,7 @@ namespace JSIL {
             type = DereferenceType(type);
 
             switch (type.MetadataType) {
+                case MetadataType.Char:
                 case MetadataType.Byte:
                 case MetadataType.SByte:
                 case MetadataType.Double:
@@ -180,6 +181,7 @@ namespace JSIL {
                 case MetadataType.UInt32:
                 case MetadataType.UInt64:
                 case MetadataType.UIntPtr:
+                case MetadataType.Char:
                     return false;
 
                 default: {
@@ -196,6 +198,7 @@ namespace JSIL {
             type = DereferenceType(type);
 
             switch (type.MetadataType) {
+                case MetadataType.Char:
                 case MetadataType.Byte:
                 case MetadataType.SByte:
                 case MetadataType.Int16:
@@ -224,6 +227,7 @@ namespace JSIL {
                 case MetadataType.Int16:
                 case MetadataType.UInt32:
                 case MetadataType.Int32:
+                case MetadataType.Char:
                     return true;
                 default:
                     return IsNativeInteger(type);
@@ -243,6 +247,7 @@ namespace JSIL {
 
                 case MetadataType.UInt16:
                 case MetadataType.Int16:
+                case MetadataType.Char:
                     return 2;
 
                 case MetadataType.UInt32:

@@ -231,7 +231,7 @@ namespace JSIL.Transforms {
             if (targetType == TypeSystem.Byte || targetType == TypeSystem.SByte)
                 mask = 0xff;
 
-            if (targetType == TypeSystem.Int16 || targetType == TypeSystem.UInt16)
+            if (targetType == TypeSystem.Int16 || targetType == TypeSystem.UInt16 || targetType == TypeSystem.Char)
                 mask = 0xffff;
 
             if (targetType == TypeSystem.Int32 || targetType == TypeSystem.UInt32)
@@ -240,7 +240,8 @@ namespace JSIL.Transforms {
             var signed = 
                 targetType == TypeSystem.SByte || 
                 targetType == TypeSystem.Int16 || 
-                targetType == TypeSystem.Int32;
+                targetType == TypeSystem.Int32 ||
+                targetType == TypeSystem.Char;
 
             return new[] {
                 new JSNumberLiteral(mask ?? -1, typeof(double)) as JSExpression,
