@@ -7,13 +7,19 @@ For live demos and code samples, [visit the website](http://jsil.org).
 
 For help on getting started using JSILc, see [the wiki](https://github.com/sq/JSIL/wiki).
 
+JSIL is currently in partial maintenance mode (due to time constraints on the maintainer's part), but bug reports and questions are still actively responded to. Pull requests still welcome!
+
 License
 =======
 
-Copyright 2011 K. Gadd  
+Copyright 2011 K. Gadd
+
+Additional contributions by Igor Kiselev and assorted community members.
+
 License: MIT/X11
 
-Replay/Record support & emscripten integration sponsored by Mozilla Corporation
+Replay/Record support & Emscripten integration sponsored by Mozilla Corporation
+
 License: MIT/X11
 
 Acknowledgements
@@ -35,7 +41,13 @@ The Upstream folder also contains:
  * A specific version of the NUnit.Framework assembly, used by the automated tests. This ensures that they compile correctly regardless of which version of NUnit you have installed.
  * Win32 build of PNGQuant for optimizing PNG files. (Jef Poskanzer, Greg Roelofs)
  * Mono ILASM for CIL tests execution
+
+The following NuGet packages are used:
+ * Grunt
+ * Node
+ * NPM
+ * NUnit
+ * NUnit Test Adapter
+ * FSharp CodeDom
  
 Logo by [John Flynn](http://www.bryneshrimp.com).
- 
-Assorted code and test case contributions by the various contributors on the GitHub project page - already too many to list here.
