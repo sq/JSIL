@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPTPATH=`realpath "$BASH_SOURCE"`
+SCRIPTPATH=`readlink -f "$BASH_SOURCE"`
 JSILDIR=`dirname $SCRIPTPATH`
 MONODIR=$JSILDIR/mono
 
@@ -14,7 +14,7 @@ curl -sS "http://download.mono-project.com/sources/mono/mono-4.0.4.1.tar.bz2" -o
 echo // Unpacking
 tar -xf mono.tar.bz2
 
-MONOSOURCEDIR=`realpath ./mono-*`
+MONOSOURCEDIR=`readlink -f ./mono-*`
 pushd $MONOSOURCEDIR
 
 echo // Configuring

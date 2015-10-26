@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPTPATH=`realpath "$BASH_SOURCE"`
+SCRIPTPATH=`readlink -f "$BASH_SOURCE"`
 JSILDIR=`dirname $SCRIPTPATH`
 
 pushd $JSILDIR

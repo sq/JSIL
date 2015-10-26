@@ -1,13 +1,13 @@
 #!/bin/bash
 
-SCRIPTPATH=`realpath "$BASH_SOURCE"`
+SCRIPTPATH=`readlink -f "$BASH_SOURCE"`
 JSILDIR=`dirname $SCRIPTPATH`
 MONODIR=$JSILDIR/mono
 
 pushd $MONODIR
 
-MONOSOURCEDIR=`realpath ./mono-*`
-MONO_PREFIX=`realpath $MONOSOURCEDIR/build`
+MONOSOURCEDIR=`readlink -f ./mono-*`
+MONO_PREFIX=`readlink -f $MONOSOURCEDIR/build`
 
 popd
 
