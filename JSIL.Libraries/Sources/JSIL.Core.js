@@ -9483,7 +9483,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
         } else if (!methodPointerInfo.IsVirtual) {
           method = function () { return methodPointerInfo.Signature.Call.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject.prototype, methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
         } else if (!methodPointerInfo.TypeObject.__Type__.IsInterface) {
-          method = function () { methodPointerInfo.Signature.CallVirtual.apply(methodPointerInfo.Signature, [methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
+          method = function () { return methodPointerInfo.Signature.CallVirtual.apply(methodPointerInfo.Signature, [methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
         } else {
           method = function () { return methodPointerInfo.Signature.CallVirtual.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject[methodPointerInfo.NameWithGenericSuffix], methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
         }
