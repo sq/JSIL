@@ -9456,7 +9456,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
 
     JSIL.SetValueProperty(staticClassObject, "CheckType", $jsilcore.CheckDelegateType.bind(typeObject));
 
-    JSIL.SetValueProperty(staticClassObject, "New", function (object, method, methodInfoResolver) {
+    JSIL.SetValueProperty(staticClassObject, "New", function (object, method, methodPointerInfo) {
       if ((typeof (method) === "undefined") &&
           (typeof (object) === "function")
       ) {
@@ -9467,6 +9467,26 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
           return method;
         else
           JSIL.RuntimeError("Single delegate argument passed to Delegate.New, but types don't match");
+      }
+
+      if (method === null && methodPointerInfo instanceof JSIL.MethodPointerInfo) {
+        if (methodPointerInfo.IsStatic) {
+          if (object === null) {
+            method = function() {
+              return methodPointerInfo.Signature.CallStatic.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject, methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters].concat(Array.prototype.slice.call(arguments)));
+            }
+          } else {
+            method = function() {
+              return methodPointerInfo.Signature.CallStatic.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject, methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments)));
+            }
+          }
+        } else if (!methodPointerInfo.IsVirtual) {
+          method = function () { return methodPointerInfo.Signature.Call.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject.prototype, methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
+        } else if (!methodPointerInfo.TypeObject.__Type__.IsInterface) {
+          method = function () { methodPointerInfo.Signature.CallVirtual.apply(methodPointerInfo.Signature, [methodPointerInfo.NameWithGenericSuffix, methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
+        } else {
+          method = function () { return methodPointerInfo.Signature.CallVirtual.apply(methodPointerInfo.Signature, [methodPointerInfo.TypeObject[methodPointerInfo.NameWithGenericSuffix], methodPointerInfo.MethodGenericParameters, object].concat(Array.prototype.slice.call(arguments))); };
+        }
       }
 
       if (typeof (method) !== "function") {
@@ -9487,7 +9507,10 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
       JSIL.SetValueProperty(resultDelegate, "Invoke", method);
       JSIL.SetValueProperty(resultDelegate, "get_Method", this.__Type__.__PublicInterface__.prototype.get_Method);
-      JSIL.SetValueProperty(resultDelegate, "__methodInfoResolver__", methodInfoResolver);
+      JSIL.SetValueProperty(resultDelegate, "__methodInfoResolver__",
+        methodPointerInfo instanceof JSIL.MethodPointerInfo
+        ? function() { return methodPointerInfo.resolveMethodInfo() }
+        : methodPointerInfo);
 
       // FIXME: Move these off the object to reduce cost of constructing delegates
       JSIL.SetValueProperty(resultDelegate, "$pin", pinImpl);
@@ -10733,3 +10756,20 @@ JSIL.Array.IndexOf = function (array, startIndex, count, value) {
 
   return -1;
 };
+
+JSIL.MethodPointerInfo = function(typeObject, name, signature, isStatic, isVirtual, methodGenericParameters) {
+  this.TypeObject = typeObject;
+  this.Name = name;
+  this.Signature = signature;
+  this.IsStatic = isStatic;
+  this.MethodGenericParameters = methodGenericParameters || null;
+  this.IsVirtual = isVirtual;
+
+  var useGenericSuffix = this.MethodGenericParameters !== null && this.MethodGenericParameters.length > 0;
+
+  this.NameWithGenericSuffix = useGenericSuffix ? (name + "$b" + this.MethodGenericParameters.length) : name;
+}
+
+JSIL.MethodPointerInfo.prototype.resolveMethodInfo = function () {
+  return JSIL.GetMethodInfo(this.TypeObject, this.Name, this.Signature, this.IsStatic, this.MethodGenericParameters);
+}

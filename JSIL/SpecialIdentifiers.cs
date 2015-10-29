@@ -122,34 +122,22 @@ namespace JSIL {
                 // Not sure if it is possible.
                 invocationExpressionArguments = new[] {thisReference, targetMethod};
             }
-            else {
+            else
+            {
+                var useRuntimeDispatch = jsMethod.Method != null &&
+                                         jsMethod.Method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
                 var jsMethodAccess = targetMethod as JSMethodAccess;
-                var arguments = jsMethod == null
-                    ? null
-                    : jsMethod.Reference.Parameters.Select(
-                            (parameter, index) => (JSExpression) new JSRawOutputIdentifier(parameter.ParameterType, "arguments[{0}]", index))
-                        .ToArray();
 
-                bool isFromDelegate = jsMethod.Reference.Name == "Invoke" && TypeUtil.IsDelegateType(jsMethod.Reference.DeclaringType);
-
-                JSExpression methodInvocation;
-                if (isFromDelegate) {
-                    methodInvocation = targetMethod;
-                }
-                else if (jsMethod.Method.IsStatic) {
-                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeStatic(jsMethod.Reference.DeclaringType, jsMethod, arguments));
-                }
-                else if (jsMethodAccess == null || jsMethodAccess.IsVirtual) {
-                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeMethod(jsMethod.Reference.DeclaringType, jsMethod, thisReference, arguments));
-                }
-                else {
-                    methodInvocation = new JSDeferredExpression(JSInvocationExpression.InvokeBaseMethod(jsMethod.Reference.DeclaringType, jsMethod, thisReference, arguments));
-                }
-
-                invocationExpressionArguments = new[] {
+                invocationExpressionArguments = new[]
+                {
                     thisReference,
-                    methodInvocation,
-                    new JSDeferredExpression(new JSMethodOfExpression(jsMethod.Reference, jsMethod.Method, jsMethod.MethodTypes, jsMethod.GenericArguments))
+                    useRuntimeDispatch ? targetMethod : new JSNullLiteral(TypeSystem.Object), 
+                    new JSMethodPointerInfoExpression(
+                        jsMethod.Reference,
+                        jsMethod.Method,
+                        jsMethod.MethodTypes,
+                        jsMethodAccess != null && jsMethodAccess.IsVirtual,
+                        jsMethod.GenericArguments),
                 };
             }
 
