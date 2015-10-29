@@ -9493,10 +9493,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
       JSIL.SetValueProperty(resultDelegate, "__isMulticast__", false);
       JSIL.SetValueProperty(resultDelegate, "Invoke", method);
       JSIL.SetValueProperty(resultDelegate, "get_Method", this.__Type__.__PublicInterface__.prototype.get_Method);
-      JSIL.SetValueProperty(resultDelegate, "__methodInfoResolver__",
-        methodPointerInfo instanceof JSIL.MethodPointerInfo
-        ? function() { return methodPointerInfo.resolveMethodInfo() }
-        : methodPointerInfo);
+      JSIL.SetValueProperty(resultDelegate, "__methodPointerInfo__", methodPointerInfo);
 
       // FIXME: Move these off the object to reduce cost of constructing delegates
       JSIL.SetValueProperty(resultDelegate, "$pin", pinImpl);
@@ -10672,8 +10669,9 @@ JSIL.GetMethodInfo = function(typeObject, name, signature, isStatic, methodGener
     if (method._data.signature.Hash == signature.Hash){
       if (JSIL.IsArray(methodGenericParameters)) {
         var genericParameterTypes = [];
-        for (var i = 0, l = methodGenericParameters.length; i < l; i++) {
-          genericParameterTypes.push(methodGenericParameters[i].get().__Type__);
+        for (var k = 0, m = methodGenericParameters.length; k < m; k++) {
+          var arg = methodGenericParameters[k];
+          genericParameterTypes.push(arg instanceof JSIL.TypeRef ? arg.get().__Type__ : arg);
         }
         return method.MakeGenericMethod(genericParameterTypes);
       }
@@ -10750,38 +10748,67 @@ JSIL.MethodPointerInfo = function(typeObject, name, signature, isStatic, isVirtu
   this.IsStatic = isStatic;
   this.MethodGenericParameters = methodGenericParameters || null;
   this.IsVirtual = isVirtual;
+  this.MethodInfoResolved = false;
+  this.MethodInfo = null;
 
   var useGenericSuffix = this.MethodGenericParameters !== null && this.MethodGenericParameters.length > 0;
 
   this.NameWithGenericSuffix = useGenericSuffix ? (name + "$b" + this.MethodGenericParameters.length) : name;
 }
 
+JSIL.MethodInfoMethodPointerInfo = function(methodInfo) {
+  var signature = methodInfo._data.signature;
+  var genericArgs = null;
+  if (signature.openSignature !== null) {
+    genericArgs = signature.genericArgumentValues;
+    signature = signature.openSignature;
+  }
+
+  JSIL.MethodPointerInfo.call(this,
+    methodInfo._typeObject.__PublicInterface__,
+    methodInfo._descriptor.Name,
+    signature,
+    methodInfo._descriptor.Static,
+    methodInfo._descriptor.Virtual,
+    genericArgs);
+
+  this.MethodInfo = methodInfo;
+  this.MethodInfoResolved = true;
+}
+
+JSIL.MethodInfoMethodPointerInfo.prototype = JSIL.MethodPointerInfo.prototype;
+
 JSIL.MethodPointerInfo.prototype.resolveMethodInfo = function () {
-  return JSIL.GetMethodInfo(this.TypeObject, this.Name, this.Signature, this.IsStatic, this.MethodGenericParameters);
+  if (!this.MethodInfoResolved) {
+    this.MethodInfoResolved = true;
+    this.MethodInfo = JSIL.GetMethodInfo(this.TypeObject, this.Name, this.Signature, this.IsStatic, this.MethodGenericParameters);
+  }
+
+  return this.MethodInfo;
 }
 
 JSIL.MethodPointerInfo.prototype.createInvocationFunction = function(thisObject) {
   var argsCount = JSIL.IsArray(this.Signature.argumentTypes) ? this.Signature.argumentTypes.length : 0;
 
   if (thisObject === null) {
-    if (this.IsStatic) {
+    if (this.TypeObject.__Type__.IsInterface) {
+      return JSIL.MethodPointerInfo.$createVirtualInterfaceInvocation(argsCount, false)(this);
+    } else if (this.IsStatic) {
       return JSIL.MethodPointerInfo.$createStaticInvocation(argsCount, false)(this);
     } else if (!this.IsVirtual) {
       return JSIL.MethodPointerInfo.$createInstanceInvocation(argsCount, false)(this);
     } else if (!this.TypeObject.__Type__.IsInterface) {
       return JSIL.MethodPointerInfo.$createVirtualInvocation(argsCount, false)(this);
-    } else {
-      return JSIL.MethodPointerInfo.$createVirtualInterfaceInvocation(argsCount, false)(this);
     }
   } else {
-    if (this.IsStatic) {
+    if (this.TypeObject.__Type__.IsInterface) {
+      return JSIL.MethodPointerInfo.$createVirtualInterfaceInvocation(argsCount, true)(this, thisObject);
+    } else if (this.IsStatic) {
       return JSIL.MethodPointerInfo.$createStaticInvocation(argsCount, true)(this, thisObject);
     } else if (!this.IsVirtual) {
       return JSIL.MethodPointerInfo.$createInstanceInvocation(argsCount, true)(this, thisObject);
     } else if (!this.TypeObject.__Type__.IsInterface) {
       return JSIL.MethodPointerInfo.$createVirtualInvocation(argsCount, true)(this, thisObject);
-    } else {
-      return JSIL.MethodPointerInfo.$createVirtualInterfaceInvocation(argsCount, true)(this, thisObject);
     }
   }
 }

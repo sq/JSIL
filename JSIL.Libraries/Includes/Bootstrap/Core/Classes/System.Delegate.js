@@ -109,35 +109,7 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       if (typeof (delegatePublicInterface.New) !== "function")
         JSIL.Host.abort(new Error("Invalid delegate type"));
 
-      if (!method.IsStatic && firstArgument == null && delegateType.GetMethod("Invoke").GetParameters().length == method.GetParameters().length + 1) {
-        //TODO: Check that first delegate Invoke parameter is assignable to method.DeclaringType
-        return delegatePublicInterface.New(
-          null,
-          function () {
-            var realFirstAgument = arguments[0];
-            var impl = JSIL.$GetMethodImplementation(method, firstArgument);
-
-            if (!impl) {
-              throw new System.Exception("Method has no implementation");
-            } else if (typeof (impl) === "function") {
-              var f = delegatePublicInterface.New(realFirstAgument, impl, function () { return null; });
-              return f.apply(null, Array.prototype.slice.call(arguments, 1));
-            } else {
-              throw new Error("Unexpected JSIL.$GetMethodImplementation result");
-            }
-          },
-          function () { return method; });
-      }
-
-      var impl = JSIL.$GetMethodImplementation(method, firstArgument);
-
-      if (!impl) {
-        throw new System.Exception("Method has no implementation");
-      } else if (typeof (impl) === "function") {
-        return delegatePublicInterface.New(firstArgument, impl, function () { return method; });
-      } else {
-        throw new Error("Unexpected JSIL.$GetMethodImplementation result");
-      }
+      return delegatePublicInterface.New(firstArgument, null, new JSIL.MethodInfoMethodPointerInfo(method));
     }
   );
 
@@ -169,14 +141,12 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       if (this.__isMulticast__) {
         return this.get_Method();
       }
-      if (!this.__isMethodInfoResolved__) {
-        var methodInfo = this.__methodInfoResolver__();
+      if (this.__methodPointerInfo__) {
         // TODO: find better solution for resolving MethodInfo in class by MethodInfo in base class.
         // Currently it will not find proper derived implementation MethodInfo for virtual method and interface methods.
-        JSIL.SetValueProperty(this, "__methodInfo__", methodInfo);
-        this.__isMethodInfoResolved__ = true;
+        return  this.__methodPointerInfo__.resolveMethodInfo();
       }
-      return this.__methodInfo__;
+      return null;
     }
   );
 });
