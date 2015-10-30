@@ -10756,7 +10756,7 @@ JSIL.MethodPointerInfo = function(typeObject, name, signature, isStatic, isVirtu
   this.NameWithGenericSuffix = useGenericSuffix ? (name + "$b" + this.MethodGenericParameters.length) : name;
 }
 
-JSIL.MethodInfoMethodPointerInfo = function(methodInfo) {
+JSIL.MethodPointerInfo.FromMethodInfo = function (methodInfo) {
   var signature = methodInfo._data.signature;
   var genericArgs = null;
   if (JSIL.IsArray(signature.genericArgumentValues)) {
@@ -10764,7 +10764,7 @@ JSIL.MethodInfoMethodPointerInfo = function(methodInfo) {
     signature = signature.openSignature;
   }
 
-  JSIL.MethodPointerInfo.call(this,
+  var methodPointerInfo = new JSIL.MethodPointerInfo(
     methodInfo._typeObject.__PublicInterface__,
     methodInfo._descriptor.Name,
     signature,
@@ -10772,11 +10772,10 @@ JSIL.MethodInfoMethodPointerInfo = function(methodInfo) {
     methodInfo._descriptor.Virtual,
     genericArgs);
 
-  this.MethodInfo = methodInfo;
-  this.MethodInfoResolved = true;
+  methodPointerInfo.MethodInfo = methodInfo;
+  methodPointerInfo.MethodInfoResolved = true;
+  return methodPointerInfo;
 }
-
-JSIL.MethodInfoMethodPointerInfo.prototype = JSIL.MethodPointerInfo.prototype;
 
 JSIL.MethodPointerInfo.prototype.resolveMethodInfo = function () {
   if (!this.MethodInfoResolved) {

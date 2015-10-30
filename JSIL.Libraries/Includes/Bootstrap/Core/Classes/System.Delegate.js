@@ -109,7 +109,7 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       if (typeof (delegatePublicInterface.New) !== "function")
         JSIL.Host.abort(new Error("Invalid delegate type"));
 
-      return delegatePublicInterface.New(firstArgument, null, new JSIL.MethodInfoMethodPointerInfo(method));
+      return delegatePublicInterface.New(firstArgument, null, JSIL.MethodPointerInfo.FromMethodInfo(method));
     }
   );
 
