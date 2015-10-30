@@ -10759,7 +10759,7 @@ JSIL.MethodPointerInfo = function(typeObject, name, signature, isStatic, isVirtu
 JSIL.MethodInfoMethodPointerInfo = function(methodInfo) {
   var signature = methodInfo._data.signature;
   var genericArgs = null;
-  if (signature.openSignature !== null) {
+  if (JSIL.IsArray(signature.genericArgumentValues)) {
     genericArgs = signature.genericArgumentValues;
     signature = signature.openSignature;
   }
