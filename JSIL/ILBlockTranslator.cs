@@ -3186,10 +3186,7 @@ namespace JSIL {
                     if (ma.IsStatic) {
                         if (methodMember == null)
                             throw new InvalidDataException("Static invocation without a method");
-
-                        thisArg = new JSType(methodMember.Reference.DeclaringType);
-                    } else if (ma.IsVirtual)
-                        methodRef = new JSDotExpression(thisArg, methodMember);
+                    } 
                 }
             }
 

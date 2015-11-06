@@ -248,6 +248,8 @@
     <None Include="SimpleTestCases\ListContains.cs" />
     <None Include="SimpleTestCases\ListIndexOf.cs" />
     <None Include="SimpleTestCases\ListInsert.cs" />
+    <None Include="SimpleTestCases\Delegate_Issue880.cs" />
+    <None Include="SimpleTestCases\Delegate_Issue875.cs" />
     <None Include="SimpleTestCases\StructGenericParameterReferenceEquality.cs" />
     <None Include="SimpleTestCases\ArrayListIndexer.cs" />
     <None Include="SimpleTestCases\ListIList.cs" />
