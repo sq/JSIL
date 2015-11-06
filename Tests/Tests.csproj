@@ -306,7 +306,7 @@
     <None Include="TestCases\ArrayFieldOfThisType.cs" />
     <None Include="BrowserXMLTestCases\GetItemByIndex.cs" />
     <None Include="BrowserXMLTestCases\GetItemByName.cs" />
-    <None Include="TestCases\Dictionary.cs" />
+    <None Include="TestCases\FailsOnMono\Dictionary.cs" />
     <None Include="TestCases\EnumAnonymousMethod.cs" />
     <None Include="BrowserXMLTestCases\ReadElementContentAsString.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures.cs" />
