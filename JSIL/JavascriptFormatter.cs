@@ -715,6 +715,14 @@ namespace JSIL.Internal {
             Comma();
             OpenBracket();
             TypeReference(at.ElementType, context);
+            if (!at.IsVector)
+            {
+                Comma();
+                WriteRaw("JSIL.ArrayDimensionParameter");
+                LPar();
+                WriteRaw(at.Rank.ToString());
+                RPar();
+            }
             CloseBracket();
             RPar();
         }
@@ -969,6 +977,14 @@ namespace JSIL.Internal {
             WriteRaw("System.Array.Of");
             LPar();
             TypeIdentifier(type.ElementType as dynamic, context, false);
+            if (!type.IsVector)
+            {
+                Comma();
+                WriteRaw("JSIL.ArrayDimensionParameter");
+                LPar();
+                WriteRaw(type.Rank.ToString());
+                RPar();
+            }
             RPar();
 
             if (includeParens) {

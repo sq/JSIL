@@ -2092,8 +2092,9 @@ namespace JSIL {
 
             if (newarray.Dimensions != null) {
                 Output.Comma();
-
+                Output.OpenBracket();
                 CommaSeparatedList(newarray.Dimensions, false);
+                Output.CloseBracket();
             }
 
             if (newarray.SizeOrArrayInitializer != null) {

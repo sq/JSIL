@@ -14,4 +14,7 @@
       $.Property({}, "Item");
       $.Property({}, "IsReadOnly");
       $.Property({}, "IsFixedSize");
-  }, [$jsilcore.TypeRef("System.Collections.ICollection"), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+  }, [$jsilcore.TypeRef("System.Collections.ICollection"), $jsilcore.TypeRef("System.Collections.IEnumerable")], null,
+  function (interfaceTypeObject, signature, thisReference) {
+    return JSIL.GetType(thisReference).__PublicInterface__.prototype[signature.methodKey];
+  });

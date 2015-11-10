@@ -9,4 +9,7 @@
       $.Method({}, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
       $.Property({}, "Count");
       $.Property({}, "IsReadOnly");
-  }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+  }, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $jsilcore.TypeRef("System.Collections.IEnumerable")], null,
+  function (interfaceTypeObject, signature, thisReference) {
+    return JSIL.GetType(thisReference).__PublicInterface__.prototype[signature.methodKey];
+  });

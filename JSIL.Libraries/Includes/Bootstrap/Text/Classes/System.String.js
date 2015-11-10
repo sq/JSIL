@@ -285,6 +285,22 @@ JSIL.ImplementExternals(
         return false;
       }
     );
+
+    $.Method({ Static: false, Public: false }, null,
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
+        function() {
+          return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
+        }
+      )
+      .Overrides("System.Collections.IEnumerable", "GetEnumerator");
+
+    $.Method({ Static: false, Public: true }, "GetEnumerator",
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [$.Char]), [], []),
+        function() {
+          return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
+        }
+      )
+      .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
   }
 );
 
@@ -292,4 +308,8 @@ JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.Field({ Static: true, Public: true }, "Empty", $.String, "");
   $.Property({ Public: true, Static: false }, "Length");
   JSIL.MakeIConvertibleMethods($);
+  $.ImplementInterfaces(
+     $jsilcore.TypeRef("System.Collections.IEnumerable", []),
+     $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$.Char])
+  );
 });

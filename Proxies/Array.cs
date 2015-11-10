@@ -21,8 +21,26 @@ namespace JSIL.Proxies {
         [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
         [JSIsPure]
-        abstract public long LongLength { get; } 
+        abstract public long LongLength { get; }
 
+
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetLowerBound.call($this, $dimenstion)")]
+        public int GetLowerBound(int dimenstion)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetUpperBound.call($this, $dimenstion)")]
+        public int GetUpperBound(int dimenstion)
+        {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetLength.call($this, $dimenstion)")]
+        public int GetLength(int dimenstion)
+        {
+            throw new InvalidOperationException();
+        }
 
         [JSReplacement("JSIL.Array.New($elementType, $size)")]
         public static System.Array CreateInstance (Type elementType, Int32 size) {

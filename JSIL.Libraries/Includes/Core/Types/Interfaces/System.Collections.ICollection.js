@@ -7,4 +7,7 @@
       $.Property({}, "Count");
       $.Property({}, "SyncRoot");
       $.Property({}, "IsSynchronized");
-  }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
+  }, [$jsilcore.TypeRef("System.Collections.IEnumerable")], null,
+  function (interfaceTypeObject, signature, thisReference) {
+    return JSIL.GetType(thisReference).__PublicInterface__.prototype[signature.methodKey];
+  });

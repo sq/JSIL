@@ -6,4 +6,11 @@
       $.Method({}, "Insert", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])));
       $.Method({}, "RemoveAt", (new JSIL.MethodSignature(null, [$.Int32], [])));
       $.Property({}, "Item");
-  }, [$jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+  },
+  [ $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
+    $jsilcore.TypeRef("System.Collections.IEnumerable")],
+  null,
+  function (interfaceTypeObject, signature, thisReference) {
+    return JSIL.GetType(thisReference).__PublicInterface__.prototype[signature.methodKey];
+  });

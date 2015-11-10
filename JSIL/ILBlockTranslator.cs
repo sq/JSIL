@@ -3222,10 +3222,32 @@ namespace JSIL {
 
             if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
                 return Translate_Newobj_Delegate(node, constructor, arguments.ToArray());
-            } else if (constructor.DeclaringType.IsArray) {
-                return JSIL.NewMultidimensionalArray(
-                    TypeUtil.GetElementType(constructor.DeclaringType, true), arguments.ToArray()
-                );
+            } else if (constructor.DeclaringType.IsArray)
+            {
+                var arrayType = (ArrayType) constructor.DeclaringType;
+                if (!arrayType.IsVector)
+                {
+                    JSExpression[] dimensions;
+                    if (arguments.Count == arrayType.Rank)
+                    {
+                        dimensions = new JSExpression[arrayType.Rank*2];
+                        for (int i = 0; i < arrayType.Rank; i++)
+                        {
+                            dimensions[2*i] = new JSIntegerLiteral(0, typeof (int));
+                            dimensions[2*i + 1] = arguments[i];
+                        }
+                    }
+                    else
+                    {
+                        dimensions = arguments.ToArray();
+                    }
+                    return JSIL.NewMultidimensionalArray(TypeUtil.GetElementType(constructor.DeclaringType, true),
+                        dimensions);
+                }
+                else
+                {
+                    return JSIL.NewArray(TypeUtil.GetElementType(constructor.DeclaringType, true), arguments[0]);
+                }
             } else if (TypeUtil.IsNullable(constructor.DeclaringType)) {
                 if (arguments.Count == 0)
                     return new JSNullLiteral(constructor.DeclaringType);
@@ -3260,13 +3282,15 @@ namespace JSIL {
             var at = (ArrayType)TypeUtil.FullyDereferenceType(_arrayType, out temp);
             var initializer = new JSArrayExpression(at, Translate(node.Arguments).ToArray());
 
-            int rank = 0;
-            rank = at.Rank;
+            int rank = at.Rank;
+
+            // Really it is not true, but should work for most cases.
+            bool isVector = rank == 1 && at.Dimensions[0].LowerBound.GetValueOrDefault(-1) == 0;
 
             if (TypeUtil.TypesAreEqual(TypeSystem.Object, at) && rank < 2)
                 return initializer;
             else {
-                if (rank > 1) {
+                if (!isVector) {
                     return JSIL.NewMultidimensionalArray(
                         at.ElementType, TypeUtil.GetArrayDimensions(at), initializer
                     );

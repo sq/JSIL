@@ -314,7 +314,7 @@ namespace JSIL.Transforms {
                             return;
                         }
                     }
-                } else if (
+                } /*else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&
                     (ie.Arguments.Count == 1)
                 ) {
@@ -343,7 +343,7 @@ namespace JSIL.Transforms {
                             ParentNode.ReplaceChild(ie, JSLiteral.New(0));
                             break;
                     }
-                }
+                }*/
             }
 
             VisitChildren(ie);

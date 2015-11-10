@@ -107,7 +107,6 @@
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.ObjectModel.Collection.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.ArrayList.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Collections.Generic.List.js" />
-    <Content Include="Includes\Bootstrap\Core\Classes\JSIL.ArrayInterfaceOverlay.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\JSIL.ArrayEnumerator.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Threading.Thread.js" />
     <Content Include="Includes\Bootstrap\Core\Classes\System.Diagnostics.Debug.js" />
@@ -217,8 +216,8 @@
     <Content Include="Includes\Core\Reflection\Helpers\%24jsilcore.%24MethodGetParameters.js" />
     <Content Include="Includes\Core\Reflection\Utils\%24jsilcore.MemberInfoExternals.js" />
     <Content Include="Includes\Core\Types\Classes\JSIL.CollectionInitializer.js" />
-    <Content Include="Includes\Core\Types\Classes\JSIL.MultidimensionalArray.js" />
     <Content Include="Includes\Core\Types\Classes\JSIL.ObjectInitializer.js" />
+    <Content Include="Includes\Core\Types\Classes\JSIL.MultidimensionalArray.js" />
     <Content Include="Includes\Core\Types\Classes\System.Array.js" />
     <Content Include="Includes\Core\Types\Classes\System.Attribute.js" />
     <Content Include="Includes\Core\Types\Classes\System.Enum.js" />

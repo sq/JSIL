@@ -863,8 +863,10 @@ namespace JSIL {
             var result = new List<JSExpression>();
             for (var i = 0; i < at.Dimensions.Count; i++) {
                 var dim = at.Dimensions[i];
-                if (dim.IsSized)
+                if (dim.IsSized) {
+                    result.Add(JSLiteral.New(dim.LowerBound.Value));
                     result.Add(JSLiteral.New(dim.UpperBound.Value));
+                }
                 else
                     return null;
             }
