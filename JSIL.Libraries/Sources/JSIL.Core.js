@@ -389,6 +389,7 @@ JSIL.$GetSpecialType = function (name) {
   runtimeType.__IsEnum__ = false;
   runtimeType.__ThisType__ = runtimeType;
   runtimeType.__TypeInitialized__ = false;
+  runtimeType.__TypeInitializing__ = false;
   runtimeType.__LockCount__ = 0;
   JSIL.SetValueProperty(runtimeType, "__FullName__", "System.RuntimeType");
   JSIL.SetValueProperty(runtimeType, "__ShortName__", "RuntimeType");
@@ -403,6 +404,7 @@ JSIL.$GetSpecialType = function (name) {
   runtimeAssembly.__ThisType__ = runtimeType;
   runtimeAssembly.__ThisTypeId__ = runtimeType.__TypeId__;
   runtimeAssembly.__TypeInitialized__ = false;
+  runtimeAssembly.__TypeInitializing__ = false;
   runtimeAssembly.__LockCount__ = 0;
   JSIL.SetValueProperty(runtimeAssembly, "__FullName__", "System.Reflection.RuntimeAssembly");
   JSIL.SetValueProperty(runtimeAssembly, "__ShortName__", "RuntimeAssembly");
@@ -1502,8 +1504,11 @@ JSIL.Initialize = function () {
   JSIL.InitializeType($jsilcore.System.RuntimeType);
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
   JSIL.InitializeType($jsilcore.System.Object);
-  $jsilcore.System.Type.__Type__.__TypeInitialized__ = false;
-  JSIL.InitializeType($jsilcore.System.Type);
+  JSIL.InitializeType($jsilcore.System.Boolean);
+
+
+  JSIL.RunStaticConstructors($jsilcore.System.Byte, $jsilcore.System.Byte.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.SByte, $jsilcore.System.SByte.__Type__);
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -4533,6 +4538,8 @@ JSIL.BuildTypeList = function (type, publicInterface) {
 };
 
 $jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
+JSIL.ScheduledInitialization = [];
+JSIL.IsInsideInitializeType = false;
 
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
@@ -4546,80 +4553,123 @@ JSIL.InitializeType = function (type) {
   else
     return;
 
-  if (typeObject.__TypeInitialized__ || false)
+  if (typeObject.__TypeInitialized__ || typeObject.__TypeInitializing__ || false)
     return;
 
-  // Not entirely correct, but prevents recursive type initialization
-  typeObject.__TypeInitialized__ = true;
+  var shouldDoScheduledInitialization = !JSIL.IsInsideInitializeType;
 
-  if (typeObject.__IsClosed__) {
-    var forceLazyMethodGroups = false;
-
-    // We need to ensure that method groups for BCL classes are always lazy
-    //  because otherwise, initializing the method groups may rely on the classes themselves
-    if (typeObject.__FullName__.indexOf("System.") === 0)
-      forceLazyMethodGroups = true;
-
-    if (typeObject.IsInterface !== true) {
-      JSIL.$CreateMethodMembranes(typeObject, classObject);
-      JSIL.$BuildMethodGroups(typeObject, classObject, forceLazyMethodGroups);
-    }
-
-    JSIL.InitializeFields(classObject, typeObject);
-    JSIL.InstantiateProperties(classObject, typeObject);
-
-    if (typeObject.IsInterface !== true) {
-      JSIL.QueueTypeInitializer(typeObject, function () {
-        JSIL.FixupInterfaces(classObject, typeObject);
-      });
-      JSIL.RebindRawMethods(classObject, typeObject);
-    }
-
-    if (!typeObject.__IsStatic__) {
-      JSIL.BuildTypeList(typeObject, classObject);
-    }
-
-    if (
-      classObject.prototype &&
-      (typeof (classObject.prototype) === "object") && 
-      // HACK: We need to use a special implementation for System.Object.MemberwiseClone,
-      //  since when called explicitly it acts 'virtually' (conforms to the instance type)
-      //  (issue #146)
-      (typeObject.__FullName__ !== "System.Object")
-    ) {
-      JSIL.SetLazyValueProperty(
-        classObject.prototype, "MemberwiseClone", function () {
-          return JSIL.$MakeMemberwiseCloner(typeObject, classObject);
+  try {
+    var baseType = typeObject.__BaseType__;
+    while (baseType || false) {
+      if (baseType.__TypeInitializing__) {
+        if (JSIL.ScheduledInitialization.indexOf(typeObject) == -1) {
+          JSIL.ScheduledInitialization.push(typeObject);
         }
-      );
+        return;
+      }
+      baseType = baseType.__BaseType__;
     }
 
-    if (classObject.__PreInitMembrane__)
-      classObject.__PreInitMembrane__.maybeInit();
-    if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
-      classObject.prototype.__PreInitMembrane__.maybeInit();
-  } else {
-    // console.log("Type '" + typeObject.__FullName__ + "' is open so not initializing");
-  }
+    JSIL.IsInsideInitializeType = true;
+    typeObject.__TypeInitializing__ = true;
 
-  // Any closed forms of the type, if it's an open type, should be initialized too.
-  if (typeof (typeObject.__OfCache__) !== "undefined") {
-    var oc = typeObject.__OfCache__;
-    for (var k in oc) {
-      if (!oc.hasOwnProperty(k))
-        continue;
+    if (typeObject.__IsClosed__) {
+      var forceLazyMethodGroups = false;
 
-      JSIL.InitializeType(oc[k]);
+      // We need to ensure that method groups for BCL classes are always lazy
+      //  because otherwise, initializing the method groups may rely on the classes themselves
+      if (typeObject.__FullName__.indexOf("System.") === 0)
+        forceLazyMethodGroups = true;
+
+      if (typeObject.IsInterface !== true) {
+        JSIL.$CreateMethodMembranes(typeObject, classObject);
+        JSIL.$BuildMethodGroups(typeObject, classObject, forceLazyMethodGroups);
+      }
+
+      JSIL.InitializeFields(classObject, typeObject);
+      JSIL.InstantiateProperties(classObject, typeObject);
+
+      if (typeObject.IsInterface !== true) {
+        JSIL.QueueTypeInitializer(typeObject, function() {
+          JSIL.FixupInterfaces(classObject, typeObject);
+        });
+        JSIL.RebindRawMethods(classObject, typeObject);
+      }
+
+      if (!typeObject.__IsStatic__) {
+        JSIL.BuildTypeList(typeObject, classObject);
+      }
+
+      if (
+        classObject.prototype &&
+          (typeof (classObject.prototype) === "object") &&
+          // HACK: We need to use a special implementation for System.Object.MemberwiseClone,
+          //  since when called explicitly it acts 'virtually' (conforms to the instance type)
+          //  (issue #146)
+          (typeObject.__FullName__ !== "System.Object")
+      ) {
+        JSIL.SetLazyValueProperty(
+          classObject.prototype, "MemberwiseClone", function() {
+            return JSIL.$MakeMemberwiseCloner(typeObject, classObject);
+          }
+        );
+      }
+
+      if (classObject.__PreInitMembrane__)
+        classObject.__PreInitMembrane__.maybeInit();
+      if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
+        classObject.prototype.__PreInitMembrane__.maybeInit();
+    } else {
+      // console.log("Type '" + typeObject.__FullName__ + "' is open so not initializing");
     }
-  }
 
-  if (
-    (typeof (type.__BaseType__) !== "undefined") &&
-    (type.__BaseType__ !== null)
-  ) {
-    JSIL.InitializeType(type.__BaseType__);
+    // Any closed forms of the type, if it's an open type, should be initialized too.
+    if (typeof (typeObject.__OfCache__) !== "undefined") {
+      var oc = typeObject.__OfCache__;
+      for (var k in oc) {
+        if (!oc.hasOwnProperty(k))
+          continue;
+
+        JSIL.InitializeType(oc[k]);
+      }
+    }
+
+    if ((typeof (type.__BaseType__) !== "undefined") && (type.__BaseType__ !== null)) {
+      JSIL.InitializeType(type.__BaseType__);
+    }
+
+    typeObject.__TypeInitializing__ = false;
+    typeObject.__TypeInitialized__ = true;
+
+    if (shouldDoScheduledInitialization) {
+      var startElement = null;
+
+      var next;
+      while ((next = JSIL.ScheduledInitialization.shift())) {
+        if (startElement === next) {
+          throw new Error("Something broken. Endless type intialization cycle detected.");
+        }
+
+        if (startElement !== null) {
+          startElement = next;
+        }
+
+        JSIL.InitializeType(next);
+
+        if (JSIL.ScheduledInitialization[JSIL.ScheduledInitialization.length - 1] !== next) {
+          startElement = null;
+        }
+      }
+      JSIL.IsInsideInitializeType = false;
+    }
+  } finally {
+    if (shouldDoScheduledInitialization) {
+      JSIL.IsInsideInitializeType = false;
+    }
   }
 };
+
+
 
 JSIL.$InvokeStaticConstructor = function (staticConstructor, typeObject, classObject) {
   if (JSIL.ThrowOnStaticCctorError) {
@@ -4651,7 +4701,7 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
   // Run any queued initializers for the type
   var ti = typeObject.__Initializers__ || $jsilcore.ArrayNull;
   while (ti.length > 0) {
-    var initializer = ti.unshift();
+    var initializer = ti.shift();
     if (typeof (initializer) === "function")
       initializer(classObject);
   };
@@ -4882,6 +4932,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__RenamedMethods__ = {};
     typeObject.__RawMethods__ = [];
     typeObject.__TypeInitialized__ = false;
+    typeObject.__TypeInitializing__ = false;
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
@@ -5619,6 +5670,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__TypeInitialized__ = false;
+    typeObject.__TypeInitializing__ = false;
     typeObject.__IsNativeType__ = false;
     typeObject.__AssignableTypes__ = null;
     typeObject.__AssignableFromTypes__ = {};
@@ -5812,6 +5864,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__Context__ = $private;
     JSIL.SetValueProperty(typeObject, "__FullName__", fullName);
     typeObject.__TypeInitialized__ = false;
+    typeObject.__TypeInitializing__ = false;
 
     if (interfaces && interfaces.length) {
       // FIXME: This seems wrong.
@@ -5951,6 +6004,8 @@ JSIL.MakeEnum = function (_descriptor, _members) {
     JSIL.SetValueProperty(typeObject, "__IsReferenceType__", false);
     typeObject.__IsClosed__ = true;
     typeObject.__TypeInitialized__ = false;
+    typeObject.__TypeInitializing__ = false;
+    typeObject.__Initializers__ = [];
 
     if (descriptor.BaseType) {
       JSIL.SetLazyValueProperty(typeObject, "__StorageType__", function () { return JSIL.ResolveTypeReference(descriptor.BaseType)[1]; });
@@ -9487,6 +9542,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     typeObject.__IsValueType__ = false;
     typeObject.__IsByRef__ = false;
     typeObject.__TypeInitialized__ = false;
+    typeObject.__TypeInitializing__ = false;
 
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
@@ -9601,7 +9657,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     } else {
       typeObject.__PInvokeInfo__ = null;
     }
-
+    typeObject.__Initializers__ = [];
     return staticClassObject;
   };
 
@@ -10604,7 +10660,7 @@ JSIL.$IgnoredPrototypeMembers = [
 ];
 
 JSIL.$IgnoredPublicInterfaceMembers = [
-  "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
+  "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__TypeInitializing__", "__IsClosed__", "prototype",
   "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
   "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
   "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__",
