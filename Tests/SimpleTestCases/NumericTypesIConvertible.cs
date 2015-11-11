@@ -2,8 +2,8 @@ using System;
 
 public static class Program {
     public static void Main (string[] args) {
-        //WriteIConvertible('a');
-        //WriteIConvertible(false);
+        WriteIConvertible('a');
+        WriteIConvertible(false);
         WriteIConvertible(3d);
         WriteIConvertible(3f);
         WriteIConvertible(3m);
@@ -24,7 +24,7 @@ public static class Program {
 
     public static void WriteIConvertible(IConvertible input)
     {
-        Console.WriteLine("{0}: {1}", input.GetTypeCode(), input.ToString(null));
+        Console.WriteLine("{0}: {1}", input.GetTypeCode(), input.ToString(null).ToLower());
     }
 
     public static short GetShort()
