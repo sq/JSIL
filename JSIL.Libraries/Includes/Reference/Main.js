@@ -10,6 +10,7 @@ if (!$jsilcore)
 //? include("Classes/JSIL.BoxedVariable.js"); writeln();
 //? include("Classes/JSIL.MemberReference.js"); writeln();
 //? include("Classes/JSIL.ArrayElementReference.js"); writeln();
+//? include("Classes/JSIL.Box.js"); writeln();
 
 
 

@@ -1,7 +1,7 @@
 ﻿JSIL.ImplementExternals(
   "System.Char", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "string") && (value.length == 1);
+      return ((typeof (value) === "string") && (value.length == 1)) || JSIL.Box.IsBoxedOfType(value, $.Type);
     });
 
     $.Constant({ Public: true, Static: true }, "MaxValue", "\uffff");

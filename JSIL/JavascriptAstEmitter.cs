@@ -1382,6 +1382,15 @@ namespace JSIL {
         public void VisitNode (JSReferenceExpression reference) {
             Visit(reference.Referent);
         }
+        public void VisitNode (JSWrapExpression wrap)
+        {
+            Visit(wrap.OriginalType);
+            Output.Dot();
+            Output.WriteRaw("$Box");
+            Output.LPar();
+            Visit(wrap.OriginalValue);
+            Output.RPar();
+        }
 
         public void VisitNode (JSReadThroughReferenceExpression rtre) {
             Output.Identifier(rtre.Variable.Identifier);

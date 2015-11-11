@@ -3,7 +3,7 @@
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (value === false) || (value === true);
+      return (value === false) || (value === true) || JSIL.Box.IsBoxedOfType(value, $.Type);
     });
 
     $jsilcore.$MakeParseExternals($, $.Boolean, $jsilcore.$ParseBoolean, $jsilcore.$TryParseBoolean);
