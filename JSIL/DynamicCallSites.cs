@@ -182,10 +182,10 @@ namespace JSIL {
                 if (thisArgumentKnownType != null) {
                     var replacement = translator.DoJSILMethodReplacement(
                         thisArgumentKnownType.FullName, memberName, 
+                        null,
                         // FIXME 
                         null,
-                        argumentValues,
-                        true
+                        argumentValues
                     );
                     if (replacement != null)
                         return replacement;
