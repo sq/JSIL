@@ -97,6 +97,7 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
         public void JSReplacementReplacesMethods () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\ReplaceMethod.cs",

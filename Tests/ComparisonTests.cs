@@ -229,7 +229,7 @@ namespace JSIL.Tests {
         protected IEnumerable<TestCaseData> DictionariesSource () {
             return FilenameTestSource(
                 new[] { 
-                    @"TestCases\Dictionary.cs",
+                    @"TestCases\FailsOnMono\Dictionary.cs",
                     @"TestCases\DictionaryInitializer.cs",
                     @"TestCases\DictionaryEnumerator.cs",
                     @"TestCases\DictionaryKeyValuePairs.cs",
