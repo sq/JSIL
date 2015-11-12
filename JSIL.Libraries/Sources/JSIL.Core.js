@@ -4618,11 +4618,17 @@ JSIL.InitializeType = function (type) {
         );
       }
 
+      typeObject.__TypeInitializing__ = false;
+      typeObject.__TypeInitialized__ = true;
+
       if (classObject.__PreInitMembrane__)
         classObject.__PreInitMembrane__.maybeInit();
       if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
         classObject.prototype.__PreInitMembrane__.maybeInit();
     } else {
+      typeObject.__TypeInitializing__ = false;
+      typeObject.__TypeInitialized__ = true;
+
       // console.log("Type '" + typeObject.__FullName__ + "' is open so not initializing");
     }
 
@@ -4640,9 +4646,6 @@ JSIL.InitializeType = function (type) {
     if ((typeof (type.__BaseType__) !== "undefined") && (type.__BaseType__ !== null)) {
       JSIL.InitializeType(type.__BaseType__);
     }
-
-    typeObject.__TypeInitializing__ = false;
-    typeObject.__TypeInitialized__ = true;
 
     if (shouldDoScheduledInitialization) {
       var startElement = null;
