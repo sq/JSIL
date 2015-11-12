@@ -28,7 +28,8 @@
             typeof (NumberFormatInfo),
             typeof (Convert), typeof(DBNull),
             typeof (IConvertible),
-            typeof (string)
+            typeof (string),
+            typeof (Enum)
         },
         inheritable: false)]
     [JSSuppressTypeDeclaration]
