@@ -2264,7 +2264,7 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
     if (obj.__IsArray__) {
       var elementType = JSIL.$ResolveGenericTypeReferenceInternal(obj.__ElementType__, context);
       if (elementType !== null)
-        return System.Array.Of(elementType);
+        return System.Array.Of(elementType, obj.__Dimensions__ ? JSIL.ArrayDimensionParameter(obj.__Dimensions__) : null);
 
       return null;
     }
