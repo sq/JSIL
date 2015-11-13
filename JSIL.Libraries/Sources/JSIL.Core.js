@@ -1507,11 +1507,19 @@ JSIL.Initialize = function () {
   JSIL.InitializeType($jsilcore.System.RuntimeType);
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
   JSIL.InitializeType($jsilcore.System.Object);
-  JSIL.InitializeType($jsilcore.System.Boolean);
 
-
+  // As we use raw JS types, we should execute static ctor manually.
+  JSIL.RunStaticConstructors($jsilcore.System.Boolean, $jsilcore.System.Boolean.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.Char, $jsilcore.System.Char.__Type__);
   JSIL.RunStaticConstructors($jsilcore.System.Byte, $jsilcore.System.Byte.__Type__);
   JSIL.RunStaticConstructors($jsilcore.System.SByte, $jsilcore.System.SByte.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.Int16, $jsilcore.System.Int16.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.UInt16, $jsilcore.System.UInt16.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.Int32, $jsilcore.System.Int32.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.UInt32, $jsilcore.System.UInt32.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.Single, $jsilcore.System.Single.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.Double, $jsilcore.System.Double.__Type__);
+  JSIL.RunStaticConstructors($jsilcore.System.String, $jsilcore.System.String.__Type__);
 };
 
 JSIL.ArrayDimensionParameter = function (size) {
@@ -4626,20 +4634,12 @@ JSIL.InitializeType = function (type) {
           }
         );
       }
-
-      typeObject.__TypeInitializing__ = false;
-      typeObject.__TypeInitialized__ = true;
-
-      if (classObject.__PreInitMembrane__)
-        classObject.__PreInitMembrane__.maybeInit();
-      if (classObject.prototype && classObject.prototype.__PreInitMembrane__)
-        classObject.prototype.__PreInitMembrane__.maybeInit();
     } else {
-      typeObject.__TypeInitializing__ = false;
-      typeObject.__TypeInitialized__ = true;
-
       // console.log("Type '" + typeObject.__FullName__ + "' is open so not initializing");
     }
+
+    typeObject.__TypeInitializing__ = false;
+    typeObject.__TypeInitialized__ = true;
 
     // Any closed forms of the type, if it's an open type, should be initialized too.
     if (typeof (typeObject.__OfCache__) !== "undefined") {

@@ -294,7 +294,7 @@ JSIL.ImplementExternals(
       )
       .Overrides("System.Collections.IEnumerable", "GetEnumerator");
 
-    $.Method({ Static: false, Public: true }, "GetEnumerator",
+    $.Method({ Static: false, Public: false }, "GetEnumerator",
         new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [$.Char]), [], []),
         function() {
           return JSIL.GetEnumerator(this, $jsilcore.System.Char.__Type__, true);
