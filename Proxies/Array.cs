@@ -47,17 +47,17 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New.apply(null, [$elementType].concat($sizes))")]
+        [JSReplacement("JSIL.MultidimensionalArray.CreateInstance(elementType, $sizes)")]
         public static System.Array CreateInstance (Type elementType, AnyType[] sizes) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY)")]
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, [0, $sizeX, 0, $sizeY])")]
         public static System.Array CreateInstance (Type elementType, AnyType sizeX, AnyType sizeY) {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY, $sizeZ)")]
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, [0, $sizeX, 0, $sizeY, 0, $sizeZ])")]
         public static System.Array CreateInstance (Type elementType, AnyType sizeX, AnyType sizeY, AnyType sizeZ) {
             throw new InvalidOperationException();
         }
@@ -192,19 +192,19 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New.apply(null, [$elementType].concat($sizes))")]
+        [JSReplacement("JSIL.MultidimensionalArray.CreateInstance($elementType, $sizes)")]
         internal static System.Array UnsafeCreateInstance(Type elementType, AnyType[] sizes)
         {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY)")]
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, [0, $sizeX, 0, $sizeY])")]
         internal static System.Array UnsafeCreateInstance(Type elementType, AnyType sizeX, AnyType sizeY)
         {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY, $sizeZ)")]
+        [JSReplacement("JSIL.MultidimensionalArray.New($elementType, [0, $sizeX, 0, $sizeY, 0, $sizeZ])")]
         internal static System.Array UnsafeCreateInstance(Type elementType, AnyType sizeX, AnyType sizeY, AnyType sizeZ)
         {
             throw new InvalidOperationException();

@@ -15,4 +15,20 @@
       return createdArray;
     }
   );
+
+  $.RawMethod(true, "CreateInstance",
+    function (type, dimensions) {
+      if (dimensions.length === 1) {
+        return JSIL.Array.New(type, dimensions[0]);
+      }
+
+      var sizeWithLowerBound = [];
+      for (var i = 0; i < dimensions.length; i++) {
+        sizeWithLowerBound.push(0);
+        sizeWithLowerBound.push(dimensions[i]);
+      }
+
+      return JSIL.MultidimensionalArray.New(type, dimensions[0]);
+    }
+  );
 });
