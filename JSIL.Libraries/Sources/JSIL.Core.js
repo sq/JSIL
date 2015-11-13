@@ -1655,6 +1655,14 @@ JSIL.PositionalGenericParameter.prototype.get_Name = function () {
 
 JSIL.PositionalGenericParameter.prototype.__IsClosed__ = false;
 
+JSIL.PositionalGenericParameter.prototype.get = function (context) {
+  if (!context) {
+    JSIL.RuntimeError("No context provided when resolving generic parameter '" + this.__FullName__ + "'");
+    return JSIL.AnyType;
+  }
+
+  return context["!!" + this.index];
+};
 
 JSIL.NamespaceRef = function (context, namespace) {
   if (arguments.length === 1) {
@@ -2210,7 +2218,7 @@ JSIL.$ResolveGenericTypeReferenceInternal = function (obj, context) {
   if ((typeof (obj) !== "object") || (obj === null))
     return null;
 
-  if (Object.getPrototypeOf(obj) === JSIL.GenericParameter.prototype) {
+  if (Object.getPrototypeOf(obj) === JSIL.GenericParameter.prototype || Object.getPrototypeOf(obj) === JSIL.PositionalGenericParameter.prototype) {
     var result = obj.get(context);
 
     if (
@@ -8338,27 +8346,20 @@ JSIL.ResolvedMethodSignature = function (methodSignature, key, returnType, argum
   JSIL.ValidateArgumentTypes(argumentTypes);
 };
 
-JSIL.ResolvedMethodSignature.prototype.ResolvePositionalGenericParameter = function (genericParameterValues, parameter) {
-  if (
-    (typeof (parameter) === "object") && 
-    (parameter !== null) &&
-    (Object.getPrototypeOf(parameter) === JSIL.PositionalGenericParameter.prototype)
-  ) {
-    return genericParameterValues[parameter.index] || null;
-  } else {
-    return parameter;
-  }
-};
-
 JSIL.ResolvedMethodSignature.prototype.ResolvePositionalGenericParameters = function (genericParameterValues) {
-  var returnType = this.ResolvePositionalGenericParameter(genericParameterValues, this.returnType);
+  var context = {};
+  for (var k = 0, m = this.argumentTypes.length; k < m; k++) {
+    context["!!" + k] = genericParameterValues[k];
+  }
+
+  var returnType = JSIL.ResolveGenericTypeReference(this.returnType, context);
   var argumentTypes = [];
 
   var resolvedAnyArguments = false;
 
   for (var i = 0, l = this.argumentTypes.length; i < l; i++) {
     var argumentType = this.argumentTypes[i];
-    argumentType = this.ResolvePositionalGenericParameter(genericParameterValues, argumentType);
+    argumentType = JSIL.ResolveGenericTypeReference(argumentType, context);
     argumentTypes.push(argumentType);
 
     if (argumentType !== this.argumentTypes[i]);
