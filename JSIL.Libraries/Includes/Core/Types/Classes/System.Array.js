@@ -218,6 +218,17 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         }
       );
 
+      $.RawMethod(false, "GetReference",
+        function GetReference() {
+          var index = 0;
+
+          for (var i = this.LowerBounds.length - 1; i >= 0; i--)
+            index += (arguments[i] - this.LowerBounds[i]) * this.DWeight[i];
+
+          return new JSIL.MemberReference(this.Items, index);
+        }
+      );
+
       $.Method({ Static: false, Public: true }, "Get",
         new JSIL.MethodSignature(elementTypeObject, shortCtorArgs, []),
         function Get() {

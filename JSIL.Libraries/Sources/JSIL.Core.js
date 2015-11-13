@@ -5262,30 +5262,22 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
     case "array":
       // Allow casting array interface overlays back to appropriate array types
-      var _isFunction = isFunction;
-      isFunction = function Is_Array (expression) {
-        return _isFunction(expression) || (
-          JSIL.GetType(expression) === typeObject
-        );
+      isFunction = function Is_Array(expression) {
+        var type = JSIL.GetType(expression);
+        return type === typeObject ||
+          (type.__IsArray__
+          && typeObject.__Dimensions__ === type.__Dimensions__
+          && type.__ElementType__.__IsReferenceType__
+          && typeObject.__ElementType__.__AssignableFromTypes__[type.__ElementType__.__TypeId__]);
       };
 
-      var _asFunction = asFunction;
-      asFunction = function As_Array (expression) {
-        var result = _asFunction(expression);
-
-        if ((result === null) && (JSIL.GetType(expression) === typeObject))
-          result = expression;
-
-        return result;
+      asFunction = function As_Array(expression) {
+        return isFunction(expression) ? expression : null;
       };
 
       castFunction = function CastArray (expression) {
-        if (_isFunction(expression))
+        if (isFunction(expression))
           return expression;
-
-        if (expression && JSIL.GetType(expression) === typeObject) {
-          return expression;
-        }
 
         throwCastError(expression);
       };
