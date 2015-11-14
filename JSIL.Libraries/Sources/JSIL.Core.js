@@ -497,14 +497,14 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   // Ensure that BCL private namespaces inherit from the JSIL namespace.
   if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta)
-    template = $jsilcore;
+    template = $jsilcore || {};
 
   var result = JSIL.CreateSingletonObject(template);
 
   var assemblyId;
 
   // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
-  if (isMscorlib) {
+  if (isMscorlib && $jsilcore) {
     assemblyId = $jsilcore.__AssemblyId__;
   } else {
     assemblyId = ++JSIL.$NextAssemblyId;
@@ -543,7 +543,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 };
 
 
-var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+var $jsilcore = JSIL.DeclareAssembly("mscorlib");
 
 (function () {
   JSIL.$SpecialTypePrototypes["System.RuntimeType"].__ThisTypeId__ = 
