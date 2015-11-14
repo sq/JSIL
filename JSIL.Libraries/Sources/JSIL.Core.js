@@ -8309,7 +8309,7 @@ JSIL.ResolvedMethodSignature = function (methodSignature, key, returnType, argum
 
 JSIL.ResolvedMethodSignature.prototype.ResolvePositionalGenericParameters = function (genericParameterValues) {
   var context = {};
-  for (var k = 0, m = this.argumentTypes.length; k < m; k++) {
+  for (var k = 0, m = genericParameterValues.length; k < m; k++) {
     context["!!" + k] = genericParameterValues[k];
   }
 
