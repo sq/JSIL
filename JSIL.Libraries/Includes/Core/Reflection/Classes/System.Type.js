@@ -174,7 +174,8 @@
           defaultFlags(),
           null,
           null,
-          true
+          true,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.MemberInfo).__Type__
         );
       }
     );
@@ -187,7 +188,8 @@
           flags,
           null,
           null,
-          true
+          true,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.MemberInfo).__Type__
         );
       }
     );
@@ -266,7 +268,10 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "MethodInfo"
+          "MethodInfo",
+          null,
+          false,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.MethodInfo).__Type__
         );
       }
     );
@@ -275,7 +280,7 @@
       new JSIL.MethodSignature(methodArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "MethodInfo"
+          this, flags, "MethodInfo", null, false, $jsilcore.System.Array.Of($jsilcore.System.Reflection.MethodInfo).__Type__
         );
       }
     );
@@ -290,7 +295,8 @@
           System.Reflection.BindingFlags.Public,
           "EventInfo",
           null,
-          true
+          true,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.EventInfo).__Type__
         );
       }
     );
@@ -299,7 +305,7 @@
       new JSIL.MethodSignature(eventArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "EventInfo", null, true
+          this, flags, "EventInfo", null, true, $jsilcore.System.Array.Of($jsilcore.System.Reflection.EventInfo).__Type__
         );
       }
     );
@@ -370,7 +376,10 @@
           //  since calling the System.Object constructor to create an instance of String
           //  is totally insane.
           System.Reflection.BindingFlags.DeclaredOnly,
-          "ConstructorInfo"
+          "ConstructorInfo",
+          null,
+          false,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.ConstructorInfo).__Type__
         );
       }
     );
@@ -379,7 +388,7 @@
       new JSIL.MethodSignature(methodArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags | System.Reflection.BindingFlags.DeclaredOnly, "ConstructorInfo"
+          this, flags | System.Reflection.BindingFlags.DeclaredOnly, "ConstructorInfo", null, false, $jsilcore.System.Array.Of($jsilcore.System.Reflection.ConstructorInfo).__Type__
         );
       }
     );
@@ -392,7 +401,10 @@
           System.Reflection.BindingFlags.Instance |
           System.Reflection.BindingFlags.Static |
           System.Reflection.BindingFlags.Public,
-          "FieldInfo"
+          "FieldInfo",
+          null,
+          false,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.FieldInfo).__Type__
         );
       }
     );
@@ -401,7 +413,7 @@
       new JSIL.MethodSignature(fieldArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "FieldInfo"
+          this, flags, "FieldInfo", null, false, $jsilcore.System.Array.Of($jsilcore.System.Reflection.FieldInfo).__Type__
         );
       }
     );
@@ -416,7 +428,8 @@
           System.Reflection.BindingFlags.Public,
           "PropertyInfo",
           null,
-          true
+          true,
+          $jsilcore.System.Array.Of($jsilcore.System.Reflection.PropertyInfo).__Type__
         );
       }
     );
@@ -425,7 +438,7 @@
       new JSIL.MethodSignature(propertyArray, [$jsilcore.TypeRef("System.Reflection.BindingFlags")]),
       function (flags) {
         return JSIL.GetMembersInternal(
-          this, flags, "PropertyInfo", null, true
+          this, flags, "PropertyInfo", null, true, $jsilcore.System.Array.Of($jsilcore.System.Reflection.PropertyInfo).__Type__
         );
       }
     );
@@ -514,7 +527,7 @@
     $.Method({ Public: true, Static: false }, "GetInterfaces",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),
       function () {
-        return JSIL.GetInterfacesImplementedByType(this, true, false);
+        return JSIL.GetInterfacesImplementedByType(this, true, false, false, $jsilcore.System.Array.Of($jsilcore.System.Type).__Type__);
       }
     );
 

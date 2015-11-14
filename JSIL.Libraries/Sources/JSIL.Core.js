@@ -9128,9 +9128,9 @@ JSIL.GetReflectionCache = function (typeObject) {
 // Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
 // If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
 // If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
-JSIL.GetMembersInternal = function (typeObject, flags, memberType, name, hideMembers) {
+JSIL.GetMembersInternal = function (typeObject, flags, memberType, name, hideMembers, resultArrayType) {
   hideMembers |= false;
-  var result = [];
+  var result = resultArrayType ? JSIL.Array.New(resultArrayType.__ElementType__, 0) : [];
   var bindingFlags = $jsilcore.BindingFlags;
 
   var allMethodsIncludingSpecialNames = (memberType === "$AllMethods");
@@ -9846,7 +9846,7 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
 
   if (inherit) {
     if (!result)
-      result = [];
+      result = JSIL.Array.New($jsilcore.System.Attribute, 0);
 
     if (memberType === "System.RuntimeType") {
       var currentType = memberInfo;
@@ -9884,7 +9884,7 @@ JSIL.GetMemberAttributes = function (memberInfo, inherit, attributeType, result)
   }
 
   if (!result)
-    result = [];
+    result = JSIL.Array.New($jsilcore.System.Attribute, 0);
 
   for (var i = 0, l = attributes.length; i < l; i++) {
     var attribute = attributes[i];
@@ -10159,14 +10159,14 @@ JSIL.$EnumBasesOfType = function (typeObject, resultList) {
   }
 };
 
-JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, allowDuplicates, includeDistance) {
+JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, allowDuplicates, includeDistance, resultArrayType) {
   // FIXME: Memoize the result of this function?
 
   if (arguments.length < 3)
     JSIL.RuntimeError("3 arguments expected");
 
   var typeAndBases = JSIL.GetTypeAndBases(typeObject);
-  var result = [];
+  var result = resultArrayType ? JSIL.Array.New(resultArrayType.__ElementType__, 0) : [];
   var distanceList = [];
 
   // Walk in reverse to match the behavior of JSIL.Internal.TypeInfo.AllInterfacesRecursive

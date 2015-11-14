@@ -82,11 +82,15 @@
 
       var setMethod = this.GetSetMethod(true);
       if (setMethod) {
-        var result = setMethod.GetParameters();
-        return result.slice(0, result.length - 1);
+        var parameters = setMethod.GetParameters();
+        var result = JSIL.Array.New($jsilcore.System.Reflection.ParameterInfo, parameters.length - 1);
+        for (var i = 0; i < result.length - 1; i++) {
+          result[i] = parameters[i];
+        }
+        return result;
       }
 
-      return [];
+      return JSIL.Array.New($jsilcore.System.Reflection.ParameterInfo, 0);
     }
   );
 
