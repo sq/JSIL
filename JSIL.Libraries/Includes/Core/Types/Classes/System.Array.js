@@ -114,6 +114,17 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         }
       );
 
+      $.RawMethod(true, "CheckType",
+        function (value) {
+          if (value === null)
+            return false;
+          var type = JSIL.GetType(value);
+          return type.__IsArray__ && !type.__Dimensions__
+            && ((type.__ElementType__.__TypeId__ === this.__ElementType__.__TypeId__)
+              || (type.__ElementType__.__IsReferenceType__ && this.__ElementType__.__AssignableFromTypes__[type.__ElementType__.__TypeId__]));
+        }
+      );
+
       $.ImplementInterfaces(
         $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [elementTypeObject]),
         $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [elementTypeObject]),
@@ -269,6 +280,16 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
       $.Property({ Static: false, Public: true }, "length", $.Int32);
       $.Property({ Static: false, Public: true }, "Length", $.Int32);
+
+      $.RawMethod(true, "CheckType",
+        function (value) {
+          if (value === null)
+            return false;
+          var type = JSIL.GetType(value);
+          return type.__IsArray__ && type.__Dimensions__ === this.__Dimensions__
+            && ((type.__ElementType__.__TypeId__ === this.__ElementType__.__TypeId__)
+              || (type.__ElementType__.__IsReferenceType__ && this.__ElementType__.__AssignableFromTypes__[type.__ElementType__.__TypeId__]));
+        });
     });
 
     var publicInterface = assembly.TypeRef(name).get();
@@ -321,6 +342,12 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
   $.RawMethod(true, "Of$NoInitialize", of);
   $.RawMethod(true, "Of", of);
+
+  $.RawMethod(true, "CheckType",
+    function(value) {
+      return value !== null && JSIL.GetType(value).__IsArray__;
+    }
+  );
 
   $.ImplementInterfaces(
     $jsilcore.TypeRef("System.Collections.IEnumerable"),

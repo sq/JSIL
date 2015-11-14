@@ -5261,30 +5261,6 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
       break;
 
-    case "array":
-      // Allow casting array interface overlays back to appropriate array types
-      isFunction = function Is_Array(expression) {
-        var type = JSIL.GetType(expression);
-        return type === typeObject ||
-          (type.__IsArray__
-          && typeObject.__Dimensions__ === type.__Dimensions__
-          && type.__ElementType__.__IsReferenceType__
-          && typeObject.__ElementType__.__AssignableFromTypes__[type.__ElementType__.__TypeId__]);
-      };
-
-      asFunction = function As_Array(expression) {
-        return isFunction(expression) ? expression : null;
-      };
-
-      castFunction = function CastArray (expression) {
-        if (isFunction(expression))
-          return expression;
-
-        throwCastError(expression);
-      };
-
-      break;
-
     case "char":
       customCheckOnly = true;
       asFunction = throwInvalidAsError;
@@ -5746,8 +5722,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
     var isNullable = fullName === "System.Nullable`1";
-    var isArray = staticClassObject.prototype.__IsArray__ || false;
-    JSIL.MakeCastMethods(staticClassObject, typeObject, isNullable ? "nullable" : (isArray ? "array" : null));
+    JSIL.MakeCastMethods(staticClassObject, typeObject, isNullable ? "nullable" : null);
 
     delete $jsilcore.InFlightObjectConstructions[fullName];
 
@@ -10367,7 +10342,10 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
     return result;
   }
 
-  result.is = function Is_VariantInterface (value) {
+  result.is = function Is_VariantInterface(value) {
+    if (value === null)
+      return false;
+
     var result = isFunction(value);
 
     if (trace)
@@ -10382,7 +10360,10 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
     return result;
   };
 
-  result.as = function As_VariantInterface (value) {
+  result.as = function As_VariantInterface(value) {
+    if (value === null)
+      return null;
+
     var result = asFunction(value);
 
     if (trace && !result)

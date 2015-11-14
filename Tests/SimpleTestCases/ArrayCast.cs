@@ -29,6 +29,10 @@ public static class Program
 
         Console.WriteLine("object[,]");
         TestObject(new object[0, 0]);
+        Console.WriteLine();
+
+        Console.WriteLine("null");
+        TestObject(null);
     }
 
     public static void TestObject(object c)
@@ -52,6 +56,17 @@ public static class Program
         Console.WriteLine("IEnumerable<OtherTestClass>: " + (c is IEnumerable<OtherTestClass> ? "true" : "false"));
         Console.WriteLine("ICollection<OtherTestClass>: " + (c is ICollection<OtherTestClass> ? "true" : "false"));
         Console.WriteLine("IList<OtherTestClass>: " + (c is IList<OtherTestClass> ? "true" : "false"));
+
+        Console.WriteLine("Array: " + (c is Array ? "true" : "false"));
+        Console.WriteLine("TestClass[]: " + (c is TestClass[] ? "true" : "false"));
+        Console.WriteLine("TestStruct[]: " + (c is TestStruct[] ? "true" : "false"));
+        Console.WriteLine("object[]: " + (c is object[] ? "true" : "false"));
+        Console.WriteLine("OtherTestClass[]: " + (c is OtherTestClass[] ? "true" : "false"));
+        Console.WriteLine("TestClass[,]: " + (c is TestClass[,] ? "true" : "false"));
+        Console.WriteLine("TestStruct[,]: " + (c is TestStruct[,] ? "true" : "false"));
+        Console.WriteLine("object[,]: " + (c is object[,] ? "true" : "false"));
+        Console.WriteLine("OtherTestClass[,]: " + (c is OtherTestClass[,] ? "true" : "false"));
+
     }
 }
 
