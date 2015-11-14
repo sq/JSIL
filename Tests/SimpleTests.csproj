@@ -137,6 +137,8 @@
     <None Include="SimpleTestCases\FailsOnMono\ArrayEmpty.cs" />
     <None Include="SimpleTestCases\NumericTypesIConvertible.cs" />
     <Compile Include="SimpleTestCases\StringAsIConvertible.cs" />
+    <None Include="SimpleTestCases\ArrayICollectionMethods.cs" />
+    <None Include="SimpleTestCases\ArrayCast.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

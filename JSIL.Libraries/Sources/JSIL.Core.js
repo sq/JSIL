@@ -5042,16 +5042,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   var isInterface = typeObject.IsInterface || false;
 
   // HACK: Handle casting arrays to IEnumerable by creating an overlay.
-  if (isIEnumerable || isICollection || isIList) {
-    checkMethod = function Check_ArrayInterface (value) {
-      // FIXME: IEnumerable<int>.Is(float[]) will return true.
-      if (JSIL.IsArray(value))
-        return true;
-
-      // Fallback to default check logic
-      return false;
-    };
-  } else if (isPointer) {
+  if (isPointer) {
     var expectedElementTypeId = typeObject.__GenericArgumentValues__[0].__TypeId__;
 
     checkMethod = function Check_IsPointer (value) {
@@ -5069,7 +5060,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     isFunction = JSIL.CreateNamedFunction(
       typeName + ".$Is", 
       ["expression", "bypassCustomCheckMethod"],
-      "if (!bypassCustomCheckMethod && checkMethod(expression))\r\n" +
+      "if (!bypassCustomCheckMethod && checkMethod(expression,typePublicInterface))\r\n" +
       "  return true;\r\n" +
       "if (expression) {\r\n" +
       "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
@@ -5079,7 +5070,8 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       {
         typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
-        checkMethod: checkMethod
+        checkMethod: checkMethod,
+        typePublicInterface: publicInterface
       }
     );
   } else {
@@ -5102,7 +5094,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     asFunction = JSIL.CreateNamedFunction(
       typeName + ".$As", 
       ["expression"],
-      "if (checkMethod(expression))\r\n" +
+      "if (checkMethod(expression,typePublicInterface))\r\n" +
       "  return expression;\r\n" +
       "else if (expression) {\r\n" +
       "  var expressionTypeId = expression.__IsBox__ ? expression.TValue.__TypeId__ : expression.__ThisTypeId__;\r\n" +
@@ -5113,7 +5105,8 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       {
         typeId: typeId,
         assignableFromTypes: assignableFromTypes, 
-        checkMethod: checkMethod
+        checkMethod: checkMethod,
+        typePublicInterface: publicInterface
       }
     );
   } else {
@@ -5342,21 +5335,6 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     };
   }
 
-  if (isIEnumerable || isICollection || isIList) {
-    var innerAsFunction = asFunction;
-    var innerCastFunction = castFunction;
-
-    asFunction = function As_ArrayInterface (value) {
-      // FIXME: I think the order of these function calls should be reversed.
-      return innerAsFunction(value);
-    };
-
-    castFunction = function Cast_ArrayInterface (value) {
-      // FIXME: I think the order of these function calls should be reversed.
-      return innerCastFunction(value);
-    };
-  }
-
   if (isInterface) {
     var wrappedFunctions = JSIL.WrapCastMethodsForInterfaceVariance(typeObject, isFunction, asFunction);
     isFunction = wrappedFunctions.is;
@@ -5368,6 +5346,14 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
     As: asFunction,
     Is: isFunction
   }
+};
+
+JSIL.$TypeAssignableFromExpression = function (expression, typePublicInterface) {
+  return expression !== null && JSIL.$TypeAssignableFromTypeId(JSIL.GetType(expression).__TypeId__, typePublicInterface);
+};
+
+JSIL.$TypeAssignableFromTypeId = function(expressionTypeId, typePublicInterface) {
+  return (expressionTypeId === typePublicInterface.__TypeId__) || (!!typePublicInterface.__Type__.__AssignableFromTypes__[expressionTypeId]);
 };
 
 JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
@@ -10289,6 +10275,11 @@ JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject,
       var lhs = expectedInterfaceObject.__GenericArgumentValues__[vp.index];
       var rhs = iface.__GenericArgumentValues__[vp.index];
 
+      if (!lhs.__IsReferenceType__ || !rhs.__IsReferenceType__) {
+        ifaceResult = false;
+        break;
+      }
+
       var parameterResult = true;
       var foundIndex = -1;
 
@@ -10301,8 +10292,9 @@ JSIL.$FindMatchingInterfacesThroughVariance = function (expectedInterfaceObject,
           foundIndex = typeAndBasesLhs.indexOf(rhs);
         }
 
-        if (foundIndex < 0)
+        if (foundIndex < 0) {
           ifaceResult = parameterResult = false;
+        }
       } 
 
       if (vp.out) {
