@@ -75,6 +75,7 @@
     <None Include="DCETests\DCEMetaAttributes.cs" />
     <None Include="DCETests\DCEMetaAttributesOnProxies.cs" />
     <None Include="DCETests\StripOuterTypes.cs" />
+    <None Include="DCETests\StripInterfaceImplementation.cs" />
     <Compile Include="DeadCodeEliminationTest.cs" />
     <None Include="app.config" />
     <Compile Include="Properties\AssemblyInfo.cs" />
