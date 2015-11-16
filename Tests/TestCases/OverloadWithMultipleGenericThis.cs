@@ -7,6 +7,7 @@ public static class Program {
         var s = "a";
         t.OverloadedMethod(ref s);
         t.OverloadedMethod(new[] { "a", "b" });
+        t.OverloadedMethod(new G<string>());
     }
 }
 
@@ -20,4 +21,14 @@ public class CustomType {
     public void OverloadedMethod<T> (T[] t) {
         Console.WriteLine("OverloadedMethod<{0}>(<T[]>) this={1}", typeof(T), this);
     }
+
+    [JSRuntimeDispatch]
+    public void OverloadedMethod<T>(G<T> t)
+    {
+        Console.WriteLine("OverloadedMethod<{0}>(<T[]>) this={1}", typeof(T), this);
+    }
+}
+
+public class G<T>
+{
 }

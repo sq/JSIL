@@ -2,7 +2,7 @@
   var result = method._cachedParameters;
 
   if (typeof (result) === "undefined") {
-    result = method._cachedParameters = [];
+    result = method._cachedParameters = JSIL.Array.New($jsilcore.System.Reflection.ParameterInfo, 0);
     method.InitResolvedSignature();
 
     var argumentTypes = method._data.resolvedSignature.argumentTypes;
@@ -29,7 +29,7 @@
 $jsilcore.$MethodGetParameterTypes = function (method) {
   var signature = method._data.signature;
   var argumentTypes = signature.argumentTypes;
-  var result = [];
+  var result = JSIL.Array.New($jsilcore.System.Type, 0);
 
   for (var i = 0, l = argumentTypes.length; i < l; i++) {
     var argumentType = argumentTypes[i];

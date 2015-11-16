@@ -2,7 +2,7 @@
     $.RawMethod(true, "CheckType",
       function (value) {
           var type = typeof (value);
-          return (type === "object" || type === "number" || type === "string" || type === "boolean");
+          return value !== null && (type === "object" || type === "number" || type === "string" || type === "boolean");
       }
     );
 

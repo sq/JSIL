@@ -23,7 +23,6 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 //? include("Helpers/JSIL.MakeIConvertibleMethods.js"); writeln();
 
 //? include("Classes/JSIL.ArrayEnumerator.js"); writeln();
-//? include("Classes/JSIL.ArrayInterfaceOverlay.js"); writeln();
 
 //? include("Classes/System.Boolean.js"); writeln();
 //? include("Classes/System.Char.js"); writeln();

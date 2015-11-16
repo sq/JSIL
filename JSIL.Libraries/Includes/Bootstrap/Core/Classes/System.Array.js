@@ -92,7 +92,7 @@ JSIL.ImplementExternals("System.Array", function ($) {
     function Sort(array) {
       sortImpl(array, 0, array.length, JSIL.CompareValues);
     }
-  )
+  );
 
   $.Method({ Static: true, Public: true }, "Sort",
     new JSIL.MethodSignature(null, [

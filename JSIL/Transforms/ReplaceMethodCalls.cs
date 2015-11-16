@@ -314,35 +314,6 @@ namespace JSIL.Transforms {
                             return;
                         }
                     }
-                } else if (
-                    method.Method.DeclaringType.Definition.FullName == "System.Array" &&
-                    (ie.Arguments.Count == 1)
-                ) {
-                    switch (method.Method.Name) {
-                        case "GetLength":
-                        case "GetUpperBound": {
-                                var index = ie.Arguments[0] as JSLiteral;
-                                if (index != null) {
-                                    var newDot = JSDotExpression.New(thisExpression, new JSStringIdentifier(
-                                        String.Format("length{0}", Convert.ToInt32(index.Literal), true),
-                                        TypeSystem.Int32
-                                    ));
-
-                                    if (method.Method.Name == "GetUpperBound") {
-                                        var newExpr = new JSBinaryOperatorExpression(
-                                            JSOperator.Subtract, newDot, JSLiteral.New(1), TypeSystem.Int32
-                                        );
-                                        ParentNode.ReplaceChild(ie, newExpr);
-                                    } else {
-                                        ParentNode.ReplaceChild(ie, newDot);
-                                    }
-                                }
-                                break;
-                            }
-                        case "GetLowerBound":
-                            ParentNode.ReplaceChild(ie, JSLiteral.New(0));
-                            break;
-                    }
                 }
             }
 

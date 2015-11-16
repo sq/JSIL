@@ -284,7 +284,9 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Text.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
-  environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
+  if (config.bclMode !== "translated") {
+    environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
+  }
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Async.js");
 
   if (config.xml || environment.getUserSetting("xml"))
