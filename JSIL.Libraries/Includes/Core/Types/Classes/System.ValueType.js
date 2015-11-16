@@ -63,7 +63,7 @@
     for (var i = 0; i < fields.length; i++) {
       var field = fields[i];
       var fieldAccess = JSIL.FormatMemberAccess("thisReference", field.name);
-      body.push("  hash =( Math.imul(hash * 23) + ((" + fieldAccess + "=== null ? 0 : " + fieldAccess + ") | 0)) | 0;");
+      body.push("  hash =( Math.imul(hash * 23) + ((" + fieldAccess + " === null ? 17 : JSIL.ObjectHashCode(" + fieldAccess + ", true, $jsilcore.System.Object)) | 0)) | 0;");
     }
     body.push("  return hash;");
 

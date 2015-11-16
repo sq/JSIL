@@ -8,15 +8,15 @@ public static class Program {
         var s2 = new Pair<int, int>(1, 1);
         var s3 = new Pair<int, int>(1, 2);
 
-        var obj1 = new ClassWithCustomHashCode(1);
-        var obj2 = new ClassWithCustomHashCode(2);
+        var obj1 = new object();
+        var obj2 = new object();
 
-        var s4 = new Pair<int, object>(1, obj1);
-        var s5 = new Pair<int, object>(1, obj1);
-        var s6 = new Pair<int, object>(1, obj2);
-        var s7 = new Pair<int, object>(1, obj2);
-        var s8 = new Pair<int, object>(1, null);
-        var s9 = new Pair<int, object>(1, null);
+        var s4 = new Pair<object, object>(null, obj1);
+        var s5 = new Pair<object, object>(null, obj1);
+        var s6 = new Pair<object, object>(null, obj2);
+        var s7 = new Pair<object, object>(null, obj2);
+        var s8 = new Pair<object, object>(null, null);
+        var s9 = new Pair<object, object>(null, null);
 
         Console.WriteLine(s1.GetHashCode() == s2.GetHashCode() ? "true" : "false");
         Console.WriteLine(s1.GetHashCode() == s3.GetHashCode() ? "true" : "false");
@@ -27,21 +27,6 @@ public static class Program {
 
         Console.WriteLine(s6.GetHashCode() == s7.GetHashCode() ? "true" : "false");
         Console.WriteLine(s8.GetHashCode() == s9.GetHashCode() ? "true" : "false");
-    }
-}
-
-public class ClassWithCustomHashCode
-{
-    private int _hashCode;
-
-    public ClassWithCustomHashCode(int hashCode)
-    {
-        _hashCode = hashCode;
-    }
-
-    public override int GetHashCode()
-    {
-        return _hashCode;
     }
 }
 
