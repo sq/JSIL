@@ -151,4 +151,20 @@
   $.Field({ Static: false, Public: false }, "value", mscorlib.TypeRef("System.Double"), function () {
     return 0;
   });
+
+  var $formatSignature = function () {
+    return ($formatSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [
+        $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Double"),
+        $jsilcore.TypeRef("System.IFormatProvider")
+    ])))();
+  };
+
+  $.RawMethod(
+    true, "$ToString",
+    function $ToString(self, format, formatProvider) {
+      return $formatSignature().CallStatic($jsilcore.JSIL.System.NumberFormatter, "NumberToString", null, format, decimalToNumber(self), formatProvider).toString();
+    }
+  );
+
+  JSIL.MakeIConvertibleMethods($);
 });

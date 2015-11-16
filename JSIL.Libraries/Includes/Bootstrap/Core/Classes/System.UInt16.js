@@ -12,4 +12,4 @@ JSIL.ImplementExternals(
     $.Constant({ Public: true, Static: true }, "MinValue", 0);
   }
 );
-JSIL.MakeNumericType(Number, "System.UInt16", true, "Uint16Array");
+JSIL.MakeNumericType(Number, "System.UInt16", true, "Uint16Array", JSIL.MakeIConvertibleMethods);

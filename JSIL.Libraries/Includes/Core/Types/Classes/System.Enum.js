@@ -22,14 +22,24 @@ JSIL.ImplementExternals("System.Enum", function ($) {
     $.Method({ Static: false, Public: false, Virtual: true }, "ToInt32",
       new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.IFormatProvider")], []),
       function (provider) {
-          return $jsilcore.System.Convert.ToInt32(this.value, provider);
+        var value = this.value;
+        if (typeof (value) == "number") {
+          value = this.__ThisType__.__StorageType__.__PublicInterface__.$Box(value);
+        }
+
+        return $jsilcore.System.Convert.ToInt32(value, provider);
       }
     );
 
     $.Method({ Static: false, Public: false, Virtual: true }, "ToInt64",
       new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.IFormatProvider")], []),
       function (provider) {
-          return $jsilcore.System.Convert.ToInt64(this.value, provider);
+        var value = this.value;
+        if (typeof (value) == "number") {
+          value = this.__ThisType__.__StorageType__.__PublicInterface__.$Box(value);
+        }
+
+        return $jsilcore.System.Convert.ToInt64(value, provider);
       }
     );
 

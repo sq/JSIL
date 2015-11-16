@@ -9,4 +9,4 @@
     $.Constant({ Public: true, Static: true }, "MaxValue", 255);
   }
 );
-JSIL.MakeNumericType(Number, "System.Byte", true, "Uint8Array");
+JSIL.MakeNumericType(Number, "System.Byte", true, "Uint8Array", JSIL.MakeIConvertibleMethods);

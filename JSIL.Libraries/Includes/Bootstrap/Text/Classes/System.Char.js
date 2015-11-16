@@ -78,4 +78,11 @@ JSIL.ImplementExternals("System.Char", function ($) {
       return c.toUpperCase();
     }
   );
+
+  $.Method({ Static: true, Public: true }, "ToString",
+    new JSIL.MethodSignature($.String, [$.Char], []),
+    function ToString(c) {
+      return c;
+    }
+  );
 });

@@ -8,4 +8,4 @@
     $.Constant({ Public: true, Static: true }, "MinValue", "\0");
   }
 );
-JSIL.MakeNumericType(String, "System.Char", true);
+JSIL.MakeNumericType(String, "System.Char", true, null, JSIL.MakeIConvertibleMethods);

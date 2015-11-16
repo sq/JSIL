@@ -9,4 +9,4 @@ JSIL.ImplementExternals(
     $jsilcore.$MakeParseExternals($, $.Boolean, $jsilcore.$ParseBoolean, $jsilcore.$TryParseBoolean);
   }
 );
-JSIL.MakeNumericType(Boolean, "System.Boolean", true);
+JSIL.MakeNumericType(Boolean, "System.Boolean", true, null, JSIL.MakeIConvertibleMethods);

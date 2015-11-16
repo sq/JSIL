@@ -109,8 +109,24 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
       return $jsilcore.getCurrentUICultureImpl();
     }
   );
+
+  $.Method({ Static: false, Public: true, Virtual: true }, "GetFormat",
+    (new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], [])),
+    function CultureInfo_GetFormat(formatType) {
+      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.NumberFormatInfo.__Type__)) {
+        return this.get_NumberFormat();
+      }
+      if ($jsilcore.System.Type.op_Equality(formatType, $jsilcore.System.Globalization.DateTimeFormatInfo.__Type__)) {
+        return this.get_DateTimeFormat();
+      }
+      return null;
+    }
+  );
 });
 
 JSIL.MakeClass("System.Object", "System.Globalization.CultureInfo", true, [], function ($) {
+  $.ExternalMethod({ Static: false, Public: true, Virtual: true }, "GetFormat", (new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], [])));
   $.Field({ Public: false, Static: false }, "numInfo", $jsilcore.TypeRef("System.Globalization.NumberFormatInfo"));
+
+  $.ImplementInterfaces($jsilcore.TypeRef("System.IFormatProvider"));
 })
