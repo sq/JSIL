@@ -13,21 +13,21 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   $.SetValue("__IsArray__", true);
 
   $.RawMethod(false, "GetLength", function (dimension) {
-    if (this.LowerBounds || false) {
+    if (!JSIL.IsArray(this)) {
       return this.DimensionLength[dimension];
     }
 
     return this.length;
   });
   $.RawMethod(false, "GetLowerBound", function (dimension) {
-    if (this.LowerBounds || false) {
+    if (!JSIL.IsArray(this)) {
       return this.LowerBounds[dimension];
     }
 
     return 0;
   });
   $.RawMethod(false, "GetUpperBound", function (dimension) {
-    if (this.LowerBounds || false) {
+    if (!JSIL.IsArray(this)) {
       return this.LowerBounds[dimension] + this.DimensionLength[dimension] - 1;
     }
 

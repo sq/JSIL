@@ -9445,7 +9445,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
 JSIL.Array.Clone = function(array) {
   var type = JSIL.GetType(array);
   if (type.__IsArray__) {
-    if (array.__Dimensions__) {
+    if (!JSIL.IsArray(array)) {
       var bounds = [];
       for (var i = 0; i < array.LowerBounds.length; i++) {
         bounds.push(array.LowerBounds[i]);
