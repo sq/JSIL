@@ -191,6 +191,7 @@
     <None Include="SimpleTestCases\Issue247.cs" />
     <None Include="SimpleTestCases\Issue248.cs" />
     <None Include="SimpleTestCases\Issue249.cs" />
+    <None Include="SimpleTestCases\Array2DGetEnumerator_Issue895.cs" />
     <None Include="SimpleTestCases\NullableGetType.cs" />
     <None Include="SimpleTestCases\IEEERemainder.cs" />
     <None Include="SimpleTestCases\StringFormatAlignment.cs" />
