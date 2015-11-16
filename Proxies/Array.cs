@@ -24,20 +24,20 @@ namespace JSIL.Proxies {
         abstract public long LongLength { get; }
 
 
-        [JSReplacement("$$jsilcore.System.Array.prototype.GetLowerBound.call($this, $dimenstion)")]
-        public int GetLowerBound(int dimenstion)
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetLowerBound.call($this, $dimension)")]
+        public int GetLowerBound(int dimension)
         {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$$jsilcore.System.Array.prototype.GetUpperBound.call($this, $dimenstion)")]
-        public int GetUpperBound(int dimenstion)
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetUpperBound.call($this, $dimension)")]
+        public int GetUpperBound(int dimension)
         {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$$jsilcore.System.Array.prototype.GetLength.call($this, $dimenstion)")]
-        public int GetLength(int dimenstion)
+        [JSReplacement("$$jsilcore.System.Array.prototype.GetLength.call($this, $dimension)")]
+        public int GetLength(int dimension)
         {
             throw new InvalidOperationException();
         }
