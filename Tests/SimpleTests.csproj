@@ -239,6 +239,7 @@
     <None Include="SimpleTestCases\ArrayLongLength.cs" />
     <None Include="SimpleTestCases\ArrayResize.cs" />
     <None Include="SimpleTestCases\StringContains.cs" />
+    <None Include="SimpleTestCases\StructHashCode.cs" />
     <None Include="SimpleTestCases\StringSubstring.cs" />
     <None Include="SimpleTestCases\GetTypeOfBoolean.cs" />
     <None Include="SimpleTestCases\Int32CompareExchange.cs" />

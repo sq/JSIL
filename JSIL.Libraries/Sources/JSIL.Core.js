@@ -3505,47 +3505,6 @@ JSIL.CopyMembers = function (source, target) {
   copier(source, target);
 };
 
-JSIL.$MakeComparerCore = function (typeObject, context, body) {
-  var fields = JSIL.GetFieldList(typeObject);
-
-  if (context.prototype.__CompareMembers__) {
-    context.comparer = context.prototype.__CompareMembers__;
-    body.push("  return context.comparer(lhs, rhs);");
-  } else {
-    for (var i = 0; i < fields.length; i++) {
-      var field = fields[i];
-      var fieldType = field.type;
-
-      if (fieldType.__IsNumeric__ || fieldType.__IsEnum__) {
-        body.push("  if (" + JSIL.FormatMemberAccess("lhs", field.name) + " !== " + JSIL.FormatMemberAccess("rhs", field.name) + ")");
-      } else {
-        body.push("  if (!JSIL.ObjectEquals(" + JSIL.FormatMemberAccess("lhs", field.name) + ", " + JSIL.FormatMemberAccess("rhs", field.name) + "))");
-      }
-
-      body.push("    return false;");
-    }
-
-    body.push("  return true;");
-  }
-}
-
-JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
-  var prototype = publicInterface.prototype;
-  var context = {
-    prototype: prototype
-  };
-
-  var body = [];
-
-  JSIL.$MakeComparerCore(typeObject, context, body);
-
-  return JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + ".StructComparer",
-    ["lhs", "rhs"], 
-    body.join("\r\n")
-  );
-};
-
 JSIL.$MakeCopierCore = function (typeObject, context, body, resultVar) {
   var fields = JSIL.GetFieldList(typeObject);
 
@@ -5612,6 +5571,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     typeObject.__FieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Comparer__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__GetHashCode__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Marshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Unmarshaller__ = $jsilcore.FunctionNotInitialized;
     typeObject.__UnmarshalConstructor__ = $jsilcore.FunctionNotInitialized;
@@ -9231,21 +9191,6 @@ JSIL.AnyValueType = JSIL.AnyType = {
 JSIL.ApplyCollectionInitializer = function (target, values) {
   for (var i = 0, l = values.length; i < l; i++)
     target.Add.apply(target, values[i]);
-};
-
-JSIL.StructEquals = function Struct_Equals (lhs, rhs) {
-  if (lhs === rhs)
-    return true;
-
-  if ((rhs === null) || (rhs === undefined))
-    return false;
-
-  var thisType = lhs.__ThisType__;
-  var comparer = thisType.__Comparer__;
-  if (comparer === $jsilcore.FunctionNotInitialized)
-    comparer = thisType.__Comparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
-
-  return comparer(lhs, rhs);
 };
 
 JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
