@@ -1167,7 +1167,7 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       if (existing !== undefined){
         if (existing != $jsilcore) {
           JSIL.WarningFormat(
-            "Private type '{0}' with external implementation defined more than twice: '{1}'" + 
+            "Private type '{0}' with external implementation defined more than twice: '{1}'", 
             [$private.toString(), existing.toString()]
           );
         }
