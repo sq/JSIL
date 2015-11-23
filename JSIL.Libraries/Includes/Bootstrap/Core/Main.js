@@ -120,19 +120,33 @@ JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.Exp
 
 JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
 JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
-JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T1", "System.Action`2").in(), new JSIL.GenericParameter("T2", "System.Action`2").in()]));
-JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"], new JSIL.MethodSignature(null, [
-      new JSIL.GenericParameter("T1", "System.Action`3").in(), new JSIL.GenericParameter("T2", "System.Action`3").in(),
-      new JSIL.GenericParameter("T3", "System.Action`3").in()
-]));
-
 JSIL.MakeDelegate("System.Func`1", true, ["TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`1").out(), null));
 JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`2").out(), [new JSIL.GenericParameter("T", "System.Func`2").in()]));
-JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`3").out(), [new JSIL.GenericParameter("T1", "System.Func`3").in(), new JSIL.GenericParameter("T2", "System.Func`3").in()]));
-JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`4").out(), [
-      new JSIL.GenericParameter("T1", "System.Func`4").in(), new JSIL.GenericParameter("T2", "System.Func`4").in(),
-      new JSIL.GenericParameter("T3", "System.Func`4").in()
-]));
+
+(function() {
+  for (var i = 2; i <= 16; i++) {
+    var actionName = "System.Action`" + i;
+    var funcName = "System.Func`" + (i + 1);
+    var genericArgsForActions = [];
+    var genericArgsForFunctions = [];
+
+    var inputForActions = [];
+    var inputForFunctions = [];
+    for (var j = 0; j < i; j++) {
+      var name = "T" + (j + 1);
+      genericArgsForActions.push(name);
+      genericArgsForFunctions.push(name);
+
+      inputForActions.push(new JSIL.GenericParameter(name, actionName).in());
+      inputForFunctions.push(new JSIL.GenericParameter(name, funcName).in());
+    }
+
+    genericArgsForFunctions.push("TResult");
+
+    JSIL.MakeDelegate(actionName, true, genericArgsForActions, new JSIL.MethodSignature(null, inputForActions));
+    JSIL.MakeDelegate(funcName, true, genericArgsForFunctions, new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", funcName).out(), inputForFunctions));
+  }
+})();
 
 JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.Predicate`1").in()]));
 
