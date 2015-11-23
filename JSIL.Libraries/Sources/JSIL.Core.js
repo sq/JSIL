@@ -491,12 +491,13 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
   var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
   var isJsilMeta = (shortName === "JSIL.Meta") || (assemblyName.indexOf("JSIL.Meta,") === 0);
+  var isMicrosoftCSharp = (shortName === "Microsoft.CSharp") || (assemblyName.indexOf("Microsoft.CSharp,") === 0);
 
   // Create a new private global namespace for the new assembly
   var template = {};
 
   // Ensure that BCL private namespaces inherit from the JSIL namespace.
-  if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta)
+  if (isMscorlib || isSystem || isSystemCore || isSystemXml || isJsilMeta || isMicrosoftCSharp)
     template = $jsilcore || {};
 
   var result = JSIL.CreateSingletonObject(template);

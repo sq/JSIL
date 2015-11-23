@@ -38,6 +38,14 @@
   <ItemGroup>
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.MakeIConvertibleMethods.js" />
     <Content Include="Includes\Bootstrap\Core\Interfaces\System.IConvertible.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\Microsoft.CSharp.RuntimeBinder.Binder.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Enums\Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfoFlags.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Enums\System.Linq.Expressions.ExpressionType.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Enums\Microsoft.CSharp.RuntimeBinder.CSharpBinderFlags.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\System.Runtime.CompilerServices.CallSiteBinder.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\System.Runtime.CompilerServices.CallSite.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Main.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />
     <None Include="package.json" />
     <None Include="packages.config">
@@ -277,6 +285,7 @@
     <Content Include="Includes\XML\Utils\JSIL.XML.WriterForStream.js" />
     <Content Include="Includes\XML\Utils\JSIL.XML.ReaderFromStream.js" />
     <Content Include="Sources\gamepad.js" />
+    <Content Include="Sources\JSIL.Bootstrap.Dynamic.js" />
     <Content Include="Sources\JSIL.Bootstrap.Text.js" />
     <Content Include="Sources\StubbedBCL\JSIL.IO.js" />
     <Content Include="Sources\StubbedBCL\JSIL.XML.js" />
@@ -339,6 +348,7 @@
       <Name>JSIL.mscorlib</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="Targets\Empty.targets" />
   <Import Project="Targets\MSBuild.Node.targets" />
   <Import Project="Targets\MSBuild.Npm.targets" />

@@ -288,6 +288,7 @@ var $jsilloaderstate = {
     environment.loadScript(libraryRoot + "JSIL.Bootstrap.Linq.js");
   }
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Async.js");
+  environment.loadScript(libraryRoot + "JSIL.Bootstrap.Dynamic.js");
 
   if (config.xml || environment.getUserSetting("xml"))
     environment.loadScript(libraryRoot + "JSIL.XML.js");

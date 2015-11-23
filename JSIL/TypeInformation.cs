@@ -1127,8 +1127,7 @@ namespace JSIL.Internal {
 
         static readonly Regex IgnoredKeywordRegex = new Regex(
             @"\<PrivateImplementationDetails\>|" +
-            @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__DynamicSite", 
+            @"\<Module\>", 
             RegexOptions.Compiled
         );
 
@@ -1182,26 +1181,11 @@ namespace JSIL.Internal {
         }
 
         public static bool IsIgnoredName (string shortName) {
-            foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
-                if (m2.Success) {
-                    var length = m2.Length;
-                    var index = m2.Index;
-                    if (
-                        (length >= 2) &&
-                        (shortName[index] == '_') && 
-                        (shortName[index + 1] == '_')
-                    ) {
-                        switch (m2.Value) {
-                            case "__DynamicSite":
-                            case "__SiteContainer":
-                                return true;
-
-                            default:
-                                return false;
-                        }
-                    } else {
-                        return true;
-                    }
+            foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName))
+            {
+                if (m2.Success)
+                {
+                    return true;
                 }
             }
 
