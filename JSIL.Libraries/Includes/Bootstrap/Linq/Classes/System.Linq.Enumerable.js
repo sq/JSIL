@@ -169,6 +169,89 @@
         }
       );
 
+      var lastImpl = function (T, enumerable, predicate) {
+        var IList = System.Collections.Generic.IList$b1.Of(T);
+        var list = IList.$As(enumerable);
+        if (list !== null) {
+          var item = IList.get_Item;
+          var useLength = (typeof list.Count) == 'undefined';
+          if ((useLength && list.length === 0) || list.Count === 0)
+            return { success: false };
+          var len = useLength ? list.length : list.Count;
+          if (arguments.length >= 3) {
+            for (var i = len - 1; i >= 0; i--) {
+              var val = item.Call(list, [], i);
+              if (predicate(val))
+                return {
+                  success: true,
+                  value: val
+                }
+            }
+            return { success: false };
+          } else {
+            return {
+              success: true,
+              value: item.Call(list, [], len - 1)
+            };
+          }
+        }
+        var e = JSIL.GetEnumerator(enumerable);
+
+        var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
+        var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+
+        try {
+          var acceptedVal;
+          var val;
+          while (moveNext.Call(e)) {
+              val = getCurrent.Call(e);
+              if (arguments.length >= 3) {
+                if (predicate(val))
+                  acceptedVal = val;
+              } else
+                acceptedVal = val;
+          }
+          if (typeof acceptedVal !== 'undefined')
+            return { success: true, value: acceptedVal };
+          return { success: false };
+        } finally {
+          JSIL.Dispose(e);
+        }
+      };
+
+      $.Method({ Static: true, Public: true }, "Last",
+        new JSIL.MethodSignature(
+          "!!0",
+          [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+            ["!!0"])],
+          ["TSource"]
+        ),
+        function (T, enumerable) {
+          var result = lastImpl(T, enumerable);
+          if (!result.success)
+              throw new System.InvalidOperationException("Sequence contains no elements");
+
+          return result.value;
+        }
+      );
+
+      $.Method({ Static: true, Public: true }, "Last",
+        new JSIL.MethodSignature(
+          "!!0",
+          [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]),
+           $jsilcore.TypeRef("System.Func`2", ["!!0", $.Boolean])],
+          ["TSource"]
+        ),
+        function (T, enumerable, predicate) {
+            var result = lastImpl(T, enumerable, predicate);
+            if (!result.success)
+                throw new System.InvalidOperationException("Sequence contains no elements");
+
+            return result.value;
+        }
+      );
+
+
       $.Method({ Static: true, Public: true }, "Select",
         new JSIL.MethodSignature(
           $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!1"]),
