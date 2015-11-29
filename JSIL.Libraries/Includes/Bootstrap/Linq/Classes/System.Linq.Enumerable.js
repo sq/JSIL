@@ -332,6 +332,50 @@
         }
       );
 
+      $.Method({ Static: true, Public: true }, "Zip",
+        new JSIL.MethodSignature(
+          $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+            ["!!2"]),
+          [
+            $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+              ["!!0"]),
+            $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+              ["!!1"]),
+            $jsilcore.TypeRef("System.Func`3", ["!!0", "!!1", "!!2"])
+          ],
+          ["TFirst", "TSecond", "TResult"]
+        ),
+        function (TFirst, TSecond, TResult, first, second, combiner) {
+          var state = {};
+
+          var tIEnumerator1 = System.Collections.Generic.IEnumerator$b1.Of(TFirst);
+          var tIEnumerator2 = System.Collections.Generic.IEnumerator$b1.Of(TSecond);
+          var moveNext = System.Collections.IEnumerator.MoveNext;
+          var get_Current1 = tIEnumerator1.get_Current;
+          var get_Current2 = tIEnumerator2.get_Current;
+
+          return new (JSIL.AbstractEnumerable.Of(TResult))(
+            function getNext(result) {
+                var ok1 = moveNext.Call(state.enumerator1);
+                var ok2 = moveNext.Call(state.enumerator2);
+                if (ok1 && ok2)
+                    result.set(combiner(get_Current1.Call(state.enumerator1),
+                                get_Current2.Call(state.enumerator2)));
+
+                return ok1 && ok2;
+            },
+            function reset() {
+                state.enumerator1 = JSIL.GetEnumerator(first, TFirst);
+                state.enumerator2 = JSIL.GetEnumerator(second, TSecond);
+            },
+            function dispose() {
+                JSIL.Dispose(state.enumerator1);
+                JSIL.Dispose(state.enumerator2);
+            }
+          );
+        }
+      );
+
       $.Method({ Static: true, Public: true }, "ToArray",
         new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
         function (T, enumerable) {

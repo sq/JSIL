@@ -339,6 +339,7 @@
     <None Include="SimpleTestCases\StringFromCharArray.cs" />
     <None Include="SimpleTestCases\EnumerableCast.cs" />
     <None Include="SimpleTestCases\EnumerableToList.cs" />
+    <None Include="SimpleTestCases\EnumerableZip.cs" />
     <None Include="SimpleTestCases\Issue176.cs" />
     <None Include="SimpleTestCases\Issue118_1.fs" />
     <None Include="SimpleTestCases\EnumerableElementAt.cs" />
