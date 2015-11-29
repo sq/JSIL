@@ -234,7 +234,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Field.ReturnType;
+            return TypeAnalysis.GetFieldType(Reference);
         }
 
         // FIXME: Is this right?
