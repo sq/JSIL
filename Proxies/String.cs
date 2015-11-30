@@ -84,8 +84,16 @@ namespace JSIL.Proxies {
         public abstract string[] Split (AnyType[] dividers);
 
         [JSIsPure]
-        [JSReplacement("JSIL.SplitString($this, $dividers, $options)")]
+        [JSReplacement("JSIL.SplitString($this, $dividers, -1, $options)")]
         public abstract string[] Split (AnyType[] dividers, StringSplitOptions options);
+
+        [JSIsPure]
+        [JSReplacement("JSIL.SplitString($this, $dividers, $count, $options)")]
+        public abstract string[] Split (AnyType[] dividers, int count, StringSplitOptions options);
+
+        [JSIsPure]
+        [JSReplacement("JSIL.SplitString($this, $dividers, $count)")]
+        public abstract string[] Split (AnyType[] dividers, int count);
 
         [JSIsPure]
         [JSReplacement("JSIL.JoinEnumerable($separator, $values)")]
