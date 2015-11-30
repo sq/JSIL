@@ -256,6 +256,46 @@
         }
       );
 
+      $.Method({ Static: true, Public: true }, "Skip",
+        new JSIL.MethodSignature(
+          $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+            ["!!0"]),
+          [
+            $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1",
+              ["!!0"]),
+            "System.Int32"
+          ],
+          ["TSource"]
+        ),
+        function (TSource, source, count) {
+          var state = {};
+
+          var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
+          var moveNext = System.Collections.IEnumerator.MoveNext;
+          var get_Current = tIEnumerator.get_Current;
+
+          return new (JSIL.AbstractEnumerable.Of(TSource))(
+            function getNext(result) {
+                if (!state.ready) {
+                  for (var i = 0; i < count; i++)
+                    moveNext.Call(state.enumerator);
+                  state.ready = true;
+                }
+                var ok = moveNext.Call(state.enumerator);
+                if (ok)
+                    result.set(get_Current.Call(state.enumerator));
+                return ok;
+            },
+            function reset() {
+                state.enumerator = JSIL.GetEnumerator(source, TSource);
+            },
+            function dispose() {
+                JSIL.Dispose(state.enumerator);
+            }
+          );
+        }
+      );
+
       $.Method({ Static: true, Public: true }, "Contains",
         (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), "!!0"], ["TSource"])),
         function Contains$b1(T, source, item) {
