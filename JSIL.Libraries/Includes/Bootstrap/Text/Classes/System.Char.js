@@ -79,6 +79,13 @@ JSIL.ImplementExternals("System.Char", function ($) {
     }
   );
 
+  $.Method({ Static: true, Public: true }, "ConvertToUtf32",
+    new JSIL.MethodSignature($.Int32, [$.String, $.Int32], []),
+    function ConvertToUtf32(s, i) {
+      return $jsilcore.charCodeAt(s, i);
+    }
+  );
+
   $.Method({ Static: true, Public: true }, "ToString",
     new JSIL.MethodSignature($.String, [$.Char], []),
     function ToString(c) {
