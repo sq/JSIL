@@ -354,14 +354,14 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "Insert",
     (new JSIL.MethodSignature($.Type, [$.Int32, $.String], [])),
     function Insert(index, value) {
-      return insert(this, index, value, 1);
+      return insert(this, value, index, 1);
     }
   );
 
   $.Method({ Static: false, Public: true }, "Insert",
     (new JSIL.MethodSignature($.Type, [$.Int32, $.String, $.Int32], [])),
     function Insert(index, value, count) {
-      return insert(this, index, value, count);
+      return insert(this, value, index, count);
     }
   );
 
