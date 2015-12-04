@@ -74,7 +74,7 @@
     <None Include="SimpleTestCases\DelegateInvoke_Issue500.cs" />
     <None Include="SimpleTestCases\DelegateInvoke_Issue543.cs" />
     <None Include="SimpleTestCases\DelegateReflection_Issue500.cs" />
-    <None Include="SimpleTestCases\DelegateMethod_Issue604.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\DelegateMethod_Issue604.cs" />
     <None Include="ExpressionTestCases\ExpressionsExecution.cs" />
     <None Include="SimpleTestCases\CharArithmetic_Issue610.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\Issue578.cs" />
@@ -308,7 +308,7 @@
     <None Include="SimpleTestCases\FloatArrayInitializer.cs" />
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess.cs" />
     <None Include="SimpleTestCases\StaticConstructorAndFieldAccess2.cs" />
-    <None Include="SimpleTestCases\DelegateRemove.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\DelegateRemove.cs" />
     <None Include="SimpleTestCases\DelegateRemoveAdvanced.cs" />
     <None Include="SimpleTestCases\DecimalCast.cs" />
     <None Include="SimpleTestCases\DecimalCopy.cs" />
@@ -457,7 +457,7 @@
     <None Include="SimpleTestCases\Issue504_2.cs" />
     <None Include="SimpleTestCases\Issue504_3.cs" />
     <None Include="SimpleTestCases\HelloWorld.cpp" />
-    <None Include="SimpleTestCases\DelegateRemoveAdvancedWithLambda_Issue541.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\DelegateRemoveAdvancedWithLambda_Issue541.cs" />
     <None Include="SimpleTestCases\LambdaInStateMachine1_Issue544.cs" />
     <None Include="SimpleTestCases\LambdaInStateMachine2_Issue544.cs" />
     <None Include="SimpleTestCases\HelloWorld.il" />
