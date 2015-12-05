@@ -302,6 +302,17 @@
 
             DceAssert.HasNo(output, MemberType.Mention, "StrippedType");
          }
+
+        [Test]
+        public void StripInterfaceImplementation()
+        {
+            var output = GetJavascriptWithDCE(@"DCETests\StripInterfaceImplementation.cs");
+            // Generic type constructor.
+            DceAssert.Has(output, MemberType.Interface, "IUsedInterface", false);
+            DceAssert.Has(output, MemberType.Class, "UsedType", false);
+
+            DceAssert.HasNo(output, MemberType.Mention, "IUnUsedInterface");
+        }
     }
 
     public static class DceAssert
