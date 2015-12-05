@@ -5666,6 +5666,10 @@ JSIL.MakeType = function (typeArgs, initializer) {
       };
     } else {
       typeObject._IsAssignableFrom = function (typeOfValue) {
+        if (!typeOfValue.__TypeInitialized__ && true) {
+          JSIL.InitializeType(typeOfValue);
+        }
+
         return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
       };
     }
@@ -5811,6 +5815,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
+      if (!typeOfValue.__TypeInitialized__ && true) {
+        JSIL.InitializeType(typeOfValue);
+      }
+
       return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
     };
 

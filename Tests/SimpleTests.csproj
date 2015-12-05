@@ -168,6 +168,7 @@
     <None Include="SimpleTestCases\EnumerableSum.cs" />
     <None Include="SimpleTestCases\Issue213.cs" />
     <None Include="SimpleTestCases\InterfaceBaseType.cs" />
+    <None Include="SimpleTestCases\Issue866.cs" />
     <None Include="SimpleTestCases\ArrayCopyEnum.cs" />
     <None Include="SimpleTestCases\StringGetHashCode.cs" />
     <None Include="SimpleTestCases\EnumIConvertible.cs" />
