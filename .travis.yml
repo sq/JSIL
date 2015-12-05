@@ -24,10 +24,11 @@ before_cache:
   - mv "/tmp/JSIL Tests" /tmp/JSIL_Tests  
   
 after_script:
+  - true && [ ! "$JSIL_STORAGE_FOLDER" ] && export JSIL_STORAGE_FOLDER=JSIL
   - true && [ ! "$JSIL_STORAGE_TAG" ] && export BUILD_TAG=TRAVIS_${TRAVIS_JOB_NUMBER##*.} || export BUILD_TAG=$JSIL_STORAGE_TAG
   - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
-  - export UPLOAD_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -T - \"https://webdav.yandex.com/JSIL/_\""  
-  - export MKDIR_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -X MKCOL \"https://webdav.yandex.com/JSIL/_\""  
+  - export UPLOAD_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -T - \"https://webdav.yandex.com/$JSIL_STORAGE_FOLDER/_\""  
+  - export MKDIR_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -X MKCOL \"https://webdav.yandex.com/$JSIL_STORAGE_FOLDER/_\""  
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$BUILD_TAG}
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$CACHE_PATH}
   - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache.zip}
