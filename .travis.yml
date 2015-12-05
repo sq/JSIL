@@ -36,12 +36,14 @@ after_script:
   
 env:
   global:
-    - JsilUseAppDomainsInTest=true
     - NODEJS_VERSION=0.10
   matrix:
     - TestRun=JSIL.Tests.DeadCodeEliminationTest,JSIL.Tests.APITests,JSIL.Tests.AnalysisTests,JSIL.Tests.ComparisonTests,JSIL.Tests.ConfigurationTests,JSIL.Tests.DependencyTests,JSIL.Tests.FailingTests,JSIL.Tests.FormattingTests,JSIL.Tests.GenericsTests,JSIL.Tests.MetadataTests,JSIL.Tests.PerformanceTests,JSIL.Tests.TypeInformationTests,JSIL.Tests.UnsafeTests,JSIL.Tests.VerbatimTests,JSIL.Tests.XMLTests,JSIL.Tests.ThreadingTests
       JSIL_STORAGE_TAG=misc-tests
-    - TestRun=JSIL.SimpleTests.SimpleTests,JSIL.SimpleTests.SimpleTestCasesForStubbedBcl
+    - TestRun=JSIL.SimpleTests.SimpleTests
+      JSIL_STORAGE_TAG=simple-tests
+      SKIP_BINARIES=TRUE
+    - TestRun=JSIL.SimpleTests.SimpleTestCasesForStubbedBcl
       JSIL_STORAGE_TAG=stubbed-tests
       SKIP_BINARIES=TRUE
     - TestRun=JSIL.SimpleTests.SimpleTestCasesForTranslatedBcl
