@@ -446,7 +446,7 @@ namespace JSIL.Tests {
 
                 Assert.Fail("Translated JS ran successfully");
             } catch (JavaScriptEvaluatorException jse) {
-                Assert.IsTrue(jse.ToString().Contains("TypeError: document is undefined"), jse.ToString());
+                Assert.IsTrue(jse.ToString().Contains("TypeError: realTarget is undefined"), jse.ToString());
             }
         }
 
@@ -460,7 +460,7 @@ namespace JSIL.Tests {
 
                 Assert.Fail("Translated JS ran successfully");
             } catch (JavaScriptEvaluatorException jse) {
-                Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
+                Assert.IsTrue(jse.ToString().Contains("TypeError: realTarget is undefined"), jse.ToString());
             }
         }
 
