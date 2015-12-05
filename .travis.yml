@@ -24,6 +24,7 @@ before_cache:
   - mv "/tmp/JSIL Tests" /tmp/JSIL_Tests  
   
 after_script:
+  - export BUILD_FINISH_TIME=$(date --utc +%Y%m%d_%H%M%SZ)
   - true && [ ! "$JSIL_STORAGE_FOLDER" ] && export JSIL_STORAGE_FOLDER=JSIL
   - true && [ ! "$JSIL_STORAGE_TAG" ] && export BUILD_TAG=TRAVIS_${TRAVIS_JOB_NUMBER##*.} || export BUILD_TAG=$JSIL_STORAGE_TAG
   - export CACHE_PATH=$BUILD_TAG/$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT
@@ -31,9 +32,9 @@ after_script:
   - export MKDIR_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -X MKCOL \"https://webdav.yandex.com/$JSIL_STORAGE_FOLDER/_\""  
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$BUILD_TAG}
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$CACHE_PATH}
-  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache.zip}
-  - true && [ "$JSIL_STORAGE_KEY" ] && [ ! "$SKIP_BINARIES" ] && zip -3 -r -q - bin Libraries | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/binaries.zip}
-  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - -@ Libraries test_runner.html < <(find . -name *.out) | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/tests.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache_$BUILD_FINISH_TIME.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && [ ! "$SKIP_BINARIES" ] && zip -3 -r -q - bin Libraries | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/binaries_$BUILD_FINISH_TIME.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - -@ Libraries test_runner.html < <(find . -name *.out) | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/tests_$BUILD_FINISH_TIME.zip}
   
 env:
   global:
