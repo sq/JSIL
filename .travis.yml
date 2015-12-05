@@ -30,9 +30,9 @@ after_script:
   - export MKDIR_COMMAND="curl -H \"Authorization:OAuth $JSIL_STORAGE_KEY\" -L -X MKCOL \"https://webdav.yandex.com/JSIL/_\""  
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$BUILD_TAG}
   - true && [ "$JSIL_STORAGE_KEY" ] && eval ${MKDIR_COMMAND/_/$CACHE_PATH}
-  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache.zip}
-  - true && [ "$JSIL_STORAGE_KEY" ] && [ ! "$SKIP_BINARIES" ] && zip -3 -r - bin Libraries | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/binaries.zip}
-  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r - -@ Libraries test_runner.html < <(find . -name *.out) | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/tests.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - /tmp/JSIL_Tests | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/compilecache.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && [ ! "$SKIP_BINARIES" ] && zip -3 -r -q - bin Libraries | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/binaries.zip}
+  - true && [ "$JSIL_STORAGE_KEY" ] && zip -3 -r -q - -@ Libraries test_runner.html < <(find . -name *.out) | eval ${UPLOAD_COMMAND/_/$CACHE_PATH/tests.zip}
   
 env:
   global:

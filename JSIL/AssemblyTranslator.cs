@@ -272,7 +272,7 @@ namespace JSIL {
 
         protected ParallelOptions GetParallelOptions () {
             return new ParallelOptions {
-                MaxDegreeOfParallelism = Configuration.UseThreads.GetValueOrDefault(true) 
+                MaxDegreeOfParallelism = Configuration.UseThreads.GetValueOrDefault(false) 
                     ? (Environment.ProcessorCount + 2) 
                     : 1
             };
@@ -557,7 +557,7 @@ namespace JSIL {
                 pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
             };
 
-            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+            if (Configuration.UseThreads.GetValueOrDefault(false)) {
                 Parallel.For(
                     0, assemblies.Length, parallelOptions, writeAssembly
                 );
@@ -736,7 +736,7 @@ namespace JSIL {
                 return ctx;
             };
 
-            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+            if (Configuration.UseThreads.GetValueOrDefault(false)) {
                 Parallel.For(
                     0, methodsToAnalyze.Count, parallelOptions,
                     () => MakeDecompilerContext(assemblies[0].MainModule),
