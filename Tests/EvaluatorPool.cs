@@ -158,10 +158,20 @@ namespace JSIL.Tests {
             var stdout = Process.StandardOutput.ReadToEndAsync();
             var stderr = Process.StandardError.ReadToEndAsync();
 
-            _StdOut = await stdout;
-            _StdErr = await stderr;
+            _StdOut = FixEncodingIfNeed(await stdout);
+            _StdErr = FixEncodingIfNeed(await stderr);
 
             signal.Set();
+        }
+
+        private static string FixEncodingIfNeed(string input)
+        {
+            if (input!= null && input.StartsWith("獪"))
+            {
+                return Encoding.UTF8.GetString(Encoding.Unicode.GetBytes(input));
+            }
+
+            return input;
         }
 
         /// <summary>
