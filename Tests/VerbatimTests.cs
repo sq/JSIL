@@ -41,9 +41,9 @@ namespace JSIL.Tests {
 
         [Test]
         public void BuiltinsThisEvaluatesToJSThis () {
-            GenericTest(
+            GetJavascript(
                 @"SpecialTestCases\VerbatimThis.cs",
-                "", "Program+CustomType"
+                "Program+CustomType"
             );
         }
 
@@ -72,11 +72,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void VerbatimVariablesExistingArray () {
+        public void VerbatimDynamic()
+        {
             var js = GetJavascript(
-                @"SpecialTestCases\VerbatimVariablesExistingArray.cs",
-                "hello\r\n7"
-            );
+                @"SpecialTestCases\Issue548.cs",
+                "{\"obj1\":\"{}\"}"
+                );
         }
     }
 }

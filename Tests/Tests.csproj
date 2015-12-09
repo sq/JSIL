@@ -256,7 +256,6 @@
     <None Include="InterfaceTestCases\InterfaceOverloads2.cs" />
     <None Include="PerformanceTestCases\Sieve.cs" />
     <None Include="SpecialTestCases\VerbatimVariables.cs" />
-    <None Include="SpecialTestCases\VerbatimVariablesExistingArray.cs" />
     <None Include="ReflectionTestCases\Issue274_1.cs" />
     <None Include="ReflectionTestCases\Issue274_2.cs" />
     <None Include="PerformanceTestCases\FuseePackedVertices.cs" />
@@ -621,7 +620,6 @@
     <None Include="TestCases\EnumIfStatement.cs" />
     <None Include="TestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
-    <None Include="BinaryTestCases\DynamicComplex.exe" />
     <None Include="TestCases\FailsOnMono\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />
     <None Include="TestCases\StringEmpty.cs" />

@@ -4,7 +4,7 @@ using JSIL;
 public static class Program {
     public class CustomType {
         public CustomType () {
-            Console.WriteLine("{0}", Builtins.This ?? "");
+            Console.WriteLine("{0}", Builtins.This);
         }
     }
 

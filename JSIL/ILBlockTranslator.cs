@@ -848,60 +848,41 @@ namespace JSIL {
                         JSExpression commaFirstClause = null;
                         IDictionary<string, JSExpression> argumentsDict = null;
 
-                        if (arguments.Length > 1) {
-                            var argumentsExpression = arguments[1];
-                            var argumentsArray = argumentsExpression as JSNewArrayExpression;
+                        if (arguments.Length > 1)
+                        {
+                            argumentsDict = new Dictionary<string, JSExpression>();
 
-                            if (method == null || method.Method.Parameters[1].ParameterType is GenericParameter) {
-                                // This call was made dynamically or through generic version of method, so the parameters are not an array.
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                for (var i = 0; i < (arguments.Length - 1); i++)
-                                    argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
-                            } else if (argumentsArray == null) {
-                                // The array is static so we need to pull elements out of it after assigning it a name.
-                                // FIXME: Only handles up to 40 elements.
-                                var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
-                                var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
-                                var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
-
-                                commaFirstClause = temporaryAssignment;
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                for (var i = 0; i < 40; i++)
-                                    argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSLiteral.New(i)));
-                            } else {
-                                var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
-
-                                if (argumentsArrayExpression == null)
-                                    throw new NotImplementedException("Literal array must have values");
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                int i = 0;
-                                foreach (var value in argumentsArrayExpression.Values) {
-                                    argumentsDict.Add(String.Format("{0}", i), value);
-
-                                    i += 1;
-                                }
-                            }
+                            for (var i = 0; i < (arguments.Length - 1); i++)
+                                argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
                         }
 
                         var verbatimLiteral = new JSVerbatimLiteral(
                             methodName, expression.Value, argumentsDict
                         );
 
-                        if (commaFirstClause != null)
-                            return new JSCommaExpression(commaFirstClause, verbatimLiteral);
-                        else
-                            return verbatimLiteral;
+                        return verbatimLiteral;
                     } else {
                         throw new NotImplementedException("Verbatim method not implemented: " + methodName);
                     }
                     break;
                 }
+
+                case "JSIL.JSObject":
+                    {
+                        if (methodName == "Global")
+                        {
+                            var expression = arguments[0] as JSStringLiteral;
+                            if (expression != null)
+                                return new JSDotExpression(
+                                    JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object, true)
+                                );
+                            else
+                                return new JSIndexerExpression(
+                                    JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
+                                );
+                        }
+                        break;
+                    }
 
                 case "JSIL.JSGlobal": {
                     if (methodName == "get_Item") {

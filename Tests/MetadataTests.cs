@@ -450,19 +450,6 @@ namespace JSIL.Tests {
             }
         }
 
-        // Mono compiles this to different IL.
-        [Test]
-        public void ComplexDynamicsMonoBinary () {
-            try {
-                GetJavascript(
-                    @"BinaryTestCases\DynamicComplex.exe"
-                );
-
-                Assert.Fail("Translated JS ran successfully");
-            } catch (JavaScriptEvaluatorException jse) {
-                Assert.IsTrue(jse.ToString().Contains("TypeError: realTarget is undefined"), jse.ToString());
-            }
-        }
 
         // Mono generates really weird control flow for this
         [Test]

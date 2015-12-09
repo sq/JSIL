@@ -84,23 +84,5 @@ namespace JSIL.Tests {
         protected IEnumerable<TestCaseData> FailingTestCasesSource () {
             return FolderTestSource("FailingTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
-
-        [Test]
-        public void VerbatimDynamic()
-        {
-            try
-            {
-                var js = GetJavascript(
-                    @"SpecialTestCases\Issue548.cs",
-                    "{\"obj1\":\"{}\"}"
-                );
-            }
-            catch (Exception)
-            {
-                return;
-            }
-
-            Assert.Fail("Test passed when it should have failed");
-        }
     }
 }

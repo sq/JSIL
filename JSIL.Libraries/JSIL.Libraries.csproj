@@ -38,6 +38,10 @@
   <ItemGroup>
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.MakeIConvertibleMethods.js" />
     <Content Include="Includes\Bootstrap\Core\Interfaces\System.IConvertible.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\JSIL.Services.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\JSIL.JSObjectHelper.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\JSIL.JsObject.JSFunction.js" />
+    <Content Include="Includes\Bootstrap\Dynamic\Classes\JSIL.JsObject.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Classes\Microsoft.CSharp.RuntimeBinder.Binder.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Enums\Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfoFlags.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Enums\System.Linq.Expressions.ExpressionType.js" />
