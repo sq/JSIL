@@ -292,6 +292,7 @@
     <None Include="SpecialTestCases\RenameInterface.cs" />
     <None Include="ReflectionTestCases\FailsOnMono\GetParentDefinition.cs" />
     <None Include="ReflectionTestCases\FailsOnMono\GetBaseDefinition.cs" />
+    <None Include="TestCases\DynamicJsAPI.cs" />
     <Compile Include="TypeInformationTests.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="InterfaceTestCases\NestedInterfaces.cs" />

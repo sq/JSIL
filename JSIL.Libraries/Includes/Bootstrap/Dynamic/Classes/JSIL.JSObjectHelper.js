@@ -144,12 +144,6 @@
   JSIL.MakeStaticClass("JSIL.JsObjectHelpers", true, [], function ($ib) {
     $ = $ib;
 
-    $.Method({ Static: true, Public: true }, "Adapt",
-      new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("JSIL.JsObject")], ["T"]),
-      JsObjectHelpers_Adapt$b1
-    )
-      .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.ExtensionAttribute"));
-
     $.Method({ Static: true, Public: true }, "As",
       new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("JSIL.JsObject")], ["T"]),
       JsObjectHelpers_As$b1
@@ -163,14 +157,14 @@
       .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.ExtensionAttribute"));
 
     $.Method({ Static: true, Public: true }, "Call",
-      new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [$jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String]),
+      new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [$jsilcore.TypeRef("JSIL.JsObject"), $.String]),
       JsObjectHelpers_Call
     )
       .Attribute($jsilcore.TypeRef("System.Runtime.CompilerServices.ExtensionAttribute"));
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0"
       ], ["TArg1"]),
       JsObjectHelpers_Call$b1
@@ -179,7 +173,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1"
       ], ["TArg1", "TArg2"]),
       JsObjectHelpers_Call$b2
@@ -188,7 +182,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2"
       ], ["TArg1", "TArg2", "TArg3"]),
@@ -198,7 +192,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2", "!!3"
       ], ["TArg1", "TArg2", "TArg3", "TArg4"]),
@@ -208,7 +202,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2", "!!3",
           "!!4"
@@ -222,7 +216,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2", "!!3",
           "!!4", "!!5"
@@ -236,7 +230,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2", "!!3",
           "!!4", "!!5",
@@ -251,7 +245,7 @@
 
     $.Method({ Static: true, Public: true }, "Call",
       new JSIL.MethodSignature($jsilcore.TypeRef("JSIL.JsObject"), [
-          $jsilcore.TypeRef("JSIL.JsObject+JsFunction"), $.String,
+          $jsilcore.TypeRef("JSIL.JsObject"), $.String,
           "!!0", "!!1",
           "!!2", "!!3",
           "!!4", "!!5",
