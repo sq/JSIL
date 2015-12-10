@@ -1126,7 +1126,8 @@ namespace JSIL.Internal {
         );
 
         static readonly Regex IgnoredKeywordRegex = new Regex(
-            @"\<PrivateImplementationDetails\>|" +
+            @"\<PrivateImplementationDetails\>.|" +
+            @"__StaticArrayInitTypeSize=|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
             @"__DynamicSite", 
             RegexOptions.Compiled
@@ -1192,6 +1193,7 @@ namespace JSIL.Internal {
                         (shortName[index + 1] == '_')
                     ) {
                         switch (m2.Value) {
+                            case "__StaticArrayInitTypeSize=":
                             case "__DynamicSite":
                             case "__SiteContainer":
                                 return true;
