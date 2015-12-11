@@ -210,6 +210,27 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Static: true, Public: true }, "Normalize",
+      new JSIL.MethodSignature("System.String", [
+          "System.String",
+          "System.Text.NormalizationForm"
+      ], [], $jsilcore),
+      function (str, form) {
+        if (!str.normalize)
+            return str;
+        switch (form.name) {
+            case "FormC":
+                return str.normalize("NFC");
+            case "FormD":
+                return str.normalize("NFD");
+            case "FormKC":
+                return str.Normalize("NFKC");
+            case "FormKD":
+                return str.Normalize("NFKD");
+        }
+      }
+    );
+
     $.Method({ Static: true, Public: true }, "Remove",
       new JSIL.MethodSignature($.String, [$.String, $.Int32, $.Int32], [], $jsilcore),
       function (str, start, count) {

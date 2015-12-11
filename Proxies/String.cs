@@ -166,13 +166,18 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        // FIXME: Are ECMAScript strings always normalized?
-        [JSReplacement("$this")]
+        [JSReplacement("($this.normalize ? $this.normalize() : $this)")]
         [JSIsPure]
         public string Normalize () {
             throw new InvalidOperationException();
         }
       
+        [JSReplacement("System.String.Normalize($this, $form)")]
+        [JSIsPure]
+        public string Normalize (System.Text.NormalizationForm form) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("System.String.StartsWith($this, $text)")]
         [JSIsPure]
         public bool StartsWith (string text) {
