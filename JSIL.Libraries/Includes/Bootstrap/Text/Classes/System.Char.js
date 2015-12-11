@@ -52,6 +52,14 @@ JSIL.ImplementExternals("System.Char", function ($) {
     }
   );
 
+  $.Method({ Static: true, Public: true }, "IsHighSurrogate",
+    new JSIL.MethodSignature($.Boolean, [$.Char], []),
+    function IsSurrogate(c) {
+      var charCode = c.charCodeAt(0);
+      return (charCode >= 0xD800) && (charCode <= 0xDBFF);
+    }
+  );
+
   $.Method({ Static: true, Public: true }, "IsWhiteSpace",
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsWhiteSpace(c) {
