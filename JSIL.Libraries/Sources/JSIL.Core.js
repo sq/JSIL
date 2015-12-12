@@ -9404,15 +9404,10 @@ JSIL.Array.Clone = function(array) {
         bounds.push(array.LowerBounds[i]);
         bounds.push(array.DimensionLength[i]);
       }
-      return JSIL.MultidimensionalArray.New(array.__ElementType__, bounds, array.Items);
+      return JSIL.MultidimensionalArray.New(type.__ElementType__, bounds, array.Items);
     } else {
-      return JSIL.Array.New(array.__ElementType__, array);
+      return JSIL.Array.New(type.__ElementType__, array);
     }
-  } else if (JSIL.IsTypedArray(array)) {
-    var ctor = Object.getPrototypeOf(array).constructor;
-    return new ctor(array);
-  } else if (JSIL.IsArray(array)) {
-    return Array.prototype.slice.call(array);
   } else {
     JSIL.RuntimeError("Invalid array");
   }

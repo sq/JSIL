@@ -184,6 +184,7 @@
     <None Include="SimpleTestCases\CharArithmetic.cs" />
     <None Include="SimpleTestCases\StringFormatCurlies.cs" />
     <None Include="SimpleTestCases\CharIs.cs" />
+    <None Include="SimpleTestCases\ArrayCloneNative_Issue932.cs" />
     <None Include="SimpleTestCases\FieldReturnsInvalidDefaultOnFirstUse.cs" />
     <None Include="SimpleTestCases\Issue239.cs" />
     <None Include="SimpleTestCases\Issue243.cs" />
