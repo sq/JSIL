@@ -1,4 +1,8 @@
 JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
+  var $AggregateExceptionConstructorSignature = function () {
+    return ($AggregateExceptionConstructorSignature = JSIL.Memoize(new JSIL.ConstructorSignature($jsilcore.TypeRef("System.AggregateException"), [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Exception")])))();
+  };
+
   // TODO: Find solution to remove closure
   var createTaskCommon = function (self) {
     self.status = System.Threading.Tasks.TaskStatus.Created;
@@ -26,7 +30,7 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
 
     self.SetException = function (exception) {
       this.status = System.Threading.Tasks.TaskStatus.Faulted;
-      this.exception = new $jsilcore.System.AggregateException("One or more errors occured.", exception);
+      this.exception = $AggregateExceptionConstructorSignature().Construct("One or more errors occured.", exception);
       this.ContinueExecution();
     }
 
