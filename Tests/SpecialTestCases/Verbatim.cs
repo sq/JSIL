@@ -3,7 +3,7 @@ using JSIL;
 
 public static class Program {
     public static int Add (int a, int b) {
-        return Verbatim.Expression<int>("a + b");  
+        return (int)(Verbatim.Expression("a + b") ?? 0);  
     }
 
     public static void Main (string[] args) {
