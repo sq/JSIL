@@ -76,7 +76,7 @@ JSIL.ImplementExternals("System.Char", function ($) {
   $.Method({ Static: true, Public: true }, "ToString",
     new JSIL.MethodSignature($.String, [$.Char], []),
     function ToString(c) {
-      return c;
+      return String.fromCharCode(c);
     }
   );
 });
