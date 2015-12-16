@@ -820,30 +820,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void CallSiteVariablesEliminated () {
-            var output = "a\r\n6";
-            var generatedJs = GetJavascript(
-                @"TestCases\DynamicReturnTypes.cs",
-                output, () => {
-                    var cfg = MakeConfiguration();
-                    cfg.CodeGenerator.CacheTypeExpressions = true;
-                    return cfg;
-                }
-            );
-
-            try {
-                Assert.IsFalse(
-                    generatedJs.Contains(".CallSite"),
-                    "A CallSite was not fully eliminated"
-                );
-            } catch {
-                Console.WriteLine(generatedJs);
-
-                throw;
-            }
-        }
-
-        [Test]
         public void SpuriousIntegerHints () {
             var output = "0F0F\r\n7773";
             var generatedJs = GenericTest(
