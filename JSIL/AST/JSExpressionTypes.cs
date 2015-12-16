@@ -1040,8 +1040,14 @@ namespace JSIL.Ast {
             return base.Equals(o);
         }
 
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Field.Field.FieldType;
+        public override TypeReference GetActualType(TypeSystem typeSystem)
+        {
+            if (PackedArrayUtil.IsPackedArrayType(Field.Field.FieldType))
+            {
+                return Field.Field.FieldType;
+            }
+
+            return base.GetActualType(typeSystem);
         }
 
         public override string ToString () {
