@@ -6320,6 +6320,13 @@ JSIL.GetTypeName = function (type, dotNetTypeToString) {
   return result;
 };
 
+JSIL.ToString = function(value, type) {
+  if (typeof (value) == "number" && type.__TypeId__ === $jsilcore.System.Char.__TypeId__) {
+    return String.fromCharCode(value);
+  }
+  return value.toString();
+}
+
 JSIL.Coalesce = function (lhs, rhs) {
   if (lhs == null)
     return rhs;

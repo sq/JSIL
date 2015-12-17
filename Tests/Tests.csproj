@@ -272,7 +272,6 @@
     <None Include="SpecialTestCases\JSReplacementTypeOfThisStatic.cs" />
     <None Include="BinaryTestCases\RoslynUnaryPointerOperation.exe" />
     <None Include="EmscriptenTestCases\exclude_common\common.cpp" />
-    <None Include="FailingTestCases\Issue118_1.fs" />
     <Content Include="JSTestCases\SameNameDifferentReturnTypes.js" />
     <Content Include="JSTestCases\SameNameWithOverride.js" />
     <None Include="AnalysisTestCases\Issue395.cs" />

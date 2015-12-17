@@ -21,6 +21,7 @@ namespace JSIL.Proxies {
         new abstract public AnyType MemberwiseClone ();
 
         [JSChangeName("toString")]
+        [JSReplacement("JSIL.ToString($this, $typeof(this))")]
         [JSNeverReplace]
         [JSRuntimeDispatch]
         new abstract public string ToString ();
