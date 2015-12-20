@@ -28,7 +28,6 @@ namespace JSIL {
         public readonly JavascriptFormatter Output = null;
 
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
-        internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
         private readonly Dictionary<string, JSIndirectVariable> IndirectVariables = new Dictionary<string, JSIndirectVariable>();
@@ -849,60 +848,41 @@ namespace JSIL {
                         JSExpression commaFirstClause = null;
                         IDictionary<string, JSExpression> argumentsDict = null;
 
-                        if (arguments.Length > 1) {
-                            var argumentsExpression = arguments[1];
-                            var argumentsArray = argumentsExpression as JSNewArrayExpression;
+                        if (arguments.Length > 1)
+                        {
+                            argumentsDict = new Dictionary<string, JSExpression>();
 
-                            if (method == null || method.Method.Parameters[1].ParameterType is GenericParameter) {
-                                // This call was made dynamically or through generic version of method, so the parameters are not an array.
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                for (var i = 0; i < (arguments.Length - 1); i++)
-                                    argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
-                            } else if (argumentsArray == null) {
-                                // The array is static so we need to pull elements out of it after assigning it a name.
-                                // FIXME: Only handles up to 40 elements.
-                                var argumentsExpressionType = argumentsExpression.GetActualType(TypeSystem);
-                                var temporaryVariable = MakeTemporaryVariable(argumentsExpressionType);
-                                var temporaryAssignment = new JSBinaryOperatorExpression(JSOperator.Assignment, temporaryVariable, argumentsExpression, argumentsExpressionType);
-
-                                commaFirstClause = temporaryAssignment;
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                for (var i = 0; i < 40; i++)
-                                    argumentsDict.Add(String.Format("{0}", i), new JSIndexerExpression(temporaryVariable, JSLiteral.New(i)));
-                            } else {
-                                var argumentsArrayExpression = argumentsArray.SizeOrArrayInitializer as JSArrayExpression;
-
-                                if (argumentsArrayExpression == null)
-                                    throw new NotImplementedException("Literal array must have values");
-
-                                argumentsDict = new Dictionary<string, JSExpression>();
-
-                                int i = 0;
-                                foreach (var value in argumentsArrayExpression.Values) {
-                                    argumentsDict.Add(String.Format("{0}", i), value);
-
-                                    i += 1;
-                                }
-                            }
+                            for (var i = 0; i < (arguments.Length - 1); i++)
+                                argumentsDict.Add(String.Format("{0}", i), arguments[i + 1]);
                         }
 
                         var verbatimLiteral = new JSVerbatimLiteral(
                             methodName, expression.Value, argumentsDict
                         );
 
-                        if (commaFirstClause != null)
-                            return new JSCommaExpression(commaFirstClause, verbatimLiteral);
-                        else
-                            return verbatimLiteral;
+                        return verbatimLiteral;
                     } else {
                         throw new NotImplementedException("Verbatim method not implemented: " + methodName);
                     }
                     break;
                 }
+
+                case "JSIL.JSObject":
+                    {
+                        if (methodName == "Global")
+                        {
+                            var expression = arguments[0] as JSStringLiteral;
+                            if (expression != null)
+                                return new JSDotExpression(
+                                    JSIL.GlobalNamespace, new JSStringIdentifier(expression.Value, TypeSystem.Object, true)
+                                );
+                            else
+                                return new JSIndexerExpression(
+                                    JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
+                                );
+                        }
+                        break;
+                    }
 
                 case "JSIL.JSGlobal": {
                     if (methodName == "get_Item") {
@@ -1391,52 +1371,8 @@ namespace JSIL {
             return result;
         }
 
-        protected bool TranslateCallSiteConstruction (ILCondition condition, out JSStatement result) {
-            result = null;
-
-            var cond = condition.Condition;
-            if (cond.Code != ILCode.LogicNot)
-                return false;
-
-            if (cond.Arguments.Count <= 0)
-                return false;
-
-            if (cond.Arguments[0].Code != ILCode.GetCallSite)
-                return false;
-
-            if (condition.TrueBlock == null)
-                return false;
-
-            if (condition.TrueBlock.Body.Count != 1)
-                return false;
-
-            if (condition.TrueBlock.Body[0] is ILExpression) {
-                var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
-                var callSiteType = callSiteExpression.Arguments[0].ExpectedType;
-                var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
-                var binderMethod = (MethodReference)binderExpression.Operand;
-                var arguments = Translate(binderExpression.Arguments);
-                var targetType = ((IGenericInstance)callSiteType).GenericArguments[0];
-
-                DynamicCallSites.InitializeCallSite(
-                    (FieldReference)cond.Arguments[0].Operand,
-                    binderMethod.Name,
-                    targetType,
-                    arguments.ToArray()
-                );
-
-                result = new JSNullStatement();
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
         public JSStatement TranslateNode (ILCondition condition) {
             JSStatement result = null;
-            if (TranslateCallSiteConstruction(condition, out result))
-                return result;
 
             JSStatement falseBlock = null;
             if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0))
@@ -2359,10 +2295,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Stloc (ILExpression node, ILVariable variable) {
-            if (node.Arguments[0].Code == ILCode.GetCallSite)
-                DynamicCallSites.SetAlias(variable, (FieldReference)node.Arguments[0].Operand);
-
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
+            // TODO: We have nor more GetCallSite and CreateCallSite. Do we need this check?
             var value = TranslateNode(node.Arguments[0]);
             if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredExpression))
                 return new JSNullExpression();
@@ -3524,54 +3458,6 @@ namespace JSIL {
                 result = JSReferenceExpression.New(result);
 
             return result;
-        }
-
-        protected JSExpression Translate_InvokeCallSiteTarget (ILExpression node, MethodReference method) {
-            ILExpression ldtarget, ldcallsite;
-            
-            ldtarget = node.Arguments[0];
-            if (ldtarget.Code == ILCode.Ldloc) {
-                ldcallsite = node.Arguments[1];
-            } else if (ldtarget.Code == ILCode.Ldfld) {
-                ldcallsite = ldtarget.Arguments[0];
-            } else {
-                throw new NotImplementedException(String.Format(
-                    "Unknown call site pattern: Invalid load of target {0}", ldtarget
-                ));
-            }
-
-            DynamicCallSiteInfo callSite;
-
-            if (ldcallsite.Code == ILCode.Ldloc) {
-                if (!DynamicCallSites.Get((ILVariable)ldcallsite.Operand, out callSite))
-                    return new JSUntranslatableExpression(node);
-            } else if (ldcallsite.Code == ILCode.GetCallSite) {
-                if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite))
-                    return new JSUntranslatableExpression(node);
-            } else {
-                throw new NotImplementedException(String.Format(
-                    "Unknown call site pattern: Invalid load of callsite {0}", ldcallsite
-                ));
-            }
-
-            var invocationArguments = Translate(node.Arguments.Skip(1));
-            return callSite.Translate(this, invocationArguments.ToArray());
-        }
-
-        protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
-            return new JSNullExpression();
-        }
-
-        protected JSExpression Translate_GetCallSiteBinder (ILExpression node) {
-            return new JSNullExpression();
-        }
-
-        protected JSExpression Translate_GetCallSiteBinder (ILExpression node, object o) {
-            return new JSNullExpression();
-        }
-
-        protected JSExpression Translate_CreateCallSite (ILExpression node, FieldReference field) {
-            return new JSNullExpression();
         }
 
         protected JSExpression Translate_CallGetter (ILExpression node, MethodReference getter) {

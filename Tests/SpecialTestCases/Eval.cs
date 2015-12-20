@@ -3,9 +3,10 @@ using JSIL;
 
 public static class Program {
     public static int Foo () {
-      var result = Builtins.Eval("2") ?? 1;
-      
-      return (int)result;
+        if (Builtins.IsJavascript) {
+            return Builtins.Eval("2").AssumeType<int>();
+        }
+        return 1;
     }
   
     public static void Main (string[] args) {

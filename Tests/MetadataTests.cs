@@ -446,23 +446,10 @@ namespace JSIL.Tests {
 
                 Assert.Fail("Translated JS ran successfully");
             } catch (JavaScriptEvaluatorException jse) {
-                Assert.IsTrue(jse.ToString().Contains("TypeError: document is undefined"), jse.ToString());
+                Assert.IsTrue(jse.ToString().Contains("TypeError: realTarget is undefined"), jse.ToString());
             }
         }
 
-        // Mono compiles this to different IL.
-        [Test]
-        public void ComplexDynamicsMonoBinary () {
-            try {
-                GetJavascript(
-                    @"BinaryTestCases\DynamicComplex.exe"
-                );
-
-                Assert.Fail("Translated JS ran successfully");
-            } catch (JavaScriptEvaluatorException jse) {
-                Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
-            }
-        }
 
         // Mono generates really weird control flow for this
         [Test]

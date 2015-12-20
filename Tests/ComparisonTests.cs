@@ -129,6 +129,7 @@ namespace JSIL.Tests {
                     @"TestCases\DynamicSetIndex.cs",
                     @"TestCases\DynamicStaticOverloadedMethods.cs",
                     @"TestCases\DynamicUnaryOperators.cs",
+                    @"TestCases\DynamicJsAPI.cs",
                 }, null, new AssemblyCache()
             );
         }
