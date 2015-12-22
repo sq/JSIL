@@ -63,7 +63,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "Append",
     (new JSIL.MethodSignature($.Type, [$.Char, $.Int32], [])),
     function Append(value, repeatCount) {
-      appendString(this, value, 0, value.length, repeatCount);
+      appendString(this, String.fromCharCode(value), 0, 1, repeatCount);
     }
   );
 
@@ -74,7 +74,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     ], [])),
     function Append(value, startIndex, charCount) {
       for (var i = 0; i < charCount; i++)
-        this._str += value[startIndex + i];
+        this._str += String.fromCharCode(value[startIndex + i]);
 
       this._capacity = Math.max(this._capacity, this._str.length);
     }
@@ -130,7 +130,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "Append",
     (new JSIL.MethodSignature($.Type, [$.Char], [])),
     function Append(value) {
-      appendString(this, value, 0, value.length, 1);
+      appendString(this, String.fromCharCode(value), 0, 1, 1);
     }
   );
 
@@ -194,7 +194,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Char])], [])),
     function Append(value) {
       for (var i = 0; i < value.length; i++)
-        this._str += value[i];
+        this._str += String.fromCharCode(value[i]);
 
       this._capacity = Math.max(this._capacity, this._str.length);
     }
@@ -322,7 +322,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "Replace",
     (new JSIL.MethodSignature($.Type, [$.Char, $.Char], [])),
     function Replace(oldChar, newChar) {
-      return replace(this, oldChar, newChar, 0, this._str.length);
+      return replace(this, String.fromCharCode(oldChar), String.fromCharCode(newChar), 0, this._str.length);
     }
   );
 
@@ -332,7 +332,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
           $.Int32, $.Int32
     ], [])),
     function Replace(oldChar, newChar, startIndex, count) {
-      return replace(this, oldChar, newChar, startIndex, count);
+      return replace(this, String.fromCharCode(oldChar), String.fromCharCode(newChar), startIndex, count);
     }
   );
 
@@ -385,7 +385,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   $.Method({ Static: false, Public: true }, "get_Chars",
     (new JSIL.MethodSignature($.Char, [$.Int32], [])),
     function get_Chars(i) {
-      return this._str[i];
+      return this._str.charCodeAt(i);
     }
   );
 
@@ -397,7 +397,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
       }
       this._str =
         this._str.substr(0, i) +
-        value +
+        String.fromCharCode(value) +
         this._str.substr(i + 1);
     }
   );

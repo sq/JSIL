@@ -3,8 +3,7 @@ JSIL.ImplementExternals("System.Char", function ($) {
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsControl(c) {
       // FIXME: Unicode
-      var charCode = c.charCodeAt(0);
-      return (charCode <= 0x1F) || (charCode === 0x7F);
+      return (c <= 0x1F) || (c === 0x7F);
     }
   );
 
@@ -12,8 +11,7 @@ JSIL.ImplementExternals("System.Char", function ($) {
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsDigit(c) {
       // FIXME: Unicode
-      var charCode = c.charCodeAt(0);
-      return (charCode >= 48) && (charCode <= 57);
+      return (c >= 48) && (c <= 57);
     }
   );
 
@@ -21,10 +19,9 @@ JSIL.ImplementExternals("System.Char", function ($) {
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsLetter(c) {
       // FIXME: Unicode
-      var charCode = c.charCodeAt(0);
       return (
-        ((charCode >= 65) && (charCode <= 90)) ||
-        ((charCode >= 97) && (charCode <= 122)));
+        ((c >= 65) && (c <= 90)) ||
+        ((c >= 97) && (c <= 122)));
     }
   );
 
@@ -32,8 +29,7 @@ JSIL.ImplementExternals("System.Char", function ($) {
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsNumeric(c) {
       // FIXME: Unicode
-      var charCode = c.charCodeAt(0);
-      return (charCode >= 48) && (charCode <= 57);
+      return (c >= 48) && (c <= 57);
     }
   );
 
@@ -47,8 +43,7 @@ JSIL.ImplementExternals("System.Char", function ($) {
   $.Method({ Static: true, Public: true }, "IsSurrogate",
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsSurrogate(c) {
-      var charCode = c.charCodeAt(0);
-      return (charCode >= 0xD800) && (charCode <= 0xDFFF);
+      return (c >= 0xD800) && (c <= 0xDFFF);
     }
   );
 
@@ -56,33 +51,32 @@ JSIL.ImplementExternals("System.Char", function ($) {
     new JSIL.MethodSignature($.Boolean, [$.Char], []),
     function IsWhiteSpace(c) {
       // FIXME: Unicode
-      var charCode = c.charCodeAt(0);
       return (
-        ((charCode >= 0x09) && (charCode <= 0x13)) ||
-        (charCode === 0x20) ||
-        (charCode === 0xA0) ||
-        (charCode === 0x85));
+        ((c >= 0x09) && (c <= 0x13)) ||
+        (c === 0x20) ||
+        (c === 0xA0) ||
+        (c === 0x85));
     }
   );
 
   $.Method({ Static: true, Public: true }, "ToLowerInvariant",
     new JSIL.MethodSignature($.Char, [$.Char], []),
     function ToLowerInvariant(c) {
-      return c.toLowerCase();
+      return String.fromCharCode(c).toLowerCase().charCodeAt(0);
     }
   );
 
   $.Method({ Static: true, Public: true }, "ToUpperInvariant",
     new JSIL.MethodSignature($.Char, [$.Char], []),
     function ToLowerInvariant(c) {
-      return c.toUpperCase();
+      return String.fromCharCode(c).toUpperCase().charCodeAt(0);
     }
   );
 
   $.Method({ Static: true, Public: true }, "ToString",
     new JSIL.MethodSignature($.String, [$.Char], []),
     function ToString(c) {
-      return c;
+      return String.fromCharCode(c);
     }
   );
 });

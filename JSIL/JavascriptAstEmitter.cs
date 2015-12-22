@@ -913,7 +913,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCharLiteral ch) {
-            Output.Value(ch.Value);
+            Output.Value((ushort)(ch.Value));
         }
 
         public void VisitNode (JSStringLiteral str) {
@@ -1148,7 +1148,7 @@ namespace JSIL {
                         Output.Value(0.0);
                         break;
                     case "System.Char":
-                        Output.Value("\0");
+                        Output.Value(0);
                         break;
                     case "System.Boolean":
                         Output.WriteRaw("false");

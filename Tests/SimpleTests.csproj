@@ -137,6 +137,8 @@
     <None Include="SimpleTestCases\FailsOnMono\ArrayEmpty.cs" />
     <None Include="SimpleTestCases\NumericTypesIConvertible.cs" />
     <None Include="SimpleTestCases\StringAsIConvertible.cs" />
+    <None Include="SimpleTestCases\Int64CharArithmetic_Issue867.cs" />
+    <None Include="SimpleTestCases\Int64CharCast.cs" />
     <None Include="SimpleTestCases\ArrayICollectionMethods.cs" />
     <None Include="SimpleTestCases\ArrayCast.cs" />
     <Compile Include="SimpleTests.cs" />

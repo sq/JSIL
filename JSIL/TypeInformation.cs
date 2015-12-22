@@ -1531,8 +1531,10 @@ namespace JSIL.Internal {
         public readonly ProxyInfo SourceProxy;
         public readonly T Member;
         public readonly MetadataCollection Metadata;
+        public readonly bool IsMarkedWithJSReplacement;
         public readonly bool IsExternal;
         public readonly bool IsFromProxy;
+        protected readonly bool _IsSuppressOutput;
         protected readonly bool _IsIgnored;
         protected readonly bool _IsUnstubbable;
         protected readonly JSReadPolicy _ReadPolicy;
@@ -1576,8 +1578,14 @@ namespace JSIL.Internal {
             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
                 _IsIgnored = true;
 
-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+            if (Metadata.HasAttribute("JSIL.Meta.JSExternal"))
                 IsExternal = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSSuppressOutput"))
+                _IsSuppressOutput = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                IsMarkedWithJSReplacement = true;
 
             if (Metadata.HasAttribute("JSIL.Meta.JSNeverStub")) {
                 _IsUnstubbable = true;
@@ -1677,6 +1685,11 @@ namespace JSIL.Internal {
                     return isReturnIgnored;
                 }
             }
+        }
+
+        public virtual bool IsSuppressOutput
+        {
+            get { return IsIgnored || _IsSuppressOutput; }
         }
 
         public virtual string ChangedName {

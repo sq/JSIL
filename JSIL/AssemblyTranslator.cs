@@ -1225,9 +1225,9 @@ namespace JSIL {
                 foreach (var method in methodsToTranslate) {
                     var mi = TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
-                    bool isExternal, b, c;
+                    bool isExternal, c;
                     if (!ShouldTranslateMethodBody(
-                        method, mi, stubbed, out isExternal, out b, out c
+                        method, mi, stubbed, out isExternal, out c
                     ))
                         continue;
 
@@ -1357,6 +1357,7 @@ namespace JSIL {
                 bool skip = 
                     ShouldSkipMember(method) ||
                     methodInfo.IsExternal ||
+                    methodInfo.IsSuppressOutput || 
                     methodInfo.IsAbstract;
                 
                 if (skip) {
@@ -1597,7 +1598,7 @@ namespace JSIL {
                 return null;
 
             var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
-            if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
+            if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal || fieldInfo.IsSuppressOutput)
                 return null;
 
             var dollarIdentifier = new JSRawOutputIdentifier(field.DeclaringType, dollar.Format, dollar.Arguments);
@@ -1724,12 +1725,12 @@ namespace JSIL {
                 (from f in staticFields
                  where NeedsStaticConstructor(f.FieldType)
                  let fi = TypeInfoProvider.GetField(f)
-                 where ((fi != null) && (!fi.IsExternal && !fi.IsIgnored)) || (fi == null)
+                 where ((fi != null) && (!fi.IsExternal && !fi.IsIgnored && !fi.IsSuppressOutput)) || (fi == null)
                  select f).ToArray();
             var fieldsToStrip =
                 new HashSet<FieldDefinition>(from f in staticFields
                  let fi = TypeInfoProvider.GetField(f)
-                 where (fi != null) && (fi.IsExternal || fi.IsIgnored)
+                 where (fi != null) && (fi.IsExternal || fi.IsIgnored || fi.IsSuppressOutput)
                  select f);
 
             // For fields with values assigned non-dynamically by the static constructor, we want to pull those values
@@ -1926,7 +1927,7 @@ namespace JSIL {
 
             foreach (var f in typedef.Fields) {
                 var fi = TypeInfoProvider.GetField(f);
-                if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
+                if ((fi != null) && (fi.IsIgnored || fi.IsExternal || fi.IsSuppressOutput))
                     continue;
 
                 doTranslateField(f);
@@ -2000,38 +2001,33 @@ namespace JSIL {
 
         protected void CreateMethodInformation (
             MethodInfo methodInfo, bool stubbed,
-            out bool isExternal, out bool isJSReplaced, 
-            out bool methodIsProxied
+            out bool isExternal, out bool methodIsProxied
         ) {
-            isJSReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
             methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
-                !methodInfo.IsExternal && !isJSReplaced;
+                !methodInfo.IsExternal && !methodInfo.IsMarkedWithJSReplacement && !methodInfo.IsSuppressOutput;
 
             isExternal = methodInfo.IsExternal || (stubbed && !methodInfo.IsUnstubbable);
         }
 
         internal bool ShouldTranslateMethodBody (
             MethodDefinition method, MethodInfo methodInfo, bool stubbed,
-            out bool isExternal, out bool isJSReplaced,
+            out bool isExternal,
             out bool methodIsProxied
         ) {
             if (methodInfo == null) {
-                isExternal = isJSReplaced = methodIsProxied = false;
+                isExternal = methodIsProxied = false;
                 return false;
             }
 
             CreateMethodInformation(
                 methodInfo, stubbed,
-                out isExternal, out isJSReplaced, out methodIsProxied
+                out isExternal, out methodIsProxied
             );
 
             if (ShouldSkipMember(method))
                 return false;
 
             if (isExternal) {
-                if (isJSReplaced)
-                    return false;
-
                 var isProperty = methodInfo.DeclaringProperty != null;
 
                 if (isProperty && methodInfo.DeclaringProperty.IsExternal)
@@ -2043,7 +2039,7 @@ namespace JSIL {
                 }
             }
 
-            if (methodInfo.IsIgnored)
+            if (methodInfo.IsIgnored || methodInfo.IsSuppressOutput)
                 return false;
             if (!method.HasBody && !isExternal && !methodIsProxied)
                 return false;
@@ -2088,11 +2084,11 @@ namespace JSIL {
             if (methodInfo == null)
                 methodInfo = TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
 
-            bool isExternal, isReplaced, methodIsProxied;
+            bool isExternal, methodIsProxied;
 
             if (!ShouldTranslateMethodBody(
                 method, methodInfo, stubbed,
-                out isExternal, out isReplaced, out methodIsProxied
+                out isExternal, out methodIsProxied
             ))
                 return;
 

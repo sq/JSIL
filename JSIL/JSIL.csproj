@@ -105,7 +105,6 @@
     <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
     <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />
     <Compile Include="Transforms\ExpandCastExpressions.cs" />
-    <Compile Include="Transforms\IntroduceCharCasts.cs" />
     <Compile Include="Transforms\RemoveUnusedLoopNames.cs" />
     <Compile Include="Transforms\LabelGroupBuilder.cs" />
     <Compile Include="Transforms\DeoptimizeSwitchStatements.cs" />

@@ -213,6 +213,27 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void JSSuppressOutputMethod()
+        {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\SuppressOutputMethod.cs",
+                "Foo",
+                "Excpetion in instance.Foo()"
+            );
+
+            try
+            {
+                Assert.IsTrue(generatedJs.Contains("instance.Foo()"));
+                Assert.IsFalse(generatedJs.Contains("\"Foo\""));
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+                throw;
+            }
+        }
+
+        [Test]
         public void RenameMethod () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\RenameMethod.cs",
