@@ -404,11 +404,11 @@ namespace JSIL {
             if (methodInfo == null)
                 methodInfo = TypeInfo.GetMemberInformation<Internal.MethodInfo>(method);
 
-            bool isExternal, isReplaced, methodIsProxied;
+            bool isExternal, methodIsProxied;
 
             if (!Translator.ShouldTranslateMethodBody(
                 method, methodInfo, stubbed,
-                out isExternal, out isReplaced, out methodIsProxied
+                out isExternal, out methodIsProxied
             ))
                 return;
 
