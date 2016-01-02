@@ -97,6 +97,26 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
+        public void RoslynBigStringSwitchWithStaticArray()
+        {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\RoslynBigStringSwitchWithStaticArray.cs"
+            );
+
+            try
+            {
+                Assert.IsFalse(generatedJs.Contains("StaticArrayInit"));
+            }
+            catch
+            {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",

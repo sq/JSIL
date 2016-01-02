@@ -396,6 +396,19 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [FailsOnMono]
+        public void SwitchStatementsRoslyn()
+        {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] {
+                    @"SpecialTestCases\RoslynBigStringSwitchWithStaticArray.cs",
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
         [TestCaseSource("ArithmeticSource")]
         public void Arithmetic (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
