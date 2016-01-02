@@ -1,4 +1,12 @@
 JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder", function ($) {
+  var $TaskCompletionSourceOfObject = function () {
+    return ($TaskCompletionSourceOfObject = JSIL.Memoize($jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object)))();
+  };
+
+  var $TrySetExceptionSignature = function () {
+    return ($TrySetExceptionSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")])))();
+  };
+
   $.Method({ Static: false, Public: false }, ".ctor",
     (new JSIL.MethodSignature(null, [], [])),
     function _ctor() {
@@ -42,9 +50,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
   $.Method({ Static: false, Public: true }, "SetResult",
     new JSIL.MethodSignature(null, [], []),
     function SetResult() {
-      // TODO: Use JSIL.Memoize for closed generic resolution
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object);
-      return taskCompletionSource.prototype.TrySetResult.call(this.get_TaskSource(), null);
+      return $TaskCompletionSourceOfObject().prototype.TrySetResult.call(this.get_TaskSource(), null);
     }
   );
 
@@ -52,26 +58,21 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Exception")], []),
     function SetException(exception) {
       JSIL.Host.warning(exception);
-      // TODO: Use JSIL.Memoize for closed generic resolution
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object);
-      return taskCompletionSource.prototype.TrySetException.call(this.get_TaskSource(), exception);
+      $TrySetExceptionSignature().Call($TaskCompletionSourceOfObject().prototype, "TrySetException", null, this.get_TaskSource(), exception);
     }
   );
 
   $.Method({ Static: false, Public: true }, "get_Task",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [], []),
     function get_Task() {
-      // TODO: Use JSIL.Memoize for closed generic resolution
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object);
-      return taskCompletionSource.prototype.get_Task.call(this.get_TaskSource());
+      return $TaskCompletionSourceOfObject().prototype.get_Task.call(this.get_TaskSource());
     }
   );
 
   $.RawMethod(false, "get_TaskSource",
     function get_TaskSource() {
       if (!this._taskSource) {
-        // TODO: Use JSIL.Memoize for closed generic resolution
-        this._taskSource = new ($jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object))();
+        this._taskSource = new ($TaskCompletionSourceOfObject())();
       }
       return this._taskSource;
     }
@@ -79,6 +80,10 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
 });
 
 JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1", function ($) {
+  var $TrySetExceptionSignature = function () {
+    return ($TrySetExceptionSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")])))();
+  };
+
   $.Method({ Static: false, Public: false }, ".ctor",
     (new JSIL.MethodSignature(null, [], [])),
     function _ctor() {
@@ -88,7 +93,6 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
   $.Method({ Static: true, Public: true }, "Create",
     (new JSIL.MethodSignature($.Type, [], [])),
     function Create() {
-      // TODO: Use JSIL.Memoize for closed generic resolution
       return new ($jsilcore.System.Runtime.CompilerServices.AsyncTaskMethodBuilder$b1.Of(this.TResult))();
     }
   );
@@ -123,7 +127,6 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
   $.Method({ Static: false, Public: true }, "SetResult",
     new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1")], []),
     function SetResult(result) {
-      // TODO: Use JSIL.Memoize for closed generic resolution
       var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
       return taskCompletionSource.prototype.TrySetResult.call(this.get_TaskSource(), result);
     }
@@ -133,16 +136,14 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Exception")], []),
     function SetException(exception) {
       JSIL.Host.warning(exception);
-      // TODO: Use JSIL.Memoize for closed generic resolution
       var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
-      return taskCompletionSource.prototype.TrySetException.call(this.get_TaskSource(), exception);
+      $TrySetExceptionSignature().Call(taskCompletionSource.prototype, "TrySetException", null, this.get_TaskSource(), exception);
     }
   );
 
   $.Method({ Static: false, Public: true }, "get_Task",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", [new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1")]), [], []),
     function get_Task() {
-      // TODO: Use JSIL.Memoize for closed generic resolution
       var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
       return taskCompletionSource.prototype.get_Task.call(this.get_TaskSource());
     }
@@ -151,7 +152,6 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
   $.RawMethod(false, "get_TaskSource",
     function get_TaskSource() {
       if (!this._taskSource) {
-        // TODO: Use JSIL.Memoize for closed generic resolution
         this._taskSource = new ($jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult))();
       }
       return this._taskSource;
