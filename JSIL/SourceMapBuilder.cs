@@ -53,12 +53,28 @@ namespace JSIL.Internal
         public void AddInfo(int genaratedLine, int generatedColumn, IEnumerable<SequencePoint> info)
         {
             var point = info != null ? info.FirstOrDefault() : null;
+            if (point == null)
+                return;
             _mappings.Add(new Mapping(
                 genaratedLine + 1,
                 generatedColumn,
-                point == null ? -1 : point.StartLine,
-                point == null ? -1 : point.StartColumn - 1,
-                point == null ? null : point.Document.Url,
+                point.StartLine,
+                point.StartColumn - 1,
+                point.Document.Url,
+                null));
+        }
+
+        public void AddInfoEnd(int genaratedLine, int generatedColumn, IEnumerable<SequencePoint> info)
+        {
+            var point = info != null ? info.FirstOrDefault() : null;
+            if (point == null)
+                return;
+            _mappings.Add(new Mapping(
+                genaratedLine + 1,
+                generatedColumn,
+                point.EndLine,
+                point.EndColumn,
+                point.Document.Url,
                 null));
         }
 
