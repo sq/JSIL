@@ -139,6 +139,7 @@
     <None Include="SimpleTestCases\StringAsIConvertible.cs" />
     <None Include="SimpleTestCases\ArrayICollectionMethods.cs" />
     <None Include="SimpleTestCases\ArrayCast.cs" />
+    <None Include="SimpleTestCases\Issue913.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
@@ -488,7 +489,7 @@
       <Project>{984CC812-9470-4A13-AFF9-CC44068D666C}</Project>
       <Name>ICSharpCode.Decompiler</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+    <ProjectReference Include="..\Upstream\ILSpy\cecil\Mono.Cecil.csproj">
       <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>

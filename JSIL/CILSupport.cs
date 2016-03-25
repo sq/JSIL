@@ -82,6 +82,9 @@ namespace JSIL.Internal {
             25, 52, 224, 137
         };
 
+        private readonly object _syncRoot = new object();
+        private readonly List<string> _directories = new List<string>();
+
         protected readonly Configuration Configuration;
         protected readonly AssemblyCache Cache;
         protected readonly bool OwnsCache;
@@ -99,6 +102,34 @@ namespace JSIL.Internal {
         public void Dispose () {
             if (OwnsCache)
                 Cache.Dispose();
+        }
+
+        public new void AddSearchDirectory(string directory)
+        {
+            lock (_syncRoot)
+            {
+                if (_directories.Contains(directory))
+                    return;
+                _directories.Add(directory);
+                base.AddSearchDirectory(directory);
+            }
+        }
+
+        public new void RemoveSearchDirectory(string directory)
+        {
+            lock (_syncRoot)
+            {
+                _directories.Remove(directory);
+                base.RemoveSearchDirectory(directory);
+            }
+        }
+
+        public new string[] GetSearchDirectories()
+        {
+            lock (_syncRoot)
+            {
+                return base.GetSearchDirectories();
+            }
         }
 
         public AssemblyNameReference FilterPortableClassLibraryReferences (AssemblyNameReference name) {
@@ -141,8 +172,12 @@ namespace JSIL.Internal {
             string redirectedFrom;
             actualName = FilterRedirectedReferences(name, out redirectedFrom);
 
-            var result = Cache.GetOrCreate(actualName.FullName, (fullName) => {
-                var assembly = base.Resolve(actualName, parameters);
+            var result = Cache.GetOrCreate(actualName.FullName, (fullName) =>
+            {
+                AssemblyDefinition assembly;
+                lock (_syncRoot)
+                    assembly = base.Resolve(actualName, parameters);
+            
                 if (redirectedFrom != null)
                     Console.Error.WriteLine("// Redirected '{0}' to '{1}'", redirectedFrom, actualName.FullName);
 
