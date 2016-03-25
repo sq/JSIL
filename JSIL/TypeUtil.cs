@@ -7,7 +7,6 @@ using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
-using Mono.CSharp;
 using TypeDefinition = Mono.Cecil.TypeDefinition;
 
 namespace JSIL {
