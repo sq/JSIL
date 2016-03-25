@@ -138,15 +138,15 @@
       <Project>{984CC812-9470-4A13-AFF9-CC44068D666C}</Project>
       <Name>ICSharpCode.Decompiler</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+    <ProjectReference Include="..\Upstream\ILSpy\cecil\Mono.Cecil.csproj">
       <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\symbols\mdb\Mono.Cecil.Mdb.csproj">
+    <ProjectReference Include="..\Upstream\ILSpy\cecil\symbols\mdb\Mono.Cecil.Mdb.csproj">
       <Project>{8559DD7F-A16F-46D0-A05A-9139FAEBA8FD}</Project>
       <Name>Mono.Cecil.Mdb</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\symbols\pdb\Mono.Cecil.Pdb.csproj">
+    <ProjectReference Include="..\Upstream\ILSpy\cecil\symbols\pdb\Mono.Cecil.Pdb.csproj">
       <Project>{63E6915C-7EA4-4D76-AB28-0D7191EEA626}</Project>
       <Name>Mono.Cecil.Pdb</Name>
     </ProjectReference>
