@@ -65,7 +65,8 @@ namespace JSIL {
 
             if (output.SourceMapBuilder != null)
             {
-                AfterNodeProcessed += AddSourceMapInfo;
+                BeforeNodeProcessed += AddSourceMapInfo;
+                //AfterNodeProcessed += AddSourceMapInfoEnd;
             }
         }
 
@@ -2608,10 +2609,19 @@ namespace JSIL {
 
         private void AddSourceMapInfo(JSNode node)
         {
-            if (node.SymbolInfo != null && node.SymbolInfo.Any())
+            if (node.SymbolInfo != null)
             {
-                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.FirstNonSpace, node.SymbolInfo);
-                //Output.Comment(string.Join("; ", node.SymbolInfo.Select(item => item.StartLine + ":" + item.StartColumn)));
+                //Output.Comment(string.Join("; ", node.SymbolInfo.SequencePoints.Select(item => item.StartLine + ":" + item.StartColumn)));
+                Output.SourceMapBuilder.AddInfo(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.Column, node.SymbolInfo.SequencePoints);
+            }
+        }
+
+        private void AddSourceMapInfoEnd(JSNode node)
+        {
+            if (node.SymbolInfo != null)
+            {
+                Output.SourceMapBuilder.AddInfoEnd(Output.OutputWithPositionInfo.Line, Output.OutputWithPositionInfo.Column, node.SymbolInfo.SequencePoints);
+                //Output.Comment("--" + string.Join("; ", node.SymbolInfo.SequencePoints.Select(item => item.EndLine + ":" + item.EndColumn)));
             }
         }
     }

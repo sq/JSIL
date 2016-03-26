@@ -90,6 +90,8 @@
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CacheSignatures.cs" />
     <Compile Include="Transforms\CacheBaseMethods.cs" />
+    <Compile Include="Transforms\AttachSymbolInfoToStatements.cs" />
+    <Compile Include="Transforms\FixSymbolInfo.cs" />
     <Compile Include="Transforms\SynthesizePropertySetterReturnValues.cs" />
     <Compile Include="Transforms\IntroducePackedArrays.cs" />
     <Compile Include="Transforms\StaticAnalysis\AllocationHoisting.cs" />

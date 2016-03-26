@@ -45,7 +45,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public IEnumerable<SequencePoint> SymbolInfo { get; set; }
+        public SymbolInfo SymbolInfo { get; set; }
 
         public static Type[] NodeTypes {
             get {
@@ -159,6 +159,27 @@ namespace JSIL.Ast {
                 if ((child != null) && (child != newChild))
                     child.ReplaceChildRecursive(oldChild, newChild);
             }
+        }
+    }
+
+    public class SymbolInfo
+    {
+        public readonly IEnumerable<SequencePoint> SequencePoints;
+        public readonly bool Inferred;
+
+        public SymbolInfo(IEnumerable<SequencePoint> sequencePoints, bool inferred)
+        {
+            if (sequencePoints == null)
+            {
+                throw new ArgumentNullException("sequencePoints");
+            }
+            if (!sequencePoints.Any())
+            {
+                throw new ArgumentException("sequencePonts should not be empty", "sequencePoints");
+            }
+
+            SequencePoints = sequencePoints;
+            Inferred = inferred;
         }
     }
 

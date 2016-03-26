@@ -16,6 +16,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 
 using TypeInfo = JSIL.Internal.TypeInfo;
+using SequencePoint = Mono.Cecil.Cil.SequencePoint;
 
 namespace JSIL {
     public class ILBlockTranslator {
@@ -28,9 +29,6 @@ namespace JSIL {
         public readonly JavascriptFormatter Output = null;
 
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
-
-        protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
-        private readonly Dictionary<string, JSIndirectVariable> IndirectVariables = new Dictionary<string, JSIndirectVariable>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -694,12 +692,7 @@ namespace JSIL {
         }
 
         private JSIndirectVariable MakeIndirectVariable (string name) {
-            JSIndirectVariable result;
-
-            if (!IndirectVariables.TryGetValue(name, out result))
-                IndirectVariables.Add(name, result = new JSIndirectVariable(Variables, name, ThisMethodReference));
-
-            return result;
+            return new JSIndirectVariable(Variables, name, ThisMethodReference);
         }
 
         internal JSExpression DoMethodReplacement (
@@ -1155,31 +1148,36 @@ namespace JSIL {
                 var expression = (JSExpression) translated;
 
                 if (expression != null)
-                {
-                    if (Symbols != null)
-                    {
-                        // TODO: Don't use node.GetSelfAndChildrenRecursive as it is costly.
-                        var ranges =
-                            node.GetSelfAndChildrenRecursive<ILExpression>(item => true)
-                                .SelectMany(item => item.ILRanges);
-                        var symbolInfo = ranges
-                            .SelectMany(
-                                range =>
-                                    Symbols.Instructions.Where(
-                                        item => range.From <= item.Offset && item.Offset < range.To))
-                            .Select(item => item.SequencePoint)
-                            .Where(item => !(item.StartLine == item.EndLine && item.StartColumn == item.EndColumn))
-                            .ToList();
-                        expression.SymbolInfo = symbolInfo;
-                    }
-
                     statement = new JSExpressionStatement(expression);
-                }
                 else
                     Translator.WarningFormat("Null statement: {0}", node);
             }
 
             return statement;
+        }
+
+        private void AddSymbolInfo(ILNode node, JSNode expression)
+        {
+            if (Symbols != null)
+            {
+                var ilExpression = node as ILExpression;
+                if (ilExpression != null && ilExpression.ILRanges.Any())
+                {
+                    var rangeFrom =
+                        ilExpression.ILRanges.Min(item => item.From);
+                    var symbolInfo = Symbols.Instructions
+                                .OrderByDescending(item => item.Offset)
+                                .Where(item => !(item.SequencePoint.StartLine == item.SequencePoint.EndLine && item.SequencePoint.StartColumn == item.SequencePoint.EndColumn))
+                                .Where(item => item.Offset <= rangeFrom)
+                                .Select(item => item.SequencePoint)
+                                .FirstOrDefault();
+
+                    if (symbolInfo != null)
+                    {
+                        expression.SymbolInfo = new SymbolInfo(new List<SequencePoint> { symbolInfo}, false);
+                    }
+                }
+            }
         }
 
         public JSBlockStatement TranslateNode (ILBlock block) {
@@ -1280,13 +1278,19 @@ namespace JSIL {
         }
 
         public JSExpression TranslateNode (ILExpression expression) {
+            JSExpression finalResult = null;
             JSExpression result = null;
 
             if ((expression.InferredType != null) && TypeUtil.IsIgnoredType(expression.InferredType))
-                return new JSUntranslatableExpression(expression);
+            {
+                finalResult = new JSUntranslatableExpression(expression);
+                goto END;
+            }
             if ((expression.ExpectedType != null) && TypeUtil.IsIgnoredType(expression.ExpectedType))
-                return new JSUntranslatableExpression(expression);
-
+            {
+                finalResult = new JSUntranslatableExpression(expression);
+                goto END;
+            }
             try {
                 object[] arguments;
                 if (expression.Operand != null)
@@ -1295,7 +1299,7 @@ namespace JSIL {
                     arguments = new object[] { expression };
 
                 var invokeResult = InvokeNodeTranslator(expression.Code, this, arguments);
-                result = invokeResult as JSExpression;
+                finalResult = result = invokeResult as JSExpression;
 
                 if (result == null)
                     WarningFormatFunction("Instruction {0} did not produce a JS AST expression", expression);
@@ -1305,7 +1309,8 @@ namespace JSIL {
                     operandType = expression.Operand.GetType().FullName;
 
                 WarningFormatFunction("Instruction NYI: {0} {1}", expression.Code, operandType);
-                return new JSUntranslatableExpression(expression);
+                finalResult = new JSUntranslatableExpression(expression);
+                goto END;
             } catch (TargetInvocationException tie) {
                 if (tie.InnerException is AbortTranslation)
                     throw tie.InnerException;
@@ -1363,13 +1368,19 @@ namespace JSIL {
 
                 if (shouldAutoCast) {
                     if (specialNullableCast)
-                        return new JSNullableCastExpression(result, new JSType(expectedType));
+                    {
+                        finalResult = new JSNullableCastExpression(result, new JSType(expectedType));
+                        goto END;
+                    }
                     else
-                        return JSCastExpression.New(result, expectedType, TypeSystem, isCoercion: true);
+                    {
+                        finalResult= JSCastExpression.New(result, expectedType, TypeSystem, isCoercion: true);
+                        goto END;
+                    }
                 } else {
                     // FIXME: Should this be JSChangeTypeExpression to preserve type information?
                     // I think not, because a lot of these ExpectedTypes are wrong.
-                    return result;
+                    goto END;
                 }
             } else if (
                 // HACK: Can't apply this to InitArray instructions because it breaks dynamic call sites.
@@ -1384,10 +1395,13 @@ namespace JSIL {
                 // HACK: Workaround for the fact that JS array instances don't expose IEnumerable methods
                 // This can go away if we introduce a CLRArray type and use that instead of JS arrays.
 
-                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: false);
+                finalResult = JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: false);
+                goto END;
             }
 
-            return result;
+            END:
+            AddSymbolInfo(expression, finalResult);
+            return finalResult;
         }
 
         public JSStatement TranslateNode (ILCondition condition) {
@@ -2274,9 +2288,7 @@ namespace JSIL {
             var escapedName = JSParameter.MaybeEscapeName(variable.Name, true);
             bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
 
-            if (RenamedVariables.TryGetValue(variable, out renamed)) {
-                return MakeIndirectVariable(renamed.Identifier);
-            } else if (
+            if (
                 !isThis &&
                 Variables.TryGetValue(escapedName, out theVariable)
             ) {
