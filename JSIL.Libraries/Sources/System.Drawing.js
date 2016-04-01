@@ -193,7 +193,7 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
 				tempStr += hexStr[i];
 				argb.push(parseInt(tempStr, 16));
 			} else {
-				tempStr += hexStr[i];
+				tempStr = hexStr[i];
 			}
 		}
 		return makeColor(argb[0], argb[1], argb[2], argb[3], null);
