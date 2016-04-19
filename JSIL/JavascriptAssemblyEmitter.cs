@@ -1237,14 +1237,46 @@ namespace JSIL {
             var css = signatureCacher.Global.Signatures.OrderBy((cs) => cs.Value).ToArray();
             if (css.Length > 0) {
                 foreach (var cs in css) {
-                    Formatter.WriteRaw("var $S{0:X2} = function () ", cs.Value);
-                    Formatter.OpenBrace();
-                    Formatter.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
-                    Formatter.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext, cs.Key.IsConstructor, false);
-                    Formatter.WriteRaw(")) ()");
-                    Formatter.Semicolon(true);
-                    Formatter.CloseBrace(false);
-                    Formatter.Semicolon(true);
+                    if (cs.Key.RewritenGenericParametersCount == 0)
+                    {
+                        Formatter.WriteRaw("var $S{0:X2} = function () ", cs.Value);
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return ($S{0:X2} = JSIL.Memoize(", cs.Value);
+                        Formatter.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext,
+                            cs.Key.IsConstructor, false, true);
+                        Formatter.WriteRaw(")) ()");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
+                    else
+                    {
+                        Formatter.WriteRaw("var $S{0:X2} = function ", cs.Value);
+                        Formatter.LPar();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cs.Key.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.RPar();
+                        Formatter.Space();
+
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return JSIL.MemoizeTypes($S{0:X2}, function() {{return ", cs.Value);
+                        Formatter.Signature(cs.Key.Method, cs.Key.Signature, astEmitter.ReferenceContext,
+                            cs.Key.IsConstructor, false, true);
+                        Formatter.WriteRaw(";}");
+                        Formatter.Comma();
+                        Formatter.OpenBracket();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cs.Key.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.CloseBracket();
+                        Formatter.WriteRaw(")");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
                 }
             }
 
@@ -1266,16 +1298,48 @@ namespace JSIL {
             var cims = signatureCacher.Global.InterfaceMembers.OrderBy((cim) => cim.Value).ToArray();
             if (cims.Length > 0) {
                 foreach (var cim in cims) {
-                    Formatter.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
-                    Formatter.OpenBrace();
-                    Formatter.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
-                    Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
-                    Formatter.Dot();
-                    Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
-                    Formatter.WriteRaw(")) ()");
-                    Formatter.Semicolon(true);
-                    Formatter.CloseBrace(false);
-                    Formatter.Semicolon(true);
+                    if (cim.Key.RewritenGenericParametersCount == 0)
+                    {
+                        Formatter.WriteRaw("var $IM{0:X2} = function () ", cim.Value);
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
+                        Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                        Formatter.Dot();
+                        Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.WriteRaw(")) ()");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
+                    else
+                    {
+                        Formatter.WriteRaw("var $IM{0:X2} = function ", cim.Value);
+                        Formatter.LPar();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cim.Key.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.RPar();
+                        Formatter.Space();
+
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return JSIL.MemoizeTypes($IM{0:X2}, function() {{return ", cim.Value);
+                        Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
+                        Formatter.Dot();
+                        Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.WriteRaw(";}");
+                        Formatter.Comma();
+                        Formatter.OpenBracket();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cim.Key.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.CloseBracket();
+                        Formatter.WriteRaw(")");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
                 }
             }
 
