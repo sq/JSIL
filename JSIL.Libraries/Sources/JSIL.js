@@ -31,15 +31,15 @@
     globalNamespace.jsilConfig = {};
 
   if (typeof (globalNamespace.contentManifest) !== "object")
-    globalNamespace.contentManifest = {}; 
-})(this);
+      globalNamespace.contentManifest = {
+          "JSIL": []
+      };
 
-contentManifest["JSIL"] = [];
-
-var $jsilloaderstate = {
-  environment: null,
-  loadFailures: []
-};
+  globalNamespace.$jsilloaderstate = {
+    environment: null,
+    loadFailures: []
+  };
+})(typeof(self) !== "undefined" ? self : this);
 
 (function loadJSIL (config) {
     function getLibraryPrefix(config) {
