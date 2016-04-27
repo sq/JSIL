@@ -1926,7 +1926,7 @@ namespace JSIL {
 
             foreach (var f in typedef.Fields) {
                 var fi = TypeInfoProvider.GetField(f);
-                if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
+                if ((fi != null) && (fi.IsIgnored || fi.IsExternal || ShouldSkipMember(fi.Member)))
                     continue;
 
                 doTranslateField(f);
@@ -1935,7 +1935,7 @@ namespace JSIL {
             // Added fields from proxies come after original fields, in their precise order.
 
             foreach (var af in typeInfo.AddedFieldsFromProxies) {
-                if (af.Member.IsCompilerGeneratedOrIsInCompilerGeneratedClass())
+                if (af.Member.IsCompilerGeneratedOrIsInCompilerGeneratedClass() || ShouldSkipMember(af.Member))
                     continue;
 
                 doTranslateField(af.Member);
