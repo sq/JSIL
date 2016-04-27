@@ -122,6 +122,7 @@ namespace JSIL.Translator {
         public string AssemblyCollectionName;
         public string EmitterFactoryName;
         public bool? BuildSourceMap;
+        public bool? InlineAssemblyReferences;
 
         public double? FrameworkVersion;
 
@@ -166,6 +167,9 @@ namespace JSIL.Translator {
 
             if (BuildSourceMap != null)
                 result.BuildSourceMap = BuildSourceMap;
+
+            if (InlineAssemblyReferences != null)
+                result.InlineAssemblyReferences = InlineAssemblyReferences;
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);
