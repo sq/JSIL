@@ -365,16 +365,6 @@ namespace JSIL.Compiler {
                  select LoadConfiguration(fn)).ToArray()
             );
 
-            if (commandLineConfig.ApplyDefaults.GetValueOrDefault(true)) {
-                baseConfig = MergeConfigurations(
-                    LoadConfiguration(Path.Combine(
-                        GetJSILDirectory(),
-                        "defaults.jsilconfig"
-                    )),
-                    baseConfig
-                );
-            }
-
             foreach (var solution in
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
@@ -752,6 +742,17 @@ namespace JSIL.Compiler {
                         : new Configuration[] { commandLineConfiguration };
 
                     var localConfig = MergeConfigurations(config, fileConfig);
+
+                    if (localConfig.ApplyDefaults.GetValueOrDefault(true))
+                    {
+                        localConfig = MergeConfigurations(
+                            LoadConfiguration(Path.Combine(
+                                GetJSILDirectory(),
+                                "defaults.jsilconfig"
+                            )),
+                            localConfig
+                        );
+                    }
 
                     var localProfile = buildGroup.Profile;
                     if (localConfig.Profile != null) {
