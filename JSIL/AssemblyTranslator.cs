@@ -287,13 +287,13 @@ namespace JSIL {
             return false;
         }
 
-        protected bool IsRedirected (string assemblyName) {
-            foreach (var ra in Configuration.Assemblies.Redirects.Keys) {
-                if (Regex.IsMatch(assemblyName, ra, RegexOptions.IgnoreCase))
-                    return true;
+        protected string ResolveRedirectedName (string assemblyName) {
+            foreach (var ra in Configuration.Assemblies.Redirects) {
+                if (Regex.IsMatch(assemblyName, ra.Key, RegexOptions.IgnoreCase))
+                    return ra.Value;
             }
 
-            return false;
+            return assemblyName;
         }
 
         public string ClassifyAssembly (AssemblyDefinition asm) {
@@ -504,7 +504,7 @@ namespace JSIL {
 
             // Assign a unique identifier for all participating assemblies up front
             foreach (var assembly in assemblies) {
-                if (IsRedirected(assembly.FullName))
+                if (ResolveRedirectedName(assembly.FullName) != assembly.FullName)
                     continue;
 
                 Manifest.GetPrivateToken(assembly);
@@ -919,7 +919,22 @@ namespace JSIL {
                 assemblyDeclarationReplacement = (string) metadata.GetAttributeParameters("JSIL.Meta.JSRepaceAssemblyDeclaration")[0].Value;
             }
 
-            var overrides =
+            Dictionary<AssemblyManifest.Token, string> assemblies = new Dictionary<AssemblyManifest.Token, string>();
+            var wrapAssemblyInImmediatelyInvokedFunctionExpression = Configuration.InlineAssemblyReferences.GetValueOrDefault(false);
+            if (wrapAssemblyInImmediatelyInvokedFunctionExpression)
+            {
+                assemblies = assembly.Modules
+                    .SelectMany(item => item.AssemblyReferences)
+                    .Select(item => ResolveRedirectedName(item.FullName))
+                    .Distinct()
+                    .ToDictionary(
+                        item => Manifest.GetPrivateToken(item),
+                        item => string.Format("JSIL.GetAssembly({0})", Util.EscapeString(item, '\"')));
+
+                assemblies.Remove(Manifest.GetPrivateToken(assembly.FullName));
+            }
+
+            Dictionary<AssemblyManifest.Token, string> overrides =
                 assembly.CustomAttributes.Where(
                     item => item.AttributeType.FullName == "JSIL.Meta.JSOverrideAssemblyReference")
                     .ToDictionary(
@@ -928,11 +943,18 @@ namespace JSIL {
                                 ((TypeReference) (item.ConstructorArguments[0].Value)).Resolve().Module.Assembly),
                         item => (string) (item.ConstructorArguments[1].Value));
 
+            foreach (var pair in overrides)
+            {
+                assemblies[pair.Key] = pair.Value;
+            }
+
+            wrapAssemblyInImmediatelyInvokedFunctionExpression |= assemblies.Count > 0;
+
             var formatter = new JavascriptFormatter(
                 tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, assemblyDeclarationReplacement, stubbed
             );
 
-            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter, overrides.Count > 0 ? overrides : null);
+            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter, wrapAssemblyInImmediatelyInvokedFunctionExpression ? assemblies : null);
 
             assemblyEmitter.EmitHeader(stubbed);
 
