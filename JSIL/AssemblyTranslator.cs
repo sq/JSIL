@@ -1230,8 +1230,8 @@ namespace JSIL {
             var signatureCacher = new SignatureCacher(
                 TypeInfoProvider,
                 !Configuration.CodeGenerator.DisableGenericSignaturesLocalCache.GetValueOrDefault(false),
-                Configuration.CodeGenerator.PreferLocalCacheForGenericMethodSignatures.GetValueOrDefault(false),
-                Configuration.CodeGenerator.PreferLocalCacheForGenericInterfaceMethodSignatures.GetValueOrDefault(false),
+                Configuration.CodeGenerator.PreferLocalCacheForGenericMethodSignatures.GetValueOrDefault(true),
+                Configuration.CodeGenerator.PreferLocalCacheForGenericInterfaceMethodSignatures.GetValueOrDefault(true),
                 Configuration.CodeGenerator.CacheOneMethodSignaturePerMethod.GetValueOrDefault(true));
             var baseMethodCacher = new BaseMethodCacher(TypeInfoProvider, typedef);
 
