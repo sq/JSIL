@@ -3429,19 +3429,8 @@ namespace JSIL {
                 return false;
 
             var dereferenced = TypeUtil.DereferenceType(thisNode.InferredType);
-            if (dereferenced != null)
-            {
-                if (fieldAccess && dereferenced.IsValueType && dereferenced.IsByReference)
-                {
-                    return true;
-                } 
-                else if (dereferenced.IsValueType)
-                {
-                    return true;
-                }
-            };
 
-            return false;
+            return dereferenced != null && dereferenced.IsValueType && (!fieldAccess || thisNode.InferredType.IsByReference);
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
