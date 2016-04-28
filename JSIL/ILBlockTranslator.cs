@@ -2440,7 +2440,7 @@ namespace JSIL {
                 firstArgExpr = expr.Arguments[0];
                 var firstArg = TranslateNode(firstArgExpr);
 
-                if (IsInvalidThisExpression(firstArgExpr)) {
+                if (IsInvalidThisExpression(firstArgExpr, true)) {
                     if (!JSReferenceExpression.TryDereference(JSIL, firstArg, out thisExpression)) {
                         if (!firstArg.IsNull)
                             WarningFormatFunction("Accessing {0} without a reference as this.", field.FullName);
@@ -3421,7 +3421,7 @@ namespace JSIL {
             return result;
         }
 
-        protected bool IsInvalidThisExpression (ILExpression thisNode) {
+        protected bool IsInvalidThisExpression (ILExpression thisNode, bool fieldAccess = false) {
             if (thisNode.Code == ILCode.InitializedObject)
                 return false;
 
@@ -3429,8 +3429,17 @@ namespace JSIL {
                 return false;
 
             var dereferenced = TypeUtil.DereferenceType(thisNode.InferredType);
-            if ((dereferenced != null) && dereferenced.IsValueType)
-                return true;
+            if (dereferenced != null)
+            {
+                if (fieldAccess && dereferenced.IsValueType && dereferenced.IsByReference)
+                {
+                    return true;
+                } 
+                else if (dereferenced.IsValueType)
+                {
+                    return true;
+                }
+            };
 
             return false;
         }
