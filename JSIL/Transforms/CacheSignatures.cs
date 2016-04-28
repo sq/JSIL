@@ -20,8 +20,7 @@ namespace JSIL.Transforms {
                     GenericParameterHostName, null,
                     new AssemblyNameReference(GenericParameterHostName, new Version()));
 
-            public static RewritedCacheRecord<MethodSignature> Normalized (MethodReference method,
-                MethodSignature signature, bool isConstructor) {
+            public static RewritedCacheRecord<MethodSignature> Normalized (MethodReference method, MethodSignature signature, bool isConstructor) {
                 var targetMappings = new Dictionary<GenericParameter, int>(new GenericParameterComparer());
                 var resultSignature = new MethodSignature(signature.TypeInfo,
                     isConstructor
@@ -38,8 +37,7 @@ namespace JSIL.Transforms {
                     mappings);
             }
 
-            public static MethodSignature NormalizedConstructorSignature (MethodReference method,
-                MethodSignature signature, bool isConstructor) {
+            public static MethodSignature NormalizedConstructorSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
                 return new MethodSignature(signature.TypeInfo,
                     isConstructor ? method.DeclaringType : signature.ReturnType,
                     signature.ParameterTypes,
@@ -50,28 +48,33 @@ namespace JSIL.Transforms {
                 var targetMappings = new Dictionary<GenericParameter, int>(new GenericParameterComparer());
                 var resolvedType = GenericTypesRewriter.ResolveTypeReference(
                     declaringType,
-                    tr => {
+                    (tr, resolutionStack) => {
                         if (tr is GenericParameter) {
                             var gp = (GenericParameter) tr;
                             return GenericTypesRewriter.ReplaceWithGenericArgument(gp, targetMappings);
                         }
                         return tr;
-                    });
+                    },
+                    null);
 
                 var mappings = targetMappings.OrderBy(item => item.Value).Select(item => item.Key).ToArray();
 
                 return new RewritedCacheRecord<TypeReference>(resolvedType, mappings);
             }
 
-            private static TypeReference ResolveTypeReference (MethodReference method, TypeReference typeReference,
-                Dictionary<GenericParameter, int> mappings) {
+            private static TypeReference ResolveTypeReference (MethodReference method, TypeReference typeReference, Dictionary<GenericParameter, int> mappings) {
                 var resolvedMethod = method.Resolve();
 
                 return GenericTypesRewriter.ResolveTypeReference(
                     typeReference,
-                    tr => {
+                    (tr, resolutionStack) => {
                         if (tr is GenericParameter) {
                             var gp = (GenericParameter) tr;
+
+                            if (resolutionStack.Count(typeInStack => TypeUtil.TypesAreEqual(typeInStack, gp)) > 1) {
+                                return GenericTypesRewriter.ReplaceWithGenericArgument(gp, mappings);
+                            }
+
                             var result = MethodSignature.ResolveGenericParameter(gp, method.DeclaringType);
 
                             if (result is GenericParameter) {
@@ -91,37 +94,49 @@ namespace JSIL.Transforms {
                             return result;
                         }
                         return tr;
-                    });
+                    }, null);
             }
 
-            private static TypeReference ResolveTypeReference (TypeReference typeReference,
-                Func<TypeReference, TypeReference> resolver) {
-                typeReference = resolver(typeReference);
+            private static TypeReference ResolveTypeReference (TypeReference typeReference, Func<TypeReference, Stack<GenericParameter>, TypeReference> resolver, Stack<GenericParameter> resolutionStack) {
+                if (resolutionStack == null) {
+                    resolutionStack = new Stack<GenericParameter>();
+                }
+
+                bool stackPushed = false;
+                if (typeReference is GenericParameter) {
+                    resolutionStack.Push((GenericParameter)typeReference);
+                    stackPushed = true;
+                }
+
+                typeReference = resolver(typeReference, resolutionStack);
                 if (typeReference is GenericInstanceType) {
                     var git = (GenericInstanceType) typeReference;
-                    var newType = new GenericInstanceType(ResolveTypeReference(git.ElementType, resolver));
+                    var newType = new GenericInstanceType(ResolveTypeReference(git.ElementType, resolver, resolutionStack));
 
                     foreach (var ga in git.GenericArguments) {
-                        newType.GenericArguments.Add(ResolveTypeReference(ga, resolver));
+                        newType.GenericArguments.Add(ResolveTypeReference(ga, resolver, resolutionStack));
                     }
                     return newType;
                 }
                 if (typeReference is ArrayType) {
                     var at = (ArrayType) typeReference;
-                    var newType = new ArrayType(ResolveTypeReference(at.ElementType, resolver), at.Rank);
+                    var newType = new ArrayType(ResolveTypeReference(at.ElementType, resolver, resolutionStack), at.Rank);
                     return newType;
                 }
                 if (typeReference is ByReferenceType) {
                     var brt = (ByReferenceType) typeReference;
-                    var newType = new ByReferenceType(ResolveTypeReference(brt.ElementType, resolver));
+                    var newType = new ByReferenceType(ResolveTypeReference(brt.ElementType, resolver, resolutionStack));
                     return newType;
+                }
+
+                if (stackPushed) {
+                    resolutionStack.Pop();
                 }
 
                 return typeReference;
             }
 
-            private static GenericParameter ReplaceWithGenericArgument (GenericParameter input,
-                Dictionary<GenericParameter, int> mappings) {
+            private static GenericParameter ReplaceWithGenericArgument (GenericParameter input, Dictionary<GenericParameter, int> mappings) {
                 int index;
                 if (!mappings.TryGetValue(input, out index)) {
                     index = mappings.Count;
