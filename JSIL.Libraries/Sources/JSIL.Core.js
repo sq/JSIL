@@ -571,6 +571,26 @@ JSIL.Memoize = function Memoize (value) {
   };
 };
 
+JSIL.MemoizeTypes = function MemoizeTypes(storage, valueProvider, args) {
+  var argTypes = "";
+  for (var i = 0, l = args.length; i < l; i++) {
+    var type = args[i].__TypeId__;
+    if (typeof (type) === "undefined") {
+      throw new Error("Type with __TypeId__ expected");
+    }
+    argTypes += (type + ":");
+  }
+  var cache = storage.cache;
+  if (typeof (cache) === "undefined") {
+    storage.cache = {};
+  }
+  var result = storage.cache[argTypes];
+  if (typeof (result) === "undefined") {
+    result = valueProvider();
+    storage.cache[argTypes] = result;
+  }
+  return result;
+};
 
 JSIL.PreInitMembrane = function (target, initializer) {
   if (typeof (initializer) !== "function")

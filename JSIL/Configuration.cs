@@ -35,7 +35,10 @@ namespace JSIL.Translator {
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
-            public bool? CacheGenericMethodSignatures;
+            public bool? DisableGenericSignaturesLocalCache;
+            public bool? PreferLocalCacheForGenericMethodSignatures;
+            public bool? PreferLocalCacheForGenericInterfaceMethodSignatures;
+            public bool? CacheOneMethodSignaturePerMethod;
             public bool? CacheTypeExpressions;
             public bool? CacheBaseMethodHandles;
             public bool? EliminatePointlessFinallyBlocks;
@@ -68,8 +71,14 @@ namespace JSIL.Translator {
                     result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
                 if (CacheMethodSignatures.HasValue)
                     result.CacheMethodSignatures = CacheMethodSignatures;
-                if (CacheGenericMethodSignatures.HasValue)
-                    result.CacheGenericMethodSignatures = CacheGenericMethodSignatures;
+                if (DisableGenericSignaturesLocalCache.HasValue)
+                    result.DisableGenericSignaturesLocalCache = DisableGenericSignaturesLocalCache;
+                if (PreferLocalCacheForGenericMethodSignatures.HasValue)
+                    result.PreferLocalCacheForGenericMethodSignatures = PreferLocalCacheForGenericMethodSignatures;
+                if (PreferLocalCacheForGenericInterfaceMethodSignatures.HasValue)
+                    result.PreferLocalCacheForGenericInterfaceMethodSignatures = PreferLocalCacheForGenericInterfaceMethodSignatures;
+                if (CacheOneMethodSignaturePerMethod.HasValue)
+                    result.CacheOneMethodSignaturePerMethod = CacheOneMethodSignaturePerMethod;
                 if (CacheTypeExpressions.HasValue)
                     result.CacheTypeExpressions = CacheTypeExpressions;
                 if (CacheBaseMethodHandles.HasValue)

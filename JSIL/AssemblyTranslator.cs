@@ -1227,7 +1227,12 @@ namespace JSIL {
             ref int nextDisambiguatedId
         ) {
             var typeCacher = new TypeExpressionCacher(typedef);
-            var signatureCacher = new SignatureCacher(TypeInfoProvider, Configuration.CodeGenerator.CacheGenericMethodSignatures.GetValueOrDefault(true));
+            var signatureCacher = new SignatureCacher(
+                TypeInfoProvider,
+                !Configuration.CodeGenerator.DisableGenericSignaturesLocalCache.GetValueOrDefault(false),
+                Configuration.CodeGenerator.PreferLocalCacheForGenericMethodSignatures.GetValueOrDefault(true),
+                Configuration.CodeGenerator.PreferLocalCacheForGenericInterfaceMethodSignatures.GetValueOrDefault(true),
+                Configuration.CodeGenerator.CacheOneMethodSignaturePerMethod.GetValueOrDefault(true));
             var baseMethodCacher = new BaseMethodCacher(TypeInfoProvider, typedef);
 
             TypeInfoProvider.GetTypeInformation(typedef);
