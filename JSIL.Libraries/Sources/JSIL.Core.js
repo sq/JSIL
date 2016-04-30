@@ -7765,9 +7765,39 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
     result.push(indentation);
   };
 
+  var emitMethodKey = function (indentation) {
+    // Look up the actual method key, update the IC...
+    body.push(indentation + "var methodKey = " + getMethodKeyLookup() + ";");
+  }
+
+  // When an IC is enabled, if a cache miss occurs we update the IC before finally
+  //  doing a typical invocation.
+  var emitCacheMissInvocation = function (indentation) {
+    // Interface ICs are keyed off the type ID of the this-reference.
+    // Non-interface ICs are keyed off method name.
+    var typeIdExpression =
+      isInterfaceCall
+        ? "typeId"
+        : "null";
+
+    // Interface ICs live on the InterfaceMethod's signature.
+    var cacheMissMethod =
+      isInterfaceCall
+        ? "this.signature.$InlineCacheMiss(this, '"
+        : "this.$InlineCacheMiss(this, '";
+
+    // Update the IC...
+    body.push(
+      indentation + cacheMissMethod +
+      callMethodName + "', " +
+      nameIdentifier + ", " +
+      typeIdExpression + ", methodKey" +
+      ", " + (fallbackMethod ? "fallbackMethod" : "null") + ");"
+    );
+  };
 
   // This is the path used for simple invocations - no IC, etc.
-  var emitDefaultInvocation = function (indentation, methodKeyToken) {
+  var emitDefaultInvocation = function (indentation, methodKeyToken, shouldEmitCacheMissInvocation) {
     // For every invocation type other than Call, the this-reference will
     //  automatically bind thanks to JS call semantics.
     var methodName = (callMethodName === "Call")
@@ -7775,10 +7805,16 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       : methodLookupArg + "[" + methodKeyToken + "]";
 
     if (fallbackMethod) {
-      body.push(indentation + "  var methodReference = " + methodName + ";");    
-      body.push(indentation + "  if (!methodReference) {");
-      body.push(indentation + "    methodReference = fallbackMethod(this.typeObject, this, thisReference)");
-      body.push(indentation + "  }");
+      body.push(indentation + "var methodReference = " + methodName + ";");    
+      body.push(indentation + "if (!methodReference) {");
+      body.push(indentation + "  methodReference = fallbackMethod(this.typeObject, this, thisReference);");
+      if (shouldEmitCacheMissInvocation) {
+        body.push(indentation + "} else {");
+        emitCacheMissInvocation(indentation + "  ");
+        body.push(indentation + "}");
+      } else {
+        body.push(indentation + "}");
+      }
       body.push("");
 
       JSIL.MethodSignature.$EmitInvocation(
@@ -7788,6 +7824,9 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         false, indentation + "  "
       );
     } else {
+      if (shouldEmitCacheMissInvocation) {
+        emitCacheMissInvocation(indentation);
+      }
       emitMissingMethodCheck(body, methodName, methodKeyToken, "");
 
       JSIL.MethodSignature.$EmitInvocation(
@@ -7816,41 +7855,17 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
     }
   };
 
-
-  // When an IC is enabled, if a cache miss occurs we update the IC before finally
-  //  doing a typical invocation.
-  var emitCacheMissInvocation = function (indentation) {
-    // Interface ICs are keyed off the type ID of the this-reference.
-    // Non-interface ICs are keyed off method name.
-    var typeIdExpression = 
-      isInterfaceCall
-        ? "typeId"
-        : "null";
-
-    // Interface ICs live on the InterfaceMethod's signature.
-    var cacheMissMethod = 
-      isInterfaceCall
-        ? "this.signature.$InlineCacheMiss(this, '"
-        : "this.$InlineCacheMiss(this, '";
-
-    // Look up the actual method key, update the IC...
-    body.push(indentation + "var methodKey = " + getMethodKeyLookup() + ";");
-    body.push(
-      indentation + cacheMissMethod +  
-      callMethodName + "', " +
-      nameIdentifier + ", " + 
-      typeIdExpression + ", methodKey);"
-    );
-
-    // Then finally invoke.
-    emitDefaultInvocation(indentation, "methodKey");
-  };
+  var emitCacheMissAndDefaultInvocation = function (indentation, shouldEmitCacheMissInvocation) {
+    if (shouldEmitCacheMissInvocation) {
+      emitMethodKey(indentation);
+      emitDefaultInvocation(indentation, "methodKey", true);
+    } else {
+      emitDefaultInvocation("", getMethodKeyLookup(), false);
+    }
+  }
 
   if (this.useInlineCache) {
     // Crazy inline cache nonsense time!
-
-    if (fallbackMethod)
-      JSIL.RuntimeError("Inline caching does not support fallback methods");
 
     // Look up the type ID of the this-reference for interface calls. We'll be using it a lot.
     if (isInterfaceCall) {
@@ -7940,15 +7955,15 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
 
     if (this.inlineCacheEntries.length >= 1) {
       body.push("  default: ");
-      emitCacheMissInvocation("    ");
+      emitCacheMissAndDefaultInvocation("    ", true);
       body.push("}");
       body.push("");
     } else {
-      emitCacheMissInvocation("");
+      emitCacheMissAndDefaultInvocation("", true);
     }
 
   } else {
-    emitDefaultInvocation("", getMethodKeyLookup());
+    emitCacheMissAndDefaultInvocation("", false);
   }
 
   var joinedBody = body.join("\r\n");
@@ -7993,11 +8008,6 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, known
       return cachedResult;
   }
 
-  // Doing an IC with a fallback method in play is totally not worth the trouble.
-  // Fallback methods are an infrequently used hack anyway.
-  if (fallbackMethod)
-    this.useInlineCache = false;
-
   var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey, fallbackMethod);
 
   if (JSIL.MethodSignature.$CallMethodCache) {
@@ -8007,7 +8017,7 @@ JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, known
   return result;
 };
 
-JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey) {
+JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey, fallbackMethod) {
   if (!this.useInlineCache)
     return;
 
@@ -8024,7 +8034,7 @@ JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodNa
     this.inlineCacheEntries = null;
     this.useInlineCache = false;
 
-    this.$RecompileInlineCache(target, callMethodName);
+    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
   } else {
     for (var i = 0; i < numEntries; i++) {
       var entry = this.inlineCacheEntries[i];
@@ -8040,13 +8050,13 @@ JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodNa
     // If we had a cache miss and the target doesn't have an entry, add it and recompile.
     var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
     this.inlineCacheEntries.push(newEntry);
-    this.$RecompileInlineCache(target, callMethodName);
+    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
   }
 };
 
-JSIL.MethodSignature.prototype.$RecompileInlineCache = function (target, callMethodName) {
+JSIL.MethodSignature.prototype.$RecompileInlineCache = function (target, callMethodName, fallbackMethod) {
   var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);  
-  var newFunction = this.$MakeInlineCacheBody(callMethodName, target.methodKey || null);
+  var newFunction = this.$MakeInlineCacheBody(callMethodName, target.methodKey || null, fallbackMethod);
 
   if (JSIL.MethodSignature.$CallMethodCache) {
     JSIL.MethodSignature.$CallMethodCache[cacheKey] = newFunction;
