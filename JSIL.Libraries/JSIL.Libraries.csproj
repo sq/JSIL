@@ -47,15 +47,13 @@
     <Content Include="Includes\Bootstrap\Dynamic\Classes\System.Runtime.CompilerServices.CallSite.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Main.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />
-    <None Include="package.json" />
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <None Include=".bin\git.cmd" />
     <None Include=".bin\node.cmd" />
     <None Include=".bin\npm.cmd" />
+    <None Include="package.json" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="gulpfile.js" />
     <Content Include="Includes\Bootstrap\Async\Classes\System.Threading.ManualResetEventSlim.js" />
     <Content Include="Includes\Bootstrap\Async\Classes\System.AggregateException.js" />
