@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Text.RegularExpressions;
 
 namespace JSIL.Translator {
     [Serializable]
@@ -124,12 +122,14 @@ namespace JSIL.Translator {
         public bool? UseThreads;
         public bool? UseDefaultProxies;
         public bool? GenerateSkeletonsForStubbedAssemblies;
+        public bool? SkipManifestCreation;
         public bool? GenerateContentManifest;
         public bool? RunBugChecks;
         public bool? TuneGarbageCollection;
         public string FilenameEscapeRegex;
+        public Dictionary<string, string> FilenameReplaceRegexes = new Dictionary<string, string>();
         public string AssemblyCollectionName;
-        public string EmitterFactoryName;
+        public List<string> EmitterFactories = new List<string>();
         public bool? BuildSourceMap;
         public bool? InlineAssemblyReferences;
 
@@ -162,6 +162,8 @@ namespace JSIL.Translator {
                 result.GenerateSkeletonsForStubbedAssemblies = GenerateSkeletonsForStubbedAssemblies;
             if (GenerateContentManifest.HasValue)
                 result.GenerateContentManifest = GenerateContentManifest;
+            if (SkipManifestCreation.HasValue)
+                result.SkipManifestCreation = SkipManifestCreation;
             if (RunBugChecks.HasValue)
                 result.RunBugChecks = RunBugChecks;
             if (TuneGarbageCollection.HasValue)
@@ -171,14 +173,19 @@ namespace JSIL.Translator {
                 result.FilenameEscapeRegex = FilenameEscapeRegex;
             if (AssemblyCollectionName != null)
                 result.AssemblyCollectionName = AssemblyCollectionName;
-            if (EmitterFactoryName != null)
-                result.EmitterFactoryName = EmitterFactoryName;
 
             if (BuildSourceMap != null)
                 result.BuildSourceMap = BuildSourceMap;
 
             if (InlineAssemblyReferences != null)
                 result.InlineAssemblyReferences = InlineAssemblyReferences;
+
+            foreach (var kvp in FilenameReplaceRegexes)
+                result.FilenameReplaceRegexes[kvp.Key] = kvp.Value;
+
+            foreach (var emitterFactory in EmitterFactories) {
+                result.EmitterFactories.Add(emitterFactory);
+            }
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);

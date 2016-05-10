@@ -13,15 +13,14 @@ namespace JSIL.Compiler.Extensibility {
         Configuration GetConfiguration (
             Configuration defaultConfiguration
         );
-        TranslationResult Translate (
+        TranslationResultCollection Translate (
             VariableSet variables, AssemblyTranslator translator, 
             Configuration configuration, string assemblyPath, bool scanForProxies
         );
-        void ProcessSkippedAssembly (
-            Configuration configuration, string assemblyPath, TranslationResult result
-        );
         void WriteOutputs (
-            VariableSet variables, TranslationResult result, string path, string manifestPrefix, bool quiet
+            VariableSet variables, TranslationResultCollection result, string path, bool quiet
         );
+
+        void RegisterPostprocessors (IEnumerable<IEmitterGroupFactory> emitters, Configuration configuration, string assemblyPath, string[] skippedAssemblies);
     }
 }

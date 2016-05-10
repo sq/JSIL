@@ -8,6 +8,12 @@ using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL {
+    public class TranslationResultCollection {
+        public readonly StringBuilder Log = new StringBuilder();
+        public List<TranslationResult> TranslationResults = new List<TranslationResult>();
+        public TimeSpan Elapsed;
+    }
+
     public class TranslationResult {
         public struct ResultFile {
             public string Type;
@@ -25,9 +31,6 @@ namespace JSIL {
         public readonly List<AssemblyDefinition> Assemblies = new List<AssemblyDefinition>();
         public readonly List<string> FileOrder = new List<string>();
         public readonly Dictionary<string, ResultFile> Files = new Dictionary<string, ResultFile>();
-        public readonly StringBuilder Log = new StringBuilder();
-        public TimeSpan Elapsed;
-        public ArraySegment<byte> Manifest;
 
         internal TranslationResult (
             Configuration configuration, string assemblyPath, AssemblyManifest assemblyManifest
@@ -70,15 +73,11 @@ namespace JSIL {
         }
 
         public void WriteToStream (Stream output) {
-            if (Manifest.Array == null)
-                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
-
             var newline = Encoding.ASCII.GetBytes(Environment.NewLine);
-
-            output.Write(Manifest.Array, Manifest.Offset, Manifest.Count);
             output.Write(newline, 0, newline.Length);
 
-            foreach (var file in Files.Values) {
+            foreach (var fileName in FileOrder) {
+                var file = Files[fileName];
                 if (file.Contents.Count > 0) {
                     output.Write(file.Contents.Array, file.Contents.Offset, file.Contents.Count);
                 }
@@ -89,9 +88,6 @@ namespace JSIL {
         }
 
         public string WriteToString () {
-            if (Manifest.Array == null)
-                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
-
             using (var ms = new MemoryStream(AssemblyTranslator.DefaultStreamCapacity)) {
                 WriteToStream(ms);
                 return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
@@ -119,13 +115,8 @@ namespace JSIL {
                 Directory.CreateDirectory(directoryName);
         }
 
-        public void WriteToDirectory (string path, string manifestPrefix = "") {
-            if (Manifest.Array == null)
-                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
-
+        public void WriteToDirectory (string path) {
             EnsureDirectoryExists(path);
-
-            WriteBytesToFile(path, manifestPrefix + "manifest.js", Manifest);
 
             foreach (var kvp in Files) {
                 if (kvp.Value.Contents.Count > 0)
@@ -133,7 +124,7 @@ namespace JSIL {
             }
         }
 
-        internal void AddExistingFile (string type, string filename, long fileSize, int? position = null) {
+        internal void AddExistingFile(string type, string filename, long fileSize, int? position = null) {
             lock (Files) {
                 if (Files.ContainsKey(filename)) {
                     var existingFile = Files[filename];

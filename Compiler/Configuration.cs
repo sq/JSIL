@@ -43,7 +43,6 @@ namespace JSIL.Compiler {
         public bool? ReuseTypeInfoAcrossAssemblies;
         public bool? ProxyWarnings;
         public string OutputDirectory;
-        public string OutputFileName;
         public string FileOutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
@@ -67,8 +66,6 @@ namespace JSIL.Compiler {
                 cc.ReuseTypeInfoAcrossAssemblies = ReuseTypeInfoAcrossAssemblies;
             if (OutputDirectory != null)
                 cc.OutputDirectory = OutputDirectory;
-            if (OutputFileName != null)
-                cc.OutputFileName = OutputFileName;
             if (FileOutputDirectory != null)
                 cc.FileOutputDirectory = FileOutputDirectory;
             if (Profile != null)

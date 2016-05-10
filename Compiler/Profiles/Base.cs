@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using JSIL.Compiler.Extensibility;
 using JSIL.Utilities;
 
@@ -15,7 +12,7 @@ namespace JSIL.Compiler.Profiles {
             return defaultConfiguration;
         }
 
-        public virtual TranslationResult Translate (
+        public virtual TranslationResultCollection Translate (
             VariableSet variables, AssemblyTranslator translator, Configuration configuration, 
             string assemblyPath, bool scanForProxies
         ) {
@@ -24,28 +21,54 @@ namespace JSIL.Compiler.Profiles {
             return result;
         }
 
-        public virtual void ProcessSkippedAssembly (
-            Configuration configuration, string assemblyPath, TranslationResult result
-        ) {
+        public virtual void RegisterPostprocessors (IEnumerable<IEmitterGroupFactory> emitters, Configuration configuration, string assemblyPath, string[] skippedAssemblies) {
         }
 
-        public virtual void WriteOutputs (VariableSet variables, TranslationResult result, string path, string manifestPrefix, bool quiet) {
-            AssemblyTranslator.GenerateManifest(result.AssemblyManifest, result.AssemblyPath, result);
+        public virtual void WriteOutputs (VariableSet variables, TranslationResultCollection result, string path,bool quiet) {
+            foreach (var translationResult in result.TranslationResults) {
+                if (!quiet)
+                {
+                    foreach (var fe in translationResult.OrderedFiles)
+                        Console.WriteLine(fe.Filename);
+                }
 
-            if (!quiet) {
-                Console.WriteLine(manifestPrefix + "manifest.js");
-
-                foreach (var fe in result.OrderedFiles)
-                    Console.WriteLine(fe.Filename);
+                translationResult.WriteToDirectory(path);
             }
-
-            result.WriteToDirectory(path, manifestPrefix);
         }
 
         public virtual SolutionBuilder.BuildResult ProcessBuildResult (
             VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
         ) {
             return buildResult;
+        }
+    }
+
+    public abstract class BaseJavaScriptProfile : BaseProfile {
+        public override void RegisterPostprocessors(IEnumerable<IEmitterGroupFactory> emitters, Configuration configuration, string assemblyPath, string[] skippedAssemblies)
+        {
+            foreach (var emitter in emitters)
+            {
+                if (emitter is JavascriptEmitterGroupFactory)
+                {
+                    emitter.RegisterPostprocessor(result => {
+                        PostProcessAllTranslatedAssemblies(configuration, assemblyPath, result);
+
+                        if (skippedAssemblies != null)
+                        {
+                            var processedAssemblies = new HashSet<string>();
+                            foreach (var sa in skippedAssemblies)
+                            {
+                                if (processedAssemblies.Contains(sa))
+                                    continue;
+
+                                processedAssemblies.Add(sa);
+
+                                PostProcessAssembly(configuration, sa, result);
+                            }
+                        }
+                    });
+                }
+            }
         }
 
         protected void PostProcessAssembly(Configuration configuration, string assemblyPath, TranslationResult result)
@@ -54,7 +77,7 @@ namespace JSIL.Compiler.Profiles {
             ManifestResourceExtractor.ExtractFromAssembly(configuration, assemblyPath, result);
         }
 
-        protected void PostProcessAllTranslatedAssemblies(
+        protected virtual void PostProcessAllTranslatedAssemblies(
             Configuration configuration, string assemblyPath, TranslationResult result)
         {
             string basePath = Path.GetDirectoryName(Path.GetFullPath(assemblyPath));

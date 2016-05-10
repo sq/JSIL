@@ -33,7 +33,7 @@ namespace JSIL {
             }
         }
 
-        protected readonly Dictionary<string, long> TranslatedAssemblySizes = new Dictionary<string, long>();
+        protected readonly Dictionary<string, Dictionary<string, long>> TranslatedAssemblySizes = new Dictionary<string, Dictionary<string, long>>();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected readonly ConcurrentCache<string, Token>.CreatorFunction MakeToken;
         protected bool AssignedIdentifiers = false;
@@ -101,14 +101,27 @@ namespace JSIL {
             }
         }
 
-        public bool GetExistingSize (AssemblyDefinition assembly, out long fileSize) {
-            lock (TranslatedAssemblySizes)
-                return TranslatedAssemblySizes.TryGetValue(assembly.FullName, out fileSize);
+        public bool GetExistingSize (AssemblyDefinition assembly, string emitterId, out long fileSize) {
+            fileSize = 0;
+            lock (TranslatedAssemblySizes) {
+                Dictionary<string, long> assembliesDictinary;
+                if (TranslatedAssemblySizes.TryGetValue(emitterId, out assembliesDictinary)) {
+                    return assembliesDictinary.TryGetValue(assembly.FullName, out fileSize);
+                }
+            }
+            return false;
         }
 
-        public void SetAlreadyTranslated (AssemblyDefinition assembly, long fileSize) {
-            lock (TranslatedAssemblySizes)
-                TranslatedAssemblySizes.Add(assembly.FullName, fileSize);
+        public void SetAlreadyTranslated (AssemblyDefinition assembly, string emitterId, long fileSize) {
+            lock (TranslatedAssemblySizes) {
+                Dictionary<string, long> assembliesDictinary;
+                if (!TranslatedAssemblySizes.TryGetValue(emitterId, out assembliesDictinary))
+                {
+                    assembliesDictinary = new Dictionary<string, long>();
+                    TranslatedAssemblySizes.Add(emitterId, assembliesDictinary);
+                }
+                assembliesDictinary.Add(assembly.FullName, fileSize);
+            }
         }
     }
 }

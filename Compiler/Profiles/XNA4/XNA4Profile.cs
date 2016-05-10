@@ -12,7 +12,8 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
 
 namespace JSIL.Compiler.Profiles {
-    public class XNA4 : BaseProfile {
+    public class XNA4 : BaseJavaScriptProfile
+    {
         public HashSet<string> ContentProjectsProcessed = new HashSet<string>();
 
         public override bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult) {
@@ -30,24 +31,9 @@ namespace JSIL.Compiler.Profiles {
             return (Configuration)result;
         }
 
-        public override TranslationResult Translate (
-            VariableSet variables, AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies
-        ) {
-            var result = translator.Translate(assemblyPath, scanForProxies);
-
-            PostProcessAllTranslatedAssemblies(configuration, assemblyPath, result);
-
-            result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
-                Common.MakeXNAColors()
-            )), 0);
-
-            return result;
-        }
-
-        public override void ProcessSkippedAssembly (
-            Configuration configuration, string assemblyPath, TranslationResult result
-        ) {
-            PostProcessAssembly(configuration, assemblyPath, result);
+        protected override void PostProcessAllTranslatedAssemblies (Configuration configuration, string assemblyPath, TranslationResult result) {
+            base.PostProcessAllTranslatedAssemblies(configuration, assemblyPath, result);
+            result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(Common.MakeXNAColors())), 0);
         }
 
         public override SolutionBuilder.BuildResult ProcessBuildResult (

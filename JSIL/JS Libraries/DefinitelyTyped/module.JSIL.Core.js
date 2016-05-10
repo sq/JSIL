@@ -1,0 +1,1 @@
+module.exports = JSIL.GetAssembly("mscorlib");
