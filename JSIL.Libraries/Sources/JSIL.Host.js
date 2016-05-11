@@ -54,6 +54,11 @@ JSIL.Host.getTime = function () {
   return svc.getUTC();
 };
 
+JSIL.Host.getTimezoneOffsetInMilliseconds = function () {
+  var svc = JSIL.Host.getService("time");
+  return svc.getTimezoneOffsetInMilliseconds();
+};
+
 // Returns elapsed ticks since some starting point (usually page load), high precision.
 JSIL.Host.getTickCount = function () {
   var svc = JSIL.Host.getService("time");
@@ -228,6 +233,9 @@ JSIL.Host.ES5TimeService.prototype.getUTC = function () {
   return Date.now();
 };
 
+JSIL.Host.ES5TimeService.prototype.getTimezoneOffsetInMilliseconds = function () {
+  return new Date().getTimezoneOffset() * 60000;
+};
 
 JSIL.Host.ThrowErrorService = function () {
 };
