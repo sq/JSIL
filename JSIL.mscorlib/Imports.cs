@@ -56,6 +56,18 @@
         {
             throw new NotImplementedException();
         }
+
+        [JSExternal]
+        public static int ToBase64CharArray(byte[] inArray,int offsetIn,int length,char[] outArray,int offsetOut)
+        {
+            throw new NotImplementedException();
+        }
+
+        [JSExternal]
+        public static int ToBase64CharArray(byte[] inArray,int offsetIn,int length,char[] outArray,int offsetOut,Base64FormattingOptions options)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 
