@@ -1,10 +1,11 @@
 ﻿JSIL.ImplementExternals("System.DateTime", function ($) {
-    $.RawMethod(false, "$fromLocalMilliseconds", function (msSince1970) {
-        this.dateData = $jsilcore.System.UInt64.op_Multiplication(
-          $jsilcore.System.UInt64.FromInt32(msSince1970),
-          $jsilcore.System.UInt64.FromInt32(10000)
-        );
-        this.kind = $jsilcore.System.DateTimeKind.Local;
+    $.RawMethod(false, "$fromUnixMilliseconds", function (msSince1970, boolIsUtc) {
+      this.dateData = $jsilcore.System.UInt64.op_Multiplication(
+        $jsilcore.System.UInt64.op_Addition(
+          $jsilcore.System.UInt64.FromNumber(msSince1970),
+          $jsilcore.System.UInt64.FromNumber(62135596800000)),
+        $jsilcore.System.UInt64.FromInt32(10000));
+        this.kind = boolIsUtc ? $jsilcore.System.DateTimeKind.Utc : $jsilcore.System.DateTimeKind.Local;
     });
 
     $.Method({ Static: false, Public: true }, ".ctor",
@@ -134,7 +135,7 @@
       function get_Now() {
           // FIXME
           return JSIL.CreateInstanceOfType(
-            $jsilcore.System.DateTime.__Type__, "$fromLocalMilliseconds", [JSIL.Host.getTime()]
+            $jsilcore.System.DateTime.__Type__, "$fromUnixMilliseconds", [JSIL.Host.getTime() - JSIL.Host.getTimezoneOffsetInMilliseconds(), false]
           );
       }
     );
@@ -144,7 +145,7 @@
       function get_UtcNow() {
           // FIXME
           return JSIL.CreateInstanceOfType(
-            $jsilcore.System.DateTime.__Type__, "$fromLocalMilliseconds", [JSIL.Host.getTime()]
+            $jsilcore.System.DateTime.__Type__, "$fromUnixMilliseconds", [JSIL.Host.getTime(), true]
           );
       }
     );
