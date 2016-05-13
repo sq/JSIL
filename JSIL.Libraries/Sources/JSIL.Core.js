@@ -9414,7 +9414,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     result = new Array(size);
   }
 
-  result.__ElementType__ = elementTypeObject;
+  JSIL.SetValueProperty(result, "__ElementType__", elementTypeObject, false, true);
 
   if (initializerIsArray) {
     // If non-numeric, assume array initializer
