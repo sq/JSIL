@@ -420,14 +420,15 @@ namespace JSIL {
         }
 
         protected virtual string FormatOutputFilename (string fileName) {
+            var name = Path.GetFileNameWithoutExtension(fileName);
             foreach (var filenameReplaceRegex in Configuration.FilenameReplaceRegexes) {
-                fileName = Regex.Replace(fileName, filenameReplaceRegex.Key, filenameReplaceRegex.Value);
+                name = Regex.Replace(name, filenameReplaceRegex.Key, filenameReplaceRegex.Value);
             }
 
             if (Configuration.FilenameEscapeRegex != null)
-                return Regex.Replace(fileName, Configuration.FilenameEscapeRegex, "_");
-            else
-                return fileName;
+                name = Regex.Replace(name, Configuration.FilenameEscapeRegex, "_");
+
+            return Path.Combine(Path.GetDirectoryName(fileName), name + Path.GetExtension(fileName));
         }
 
         public TranslationResultCollection Translate (
