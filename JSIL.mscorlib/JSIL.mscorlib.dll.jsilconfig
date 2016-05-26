@@ -3,7 +3,7 @@
   "IncludeDependencies": false,
   "SkipManifestCreation": true,
   "FilenameReplaceRegexes": {
-    ", Version(.*)\\.js$": ".js"
+    ", Version(.*)$": ""
   },
   "MonoFixConfig": { }
 }
