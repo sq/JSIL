@@ -11,6 +11,10 @@ export class TypePair<TIn, TOut> extends StaticTypePair<TIn, TOut> {
     /*readonly */$TypedUndefined: TOut;
 }
 
+export class NullArg {
+    private _brand: any;
+}
+
 declare let __jsObject: Object;
 
 export declare namespace $private{

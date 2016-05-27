@@ -26,7 +26,7 @@ namespace JSIL {
         }
 
         public override void EmitHeader (bool stubbed, bool iife) {
-            Formatter.WriteRaw("import {$private as $asmJsilCore, StaticTypePair as $StaticTypePair, TypePair as $TypePair} from \"./JSIL.Core\"");
+            Formatter.WriteRaw("import {$private as $asmJsilCore, StaticTypePair as $StaticTypePair, TypePair as $TypePair, NullArg as $Null} from \"./JSIL.Core\"");
             Formatter.NewLine();
         }
 
@@ -188,6 +188,14 @@ namespace JSIL {
                 EmitMethod(method);
             }
 
+            if (typedef.IsInterface) {
+                var instanceMethods = typedef.Methods.Where(it => it.IsPublic && !Translator.ShouldSkipMember(it)).GroupBy(method => method.Name).OrderBy(group => group.Key);
+                foreach (var instanceMethodGroup in instanceMethods)
+                {
+                    EmitInterfaceMethodGroup(instanceMethodGroup.Key, instanceMethodGroup);
+                }
+            }
+
             Formatter.CloseBrace();
         }
 
@@ -268,6 +276,68 @@ namespace JSIL {
                 Formatter.WriteSelfReference(method.DeclaringType, Facade.Type);
             }
 
+            Formatter.Semicolon();
+        }
+
+        private void EmitInterfaceMethodGroup (string name, IEnumerable<MethodDefinition> methods) {
+            Formatter.Identifier(name);
+            Formatter.Space();
+            Formatter.WriteRaw(":");
+            Formatter.Space();
+            Formatter.OpenBrace();
+            foreach (var methodDefinition in methods) {
+                EmitInterfaceMethod(methodDefinition);
+            }
+            Formatter.CloseBrace();
+        }
+
+        private void EmitInterfaceMethod (MethodDefinition method) {
+            Formatter.Identifier("Call");
+
+            if (method.GenericParameters.Count > 0) {
+                Formatter.WriteGenericArgumentsIfNeed(method.GenericParameters, method.DeclaringType.GenericParameters);
+            }
+
+            Formatter.WriteRaw("(");
+            Formatter.Identifier("thisArg");
+            Formatter.Space();
+            Formatter.WriteRaw(":");
+            Formatter.Space();
+            Formatter.WriteSelfReference(method.DeclaringType, Facade.Instance);
+            Formatter.Comma();
+
+            if (method.GenericParameters.Count > 0) {
+                Formatter.Identifier("genericArgs");
+                Formatter.Space();
+                Formatter.WriteRaw(":");
+                Formatter.Space();
+                Formatter.OpenBracket();
+                Formatter.CommaSeparatedList(DefinitelyTypedUtilities.BuildGenericParemetersMap(method.GenericParameters, method.DeclaringType.GenericParameters), pair => {
+                    Formatter.WriteRaw("$TypePair");
+                    Formatter.WriteGenericArgumentsIfNeed(new[] { DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value) });
+                });
+                Formatter.CloseBracket();
+            } else {
+                Formatter.WriteRaw("nullArg");
+                Formatter.Space();
+                Formatter.WriteRaw(":");
+                Formatter.Space();
+                Formatter.Identifier("$Null");
+            }
+            Formatter.Comma();
+
+            Formatter.CommaSeparatedList(method.Parameters, item => {
+                Formatter.Identifier(item.Name);
+                Formatter.Space();
+                Formatter.WriteRaw(":");
+                Formatter.Space();
+                Formatter.WriteTypeReference(item.ParameterType, null, JavascriptFormatterHelper.ReplaceMode.Instance);
+            });
+            Formatter.WriteRaw(")");
+            Formatter.Space();
+            Formatter.WriteRaw(":");
+            Formatter.Space();
+            Formatter.WriteTypeReference(method.ReturnType, null, JavascriptFormatterHelper.ReplaceMode.Type);
             Formatter.Semicolon();
         }
     }
