@@ -2265,7 +2265,7 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public static bool CanUseFastOverloadDispatch (MethodInfo method) {
+        public static bool CanUseFastOverloadDispatch (MethodInfo method, bool sameTypeOnly = false) {
             MethodSignatureSet mss;
 
             // HACK: Fix for #248: Fast dispatch does not work for interface method objects. CallVirtual is always necessary.
@@ -2278,7 +2278,16 @@ namespace JSIL {
                 var gaCount = method.GenericParameterNames.Length;
                 int argCount = method.Parameters.Length;
 
-                foreach (var signature in mss) {
+                foreach (var typedSignature in mss) {
+                    var signature = typedSignature.Item2;
+                    if (sameTypeOnly && method.DeclaringType.Definition != typedSignature.Item1.Definition) {
+                        continue;
+                    }
+
+                    if (!sameTypeOnly && !TypeUtil.TypesAreAssignable(method.Source, method.DeclaringType.Definition, typedSignature.Item1.Definition) && signature.Equals(method.Signature)) {
+                        continue;
+                    }
+
                     if (
                         (signature.ParameterCount == argCount)
                     )
@@ -2348,7 +2357,6 @@ namespace JSIL {
                 isOverloaded = false;
 
             ReferenceContext.Push();
-
             try {
                 Action genericArgs = () => {
                     if (hasGenericArguments) {
@@ -2362,37 +2370,13 @@ namespace JSIL {
                 if (isOverloaded) {
                     var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
-                    SignatureCacher.WriteSignatureToOutput(
-                        Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                        jsm.Reference, method.Signature, ReferenceContext, false
-                    );
-
-                    Output.Dot();
-
                     ReferenceContext.InvokingMethod = jsm.Reference;
-
-                    if (method.DeclaringType.IsInterface) {
-                        // runtimeDispatch is always false here.
-
-                        Output.Identifier("CallVirtual");
-                        Output.LPar();
-
-                        // HACK: Pass the interface method object instead of the method name.
-                        //  This works because InterfaceMethod.toString returns the qualified name of the interface method.
-                        SignatureCacher.WriteInterfaceMemberToOutput(
-                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm, invocation.Method,
-                            ReferenceContext
-                        );
-
-                        Output.Comma();
-                        genericArgs();
-                        Output.Comma();
-                        Visit(invocation.ThisReference, "ThisReference");
-
-                        if (hasArguments)
-                            Output.Comma();
-                    } else if (isStatic) {
+                    if (isStatic) {
+                        SignatureCacher.WriteSignatureToOutput(
+                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm.Reference, method.Signature, ReferenceContext, false
+                            );
+                        Output.Dot();
                         Output.Identifier("CallStatic");
                         Output.LPar();
 
@@ -2405,38 +2389,37 @@ namespace JSIL {
 
                         if (hasArguments)
                             Output.Comma();
-                    } else if (invocation.ExplicitThis) {
-                        Output.Identifier("Call");
-                        Output.LPar();
-
-                        Visit(invocation.Type);
-                        Output.Dot();
-                        Output.Identifier("prototype", EscapingMode.None);
-                        Output.Comma();
-
-                        Output.Value(methodName);
-                        Output.Comma();
-                        genericArgs();
-                        Output.Comma();
-                        Visit(invocation.ThisReference, "ThisReference");
-
-                        if (hasArguments)
-                            Output.Comma();
                     } else {
-                        Output.Identifier("CallVirtual");
-                        Output.LPar();
+                        SignatureCacher.WriteQualifiedSignatureToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm, invocation.Method,
+                            ReferenceContext
+                            );
 
-                        Output.Value(methodName);
-                        Output.Comma();
-                        genericArgs();
-                        Output.Comma();
+                        Output.Dot();
+                        Output.WriteRaw(invocation.ExplicitThis ? "CallNonVirtual" : "Call");
+
+                        Output.LPar();
                         Visit(invocation.ThisReference, "ThisReference");
+                        Output.Comma();
+
+                        genericArgs();
 
                         if (hasArguments)
                             Output.Comma();
                     }
                 } else {
-                    if ((method != null) && method.DeclaringType.IsInterface) {
+                    if (isStatic)
+                    {
+                        if (!invocation.Type.IsNull)
+                        {
+                            Visit(invocation.Type);
+                            Output.Dot();
+                        }
+
+                        Visit(invocation.Method);
+                        Output.LPar();
+                    } else if ((method != null) && method.DeclaringType.IsInterface) {
                         // HACK: Lets you bypass the interface method precise dispatch machinery for better performance.
                         if (runtimeDispatch) {
                             Visit(invocation.ThisReference, "ThisReference");
@@ -2462,14 +2445,6 @@ namespace JSIL {
                             if (hasArguments)
                                 Output.Comma();
                         }
-                    } else if (isStatic) {
-                        if (!invocation.Type.IsNull) {
-                            Visit(invocation.Type);
-                            Output.Dot();
-                        }
-
-                        Visit(invocation.Method);
-                        Output.LPar();
                     } else if (invocation.Method is JSCachedMethod) {
                         Visit(invocation.Method);
                         Output.LPar();
@@ -2479,19 +2454,18 @@ namespace JSIL {
                         if (hasArguments)
                             Output.Comma();
                     } else if (invocation.ExplicitThis) {
-                        if (!invocation.Type.IsNull) {
-                            Visit(invocation.Type);
-                            Output.Dot();
-                            Output.Identifier("prototype", EscapingMode.None);
-                            Output.Dot();
-                        }
-
-                        Visit(invocation.Method);
+                        SignatureCacher.WriteQualifiedSignatureToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm, invocation.Method,
+                            ReferenceContext);
                         Output.Dot();
-                        Output.Identifier("call", EscapingMode.None);
-                        Output.LPar();
+                        Output.WriteRaw("CallNonVirtual");
 
+                        Output.LPar();
                         Visit(invocation.ThisReference, "ThisReference");
+                        Output.Comma();
+
+                        genericArgs();
 
                         if (hasArguments)
                             Output.Comma();
@@ -2557,6 +2531,8 @@ namespace JSIL {
 
         public void VisitNode (JSLocalCachedInterfaceMemberExpression lcime) {
             Output.Identifier(lcime.InterfaceType, ReferenceContext);
+            Output.Dot();
+            Output.Identifier("$Methods");
             Output.Dot();
             Output.Identifier(lcime.MemberName, EscapingMode.MemberIdentifier);
         }

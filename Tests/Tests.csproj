@@ -668,9 +668,7 @@
     <None Include="InterfaceTestCases\InterfaceCollidingImplicit.cs" />
     <None Include="FailingTestCases\FSharp.Core.Printf.Simple.fs" />
     <None Include="FailingTestCases\FSharp.Core.Printf.StringArg.fs" />
-    <None Include="FailingTestCases\VirtualAndNewMethods.cs" />
     <None Include="InterfaceTestCases\InheritedInterfaces.cs" />
-    <None Include="FailingTestCases\InheritedAndNewMethod.cs" />
     <None Include="InterfaceTestCases\DoubleInheritedInterface.cs" />
     <None Include="InterfaceTestCases\DoubleInheritedInterfaceAndNew.cs" />
     <None Include="BinaryTestCases\InheritedAndExplicitOverwrittenMethods.cs" />

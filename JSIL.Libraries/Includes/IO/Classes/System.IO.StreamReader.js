@@ -210,7 +210,7 @@ JSIL.MakeClass($jsilcore.TypeRef("System.IO.TextReader"), "System.IO.StreamReade
     JSIL.MethodSignature.Void
   );
 
-  $.ExternalMethod({ Static: false, Public: false }, "Dispose",
+  $.ExternalMethod({ Static: false, Public: false}, "Dispose",
     new JSIL.MethodSignature(null, [$.Boolean], [])
   );
 

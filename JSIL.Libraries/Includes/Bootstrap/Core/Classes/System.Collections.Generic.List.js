@@ -3,7 +3,7 @@
 
   $jsilcore.$ListExternals($, T, "List");
 
-  $.Method({ Static: false, Public: true }, "CopyTo",
+  $.Method({ Static: false, Public: true, Virtual: true }, "CopyTo",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [T]), $.Int32], []),
     function (array, arrayindex) {
       if (arrayindex != 0) {
@@ -14,7 +14,7 @@
     }
   );
 
-  $.Method({ Static: false, Public: true }, "get_IsReadOnly",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_IsReadOnly",
     new JSIL.MethodSignature($.Boolean, [], []),
     function () {
       return false;

@@ -9,6 +9,8 @@ JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.XML");
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Xml");
+JSIL.DeclareNamespace("System.Xml.XPath");
+JSIL.DeclareNamespace("System.Xml.Serialization");
 
 //? if ('GENERATE_STUBS' in  __out) {
     JSIL.MakeEnum(
@@ -49,7 +51,7 @@ var $xmlasms = new JSIL.AssemblyCollection({
 //? include("Classes/System.Xml.Serialization.XmlSerializationReader.js"); writeln();
 //? include("Classes/System.Xml.XmlQualifiedName.js"); writeln();
 //? include("Classes/System.Xml.XmlConvert.js"); writeln();
-
+//? include("Classes/Other.js"); writeln();
 
 
 

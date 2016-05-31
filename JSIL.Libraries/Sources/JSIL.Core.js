@@ -1470,7 +1470,8 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
       prototype: {
         __TypeId__: typeId
       },
-      __TypeId__: typeId
+      __TypeId__: typeId,
+      $Methods : Object.create(null)
     };
 
     var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
@@ -1529,6 +1530,7 @@ JSIL.Initialize = function () {
   JSIL.InitializeType($jsilcore.System.Reflection.RuntimeAssembly);
   JSIL.InitializeType($jsilcore.System.Object);
 
+  JSIL.RunStaticConstructors($jsilcore.System.RuntimeType, $jsilcore.System.RuntimeType.__Type__);
   // As we use raw JS types, we should execute static ctor manually.
   JSIL.RunStaticConstructors($jsilcore.System.Boolean, $jsilcore.System.Boolean.__Type__);
   JSIL.RunStaticConstructors($jsilcore.System.Char, $jsilcore.System.Char.__Type__);
@@ -2587,6 +2589,8 @@ $jsilcore.$Of$NoInitialize = function () {
   JSIL.SetValueProperty(resultTypeObject, "__BaseType__", resolvedBaseType);
   result.__Type__ = resultTypeObject;
 
+  JSIL.SetValueProperty(result, "$Methods", JSIL.CreateSingletonObject(staticClassObject.$Methods));
+
   resultTypeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__RenamedMethods__ || null);
 
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
@@ -2682,9 +2686,6 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__TypeInitialized__ = true;
 
   // Resolve any generic parameter references in the interfaces this type implements.
-  var interfaces = resultTypeObject.__Interfaces__ = [];
-  var sourceInterfaces = typeObject.__Interfaces__;
-
   var writeGenericArgument = function (key, name, resolvedArgument) {
     var getter = function GetGenericArgument () {
       return name.get(this);
@@ -2714,30 +2715,38 @@ $jsilcore.$Of$NoInitialize = function () {
     }
   };
 
-  for (var i = 0, l = sourceInterfaces.length; i < l; i++) {
-    var unresolvedInterface = sourceInterfaces[i];
-    var resolvedInterface = JSIL.$ResolveGenericTypeReferenceInternal(unresolvedInterface, resolveContext);
+  var resolveInterfaces = function (sourceInterfaces, interfaces) {
+    for (var i = 0, l = sourceInterfaces.length; i < l; i++) {
+      var unresolvedInterface = sourceInterfaces[i];
+      var resolvedInterface = JSIL.$ResolveGenericTypeReferenceInternal(unresolvedInterface, resolveContext);
 
-    if (resolvedInterface === null)
-      resolvedInterface = unresolvedInterface;
+      if (resolvedInterface === null)
+        resolvedInterface = unresolvedInterface;
 
-    // It's possible there are duplicates in the interface list.
-    if (interfaces.indexOf(resolvedInterface) >= 0)
-      continue;
+      // It's possible there are duplicates in the interface list.
+      if (interfaces.indexOf(resolvedInterface) >= 0)
+        continue;
 
-    interfaces.push(resolvedInterface);
+      interfaces.push(resolvedInterface);
 
-    if (resolvedInterface !== unresolvedInterface) {
-      var resolvedInterfaceTypeObj = JSIL.ResolveTypeReference(resolvedInterface)[1];
-      var names = resolvedInterfaceTypeObj.__OpenType__.__GenericArgumentNames__;
+      if (resolvedInterface !== unresolvedInterface) {
+        var resolvedInterfaceTypeObj = JSIL.ResolveTypeReference(resolvedInterface)[1];
+        var names = resolvedInterfaceTypeObj.__OpenType__.__GenericArgumentNames__;
 
-      for (var j = 0, l2 = names.length; j < l2; j++) {
-        var name = names[j];
-        var value = resolvedInterfaceTypeObj.__GenericArgumentValues__[j];
-        writeGenericArgument(null, name, value);
+        for (var j = 0, l2 = names.length; j < l2; j++) {
+          var name = names[j];
+          var value = resolvedInterfaceTypeObj.__GenericArgumentValues__[j];
+          writeGenericArgument(null, name, value);
+        }
       }
     }
   }
+
+  // Resolve any generic parameter references in the interfaces this type implements.
+  resultTypeObject.__Interfaces__ = [];
+  resultTypeObject.__ExplicitInterfaces__ = [];
+  resolveInterfaces(typeObject.__Interfaces__, resultTypeObject.__Interfaces__);
+  resolveInterfaces(typeObject.__ExplicitInterfaces__, resultTypeObject.__ExplicitInterfaces__);
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var key = ga[i];
@@ -2869,6 +2878,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
   var isInterface = typeObject.IsInterface;
 
+  var oldObjects = {};
+
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
@@ -2890,8 +2901,15 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var oldName = data.mangledName;
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-    if (isInterface) {
-      var oldObject = publicInterface[unqualifiedName];
+    //TODO: What should we do with mangledName form?
+    if (!descriptor.Static) {
+      var isAlreadyDefined = true;
+      var oldObject = oldObjects[unqualifiedName];
+      if (!oldObject) {
+        oldObject = publicInterface.$Methods[unqualifiedName];
+        isAlreadyDefined = false;
+      }
+
       if (!oldObject)
         JSIL.RuntimeError("Failed to find unrenamed generic interface method");
 
@@ -2910,12 +2928,21 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
         }
       }
 
-      var newObject = oldObject.Rebind(typeObject, signature);
-      JSIL.SetValueProperty(publicInterface, unqualifiedName, newObject);
+      if (!isAlreadyDefined) {
+        var newObject = oldObject.Rebind(typeObject, signature);
+        JSIL.SetValueProperty(publicInterface.$Methods, unqualifiedName, newObject);
+      } else {
+        publicInterface.$Methods[unqualifiedName].RegisterSignature(signature, true);
+      }
+
+      if (!isAlreadyDefined)
+        oldObjects[unqualifiedName] = oldObject;
 
       if (trace)
         console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
-    } else {
+    }
+
+    if (!isInterface) {
       // If the method is already renamed, don't bother trying to rename it again.
       // Renaming it again would clobber the rename target with null.
       if (typeof (rm[oldName]) !== "undefined") {
@@ -3031,11 +3058,29 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (typeObject.IsInterface)
     return;
 
-  // This is the table of interfaces that is used by .Overrides' numeric indices.
-  var indexedInterfaceTable = JSIL.GetInterfacesImplementedByType(typeObject, false, false);
+  var filterDescriptorsBasedOnType = function (matchingMethods, typeObject) {
+    var filtred = [];
+    for (var i = 0; i < matchingMethods.length; i++) {
+      if (matchingMethods[i]._typeObject == typeObject)
+        filtred.push(matchingMethods[i]);
+    }
+    return filtred;
+  }
+
+  var types = JSIL.GetTypeAndBases(typeObject);
+  var interfaces = [];
+  for (var i = 0; i < types.length; i++) {
+    if ("__TypeId__" in types[i]) {
+      interfaces.push(types[i]);
+    } else {
+      types.splice(i, 1);
+      i--;
+    }
+  }
 
   // This is the table of every interface we actually implement (exhaustively).
-  var interfaces = JSIL.GetInterfacesImplementedByType(typeObject, true, false);
+  interfaces = interfaces.concat(JSIL.GetInterfacesImplementedByType(typeObject, true, false));
+  var explicitInterfaces = JSIL.GetInterfacesExplicitlyImplementedByType(typeObject);
 
   if (!interfaces.length)
     return;
@@ -3102,17 +3147,18 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     var ifaceName = iface.__FullNameWithoutArguments__ || iface.__FullName__;
     var ifaceLocalName = JSIL.GetLocalName(ifaceName);
-    if (iface.IsInterface !== true) {
+    /*if (iface.IsInterface !== true) {
       JSIL.Host.warning("Type " + ifaceName + " is not an interface.");
       continue __interfaces__;
-    }
+    }*/
 
     // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
     //  (MethodName), we make a copy of the regular method with the name of the interface method, so
     //  that attempts to directly invoke the interface method will still work.
     var members = JSIL.GetMembersInternal(
       iface, 
-      $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "NonPublic", "Public")
+      $jsilcore.BindingFlags.$Flags("DeclaredOnly", "Instance", "NonPublic", "Public"),
+      "$MethodOrConstructor"
     );
     var proto = publicInterface.prototype;
 
@@ -3133,6 +3179,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
       return true;
     }
+
+    var isIfaceExplicitImplemented = explicitInterfaces.indexOf(iface) >= 0;
 
     __members__:
     for (var j = 0; j < members.length; j++) {
@@ -3172,6 +3220,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             expectedInstanceName, parameterTypes, returnType
           );
 
+          matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
+
           // HACK: If this interface method was renamed at compile time,
           //  look for unqualified instance methods using the old name.
           if ((originalName !== null) && (matchingMethods.length === 0)) {
@@ -3181,10 +3231,49 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             matchingMethods = typeObject.$GetMatchingInstanceMethods(
               originalName, parameterTypes, returnType
             );
+
+            matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
+          }
+
+          if (iface != typeObject) {
+            var filtred = [];
+            for (var k = 0; k < matchingMethods.length; k++) {
+              if (matchingMethods[k]._descriptor.Virtual && (!matchingMethods[k]._descriptor.NewSlot || isIfaceExplicitImplemented))
+                filtred.push(matchingMethods[k]);
+            }
+            matchingMethods = filtred;
+
+            //We already checked flags on type method, now we should check for NewSlot in base types
+            if (matchingMethods.length == 1 && !iface.IsInterface) {
+              for (var k = 1; k < types.length; k++) {
+                if (types[k] == iface) {
+                  break;
+                }
+                var matchingMethodsInTestType = types[k].$GetMatchingInstanceMethods(expectedInstanceName, parameterTypes, returnType);
+                matchingMethodsInTestType = filterDescriptorsBasedOnType(matchingMethodsInTestType, types[k]);
+
+                var filtred = [];
+                for (var m = 0; m < matchingMethodsInTestType.length; m++) {
+                  if (matchingMethodsInTestType[m]._descriptor.Virtual)
+                    filtred.push(matchingMethodsInTestType[m]);
+                }
+
+                if (filtred.length > 1) {
+                  isAmbiguous = true;
+                  matchingMethods = [];
+                  break;
+                } else if (filtred.length == 1) {
+                  if (filtred[0]._descriptor.NewSlot) {
+                    matchingMethods = [];
+                  }
+                }
+              }
+            }
           }
 
           if (matchingMethods.length === 0) {
-            isMissing = true;
+            if (iface.IsInterface)
+              isMissing = true;
           } else if (matchingMethods.length > 1) {
             isAmbiguous = true;
           } else {
@@ -3197,10 +3286,25 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             if (trace)
               console.log(typeName + "::" + signatureQualifiedName + " (" + iface + ") = " + sourceQualifiedName);
 
+            var getter = JSIL.MakeInterfaceMemberGetter(proto, sourceQualifiedName);
+
             JSIL.SetLazyValueProperty(
               proto, signatureQualifiedName, 
-              JSIL.MakeInterfaceMemberGetter(proto, sourceQualifiedName)
+              getter
             );
+
+            if (iface == typeObject) {
+              JSIL.SetLazyValueProperty(
+                proto, "i$" + signatureQualifiedName,
+                JSIL.MakeInterfaceMemberGetter(proto, sourceQualifiedName));
+
+              var nonVirtualName = "i$" + qualifiedName;
+              var methodGroupRecord = methodGroups[nonVirtualName];
+              if (methodGroupRecord === undefined) {
+                methodGroups[nonVirtualName] = methodGroupRecord = {};
+              }
+              methodGroupRecord[signatureQualifiedName] = implementation._data.signature;
+            }
 
             var methodGroupRecord = methodGroups[qualifiedName];
             if (methodGroupRecord === undefined) {
@@ -3425,27 +3529,28 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
 
 JSIL.CreateRebindableNamedFunction = function (name, argumentNames, body, closureArgNames) {
   var strictPrefix = "\"use strict\";\r\n";
-  var uriPrefix = "", escapedFunctionIdentifier = "";
+  var uriSuffix = "", escapedFunctionIdentifier = "";
 
   if (name) {
-    uriPrefix = "//# sourceURL=jsil://closure/" + name + "\r\n";
+    uriSuffix = "//# sourceURL=jsil://closure/" + name;
     escapedFunctionIdentifier = JSIL.EscapeJSIdentifier(name);
   } else {
     escapedFunctionIdentifier = "unnamed";
   }
 
+  var lineBreakRE = /\r(\n?)/g;
+
   var rawFunctionText = "function " + escapedFunctionIdentifier + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +
-    body +
+    "  " + body.replace(lineBreakRE, "\r\n  ") +
     "\r\n};\r\n";
 
-  var lineBreakRE = /\r(\n?)/g;
-
   rawFunctionText = 
-    uriPrefix + strictPrefix + 
-    rawFunctionText.replace(lineBreakRE, "\r\n    ") + 
-    "    return " + escapedFunctionIdentifier + ";\r\n";
+    strictPrefix + 
+    "  " + rawFunctionText.replace(lineBreakRE, "\r\n  ") +
+    "return " + escapedFunctionIdentifier + ";\r\n"
+    + uriSuffix;
 
   var result = null, keys = null;
 
@@ -4222,18 +4327,18 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
         rhs._data.isPlaceholder ? 1 : 0
       );
 
-    // Non-externals override externals.
-    if (result === 0)
-      result = JSIL.CompareValues(
-        lhs._data.isExternal ? 1 : 0,
-        rhs._data.isExternal ? 1 : 0
-      );
-
     // A derived type's methods override inherited methods.
     if (result === 0)
       result = -JSIL.CompareValues(
         lhs._typeObject.__InheritanceDepth__, 
         rhs._typeObject.__InheritanceDepth__
+      );
+
+    // Non-externals override externals.
+    if (result === 0)
+      result = JSIL.CompareValues(
+        lhs._data.isExternal ? 1 : 0,
+        rhs._data.isExternal ? 1 : 0
       );
 
     return result;
@@ -4850,6 +4955,10 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
         JSIL.RuntimeError("Invalid prototype");
 
       typeObject.__Members__.push(member);
+
+      if (!isStatic) {
+        JSIL.InterfaceMethod.Register(publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
+      }
     }
 
     if (isRaw) {
@@ -4953,6 +5062,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = [];
+    typeObject.__ExplicitInterfaces__ = [];
     typeObject.__Members__ = [];
     typeObject.__ExternalMethods__ = [];
     typeObject.__RenamedMethods__ = {};
@@ -4973,6 +5083,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     JSIL.SetTypeId(typeObject, staticClassObject, typeId);
 
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", staticClassObject);
+    JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
 
     if (typeObject.__GenericArguments__.length > 0) {
       staticClassObject.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(staticClassObject);
@@ -5584,7 +5695,8 @@ JSIL.MakeType = function (typeArgs, initializer) {
 
     staticClassObject = ctorFunction;
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", staticClassObject);
-    JSIL.SetValueProperty(staticClassObject, "__Type__", typeObject);    
+    JSIL.SetValueProperty(staticClassObject, "__Type__", typeObject);
+    JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
 
     typeObject.__MaxConstructorArguments__ = maxConstructorArguments;
 
@@ -5620,6 +5732,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
       typeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(null);
     }
 
+    typeObject.__ExplicitInterfaces__ = [];
     typeObject.__IsArray__ = false;
     typeObject.__IsNullable__ = fullName.indexOf("System.Nullable`1") === 0;
     typeObject.__FieldList__ = $jsilcore.ArrayNotInitialized;
@@ -5822,6 +5935,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
 
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", publicInterface);
     JSIL.SetValueProperty(typeObject, "__BaseType__", null);
+    JSIL.SetValueProperty(publicInterface, "$Methods", Object.create(null));
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
@@ -5844,6 +5958,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__AssignableTypes__ = null;
     typeObject.IsInterface = true;
     typeObject.__Attributes__ = attributes;
+    // TODO: Are interfaces explicitly implement all other interfaces? None of them? How it affects?
+    typeObject.__ExplicitInterfaces__ = [];
     typeObject.__Interfaces__ = interfaces || [];
 
     var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface, "interface", interfaceMemberFallbackMethod);
@@ -5995,6 +6111,7 @@ JSIL.MakeEnum = function (_descriptor, _members) {
     typeObject.__IsFlagsEnum__ = descriptor.IsFlags;
     // HACK to ensure that enum types implement the interfaces System.Enum does.
     typeObject.__Interfaces__ = typeObject.__BaseType__.__Interfaces__;
+    typeObject.__ExplicitInterfaces__ = [];
 
     var enumTypeId = JSIL.AssignTypeId($jsilcore, "System.Enum");
 
@@ -6355,6 +6472,9 @@ JSIL.GetTypeName = function (type, dotNetTypeToString) {
   if (typeof (type.prototype) !== "undefined")
     result = type.prototype.__FullName__;
 
+  if (type instanceof JSIL.PositionalGenericParameter)
+    result = type.__TypeId__;
+
   if (typeof (result) === "undefined")
     result = typeof (type);
 
@@ -6664,6 +6784,8 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
   result.Public = descriptor.Public || false;
   result.Virtual = descriptor.Virtual || false;
   result.ReadOnly = descriptor.ReadOnly || false;
+  result.Abstract = descriptor.Abstract || false;
+  result.NewSlot = descriptor.NewSlot || false;
 
   if (this.builderMode === "interface") {
     // HACK: Interfaces have different default visibility than classes, so enforce that.
@@ -7143,6 +7265,10 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var isConstructor = (descriptor.EscapedName === "_ctor");
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
 
+  if (!descriptor.Static) {
+    JSIL.InterfaceMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
+  }
+
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
@@ -7205,16 +7331,12 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
 
-  if (this.typeObject.IsInterface) {
-    var methodObject = new JSIL.InterfaceMethod(this.typeObject, descriptor.EscapedName, signature, memberBuilder.parameterInfo, this.interfaceMemberFallbackMethod);
+  // TODO: Externals proper support!
+  if (!descriptor.Static && this.publicInterface.$Methods) {
+    JSIL.InterfaceMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
+  }
 
-    JSIL.SetValueProperty(descriptor.Target, mangledName, methodObject);
-
-    if (descriptor.Target[descriptor.EscapedName])
-      methodObject = new JSIL.InterfaceMethod(this.typeObject, descriptor.EscapedName, null, memberBuilder.parameterInfo, this.interfaceMemberFallbackMethod);
-    
-    JSIL.SetValueProperty(descriptor.Target, descriptor.EscapedName, methodObject);
-  } else {
+  if (!this.typeObject.IsInterface) {
     if (typeof (fn) !== "function")
       JSIL.RuntimeError("Method expected a function as 4th argument when defining '" + methodName + "'");
 
@@ -7307,6 +7429,7 @@ JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
+  var explicitInterfaces = this.typeObject.__ExplicitInterfaces__;
   if (typeof (interfaces) === "undefined")
     JSIL.RuntimeError("Type has no interface list");
 
@@ -7317,6 +7440,7 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
       JSIL.RuntimeError("Nonexistent interface passed to ImplementInterfaces");
 
     interfaces.push(iface);
+    explicitInterfaces.push(iface);
   }
 };
 
@@ -7343,6 +7467,14 @@ JSIL.SignatureBase.prototype.GetNamedKey = function (name, includeReturnType) {
     return this._lastKey;
 
   return this.GetNamedKey$CacheMiss(name, includeReturnType);
+};
+
+JSIL.SignatureBase.prototype.LookupVariantMethodKey = function (name, thisArgument) {
+  if (name instanceof JSIL.InterfaceMethod && (name.variantGenericArguments.length > 0)) {
+    return name.LookupVariantMethodKey(thisArgument, this);
+  }
+
+  return this.GetNamedKey(name, true);
 };
 
 JSIL.SignatureBase.prototype.GetUnnamedKey$CacheMiss = function (includeReturnType) {
@@ -7777,9 +7909,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   var emitMissingMethodCheck = function (result, methodExpression, methodName, indentation) {
     var errMethod =
       indentation + "  " +
-      (callMethodName === "CallStatic")
-        ? "this.$StaticMethodNotFound("
-        : "this.$MethodNotFound(";
+      ((callMethodName === "CallStatic") ? "this.$StaticMethodNotFound(" : "this.$MethodNotFound(");
 
     result.push(indentation + "if (!" + methodExpression + ")");
     if (thisReferenceArg !== methodLookupArg)
@@ -7833,6 +7963,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       body.push(indentation + "var methodReference = " + methodName + ";");    
       body.push(indentation + "if (!methodReference) {");
       body.push(indentation + "  methodReference = fallbackMethod(this.typeObject, this, thisReference);");
+      emitMissingMethodCheck(body, "methodReference", methodKeyToken, indentation + "  ");
       if (shouldEmitCacheMissInvocation) {
         body.push(indentation + "} else {");
         emitCacheMissInvocation(indentation + "  ");
@@ -7846,7 +7977,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         body, "methodReference.call", "thisReference", 
         (!!returnType) ? "return " : "", 
         argumentTypes, genericArgumentNames,
-        false, indentation + "  "
+        false, indentation
       );
     } else {
       if (shouldEmitCacheMissInvocation) {
@@ -7876,7 +8007,11 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
         return "this.methodKey";
       }
     } else {
-      return "this.GetNamedKey(name, true)";
+      if (callMethodName === "CallVirtual") {
+        return "this.LookupVariantMethodKey(name, thisReference)";
+      } else {
+        return "this.LookupVariantMethodKey(name, null)";
+      }
     }
   };
 
@@ -8367,21 +8502,41 @@ JSIL.ResolvedMethodSignature.prototype.toString = function () {
   return this.methodSignature.toString.apply(this.methodSignature, arguments);
 };
 
+JSIL.CreateQualifiedName = function (typeObject, methodName, isStatic, signature, fallbackMethod) {
+}
 
-JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInfo, interfaceMemberFallbackMethod) {
+JSIL.QualifiedNameInfo = function (typeObject, methodName, isStatic, signature, fallbackMethod) {
+  this.typeObject = typeObject;
+  this.methodName = methodName;
+  if (signature) {
+    // Important so ICs don't get mixed up.
+    this.signature = signature.Clone(true);
+  } else {
+    this.signature = null;
+  }
+
+  this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
+}
+
+JSIL.QualifiedNameInfo.prototype.toString = function () {
+  // HACK: This makes it possible to do
+  //  MethodSignature.CallVirtual(IFoo.Method, thisReference)
+  return this.qualifiedName;
+};
+
+JSIL.InterfaceMethod = function (typeObject, methodName, signature, interfaceMemberFallbackMethod) {
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
+  this.__OfCache__ = {};
 
   if (signature) {
     // Important so ICs don't get mixed up.
     this.signature = signature.Clone(true);
   } else {
-    // FIXME: Why the hell does this happen?
     this.signature = null;
   }
 
-  this.parameterInfo = parameterInfo;
   this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
   this.variantInvocationCandidateCache = JSIL.CreateDictionaryObject(null);
   if (interfaceMemberFallbackMethod !== null) {
@@ -8389,28 +8544,109 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, parameterInf
   }
 
   JSIL.SetLazyValueProperty(this, "methodKey", function () {
-    return this.signature.GetNamedKey(this.qualifiedName, true);
+    return this.signature != null ? JSIL.$GetSignaturePrefixForType(typeObject) + this.methodNonQualifiedKey : this.qualifiedName;
+  });
+
+  JSIL.SetLazyValueProperty(this, "methodNonQualifiedKey", function () {
+    return this.signature != null ? this.signature.GetNamedKey(this.methodName, true) : this.methodName;
   });
 };
 
-JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(); }, true);
+JSIL.InterfaceMethod.Register = function (target, typeObject, escapedName, mangledName, signature, interfaceMemberFallbackMethod, skipExistingCheck) {
+  var methodObject = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
+
+  JSIL.SetValueProperty(target, mangledName, methodObject);
+
+  var previousMember = target[escapedName];
+  if (previousMember) {
+    previousMember.RegisterSignature(signature, skipExistingCheck);
+  } else {
+    JSIL.SetValueProperty(target, escapedName, methodObject);
+  }
+}
+
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(true); }, true);
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallNonVirtual", function () { return this.$MakeCallMethod(false); }, true);
 
 JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
-  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, this.signature != null ? newSignature : null, this.parameterInfo);
-  result.fallbackMethod = this.fallbackMethod;
+  if (this.__OfCache__ == null) {
+    JSIL.RuntimeError("Rebind of signature-aware InterfaceMethod");
+  }
+
+  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature, this.fallbackMethod);
   return result;
 };
 
-JSIL.InterfaceMethod.prototype.$StaticMethodNotFound = function (thisReference, methodName) {
+JSIL.InterfaceMethod.prototype.RegisterSignature = function (signature, skipExistingCheck) {
+  if (this.__OfCache__ == null) {
+    JSIL.RuntimeError("RegisterSignature of signature-aware InterfaceMethod");
+  }
+  if (signature == null) {
+    JSIL.RuntimeError("InterfaceMethod RegisterSignature should accept non-null signature");
+  }
+
+  if (this.signature != null) {
+    var selfSignature = this.signature;
+    this.signature = null;
+    this.RegisterSignature(selfSignature);
+  }
+
+  var cacheKey = signature.get_Hash();
+
+  var result = this.__OfCache__[cacheKey];
+  if (result) {
+    if (skipExistingCheck) {
+      return;
+    }
+
+    JSIL.RuntimeErrorFormat(
+    "InterfaceMethod '{0}' already has registred signature {1}", [
+      this.methodName,
+      signature.toString(this.methodName)]);
+  }
+
+  var signatureAwareInterfaceMethod = new JSIL.InterfaceMethod(this.typeObject, this.methodName, signature, this.fallbackMethod);
+  signatureAwareInterfaceMethod.__OfCache__ = null;
+
+  this.__OfCache__[cacheKey] = signatureAwareInterfaceMethod;
+};
+
+JSIL.InterfaceMethod.prototype.Of = function (signature) {
+  if (this.signature != null) {
+    if (this.signature.get_Hash() == signature.get_Hash()) {
+      return this;
+    }
+
+    JSIL.RuntimeError("Attemp to get signature-aware InterfaceMethod from another signature-aware InterfaceMethod");
+  }
+  if (signature == null) {
+    JSIL.RuntimeErrorFormat(
+    "InterfaceMethod Of should accept non-null signature", []);
+  }
+
+  var cacheKey = signature.get_Hash();
+
+  // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
+  var result = this.__OfCache__[cacheKey];
+  if (!result)
+    JSIL.RuntimeErrorFormat(
+    "InterfaceMethod '{0}' has no registred signature {1}", [
+      this.methodName,
+      signature.toString(this.methodName)]);
+
+  return result;
+};
+
+JSIL.InterfaceMethod.prototype.$MethodNotFound = function (thisReference, methodName) {
   JSIL.RuntimeErrorFormat(
     "Interface method '{0}' not found in context '{1}'", [
-      this.signature.toString(this.methodName),
+      this.signature != null ? this.signature.toString(this.methodName) : this.methodName,
       thisReference
     ]
   );
 };
 
-JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference) {
+JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisReference, signature) {
   var cache = this.variantInvocationCandidateCache;
   var typeId = thisReference.__ThisTypeId__;
 
@@ -8421,8 +8657,17 @@ JSIL.InterfaceMethod.prototype.GetVariantInvocationCandidates = function (thisRe
   var result = cache[typeId];
 
   if (typeof (result) === "undefined") {
+    var signatureToResolve = signature;
+    if (!(signature || false)) {
+      signatureToResolve = this.signature;
+    }
+
     cache[typeId] = result = JSIL.$GenerateVariantInvocationCandidates(
-      this.typeObject, this.signature, this.signature != null ? this.qualifiedName : this.methodName, this.variantGenericArguments, JSIL.GetType(thisReference)
+      this.typeObject,
+      signatureToResolve,
+      this.methodName,
+      this.variantGenericArguments,
+      JSIL.GetType(thisReference)
     );
   }
 
@@ -8468,8 +8713,8 @@ JSIL.InterfaceMethod.prototype.LookupMethod = function (thisReference, name) {
   return result;
 };
 
-JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference) {
-  var variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference);
+JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference, signature) {
+  var variantInvocationCandidates = this.GetVariantInvocationCandidates(thisReference, signature);
 
   if (variantInvocationCandidates) {
     for (var i = 0, l = variantInvocationCandidates.length; i < l; i++) {
@@ -8481,41 +8726,36 @@ JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference)
     }
   }
 
-  return this.methodKey;
+  return signature != null ? signature.GetNamedKey(this.qualifiedName, true) : this.methodKey;
 };
 
-JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
+JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual) {
   if (this.signature == null) {
     var imethod = this;
-    return function (thisObject, genericArgs) {
-      var key = this.variantGenericArguments.length > 0 ? imethod.LookupVariantMethodKey(thisObject) : this.qualifiedName;
+    return function(thisObject, genericArgs) {
+      // Move method creation from signature to some helper class and use it here.
+      var key = imethod.variantGenericArguments.length > 0 ? imethod.LookupVariantMethodKey(thisObject) : imethod.qualifiedName;
+      if (!isVirtual) {
+        key = "i$" + key;
+      }
       var target = thisObject[key];
       var targetFunctionArgs = Array.prototype.slice.call(arguments, 2);
       if (genericArgs) {
-        resolvedTarget = target.apply(thisObject, genericArgs);
+        var resolvedTarget = target.apply(thisObject, genericArgs);
         return resolvedTarget(targetFunctionArgs);
       } else {
         return target.apply(thisObject, targetFunctionArgs);
       }
-    }
+    };
   } else if (this.typeObject.__IsClosed__ && this.signature.IsClosed) {
     var callType = 
-      (this.variantGenericArguments.length > 0)
+      (this.variantGenericArguments.length > 0) && isVirtual
         ? "CallVariantInterface"
         : "CallInterface";
 
-    var fallbackMethod = this.fallbackMethod;
-    Object.defineProperty(
-      this, "fallbackMethod",
-      { 
-        value: fallbackMethod,
-        writable: false,
-        writeable: false,
-        configurable: false
-      }
-    );
+    var methodKey = isVirtual ? this.methodKey : "i$" + this.methodKey;
 
-    return this.signature.$MakeCallMethod(callType, this.methodKey, fallbackMethod);
+    return this.signature.$MakeCallMethod(callType, methodKey, this.fallbackMethod);
   } else {
     return function () {
       JSIL.RuntimeError("Cannot invoke method '" + this.methodName + "' of open generic interface '" + this.typeObject.__FullName__ + "'");
@@ -8531,14 +8771,10 @@ JSIL.InterfaceMethod.prototype.toString = function () {
 
 
 JSIL.$GetSignaturePrefixForType = function (typeObject) {
-  if (typeObject.IsInterface) {
-    if (typeObject.__OpenType__)
-      return "I" + typeObject.__OpenType__.__TypeId__ + "$";
-    else
-      return "I" + typeObject.__TypeId__ + "$";    
-  } else {
-    return "";
-  }
+  if (typeObject.__OpenType__)
+    return "I" + typeObject.__OpenType__.__TypeId__ + "$";
+  else
+    return "I" + typeObject.__TypeId__ + "$";
 };
 
 
@@ -9531,6 +9767,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     JSIL.SetValueProperty(typeObject, "__FullName__", fullName);
     typeObject.__CallStack__ = callStack;
     typeObject.__Interfaces__ = [];
+    typeObject.__ExplicitInterfaces__ = [];
     typeObject.__IsDelegate__ = true;
     JSIL.SetValueProperty(typeObject, "__IsReferenceType__", true);
     typeObject.__AssignableTypes__ = null;
@@ -9543,6 +9780,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
     JSIL.FillTypeObjectGenericArguments(typeObject, genericArguments);
 
     var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
+    JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
     staticClassObject.__Type__ = typeObject;
     staticClassObject.prototype = JSIL.CreatePrototypeObject($jsilcore.System.MulticastDelegate.prototype);
 
@@ -10183,6 +10421,29 @@ JSIL.GetInterfacesImplementedByType = function (typeObject, walkInterfaceBases, 
     return result;
 };
 
+JSIL.GetInterfacesExplicitlyImplementedByType = function (typeObject) {
+  var resultList = []
+  var interfaces = typeObject.__ExplicitInterfaces__;
+
+  if (interfaces && interfaces.length) {
+    for (var i = 0, l = interfaces.length; i < l; i++) {
+      var ifaceRef = interfaces[i];
+      var iface = JSIL.ResolveTypeReference(ifaceRef, typeObject.__Context__)[1];
+      if (!iface)
+        continue;
+
+      var alreadyAdded = resultList.indexOf(iface) >= 0;
+
+      if (!alreadyAdded) {
+        resultList.push(iface);
+      }
+    }
+  }
+
+  return resultList;
+};
+
+
 JSIL.$EnumInterfacesImplementedByTypeExcludingBases = function (typeObject, resultList, distanceList, walkInterfaceBases, allowDuplicates, distance) {
   if (arguments.length !== 6)
     JSIL.RuntimeError("6 arguments expected");
@@ -10401,7 +10662,7 @@ JSIL.WrapCastMethodsForInterfaceVariance = function (typeObject, isFunction, asF
   return result;
 };
 
-JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature, qualifiedMethodName, variantGenericArguments, thisReferenceType) {
+JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature, methodName, variantGenericArguments, thisReferenceType) {
   var trace = false;
 
   var matchingInterfaces = JSIL.$FindMatchingInterfacesThroughVariance(interfaceObject, thisReferenceType, variantGenericArguments);
@@ -10411,10 +10672,6 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
 
   if (!matchingInterfaces.length)
     return null;
-  else if (signature != null && !signature.openSignature) {
-    // FIXME: Is this right?
-    return null;
-  }
 
   var result = [];
 
@@ -10431,14 +10688,32 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
     var candidate;
 
     if (signature != null) {
+      var foundSignature = null, openSignature = null;
       // FIXME: This is incredibly expensive.
-      var variantSignature = JSIL.$ResolveGenericMethodSignature(
-        record.interface, signature.openSignature, record.interface.__PublicInterface__
-      );
+      if (signature.openSignature) {
+        openSignature = signature.openSignature
+      } else {
+        var resolved = signature.Resolve();
+        var matchingMethods = record.interface.$GetMatchingInstanceMethods(methodName, resolved.argumentTypes, resolved.returnType);
+        if (matchingMethods.length > 0) {
+          if (matchingMethods[i]._data.genericSignature != null) {
+            openSignature = matchingMethods[i]._data.genericSignature;
+          }
+          else {
+            foundSignature = signature;
+          }
+        } 
+      }
 
-      candidate = variantSignature.GetNamedKey(qualifiedMethodName, true);
+      if (!(foundSignature || false)) {
+        foundSignature = JSIL.$ResolveGenericMethodSignature(
+          record.interface, openSignature, record.interface.__PublicInterface__
+        );
+      }
+
+      candidate = JSIL.$GetSignaturePrefixForType(record.interface) + foundSignature.GetNamedKey(methodName, true);
     } else {
-      candidate = JSIL.$GetSignaturePrefixForType(record.interface) + qualifiedMethodName;
+      candidate = JSIL.$GetSignaturePrefixForType(record.interface) + methodName;
     }
 
     if (trace)
@@ -10531,9 +10806,8 @@ JSIL.$GetMethodImplementation = function (method, target) {
 
   var genericArgumentValues = method._data.signature.genericArgumentValues;
   var publicInterface = method._typeObject.__PublicInterface__;
-  var context = isStatic || isInterface 
-    ? publicInterface 
-    : publicInterface.prototype;
+  var context = isStatic ? publicInterface 
+    : (isInterface ? publicInterface.$Methods : publicInterface.prototype);
 
   var result = context[key] || null;
 
@@ -10898,7 +11172,7 @@ JSIL.MethodPointerInfo.$invocationStrings =
   InvokeStatic: "return methodPointer.Signature.CallStatic(methodPointer.TypeObject, methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters",
   InvokeInstance: "return methodPointer.Signature.Call(methodPointer.TypeObject.prototype, methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters, thisObject",
   InvokeVirtual: "return methodPointer.Signature.CallVirtual(methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters, thisObject",
-  InvokeInterface: "return methodPointer.Signature.CallVirtual(methodPointer.TypeObject[methodPointer.NameWithGenericSuffix], methodPointer.MethodGenericParameters, thisObject"
+  InvokeInterface: "return methodPointer.Signature.CallVirtual(methodPointer.TypeObject.$Methods[methodPointer.NameWithGenericSuffix], methodPointer.MethodGenericParameters, thisObject"
 };
 
 JSIL.MethodPointerInfo.$createInvocationMethod = function (key, methodPointerInfo, thisObject) {

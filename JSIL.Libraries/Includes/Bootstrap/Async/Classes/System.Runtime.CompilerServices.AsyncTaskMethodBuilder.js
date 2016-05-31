@@ -25,7 +25,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );
@@ -35,7 +35,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );
@@ -102,7 +102,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );
@@ -112,7 +112,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );

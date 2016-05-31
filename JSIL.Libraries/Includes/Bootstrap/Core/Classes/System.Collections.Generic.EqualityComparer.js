@@ -116,7 +116,7 @@
   };
 
   JSIL.MakeType({
-    BaseType: $jsilcore.TypeRef("System.Collections.Generic.EqualityComparer`1", [new JSIL.GenericParameter("T", "ObjectEqualityComparer`1")]),
+    BaseType: $jsilcore.TypeRef("System.Collections.Generic.EqualityComparer`1", [new JSIL.GenericParameter("T", "JSIL.ObjectEqualityComparer`1")]),
     Name: "JSIL.ObjectEqualityComparer`1",
     IsPublic: false,
     IsReferenceType: true,

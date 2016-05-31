@@ -21,7 +21,7 @@
     }
   );
 
-  $.Method({ Public: true, Static: false }, "Reset",
+  $.Method({ Public: true, Static: false, Virtual: true }, "Reset",
     new JSIL.MethodSignature(null, []),
     function () {
       if (this._array === null)
@@ -31,14 +31,14 @@
     }
   );
 
-  $.Method({ Public: true, Static: false }, "MoveNext",
+  $.Method({ Public: true, Static: false, Virtual: true }, "MoveNext",
     new JSIL.MethodSignature(System.Boolean, []),
     function () {
       return (++this._index < this._length);
     }
   );
 
-  $.Method({ Public: true, Static: false }, "Dispose",
+  $.Method({ Public: true, Static: false, Virtual: true }, "Dispose",
     new JSIL.MethodSignature(null, []),
     function () {
       this._array = null;
@@ -55,7 +55,7 @@
   )
     .Overrides("System.Collections.IEnumerator", "get_Current");
 
-  $.Method({ Public: true, Static: false }, "get_Current",
+  $.Method({ Public: true, Static: false, Virtual: true }, "get_Current",
     new JSIL.MethodSignature(T, []),
     function () {
       return this._array[this._index];

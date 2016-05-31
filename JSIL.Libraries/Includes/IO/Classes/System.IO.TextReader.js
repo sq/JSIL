@@ -1,5 +1,5 @@
 ﻿JSIL.ImplementExternals("System.IO.TextReader", function ($) {
-    $.Method({ Static: false, Public: true }, "Dispose",
+    $.Method({ Static: false, Public: true, Virtual: true }, "Dispose",
       (JSIL.MethodSignature.Void),
       function Dispose() {
       }

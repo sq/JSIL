@@ -10,10 +10,12 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     var ntDocument = System.Xml.XmlNodeType.Document;
     var ntEndElement = System.Xml.XmlNodeType.EndElement;
 
-    var docProto = (window.Document.prototype);
-    var elementProto = (window.Element.prototype);
-    var attrProto = (window.Attr.prototype);
-    var textProto = (window.Text.prototype);
+    if (typeof window !== "undefined") {
+      var docProto = (window.Document.prototype);
+      var elementProto = (window.Element.prototype);
+      var attrProto = (window.Attr.prototype);
+      var textProto = (window.Text.prototype);
+    }
 
     var sNode = "node";
     var sChildren = "children";

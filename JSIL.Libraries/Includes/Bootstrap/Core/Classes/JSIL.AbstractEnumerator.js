@@ -25,7 +25,7 @@
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Reset",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Reset",
     new JSIL.MethodSignature(null, []),
     function () {
       if (this._needDispose)
@@ -37,7 +37,7 @@
     }
   );
 
-  $.Method({ Static: false, Public: true }, "MoveNext",
+  $.Method({ Static: false, Public: true, Virtual: true }, "MoveNext",
     new JSIL.MethodSignature("System.Boolean", []),
     function () {
       if (this._first) {
@@ -50,7 +50,7 @@
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Dispose",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Dispose",
     new JSIL.MethodSignature(null, []),
     function () {
       if (this._needDispose)

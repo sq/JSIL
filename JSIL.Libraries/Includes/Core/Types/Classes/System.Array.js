@@ -71,7 +71,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       $.SetValue("__IsArray__", true);
       $.SetValue("__ElementType__", elementTypeObject);
 
-      $.Method({ Static: false, Public: true }, "GetEnumerator",
+      $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
           new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [elementType]), [], []),
           function () {
             return JSIL.GetEnumerator(this, elementType);
@@ -79,35 +79,35 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         )
         .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
-      $.Method({ Static: false, Public: true }, "CopyTo",
+      $.Method({ Static: false, Public: true, Virtual: true }, "CopyTo",
         new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [elementType]), $.Int32], []),
         function CopyTo(array, arrayIndex) {
           JSIL.Array.CopyTo(this, array, arrayIndex);
         }
       );
 
-      $.Method({ Static: false, Public: true }, "get_Item",
+      $.Method({ Static: false, Public: true, Virtual: true }, "get_Item",
         new JSIL.MethodSignature(elementType, [$.Int32], []),
         function get_Item(index) {
           return this[index];
         }
       );
 
-      $.Method({ Static: false, Public: true }, "set_Item",
+      $.Method({ Static: false, Public: true, Virtual: true }, "set_Item",
         new JSIL.MethodSignature(null, [$.Int32, elementType], []),
         function set_Item(index, value) {
           this[index] = value;
         }
       );
 
-      $.Method({ Static: false, Public: true }, "Contains",
+      $.Method({ Static: false, Public: true, Virtual: true }, "Contains",
         new JSIL.MethodSignature($.Boolean, [elementType], []),
         function Contains(value) {
           return JSIL.Array.IndexOf(this, 0, this.length, value) >= 0;
         }
       );
 
-      $.Method({ Static: false, Public: true }, "IndexOf",
+      $.Method({ Static: false, Public: true, Virtual: true }, "IndexOf",
         new JSIL.MethodSignature($.Int32, [elementType], []),
         function IndexOf(value) {
           return JSIL.Array.IndexOf(this, 0, this.length, value);
@@ -125,10 +125,20 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         }
       );
 
+      $.Method({ Static: false, Public: true, Virtual: true }, "get_Count",
+        new JSIL.MethodSignature($.Int32, [], []),
+        function get_Count() {
+          return this.length;
+        }
+      );
+
       $.ImplementInterfaces(
         $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [elementTypeObject]),
         $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [elementTypeObject]),
-        $jsilcore.TypeRef("System.Collections.Generic.IList`1", [elementTypeObject])
+        $jsilcore.TypeRef("System.Collections.Generic.IList`1", [elementTypeObject]),
+        $jsilcore.TypeRef("System.Collections.IEnumerable"),
+        $jsilcore.TypeRef("System.Collections.ICollection"),
+        $jsilcore.TypeRef("System.Collections.IList")
       );
     });
 
@@ -264,22 +274,29 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         }
       );
 
-      $.Method({ Static: false, Public: true }, "get_length",
+      $.Method({ Static: false, Public: true, Virtual: true }, "get_length",
         JSIL.MethodSignature.Return($.Int32),
         function get_length() {
           return this.Items.length;
         }
       );
 
-      $.Method({ Static: false, Public: true }, "get_Length",
+      $.Method({ Static: false, Public: true, Virtual: true }, "get_Length",
         JSIL.MethodSignature.Return($.Int32),
         function get_Length() {
           return this.Items.length;
         }
       );
 
-      $.Property({ Static: false, Public: true }, "length", $.Int32);
-      $.Property({ Static: false, Public: true }, "Length", $.Int32);
+      $.Method({ Static: false, Public: true, Virtual: true }, "get_Count",
+        new JSIL.MethodSignature($.Int32, [], []),
+        function get_Count() {
+          return this.length;
+        }
+      );
+
+      $.Property({ Static: false, Public: true, Virtual: true }, "length", $.Int32);
+      $.Property({ Static: false, Public: true, Virtual: true }, "Length", $.Int32);
 
       $.RawMethod(true, "CheckType",
         function (value) {
@@ -380,7 +397,7 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.Method({ Static: false, Public: false }, null,
+    $.Method({ Static: false, Public: false, Virtual: true }, null,
         new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], []),
         function () {
           return JSIL.GetEnumerator(this, this.__ElementType__);
@@ -390,7 +407,7 @@ JSIL.ImplementExternals(
 
     // FIXME: Implement actual members of IList.
 
-    $.Method({ Static: false, Public: true }, "get_Count",
+    $.Method({ Static: false, Public: true, Virtual: true }, "get_Count",
       new JSIL.MethodSignature($.Int32, [], []),
       function get_Count() {
         return this.length;

@@ -10,7 +10,7 @@
     var typeArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Type"]);
 
     $.Method({ Public: true, Static: true }, "op_Equality",
-      new JSIL.MethodSignature($.Boolean, [$.Type, $.Type]),
+      new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.Type")]),
       function (lhs, rhs) {
         if (lhs === rhs)
           return true;
@@ -20,7 +20,7 @@
     );
 
     $.Method({ Public: true, Static: true }, "op_Inequality",
-      new JSIL.MethodSignature($.Boolean, [$.Type, $.Type]),
+      new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.Type")]),
       function (lhs, rhs) {
         if (lhs !== rhs)
           return true;
@@ -56,7 +56,7 @@
     );
 
     $.Method({ Static: false, Public: true }, "GetGenericTypeDefinition",
-      (new JSIL.MethodSignature($.Type, [], [])),
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])),
       function () {
         if (this.get_IsGenericType() === false)
           throw new System.Exception("The current type is not a generic type.");
@@ -65,14 +65,14 @@
     );
 
     $.Method({ Static: false, Public: true }, "GetGenericArguments",
-      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), [], [])),
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])),
       function GetGenericArguments() {
         return JSIL.Array.New(typeReference.get(), this.__GenericArgumentValues__);
       }
     );
 
     $.Method({ Static: false, Public: true }, "MakeGenericType",
-      (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Type])], [])),
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")])], [])),
       function (typeArguments) {
         return this.__PublicInterface__.Of.apply(this.__PublicInterface__, typeArguments).__Type__;
       }
@@ -94,14 +94,14 @@
     );
 
     $.Method({ Static: false, Public: true }, "GetElementType",
-      new JSIL.MethodSignature($.Type, []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), []),
       function () {
         return this.__ElementType__;
       }
     );
 
     $.Method({ Public: true, Static: false }, "get_BaseType",
-      new JSIL.MethodSignature($.Type, []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), []),
       JSIL.TypeObjectPrototype.get_BaseType
     );
 
@@ -145,7 +145,7 @@
     );
 
     $.Method({ Public: true, Static: false }, "IsSubclassOf",
-      new JSIL.MethodSignature($.Boolean, [$.Type]),
+      new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Type")]),
       function (type) {
         var needle = type.__PublicInterface__.prototype;
         var haystack = this.__PublicInterface__.prototype;
@@ -154,7 +154,7 @@
     );
 
     $.Method({ Public: true, Static: false }, "IsAssignableFrom",
-      new JSIL.MethodSignature($.Boolean, [$.Type]),
+      new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Type")]),
       function (type) {
         if (type === this)
           return true;
@@ -510,22 +510,22 @@
     );
 
     $.Method({ Public: true, Static: false }, "get_IsGenericParameter",
-      new JSIL.MethodSignature($.Type, []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), []),
       JSIL.TypeObjectPrototype.get_IsGenericParameter
     );
 
     $.Method({ Public: true, Static: false }, "get_IsInterface",
-      new JSIL.MethodSignature($.Type, []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), []),
       JSIL.TypeObjectPrototype.get_IsInterface
     );
 
     $.Method({ Public: true, Static: false }, "get_IsByRef",
-      new JSIL.MethodSignature($.Type, []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), []),
       JSIL.TypeObjectPrototype.get_IsByRef
     );
 
     $.Method({ Public: true, Static: false }, "GetInterfaces",
-      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), []),
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), []),
       function () {
         return JSIL.GetInterfacesImplementedByType(this, true, false, false, $jsilcore.System.Array.Of($jsilcore.System.Type).__Type__);
       }

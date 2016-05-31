@@ -788,7 +788,9 @@ namespace JSIL.Internal {
         public void MemberDescriptor (
             bool isPublic, bool isStatic, 
             bool isVirtual = false, bool isReadonly = false,
-            int? offset = null
+            int? offset = null,
+            bool isNewSlot = false,
+            bool isAbstract = false
         ) {
             WriteRaw("{");
 
@@ -827,6 +829,24 @@ namespace JSIL.Internal {
 
                 WriteRaw("Offset: ");
                 Value(offset.Value);
+            }
+
+            if (isNewSlot)
+            {
+                Comma();
+
+                WriteRaw("NewSlot");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
+
+            if (isAbstract)
+            {
+                Comma();
+
+                WriteRaw("Abstract");
+                WriteRaw(":");
+                WriteRaw("true ");
             }
 
             WriteRaw("}");

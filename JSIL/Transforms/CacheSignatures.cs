@@ -62,6 +62,34 @@ namespace JSIL.Transforms {
                 return new RewritedCacheRecord<TypeReference>(resolvedType, mappings);
             }
 
+            public static RewritedCacheRecord<Tuple<TypeReference, MethodSignature>> NormalizedQualified(MethodReference method, MethodSignature signature, bool isConstructor)
+            {
+                var targetMappings = new Dictionary<GenericParameter, int>(new GenericParameterComparer());
+                var resolvedType = GenericTypesRewriter.ResolveTypeReference(
+                    method.DeclaringType,
+                    (tr, resolutionStack) => {
+                        if (tr is GenericParameter)
+                        {
+                            var gp = (GenericParameter)tr;
+                            return GenericTypesRewriter.ReplaceWithGenericArgument(gp, targetMappings);
+                        }
+                        return tr;
+                    },
+                    null);
+
+                var resultSignature = new MethodSignature(signature.TypeInfo,
+                    isConstructor
+                        ? ResolveTypeReference(method, method.DeclaringType, targetMappings)
+                        : ResolveTypeReference(method, signature.ReturnType, targetMappings),
+                    signature.ParameterTypes.Select(item => ResolveTypeReference(method, item, targetMappings))
+                        .ToArray(),
+                    signature.GenericParameterNames);
+
+                var mappings = targetMappings.OrderBy(item => item.Value).Select(item => item.Key).ToArray();
+
+                return new RewritedCacheRecord<Tuple<TypeReference, MethodSignature>>(Tuple.Create(resolvedType, resultSignature), mappings);
+            }
+
             private static TypeReference ResolveTypeReference (MethodReference method, TypeReference typeReference, Dictionary<GenericParameter, int> mappings) {
                 var resolvedMethod = method.Resolve();
 
@@ -232,8 +260,7 @@ namespace JSIL.Transforms {
             public readonly string InterfaceMember;
             public readonly int RewritenGenericParametersCount;
 
-            public CachedInterfaceMemberRecord (TypeReference declaringType, string memberName,
-                int rewritenGenericParametersCount = 0) {
+            public CachedInterfaceMemberRecord (TypeReference declaringType, string memberName, int rewritenGenericParametersCount = 0) {
                 InterfaceType = declaringType;
                 InterfaceMember = memberName;
                 RewritenGenericParametersCount = rewritenGenericParametersCount;
@@ -274,15 +301,58 @@ namespace JSIL.Transforms {
             }
         }
 
+        public struct CachedQualifiedSignatureRecord {
+            private static readonly IgnoreMethodCachedSignatureRecordComparer SignatureComparer = new IgnoreMethodCachedSignatureRecordComparer();
+
+            public readonly CachedInterfaceMemberRecord Member;
+            public readonly CachedSignatureRecord Signature;
+
+            public CachedQualifiedSignatureRecord (CachedInterfaceMemberRecord member, CachedSignatureRecord signature) {
+                Member = member;
+                Signature = signature;
+            }
+            public bool Equals(ref CachedQualifiedSignatureRecord rhs)
+            {
+                return Member.Equals(rhs.Member) && SignatureComparer.Equals(Signature, rhs.Signature);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is CachedQualifiedSignatureRecord)
+                {
+                    var rhs = (CachedQualifiedSignatureRecord)obj;
+                    return Equals(ref rhs);
+                }
+                else
+                    return base.Equals(obj);
+            }
+
+            public override int GetHashCode()
+            {
+                return Member.GetHashCode() ^ SignatureComparer.GetHashCode(Signature);
+            }
+        }
+
+        public class CachedQualifiedSignatureRecordComparer : IEqualityComparer<CachedQualifiedSignatureRecord>
+        {
+            public bool Equals(CachedQualifiedSignatureRecord x, CachedQualifiedSignatureRecord y)
+            {
+                return x.Equals(ref y);
+            }
+
+            public int GetHashCode(CachedQualifiedSignatureRecord obj)
+            {
+                return obj.GetHashCode();
+            }
+        }
+
         public class CacheSet {
-            private static readonly IgnoreMethodCachedSignatureRecordComparer IgnoreMethodComparer =
-                new IgnoreMethodCachedSignatureRecordComparer();
-
+            private static readonly IgnoreMethodCachedSignatureRecordComparer IgnoreMethodComparer = new IgnoreMethodCachedSignatureRecordComparer();
             private static readonly CachedSignatureRecordComparer Comparer = new CachedSignatureRecordComparer();
+            private static readonly CachedInterfaceMemberRecordComparer InterfaceMemberComparer = new CachedInterfaceMemberRecordComparer();
+            private static readonly CachedQualifiedSignatureRecordComparer CachedQualifiedSignatureRecordComparer = new CachedQualifiedSignatureRecordComparer();
 
-            private static readonly CachedInterfaceMemberRecordComparer InterfaceMemberComparer =
-                new CachedInterfaceMemberRecordComparer();
-
+            public readonly Dictionary<CachedQualifiedSignatureRecord, int> QualifiedSignatures;
             public readonly Dictionary<CachedSignatureRecord, int> Signatures;
             public readonly Dictionary<CachedInterfaceMemberRecord, int> InterfaceMembers;
 
@@ -292,6 +362,7 @@ namespace JSIL.Transforms {
                         ? (IEqualityComparer<CachedSignatureRecord>) Comparer
                         : IgnoreMethodComparer);
                 InterfaceMembers = new Dictionary<CachedInterfaceMemberRecord, int>(InterfaceMemberComparer);
+                QualifiedSignatures = new Dictionary<CachedQualifiedSignatureRecord, int>(CachedQualifiedSignatureRecordComparer);
             }
         }
 
@@ -334,7 +405,35 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        private void CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
+        private CachedQualifiedSignatureRecord CacheQulifiedSignature (JSMethod jsm, MethodInfo methodInfo, bool isConstructor) {
+            var declaringType = jsm.Reference.DeclaringType;
+            var unexpandedType = declaringType;
+            if (!TypeUtil.ExpandPositionalGenericParameters(unexpandedType, out declaringType))
+                declaringType = unexpandedType;
+
+            var rewritenInfo = GenericTypesRewriter.NormalizedQualified(jsm.Reference, methodInfo.Signature, isConstructor);
+
+            var memberRecord = new CachedInterfaceMemberRecord(
+                rewritenInfo.CacheRecord.Item1, jsm.Identifier,
+                rewritenInfo.RewritedGenericParameters.Length);
+
+            var signatureRecord = new CachedSignatureRecord(
+                jsm.Reference,
+                rewritenInfo.CacheRecord.Item2,
+                isConstructor,
+                rewritenInfo.RewritedGenericParameters.Length);
+
+            var record = new CachedQualifiedSignatureRecord(memberRecord, signatureRecord);
+
+            var set = GetCacheSet(false);
+
+            if (!set.QualifiedSignatures.ContainsKey(record))
+                set.QualifiedSignatures.Add(record, set.QualifiedSignatures.Count);
+
+            return record;
+        }
+
+        private CachedSignatureRecord CacheSignature (MethodReference method, MethodSignature signature, bool isConstructor) {
             bool cacheLocally;
             CachedSignatureRecord record;
             if (LocalCachingEnabled && PreferLocalCacheForGenericMethodSignatures) {
@@ -387,11 +486,12 @@ namespace JSIL.Transforms {
 
             if (!set.Signatures.ContainsKey(record))
                 set.Signatures.Add(record, set.Signatures.Count);
+
+            return record;
         }
 
-        private void CacheInterfaceMember (TypeReference declaringType, string memberName) {
+        private CachedInterfaceMemberRecord CacheInterfaceMember (TypeReference declaringType, string memberName) {
             var cacheLocally = false;
-            var originalType = declaringType;
 
             var unexpandedType = declaringType;
             if (!TypeUtil.ExpandPositionalGenericParameters(unexpandedType, out declaringType))
@@ -413,6 +513,8 @@ namespace JSIL.Transforms {
 
             if (!set.InterfaceMembers.ContainsKey(record))
                 set.InterfaceMembers.Add(record, set.InterfaceMembers.Count);
+
+            return record;
         }
 
         private JSRawOutputIdentifier MakeRawOutputIdentifierForIndex (TypeReference type, int index, bool isSignature) {
@@ -484,20 +586,25 @@ namespace JSIL.Transforms {
                 method = jsm.Method;
 
             bool isOverloaded = (method != null) &&
-                method.IsOverloadedRecursive &&
-                !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
+                ((method.IsOverloadedRecursive && !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"))
+                || method.DeclaringType.IsInterface);
 
             if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
-            if ((method != null) && method.DeclaringType.IsInterface) {
-                // HACK
-                if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType))
-                    CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
-            }
+            if ((jsm != null) && (method != null) && isOverloaded && !method.IsStatic && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                CacheQulifiedSignature(jsm, method, false);
+            } else {
+                if ((method != null) && isOverloaded) {
+                    // HACK
+                    if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                        CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+                    }
+                }
 
-            if ((jsm != null) && (method != null) && isOverloaded)
-                CacheSignature(jsm.Reference, method.Signature, false);
+                if ((jsm != null) && (method != null) && isOverloaded)
+                    CacheSignature(jsm.Reference, method.Signature, false);
+            }
 
             VisitChildren(invocation);
         }
@@ -522,6 +629,45 @@ namespace JSIL.Transforms {
 
         public void CacheSignaturesForFunction (JSFunctionExpression function) {
             Visit(function);
+        }
+
+        /// <summary>
+        /// Writes a method signature to the output.
+        /// </summary>
+        public void WriteQualifiedSignatureToOutput (
+            JavascriptFormatter output, Compiler.Extensibility.IAstEmitter astEmitter,
+            JSFunctionExpression enclosingFunction,
+            JSMethod jsMethod, JSExpression method,
+            TypeReferenceContext referenceContext) {
+
+            int index;
+
+            var rewritten = GenericTypesRewriter.NormalizedQualified(jsMethod.Reference, jsMethod.Method.Signature, false);
+            var methodRecord = new CachedInterfaceMemberRecord(rewritten.CacheRecord.Item1, jsMethod.Identifier, rewritten.RewritedGenericParameters.Length);
+            var signatureRecord = new CachedSignatureRecord(jsMethod.Reference, rewritten.CacheRecord.Item2, false, rewritten.RewritedGenericParameters.Length);
+            var rewrittenGenericParameters = rewritten.RewritedGenericParameters;
+
+            var record = new CachedQualifiedSignatureRecord(methodRecord, signatureRecord);
+
+            if (!Global.QualifiedSignatures.TryGetValue(record, out index)) {
+                WriteInterfaceMemberToOutput(
+                    output, astEmitter,
+                    enclosingFunction,
+                    jsMethod, method,
+                    referenceContext);
+                //if (!JavascriptAstEmitter.CanUseFastOverloadDispatch(jsMethod.Method, true)) {
+                output.Dot();
+                output.WriteRaw("Of");
+                output.LPar();
+                WriteSignatureToOutput(output, enclosingFunction, jsMethod.Reference, jsMethod.Method.Signature, referenceContext, false);
+                output.RPar();
+                //}
+            } else {
+                output.WriteRaw("$QS{0:X2}", index);
+                output.LPar();
+                output.CommaSeparatedList(rewrittenGenericParameters, referenceContext);
+                output.RPar();
+            }
         }
 
         /// <summary>
@@ -611,7 +757,9 @@ namespace JSIL.Transforms {
             if (!Global.InterfaceMembers.TryGetValue(record, out index)) {
                 output.Identifier(jsMethod.Reference.DeclaringType, referenceContext, false);
                 output.Dot();
-                astEmitter.Emit(method);
+                output.Identifier("$Methods");
+                output.Dot();
+                output.Identifier(jsMethod.GetNameForInstanceReference());
             } else {
                 output.WriteRaw("$IM{0:X2}", index);
                 output.LPar();

@@ -5,7 +5,7 @@
         function (T, enumerable) {
             var enumerator = JSIL.GetEnumerator(enumerable, T);
 
-            var moveNext = System.Collections.IEnumerator.MoveNext;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
 
             try {
                 if (moveNext.Call(enumerator))
@@ -28,8 +28,8 @@
             var enumerator = JSIL.GetEnumerator(enumerable, T);
 
             var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(T);
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = tIEnumerator.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = tIEnumerator.$Methods.get_Current;
 
             try {
                 while (moveNext.Call(enumerator)) {
@@ -49,7 +49,7 @@
         function (T, enumerable) {
             var enumerator = JSIL.GetEnumerator(enumerable, T);
 
-            var moveNext = System.Collections.IEnumerator.MoveNext;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
 
             var result = 0;
             try {
@@ -65,8 +65,8 @@
       var elementAtImpl = function (enumerable, index) {
           var e = JSIL.GetEnumerator(enumerable);
 
-          var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-          var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+          var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+          var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
 
           try {
               while (moveNext.Call(e)) {
@@ -86,8 +86,8 @@
       var firstImpl = function (enumerable, predicate) {
           var e = JSIL.GetEnumerator(enumerable);
 
-          var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-          var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+          var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+          var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
 
           try {
               if (arguments.length >= 2) {
@@ -173,7 +173,7 @@
         var IList = System.Collections.Generic.IList$b1.Of(T);
         var list = IList.$As(enumerable);
         if (list !== null) {
-          var item = IList.get_Item;
+          var item = IList.$Methods.get_Item;
           var useLength = (typeof list.Count) == 'undefined';
           if ((useLength && list.length === 0) || list.Count === 0)
             return { success: false };
@@ -197,8 +197,8 @@
         }
         var e = JSIL.GetEnumerator(enumerable);
 
-        var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-        var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+        var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+        var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
 
         try {
           var acceptedVal;
@@ -262,8 +262,8 @@
             var state = {};
 
             var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = tIEnumerator.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = tIEnumerator.$Methods.get_Current;
 
             return new (JSIL.AbstractEnumerable.Of(TResult))(
               function getNext(result) {
@@ -293,9 +293,9 @@
 
             var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
             var tIEnumeratorResult = System.Collections.Generic.IEnumerator$b1.Of(TResult);
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = tIEnumerator.get_Current;
-            var get_CurrentResult = tIEnumeratorResult.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = tIEnumerator.$Methods.get_Current;
+            var get_CurrentResult = tIEnumeratorResult.$Methods.get_Current;
 
             return new (JSIL.AbstractEnumerable.Of(TResult))(
               function getNext(result) {
@@ -350,9 +350,9 @@
 
           var tIEnumerator1 = System.Collections.Generic.IEnumerator$b1.Of(TFirst);
           var tIEnumerator2 = System.Collections.Generic.IEnumerator$b1.Of(TSecond);
-          var moveNext = System.Collections.IEnumerator.MoveNext;
-          var get_Current1 = tIEnumerator1.get_Current;
-          var get_Current2 = tIEnumerator2.get_Current;
+          var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+          var get_Current1 = tIEnumerator1.$Methods.get_Current;
+          var get_Current2 = tIEnumerator2.$Methods.get_Current;
 
           return new (JSIL.AbstractEnumerable.Of(TResult))(
             function getNext(result) {
@@ -398,8 +398,8 @@
           var state = {};
 
           var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(TSource);
-          var moveNext = System.Collections.IEnumerator.MoveNext;
-          var get_Current = tIEnumerator.get_Current;
+          var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+          var get_Current = tIEnumerator.$Methods.get_Current;
 
           return new (JSIL.AbstractEnumerable.Of(TSource))(
             function getNext(result) {
@@ -429,8 +429,8 @@
             var enumerator = JSIL.GetEnumerator(source, T);
 
             var tIEnumerator = System.Collections.Generic.IEnumerator$b1.Of(T);
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = tIEnumerator.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = tIEnumerator.$Methods.get_Current;
 
             try {
                 while (moveNext.Call(enumerator)) {
@@ -454,8 +454,8 @@
        function (TResult, enumerable) {
            var state = {};
 
-           var moveNext = System.Collections.IEnumerator.MoveNext;
-           var get_Current = System.Collections.IEnumerator.get_Current;
+           var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+           var get_Current = System.Collections.IEnumerator.$Methods.get_Current;
 
            return new (JSIL.AbstractEnumerable.Of(TResult))(
              function getNext(result) {
@@ -531,8 +531,8 @@
         function OfType$b1(TResult, source) {
             var state = {};
 
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = System.Collections.IEnumerator.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = System.Collections.IEnumerator.$Methods.get_Current;
 
             return new (JSIL.AbstractEnumerable.Of(TResult))(
               function getNext(result) {
@@ -562,8 +562,8 @@
         function Where$b1(TSource, source, predicate) {
             var state = {};
 
-            var moveNext = System.Collections.IEnumerator.MoveNext;
-            var get_Current = System.Collections.IEnumerator.get_Current;
+            var moveNext = System.Collections.IEnumerator.$Methods.MoveNext;
+            var get_Current = System.Collections.IEnumerator.$Methods.get_Current;
 
             return new (JSIL.AbstractEnumerable.Of(TSource))(
               function getNext(result) {
@@ -627,8 +627,8 @@
 
           var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Int32);
 
-          var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Int32).get_Current;
+          var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Int32).$Methods.get_Current;
 
           try {
               while (moveNext.Call(e)) {
@@ -652,8 +652,8 @@
 
           var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Single);
 
-          var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Single).get_Current;
+          var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Single).$Methods.get_Current;
 
           try {
               while (moveNext.Call(e)) {
@@ -677,8 +677,8 @@
 
           var e = JSIL.GetEnumerator(enumerable, $jsilcore.System.Double);
 
-          var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Double).get_Current;
+          var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+          var getCurrent = $jsilcore.System.Collections.Generic.IEnumerator$b1.Of($jsilcore.System.Double).$Methods.get_Current;
 
           try {
               while (moveNext.Call(e)) {

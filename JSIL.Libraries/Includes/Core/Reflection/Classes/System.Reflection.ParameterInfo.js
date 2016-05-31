@@ -1,7 +1,7 @@
 ﻿JSIL.ImplementExternals("System.Reflection.ParameterInfo", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;
 
-  $.Method({ Static: false, Public: true }, "get_Attributes",
+  /*$.Method({ Static: false, Public: true }, "get_Attributes",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Reflection.ParameterAttributes"), [], []),
     function get_Attributes() {
       throw new Error('Not implemented');
@@ -13,7 +13,7 @@
     function get_CustomAttributes() {
       throw new Error('Not implemented');
     }
-  );
+  );*/
 
   $.Method({ Static: false, Public: true }, "get_DefaultValue",
     new JSIL.MethodSignature($.Object, [], []),

@@ -1,4 +1,5 @@
-﻿(function AssemblyName$Members() {
+﻿//? if ('GENERATE_STUBS' in  __out) {
+(function AssemblyName$Members() {
   var $, $thisType;
   JSIL.MakeType({
     BaseType: $jsilcore.TypeRef("System.Object"),
@@ -20,7 +21,7 @@
     ;
 
     $.ExternalMethod({ Static: false, Public: true }, "get_Flags",
-      JSIL.MethodSignature.Return($asm02.TypeRef("System.Reflection.AssemblyNameFlags"))
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Reflection.AssemblyNameFlags"))
     )
     ;
 
@@ -35,7 +36,7 @@
     ;
 
     $.ExternalMethod({ Static: false, Public: true }, "get_Version",
-      JSIL.MethodSignature.Return($asm02.TypeRef("System.Version"))
+      JSIL.MethodSignature.Return($jsilcore.TypeRef("System.Version"))
     )
     ;
 
@@ -45,7 +46,7 @@
     ;
 
     $.ExternalMethod({ Static: false, Public: true }, "set_Flags",
-      JSIL.MethodSignature.Action($asm02.TypeRef("System.Reflection.AssemblyNameFlags"))
+      JSIL.MethodSignature.Action($jsilcore.TypeRef("System.Reflection.AssemblyNameFlags"))
     )
     ;
 
@@ -55,7 +56,7 @@
     ;
 
     $.ExternalMethod({ Static: false, Public: true }, "set_Version",
-      JSIL.MethodSignature.Action($asm02.TypeRef("System.Version"))
+      JSIL.MethodSignature.Action($jsilcore.TypeRef("System.Version"))
     )
     ;
 
@@ -67,26 +68,27 @@
     $.Property({ Static: false, Public: true }, "Name", $.String)
     ;
 
-    $.Property({ Static: false, Public: true }, "Version", $asm02.TypeRef("System.Version"))
+    $.Property({ Static: false, Public: true }, "Version", $jsilcore.TypeRef("System.Version"))
     ;
 
-    $.Property({ Static: false, Public: true }, "Flags", $asm02.TypeRef("System.Reflection.AssemblyNameFlags"))
+    $.Property({ Static: false, Public: true }, "Flags", $jsilcore.TypeRef("System.Reflection.AssemblyNameFlags"))
     ;
 
     $.Property({ Static: false, Public: true }, "FullName", $.String)
     ;
 
     $.ImplementInterfaces(
-      /* 0 */ $asm02.TypeRef("System.Runtime.InteropServices._AssemblyName"),
-      /* 1 */ $asm02.TypeRef("System.ICloneable"),
-      /* 2 */ $asm02.TypeRef("System.Runtime.Serialization.ISerializable"),
-      /* 3 */ $asm02.TypeRef("System.Runtime.Serialization.IDeserializationCallback")
+      /* 0  $jsilcore.TypeRef("System.Runtime.InteropServices._AssemblyName"),*/
+      /* 1 */ $jsilcore.TypeRef("System.ICloneable")
+      /* 2  $jsilcore.TypeRef("System.Runtime.Serialization.ISerializable"),
+      /* 3  $jsilcore.TypeRef("System.Runtime.Serialization.IDeserializationCallback")*/
     );
 
     return function (newThisType) { $thisType = newThisType; };
   });
 
 })();
+//? }
 
 JSIL.ImplementExternals("System.Reflection.AssemblyName", function ($interfaceBuilder) {
   var $ = $interfaceBuilder;

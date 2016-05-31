@@ -2000,12 +2000,14 @@ namespace JSIL {
             isExternal = methodInfo.IsExternal || (stubbed && !methodInfo.IsUnstubbable);
         }
 
-        internal bool ShouldTranslateMethodBody (
+        internal bool ShouldTranslateMethod(
             MethodDefinition method, MethodInfo methodInfo, bool stubbed,
             out bool isExternal, out bool isJSReplaced,
             out bool methodIsProxied
-        ) {
-            if (methodInfo == null) {
+        )
+        {
+            if (methodInfo == null)
+            {
                 isExternal = isJSReplaced = methodIsProxied = false;
                 return false;
             }
@@ -2018,7 +2020,8 @@ namespace JSIL {
             if (ShouldSkipMember(method))
                 return false;
 
-            if (isExternal) {
+            if (isExternal)
+            {
                 if (isJSReplaced)
                     return false;
 
@@ -2027,18 +2030,32 @@ namespace JSIL {
                 if (isProperty && methodInfo.DeclaringProperty.IsExternal)
                     return false;
 
-                if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
-                } else {
+                if (!isProperty || !methodInfo.Member.IsCompilerGenerated())
+                {
+                }
+                else
+                {
                     isExternal = false;
                 }
             }
 
             if (methodInfo.IsIgnored)
                 return false;
-            if (!method.HasBody && !isExternal && !methodIsProxied)
-                return false;
 
             return true;
+        }
+
+        internal bool ShouldTranslateMethodBody (
+            MethodDefinition method, MethodInfo methodInfo, bool stubbed,
+            out bool isExternal, out bool isJSReplaced,
+            out bool methodIsProxied
+        ) {
+            if (ShouldTranslateMethod(method, methodInfo, stubbed, out isExternal, out isJSReplaced, out methodIsProxied)) {
+                if (!method.HasBody && !isExternal && !methodIsProxied)
+                    return false;
+                return true;
+            }
+            return false;
         }
 
         internal JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {

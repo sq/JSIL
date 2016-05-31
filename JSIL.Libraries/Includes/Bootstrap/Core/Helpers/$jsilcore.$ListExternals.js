@@ -99,13 +99,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
   switch (type) {
     case "ArrayList":
     case "ObjectCollection":
-      $.Method({ Static: false, Public: true }, "Add",
+      $.Method({ Static: false, Public: true, Virtual: true }, "Add",
         new JSIL.MethodSignature($.Int32, [T], []),
         addImpl
       );
       break;
     default:
-      $.Method({ Static: false, Public: true }, "Add",
+      $.Method({ Static: false, Public: true, Virtual: true }, "Add",
         new JSIL.MethodSignature(null, [T], []),
         addImpl
       );
@@ -116,8 +116,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (items) {
       var e = JSIL.GetEnumerator(items, this.T);
-      var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-      var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+      var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+      var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
       try {
         while (moveNext.Call(e))
           this.Add(getCurrent.Call(e));
@@ -139,7 +139,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Clear",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Clear",
     JSIL.MethodSignature.Void,
     function () {
       this.ClearItems();
@@ -154,7 +154,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Contains",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Contains",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [T], []),
     function List_Contains(value) {
       return this.IndexOf(value) >= 0;
@@ -223,14 +223,14 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "get_Count",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Count",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [], []),
     function () {
       return this._size;
     }
   );
 
-  $.Method({ Static: false, Public: true }, "get_Item",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Item",
     new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []),
     getItemImpl
   );
@@ -280,8 +280,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
       new JSIL.MethodSignature(null, [$.Int32, mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
       function (index, items) {
         var e = JSIL.GetEnumerator(items, this.T);
-        var moveNext = $jsilcore.System.Collections.IEnumerator.MoveNext;
-        var getCurrent = $jsilcore.System.Collections.IEnumerator.get_Current;
+        var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
+        var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
 
         try {
           var i = index;
@@ -325,7 +325,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     );
   }
 
-  $.Method({ Static: false, Public: true }, "set_Item",
+  $.Method({ Static: false, Public: true, Virtual: true }, "set_Item",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []),
     function (index, value) {
       if (rangeCheckImpl(index, this._size))
@@ -337,7 +337,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
   switch (type) {
     case "List":
-      $.Method({ Static: false, Public: true }, "GetEnumerator",
+      $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
         (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1+Enumerator", [T]), [], [])),
         getEnumeratorImpl
       );
@@ -354,7 +354,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
       break;
 
     default:
-      $.Method({ Static: false, Public: true }, "GetEnumerator",
+      $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
         new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
         getEnumeratorImpl
       )
@@ -371,14 +371,14 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
   $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
 
-  $.Method({ Static: false, Public: true }, "Insert",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Insert",
     (new JSIL.MethodSignature(null, [$.Int32, T], [])),
     function Insert(index, item) {
       this.InsertItem(index, item);
     }
   );
 
-  $.Method({ Static: false, Public: true }, "IndexOf",
+  $.Method({ Static: false, Public: true, Virtual: true }, "IndexOf",
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [T], []),
     indexOfImpl
   );
@@ -386,13 +386,13 @@ $jsilcore.$ListExternals = function ($, T, type) {
   switch (type) {
     case "ArrayList":
     case "ObjectCollection":
-      $.Method({ Static: false, Public: true }, "Remove",
+      $.Method({ Static: false, Public: true, Virtual: true }, "Remove",
         new JSIL.MethodSignature(null, [T], []),
         removeImpl
       );
       break;
     default:
-      $.Method({ Static: false, Public: true }, "Remove",
+      $.Method({ Static: false, Public: true, Virtual: true }, "Remove",
         new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [T], []),
         removeImpl
       );
@@ -418,7 +418,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "RemoveAt",
+  $.Method({ Static: false, Public: true, Virtual: true }, "RemoveAt",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
     function (index) {
       if (!rangeCheckImpl(index, this._size))

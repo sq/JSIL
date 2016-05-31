@@ -41,7 +41,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Add",
+  $.Method({ Static: false, Public: true, Virtual: true}, "Add",
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])),
     function Add(key, value) {
       var bucketEntry = this.$searchBucket(key);
@@ -53,7 +53,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Clear",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Clear",
     (JSIL.MethodSignature.Void),
     function Clear() {
       this._dict = {}
@@ -61,28 +61,28 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
-  $.Method({ Static: false, Public: true }, "ContainsKey",
+  $.Method({ Static: false, Public: true, Virtual: true }, "ContainsKey",
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])),
     function ContainsKey(key) {
       return this.$searchBucket(key) !== null;
     }
   );
 
-  $.Method({ Static: false, Public: true }, "Remove",
+  $.Method({ Static: false, Public: true, Virtual: true }, "Remove",
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])),
     function Remove(key) {
       return this.$removeByKey(key);
     }
   );
 
-  $.Method({ Static: false, Public: true }, "get_Count",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Count",
     (new JSIL.MethodSignature($.Int32, [], [])),
     function get_Count() {
       return this._count;
     }
   );
 
-  $.Method({ Static: false, Public: true }, "get_Item",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Item",
     (new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])),
     function get_Item(key) {
       var bucketEntry = this.$searchBucket(key);
@@ -102,7 +102,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     return JSIL.CreateInstanceOfType(this.tKeyCollection, "_ctor", [this]);
   };
 
-  $.Method({ Static: false, Public: true }, "get_Keys",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Keys",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2+KeyCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])),
     getKeysImpl
   );
@@ -128,7 +128,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     return JSIL.CreateInstanceOfType(this.tValueCollection, "_ctor", [this]);
   };
 
-  $.Method({ Static: false, Public: true }, "get_Values",
+  $.Method({ Static: false, Public: true, Virtual: true }, "get_Values",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2+ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])),
     getValuesImpl
   );
@@ -153,7 +153,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     return JSIL.CreateInstanceOfType(this.tEnumerator, "_ctor", [this]);
   };
 
-  $.Method({ Static: false, Public: true }, "GetEnumerator",
+  $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
     (new JSIL.MethodSignature(
       mscorlib.TypeRef(
         "System.Collections.Generic.Dictionary`2+Enumerator", [
@@ -188,7 +188,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   )
     .Overrides("System.Collections.Generic.IEnumerable`1", "GetEnumerator");
 
-  $.Method({ Static: false, Public: true }, "set_Item",
+  $.Method({ Static: false, Public: true, Virtual: true }, "set_Item",
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])),
     function set_Item(key, value) {
       var bucketEntry = this.$searchBucket(key);
@@ -199,7 +199,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
-  $.Method({ Static: false, Public: true }, "TryGetValue",
+  $.Method({ Static: false, Public: true, Virtual: true }, "TryGetValue",
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), $jsilcore.TypeRef("JSIL.Reference", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])),
     function TryGetValue(key, /* ref */ value) {
       var bucketEntry = this.$searchBucket(key);
@@ -237,7 +237,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+KeyCollection",
     return JSIL.CreateInstanceOfType(this.dictionary.tKeyEnumerator, "_ctor", [this.dictionary]);
   };
 
-  $.Method({ Static: false, Public: true }, "GetEnumerator",
+  $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.Dictionary`2+KeyCollection+Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+KeyCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+KeyCollection")]), [], []),
     getEnumeratorImpl
   );
@@ -276,7 +276,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2+ValueCollection
     return JSIL.CreateInstanceOfType(this.dictionary.tValueEnumerator, "_ctor", [this.dictionary]);
   };
 
-  $.Method({ Static: false, Public: true }, "GetEnumerator",
+  $.Method({ Static: false, Public: true, Virtual: true }, "GetEnumerator",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.Dictionary`2+ValueCollection+Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2+ValueCollection"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2+ValueCollection")]), [], []),
     getEnumeratorImpl
   );

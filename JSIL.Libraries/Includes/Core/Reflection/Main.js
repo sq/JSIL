@@ -46,3 +46,7 @@ if (!$jsilcore)
 //? include("Classes/System.Reflection.RuntimeMethodInfo.js"); writeln();
 //? include("Classes/System.Reflection.RuntimeParameterInfo.js"); writeln();
 //? include("Classes/System.Reflection.RuntimePropertyInfo.js"); writeln();
+
+//? include("Classes/System.Reflection.Binder.js"); writeln();
+//? include("Classes/System.Reflection.ParameterModifier.js"); writeln();
+//? include("Classes/System.Reflection.CallingConventions.js"); writeln();
