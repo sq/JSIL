@@ -1471,7 +1471,7 @@ namespace JSIL {
             var oldCurrentMethod = Output.CurrentMethod;
 
             if (function.Method != null) {
-                Output.CurrentMethod = function.Method.Reference;
+                Output.CurrentMethod = function.Method.Method.Member;
             } else {
                 Output.CurrentMethod = null;
             }
@@ -2457,7 +2457,8 @@ namespace JSIL {
                         SignatureCacher.WriteQualifiedSignatureToOutput(
                             Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
                             jsm, invocation.Method,
-                            ReferenceContext);
+                            ReferenceContext
+                            );
                         Output.Dot();
                         Output.WriteRaw("CallNonVirtual");
 

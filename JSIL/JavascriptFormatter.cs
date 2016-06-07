@@ -23,14 +23,14 @@ namespace JSIL.Internal {
     public class TypeReferenceContext {
         private struct _State {
             public bool EnclosingTypeSkipped;
-            public TypeReference EnclosingType;
-            public TypeReference DefiningType;
+            public TypeDefinition EnclosingType;
+            public TypeDefinition DefiningType;
 
-            public MethodReference EnclosingMethod;
-            public MethodReference DefiningMethod;
+            public MethodDefinition EnclosingMethod;
+            public MethodDefinition DefiningMethod;
             public MethodReference InvokingMethod;
             public MethodReference SignatureMethod;
-            public MethodReference AttributesMethod;
+            public MethodDefinition AttributesMethod;
         }
 
         private readonly Stack<_State> Stack = new Stack<_State>();
@@ -44,7 +44,7 @@ namespace JSIL.Internal {
             State = Stack.Pop();
         }
 
-        public TypeReference EnclosingType {
+        public TypeDefinition EnclosingType {
             get {
                 return State.EnclosingType;
             }
@@ -66,7 +66,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference DefiningType {
+        public TypeDefinition DefiningType {
             get {
                 return State.DefiningType;
             }
@@ -75,7 +75,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference EnclosingMethod {
+        public MethodDefinition EnclosingMethod {
             get {
                 return State.EnclosingMethod;
             }
@@ -84,7 +84,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference DefiningMethod {
+        public MethodDefinition DefiningMethod {
             get {
                 return State.DefiningMethod;
             }
@@ -111,7 +111,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference AttributesMethod {
+        public MethodDefinition AttributesMethod {
             get {
                 return State.AttributesMethod;
             }
@@ -129,7 +129,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference DefiningMethodType {
+        public TypeDefinition DefiningMethodType {
             get {
                 if (DefiningMethod != null)
                     return DefiningMethod.DeclaringType;
@@ -156,7 +156,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference AttributesMethodType {
+        public TypeDefinition AttributesMethodType {
             get {
                 if (AttributesMethod != null)
                     return AttributesMethod.DeclaringType;
@@ -176,7 +176,7 @@ namespace JSIL.Internal {
         public readonly Configuration Configuration;
         public readonly SourceMapBuilder SourceMapBuilder;
 
-        public MethodReference CurrentMethod = null;
+        public MethodDefinition CurrentMethod = null;
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
         protected readonly bool Stubbed;
@@ -733,13 +733,7 @@ namespace JSIL.Internal {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {
-                        if (context.EnclosingMethod != null) {
-                            // $.Type is incorrect for generics because it will be the open form.
-                            // FIXME: Will this work for static methods?
-                            WriteRaw("this.__Type__");
-                        } else {
                             WriteRaw("$.Type");
-                        }
                         return;
                     }
                 }

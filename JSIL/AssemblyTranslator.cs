@@ -686,7 +686,7 @@ namespace JSIL {
                 ctx.CurrentMethod = m.MD;
 
                 try {
-                    TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
+                    TranslateMethodExpression(ctx, m.MD, m.MI);
                 } catch (Exception exc) {
                     throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
                 }
@@ -1247,7 +1247,7 @@ namespace JSIL {
                     continue;
 
                 EmitMethodBody(
-                    context, method, method, astEmitter, assemblyEmitter,
+                    context, method, astEmitter, assemblyEmitter,
                     stubbed, cachers, ref nextDisambiguatedId
                 );
             }
@@ -1281,7 +1281,7 @@ namespace JSIL {
                     continue;
 
                 assemblyEmitter.EmitMethodDefinition(
-                    context, method, method, astEmitter, stubbed, dollar
+                    context, method, astEmitter, stubbed, dollar
                 );
             }
 
@@ -1316,18 +1316,15 @@ namespace JSIL {
         }
 
         internal JSFunctionExpression TranslateMethodExpression (
-            DecompilerContext context, MethodReference method, 
-            MethodDefinition methodDef, MethodInfo methodInfo = null
+            DecompilerContext context, MethodDefinition method, MethodInfo methodInfo = null
         ) {
             var oldMethod = context.CurrentMethod;
             try {
                 if (method == null)
                     throw new ArgumentNullException("method");
-                if (methodDef == null)
-                    throw new ArgumentNullException("methodDef");
 
                 if (methodInfo == null)
-                    methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+                    methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(method);
 
                 if (methodInfo == null)
                     throw new InvalidDataException(String.Format(
@@ -1354,7 +1351,7 @@ namespace JSIL {
                     return null;
                 }
 
-                var bodyDef = methodDef;
+                var bodyDef = method;
                 Func<TypeReference, TypeReference> typeReplacer = (originalType) =>
                     originalType;
 
@@ -1372,7 +1369,7 @@ namespace JSIL {
 
                 var pr = new ProgressReporter();
 
-                context.CurrentMethod = methodDef;
+                context.CurrentMethod = method;
                 if ((bodyDef.Body.CodeSize > LargeMethodThreshold) && (this.DecompilingMethod != null))
                     this.DecompilingMethod(method.FullName, pr);
 
@@ -1412,8 +1409,8 @@ namespace JSIL {
                 }
 
                 var translator = new ILBlockTranslator(
-                    this, context, method, methodDef,
-                    ReadMethodSymbolsIfSourceMapEnabled(methodDef),
+                    this, context, method,
+                    ReadMethodSymbolsIfSourceMapEnabled(method),
                     ilb, decompiler.Parameters, allVariables,
                     typeReplacer
                 );
@@ -1454,7 +1451,7 @@ namespace JSIL {
                 }
 
                 function = FunctionCache.Create(
-                    methodInfo, methodDef, method, identifier,
+                    methodInfo, method, identifier,
                     translator, parameters.ToArray(), body
                 );
                 function.TemporaryVariableTypes.AddRange(translator.TemporaryVariableTypes);
@@ -1763,7 +1760,7 @@ namespace JSIL {
                     // We need a translator to map the IL expressions for the default
                     //  values into JSAst expressions.
                     var translator = new ILBlockTranslator(
-                        this, ctx, realCctor, realCctor, ReadMethodSymbolsIfSourceMapEnabled(realCctor), block, astBuilder.Parameters, variables
+                        this, ctx, realCctor, ReadMethodSymbolsIfSourceMapEnabled(realCctor), block, astBuilder.Parameters, variables
                     );
 
                     // We may end up with nested blocks since we didn't run all the optimization passes.
@@ -1937,7 +1934,7 @@ namespace JSIL {
                 assemblyEmitter.EmitSpacer();
 
                 EmitAndDefineMethod(
-                    context, cctor, cctor, 
+                    context, cctor, 
                     astEmitter, assemblyEmitter, false, dollar, 
                     cachers, ref temp, null, fixupCctor
                 );
@@ -1957,10 +1954,10 @@ namespace JSIL {
                 assemblyEmitter.EmitSpacer();
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
-                TranslateMethodExpression(context, fakeCctor, fakeCctor);
+                TranslateMethodExpression(context, fakeCctor);
 
                 EmitAndDefineMethod(
-                    context, fakeCctor, fakeCctor, 
+                    context, fakeCctor, 
                     astEmitter, assemblyEmitter, false, dollar, 
                     cachers, ref temp, null, fixupCctor
                 );
@@ -1971,7 +1968,7 @@ namespace JSIL {
                 var newJSType = new JSType(typedef);
 
                 EmitAndDefineMethod(
-                    context, extraCctor.Member, extraCctor.Member, astEmitter,
+                    context, extraCctor.Member, astEmitter,
                     assemblyEmitter, false, dollar, 
                     cachers, ref temp, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
@@ -2070,24 +2067,24 @@ namespace JSIL {
         }
 
         protected void EmitAndDefineMethod (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            DecompilerContext context, MethodDefinition method,
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
             JSRawOutputIdentifier dollar, Cachers cachers,
             ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             EmitMethodBody(
-                context, methodRef, method,
+                context, method,
                 astEmitter, assemblyEmitter, stubbed, cachers,
                 ref nextDisambiguatedId, methodInfo, bodyTransformer
             );
             assemblyEmitter.EmitMethodDefinition(
-                context, methodRef, method, astEmitter, stubbed, dollar, methodInfo
+                context, method, astEmitter, stubbed, dollar, methodInfo
             );
         }
 
         protected void EmitMethodBody (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            DecompilerContext context, MethodDefinition method,
             IAstEmitter astEmitter, IAssemblyEmitter assemblyEmitter, bool stubbed,
             Cachers cachers, ref int nextDisambiguatedId, MethodInfo methodInfo = null, 
             Action<JSFunctionExpression> bodyTransformer = null
@@ -2113,7 +2110,7 @@ namespace JSIL {
             astEmitter.ReferenceContext.Push();
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
-            astEmitter.ReferenceContext.DefiningMethod = methodRef;
+            astEmitter.ReferenceContext.DefiningMethod = method;
 
             assemblyEmitter.EmitSpacer();
 

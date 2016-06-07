@@ -396,7 +396,7 @@ namespace JSIL {
         }
 
         public void EmitMethodDefinition (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            DecompilerContext context, MethodDefinition method,
             IAstEmitter astEmitter, bool stubbed,
             JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
@@ -420,7 +420,7 @@ namespace JSIL {
             Formatter.NewLine();
 
             astEmitter.ReferenceContext.Push();
-            astEmitter.ReferenceContext.DefiningMethod = methodRef;
+            astEmitter.ReferenceContext.DefiningMethod = method;
 
             try {
                 dollar.WriteTo(Formatter);
@@ -444,13 +444,13 @@ namespace JSIL {
                 Formatter.Comma();
                 Formatter.NewLine();
 
-                Formatter.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
+                Formatter.MethodSignature(method, methodInfo.Signature, astEmitter.ReferenceContext);
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
                     Formatter.Comma();
                     Formatter.NewLine();
                     EmitPInvokeInfo(
-                        methodRef, method, astEmitter
+                        method, method, astEmitter
                     );
                 } else if (!isExternal) {
                     Formatter.Comma();
@@ -469,7 +469,7 @@ namespace JSIL {
                 Formatter.NewLine();
                 Formatter.RPar();
 
-                astEmitter.ReferenceContext.AttributesMethod = methodRef;
+                astEmitter.ReferenceContext.AttributesMethod = method;
 
                 EmitOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter);
 

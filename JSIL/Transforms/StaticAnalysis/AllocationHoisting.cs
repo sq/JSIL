@@ -112,9 +112,9 @@ namespace JSIL.Transforms {
 
         private JSVariable MakeTemporaryVariable (TypeReference type, out string id, JSExpression defaultValue = null) {
             string _id = id = string.Format("$hoisted{0:X2}", HoistedVariableCount++);
-            MethodReference methodRef = null;
+            MethodDefinition methodRef = null;
             if (Function.Method != null)
-                methodRef = Function.Method.Reference;
+                methodRef = Function.Method.Method.Member;
 
             // So introspection knows about it
             var result = new JSVariable(id, type, methodRef);

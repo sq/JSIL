@@ -191,9 +191,9 @@ namespace JSIL.Ast {
     }
 
     public class JSTypeReference : JSType {
-        public readonly TypeReference Context;
+        public readonly TypeDefinition Context;
 
-        public JSTypeReference (TypeReference type, TypeReference context)
+        public JSTypeReference (TypeReference type, TypeDefinition context)
             : base(type) {
 
             Context = context;
@@ -459,7 +459,7 @@ namespace JSIL.Ast {
 
     [JSAstIgnoreInheritedMembers]
     public class JSVariable : JSIdentifier {
-        public readonly MethodReference Function;
+        public readonly MethodDefinition Function;
 
         public readonly string Name;
         protected readonly bool _IsReference;
@@ -467,7 +467,7 @@ namespace JSIL.Ast {
         [JSAstTraverse(0)]
         public JSExpression DefaultValue;
 
-        public JSVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null)
+        public JSVariable (string name, TypeReference type, MethodDefinition function, JSExpression defaultValue = null)
             : base(type) {
             Name = name;
 
@@ -518,11 +518,11 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (string name, TypeReference type, MethodReference function) {
+        public static JSVariable New (string name, TypeReference type, MethodDefinition function) {
             return new JSVariable(name, type, function);
         }
 
-        public static JSVariable New (ParameterReference parameter, MethodReference function) {
+        public static JSVariable New (ParameterReference parameter, MethodDefinition function) {
             return new JSParameter(parameter.Name, parameter.ParameterType, function);
         }
 
@@ -598,25 +598,25 @@ namespace JSIL.Ast {
 
     [JSAstIgnoreInheritedMembers]
     public class JSClosureVariable : JSVariable {
-        internal JSClosureVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null) 
+        internal JSClosureVariable (string name, TypeReference type, MethodDefinition function, JSExpression defaultValue = null) 
             : base (name, type, function, defaultValue) {
         }
 
-        public static JSClosureVariable New (ILVariable variable, MethodReference function) {
+        public static JSClosureVariable New (ILVariable variable, MethodDefinition function) {
             return new JSClosureVariable(variable.Name, variable.Type, function);
         }
     }
 
     [JSAstIgnoreInheritedMembers]
     public class JSTemporaryVariable : JSVariable {
-        public JSTemporaryVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null) 
+        public JSTemporaryVariable (string name, TypeReference type, MethodDefinition function, JSExpression defaultValue = null) 
             : base (name, type, function, defaultValue) {
         }
     }
 
     [JSAstIgnoreInheritedMembers]
     public class JSParameter : JSVariable {
-        internal JSParameter (string name, TypeReference type, MethodReference function, bool escapeName = true)
+        internal JSParameter (string name, TypeReference type, MethodDefinition function, bool escapeName = true)
             : base(MaybeEscapeName(name, escapeName), type, function) {
         }
 
@@ -642,7 +642,7 @@ namespace JSIL.Ast {
     }
 
     public class JSExceptionVariable : JSVariable {
-        public JSExceptionVariable (TypeSystem typeSystem, MethodReference function) :
+        public JSExceptionVariable (TypeSystem typeSystem, MethodDefinition function) :
             base(
                 "$exception",
                 new TypeReference("System", "Exception", typeSystem.Object.Module, typeSystem.Object.Scope),
@@ -665,7 +665,7 @@ namespace JSIL.Ast {
 
     [JSAstIgnoreInheritedMembers]
     public class JSThisParameter : JSParameter {
-        public JSThisParameter (TypeReference type, MethodReference function) :
+        public JSThisParameter (TypeReference type, MethodDefinition function) :
             base("this", type, function, false) 
         {
         }
@@ -682,7 +682,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (TypeReference type, MethodReference function) {
+        public static JSVariable New (TypeReference type, MethodDefinition function) {
             if (type.IsValueType)
                 return new JSVariableReference(new JSThisParameter(type, function), function);
             else
@@ -693,7 +693,7 @@ namespace JSIL.Ast {
     public class JSVariableDereference : JSVariable {
         public readonly JSVariable Referent;
 
-        public JSVariableDereference (JSVariable referent, MethodReference function)
+        public JSVariableDereference (JSVariable referent, MethodDefinition function)
             : base(referent.Identifier, DeReferenceType(referent.IdentifierType), function) {
 
             Referent = referent;
@@ -740,7 +740,7 @@ namespace JSIL.Ast {
     public class JSIndirectVariable : JSVariable {
         public readonly IDictionary<string, JSVariable> Variables;
 
-        public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier, MethodReference function)
+        public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier, MethodDefinition function)
             : base(identifier, variables[identifier].IdentifierType, function) {
 
             Variables = variables;
@@ -852,7 +852,7 @@ namespace JSIL.Ast {
     public class JSVariableReference : JSVariable {
         public readonly JSVariable Referent;
 
-        public JSVariableReference (JSVariable referent, MethodReference function)
+        public JSVariableReference (JSVariable referent, MethodDefinition function)
             : base(referent.Identifier, new ByReferenceType(referent.IdentifierType), function) {
 
             Referent = referent;
