@@ -2524,6 +2524,8 @@ namespace JSIL {
             Output.Identifier("$Methods");
             Output.Dot();
             Output.Identifier(lcime.MemberName, EscapingMode.MemberIdentifier);
+            Output.Dot();
+            Output.Identifier("InterfaceMethod");
         }
 
         public void VisitNode (JSNewBoxedVariable nbv) {

@@ -7,9 +7,9 @@
   var tIDisposable = $jsilcore.System.IDisposable;
 
   if (tIDisposable.$Is(disposable))
-    tIDisposable.$Methods.Dispose.Call(disposable);
+    tIDisposable.$Methods.Dispose.InterfaceMethod.Call(disposable);
   else if (typeof (disposable.Dispose) === "function")
-    disposable.$Methods.Dispose();
+    disposable.Dispose();
   else
     return false;
 

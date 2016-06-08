@@ -2929,10 +2929,10 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       }
 
       if (!isAlreadyDefined) {
-        var newObject = oldObject.Rebind(typeObject, signature);
+        var newObject = JSIL.QualifiedMethod.$Rebind(oldObject, typeObject, signature);
         JSIL.SetValueProperty(publicInterface.$Methods, unqualifiedName, newObject);
       } else {
-        publicInterface.$Methods[unqualifiedName].RegisterSignature(signature, true);
+        publicInterface.$Methods[unqualifiedName].InterfaceMethod.RegisterSignature(signature, true);
       }
 
       if (!isAlreadyDefined)
@@ -4977,7 +4977,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       typeObject.__Members__.push(member);
 
       if (!isStatic) {
-        JSIL.InterfaceMethod.Register(publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
+        JSIL.QualifiedMethod.Register(publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
       }
     }
 
@@ -7286,7 +7286,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
 
   if (!descriptor.Static) {
-    JSIL.InterfaceMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
+    JSIL.QualifiedMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
   }
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
@@ -7353,7 +7353,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   // TODO: Externals proper support!
   if (!descriptor.Static && this.publicInterface.$Methods) {
-    JSIL.InterfaceMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
+    JSIL.QualifiedMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
   }
 
   if (!this.typeObject.IsInterface) {
@@ -8522,27 +8522,59 @@ JSIL.ResolvedMethodSignature.prototype.toString = function () {
   return this.methodSignature.toString.apply(this.methodSignature, arguments);
 };
 
-JSIL.CreateQualifiedName = function (typeObject, methodName, isStatic, signature, fallbackMethod) {
+JSIL.QualifiedMethod = function (interfaceMethod) {
+  var result = function (thisArg) {
+    return function () {
+      var argsArray = Array.prototype.splice.call(arguments, 0);
+      var isGenericCall = arguments.length > 0;
+      if (isGenericCall) {
+        for (var i = 0; i < argsArray.length; i++) {
+          if (!typeof (argsArray[i]) === "function" || "__TypeId__" in argsArray[i]) {
+            isGenericCall = false;
+            break;
+          }
+        }
+      }
+
+      if (isGenericCall) {
+        return function () {
+          var targetArguments = [thisArg, argsArray].concat(Array.prototype.splice.call(arguments, 0))
+          return interfaceMethod.Call.apply(interfaceMethod, targetArguments);
+        }
+      }
+
+      var targetArguments = [thisArg, null].concat(argsArray);
+      return interfaceMethod.Call.apply(interfaceMethod, targetArguments);
+    }
+  };
+
+  result.InterfaceMethod = interfaceMethod;
+  result.Of = JSIL.QualifiedMethod.$Of;
+  return result;
 }
 
-JSIL.QualifiedNameInfo = function (typeObject, methodName, isStatic, signature, fallbackMethod) {
-  this.typeObject = typeObject;
-  this.methodName = methodName;
-  if (signature) {
-    // Important so ICs don't get mixed up.
-    this.signature = signature.Clone(true);
+JSIL.QualifiedMethod.Register = function (target, typeObject, escapedName, mangledName, signature, interfaceMemberFallbackMethod, skipExistingCheck) {
+  var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
+  var qualifiedMethod = JSIL.QualifiedMethod(interfaceMethod)
+
+  JSIL.SetValueProperty(target, mangledName, qualifiedMethod);
+
+  var previousMember = target[escapedName];
+  if (previousMember) {
+    previousMember.InterfaceMethod.RegisterSignature(signature, skipExistingCheck);
   } else {
-    this.signature = null;
+    JSIL.SetValueProperty(target, escapedName, qualifiedMethod);
   }
-
-  this.qualifiedName = JSIL.$GetSignaturePrefixForType(typeObject) + this.methodName;
 }
 
-JSIL.QualifiedNameInfo.prototype.toString = function () {
-  // HACK: This makes it possible to do
-  //  MethodSignature.CallVirtual(IFoo.Method, thisReference)
-  return this.qualifiedName;
+JSIL.QualifiedMethod.$Rebind = function (oldQualifiedMethod, newTypeObject, newSignature) {
+  var interfaceMethod = oldQualifiedMethod.InterfaceMethod.Rebind(newTypeObject, newSignature);
+  return JSIL.QualifiedMethod(interfaceMethod)
 };
+
+JSIL.QualifiedMethod.$Of = function (signature) {
+  return JSIL.QualifiedMethod(this.InterfaceMethod.Of(signature));
+}
 
 JSIL.InterfaceMethod = function (typeObject, methodName, signature, interfaceMemberFallbackMethod) {
   this.typeObject = typeObject;
@@ -8571,19 +8603,6 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, interfaceMem
     return this.signature != null ? this.signature.GetNamedKey(this.methodName, true) : this.methodName;
   });
 };
-
-JSIL.InterfaceMethod.Register = function (target, typeObject, escapedName, mangledName, signature, interfaceMemberFallbackMethod, skipExistingCheck) {
-  var methodObject = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
-
-  JSIL.SetValueProperty(target, mangledName, methodObject);
-
-  var previousMember = target[escapedName];
-  if (previousMember) {
-    previousMember.RegisterSignature(signature, skipExistingCheck);
-  } else {
-    JSIL.SetValueProperty(target, escapedName, methodObject);
-  }
-}
 
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(true); }, true);
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallNonVirtual", function () { return this.$MakeCallMethod(false); }, true);
@@ -10831,6 +10850,10 @@ JSIL.$GetMethodImplementation = function (method, target) {
 
   var result = context[key] || null;
 
+  if (isInterface && result != null) {
+    result = result.InterfaceMethod;
+  }
+
   if (isInterface) {
       if (!result.signature.IsClosed)
         JSIL.RuntimeError("Generic method is not closed");
@@ -11192,7 +11215,7 @@ JSIL.MethodPointerInfo.$invocationStrings =
   InvokeStatic: "return methodPointer.Signature.CallStatic(methodPointer.TypeObject, methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters",
   InvokeInstance: "return methodPointer.Signature.Call(methodPointer.TypeObject.prototype, methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters, thisObject",
   InvokeVirtual: "return methodPointer.Signature.CallVirtual(methodPointer.NameWithGenericSuffix, methodPointer.MethodGenericParameters, thisObject",
-  InvokeInterface: "return methodPointer.Signature.CallVirtual(methodPointer.TypeObject.$Methods[methodPointer.NameWithGenericSuffix], methodPointer.MethodGenericParameters, thisObject"
+  InvokeInterface: "return methodPointer.Signature.CallVirtual(methodPointer.TypeObject.$Methods[methodPointer.NameWithGenericSuffix].InterfaceMethod, methodPointer.MethodGenericParameters, thisObject"
 };
 
 JSIL.MethodPointerInfo.$createInvocationMethod = function (key, methodPointerInfo, thisObject) {

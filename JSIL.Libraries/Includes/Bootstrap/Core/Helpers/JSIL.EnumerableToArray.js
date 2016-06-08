@@ -2,8 +2,8 @@
   var e = JSIL.GetEnumerator(enumerable, elementType);
   var result = [];
 
-  var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
-  var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
+  var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext.InterfaceMethod;
+  var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current.InterfaceMethod;
 
   try {
     while (moveNext.Call(e))

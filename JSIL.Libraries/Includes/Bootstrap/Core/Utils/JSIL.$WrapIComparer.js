@@ -3,9 +3,9 @@ JSIL.$WrapIComparer = function (T, comparer) {
   var compare;
   if (T !== null) {
     var tComparer = System.Collections.Generic.IComparer$b1.Of(T);
-    compare = tComparer.$Methods.Compare;
+    compare = tComparer.$Methods.Compare.InterfaceMethod;
   } else {
-    compare = System.Collections.IComparer.$Methods.Compare;
+    compare = System.Collections.IComparer.$Methods.Compare.InterfaceMethod;
   }
 
   return function (lhs, rhs) {

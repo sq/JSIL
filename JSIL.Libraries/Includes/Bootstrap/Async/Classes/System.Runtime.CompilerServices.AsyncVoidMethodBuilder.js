@@ -17,7 +17,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncVoidMethodBuilder"
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted.InterfaceMethod;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );
@@ -27,7 +27,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncVoidMethodBuilder"
     function AwaitOnCompleted(TAwaiter, TStateMachine, awaiter, stateMachine) {
       stateMachine = stateMachine.get();
 
-      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted;
+      var completedInterfaceMethod = $jsilcore.System.Runtime.CompilerServices.INotifyCompletion.$Methods.OnCompleted.InterfaceMethod;
       completedInterfaceMethod.Call(awaiter.get(), null, $jsilcore.System.Action.New(stateMachine, stateMachine.MoveNext));
     }
   );

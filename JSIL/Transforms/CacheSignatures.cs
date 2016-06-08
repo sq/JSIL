@@ -665,6 +665,8 @@ namespace JSIL.Transforms {
                 output.WriteRaw("Of");
                 output.LPar();
                 WriteSignatureToOutput(output, enclosingFunction, jsMethod.Reference, jsMethod.Method.Signature, referenceContext, false);
+                output.Dot();
+                output.Identifier("InterfaceMethod");
                 output.RPar();
                 //}
             } else {
@@ -765,6 +767,8 @@ namespace JSIL.Transforms {
                 output.Identifier("$Methods");
                 output.Dot();
                 output.Identifier(jsMethod.GetNameForInstanceReference());
+                output.Dot();
+                output.Identifier("InterfaceMethod");
             } else {
                 output.WriteRaw("$IM{0:X2}", index);
                 output.LPar();

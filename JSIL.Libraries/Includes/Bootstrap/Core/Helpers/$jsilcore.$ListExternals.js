@@ -116,8 +116,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
     function (items) {
       var e = JSIL.GetEnumerator(items, this.T);
-      var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
-      var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
+      var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext.InterfaceMethod;
+      var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current.InterfaceMethod;
       try {
         while (moveNext.Call(e))
           this.Add(getCurrent.Call(e));
@@ -280,8 +280,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
       new JSIL.MethodSignature(null, [$.Int32, mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
       function (index, items) {
         var e = JSIL.GetEnumerator(items, this.T);
-        var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext;
-        var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current;
+        var moveNext = $jsilcore.System.Collections.IEnumerator.$Methods.MoveNext.InterfaceMethod;
+        var getCurrent = $jsilcore.System.Collections.IEnumerator.$Methods.get_Current.InterfaceMethod;
 
         try {
           var i = index;
