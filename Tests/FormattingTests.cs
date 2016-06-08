@@ -467,8 +467,8 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func1.Call"), "Func1 was not called through the qualified method");
-                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func2.Call"), "Func2 was not called through the qualified method");
+                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func1.Of"), "Func1 was not called through the qualified method");
+                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func2.Of"), "Func2 was not called through the qualified method");
                 Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
                 Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
 

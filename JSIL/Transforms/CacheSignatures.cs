@@ -585,25 +585,30 @@ namespace JSIL.Transforms {
             if (jsm != null)
                 method = jsm.Method;
 
-            bool isOverloaded = (method != null) &&
-                ((method.IsOverloadedRecursive && !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"))
-                || method.DeclaringType.IsInterface);
+            if (method != null) {
 
-            if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
-                isOverloaded = false;
+                bool isOverloaded = (method.IsOverloadedRecursive && !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"));
 
-            if ((jsm != null) && (method != null) && isOverloaded && !method.IsStatic && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
-                CacheQulifiedSignature(jsm, method, false);
-            } else {
-                if ((method != null) && isOverloaded) {
-                    // HACK
-                    if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
-                        CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+                if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
+                    isOverloaded = false;
+
+                bool isFromInterface = method.DeclaringType.IsInterface;
+                bool isNonVirtualCall = (method.IsVirtual || method.IsConstructor) && invocation.ExplicitThis;
+
+                if ((isOverloaded || isNonVirtualCall) && !method.IsStatic && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                    CacheQulifiedSignature(jsm, method, false);
+                } else {
+
+                    if (isFromInterface) {
+                        // HACK
+                        if (!PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                            CacheInterfaceMember(jsm.Reference.DeclaringType, jsm.Identifier);
+                        }
                     }
-                }
 
-                if ((jsm != null) && (method != null) && isOverloaded)
-                    CacheSignature(jsm.Reference, method.Signature, false);
+                    if (isOverloaded)
+                        CacheSignature(jsm.Reference, method.Signature, false);
+                }
             }
 
             VisitChildren(invocation);

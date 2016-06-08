@@ -2356,6 +2356,11 @@ namespace JSIL {
             if (isOverloaded && CanUseFastOverloadDispatch(method))
                 isOverloaded = false;
 
+            if (method != null && (method.IsVirtual || method.IsConstructor) && invocation.ExplicitThis)
+            {
+                isOverloaded = true;
+            }
+
             ReferenceContext.Push();
             try {
                 Action genericArgs = () => {
@@ -2450,23 +2455,6 @@ namespace JSIL {
                         Output.LPar();
 
                         Visit(invocation.ThisReference, "ThisReference");
-
-                        if (hasArguments)
-                            Output.Comma();
-                    } else if (invocation.ExplicitThis) {
-                        SignatureCacher.WriteQualifiedSignatureToOutput(
-                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm, invocation.Method,
-                            ReferenceContext
-                            );
-                        Output.Dot();
-                        Output.WriteRaw("CallNonVirtual");
-
-                        Output.LPar();
-                        Visit(invocation.ThisReference, "ThisReference");
-                        Output.Comma();
-
-                        genericArgs();
 
                         if (hasArguments)
                             Output.Comma();
