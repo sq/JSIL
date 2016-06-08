@@ -3041,6 +3041,26 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
 $jsilcore.CanFixUpEnumInterfaces = false;
 
 JSIL.FixupInterfaces = function (publicInterface, typeObject) {
+  var getMatchingMethodsBySignature = function (type, name, signature) {
+    var bindingFlags = $jsilcore.BindingFlags;
+    var flags = bindingFlags.Public | bindingFlags.NonPublic | bindingFlags.Instance;
+
+    var methods = JSIL.GetMembersInternal(type, flags, "$AllMethods");
+
+    var sourceHash = signature.get_Hash();
+    var result = [];
+
+    for (var i = 0; i < methods.length; i++) {
+      if ($jsilcore.$MemberInfoGetName(methods[i]) == name && methods[i]._data.signature.get_Hash() == sourceHash) {
+        result.push(methods[i]);
+      }
+    }
+
+    JSIL.$ApplyMemberHiding(type, result, type.__PublicInterface__.prototype);
+
+    return result;
+  }
+
   var trace = false;
 
   if (typeObject.__FullName__ === "System.Enum") {
@@ -3214,13 +3234,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         case "MethodInfo":
         case "ConstructorInfo":
           // FIXME: Match signatures
-          var parameterTypes = $jsilcore.$MethodGetParameterTypes(member);
-          var returnType = $jsilcore.$MethodGetReturnType(member);
+          //var parameterTypes = $jsilcore.$MethodGetParameterTypes(member);
+          //var returnType = $jsilcore.$MethodGetReturnType(member);
           var expectedInstanceName = $jsilcore.$MemberInfoGetName(member);
 
-          var matchingMethods = typeObject.$GetMatchingInstanceMethods(
-            expectedInstanceName, parameterTypes, returnType
-          );
+          var matchingMethods = getMatchingMethodsBySignature(typeObject, expectedInstanceName, member._data.signature);
 
           if (!isNewInterface)
             matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
@@ -3231,9 +3249,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             if (trace)
               console.log("Search for " + expectedInstanceName + " failed, looking for " + originalName);
 
-            matchingMethods = typeObject.$GetMatchingInstanceMethods(
-              originalName, parameterTypes, returnType
-            );
+            matchingMethods = getMatchingMethodsBySignature(typeObject, originalName, member._data.signature);
 
             if (!isNewInterface)
               matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
@@ -3253,7 +3269,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
                 if (types[k] == iface) {
                   break;
                 }
-                var matchingMethodsInTestType = types[k].$GetMatchingInstanceMethods(expectedInstanceName, parameterTypes, returnType);
+                var matchingMethodsInTestType = getMatchingMethodsBySignature(types[k], expectedInstanceName, member._data.signature);
                 matchingMethodsInTestType = filterDescriptorsBasedOnType(matchingMethodsInTestType, types[k]);
 
                 var filtred = [];
