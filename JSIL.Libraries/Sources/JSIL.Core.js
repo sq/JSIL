@@ -3081,6 +3081,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   // This is the table of every interface we actually implement (exhaustively).
   interfaces = interfaces.concat(JSIL.GetInterfacesImplementedByType(typeObject, true, false));
   var explicitInterfaces = JSIL.GetInterfacesExplicitlyImplementedByType(typeObject);
+  var baseTypeIfaces = (typeObject.__BaseType__ && "__TypeId__" in typeObject.__BaseType__) ? JSIL.GetInterfacesImplementedByType(typeObject.__BaseType__, true, false) : [];
 
   if (!interfaces.length)
     return;
@@ -3181,6 +3182,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     }
 
     var isIfaceExplicitImplemented = explicitInterfaces.indexOf(iface) >= 0;
+    var isNewInterface = iface.IsInterface && baseTypeIfaces.indexOf(iface) == -1;
 
     __members__:
     for (var j = 0; j < members.length; j++) {
@@ -3220,7 +3222,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
             expectedInstanceName, parameterTypes, returnType
           );
 
-          matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
+          if (!isNewInterface)
+            matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
 
           // HACK: If this interface method was renamed at compile time,
           //  look for unqualified instance methods using the old name.
@@ -3232,7 +3235,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
               originalName, parameterTypes, returnType
             );
 
-            matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
+            if (!isNewInterface)
+              matchingMethods = filterDescriptorsBasedOnType(matchingMethods, typeObject);
           }
 
           if (iface != typeObject) {
