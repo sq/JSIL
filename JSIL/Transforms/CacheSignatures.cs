@@ -660,13 +660,13 @@ namespace JSIL.Transforms {
                     enclosingFunction,
                     jsMethod, method,
                     referenceContext);
+                output.Dot();
+                output.Identifier("InterfaceMethod");
                 //if (!JavascriptAstEmitter.CanUseFastOverloadDispatch(jsMethod.Method, true)) {
                 output.Dot();
                 output.WriteRaw("Of");
                 output.LPar();
                 WriteSignatureToOutput(output, enclosingFunction, jsMethod.Reference, jsMethod.Method.Signature, referenceContext, false);
-                output.Dot();
-                output.Identifier("InterfaceMethod");
                 output.RPar();
                 //}
             } else {

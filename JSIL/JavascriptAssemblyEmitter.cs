@@ -1293,6 +1293,8 @@ namespace JSIL {
                         Formatter.Identifier("$Methods");
                         Formatter.Dot();
                         Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
 
                         Formatter.Dot();
                         Formatter.WriteRaw("Of");
@@ -1300,8 +1302,6 @@ namespace JSIL {
                         Formatter.Signature(cq.Key.Signature.Method, cq.Key.Signature.Signature, astEmitter.ReferenceContext,
                             cq.Key.Signature.IsConstructor, false, true);
                         Formatter.RPar();
-                        Formatter.Dot();
-                        Formatter.Identifier("InterfaceMethod");
 
                         Formatter.WriteRaw(")) ()");
                         Formatter.Semicolon(true);
@@ -1327,6 +1327,8 @@ namespace JSIL {
                         Formatter.Identifier("$Methods");
                         Formatter.Dot();
                         Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
 
                         Formatter.Dot();
                         Formatter.WriteRaw("Of");
@@ -1334,8 +1336,6 @@ namespace JSIL {
                         Formatter.Signature(cq.Key.Signature.Method, cq.Key.Signature.Signature, astEmitter.ReferenceContext,
                             cq.Key.Signature.IsConstructor, false, true);
                         Formatter.RPar();
-                        Formatter.Dot();
-                        Formatter.Identifier("InterfaceMethod");
 
                         Formatter.WriteRaw(";}");
                         Formatter.Comma();
