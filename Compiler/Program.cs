@@ -169,7 +169,7 @@ namespace JSIL.Compiler {
         static Configuration ParseCommandLine (
             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
             Dictionary<string, IProfile> profiles, Dictionary<string, IAnalyzer> analyzers,
-            Dictionary<string, IEmitterFactory> emitterFactories,
+            Dictionary<string, Func<IEmitterGroupFactory>> emitterFactories,
             AssemblyCache assemblyCache
         ) {
             var baseConfig = new Configuration();
@@ -188,9 +188,6 @@ namespace JSIL.Compiler {
                     {"o=|out=", 
                         "Specifies the output directory for generated javascript and manifests.",
                         (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
-                    {"outputFile=",
-                        "Specifies the exact location and name of the output file for the main assembly.",
-                        (path) => commandLineConfig.OutputFileName = Path.GetFullPath(path) },
                     {"q|quiet",
                         "Suppresses non-error/non-warning stderr messages.",
                         (_) => commandLineConfig.Quiet = Quiet = true },
@@ -275,7 +272,7 @@ namespace JSIL.Compiler {
                         emitterAssemblies.Add},
                     {"e=|emitter=",
                         "Specifies an emitter factory to use instead of the default.",
-                        (emitterName) => commandLineConfig.EmitterFactoryName = emitterName}
+                        (emitterName) => commandLineConfig.EmitterFactories.Add(emitterName)}
                 };
 
                 filenames = os.Parse(arguments);
@@ -340,9 +337,9 @@ namespace JSIL.Compiler {
                     var fullPath = Path.GetFullPath(filename);
 
                     try {
-                        IEmitterFactory factoryInstance = CreateExtensionInstance<IEmitterFactory>(fullPath);
-                        if (factoryInstance != null)
-                            emitterFactories.Add(factoryInstance.GetType().Name, factoryInstance);
+                        var factoryInstanceCreator = CreateExtensionCreator<IEmitterGroupFactory>(fullPath);
+                        if (factoryInstanceCreator != null)
+                            emitterFactories.Add(factoryInstanceCreator.Item2.Name, factoryInstanceCreator.Item1);
                     } catch (Exception exc) {
                         Console.Error.WriteLine("Warning: Failed to load emitter '{0}': {1}", filename, exc);
                     }
@@ -532,10 +529,12 @@ namespace JSIL.Compiler {
             return commandLineConfig;
         }
 
-        internal static T CreateExtensionInstance<T>(string fullPath) {
+        internal static Tuple<Func<T>, Type> CreateExtensionCreator<T>(string fullPath)
+        {
             var assembly = Assembly.LoadFile(fullPath);
 
-            foreach (var type in assembly.GetTypes()) {
+            foreach (var type in assembly.GetTypes())
+            {
                 if (
                     type.FindInterfaces(
                         (interfaceType, o) => interfaceType == (Type)o, typeof(T)
@@ -549,10 +548,16 @@ namespace JSIL.Compiler {
                 );
                 var profileInstance = (T)ctor.Invoke(new object[0]);
 
-                return profileInstance;
+                return new Tuple<Func<T>, Type>(() => (T) ctor.Invoke(new object[0]), type);
             }
 
-            return default(T);
+            return null;
+        }
+
+        internal static T CreateExtensionInstance<T>(string fullPath) {
+            var creator = CreateExtensionCreator<T>(fullPath);
+
+            return creator != null ? creator.Item1() : default(T);
         }
 
         internal static string GetJSILDirectory () {
@@ -594,29 +599,38 @@ namespace JSIL.Compiler {
             };
         }
 
-        static IEmitterFactory GetEmitterFactory (
+        static IEmitterGroupFactory[] GetEmitterFactories (
             Configuration configuration,
-            Dictionary<string, IEmitterFactory> emitterFactories
+            Dictionary<string, IEmitterGroupFactory> emitterFactories
         ) {
-            if (configuration.EmitterFactoryName == null)
-                return null;
+            var emitters = new List<IEmitterGroupFactory>();
 
-            IEmitterFactory result;
-            if (!emitterFactories.TryGetValue(configuration.EmitterFactoryName, out result)) {
-                if (!emitterFactories.TryGetValue(configuration.EmitterFactoryName + "EmitterFactory", out result)) {
-                    Console.WriteLine("// Loaded emitter factories:");
-                    foreach (var kvp in emitterFactories)
-                        Console.WriteLine(kvp.Key);
-                    throw new Exception("No emitter factory named '" + configuration.EmitterFactoryName + "' or '" + configuration.EmitterFactoryName + "EmitterFactory'");
-                }
+            if (configuration.EmitterFactories.Count == 0) {
+                emitters.Add(emitterFactories[typeof(JavascriptEmitterGroupFactory).Name]);
             }
 
-            return result;
+
+            foreach (var emitterFactory in configuration.EmitterFactories) {
+                IEmitterGroupFactory factory;
+                if (!emitterFactories.TryGetValue(emitterFactory, out factory))
+                {
+                    if (!emitterFactories.TryGetValue(emitterFactory + "EmitterFactory", out factory))
+                    {
+                        Console.WriteLine("// Loaded emitter factories:");
+                        foreach (var kvp in emitterFactories)
+                            Console.WriteLine(kvp.Key);
+                        throw new Exception("No emitter factory named '" + emitterFactory + "' or '" + emitterFactory + "EmitterFactory'");
+                    }
+                }
+                emitters.Add(factory);
+            }
+
+            return emitters.ToArray();
         }
 
         static AssemblyTranslator CreateTranslator (
             Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache,
-            Dictionary<string, IEmitterFactory> emitterFactories,
+            Dictionary<string, IEmitterGroupFactory> emitterFactories,
             Dictionary<string, IAnalyzer> analyzers
         ) {
             TypeInfoProvider typeInfoProvider = null;
@@ -636,14 +650,14 @@ namespace JSIL.Compiler {
                     typeInfoProvider = CachedTypeInfoProvider;
             }
 
-            IEmitterFactory emitterFactory = GetEmitterFactory(configuration, emitterFactories);
+            IEmitterGroupFactory[] emitterGroupFactories = GetEmitterFactories(configuration, emitterFactories);
 
             var translator = new AssemblyTranslator(
                 configuration, typeInfoProvider, manifest, new AssemblyDataResolver(configuration, assemblyCache), 
                 onProxyAssemblyLoaded: (name, classification) => 
                     InformationWriteLine("// Loaded proxies from '{0}'", ShortenPath(name)),
-                emitterFactory: emitterFactory,
-                analyzers: analyzers.Values
+                analyzers: analyzers.Values,
+                emitterGroupFactories: emitterGroupFactories
             );
 
             translator.Decompiling += MakeProgressHandler       ("Decompiling ");
@@ -696,12 +710,11 @@ namespace JSIL.Compiler {
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
             var analyzers = new Dictionary<string, IAnalyzer>();
-            var emitterFactories = new Dictionary<string, IEmitterFactory>();
+            var emitterFactoryCreators = new Dictionary<string, Func<IEmitterGroupFactory>>();
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
-            var processedAssemblies = new HashSet<string>();
 
-            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, emitterFactories, assemblyCache);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles, analyzers, emitterFactoryCreators, assemblyCache);
 
             if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
@@ -792,40 +805,22 @@ namespace JSIL.Compiler {
                         analyzer.SetConfiguration(settings);
                     }
 
-                    emitterFactories["JavascriptEmitterFactory"] = new JavascriptEmitterFactory();
+                    var emitterFactories = emitterFactoryCreators.ToDictionary(item => item.Key, item => item.Value());
+                    emitterFactories[typeof(JavascriptEmitterGroupFactory).Name] = new JavascriptEmitterGroupFactory();
+                    emitterFactories[typeof(DefinitelyTypedEmitterGroupFactory).Name] = new DefinitelyTypedEmitterGroupFactory();
+                    buildGroup.Profile.RegisterPostprocessors(emitterFactories.Values, localConfig, filename, buildGroup.SkippedAssemblies);
 
                     using (var translator = CreateTranslator(
-                        localConfig, manifest, assemblyCache, emitterFactories, analyzers
+                       localConfig, manifest, assemblyCache, emitterFactories, analyzers
                     )) {
                         var ignoredMethods = new List<KeyValuePair<string, string[]>>();
 
                         translator.IgnoredMethod += (methodName, variableNames) =>
                             ignoredMethods.Add(new KeyValuePair<string, string[]>(methodName, variableNames));
-                        translator.ChooseCustomAssemblyName = 
-                            (isMainAssembly, fullName) => {
-                                if (isMainAssembly)
-                                    return localConfig.OutputFileName;
-                                else
-                                    return null;
-                            };
 
                         var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)
                             throw new Exception("No output directory was specified!");
-
-                        if (buildGroup.SkippedAssemblies != null) {
-                            foreach (var sa in buildGroup.SkippedAssemblies) {
-                                if (processedAssemblies.Contains(sa))
-                                    continue;
-
-                                InformationWriteLine("// Processing '{0}'", Path.GetFileName(sa));
-                                processedAssemblies.Add(sa);
-
-                                buildGroup.Profile.ProcessSkippedAssembly(
-                                    localConfig, sa, outputs
-                                );
-                            }
-                        }
 
                         var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
                         CopiedOutputGatherer.EnsureDirectoryExists(outputDir);
@@ -840,7 +835,7 @@ namespace JSIL.Compiler {
 
                         EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
 
-                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".", Quiet);
+                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Quiet);
 
                         totalFailureCount += translator.Failures.Count;
                     }
@@ -857,7 +852,7 @@ namespace JSIL.Compiler {
 
         static void EmitLog (
             string logPath, Configuration configuration, 
-            string inputFile, TranslationResult outputs,
+            string inputFile, TranslationResultCollection outputs,
             IEnumerable<KeyValuePair<string, string[]>> ignoredMethods
         ) {
             var logText = new StringBuilder();
@@ -873,8 +868,10 @@ namespace JSIL.Compiler {
 
             logText.AppendLine("// The following outputs were produced:");
 
-            foreach (var fe in outputs.OrderedFiles)
-                logText.AppendLine(fe.Filename);
+            foreach (var translationResult in outputs.TranslationResults) {
+                foreach (var fe in translationResult.OrderedFiles)
+                    logText.AppendLine(fe.Filename);
+            }
 
             logText.AppendLine("// The following method(s) were ignored due to untranslatable variables:");
 

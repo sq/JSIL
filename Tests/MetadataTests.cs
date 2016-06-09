@@ -496,6 +496,8 @@ namespace JSIL.Tests {
                 }, () => {
                     var configuration = MakeConfiguration();
                     configuration.FilenameEscapeRegex = "[^A-Za-z0-9 _]";
+                    // We don't escape manifest
+                    configuration.SkipManifestCreation = true;
                     return configuration;
                 });
 

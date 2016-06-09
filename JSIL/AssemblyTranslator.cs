@@ -101,10 +101,8 @@ namespace JSIL {
         public event Action<TypeIdentifier> ProxyNotMatched;
         public event Action<QualifiedMemberIdentifier> ProxyMemberNotMatched;
 
-        public Func<bool, string, string> ChooseCustomAssemblyName;
-
         public readonly TypeInfoProvider TypeInfoProvider;
-        public readonly IEmitterFactory EmitterFactory;
+        public readonly IEmitterGroupFactory[] EmitterGroupFactories;
 
         protected bool OwnsAssemblyDataResolver;
         protected bool OwnsTypeInfoProvider;
@@ -115,17 +113,21 @@ namespace JSIL {
             AssemblyManifest manifest = null,
             AssemblyDataResolver assemblyDataResolver = null,
             AssemblyLoadedHandler onProxyAssemblyLoaded = null,
-            IEmitterFactory emitterFactory = null,
-            IEnumerable<IAnalyzer> analyzers = null
-        ) {
+            IEnumerable<IAnalyzer> analyzers = null,
+            IEmitterGroupFactory[] emitterGroupFactories = null
+        )
+        {
             ProxyAssemblyLoaded = onProxyAssemblyLoaded;
             Warning = (s) =>
                 Console.Error.WriteLine("// {0}", s);
 
             Manifest = manifest ?? new AssemblyManifest();
-            EmitterFactory = emitterFactory ?? new JavascriptEmitterFactory();
+            EmitterGroupFactories = emitterGroupFactories ?? new IEmitterGroupFactory[] { new JavascriptEmitterGroupFactory() };
 
-            Configuration = EmitterFactory.FilterConfiguration(configuration);
+            foreach (var emitterFactory in EmitterGroupFactories) {
+                //TODO: Split FilterConfiguration from IEmitterGroupFactory
+                Configuration = emitterFactory.FilterConfiguration(configuration);
+            }
             bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
 
             OwnsAssemblyDataResolver = (assemblyDataResolver == null);
@@ -136,7 +138,10 @@ namespace JSIL {
             if (analyzers != null)
                 analyzerList.AddRange(analyzers);
 
-            analyzerList.AddRange(EmitterFactory.GetAnalyzers());
+            foreach (var emitterFactory in EmitterGroupFactories) {
+                //TODO: Split GetAnalyzers from IEmitterGroupFactory
+                analyzerList.AddRange(emitterFactory.GetAnalyzers());
+            }
 
             if (typeInfoProvider != null) {
                 TypeInfoProvider = typeInfoProvider;
@@ -414,15 +419,19 @@ namespace JSIL {
             };
         }
 
-        protected virtual string FormatOutputFilename (AssemblyNameDefinition assemblyName) {
-            var result = assemblyName.ToString();
+        protected virtual string FormatOutputFilename (string fileName) {
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            foreach (var filenameReplaceRegex in Configuration.FilenameReplaceRegexes) {
+                name = Regex.Replace(name, filenameReplaceRegex.Key, filenameReplaceRegex.Value);
+            }
+
             if (Configuration.FilenameEscapeRegex != null)
-                return Regex.Replace(result, Configuration.FilenameEscapeRegex, "_");
-            else
-                return result;
+                name = Regex.Replace(name, Configuration.FilenameEscapeRegex, "_");
+
+            return Path.Combine(Path.GetDirectoryName(fileName), name + Path.GetExtension(fileName));
         }
 
-        public TranslationResult Translate (
+        public TranslationResultCollection Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
             var originalLatencyMode = System.Runtime.GCSettings.LatencyMode;
@@ -450,10 +459,15 @@ namespace JSIL {
             }
         }
 
-        private TranslationResult TranslateInternal (
+        private TranslationResultCollection TranslateInternal (
             string assemblyPath, bool scanForProxies = true
         ) {
-            var result = new TranslationResult(this.Configuration, assemblyPath, Manifest);
+            var result = new TranslationResultCollection();
+            var results = EmitterGroupFactories.Select(item => new {EmitterGroup = item, TranslationResult = new TranslationResult(this.Configuration, assemblyPath, Manifest)}).ToList();
+            foreach (var pairs in results) {
+                result.TranslationResults.Add(pairs.TranslationResult);
+            }
+
             var assemblies = new [] {assemblyPath}.Union(this.Configuration.Assemblies.TranslateAdditional).Distinct()
                 .SelectMany(LoadAssembly).Distinct(new FullNameAssemblyComparer()).ToArray();
             var parallelOptions = GetParallelOptions();
@@ -514,47 +528,47 @@ namespace JSIL {
 
             Action<int> writeAssembly = (i) => {
                 var assembly = assemblies[i];
+                bool stubbed = IsStubbed(assembly);
 
-                string outputPath = null;
+                foreach (var pair in results) {
+                    long existingSize;
+                    foreach (var emmitterFactory in pair.EmitterGroup.MakeAssemblyEmitterFactory(this, assembly)) {
+                        var outputPath = FormatOutputFilename(emmitterFactory.AssemblyPathAndFilename);
+                        if (!Manifest.GetExistingSize(assembly, emmitterFactory.Id, out existingSize)) {
+                            using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
+                                var sourceMapBuilder = Configuration.BuildSourceMap.GetValueOrDefault() ? new SourceMapBuilder() : null;
+                                var context = MakeDecompilerContext(assembly.MainModule);
 
-                if (ChooseCustomAssemblyName != null)
-                    outputPath = ChooseCustomAssemblyName(
-                        i == 0, assembly.Name.ToString()
-                    );
-                if (outputPath == null)
-                    outputPath = FormatOutputFilename(assembly.Name) + EmitterFactory.FileExtension;
+                                try {
+                                    var tw = new StreamWriter(outputStream, Encoding.ASCII);
+                                    var formatter = new JavascriptFormatter(tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, stubbed);
+                                    var emitter = emmitterFactory.MakeAssemblyEmitter(formatter);
+                                    TranslateSingleAssemblyInternal(emitter, context, assembly, outputStream, sourceMapBuilder);
+                                    tw.Flush();
+                                }
+                                catch (Exception exc) {
+                                    throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
+                                }
+                                var segment = new ArraySegment<byte>(
+                                    outputStream.GetBuffer(), 0, (int) outputStream.Length
+                                    );
 
-                long existingSize;
+                                pair.TranslationResult.AddFile(emmitterFactory.ArtifactType, outputPath, segment, sourceMapBuilder: sourceMapBuilder);
 
-                if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                    using (var outputStream = new MemoryStream(DefaultStreamCapacity)) {
-                        var sourceMapBuilder = Configuration.BuildSourceMap.GetValueOrDefault() ? new SourceMapBuilder() : null;
-                        var context = MakeDecompilerContext(assembly.MainModule);
+                                Manifest.SetAlreadyTranslated(assembly, emmitterFactory.Id, outputStream.Length);
+                            }
 
-                        try {
-                            TranslateSingleAssemblyInternal(context, assembly, outputStream, sourceMapBuilder);
-                        } catch (Exception exc) {
-                            throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
+                            lock (pair.TranslationResult.Assemblies)
+                                pair.TranslationResult.Assemblies.Add(assembly);
+                        } else {
+                            Console.WriteLine("Skipping '{0}' because it is already translated...", assembly.Name);
+
+                            pair.TranslationResult.AddExistingFile(emmitterFactory.ArtifactType, outputPath, existingSize);
                         }
-
-                        var segment = new ArraySegment<byte>(
-                            outputStream.GetBuffer(), 0, (int)outputStream.Length
-                        );
-
-                        result.AddFile("Script", outputPath, segment, sourceMapBuilder:sourceMapBuilder);
-
-                        Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
+                    //TODO!
+                    //pr.OnProgressChanged(translationResultFactory.Item2.Assemblies.Count, assemblies.Length);
                     }
-
-                    lock (result.Assemblies)
-                        result.Assemblies.Add(assembly);
-                } else {
-                    Console.WriteLine("Skipping '{0}' because it is already translated...", assembly.Name);
-
-                    result.AddExistingFile("Script", outputPath, existingSize);
                 }
-
-                pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
             };
 
             if (Configuration.UseThreads.GetValueOrDefault(false)) {
@@ -571,6 +585,10 @@ namespace JSIL {
             pr.OnFinished();
 
             DoProxyDiagnostics();
+
+            foreach (var pair in results) {
+                pair.EmitterGroup.RunPostprocessors(Manifest, assemblyPath, pair.TranslationResult);
+            }
 
             return result;
         }
@@ -650,65 +668,8 @@ namespace JSIL {
 #endif
         }
 
-        public static void GenerateManifest (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
-            using (var ms = new MemoryStream())
-            using (var tw = new StreamWriter(ms, new UTF8Encoding(false))) {
-                tw.WriteLine("// {0} {1}", GetHeaderText(), Environment.NewLine);
-                tw.WriteLine("'use strict';");
 
-                foreach (var kvp in manifest.Entries) {
-                    tw.WriteLine(
-                        "var {0} = JSIL.GetAssembly({1});",
-                        kvp.Key, Util.EscapeString(kvp.Value, '\"')
-                    );
-                }
 
-                if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
-                    tw.WriteLine();
-                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { JSIL.GlobalNamespace.contentManifest = {}; };");
-                    tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
-
-                    foreach (var fe in result.OrderedFiles) {
-                        var propertiesObject = FormatFileProperties(fe);
-
-                        tw.WriteLine(String.Format(
-                            "    [{0}, {1}, {2}],",
-                            Util.EscapeString(fe.Type), 
-                            Util.EscapeString(fe.Filename.Replace("\\", "/")), 
-                            propertiesObject
-                        ));
-                    }
-
-                    tw.WriteLine("];");
-                }
-
-                tw.Flush();
-
-                result.Manifest = new ArraySegment<byte>(
-                    ms.GetBuffer(), 0, (int)ms.Length
-                );
-            }
-        }
-
-        private static string FormatFileProperties (TranslationResult.ResultFile fe) {
-            var result = "{ ";
-            result += "\"sizeBytes\": ";
-            result += fe.Size;
-
-            if (fe.Properties != null)
-            foreach (var kvp in fe.Properties) {
-                result += ", \"" + kvp.Key + "\": ";
-
-                if (kvp.Value is string)
-                    result += Util.EscapeString((string)kvp.Value, forJson: true);
-                else
-                    throw new NotImplementedException("File property of type '" + kvp.Value.GetType().Name);
-            }
-
-            result += " }";
-
-            return result;
-        }
 
         private void AnalyzeFunctions (
             ParallelOptions parallelOptions, AssemblyDefinition[] assemblies,
@@ -880,8 +841,15 @@ namespace JSIL {
         }
 
         public bool IsIgnored (AssemblyDefinition assembly) {
-            foreach (var sa in Configuration.Assemblies.Ignored) {
-                if (Regex.IsMatch(assembly.FullName, sa, RegexOptions.IgnoreCase)) {
+            return IsIgnoredAssembly(assembly.FullName);
+        }
+
+        public bool IsIgnoredAssembly(string assemblyName)
+        {
+            foreach (var sa in Configuration.Assemblies.Ignored)
+            {
+                if (Regex.IsMatch(assemblyName, sa, RegexOptions.IgnoreCase))
+                {
                     return true;
                 }
             }
@@ -907,10 +875,8 @@ namespace JSIL {
             );
         }
 
-        protected void TranslateSingleAssemblyInternal (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream, SourceMapBuilder sourceMapBuilder) {
+        protected void TranslateSingleAssemblyInternal (IAssemblyEmitter assemblyEmitter, DecompilerContext context, AssemblyDefinition assembly, Stream outputStream, SourceMapBuilder sourceMapBuilder) {
             bool stubbed = IsStubbed(assembly);
-
-            var tw = new StreamWriter(outputStream, Encoding.ASCII);
 
             string assemblyDeclarationReplacement = null;
             var metadata = new MetadataCollection(assembly);
@@ -925,11 +891,12 @@ namespace JSIL {
             {
                 assemblies = assembly.Modules
                     .SelectMany(item => item.AssemblyReferences)
-                    .Select(item => ResolveRedirectedName(item.FullName))
+                    .Select(item => AssemblyDataResolver.AssemblyResolver.Resolve(item))
+                    .Where(item => item != null)
                     .Distinct()
                     .ToDictionary(
                         item => Manifest.GetPrivateToken(item),
-                        item => string.Format("JSIL.GetAssembly({0})", Util.EscapeString(item, '\"')));
+                        item => item.FullName);
 
                 assemblies.Remove(Manifest.GetPrivateToken(assembly.FullName));
             }
@@ -948,15 +915,13 @@ namespace JSIL {
                 assemblies[pair.Key] = pair.Value;
             }
 
+            Manifest.AssignIdentifiers();
+
             wrapAssemblyInImmediatelyInvokedFunctionExpression |= assemblies.Count > 0;
+            assemblies = wrapAssemblyInImmediatelyInvokedFunctionExpression ? assemblies : null;
 
-            var formatter = new JavascriptFormatter(
-                tw, sourceMapBuilder, this.TypeInfoProvider, Manifest, assembly, Configuration, assemblyDeclarationReplacement, stubbed
-            );
-
-            var assemblyEmitter = EmitterFactory.MakeAssemblyEmitter(this, assembly, formatter, wrapAssemblyInImmediatelyInvokedFunctionExpression ? assemblies : null);
-
-            assemblyEmitter.EmitHeader(stubbed);
+            assemblyEmitter.EmitHeader(stubbed, wrapAssemblyInImmediatelyInvokedFunctionExpression);
+            assemblyEmitter.EmitAssemblyReferences(assemblyDeclarationReplacement, assemblies);
 
             if (assembly.EntryPoint != null)
                 TranslateEntryPoint(assemblyEmitter, assembly);
@@ -975,9 +940,7 @@ namespace JSIL {
 
             TranslateImportedTypes(assembly, assemblyEmitter, declaredTypes, stubbed);
 
-            assemblyEmitter.EmitFooter();
-
-            tw.Flush();
+            assemblyEmitter.EmitFooter(wrapAssemblyInImmediatelyInvokedFunctionExpression);
         }
 
         protected void TranslateEntryPoint (
@@ -2207,30 +2170,236 @@ namespace JSIL {
         }
     }
 
-    public class JavascriptEmitterFactory : IEmitterFactory {
-        public string FileExtension {
-            get {
-                return ".js";
-            }
+    public abstract class BaseEmitterGroupFactory : IEmitterGroupFactory {
+        private Action<TranslationResult> _postprocessors;
+
+        public void RegisterPostprocessor (Action<TranslationResult> action) {
+            _postprocessors += action;
         }
 
-        public IAssemblyEmitter MakeAssemblyEmitter (
-            AssemblyTranslator assemblyTranslator,
-            AssemblyDefinition assembly,
-            JavascriptFormatter formatter,
-            IDictionary<AssemblyManifest.Token, string> referenceOverrides
-        ) {
-            return new JavascriptAssemblyEmitter(
-                assemblyTranslator, formatter, referenceOverrides
-            );
+        public virtual void RunPostprocessors (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
+            if (_postprocessors != null)
+                _postprocessors(result);
         }
 
-        public IEnumerable<IAnalyzer> GetAnalyzers () {
+        public abstract IEnumerable<IAssemblyEmmitterFactory> MakeAssemblyEmitterFactory (AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly);
+        public virtual IEnumerable<IAnalyzer> GetAnalyzers()
+        {
             yield break;
         }
 
-        public Configuration FilterConfiguration (Configuration configuration) {
+        public virtual Configuration FilterConfiguration(Configuration configuration)
+        {
             return configuration;
+        }
+    }
+
+    public class JavascriptEmitterGroupFactory : BaseEmitterGroupFactory {
+        private const string TranslatorId = "JS";
+
+        public override IEnumerable<IAssemblyEmmitterFactory> MakeAssemblyEmitterFactory (AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly) {
+            return new IAssemblyEmmitterFactory[] {new JavascriptAssemblyEmmitterFactory(assemblyTranslator, assembly)};
+        }
+
+        public override void RunPostprocessors (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
+            base.RunPostprocessors(manifest, assemblyPath, result);
+            if (!result.Configuration.SkipManifestCreation.GetValueOrDefault(false)) {
+                GenerateManifest(manifest, assemblyPath, result);
+            }
+        }
+
+        private static void GenerateManifest (AssemblyManifest manifest, string assemblyPath, TranslationResult result) {
+            using (var ms = new MemoryStream())
+            using (var tw = new StreamWriter(ms, new UTF8Encoding(false))) {
+                tw.WriteLine("// {0} {1}", AssemblyTranslator.GetHeaderText(), Environment.NewLine);
+                tw.WriteLine("'use strict';");
+
+                foreach (var kvp in manifest.Entries) {
+                    tw.WriteLine(
+                        "var {0} = JSIL.GetAssembly({1});",
+                        kvp.Key, Util.EscapeString(kvp.Value, '\"')
+                        );
+                }
+
+                if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
+                    tw.WriteLine();
+                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { JSIL.GlobalNamespace.contentManifest = {}; };");
+                    tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
+
+                    foreach (var fe in result.OrderedFiles) {
+                        var propertiesObject = FormatFileProperties(fe);
+
+                        tw.WriteLine(String.Format(
+                            "    [{0}, {1}, {2}],",
+                            Util.EscapeString(fe.Type),
+                            Util.EscapeString(fe.Filename.Replace("\\", "/")),
+                            propertiesObject
+                            ));
+                    }
+
+                    tw.WriteLine("];");
+                }
+
+                tw.Flush();
+
+                result.AddFile("Manifest", Path.GetFileName(assemblyPath) + ".manifest.js", new ArraySegment<byte>(ms.GetBuffer(), 0, (int) ms.Length), 0);
+            }
+        }
+
+        private static string FormatFileProperties (TranslationResult.ResultFile fe) {
+            var result = "{ ";
+            result += "\"sizeBytes\": ";
+            result += fe.Size;
+
+            if (fe.Properties != null)
+                foreach (var kvp in fe.Properties) {
+                    result += ", \"" + kvp.Key + "\": ";
+
+                    if (kvp.Value is string)
+                        result += Util.EscapeString((string) kvp.Value, forJson: true);
+                    else
+                        throw new NotImplementedException("File property of type '" + kvp.Value.GetType().Name);
+                }
+
+            result += " }";
+
+            return result;
+        }
+
+        public class JavascriptAssemblyEmmitterFactory : IAssemblyEmmitterFactory {
+            private readonly AssemblyTranslator assemblyTranslator;
+            private readonly AssemblyDefinition assembly;
+
+            public JavascriptAssemblyEmmitterFactory (AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly) {
+                this.assemblyTranslator = assemblyTranslator;
+                this.assembly = assembly;
+            }
+
+            public string Id {
+                get { return TranslatorId; }
+            }
+
+            public string AssemblyPathAndFilename {
+                get { return assembly.FullName + ".js"; }
+            }
+
+            public string ArtifactType {
+                get { return "Script"; }
+            }
+
+            public IAssemblyEmitter MakeAssemblyEmitter (JavascriptFormatter formatter) {
+                return new JavascriptAssemblyEmitter(assemblyTranslator, formatter);
+            }
+        }
+    }
+
+
+    public class DefinitelyTypedEmitterGroupFactory : BaseEmitterGroupFactory {
+        private const string TranslatorId = "D-TS";
+
+        public override Configuration FilterConfiguration(Configuration configuration) {
+            configuration.InlineAssemblyReferences = true;
+            return configuration;
+        }
+
+        public override IEnumerable<IAssemblyEmmitterFactory> MakeAssemblyEmitterFactory(AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly)
+        {
+            return new IAssemblyEmmitterFactory[] {
+                new DefinitelyTypedInternalsEmitterFactory(assemblyTranslator, assembly),
+                new DefinitelyTypedExportEmitterFactory(assemblyTranslator, assembly),
+                new DefinitelyTypedModuleEmitterFactory(assemblyTranslator, assembly), 
+            };
+        }
+
+        public override void RunPostprocessors(AssemblyManifest manifest, string assemblyPath, TranslationResult result)
+        {
+            base.RunPostprocessors(manifest, assemblyPath, result);
+            var jsilPath = Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
+            var searchPath = Path.Combine(jsilPath, "JS Libraries\\DefinitelyTyped\\");
+            foreach (var file in Directory.GetFiles(searchPath, "*", SearchOption.AllDirectories)) {
+                var bytes = File.ReadAllBytes(file);
+                result.AddFile("common",
+                    new Uri(searchPath).MakeRelativeUri(new Uri(file)).ToString(),
+                    new ArraySegment<byte>(bytes));
+            }
+        }
+
+        public class DefinitelyTypedInternalsEmitterFactory : IAssemblyEmmitterFactory
+        {
+            private AssemblyTranslator assemblyTranslator;
+            private AssemblyDefinition assembly;
+
+            public DefinitelyTypedInternalsEmitterFactory(AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly)
+            {
+                this.assemblyTranslator = assemblyTranslator;
+                this.assembly = assembly;
+            }
+
+            public string Id { get { return TranslatorId + "/Internals"; ; } }
+
+            public string AssemblyPathAndFilename
+            {
+                get { return "internals/" + assembly.FullName + ".d.ts"; }
+            }
+
+            public string ArtifactType { get { return Id; } }
+
+            public IAssemblyEmitter MakeAssemblyEmitter(JavascriptFormatter formatter)
+            {
+                return new DefinitelyTypedInternalsEmitter(assemblyTranslator, formatter);
+            }
+        }
+
+        public class DefinitelyTypedExportEmitterFactory : IAssemblyEmmitterFactory
+        {
+            private AssemblyTranslator assemblyTranslator;
+            private AssemblyDefinition assembly;
+
+            public DefinitelyTypedExportEmitterFactory(AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly)
+            {
+                this.assemblyTranslator = assemblyTranslator;
+                this.assembly = assembly;
+            }
+
+            public string Id { get { return TranslatorId + "/Exports"; ; } }
+
+            public string AssemblyPathAndFilename
+            {
+                get { return "module." + assembly.FullName + ".d.ts"; }
+            }
+
+            public string ArtifactType { get { return Id; } }
+
+            public IAssemblyEmitter MakeAssemblyEmitter(JavascriptFormatter formatter)
+            {
+                return new DefinitelyTypedExportEmitter(assemblyTranslator, formatter);
+            }
+        }
+
+        public class DefinitelyTypedModuleEmitterFactory : IAssemblyEmmitterFactory
+        {
+            private AssemblyTranslator assemblyTranslator;
+            private AssemblyDefinition assembly;
+
+            public DefinitelyTypedModuleEmitterFactory(AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly)
+            {
+                this.assemblyTranslator = assemblyTranslator;
+                this.assembly = assembly;
+            }
+
+            public string Id { get { return TranslatorId + "/Module"; ; } }
+
+            public string AssemblyPathAndFilename
+            {
+                get { return "module." + assembly.FullName + ".js"; }
+            }
+
+            public string ArtifactType { get { return Id; } }
+
+            public IAssemblyEmitter MakeAssemblyEmitter(JavascriptFormatter formatter)
+            {
+                return new DefinitelyTypedModuleEmitter(assemblyTranslator, formatter);
+            }
         }
     }
 }

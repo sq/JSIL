@@ -180,7 +180,6 @@ namespace JSIL.Internal {
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
         protected readonly bool Stubbed;
-        protected readonly string AssemblyDeclarationReplacement;
 
         protected uint _IndentLevel = 0;
         protected bool _IndentNeeded = false;
@@ -196,7 +195,6 @@ namespace JSIL.Internal {
             TextWriter output, SourceMapBuilder sourceMapBuilder, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
             Configuration configuration,
-            string assemblyDeclarationReplacement,
             bool stubbed
         ) {
             if (sourceMapBuilder != null)
@@ -215,17 +213,11 @@ namespace JSIL.Internal {
             Assembly = assembly;
             Configuration = configuration;
             Stubbed = stubbed;
-            AssemblyDeclarationReplacement = assemblyDeclarationReplacement;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
         }
 
-        public bool PreviousWasLineBreak {
-            get {
-                return _IndentNeeded;
-            }
-        }
 
         protected void WriteToken (AssemblyManifest.Token token) {
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
@@ -1162,7 +1154,7 @@ namespace JSIL.Internal {
             RPar();
         }
 
-        public void DeclareAssembly () {
+        public void DeclareAssembly (string assemblyDeclarationReplacement) {
             if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                 WriteRaw("var ${0} = new JSIL.AssemblyCollection", Configuration.AssemblyCollectionName ?? "asms");
                 LPar();
@@ -1192,7 +1184,7 @@ namespace JSIL.Internal {
                 Space();
                 Identifier(PrivateToken.IDString);
                 WriteRaw(" = ");
-                if (AssemblyDeclarationReplacement == null)
+                if (string.IsNullOrEmpty(assemblyDeclarationReplacement))
                 {
                     WriteRaw("JSIL.DeclareAssembly");
                     LPar();
@@ -1201,7 +1193,10 @@ namespace JSIL.Internal {
                 }
                 else
                 {
-                    WriteRaw(AssemblyDeclarationReplacement);
+                    WriteRaw("JSIL.GetAssembly");
+                    LPar();
+                    Value(assemblyDeclarationReplacement);
+                    RPar();
                 }
                 Semicolon();
             }
@@ -1215,7 +1210,10 @@ namespace JSIL.Internal {
                 Space();
                 Identifier(reference.Key.IDString);
                 WriteRaw(" = ");
-                WriteRaw(reference.Value);
+                WriteRaw("JSIL.GetAssembly");
+                LPar();
+                Value(reference.Value);
+                RPar();
                 Semicolon();
             }
         }

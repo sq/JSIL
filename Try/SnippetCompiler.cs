@@ -277,11 +277,7 @@ namespace JSIL.Try {
                     };
 
                     var translateStarted = DateTime.UtcNow.Ticks;
-                    var translationResult = translator.Translate(resultPath, true);
-
-                    AssemblyTranslator.GenerateManifest(
-                        translator.Manifest, Path.GetDirectoryName(resultPath), translationResult
-                    );
+                    var translationResult = translator.Translate(resultPath, true).TranslationResults[0];
 
                     result.EntryPoint = String.Format(
                         "{0}.{1}",

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ICSharpCode.Decompiler;
 using JSIL.Ast;
 using JSIL.Compiler.Extensibility;
@@ -16,16 +14,13 @@ namespace JSIL {
     class JavascriptAssemblyEmitter : IAssemblyEmitter {
         public readonly AssemblyTranslator  Translator;
         public readonly JavascriptFormatter Formatter;
-        private readonly IDictionary<AssemblyManifest.Token, string> _referenceOverrides;
 
         public JavascriptAssemblyEmitter (
             AssemblyTranslator assemblyTranslator,
-            JavascriptFormatter formatter,
-            IDictionary<AssemblyManifest.Token, string> referenceOverrides
+            JavascriptFormatter formatter
         ) {
             Translator = assemblyTranslator;
             Formatter = formatter;
-            _referenceOverrides = referenceOverrides;
         }
 
         // HACK
@@ -41,7 +36,7 @@ namespace JSIL {
             }
         }
 
-        public void EmitHeader (bool stubbed) {
+        public void EmitHeader (bool stubbed, bool iife) {
             Formatter.Comment(AssemblyTranslator.GetHeaderText());
             Formatter.NewLine();
 
@@ -53,22 +48,26 @@ namespace JSIL {
                 Formatter.NewLine();
             }
 
-            if (_referenceOverrides != null)
+            if (iife)
             {
                 Formatter.LPar();
                 Formatter.OpenFunction(string.Empty, null);
             }
 
-            Formatter.DeclareAssembly();
+        }
+
+        public void EmitAssemblyReferences (string assemblyDeclarationReplacement, Dictionary<AssemblyManifest.Token, string> assemblies) {
+            Formatter.DeclareAssembly(assemblyDeclarationReplacement);
             Formatter.NewLine();
 
-            if (_referenceOverrides != null) {
-                Formatter.WriteReferencesOverrides(_referenceOverrides);
+            if (assemblies != null)
+            {
+                Formatter.WriteReferencesOverrides(assemblies);
             }
         }
 
-        public void EmitFooter () {
-            if (_referenceOverrides != null)
+        public void EmitFooter (bool iife) {
+            if (iife)
             {
                 Formatter.CloseBrace();
                 Formatter.RPar();

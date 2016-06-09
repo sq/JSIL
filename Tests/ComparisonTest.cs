@@ -450,9 +450,7 @@ namespace JSIL.Tests {
                 try {
                     translationResult = translator.Translate(
                         assemblyPath, scanForProxies == null ? TypeInfo == null : (bool)scanForProxies
-                    );
-
-                    AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, translationResult);
+                    ).TranslationResults[0];
 
                     result = processResult(translationResult);
                 } finally {

@@ -11,23 +11,31 @@ using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL.Compiler.Extensibility {
-    public interface IEmitterFactory {
-        string FileExtension { get; }
-
-        IAssemblyEmitter MakeAssemblyEmitter (
-            AssemblyTranslator assemblyTranslator,
-            AssemblyDefinition assembly,
-            JavascriptFormatter formatter,
-            IDictionary<AssemblyManifest.Token, string> referenceOverrides
-        );
+    public interface IEmitterGroupFactory {
+        IEnumerable<IAssemblyEmmitterFactory> MakeAssemblyEmitterFactory (AssemblyTranslator assemblyTranslator, AssemblyDefinition assembly);
 
         IEnumerable<IAnalyzer> GetAnalyzers ();
+
         Configuration FilterConfiguration (Configuration configuration);
+
+        void RegisterPostprocessor (Action<TranslationResult> action);
+
+        void RunPostprocessors (AssemblyManifest manifest, string assemblyPath, TranslationResult result);
+    }
+
+    public interface IAssemblyEmmitterFactory {
+        string Id { get; }
+
+        string AssemblyPathAndFilename { get; }
+
+        string ArtifactType { get; }
+
+        IAssemblyEmitter MakeAssemblyEmitter (JavascriptFormatter formatter);
     }
 
     public interface IAssemblyEmitter {
-        void EmitHeader (bool stubbed);
-        void EmitFooter ();
+        void EmitHeader (bool stubbed, bool iife);
+        void EmitFooter (bool iife);
         void EmitAssemblyEntryPoint (
             AssemblyDefinition assembly, MethodDefinition entryMethod, MethodSignature signature
         );
@@ -62,6 +70,7 @@ namespace JSIL.Compiler.Extensibility {
         void EmitInterfaceList (TypeInfo typeInfo, IAstEmitter astEmitter, JSRawOutputIdentifier dollar);
         void EmitCachedValues (IAstEmitter astEmitter, TypeExpressionCacher typeCacher, SignatureCacher signatureCacher, BaseMethodCacher baseMethodCacher);
         void EmitFunctionBody (IAstEmitter astEmitter, MethodDefinition method, JSFunctionExpression function);
+        void EmitAssemblyReferences (string assemblyDeclarationReplacement, Dictionary<AssemblyManifest.Token, string> assemblies);
     }
 
     public interface IAstEmitter {

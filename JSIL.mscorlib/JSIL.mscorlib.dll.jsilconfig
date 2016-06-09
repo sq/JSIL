@@ -1,6 +1,9 @@
 ﻿{
-  "OutputFileName": "../../JSIL.Libraries/Generated/JSIL.mscorlib.js",
-  "OutputDirectory": "%AssemblyDirectory%",
+  "OutputDirectory": "%AssemblyDirectory%/../../JSIL.Libraries/Generated/",
   "IncludeDependencies": false,
-  "MonoFixConfig" :  {}
+  "SkipManifestCreation": true,
+  "FilenameReplaceRegexes": {
+    ", Version(.*)$": ""
+  },
+  "MonoFixConfig": { }
 }
