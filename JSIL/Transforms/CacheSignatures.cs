@@ -306,14 +306,16 @@ namespace JSIL.Transforms {
 
             public readonly CachedInterfaceMemberRecord Member;
             public readonly CachedSignatureRecord Signature;
+            public readonly bool IsStatic;
 
-            public CachedQualifiedSignatureRecord (CachedInterfaceMemberRecord member, CachedSignatureRecord signature) {
+            public CachedQualifiedSignatureRecord (CachedInterfaceMemberRecord member, CachedSignatureRecord signature, bool isStatic) {
                 Member = member;
                 Signature = signature;
+                IsStatic = isStatic;
             }
             public bool Equals(ref CachedQualifiedSignatureRecord rhs)
             {
-                return Member.Equals(rhs.Member) && SignatureComparer.Equals(Signature, rhs.Signature);
+                return IsStatic == rhs.IsStatic && Member.Equals(rhs.Member) && SignatureComparer.Equals(Signature, rhs.Signature);
             }
 
             public override bool Equals(object obj)
@@ -329,7 +331,7 @@ namespace JSIL.Transforms {
 
             public override int GetHashCode()
             {
-                return Member.GetHashCode() ^ SignatureComparer.GetHashCode(Signature);
+                return Member.GetHashCode() ^ SignatureComparer.GetHashCode(Signature) ^ IsStatic.GetHashCode();
             }
         }
 
@@ -423,7 +425,7 @@ namespace JSIL.Transforms {
                 isConstructor,
                 rewritenInfo.RewritedGenericParameters.Length);
 
-            var record = new CachedQualifiedSignatureRecord(memberRecord, signatureRecord);
+            var record = new CachedQualifiedSignatureRecord(memberRecord, signatureRecord, methodInfo.IsStatic);
 
             var set = GetCacheSet(false);
 
@@ -595,7 +597,7 @@ namespace JSIL.Transforms {
                 bool isFromInterface = method.DeclaringType.IsInterface;
                 bool isNonVirtualCall = (method.IsVirtual || method.IsConstructor) && invocation.ExplicitThis;
 
-                if ((isOverloaded || isNonVirtualCall) && !method.IsStatic && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
+                if ((isOverloaded || isNonVirtualCall) && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
                     CacheQulifiedSignature(jsm, method, false);
                 } else {
 
@@ -652,7 +654,7 @@ namespace JSIL.Transforms {
             var signatureRecord = new CachedSignatureRecord(jsMethod.Reference, rewritten.CacheRecord.Item2, false, rewritten.RewritedGenericParameters.Length);
             var rewrittenGenericParameters = rewritten.RewritedGenericParameters;
 
-            var record = new CachedQualifiedSignatureRecord(methodRecord, signatureRecord);
+            var record = new CachedQualifiedSignatureRecord(methodRecord, signatureRecord, jsMethod.Method.IsStatic);
 
             if (!Global.QualifiedSignatures.TryGetValue(record, out index)) {
                 WriteInterfaceMemberToOutput(
@@ -764,7 +766,7 @@ namespace JSIL.Transforms {
             if (!Global.InterfaceMembers.TryGetValue(record, out index)) {
                 output.Identifier(jsMethod.Reference.DeclaringType, referenceContext, false);
                 output.Dot();
-                output.Identifier("$Methods");
+                output.Identifier(jsMethod.Method.IsStatic ? "$StaticMethods" : "$Methods");
                 output.Dot();
                 output.Identifier(jsMethod.GetNameForInstanceReference());
                 output.Dot();

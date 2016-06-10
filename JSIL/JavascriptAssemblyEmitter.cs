@@ -1290,7 +1290,7 @@ namespace JSIL {
 
                         Formatter.Identifier(cq.Key.Member.InterfaceType, astEmitter.ReferenceContext, false);
                         Formatter.Dot();
-                        Formatter.Identifier("$Methods");
+                        Formatter.Identifier(cq.Key.IsStatic ? "$StaticMethods" : "$Methods");
                         Formatter.Dot();
                         Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
                         Formatter.Dot();
@@ -1324,7 +1324,7 @@ namespace JSIL {
 
                         Formatter.Identifier(cq.Key.Member.InterfaceType, astEmitter.ReferenceContext, false);
                         Formatter.Dot();
-                        Formatter.Identifier("$Methods");
+                        Formatter.Identifier(cq.Key.IsStatic ? "$StaticMethods" : "$Methods");
                         Formatter.Dot();
                         Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
                         Formatter.Dot();

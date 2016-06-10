@@ -1471,7 +1471,8 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
         __TypeId__: typeId
       },
       __TypeId__: typeId,
-      $Methods : Object.create(null)
+      $Methods: Object.create(null),
+      $StaticMethods: Object.create(null)
     };
 
     var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
@@ -2590,6 +2591,7 @@ $jsilcore.$Of$NoInitialize = function () {
   result.__Type__ = resultTypeObject;
 
   JSIL.SetValueProperty(result, "$Methods", JSIL.CreateSingletonObject(staticClassObject.$Methods));
+  JSIL.SetValueProperty(result, "$StaticMethods", JSIL.CreateSingletonObject(staticClassObject.$StaticMethods));
 
   resultTypeObject.__RenamedMethods__ = JSIL.CreateDictionaryObject(typeObject.__RenamedMethods__ || null);
 
@@ -2879,6 +2881,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var isInterface = typeObject.IsInterface;
 
   var oldObjects = {};
+  var oldStaticObjects = {};
 
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
@@ -2902,45 +2905,46 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
     //TODO: What should we do with mangledName form?
-    if (!descriptor.Static) {
-      var isAlreadyDefined = true;
-      var oldObject = oldObjects[unqualifiedName];
-      if (!oldObject) {
-        oldObject = publicInterface.$Methods[unqualifiedName];
-        isAlreadyDefined = false;
-      }
+    var interfaceMethodTarget = descriptor.Static ? publicInterface.$StaticMethods : publicInterface.$Methods;
+    var oldObjectsStore = descriptor.Static ? oldStaticObjects : oldObjects;
 
-      if (!oldObject)
-        JSIL.RuntimeError("Failed to find unrenamed generic interface method");
+    var isAlreadyDefined = true;
+    var oldObject = oldObjectsStore[unqualifiedName];
+    if (!oldObject) {
+      oldObject = interfaceMethodTarget[unqualifiedName];
+      isAlreadyDefined = false;
+    }
 
-      if (!signature.IsClosed) {
-        genericSignature = signature;
-        signature = JSIL.$ResolveGenericMethodSignature(
-          typeObject, genericSignature, resolveContext
-        );
+    if (!oldObject)
+      JSIL.RuntimeError("Failed to find unrenamed generic interface method");
 
-        if (!signature) {
-          if (throwOnFail) {
-            JSIL.RuntimeError("Failed to resolve generic signature", genericSignature);
-          } else {
-            signature = genericSignature;
-          }
+    if (!signature.IsClosed) {
+      genericSignature = signature;
+      signature = JSIL.$ResolveGenericMethodSignature(
+        typeObject, genericSignature, resolveContext
+      );
+
+      if (!signature) {
+        if (throwOnFail) {
+          JSIL.RuntimeError("Failed to resolve generic signature", genericSignature);
+        } else {
+          signature = genericSignature;
         }
       }
-
-      if (!isAlreadyDefined) {
-        var newObject = JSIL.QualifiedMethod.$Rebind(oldObject, typeObject, signature);
-        JSIL.SetValueProperty(publicInterface.$Methods, unqualifiedName, newObject);
-      } else {
-        publicInterface.$Methods[unqualifiedName].InterfaceMethod.RegisterSignature(signature, true);
-      }
-
-      if (!isAlreadyDefined)
-        oldObjects[unqualifiedName] = oldObject;
-
-      if (trace)
-        console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
     }
+
+    if (!isAlreadyDefined) {
+      var newObject = JSIL.QualifiedMethod.$Rebind(oldObject, typeObject, signature);
+      JSIL.SetValueProperty(interfaceMethodTarget, unqualifiedName, newObject);
+    } else {
+      interfaceMethodTarget[unqualifiedName].InterfaceMethod.RegisterSignature(signature, true);
+    }
+
+    if (!isAlreadyDefined)
+      oldObjectsStore[unqualifiedName] = oldObject;
+
+    if (trace)
+      console.log(typeObject.__FullName__ + ": " + unqualifiedName + " rebound");
 
     if (!isInterface) {
       // If the method is already renamed, don't bother trying to rename it again.
@@ -4976,9 +4980,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
 
       typeObject.__Members__.push(member);
 
-      if (!isStatic) {
-        JSIL.QualifiedMethod.Register(publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
-      }
+      JSIL.QualifiedMethod.Register(isStatic ? publicInterface.$StaticMethods : publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
     }
 
     if (isRaw) {
@@ -5104,6 +5106,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", staticClassObject);
     JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
+    JSIL.SetValueProperty(staticClassObject, "$StaticMethods", Object.create(null));
 
     if (typeObject.__GenericArguments__.length > 0) {
       staticClassObject.Of$NoInitialize = $jsilcore.$MakeOf$NoInitialize(staticClassObject);
@@ -5717,6 +5720,7 @@ JSIL.MakeType = function (typeArgs, initializer) {
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", staticClassObject);
     JSIL.SetValueProperty(staticClassObject, "__Type__", typeObject);
     JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
+    JSIL.SetValueProperty(staticClassObject, "$StaticMethods", Object.create(null));
 
     typeObject.__MaxConstructorArguments__ = maxConstructorArguments;
 
@@ -5956,6 +5960,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     JSIL.SetValueProperty(typeObject, "__PublicInterface__", publicInterface);
     JSIL.SetValueProperty(typeObject, "__BaseType__", null);
     JSIL.SetValueProperty(publicInterface, "$Methods", Object.create(null));
+    JSIL.SetValueProperty(publicInterface, "$StaticMethods", Object.create(null));
     typeObject.__CallStack__ = callStack;
     JSIL.SetTypeId(typeObject, publicInterface, JSIL.AssignTypeId(assembly, fullName));
 
@@ -7285,9 +7290,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var isConstructor = (descriptor.EscapedName === "_ctor");
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
 
-  if (!descriptor.Static) {
-    JSIL.QualifiedMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
-  }
+  JSIL.QualifiedMethod.Register(descriptor.Static ? this.publicInterface.$StaticMethods : this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember(memberTypeName, descriptor, { 
@@ -7351,9 +7354,9 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
 
-  // TODO: Externals proper support!
-  if (!descriptor.Static && this.publicInterface.$Methods) {
-    JSIL.QualifiedMethod.Register(this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
+  var target = descriptor.Static ? this.publicInterface.$StaticMethods : this.publicInterface.$Methods;
+  if (target) {
+    JSIL.QualifiedMethod.Register(target, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
   }
 
   if (!this.typeObject.IsInterface) {
@@ -7845,6 +7848,17 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
       argumentNames = ["thisReference", "ga"];
       break;
 
+    case "CallInterfaceStatic":
+      this.useInlineCache = false;
+
+      // Invoking an interface method against a this-reference.
+      // If the method is part of a variant generic interface, we need to do variant 
+      //  lookup. Otherwise, the name is constant and we can dispatch to it directly.
+      isInterfaceCall = true;
+      thisReferenceArg = methodLookupArg = "this.typeObject.__PublicInterface__";
+      argumentNames = ["ga"];
+      break;
+
     default:
       JSIL.RuntimeError("Invalid callMethodName");
   }
@@ -7875,7 +7889,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
   var functionName = (isInterfaceCall ? "InterfaceMethod" : "MethodSignature") + 
       "." + callMethodName;
 
-  if (knownMethodKey && (callMethodName === "CallInterface")) {
+  if (knownMethodKey && (callMethodName === "CallInterface" || callMethodName === "CallInterfaceStatic")) {
     // Generate straightforward closure names for non-variant interface methods.
     functionName += "_" + 
       knownMethodKey;
@@ -7935,7 +7949,7 @@ JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, 
     if (thisReferenceArg !== methodLookupArg)
       result.push(errMethod + thisReferenceExpression +  ", " + methodName + ");");
     else
-      result.push(errMethod + thisReferenceArg +  ", " + methodName + ");");      
+      result.push(errMethod + thisReferenceArg +  ", " + methodName + ");");
 
     result.push(indentation);
   };
@@ -8557,6 +8571,7 @@ JSIL.QualifiedMethod.Register = function (target, typeObject, escapedName, mangl
   var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
   var qualifiedMethod = JSIL.QualifiedMethod(interfaceMethod)
 
+  // I believe we don't need it. Still it may be used in reflection.
   JSIL.SetValueProperty(target, mangledName, qualifiedMethod);
 
   var previousMember = target[escapedName];
@@ -8604,8 +8619,9 @@ JSIL.InterfaceMethod = function (typeObject, methodName, signature, interfaceMem
   });
 };
 
-JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(true); }, true);
-JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallNonVirtual", function () { return this.$MakeCallMethod(false); }, true);
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallStatic", function () { return this.$MakeCallMethod(false, true); }, true);
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(true, false); }, true);
+JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallNonVirtual", function () { return this.$MakeCallMethod(false, false); }, true);
 
 JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
   if (this.__OfCache__ == null) {
@@ -8768,7 +8784,7 @@ JSIL.InterfaceMethod.prototype.LookupVariantMethodKey = function (thisReference,
   return signature != null ? signature.GetNamedKey(this.qualifiedName, true) : this.methodKey;
 };
 
-JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual) {
+JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual, isStatic) {
   if (this.signature == null) {
     var imethod = this;
     return function(thisObject, genericArgs) {
@@ -8787,12 +8803,12 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual) {
       }
     };
   } else if (this.typeObject.__IsClosed__ && this.signature.IsClosed) {
-    var callType = 
-      (this.variantGenericArguments.length > 0) && isVirtual
+    var callType = isStatic ? "CallInterfaceStatic" :
+      ((this.variantGenericArguments.length > 0) && isVirtual
         ? "CallVariantInterface"
-        : "CallInterface";
+        : "CallInterface");
 
-    var methodKey = isVirtual ? this.methodKey : "i$" + this.methodKey;
+    var methodKey = isStatic? this.methodNonQualifiedKey : (isVirtual ? this.methodKey : "i$" + this.methodKey);
 
     return this.signature.$MakeCallMethod(callType, methodKey, this.fallbackMethod);
   } else {
@@ -9820,6 +9836,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments, methodSignat
 
     var staticClassObject = typeObject.__PublicInterface__ = JSIL.CreateSingletonObject(JSIL.StaticClassPrototype);
     JSIL.SetValueProperty(staticClassObject, "$Methods", Object.create(null));
+    JSIL.SetValueProperty(staticClassObject, "$StaticMethods", Object.create(null));
     staticClassObject.__Type__ = typeObject;
     staticClassObject.prototype = JSIL.CreatePrototypeObject($jsilcore.System.MulticastDelegate.prototype);
 

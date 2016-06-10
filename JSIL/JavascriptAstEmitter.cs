@@ -2373,51 +2373,29 @@ namespace JSIL {
                 };
 
                 if (isOverloaded) {
-                    var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
-
                     ReferenceContext.InvokingMethod = jsm.Reference;
-                    if (isStatic) {
-                        SignatureCacher.WriteSignatureToOutput(
-                            Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm.Reference, method.Signature, ReferenceContext, false
-                            );
-                        Output.Dot();
-                        Output.Identifier("CallStatic");
-                        Output.LPar();
+                    SignatureCacher.WriteQualifiedSignatureToOutput(
+                        Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                        jsm, invocation.Method,
+                        ReferenceContext
+                        );
 
-                        Visit(invocation.Type);
-                        Output.Comma();
+                    Output.Dot();
+                    Output.WriteRaw(isStatic ? "CallStatic" : invocation.ExplicitThis ? "CallNonVirtual" : "Call");
 
-                        Output.Value(methodName);
-                        Output.Comma();
-                        genericArgs();
-
-                        if (hasArguments)
-                            Output.Comma();
-                    } else {
-                        SignatureCacher.WriteQualifiedSignatureToOutput(
-                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                            jsm, invocation.Method,
-                            ReferenceContext
-                            );
-
-                        Output.Dot();
-                        Output.WriteRaw(invocation.ExplicitThis ? "CallNonVirtual" : "Call");
-
-                        Output.LPar();
+                    Output.LPar();
+                    if (!isStatic) {
                         Visit(invocation.ThisReference, "ThisReference");
                         Output.Comma();
-
-                        genericArgs();
-
-                        if (hasArguments)
-                            Output.Comma();
                     }
+
+                    genericArgs();
+
+                    if (hasArguments)
+                        Output.Comma();
                 } else {
-                    if (isStatic)
-                    {
-                        if (!invocation.Type.IsNull)
-                        {
+                    if (isStatic) {
+                        if (!invocation.Type.IsNull) {
                             Visit(invocation.Type);
                             Output.Dot();
                         }
@@ -2436,7 +2414,7 @@ namespace JSIL {
                                 Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
                                 jsm, invocation.Method,
                                 ReferenceContext
-                            );
+                                );
 
                             Output.Dot();
                             Output.WriteRaw("Call");
