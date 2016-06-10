@@ -528,9 +528,9 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("CallStatic($thisType, \"A\", "));
+                Assert.IsFalse(generatedJs.Contains("Program.$StaticMethods.A"));
                 Assert.IsTrue(generatedJs.Contains("$thisType.B();"));
-                Assert.IsTrue(generatedJs.Contains("CallStatic($thisType, \"B\", "));
+                Assert.IsTrue(generatedJs.Contains("Program.$StaticMethods.B"));
             } catch {
                 Console.WriteLine(generatedJs);
 
