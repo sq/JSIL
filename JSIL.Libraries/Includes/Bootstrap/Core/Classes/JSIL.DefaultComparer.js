@@ -4,7 +4,7 @@
   function ($) {
     var T = new JSIL.GenericParameter("T", "JSIL.DefaultComparer`1");
 
-    $.Method({}, "Compare",
+    $.Method({ Static: false, Public: true, Virtual: true }, "Compare",
       new JSIL.MethodSignature($.Int32, [T, T], []),
       function Compare(lhs, rhs) {
         if (lhs === null) {
@@ -26,5 +26,12 @@
           return 0;
       }
     );
+
+    $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.IComparer"),
+    $jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [
+      new JSIL.GenericParameter("T", "JSIL.DefaultComparer`1")
+    ])
+  );
   }
 );
