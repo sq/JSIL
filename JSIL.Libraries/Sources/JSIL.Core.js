@@ -8568,16 +8568,15 @@ JSIL.QualifiedMethod = function (interfaceMethod) {
 }
 
 JSIL.QualifiedMethod.Register = function (target, typeObject, escapedName, mangledName, signature, interfaceMemberFallbackMethod, skipExistingCheck) {
-  var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
-  var qualifiedMethod = JSIL.QualifiedMethod(interfaceMethod)
-
   // I believe we don't need it. Still it may be used in reflection.
-  JSIL.SetValueProperty(target, mangledName, qualifiedMethod);
+  //JSIL.SetValueProperty(target, mangledName, qualifiedMethod);
 
   var previousMember = target[escapedName];
   if (previousMember) {
     previousMember.InterfaceMethod.RegisterSignature(signature, skipExistingCheck);
   } else {
+    var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
+    var qualifiedMethod = JSIL.QualifiedMethod(interfaceMethod)
     JSIL.SetValueProperty(target, escapedName, qualifiedMethod);
   }
 }
