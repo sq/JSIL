@@ -2934,10 +2934,10 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     }
 
     if (!isAlreadyDefined) {
-      var newObject = JSIL.QualifiedMethod.$Rebind(oldObject, typeObject, signature);
+      var newObject = JSIL.QualifiedMethod.$Rebind(oldObject, typeObject, member);
       JSIL.SetValueProperty(interfaceMethodTarget, unqualifiedName, newObject);
     } else {
-      interfaceMethodTarget[unqualifiedName].InterfaceMethod.RegisterSignature(signature, true);
+      interfaceMethodTarget[unqualifiedName].InterfaceMethod.RegisterMember(member, true);
     }
 
     if (!isAlreadyDefined)
@@ -4980,7 +4980,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
 
       typeObject.__Members__.push(member);
 
-      JSIL.QualifiedMethod.Register(isStatic ? publicInterface.$StaticMethods : publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member.data.mangledName, member.data.signature, null, true);
+      JSIL.QualifiedMethod.Register(isStatic ? publicInterface.$StaticMethods : publicInterface.$Methods, typeObject, member.descriptor.EscapedName, member, null);
     }
 
     if (isRaw) {
@@ -6874,6 +6874,7 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
     if (existingMembersWithSameNameAndSignature.length > 0) {
       if (forExternal) {
+        return;
         // No need to push this, the external is already implemented. Cool!
       } else {
         // This means that we accidentally implemented the same method twice, or something equally terrible.
@@ -6892,6 +6893,13 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data, m
 
   var record = new JSIL.MemberRecord(type, descriptor, data, memberBuilder.attributes, memberBuilder.overrides);
   Array.prototype.push.call(members, record);
+
+  if (type == "ConstructorInfo" || type == "MethodInfo") {
+    var target = descriptor.Static ? this.publicInterface.$StaticMethods : this.publicInterface.$Methods;
+    if (target) {
+      JSIL.QualifiedMethod.Register(target, this.typeObject, descriptor.EscapedName, record, this.interfaceMemberFallbackMethod);
+    }
+  }
 
   return members.length - 1;
 };
@@ -7290,8 +7298,6 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var isConstructor = (descriptor.EscapedName === "_ctor");
   var memberTypeName = isConstructor ? "ConstructorInfo" : "MethodInfo";
 
-  JSIL.QualifiedMethod.Register(descriptor.Static ? this.publicInterface.$StaticMethods : this.publicInterface.$Methods, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod, true);
-
   var memberBuilder = new JSIL.MemberBuilder(this.context);
   this.PushMember(memberTypeName, descriptor, { 
     signature: signature, 
@@ -7353,11 +7359,6 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var mangledName = signature.GetNamedKey(descriptor.EscapedName, true);
 
   var memberBuilder = new JSIL.MemberBuilder(this.context);
-
-  var target = descriptor.Static ? this.publicInterface.$StaticMethods : this.publicInterface.$Methods;
-  if (target) {
-    JSIL.QualifiedMethod.Register(target, this.typeObject, descriptor.EscapedName, mangledName, signature, this.interfaceMemberFallbackMethod);
-  }
 
   if (!this.typeObject.IsInterface) {
     if (typeof (fn) !== "function")
@@ -8567,22 +8568,23 @@ JSIL.QualifiedMethod = function (interfaceMethod) {
   return result;
 }
 
-JSIL.QualifiedMethod.Register = function (target, typeObject, escapedName, mangledName, signature, interfaceMemberFallbackMethod, skipExistingCheck) {
-  // I believe we don't need it. Still it may be used in reflection.
-  //JSIL.SetValueProperty(target, mangledName, qualifiedMethod);
-
+JSIL.QualifiedMethod.Register = function (target, typeObject, escapedName, memberRecord, interfaceMemberFallbackMethod) {
   var previousMember = target[escapedName];
   if (previousMember) {
-    previousMember.InterfaceMethod.RegisterSignature(signature, skipExistingCheck);
+    previousMember.InterfaceMethod.RegisterMember(memberRecord);
   } else {
-    var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, signature, interfaceMemberFallbackMethod);
+    var interfaceMethod = new JSIL.InterfaceMethod(typeObject, escapedName, memberRecord, interfaceMemberFallbackMethod);
     var qualifiedMethod = JSIL.QualifiedMethod(interfaceMethod)
     JSIL.SetValueProperty(target, escapedName, qualifiedMethod);
   }
 }
 
-JSIL.QualifiedMethod.$Rebind = function (oldQualifiedMethod, newTypeObject, newSignature) {
-  var interfaceMethod = oldQualifiedMethod.InterfaceMethod.Rebind(newTypeObject, newSignature);
+JSIL.QualifiedMethod.$Rebind = function (oldQualifiedMethod, newTypeObject, newMemberRecord) {
+  if (oldQualifiedMethod.InterfaceMethod.__OfCache__ == null) {
+    JSIL.RuntimeError("Rebind of signature-aware InterfaceMethod");
+  }
+
+  var interfaceMethod = new JSIL.InterfaceMethod(newTypeObject, oldQualifiedMethod.InterfaceMethod.methodName, newMemberRecord, oldQualifiedMethod.InterfaceMethod.fallbackMethod);
   return JSIL.QualifiedMethod(interfaceMethod)
 };
 
@@ -8590,16 +8592,18 @@ JSIL.QualifiedMethod.$Of = function (signature) {
   return JSIL.QualifiedMethod(this.InterfaceMethod.Of(signature));
 }
 
-JSIL.InterfaceMethod = function (typeObject, methodName, signature, interfaceMemberFallbackMethod) {
+JSIL.InterfaceMethod = function (typeObject, methodName, memberRecord, interfaceMemberFallbackMethod) {
   this.typeObject = typeObject;
   this.variantGenericArguments = JSIL.$FindVariantGenericArguments(typeObject);
   this.methodName = methodName;
   this.__OfCache__ = {};
 
-  if (signature) {
-    // Important so ICs don't get mixed up.
-    this.signature = signature.Clone(true);
+  if (memberRecord) {
+    this.memberRecord = memberRecord;
+    // Important so ICs don't get mixed up. TODO: Remove it.
+    this.signature = memberRecord.data.signature.Clone(true);
   } else {
+    this.memberRecord = null;
     this.signature = null;
   }
 
@@ -8622,30 +8626,22 @@ JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallStatic", function
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "Call", function () { return this.$MakeCallMethod(true, false); }, true);
 JSIL.SetLazyValueProperty(JSIL.InterfaceMethod.prototype, "CallNonVirtual", function () { return this.$MakeCallMethod(false, false); }, true);
 
-JSIL.InterfaceMethod.prototype.Rebind = function (newTypeObject, newSignature) {
+JSIL.InterfaceMethod.prototype.RegisterMember = function (member, skipExistingCheck) {
   if (this.__OfCache__ == null) {
-    JSIL.RuntimeError("Rebind of signature-aware InterfaceMethod");
+    JSIL.RuntimeError("RegisterMember of signature-aware InterfaceMethod");
   }
-
-  var result = new JSIL.InterfaceMethod(newTypeObject, this.methodName, newSignature, this.fallbackMethod);
-  return result;
-};
-
-JSIL.InterfaceMethod.prototype.RegisterSignature = function (signature, skipExistingCheck) {
-  if (this.__OfCache__ == null) {
-    JSIL.RuntimeError("RegisterSignature of signature-aware InterfaceMethod");
-  }
-  if (signature == null) {
-    JSIL.RuntimeError("InterfaceMethod RegisterSignature should accept non-null signature");
+  if (member == null) {
+    JSIL.RuntimeError("InterfaceMethod RegisterMember should accept non-null signature");
   }
 
   if (this.signature != null) {
-    var selfSignature = this.signature;
+    var selfMemberRecord = this.memberRecord;
     this.signature = null;
-    this.RegisterSignature(selfSignature);
+    this.memberRecord = null;
+    this.RegisterMember(selfMemberRecord);
   }
 
-  var cacheKey = signature.get_Hash();
+  var cacheKey = member.data.signature.get_Hash();
 
   var result = this.__OfCache__[cacheKey];
   if (result) {
@@ -8656,10 +8652,10 @@ JSIL.InterfaceMethod.prototype.RegisterSignature = function (signature, skipExis
     JSIL.RuntimeErrorFormat(
     "InterfaceMethod '{0}' already has registred signature {1}", [
       this.methodName,
-      signature.toString(this.methodName)]);
+      member.data.signature.toString(this.methodName)]);
   }
 
-  var signatureAwareInterfaceMethod = new JSIL.InterfaceMethod(this.typeObject, this.methodName, signature, this.fallbackMethod);
+  var signatureAwareInterfaceMethod = new JSIL.InterfaceMethod(this.typeObject, this.methodName, member, this.fallbackMethod);
   signatureAwareInterfaceMethod.__OfCache__ = null;
 
   this.__OfCache__[cacheKey] = signatureAwareInterfaceMethod;
