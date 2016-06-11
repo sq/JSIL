@@ -1068,9 +1068,6 @@ namespace JSIL.Internal {
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, MethodDefinition method) {
             IMemberInfo result;
-            if (method.Name == "Method1") {
-                
-            }
             bool isReplaced;
             if (BeforeAddProxyMember(proxy, method, out result, out isReplaced))
                 return result;
