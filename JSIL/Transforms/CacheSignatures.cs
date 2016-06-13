@@ -644,8 +644,7 @@ namespace JSIL.Transforms {
         public void WriteQualifiedSignatureToOutput (
             JavascriptFormatter output, Compiler.Extensibility.IAstEmitter astEmitter,
             JSFunctionExpression enclosingFunction,
-            JSMethod jsMethod, JSExpression method,
-            TypeReferenceContext referenceContext) {
+            JSMethod jsMethod, TypeReferenceContext referenceContext) {
 
             int index;
 
@@ -660,10 +659,8 @@ namespace JSIL.Transforms {
                 WriteInterfaceMemberToOutput(
                     output, astEmitter,
                     enclosingFunction,
-                    jsMethod, method,
+                    jsMethod,
                     referenceContext);
-                output.Dot();
-                output.Identifier("InterfaceMethod");
                 //if (!JavascriptAstEmitter.CanUseFastOverloadDispatch(jsMethod.Method, true)) {
                 output.Dot();
                 output.WriteRaw("Of");
@@ -734,9 +731,7 @@ namespace JSIL.Transforms {
         public void WriteInterfaceMemberToOutput (
             JavascriptFormatter output, Compiler.Extensibility.IAstEmitter astEmitter,
             JSFunctionExpression enclosingFunction,
-            JSMethod jsMethod, JSExpression method,
-            TypeReferenceContext referenceContext
-            ) {
+            JSMethod jsMethod, TypeReferenceContext referenceContext) {
             int index;
 
             CachedInterfaceMemberRecord record;

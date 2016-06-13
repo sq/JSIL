@@ -56,11 +56,10 @@ public static class Program
         dGenericBase = iObj.Method<object>;
 
         dIInterface(obj);
-        // Doesn't work due #892
-        //dBase(obj);
-        //dDerived(obj);
-        //dGenericDerived(obj);
-        //dGenericBase(obj);
+        dBase(obj);
+        dDerived(obj);
+        dGenericDerived(obj);
+        dGenericBase(obj);
     }
 
     public static IMethodHolder GetInterfaceHolder()

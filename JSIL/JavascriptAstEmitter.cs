@@ -1275,18 +1275,19 @@ namespace JSIL {
             );
             Output.Comma();
 
-            Output.WriteRaw("\"");
-            Output.Identifier(methodName);
-            Output.WriteRaw("\"");
-            Output.Comma();
+            try
+            {
+                ReferenceContext.Push();
+                ReferenceContext.InvokingMethod = moe.Reference;
+                SignatureCacher.WriteQualifiedSignatureToOutput(
+                    Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                    moe, ReferenceContext);
+            }
+            finally
+            {
+                ReferenceContext.Pop();
+            }
 
-            SignatureCacher.WriteSignatureToOutput(
-                Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                moe.Reference, moe.Method.Signature, ReferenceContext, false
-            );
-            Output.Comma();
-
-            Output.Value(moe.Method.IsStatic);
             Output.Comma();
             Output.Value(moe.IsVirtual);
 
@@ -2376,7 +2377,7 @@ namespace JSIL {
                     ReferenceContext.InvokingMethod = jsm.Reference;
                     SignatureCacher.WriteQualifiedSignatureToOutput(
                         Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                        jsm, invocation.Method,
+                        jsm,
                         ReferenceContext
                         );
 
@@ -2412,8 +2413,7 @@ namespace JSIL {
                         } else {
                             SignatureCacher.WriteInterfaceMemberToOutput(
                                 Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                                jsm, invocation.Method,
-                                ReferenceContext
+                                jsm, ReferenceContext
                                 );
 
                             Output.Dot();
