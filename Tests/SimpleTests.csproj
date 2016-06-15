@@ -114,7 +114,7 @@
     <None Include="SimpleTestCasesForTranslatedBcl\FailsOnMono\Attributes.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
-    <None Include="SimpleTestCases\DelegateOverload_Issue806.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\DelegateOverload_Issue806.cs" />
     <None Include="SimpleTestCases\NullableByRef_Issue810.cs" />
     <None Include="SimpleTestCases\ListConstructor.cs" />
     <None Include="SimpleTestCases\ListICollection.cs" />
