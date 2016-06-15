@@ -11174,8 +11174,8 @@ JSIL.Array.IndexOf = function (array, startIndex, count, value) {
   return -1;
 };
 
-JSIL.MethodPointerInfo = function (typeObject, interfaceMethods, isVirtual, methodGenericParameters) {
-  this.TypeObject = typeObject;
+JSIL.MethodPointerInfo = function (interfaceMethods, isVirtual, methodGenericParameters) {
+  this.TypeObject = interfaceMethods.typeObject;
   this.InterfaceMethod = interfaceMethods;
   this.IsVirtual = isVirtual;
   this.MethodGenericParameters = methodGenericParameters || null;
@@ -11193,7 +11193,6 @@ JSIL.MethodPointerInfo.FromMethodInfo = function (methodInfo) {
   }
 
   var methodPointerInfo = new JSIL.MethodPointerInfo(
-    methodInfo._typeObject.__PublicInterface__,
     methodInfo._typeObject.__PublicInterface__[methodInfo._descriptor.Static ? "$StaticMethods" : "$Methods"][methodInfo._descriptor.EscapedName].InterfaceMethod.Of(signature),
     // TODO: All interface method should declare themselves as virtual
     methodInfo._typeObject.IsInterface || methodInfo._descriptor.Virtual,

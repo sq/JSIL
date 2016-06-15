@@ -1265,15 +1265,8 @@ namespace JSIL {
 
         public void VisitNode(JSMethodPointerInfoExpression moe)
         {
-            var methodName = Util.EscapeIdentifier(moe.Method.GetName(true), EscapingMode.MemberIdentifier);
-
             Output.WriteRaw("new JSIL.MethodPointerInfo");
             Output.LPar();
-
-            Output.Identifier(
-                moe.Reference.DeclaringType, ReferenceContext, IncludeTypeParens.Peek()
-            );
-            Output.Comma();
 
             try
             {

@@ -407,13 +407,13 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        private CachedQualifiedSignatureRecord CacheQulifiedSignature (JSMethod jsm, MethodInfo methodInfo, bool isConstructor) {
+        private CachedQualifiedSignatureRecord CacheQulifiedSignature (JSMethod jsm, bool isConstructor) {
             var declaringType = jsm.Reference.DeclaringType;
             var unexpandedType = declaringType;
             if (!TypeUtil.ExpandPositionalGenericParameters(unexpandedType, out declaringType))
                 declaringType = unexpandedType;
 
-            var rewritenInfo = GenericTypesRewriter.NormalizedQualified(jsm.Reference, methodInfo.Signature, isConstructor);
+            var rewritenInfo = GenericTypesRewriter.NormalizedQualified(jsm.Reference, jsm.Method.Signature, isConstructor);
 
             var memberRecord = new CachedInterfaceMemberRecord(
                 rewritenInfo.CacheRecord.Item1, jsm.Identifier,
@@ -425,7 +425,7 @@ namespace JSIL.Transforms {
                 isConstructor,
                 rewritenInfo.RewritedGenericParameters.Length);
 
-            var record = new CachedQualifiedSignatureRecord(memberRecord, signatureRecord, methodInfo.IsStatic);
+            var record = new CachedQualifiedSignatureRecord(memberRecord, signatureRecord, jsm.Method.IsStatic);
 
             var set = GetCacheSet(false);
 
@@ -578,7 +578,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSMethodPointerInfoExpression methodOf) {
-            CacheSignature(methodOf.Reference, methodOf.Method.Signature, false);
+            CacheQulifiedSignature(methodOf, false);
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
@@ -588,7 +588,6 @@ namespace JSIL.Transforms {
                 method = jsm.Method;
 
             if (method != null) {
-
                 bool isOverloaded = (method.IsOverloadedRecursive && !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"));
 
                 if (isOverloaded && JavascriptAstEmitter.CanUseFastOverloadDispatch(method))
@@ -598,7 +597,7 @@ namespace JSIL.Transforms {
                 bool isNonVirtualCall = (method.IsVirtual || method.IsConstructor) && invocation.ExplicitThis;
 
                 if ((isOverloaded || isNonVirtualCall) && !PackedArrayUtil.IsPackedArrayType(jsm.Reference.DeclaringType)) {
-                    CacheQulifiedSignature(jsm, method, false);
+                    CacheQulifiedSignature(jsm, false);
                 } else {
 
                     if (isFromInterface) {
