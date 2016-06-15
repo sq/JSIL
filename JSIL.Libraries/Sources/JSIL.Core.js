@@ -11206,7 +11206,7 @@ JSIL.MethodPointerInfo.FromMethodInfo = function (methodInfo) {
 JSIL.MethodPointerInfo.prototype.resolveMethodInfo = function () {
   if (!this.MethodInfoResolved) {
     this.MethodInfoResolved = true;
-    this.MethodInfo = JSIL.GetMethodInfo(this.TypeObject, this.InterfaceMethod.memberRecord.descriptor.Name, this.InterfaceMethod.signature, this.InterfaceMethod.memberRecord.descriptor.Static, this.MethodGenericParameters);
+    this.MethodInfo = JSIL.GetMethodInfo(this.TypeObject.__PublicInterface__, this.InterfaceMethod.memberRecord.descriptor.Name, this.InterfaceMethod.signature, this.InterfaceMethod.memberRecord.descriptor.Static, this.MethodGenericParameters);
   }
 
   return this.MethodInfo;
