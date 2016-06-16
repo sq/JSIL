@@ -3,8 +3,16 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
     return ($TaskCompletionSourceOfObject = JSIL.Memoize($jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of($jsilcore.System.Object)))();
   };
 
-  var $TrySetExceptionSignature = function () {
-    return ($TrySetExceptionSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")])))();
+  var $TrySetException = function () {
+    return ($TrySetException = JSIL.Memoize($TaskCompletionSourceOfObject().$Method.TrySetException.InterfaceMethod.Of(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")]))))();
+  };
+
+  var $TrySetResult = function () {
+    return ($TrySetResult = JSIL.Memoize($TaskCompletionSourceOfObject().$Method.TrySetResult.InterfaceMethod))();
+  };
+
+  var $get_Task = function () {
+    return ($get_Task = JSIL.Memoize($TaskCompletionSourceOfObject().$Method.get_Task.InterfaceMethod))();
   };
 
   $.Method({ Static: false, Public: false }, ".ctor",
@@ -50,7 +58,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
   $.Method({ Static: false, Public: true }, "SetResult",
     new JSIL.MethodSignature(null, [], []),
     function SetResult() {
-      return $TaskCompletionSourceOfObject().prototype.TrySetResult.call(this.get_TaskSource(), null);
+      return this.get_TaskSource().TrySetResult(null);
     }
   );
 
@@ -58,14 +66,14 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Exception")], []),
     function SetException(exception) {
       JSIL.Host.warning(exception);
-      $TrySetExceptionSignature().Call($TaskCompletionSourceOfObject().prototype, "TrySetException", null, this.get_TaskSource(), exception);
+      $TrySetException().Call(this.get_TaskSource(), null, exception);
     }
   );
 
   $.Method({ Static: false, Public: true }, "get_Task",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [], []),
     function get_Task() {
-      return $TaskCompletionSourceOfObject().prototype.get_Task.call(this.get_TaskSource());
+      return this.get_TaskSource().get_Task()
     }
   );
 
@@ -80,8 +88,8 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder"
 });
 
 JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1", function ($) {
-  var $TrySetExceptionSignature = function () {
-    return ($TrySetExceptionSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")])))();
+  var $TrySetException = function (typeArg) {
+    var type = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(typeArg).$Method.TrySetException.InterfaceMethod.Of(new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Exception")]));
   };
 
   $.Method({ Static: false, Public: false }, ".ctor",
@@ -127,8 +135,7 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
   $.Method({ Static: false, Public: true }, "SetResult",
     new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1")], []),
     function SetResult(result) {
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
-      return taskCompletionSource.prototype.TrySetResult.call(this.get_TaskSource(), result);
+      this.get_TaskSource().TrySetResult(result);
     }
   );
 
@@ -136,16 +143,14 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.AsyncTaskMethodBuilder`
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Exception")], []),
     function SetException(exception) {
       JSIL.Host.warning(exception);
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
-      $TrySetExceptionSignature().Call(taskCompletionSource.prototype, "TrySetException", null, this.get_TaskSource(), exception);
+      $TrySetException(this.TResult).Call(this.get_TaskSource(), null, exception);
     }
   );
 
   $.Method({ Static: false, Public: true }, "get_Task",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", [new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1")]), [], []),
     function get_Task() {
-      var taskCompletionSource = $jsilcore.System.Threading.Tasks.TaskCompletionSource$b1.Of(this.TResult);
-      return taskCompletionSource.prototype.get_Task.call(this.get_TaskSource());
+      return this.get_TaskSource().get_Task();
     }
   );
 

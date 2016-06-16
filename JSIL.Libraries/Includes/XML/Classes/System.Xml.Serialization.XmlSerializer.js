@@ -77,15 +77,13 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
     });
 
     $.RawMethod(false, "DeserializeInternal", function Deserialize(serializer, reader) {
-        var signature = new JSIL.MethodSignature($.Object, [$xmlasms[16].System.Xml.Serialization.XmlSerializationReader], []);
-
-        return signature.CallVirtual("Deserialize", null, serializer, reader);
+        var method = serializer.__ThisType__.$Methods.Deserialize.InterfaceMethod.Of(new JSIL.MethodSignature($.Object, [$xmlasms[16].System.Xml.Serialization.XmlSerializationReader], []))
+        return method.Call(serializer, null, reader);
     });
 
     $.RawMethod(false, "SerializeInternal", function Serialize(serializer, writer, value) {
-        var signature = new JSIL.MethodSignature(null, [$.Object, $xmlasms[16].System.Xml.Serialization.XmlSerializationWriter], []);
-
-        return signature.CallVirtual("Serialize", null, serializer, value, writer);
+        var method = serializer.__ThisType__.$Methods.Serialize.InterfaceMethod.Of(new JSIL.MethodSignature(null, [$.Object, $xmlasms[16].System.Xml.Serialization.XmlSerializationWriter], []))
+        return method.Cal(serializer, null, value, writer);
     });
 
 

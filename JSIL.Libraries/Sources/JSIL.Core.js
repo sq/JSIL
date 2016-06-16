@@ -2165,17 +2165,17 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName,
       }
     );
 
-    var $formatSignature = function () {
-      return ($formatSignature = JSIL.Memoize(new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [
+    var $format = function () {
+      return ($format = JSIL.Memoize($jsilcore.JSIL.System.NumberFormatter.$StaticMethods.NumberToString.InterfaceMethod.Of(new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [
           $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef(typeName),
           $jsilcore.TypeRef("System.IFormatProvider")
-      ])))();
+      ]))))();
     };
 
     $.RawMethod(
       true, "$ToString",
       function $ToString(self, format, formatProvider) {
-        return $formatSignature().CallStatic($jsilcore.JSIL.System.NumberFormatter, "NumberToString", null, format, self, formatProvider).toString();
+        return $format().CallStatic(null, format, self, formatProvider).toString();
       }
     );
     
@@ -7555,22 +7555,16 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   if (JSIL.IsArray(genericArgumentValues)){
     this.genericArgumentValues = genericArgumentValues;
   }
-
-  this.recompileCount = 0;
-  this.useInlineCache = JSIL.MethodSignature.EnableInlineCaches;
-  this.inlineCacheEntries = [];
-  this.isInterfaceSignature = false;
 };
 
 JSIL.MethodSignature.prototype = JSIL.CreatePrototypeObject(JSIL.SignatureBase.prototype);
 
-JSIL.MethodSignature.prototype.Clone = function (isInterfaceSignature) {
+JSIL.MethodSignature.prototype.Clone = function () {
   var result = new JSIL.MethodSignature(
     this.returnType, this.argumentTypes, this.genericArgumentNames,
     this.context, this.openSignature, this.genericArgumentValues
   );
 
-  result.isInterfaceSignature = isInterfaceSignature;
   return result;
 };
 
@@ -7625,20 +7619,6 @@ JSIL.MethodSignature.Action = function (argumentType) {
   return result;
 };
 
-JSIL.SetLazyValueProperty(
-  JSIL.MethodSignature.prototype, "Call", 
-  function () { return this.$MakeCallMethod("Call", null, null); }, true, false
-);
-
-JSIL.SetLazyValueProperty(
-  JSIL.MethodSignature.prototype, "CallStatic", 
-  function () { return this.$MakeCallMethod("CallStatic", null, null); }, true, false
-);
-
-JSIL.SetLazyValueProperty(
-  JSIL.MethodSignature.prototype, "CallVirtual", 
-  function () { return this.$MakeCallMethod("CallVirtual", null, null); }, true, false
-);
 
 JSIL.MethodSignature.prototype.Resolve = function (name) {
   var argTypes = [];
@@ -7742,15 +7722,6 @@ JSIL.MethodSignature.$EmitInvocation = function (
 };
 
 
-// Used as a global cache for generated invocation method bodies.
-// Caching them reduces memory usage but probably ruins type info, so we're not
-// going to do it by default.
-if (false) {
-  JSIL.MethodSignature.$CallMethodCache = JSIL.CreateDictionaryObject(null);
-} else {
-  JSIL.MethodSignature.$CallMethodCache = null;
-}
-
 // Control whether generated ICs check argument & generic argument counts.
 // Shouldn't ever be necessary, but it's a useful debugging tool.
 JSIL.MethodSignature.CheckArgumentCount = false;
@@ -7769,477 +7740,6 @@ JSIL.MethodSignatureInlineCacheEntry.prototype.equals = function (name, typeId, 
     (this.methodKey === methodKey);
 };
 
-
-JSIL.MethodSignature.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey, fallbackMethod) {
-  // Welcome to optimization hell! Enjoy your stay.
-
-  var returnType = this.returnType;
-  var argumentTypes = this.argumentTypes;
-  var genericArgumentNames = this.genericArgumentNames;
-
-  var argumentNames;
-  var methodLookupArg, thisReferenceArg;
-  var suffix;
-  var isInterfaceCall = false;
-
-  // We're generating an optimized inline cache or invocation thunk that handles 
-  //  method dispatch for four different types of calls. They are all similar.
-
-  switch (callMethodName) {
-    case "CallStatic":
-      // Invoking a specific static method of a given type. There's no this-reference.
-      // methodSource is the public interface of the type, we can call off it directly.
-      thisReferenceArg = methodLookupArg = "methodSource";
-      argumentNames = ["methodSource", "name", "ga"];
-      break;
-
-    case "Call":
-      // Invoking a specific method against a specific object instance.
-      thisReferenceArg = "thisReference";
-      methodLookupArg = "methodSource";
-      argumentNames = ["methodSource", "name", "ga", "thisReference"];
-      break;
-
-    case "CallVirtual":
-      // Invoking a specific virtual method of a specific object instance.
-      // The thisReference is the source of the method so we can call off it directly.
-      suffix = "Virtual";
-      thisReferenceArg = methodLookupArg = "thisReference";
-      argumentNames = ["name", "ga", "thisReference"];
-      break;
-
-    case "CallInterface":
-    case "CallVariantInterface":
-      // Interface calls that are non-variant don't need an IC. Their target is constant.
-      if (callMethodName === "CallInterface")
-        this.useInlineCache = false;
-
-      // Invoking an interface method against a this-reference.
-      // If the method is part of a variant generic interface, we need to do variant 
-      //  lookup. Otherwise, the name is constant and we can dispatch to it directly.
-      isInterfaceCall = true;
-      thisReferenceArg = methodLookupArg = "thisReference";
-      argumentNames = ["thisReference", "ga"];
-      break;
-
-    case "CallInterfaceStatic":
-      this.useInlineCache = false;
-
-      // Invoking an interface method against a this-reference.
-      // If the method is part of a variant generic interface, we need to do variant 
-      //  lookup. Otherwise, the name is constant and we can dispatch to it directly.
-      isInterfaceCall = true;
-      thisReferenceArg = methodLookupArg = "this.typeObject.__PublicInterface__";
-      argumentNames = ["ga"];
-      break;
-
-    default:
-      JSIL.RuntimeError("Invalid callMethodName");
-  }
-
-
-  for (var i = 0, l = argumentTypes.length; i < l; i++) {
-    var argumentName = "arg" + i;
-    argumentNames.push(argumentName);
-  }
-
-  var requiredArgumentCount = argumentNames.length;
-  var argumentCheckOperator = "!==";
-
-  // HACK to allow simple 'method.call(x)' form for zero-argument, non-generic methods.
-  if ((genericArgumentNames.length === 0) && (argumentTypes.length === 0)) {
-    requiredArgumentCount = 1;
-    argumentCheckOperator = "<";
-  }
-
-
-  // We attempt to generate unique-enough and friendly names for our generated closures.
-  // These names make it clear what the IC is for and how many times it has been recompiled.
-  // The recompile count is important; otherwise some debuggers overwrite older compiles
-  //  with new ones, making it confusing to debug.
-
-  this.recompileCount += 1;
-
-  var functionName = (isInterfaceCall ? "InterfaceMethod" : "MethodSignature") + 
-      "." + callMethodName;
-
-  if (knownMethodKey && (callMethodName === "CallInterface" || callMethodName === "CallInterfaceStatic")) {
-    // Generate straightforward closure names for non-variant interface methods.
-    functionName += "_" + 
-      knownMethodKey;
-  } else {
-    functionName += 
-      "$" + genericArgumentNames.length + 
-      "$" + argumentTypes.length;
-  }
-
-  if (this.useInlineCache)
-    functionName += "$inlineCache" + this.recompileCount;  
-
-
-  var body = [];
-
-  // Check the # of provided arguments to detect an invalid invocation.
-  if (JSIL.MethodSignature.CheckArgumentCount) {
-    body.push("var argc = arguments.length | 0;");
-    body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ")");
-    body.push("  JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
-  }
-
-
-  // If the function accepts generic arguments, we need to do a check to ensure
-  //  that the appropriate # of arguments were passed.
-  if (genericArgumentNames.length > 0) {
-    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
-      body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
-      body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
-    }
-    body.push("JSIL.ResolveTypeArgumentArray(ga);");
-    body.push("");
-  } else {
-    // If it doesn't accept them, and we're in validation mode, insert a check.
-    // This wastes cycles normally so we don't always want to put it in there.
-    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
-      body.push("if (ga && ga.length > 0)");
-      body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
-      body.push("");
-    }
-  }
-
-
-  var nameIdentifier = "name";
-  var thisReferenceExpression = null;
-
-  if (methodLookupArg !== thisReferenceArg)
-    thisReferenceExpression = thisReferenceArg;
-
-
-  var emitMissingMethodCheck = function (result, methodExpression, methodName, indentation) {
-    var errMethod =
-      indentation + "  " +
-      ((callMethodName === "CallStatic") ? "this.$StaticMethodNotFound(" : "this.$MethodNotFound(");
-
-    result.push(indentation + "if (!" + methodExpression + ")");
-    if (thisReferenceArg !== methodLookupArg)
-      result.push(errMethod + thisReferenceExpression +  ", " + methodName + ");");
-    else
-      result.push(errMethod + thisReferenceArg +  ", " + methodName + ");");
-
-    result.push(indentation);
-  };
-
-  var emitMethodKey = function (indentation) {
-    // Look up the actual method key, update the IC...
-    body.push(indentation + "var methodKey = " + getMethodKeyLookup() + ";");
-  }
-
-  // When an IC is enabled, if a cache miss occurs we update the IC before finally
-  //  doing a typical invocation.
-  var emitCacheMissInvocation = function (indentation) {
-    // Interface ICs are keyed off the type ID of the this-reference.
-    // Non-interface ICs are keyed off method name.
-    var typeIdExpression =
-      isInterfaceCall
-        ? "typeId"
-        : "null";
-
-    // Interface ICs live on the InterfaceMethod's signature.
-    var cacheMissMethod =
-      isInterfaceCall
-        ? "this.signature.$InlineCacheMiss(this, '"
-        : "this.$InlineCacheMiss(this, '";
-
-    // Update the IC...
-    body.push(
-      indentation + cacheMissMethod +
-      callMethodName + "', " +
-      nameIdentifier + ", " +
-      typeIdExpression + ", methodKey" +
-      ", " + (fallbackMethod ? "fallbackMethod" : "null") + ");"
-    );
-  };
-
-  // This is the path used for simple invocations - no IC, etc.
-  var emitDefaultInvocation = function (indentation, methodKeyToken, shouldEmitCacheMissInvocation) {
-    // For every invocation type other than Call, the this-reference will
-    //  automatically bind thanks to JS call semantics.
-    var methodName = (callMethodName === "Call")
-      ? methodLookupArg + "[" + methodKeyToken + "].call"
-      : methodLookupArg + "[" + methodKeyToken + "]";
-
-    if (fallbackMethod) {
-      body.push(indentation + "var methodReference = " + methodName + ";");    
-      body.push(indentation + "if (!methodReference) {");
-      body.push(indentation + "  methodReference = fallbackMethod(this.typeObject, this, thisReference);");
-      emitMissingMethodCheck(body, "methodReference", methodKeyToken, indentation + "  ");
-      if (shouldEmitCacheMissInvocation) {
-        body.push(indentation + "} else {");
-        emitCacheMissInvocation(indentation + "  ");
-        body.push(indentation + "}");
-      } else {
-        body.push(indentation + "}");
-      }
-      body.push("");
-
-      JSIL.MethodSignature.$EmitInvocation(
-        body, "methodReference.call", "thisReference", 
-        (!!returnType) ? "return " : "", 
-        argumentTypes, genericArgumentNames,
-        false, indentation
-      );
-    } else {
-      if (shouldEmitCacheMissInvocation) {
-        emitCacheMissInvocation(indentation);
-      }
-      emitMissingMethodCheck(body, methodName, methodKeyToken, "");
-
-      JSIL.MethodSignature.$EmitInvocation(
-        body, methodName, thisReferenceExpression, 
-        (!!returnType) ? "return " : "", 
-        argumentTypes, genericArgumentNames,
-        false, indentation
-      );
-    }
-  };
-
-
-  // The 'method key' used to find the method in the method source depends on
-  //  the call scenario.
-  var getMethodKeyLookup = function () {
-    if (isInterfaceCall) {
-      if (callMethodName === "CallVariantInterface") {
-        return "this.LookupVariantMethodKey(thisReference)";
-      } else if (knownMethodKey) {
-        return "\"" + knownMethodKey + "\"";
-      } else {
-        return "this.methodKey";
-      }
-    } else {
-      if (callMethodName === "CallVirtual") {
-        return "this.LookupVariantMethodKey(name, thisReference)";
-      } else {
-        return "this.LookupVariantMethodKey(name, null)";
-      }
-    }
-  };
-
-  var emitCacheMissAndDefaultInvocation = function (indentation, shouldEmitCacheMissInvocation) {
-    if (shouldEmitCacheMissInvocation) {
-      emitMethodKey(indentation);
-      emitDefaultInvocation(indentation, "methodKey", true);
-    } else {
-      emitDefaultInvocation("", getMethodKeyLookup(), false);
-    }
-  }
-
-  if (this.useInlineCache) {
-    // Crazy inline cache nonsense time!
-
-    // Look up the type ID of the this-reference for interface calls. We'll be using it a lot.
-    if (isInterfaceCall) {
-      nameIdentifier = "null";
-      body.push("var typeId = thisReference.__ThisTypeId__;");
-    }
-
-    // Generate the lookup switch for the IC, along with IC management code.
-    for (var i = 0, l = this.inlineCacheEntries.length; i < l; i++) {
-      var entry = this.inlineCacheEntries[i];
-
-      // Check to see if the cache entry matches. Note that the condition depends
-      //  on whether this is an interface method IC.
-      // FIXME: Can the key end up with a single quote in it, or a backslash?
-      var conditionExpression = 
-        isInterfaceCall
-          ? "\"" + entry.typeId + "\""
-          : "\"" + entry.name + "\"";
-
-      // So, you might be asking yourself... why a switch block keyed on the name?
-      // It's a good question. The first IC implementation built a name -> index
-      //  dictionary, and looked up the name in the dictionary to choose the method
-      //  to call. This was a performance improvement.
-      // The key observation, however, is that the value of these ICs is actually for
-      //  inlining. If the call target is known, inlining can occur more easily,
-      //  and once a method is inlining lots of cool new optimizations become possible.
-      // In an ideal world, *both* this IC *and* the call target will be inlined,
-      //  so we want to design the IC to make this possible and make it *fast*.
-      // The old table lookup is not particularly optimizer-friendly. Even if it inlined
-      //  the IC, it wouldn't have any easy way to know that the table lookup
-      //  was constant.
-      // Replacing the table lookup with a switch (or if statements, even) keyed on
-      //  the name/typeId means that once inlined, the IC looks like this:
-      //
-      //  function ic (name /* = 'knownName' */, ...) {
-      //    if (name === 'knownName' /* true */) {
-      //      ...
-      //    } else if (name === 'otherKnownName' /* false */) {
-      //    ...
-      //
-      // Thanks to the inline, the JIT now has all the information it needs to
-      //  *completely* optimize out the IC. It can kill all the false branch
-      //  conditions and it's only left with the true branch - which calls a specific
-      //  known method directly on the provided this-reference.
-      // In most scenarios the method name being passed into the IC is a constant,
-      //  so it's fairly likely that inlining can happen and that it will optimize this way.
-      // Finally, in testing switch statements were not found to be any slower than
-      //  if statements, so we generate an if statement. The generated code is denser
-      //  and clearer, which is nice, and it makes it less work for the JIT to figure
-      //  out that it can use a jump table or whatever it likes in the case where
-      //  we aren't optimized out entirely.
-
-      if (i === 0) {
-        body.push(
-          "switch (" +
-          (isInterfaceCall
-            ? "typeId"
-            : "name") +
-          ") {"
-        );
-      }
-
-      body.push(
-        "  case " + conditionExpression + ": "
-      );
-
-      // For every invocation type other than Call, the this-reference will
-      //  automatically bind thanks to JS call semantics.
-      var methodName = (callMethodName === "Call")
-        ? methodLookupArg + "['" + entry.methodKey + "'].call"
-        : methodLookupArg + "['" + entry.methodKey + "']";
-
-      emitMissingMethodCheck(body, methodName, "'" + entry.methodKey + "'", "    ");
-
-      // This inline cache entry matches, so build an appropriate invocation.
-      JSIL.MethodSignature.$EmitInvocation(
-        body, methodName, thisReferenceExpression, 
-        (!!returnType) ? "return " : "", 
-        argumentTypes, genericArgumentNames,
-        false, "    "
-      );
-
-      body.push("  break;");
-      body.push("  ");
-    }
-
-
-    if (this.inlineCacheEntries.length >= 1) {
-      body.push("  default: ");
-      emitCacheMissAndDefaultInvocation("    ", true);
-      body.push("}");
-      body.push("");
-    } else {
-      emitCacheMissAndDefaultInvocation("", true);
-    }
-
-  } else {
-    emitCacheMissAndDefaultInvocation("", false);
-  }
-
-  var joinedBody = body.join("\r\n");
-  var closure = null;
-  if (fallbackMethod)
-    closure = { fallbackMethod: fallbackMethod };
-
-  return JSIL.CreateNamedFunction(
-    functionName,
-    argumentNames,
-    joinedBody,
-    closure
-  );
-};
-
-JSIL.MethodSignature.prototype.$StaticMethodNotFound = function (publicInterface, methodName) {
-  JSIL.RuntimeErrorFormat(
-    "No static method with signature '{0}' found in context '{1}'", [
-      this.toString(methodName), 
-      publicInterface
-    ]
-  );
-};
-
-JSIL.MethodSignature.prototype.$MethodNotFound = function (thisReference, methodName) {
-  JSIL.RuntimeErrorFormat(
-    "No method with signature '{0}' found on instance '{1}'", [
-      this.toString(methodName), 
-      thisReference
-    ]
-  );
-};
-
-JSIL.MethodSignature.prototype.$MakeCallMethod = function (callMethodName, knownMethodKey, fallbackMethod) {
-  // FIXME: Is this correct? I think having all instances of a given unique signature
-  //  share the same IC is probably correct.
-  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
-
-  if (JSIL.MethodSignature.$CallMethodCache) {
-    var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
-    if (cachedResult)
-      return cachedResult;
-  }
-
-  var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey, fallbackMethod);
-
-  if (JSIL.MethodSignature.$CallMethodCache) {
-    JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
-  }
-
-  return result;
-};
-
-JSIL.MethodSignature.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey, fallbackMethod) {
-  if (!this.useInlineCache)
-    return;
-
-  // FIXME: This might be too small.
-  var inlineCacheCapacity = 3;
-  var numEntries = this.inlineCacheEntries.length | 0;
-
-  if (numEntries >= inlineCacheCapacity) {
-    // Once the IC gets too large we convert it back to a simple invocation method.
-    // This is important since these ICs are only a big optimization if the JIT is
-    //  able to inline them into the caller (so the conditionals become free).
-    // Making an IC too big will prevent inlining and at that point it's not gonna
-    //  be particularly fast or worthwhile.
-    this.inlineCacheEntries = null;
-    this.useInlineCache = false;
-
-    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
-  } else {
-    for (var i = 0; i < numEntries; i++) {
-      var entry = this.inlineCacheEntries[i];
-
-      // Our caller is an expired inline cache function.
-      if (entry.equals(name, typeId, methodKey)) {
-        // Some bugs cause this to happen over and over so perf sucks.
-        // JSIL.RuntimeError("Inline cache miss w/ pending recompile.");
-        return;
-      }
-    }
-
-    // If we had a cache miss and the target doesn't have an entry, add it and recompile.
-    var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
-    this.inlineCacheEntries.push(newEntry);
-    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
-  }
-};
-
-JSIL.MethodSignature.prototype.$RecompileInlineCache = function (target, callMethodName, fallbackMethod) {
-  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);  
-  var newFunction = this.$MakeInlineCacheBody(callMethodName, target.methodKey || null, fallbackMethod);
-
-  if (JSIL.MethodSignature.$CallMethodCache) {
-    JSIL.MethodSignature.$CallMethodCache[cacheKey] = newFunction;
-  }
-
-  // HACK
-  var propertyName = this.isInterfaceSignature
-    ? "Call"
-    : callMethodName;
-
-  // Once we've recompiled the inline cache, overwrite the old one on the target.
-  // Note that this is not 'this' because for interface methods, the IC is managed
-  //  by their signature but lives on the interface method object instead.
-  JSIL.SetValueProperty(target, propertyName, newFunction); 
-};
 
 JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
   if (this._genericSuffix !== null)
@@ -8563,6 +8063,10 @@ JSIL.InterfaceMethod = function (typeObject, methodName, methodInfo) {
   this.methodName = methodName;
   this.__OfCache__ = {};
 
+  this.recompileCount = 0;
+  this.useInlineCache = JSIL.MethodSignature.EnableInlineCaches;
+  this.inlineCacheEntries = [];
+
   if (methodInfo) {
     if (methodInfo._interfaceMethod != null) {
       JSIL.RuntimeError("MethodInfo already connected with InterfaceMethod");
@@ -8570,8 +8074,7 @@ JSIL.InterfaceMethod = function (typeObject, methodName, methodInfo) {
 
     this.methodInfo = methodInfo;
     methodInfo._interfaceMethod = this;
-    // Important so ICs don't get mixed up. TODO: Remove cloning.
-    this.signature = methodInfo._data.signature.Clone(true);
+    this.signature = methodInfo._data.signature;
     this.fallbackMethod = (!methodInfo.IsStatic && typeObject.__FallbackMethod__) || null
   } else {
     this.methodInfo = null;
@@ -8774,7 +8277,7 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual, isStatic) 
 
     var methodKey = isStatic? this.methodNonQualifiedKey : (isVirtual ? this.methodKey : "i$" + this.methodKey);
 
-    return this.signature.$MakeCallMethod(callType, methodKey, this.fallbackMethod);
+    return this.$MakeInlineCacheBody(callType, methodKey, this.fallbackMethod);
   } else {
     return function () {
       JSIL.RuntimeError("Cannot invoke method '" + this.methodName + "' of open generic interface '" + this.typeObject.__FullName__ + "'");
@@ -8782,12 +8285,408 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual, isStatic) 
   }
 };
 
-JSIL.InterfaceMethod.prototype.toString = function () {
-  // HACK: This makes it possible to do
-  //  MethodSignature.CallVirtual(IFoo.Method, thisReference)
-  return this.qualifiedName;
+
+JSIL.InterfaceMethod.prototype.$MakeInlineCacheBody = function (callMethodName, knownMethodKey, fallbackMethod) {
+  // Welcome to optimization hell! Enjoy your stay.
+
+  var returnType = this.signature.returnType;
+  var argumentTypes = this.signature.argumentTypes;
+  var genericArgumentNames = this.signature.genericArgumentNames;
+
+  var argumentNames;
+  var methodLookupArg, thisReferenceArg;
+  var suffix;
+
+  // We're generating an optimized inline cache or invocation thunk that handles 
+  //  method dispatch for four different types of calls. They are all similar.
+
+  // Interface calls that are non-variant don't need an IC. Their target is constant.
+  if (callMethodName !== "CallVariantInterface") {
+    this.useInlineCache = false;
+  }
+
+  switch (callMethodName) {
+    case "CallVariantInterface":
+    case "CallInterface":
+      // Invoking an interface method against a this-reference.
+      // If the method is part of a variant generic interface, we need to do variant 
+      //  lookup. Otherwise, the name is constant and we can dispatch to it directly.
+      thisReferenceArg = methodLookupArg = "thisReference";
+      argumentNames = ["thisReference", "ga"];
+      break;
+
+    case "CallInterfaceStatic":
+      // Invoking an interface method against a this-reference.
+      // If the method is part of a variant generic interface, we need to do variant 
+      //  lookup. Otherwise, the name is constant and we can dispatch to it directly.
+      thisReferenceArg = methodLookupArg = "this.typeObject.__PublicInterface__";
+      argumentNames = ["ga"];
+      break;
+
+    default:
+      JSIL.RuntimeError("Invalid callMethodName");
+  }
+
+
+  for (var i = 0, l = argumentTypes.length; i < l; i++) {
+    var argumentName = "arg" + i;
+    argumentNames.push(argumentName);
+  }
+
+  var requiredArgumentCount = argumentNames.length;
+  var argumentCheckOperator = "!==";
+
+  // HACK to allow simple 'method.call(x)' form for zero-argument, non-generic methods.
+  if ((genericArgumentNames.length === 0) && (argumentTypes.length === 0)) {
+    requiredArgumentCount = 1;
+    argumentCheckOperator = "<";
+  }
+
+
+  // We attempt to generate unique-enough and friendly names for our generated closures.
+  // These names make it clear what the IC is for and how many times it has been recompiled.
+  // The recompile count is important; otherwise some debuggers overwrite older compiles
+  //  with new ones, making it confusing to debug.
+
+  this.recompileCount += 1;
+
+  var functionName = "InterfaceMethod." + callMethodName + "_" + knownMethodKey;
+
+  if (this.useInlineCache)
+    functionName += "$inlineCache" + this.recompileCount;
+
+  var body = [];
+
+  // Check the # of provided arguments to detect an invalid invocation.
+  if (JSIL.MethodSignature.CheckArgumentCount) {
+    body.push("var argc = arguments.length | 0;");
+    body.push("if (argc " + argumentCheckOperator + " " + requiredArgumentCount + ")");
+    body.push("  JSIL.RuntimeError('" + requiredArgumentCount + " argument(s) required, ' + argc + ' provided.');");
+  }
+
+
+  // If the function accepts generic arguments, we need to do a check to ensure
+  //  that the appropriate # of arguments were passed.
+  if (genericArgumentNames.length > 0) {
+    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
+      body.push("if (!ga || ga.length !== " + genericArgumentNames.length + ")");
+      body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
+    }
+    body.push("JSIL.ResolveTypeArgumentArray(ga);");
+    body.push("");
+  } else {
+    // If it doesn't accept them, and we're in validation mode, insert a check.
+    // This wastes cycles normally so we don't always want to put it in there.
+    if (JSIL.MethodSignature.CheckGenericArgumentCount) {
+      body.push("if (ga && ga.length > 0)");
+      body.push("  JSIL.RuntimeError('Invalid number of generic arguments');");
+      body.push("");
+    }
+  }
+
+
+  var nameIdentifier = "name";
+  var thisReferenceExpression = null;
+
+  if (methodLookupArg !== thisReferenceArg)
+    thisReferenceExpression = thisReferenceArg;
+
+
+  var emitMissingMethodCheck = function (result, methodExpression, methodName, indentation) {
+    var errMethod =
+      indentation + "  " +
+      ((callMethodName === "CallStatic") ? "this.$StaticMethodNotFound(" : "this.$MethodNotFound(");  //TODO
+
+    result.push(indentation + "if (!" + methodExpression + ")");
+    if (thisReferenceArg !== methodLookupArg)
+      result.push(errMethod + thisReferenceExpression + ", " + methodName + ");");
+    else
+      result.push(errMethod + thisReferenceArg + ", " + methodName + ");");
+
+    result.push(indentation);
+  };
+
+  var emitMethodKey = function (indentation) {
+    // Look up the actual method key, update the IC...
+    body.push(indentation + "var methodKey = " + getMethodKeyLookup() + ";");
+  }
+
+  // When an IC is enabled, if a cache miss occurs we update the IC before finally
+  //  doing a typical invocation.
+  var emitCacheMissInvocation = function (indentation) {
+    // Interface ICs are keyed off the type ID of the this-reference.
+    // Non-interface ICs are keyed off method name.
+    var typeIdExpression = "typeId";
+
+    // Interface ICs live on the InterfaceMethod's signature.
+    var cacheMissMethod = "this.$InlineCacheMiss(this, '";
+
+    // Update the IC...
+    body.push(
+      indentation + cacheMissMethod +
+      callMethodName + "', " +
+      nameIdentifier + ", " +
+      typeIdExpression + ", methodKey" +
+      ", " + (fallbackMethod ? "fallbackMethod" : "null") + ");"
+    );
+  };
+
+  // This is the path used for simple invocations - no IC, etc.
+  var emitDefaultInvocation = function (indentation, methodKeyToken, shouldEmitCacheMissInvocation) {
+    // For every invocation type other than Call, the this-reference will
+    //  automatically bind thanks to JS call semantics.
+    var methodName = (callMethodName === "Call")
+      ? methodLookupArg + "[" + methodKeyToken + "].call"
+      : methodLookupArg + "[" + methodKeyToken + "]";
+
+    if (fallbackMethod) {
+      body.push(indentation + "var methodReference = " + methodName + ";");
+      body.push(indentation + "if (!methodReference) {");
+      body.push(indentation + "  methodReference = fallbackMethod(this.typeObject, this, thisReference);");
+      emitMissingMethodCheck(body, "methodReference", methodKeyToken, indentation + "  ");
+      if (shouldEmitCacheMissInvocation) {
+        body.push(indentation + "} else {");
+        emitCacheMissInvocation(indentation + "  ");
+        body.push(indentation + "}");
+      } else {
+        body.push(indentation + "}");
+      }
+      body.push("");
+
+      JSIL.MethodSignature.$EmitInvocation(
+        body, "methodReference.call", "thisReference",
+        (!!returnType) ? "return " : "",
+        argumentTypes, genericArgumentNames,
+        false, indentation
+      );
+    } else {
+      if (shouldEmitCacheMissInvocation) {
+        emitCacheMissInvocation(indentation);
+      }
+      emitMissingMethodCheck(body, methodName, methodKeyToken, "");
+
+      JSIL.MethodSignature.$EmitInvocation(
+        body, methodName, thisReferenceExpression,
+        (!!returnType) ? "return " : "",
+        argumentTypes, genericArgumentNames,
+        false, indentation
+      );
+    }
+  };
+
+
+  // The 'method key' used to find the method in the method source depends on
+  //  the call scenario.
+  var getMethodKeyLookup = function () {
+      if (callMethodName === "CallVariantInterface") {
+        return "this.LookupVariantMethodKey(thisReference)";
+      } else if (knownMethodKey) {
+        return "\"" + knownMethodKey + "\"";
+      }
+  };
+
+  var emitCacheMissAndDefaultInvocation = function (indentation, shouldEmitCacheMissInvocation) {
+    if (shouldEmitCacheMissInvocation) {
+      emitMethodKey(indentation);
+      emitDefaultInvocation(indentation, "methodKey", true);
+    } else {
+      emitDefaultInvocation("", getMethodKeyLookup(), false);
+    }
+  }
+
+  if (this.useInlineCache) {
+    // Crazy inline cache nonsense time!
+
+    // Look up the type ID of the this-reference for interface calls. We'll be using it a lot.
+    nameIdentifier = "null";
+    body.push("var typeId = thisReference.__ThisTypeId__;");
+
+    // Generate the lookup switch for the IC, along with IC management code.
+    for (var i = 0, l = this.inlineCacheEntries.length; i < l; i++) {
+      var entry = this.inlineCacheEntries[i];
+
+      // Check to see if the cache entry matches. Note that the condition depends
+      //  on whether this is an interface method IC.
+      // FIXME: Can the key end up with a single quote in it, or a backslash?
+      var conditionExpression = "\"" + entry.typeId + "\"";
+
+      // So, you might be asking yourself... why a switch block keyed on the name?
+      // It's a good question. The first IC implementation built a name -> index
+      //  dictionary, and looked up the name in the dictionary to choose the method
+      //  to call. This was a performance improvement.
+      // The key observation, however, is that the value of these ICs is actually for
+      //  inlining. If the call target is known, inlining can occur more easily,
+      //  and once a method is inlining lots of cool new optimizations become possible.
+      // In an ideal world, *both* this IC *and* the call target will be inlined,
+      //  so we want to design the IC to make this possible and make it *fast*.
+      // The old table lookup is not particularly optimizer-friendly. Even if it inlined
+      //  the IC, it wouldn't have any easy way to know that the table lookup
+      //  was constant.
+      // Replacing the table lookup with a switch (or if statements, even) keyed on
+      //  the name/typeId means that once inlined, the IC looks like this:
+      //
+      //  function ic (name /* = 'knownName' */, ...) {
+      //    if (name === 'knownName' /* true */) {
+      //      ...
+      //    } else if (name === 'otherKnownName' /* false */) {
+      //    ...
+      //
+      // Thanks to the inline, the JIT now has all the information it needs to
+      //  *completely* optimize out the IC. It can kill all the false branch
+      //  conditions and it's only left with the true branch - which calls a specific
+      //  known method directly on the provided this-reference.
+      // In most scenarios the method name being passed into the IC is a constant,
+      //  so it's fairly likely that inlining can happen and that it will optimize this way.
+      // Finally, in testing switch statements were not found to be any slower than
+      //  if statements, so we generate an if statement. The generated code is denser
+      //  and clearer, which is nice, and it makes it less work for the JIT to figure
+      //  out that it can use a jump table or whatever it likes in the case where
+      //  we aren't optimized out entirely.
+
+      if (i === 0) {
+        body.push(
+          "switch (typeId) {"
+        );
+      }
+
+      body.push(
+        "  case " + conditionExpression + ": "
+      );
+
+      // For every invocation type other than Call, the this-reference will
+      //  automatically bind thanks to JS call semantics.
+      var methodName = (callMethodName === "Call")
+        ? methodLookupArg + "['" + entry.methodKey + "'].call"
+        : methodLookupArg + "['" + entry.methodKey + "']";
+
+      emitMissingMethodCheck(body, methodName, "'" + entry.methodKey + "'", "    ");
+
+      // This inline cache entry matches, so build an appropriate invocation.
+      JSIL.MethodSignature.$EmitInvocation(
+        body, methodName, thisReferenceExpression,
+        (!!returnType) ? "return " : "",
+        argumentTypes, genericArgumentNames,
+        false, "    "
+      );
+
+      body.push("  break;");
+      body.push("  ");
+    }
+
+
+    if (this.inlineCacheEntries.length >= 1) {
+      body.push("  default: ");
+      emitCacheMissAndDefaultInvocation("    ", true);
+      body.push("}");
+      body.push("");
+    } else {
+      emitCacheMissAndDefaultInvocation("", true);
+    }
+
+  } else {
+    emitCacheMissAndDefaultInvocation("", false);
+  }
+
+  var joinedBody = body.join("\r\n");
+  var closure = null;
+  if (fallbackMethod)
+    closure = { fallbackMethod: fallbackMethod };
+
+  return JSIL.CreateNamedFunction(
+    functionName,
+    argumentNames,
+    joinedBody,
+    closure
+  );
 };
 
+/*JSIL.MethodSignature.prototype.$StaticMethodNotFound = function (publicInterface, methodName) {
+  JSIL.RuntimeErrorFormat(
+    "No static method with signature '{0}' found in context '{1}'", [
+      this.toString(methodName),
+      publicInterface
+    ]
+  );
+};
+
+JSIL.MethodSignature.prototype.$MethodNotFound = function (thisReference, methodName) {
+  JSIL.RuntimeErrorFormat(
+    "No method with signature '{0}' found on instance '{1}'", [
+      this.toString(methodName),
+      thisReference
+    ]
+  );
+};*/
+
+
+/*JSIL.InterfaceMethod.prototype.$SignatureMakeCallMethod = function (callMethodName, knownMethodKey, fallbackMethod) {
+  // FIXME: Is this correct? I think having all instances of a given unique signature
+  //  share the same IC is probably correct.
+  var cacheKey = callMethodName + "$" + this.GetUnnamedKey(true);
+
+  if (JSIL.MethodSignature.$CallMethodCache) {
+    var cachedResult = JSIL.MethodSignature.$CallMethodCache[cacheKey];
+    if (cachedResult)
+      return cachedResult;
+  }
+
+  var result = this.$MakeInlineCacheBody(callMethodName, knownMethodKey, fallbackMethod);
+
+  if (JSIL.MethodSignature.$CallMethodCache) {
+    JSIL.MethodSignature.$CallMethodCache[cacheKey] = result;
+  }
+
+  return result;
+};*/
+
+JSIL.InterfaceMethod.prototype.$InlineCacheMiss = function (target, callMethodName, name, typeId, methodKey, fallbackMethod) {
+  if (!this.useInlineCache)
+    return;
+
+  // FIXME: This might be too small.
+  var inlineCacheCapacity = 3;
+  var numEntries = this.inlineCacheEntries.length | 0;
+
+  if (numEntries >= inlineCacheCapacity) {
+    // Once the IC gets too large we convert it back to a simple invocation method.
+    // This is important since these ICs are only a big optimization if the JIT is
+    //  able to inline them into the caller (so the conditionals become free).
+    // Making an IC too big will prevent inlining and at that point it's not gonna
+    //  be particularly fast or worthwhile.
+    this.inlineCacheEntries = null;
+    this.useInlineCache = false;
+
+    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
+  } else {
+    for (var i = 0; i < numEntries; i++) {
+      var entry = this.inlineCacheEntries[i];
+
+      // Our caller is an expired inline cache function.
+      if (entry.equals(name, typeId, methodKey)) {
+        // Some bugs cause this to happen over and over so perf sucks.
+        // JSIL.RuntimeError("Inline cache miss w/ pending recompile.");
+        return;
+      }
+    }
+
+    // If we had a cache miss and the target doesn't have an entry, add it and recompile.
+    var newEntry = new JSIL.MethodSignatureInlineCacheEntry(name, typeId, methodKey);
+    this.inlineCacheEntries.push(newEntry);
+    this.$RecompileInlineCache(target, callMethodName, fallbackMethod);
+  }
+};
+
+JSIL.InterfaceMethod.prototype.$RecompileInlineCache = function (target, callMethodName, fallbackMethod) {
+  var newFunction = this.$MakeInlineCacheBody(callMethodName, target.methodKey || null, fallbackMethod);
+
+  if (callMethodName !== "CallVariantInterface") {
+    JSIL.RuntimeError("$RecompileInlineCache should happen only for CallVariantInterface");
+  }
+  // Once we've recompiled the inline cache, overwrite the old one on the target.
+  // Note that this is not 'this' because for interface methods, the IC is managed
+  //  by their signature but lives on the interface method object instead.
+  JSIL.SetValueProperty(target, "Call", newFunction);
+};
 
 JSIL.$GetSignaturePrefixForType = function (typeObject) {
   if (typeObject.__OpenType__)

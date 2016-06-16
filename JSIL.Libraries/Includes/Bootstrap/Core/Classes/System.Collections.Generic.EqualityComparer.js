@@ -31,7 +31,7 @@
     $.Method({ Static: false, Public: false, Virtual: true }, "System.Collections.IEqualityComparer.Equals",
       new JSIL.MethodSignature($.Boolean, [$.Object, $.Object]),
       function EqualityComparer$b1_System_Collections_IEqualityComparer_Equals(x, y) {
-        var $s00 = new JSIL.MethodSignature($jsilcore.System.Boolean, [this.T, this.T]);
+        var $s00 = this.__ThisType__.$Methods.Equals.InterfaceMethod.Of(JSIL.MethodSignature($jsilcore.System.Boolean, [this.T, this.T]));
         if (x === y) {
           var result = true;
         } else if (!((x !== null) && (y !== null))) {
@@ -40,7 +40,7 @@
           if ((this.T.$As(x) === null) || !this.T.$Is(y)) {
             throw $S00().Construct("Invalid type of some arguments");
           }
-          result = $s00.CallVirtual("Equals", null, this, JSIL.CloneParameter(this.T, this.T.$Cast(x)), JSIL.CloneParameter(this.T, this.T.$Cast(y)));
+          result = $s00.Call(this, null, JSIL.CloneParameter(this.T, this.T.$Cast(x)), JSIL.CloneParameter(this.T, this.T.$Cast(y)));
         }
         return result;
       }).Overrides($jsilcore.TypeRef("System.Collections.IEqualityComparer"), "Equals");
