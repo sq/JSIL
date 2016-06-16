@@ -573,10 +573,6 @@ namespace JSIL.Transforms {
             }
         }
 
-        public void VisitNode (JSMethodOfExpression methodOf) {
-            CacheSignature(methodOf.Reference, methodOf.Method.Signature, false);
-        }
-
         public void VisitNode (JSMethodPointerInfoExpression methodOf) {
             CacheQulifiedSignature(methodOf, false);
         }

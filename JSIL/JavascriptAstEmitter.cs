@@ -1229,38 +1229,9 @@ namespace JSIL {
 
         public void VisitNode(JSMethodOfExpression moe)
         {
-            var methodName = Util.EscapeIdentifier(moe.Method.GetName(true), EscapingMode.MemberIdentifier);
-
-            Output.WriteRaw("JSIL.GetMethodInfo");
-            Output.LPar();
-
-            Output.Identifier(
-                moe.Reference.DeclaringType, ReferenceContext, IncludeTypeParens.Peek()
-            );
-            Output.Comma();
-
-            Output.WriteRaw("\"");
-            Output.Identifier(methodName);
-            Output.WriteRaw("\"");
-            Output.Comma();
-
-            SignatureCacher.WriteSignatureToOutput(
-                Output, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                moe.Reference, moe.Method.Signature, ReferenceContext, false
-            );
-            Output.Comma();
-
-            Output.Value(moe.Method.IsStatic);
-
-            if (moe.GenericArguments != null && moe.GenericArguments.Any())
-            {
-                Output.Comma();
-                Output.OpenBracket();
-                Output.CommaSeparatedList(moe.GenericArguments, ReferenceContext);
-                Output.CloseBracket();
-            }
-
-            Output.RPar();
+            VisitNode((JSMethodPointerInfoExpression) moe);
+            Output.Dot();
+            Output.WriteRaw("MethodInfo");
         }
 
         public void VisitNode(JSMethodPointerInfoExpression moe)
