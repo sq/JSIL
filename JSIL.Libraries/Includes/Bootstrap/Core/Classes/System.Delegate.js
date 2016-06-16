@@ -144,7 +144,7 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       if (this.__methodPointerInfo__) {
         // TODO: find better solution for resolving MethodInfo in class by MethodInfo in base class.
         // Currently it will not find proper derived implementation MethodInfo for virtual method and interface methods.
-        return  this.__methodPointerInfo__.resolveMethodInfo();
+        return this.__methodPointerInfo__.MethodInfo;
       }
       return null;
     }
