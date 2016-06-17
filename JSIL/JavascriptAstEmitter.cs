@@ -854,6 +854,9 @@ namespace JSIL {
             Output.WriteRaw("JSIL.CloneParameter");
             Output.LPar();
             Output.Identifier(sce.Parameter, ReferenceContext, false);
+            // IK TODO: pass to identifier if we need public interfece versus object
+            Output.Dot();
+            Output.WriteRaw("__Type__");
             Output.Comma();
             Visit(sce.Struct);
             Output.RPar();
@@ -1134,7 +1137,7 @@ namespace JSIL {
                 Output.WriteRaw("null");
             } else if (defaultValue.Value.IsGenericParameter) {
                 VisitNode(new JSTernaryOperatorExpression(
-                    new JSMemberReferenceExpression(new JSDotExpression(new JSType(defaultValue.Value),
+                    new JSMemberReferenceExpression(new JSDotExpression(new JSTypeOfExpression(defaultValue.Value),
                                                                         new JSStringIdentifier("IsValueType"))),
                     JSIL.CreateInstanceOfType(defaultValue.Value),
                     JSLiteral.Null(defaultValue.Value),
@@ -1217,14 +1220,10 @@ namespace JSIL {
         public void VisitNode (JSTypeOfExpression toe) {
             Output.Identifier(
                 toe.Type, ReferenceContext, IncludeTypeParens.Peek()
-            );
+                );
 
-            if (toe.Type is GenericParameter) {
-                // Generic parameters are type objects, not public interfaces
-            } else {
-                Output.Dot();
-                Output.Identifier("__Type__");
-            }
+            Output.Dot();
+            Output.Identifier("__Type__");
         }
 
         public void VisitNode(JSMethodOfExpression moe)
@@ -2338,26 +2337,53 @@ namespace JSIL {
                 };
 
                 if (isOverloaded) {
-                    ReferenceContext.InvokingMethod = jsm.Reference;
-                    SignatureCacher.WriteQualifiedSignatureToOutput(
-                        Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
-                        jsm,
-                        ReferenceContext
-                        );
+                    if (!method.DeclaringType.IsInterface) {
+                        if (isStatic) {
+                            Visit(invocation.Type);
+                        } else {
+                            Visit(invocation.ThisReference, "ThisReference");
+                        }
 
-                    Output.Dot();
-                    Output.WriteRaw(isStatic ? "CallStatic" : invocation.ExplicitThis ? "CallNonVirtual" : "Call");
+                        Output.OpenBracket();
+                        ReferenceContext.InvokingMethod = jsm.Reference;
+                        SignatureCacher.WriteQualifiedSignatureToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm,
+                            ReferenceContext
+                            );
+                        Output.Dot();
+                        Output.WriteRaw(isStatic ? "methodNonQualifiedKey" : (invocation.ExplicitThis ? "methodKeyNonVirtual" : "methodKey"));
+                        Output.CloseBracket();
 
-                    Output.LPar();
-                    if (!isStatic) {
-                        Visit(invocation.ThisReference, "ThisReference");
-                        Output.Comma();
+                        Output.LPar();
+                        if (hasGenericArguments) {
+                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
+
+                            if (hasArguments)
+                                Output.Comma();
+                        }
+                    } else {
+                        ReferenceContext.InvokingMethod = jsm.Reference;
+                        SignatureCacher.WriteQualifiedSignatureToOutput(
+                            Output, this, Stack.OfType<JSFunctionExpression>().FirstOrDefault(),
+                            jsm,
+                            ReferenceContext
+                            );
+
+                        Output.Dot();
+                        Output.WriteRaw(isStatic ? "CallStatic" : invocation.ExplicitThis ? "CallNonVirtual" : "Call");
+
+                        Output.LPar();
+                        if (!isStatic) {
+                            Visit(invocation.ThisReference, "ThisReference");
+                            Output.Comma();
+                        }
+
+                        genericArgs();
+
+                        if (hasArguments)
+                            Output.Comma();
                     }
-
-                    genericArgs();
-
-                    if (hasArguments)
-                        Output.Comma();
                 } else {
                     if (isStatic) {
                         if (!invocation.Type.IsNull) {

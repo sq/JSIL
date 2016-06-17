@@ -8081,6 +8081,10 @@ JSIL.InterfaceMethod = function (typeObject, methodName, methodInfo) {
     return this.signature != null ? JSIL.$GetSignaturePrefixForType(typeObject) + this.methodNonQualifiedKey : this.qualifiedName;
   });
 
+  JSIL.SetLazyValueProperty(this, "methodKeyNonVirtual", function () {
+    return "i$" + this.methodKey;
+  });
+
   JSIL.SetLazyValueProperty(this, "methodNonQualifiedKey", function () {
     return this.signature != null ? this.signature.GetNamedKey(this.methodName, true) : this.methodName;
   });
@@ -8263,7 +8267,7 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function (isVirtual, isStatic) 
         ? "CallVariantInterface"
         : "CallInterface");
 
-    var methodKey = isStatic? this.methodNonQualifiedKey : (isVirtual ? this.methodKey : "i$" + this.methodKey);
+    var methodKey = isStatic ? this.methodNonQualifiedKey : (isVirtual ? this.methodKey : this.methodKeyNonVirtual);
 
     return this.$MakeInlineCacheBody(callType, methodKey, this.fallbackMethod);
   } else {
