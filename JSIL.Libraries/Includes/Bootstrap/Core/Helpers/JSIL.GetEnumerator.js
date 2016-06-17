@@ -35,9 +35,9 @@ JSIL.GetEnumerator = function (enumerable, elementType, fallbackMethodInvoke) {
   else if (typeof (enumerable) === "string")
     result = JSIL.MakeArrayEnumerator(enumerable, elementType);
   else if ((fallbackMethodInvoke !== true) && tIEnumerable$b1 && tIEnumerable$b1.$Is(enumerable))
-    result = tIEnumerable$b1.GetEnumerator.Call(enumerable);
+    result = tIEnumerable$b1.$Methods.GetEnumerator.InterfaceMethod.Call(enumerable);
   else if ((fallbackMethodInvoke !== true) && tIEnumerable.$Is(enumerable))
-    result = tIEnumerable.GetEnumerator.Call(enumerable);
+    result = tIEnumerable.$Methods.GetEnumerator.InterfaceMethod.Call(enumerable);
   else if ((fallbackMethodInvoke !== true) && (typeof (enumerable.GetEnumerator) === "function"))
     // HACK: This is gross.
     result = enumerable.GetEnumerator();

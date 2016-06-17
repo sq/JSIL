@@ -55,7 +55,7 @@ namespace JSIL.Compiler.Extensibility {
             IAstEmitter astEmitter, 
             bool standalone = true
         );
-        void EmitMethodDefinition (DecompilerContext context, MethodReference methodRef, MethodDefinition method, IAstEmitter astEmitter, bool stubbed, JSRawOutputIdentifier dollar, MethodInfo methodInfo = null);
+        void EmitMethodDefinition (DecompilerContext context, MethodDefinition method, IAstEmitter astEmitter, bool stubbed, JSRawOutputIdentifier dollar, MethodInfo methodInfo = null);
         void EmitSpacer ();
         void EmitSemicolon ();
         void EmitProxyComment (string fullName);

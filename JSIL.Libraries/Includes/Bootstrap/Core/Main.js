@@ -100,6 +100,7 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
   //? include("Classes/System.Collections.Generic.LinkedList.js"); writeln();
   //? include("Classes/System.Collections.Generic.LinkedListNode.js"); writeln();
   //? include("Classes/System.Collections.BitArray.js"); writeln();
+  //? include("Interfaces/System.Collections.Generic.IEqualityComparer.js"); writeln();
 //? }
 
 //? include("Classes/System.Collections.Generic.Comparer.js"); writeln();
@@ -149,6 +150,7 @@ JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"], new JSIL.MethodSignat
 })();
 
 JSIL.MakeDelegate("System.Predicate`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.Predicate`1").in()]));
+JSIL.MakeDelegate("System.Comparison`1", true, ["in T"], new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [new JSIL.GenericParameter("T", "System.Comparison`1").in(), new JSIL.GenericParameter("T", "System.Comparison`1").in()]));
 
 JSIL.MakeClass("System.SystemException", "System.NotImplementedException", true);
 JSIL.MakeClass("System.SystemException", "System.Reflection.AmbiguousMatchException", true);

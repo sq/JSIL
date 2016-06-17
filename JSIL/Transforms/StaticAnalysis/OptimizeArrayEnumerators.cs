@@ -158,15 +158,15 @@ namespace JSIL.Transforms {
             var arrayType = new ArrayType(itemType);
 
             var arrayVariable = new JSVariable(
-                arrayVariableName, arrayType, Function.Method.Reference, 
+                arrayVariableName, arrayType, Function.Method.Method.Member, 
                 JSDotExpression.New(enumerator, new JSStringIdentifier(arrayMember, arrayType, true))
             );
             var indexVariable = new JSVariable(
-                indexVariableName, TypeSystem.Int32, Function.Method.Reference, 
+                indexVariableName, TypeSystem.Int32, Function.Method.Method.Member, 
                 JSDotExpression.New(enumerator, new JSStringIdentifier(indexMember, TypeSystem.Int32, true))
             );
             var lengthVariable = new JSVariable(
-                lengthVariableName, TypeSystem.Int32, Function.Method.Reference,
+                lengthVariableName, TypeSystem.Int32, Function.Method.Method.Member,
                 JSDotExpression.New(enumerator, new JSStringIdentifier(lengthMember, TypeSystem.Int32, true))
             );
 
@@ -221,15 +221,15 @@ namespace JSIL.Transforms {
             var arrayType = new ArrayType(itemType);
 
             var arrayVariable = new JSVariable(
-                arrayVariableName, arrayType, Function.Method.Reference,
+                arrayVariableName, arrayType, Function.Method.Method.Member,
                 JSDotExpression.New(backingStore, new JSStringIdentifier(arrayMember, arrayType, true))
             );
             var indexVariable = new JSVariable(
-                indexVariableName, TypeSystem.Int32, Function.Method.Reference,
+                indexVariableName, TypeSystem.Int32, Function.Method.Method.Member,
                 JSLiteral.New(0)
             );
             var lengthVariable = new JSVariable(
-                lengthVariableName, TypeSystem.Int32, Function.Method.Reference,
+                lengthVariableName, TypeSystem.Int32, Function.Method.Method.Member,
                 JSDotExpression.New(backingStore, new JSStringIdentifier(lengthMember, TypeSystem.Int32, true))
             );
 

@@ -12,3 +12,6 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
     }
   );
 });
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.RegularExpressions.Match", true, [], function ($) {
+});

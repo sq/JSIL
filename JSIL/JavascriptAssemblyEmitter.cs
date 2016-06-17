@@ -396,7 +396,7 @@ namespace JSIL {
         }
 
         public void EmitMethodDefinition (
-            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            DecompilerContext context, MethodDefinition method,
             IAstEmitter astEmitter, bool stubbed,
             JSRawOutputIdentifier dollar, MethodInfo methodInfo = null
         ) {
@@ -405,15 +405,14 @@ namespace JSIL {
 
             bool isExternal, isReplaced, methodIsProxied;
 
-            if (!Translator.ShouldTranslateMethodBody(
+            if (!Translator.ShouldTranslateMethod(
                 method, methodInfo, stubbed,
                 out isExternal, out isReplaced, out methodIsProxied
             ))
                 return;
 
-            JSFunctionExpression function = Translator.GetFunctionBodyForMethod(
-                isExternal, methodInfo
-            );
+            JSFunctionExpression function = method.IsAbstract ? null :
+                Translator.GetFunctionBodyForMethod(isExternal, methodInfo);
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
@@ -421,7 +420,7 @@ namespace JSIL {
             Formatter.NewLine();
 
             astEmitter.ReferenceContext.Push();
-            astEmitter.ReferenceContext.DefiningMethod = methodRef;
+            astEmitter.ReferenceContext.DefiningMethod = method;
 
             try {
                 dollar.WriteTo(Formatter);
@@ -437,7 +436,7 @@ namespace JSIL {
                 Formatter.LPar();
 
                 // FIXME: Include IsVirtual?
-                Formatter.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false);
+                Formatter.MemberDescriptor(method.IsPublic, method.IsStatic, method.IsVirtual, false, isAbstract:method.IsAbstract, isNewSlot:method.IsNewSlot);
 
                 Formatter.Comma();
                 Formatter.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
@@ -445,13 +444,13 @@ namespace JSIL {
                 Formatter.Comma();
                 Formatter.NewLine();
 
-                Formatter.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
+                Formatter.MethodSignature(method, methodInfo.Signature, astEmitter.ReferenceContext);
 
                 if (methodInfo.IsPInvoke && method.HasPInvokeInfo) {
                     Formatter.Comma();
                     Formatter.NewLine();
                     EmitPInvokeInfo(
-                        methodRef, method, astEmitter
+                        method, method, astEmitter
                     );
                 } else if (!isExternal) {
                     Formatter.Comma();
@@ -470,7 +469,7 @@ namespace JSIL {
                 Formatter.NewLine();
                 Formatter.RPar();
 
-                astEmitter.ReferenceContext.AttributesMethod = methodRef;
+                astEmitter.ReferenceContext.AttributesMethod = method;
 
                 EmitOverrides(context, methodInfo.DeclaringType, method, methodInfo, astEmitter);
 
@@ -711,9 +710,8 @@ namespace JSIL {
                 try
                 {
                     Formatter.MethodSignature(invokeMethod,
-                                           typeInfo.MethodSignatures.GetOrCreateFor("Invoke").First(),
+                                           typeInfo.MethodSignatures.GetOrCreateFor("Invoke").First().Item2,
                                            astEmitter.ReferenceContext);
-
                 }
                 finally
                 {
@@ -1143,7 +1141,7 @@ namespace JSIL {
 
             for (var i = 0; i < interfaces.Count; i++) {
                 var elt = interfaces.Array[interfaces.Offset + i];
-                if (elt.ImplementingType != typeInfo)
+                if (elt.ImplementingType != typeInfo && !elt.IsExpliclit)
                     continue;
                 if (elt.ImplementedInterface.Info.IsIgnored)
                     continue;
@@ -1279,6 +1277,82 @@ namespace JSIL {
                 }
             }
 
+            var cqs = signatureCacher.Global.QualifiedSignatures.OrderBy((cs) => cs.Value).ToArray();
+            if (cqs.Length > 0)
+            {
+                foreach (var cq in cqs)
+                {
+                    if (cq.Key.Member.RewritenGenericParametersCount == 0)
+                    {
+                        Formatter.WriteRaw("var $QS{0:X2} = function () ", cq.Value);
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return ($QS{0:X2} = JSIL.Memoize(", cq.Value);
+
+                        Formatter.Identifier(cq.Key.Member.InterfaceType, astEmitter.ReferenceContext, false);
+                        Formatter.Dot();
+                        Formatter.Identifier(cq.Key.IsStatic ? "$StaticMethods" : "$Methods");
+                        Formatter.Dot();
+                        Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
+
+                        Formatter.Dot();
+                        Formatter.WriteRaw("Of");
+                        Formatter.LPar();
+                        Formatter.Signature(cq.Key.Signature.Method, cq.Key.Signature.Signature, astEmitter.ReferenceContext,
+                            cq.Key.Signature.IsConstructor, false, true);
+                        Formatter.RPar();
+
+                        Formatter.WriteRaw(")) ()");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
+                    else
+                    {
+                        Formatter.WriteRaw("var $QS{0:X2} = function ", cq.Value);
+                        Formatter.LPar();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cq.Key.Member.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.RPar();
+                        Formatter.Space();
+
+                        Formatter.OpenBrace();
+                        Formatter.WriteRaw("return JSIL.MemoizeTypes($QS{0:X2}, function() {{return ", cq.Value);
+
+                        Formatter.Identifier(cq.Key.Member.InterfaceType, astEmitter.ReferenceContext, false);
+                        Formatter.Dot();
+                        Formatter.Identifier(cq.Key.IsStatic ? "$StaticMethods" : "$Methods");
+                        Formatter.Dot();
+                        Formatter.Identifier(cq.Key.Member.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
+
+                        Formatter.Dot();
+                        Formatter.WriteRaw("Of");
+                        Formatter.LPar();
+                        Formatter.Signature(cq.Key.Signature.Method, cq.Key.Signature.Signature, astEmitter.ReferenceContext,
+                            cq.Key.Signature.IsConstructor, false, true);
+                        Formatter.RPar();
+
+                        Formatter.WriteRaw(";}");
+                        Formatter.Comma();
+                        Formatter.OpenBracket();
+                        Formatter.CommaSeparatedList(
+                            Enumerable.Range(1, cq.Key.Member.RewritenGenericParametersCount).Select(item => "arg" + item),
+                            astEmitter.ReferenceContext,
+                            ListValueType.Raw);
+                        Formatter.CloseBracket();
+                        Formatter.WriteRaw(")");
+                        Formatter.Semicolon(true);
+                        Formatter.CloseBrace(false);
+                        Formatter.Semicolon(true);
+                    }
+                }
+            }
+
             var bms = baseMethodCacher.CachedMethods.Values.OrderBy((ct) => ct.Index).ToArray();
             if (bms.Length > 0) {
                 foreach (var bm in bms) {
@@ -1304,7 +1378,11 @@ namespace JSIL {
                         Formatter.WriteRaw("return ($IM{0:X2} = JSIL.Memoize(", cim.Value);
                         Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
                         Formatter.Dot();
+                        Formatter.Identifier("$Methods");
+                        Formatter.Dot();
                         Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
                         Formatter.WriteRaw(")) ()");
                         Formatter.Semicolon(true);
                         Formatter.CloseBrace(false);
@@ -1326,6 +1404,8 @@ namespace JSIL {
                         Formatter.Identifier(cim.Key.InterfaceType, astEmitter.ReferenceContext, false);
                         Formatter.Dot();
                         Formatter.Identifier(cim.Key.InterfaceMember, EscapingMode.MemberIdentifier);
+                        Formatter.Dot();
+                        Formatter.Identifier("InterfaceMethod");
                         Formatter.WriteRaw(";}");
                         Formatter.Comma();
                         Formatter.OpenBracket();

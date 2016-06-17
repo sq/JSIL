@@ -226,12 +226,12 @@ namespace JSIL.Tests {
             CompilationElapsed = TimeSpan.FromTicks(ended - started);
         }
 
-        public static string GetTestRunnerLink(IEnumerable<string> testFile, string queryString = "") {
+        public static string GetTestRunnerLink(string testFile, IEnumerable<string> additionalFiles,  string queryString = "") {
             var rootPath = Path.GetFullPath(Path.Combine(
                 Path.GetDirectoryName(LoaderJSPath),
                 @"..\"));
 
-            var scriptFiles = string.Join(";", testFile.Select(item => MapSourceFileToTestFile(Path.GetFullPath(item))));
+            var scriptFiles = string.Join(";", new [] { MapSourceFileToTestFile(Path.GetFullPath(testFile)) }.Concat(additionalFiles));
 
             var uri = new Uri(Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute);
 
@@ -244,7 +244,7 @@ namespace JSIL.Tests {
         }
         
         public static string GetTestRunnerLink (string testFile, string queryString = "") {
-            return GetTestRunnerLink(Enumerable.Repeat(testFile, 1), queryString);
+            return GetTestRunnerLink(testFile, Enumerable.Empty<string>(), queryString);
         }
 
         public void Dispose () {
@@ -882,14 +882,14 @@ namespace JSIL.Tests {
                         .Where(str => !string.IsNullOrEmpty(str))
                         .ToArray());
 
-                var files = new List<string> { OutputPath };
+                var files = new List<string>();
 
                 if (evaluationConfig != null) {
                     if (evaluationConfig.AdditionalFilesToLoad != null)
                         files.AddRange(evaluationConfig.AdditionalFilesToLoad);
                 }
 
-                Console.WriteLine("// {0}", GetTestRunnerLink(files, queryString));
+                Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath, files, queryString));
 
                 if ((outputs[1] == null) && (jsex != null))
                     outputs[1] = jsex.Output;

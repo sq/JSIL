@@ -256,29 +256,30 @@ var $jsilloaderstate = {
     environment.loadScript(libraryRoot + "JSIL.TypedObjects.js");
   }
 
+  if (!config.bclMode) {
+    config.bclMode = environment.getUserSetting("bclMode");
+  }
+
+  var libraryPrefix;
+  if (config.bclMode === "translated") {
+    libraryPrefix = "TranslatedBCL/";
+  } else if (config.bclMode === "stubbed") {
+    libraryPrefix = "StubbedBCL/";
+  } else {
+    libraryPrefix = "IgnoredBCL/";
+  }
+
   environment.loadScript(libraryRoot + "JSIL.Core.js");
   environment.loadScript(libraryRoot + "JSIL.Host.js");
 
   environment.loadEnvironmentScripts();
   
   environment.loadScript(libraryRoot + "JSIL.Core.Types.js");
-  environment.loadScript(libraryRoot + "JSIL.Core.Reflection.js");
+  environment.loadScript(libraryRoot + libraryPrefix + "JSIL.Core.Reflection.js");
   environment.loadScript(libraryRoot + "JSIL.References.js");
   environment.loadScript(libraryRoot + "JSIL.Unsafe.js");
   environment.loadScript(libraryRoot + "JSIL.PInvoke.js");
-
-  if (!config.bclMode) {
-    config.bclMode = environment.getUserSetting("bclMode");
-  }
-
-  if (config.bclMode === "translated") {
-    environment.loadScript(libraryRoot + "TranslatedBCL/JSIL.Bootstrap.js");
-  } else if (config.bclMode === "stubbed") {
-    environment.loadScript(libraryRoot + "StubbedBCL/JSIL.Bootstrap.js");
-  } else {
-    environment.loadScript(libraryRoot + "IgnoredBCL/JSIL.Bootstrap.js");
-  }
-  
+  environment.loadScript(libraryRoot + libraryPrefix + "JSIL.Bootstrap.js");  
   environment.loadScript(libraryRoot + "JSIL.mscorlib.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Int64.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.DateTime.js");

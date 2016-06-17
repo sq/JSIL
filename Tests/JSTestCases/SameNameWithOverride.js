@@ -13,8 +13,8 @@ JSIL.MakeStaticClass("Program", true, [], function ($) {
         function Main (args) {
             var inst = new T();
             var x = inst.Method();
-            var y = I1.Method.Call(inst);
-            var z = I2.Method.Call(inst);
+            var y = I1.$Methods.Method.InterfaceMethod.Call(inst);
+            var z = I2.$Methods.Method.InterfaceMethod.Call(inst);
 
             assertMatches(x, "T.Method");
             assertMatches(y, "I1.Method");

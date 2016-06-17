@@ -26,7 +26,7 @@
 
   var createConvertFunction = function (i, name) {
     return function (formatProvider) {
-      return signatures[i]().CallStatic($T01(), "To" + name, null, this);
+      return $T01().$StaticMethods["To" + name].InterfaceMethod.Of(signatures[i]()).CallStatic(null, this);
     }
   };
 

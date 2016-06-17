@@ -22,7 +22,6 @@ namespace JSIL {
     public class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;
         public readonly DecompilerContext Context;
-        public readonly MethodReference ThisMethodReference;
         public readonly MethodDefinition ThisMethod;
         public readonly MethodSymbols Symbols;
         public readonly ILBlock Block;
@@ -77,7 +76,7 @@ namespace JSIL {
 
         public ILBlockTranslator (
             AssemblyTranslator translator, DecompilerContext context, 
-            MethodReference methodReference, MethodDefinition methodDefinition,
+            MethodDefinition methodDefinition,
             MethodSymbols methodSymbols,
             ILBlock ilb, IEnumerable<ILVariable> parameters, 
             IEnumerable<ILVariable> allVariables,
@@ -85,7 +84,6 @@ namespace JSIL {
         ) {
             Translator = translator;
             Context = context;
-            ThisMethodReference = methodReference;
             ThisMethod = methodDefinition;
             Block = ilb;
             TypeReferenceReplacer = referenceReplacer;
@@ -108,23 +106,23 @@ namespace JSIL {
                 TypeSystem.Char.Resolve()
             };
 
-            if (methodReference.HasThis)
-                Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
+            if (methodDefinition.HasThis)
+                Variables.Add("this", JSThisParameter.New(methodDefinition.DeclaringType, methodDefinition));
 
             foreach (var parameter in parameters) {
                 if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
                     continue;
 
-                var jsp = new JSParameter(parameter.Name, parameter.Type, methodReference);
+                var jsp = new JSParameter(parameter.Name, parameter.Type, methodDefinition);
 
                 Variables.Add(jsp.Name, jsp);
             }
 
             foreach (var variable in allVariables) {
-                DeclareVariable(variable, methodReference);
+                DeclareVariable(variable, methodDefinition);
             }
 
-            var methodInfo = TypeInfo.Get(methodReference) as Internal.MethodInfo;
+            var methodInfo = TypeInfo.Get(methodDefinition) as Internal.MethodInfo;
             TypeReference packedArrayAttributeType;
             var packedArrayArgumentNames = PackedArrayUtil.GetPackedArrayArgumentNames(methodInfo, out packedArrayAttributeType);
 
@@ -314,7 +312,7 @@ namespace JSIL {
             return false;
         }
 
-        protected JSVariable DeclareVariable (ILVariable variable, MethodReference function) {
+        protected JSVariable DeclareVariable (ILVariable variable, MethodDefinition function) {
             if (variable.Name.StartsWith("<>c__")) {
                 return DeclareVariableInternal(JSClosureVariable.New(variable, function));
             }
@@ -610,7 +608,7 @@ namespace JSIL {
         ) {
             foreach (var transformer in FunctionTransformers) {
                 var externalReplacement = transformer.MaybeReplaceMethodCall(
-                    ThisMethodReference,
+                    ThisMethod,
                     method, methodInfo, 
                     thisExpression, arguments, 
                     resultType, explicitThis
@@ -692,7 +690,7 @@ namespace JSIL {
         }
 
         private JSIndirectVariable MakeIndirectVariable (string name) {
-            return new JSIndirectVariable(Variables, name, ThisMethodReference);
+            return new JSIndirectVariable(Variables, name, ThisMethod);
         }
 
         internal JSExpression DoMethodReplacement (
@@ -1514,7 +1512,7 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethodReference));
+                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethod));
 
                 bool foundUniversalCatch = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -1548,7 +1546,7 @@ namespace JSIL {
                     var pairBody = TranslateBlock(cb.Body);
 
                     if (cb.ExceptionVariable != null) {
-                        var excVariable = DeclareVariable(cb.ExceptionVariable, ThisMethodReference);
+                        var excVariable = DeclareVariable(cb.ExceptionVariable, ThisMethod);
 
                         pairBody.Statements.Insert(
                             0, new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
@@ -1585,7 +1583,7 @@ namespace JSIL {
                 if (catchBlock != null)
                     throw new Exception("A try block cannot have both a catch block and a fault block");
 
-                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethodReference));
+                catchVariable = DeclareVariableInternal(new JSExceptionVariable(TypeSystem, ThisMethod));
                 catchBlock = new JSBlockStatement(TranslateBlock(tcb.FaultBlock.Body));
 
                 catchBlock.Statements.Add(new JSExpressionStatement(new JSThrowExpression(catchVariable)));
@@ -1988,7 +1986,7 @@ namespace JSIL {
 
             var id = string.Format("$temp{0:X2}", index);
 
-            var result = new JSTemporaryVariable(id, type, ThisMethodReference);
+            var result = new JSTemporaryVariable(id, type, ThisMethod);
             Variables.Add(id, result);
             return result;
         }
@@ -2272,7 +2270,7 @@ namespace JSIL {
             if (node.Arguments.FirstOrDefault() != null) {
                 var returnValue = TranslateNode(node.Arguments[0]);
 
-                PackedArrayUtil.CheckReturnValue(TypeInfo.Get(ThisMethodReference) as Internal.MethodInfo, returnValue, TypeSystem);
+                PackedArrayUtil.CheckReturnValue(TypeInfo.Get(ThisMethod) as Internal.MethodInfo, returnValue, TypeSystem);
 
                 return new JSReturnExpression(returnValue);
             } else if (node.Arguments.Count == 0) {
@@ -3541,7 +3539,7 @@ namespace JSIL {
         }
 
         protected void WarningFormatFunction (string format, params object[] args) {
-            Translator.WarningFormatFunction(ThisMethodReference.Name, format, args);
+            Translator.WarningFormatFunction(ThisMethod.Name, format, args);
         }
     }
 

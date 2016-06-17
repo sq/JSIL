@@ -15,4 +15,10 @@ namespace JSIL.Proxies.Bcl
     public class System_Reflection_EventInfo
     {
     }
+
+    [JSProxy(typeof(AssemblyName), JSProxyMemberPolicy.ReplaceNone, JSProxyAttributePolicy.ReplaceDeclared, JSProxyInterfacePolicy.ReplaceNone, false)]
+    [JSStubOnly]
+    public class System_Reflection_AssemblyName
+    {
+    }
 }

@@ -743,12 +743,12 @@ namespace JSIL.Internal {
             var index = function.TemporaryVariableTypes.Count;
             function.TemporaryVariableTypes.Add(type);
 
-            MethodReference methodRef = null;
+            MethodDefinition methodDef = null;
             if (function.Method != null)
-                methodRef = function.Method.Reference;
+                methodDef = function.Method.Method.Member;
 
             var id = string.Format("$temp{0:X2}", index);
-            var result = new JSTemporaryVariable(id, type, methodRef);
+            var result = new JSTemporaryVariable(id, type, methodDef);
 
             function.AllVariables.Add(id, result);
 

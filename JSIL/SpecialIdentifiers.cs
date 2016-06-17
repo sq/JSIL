@@ -131,8 +131,8 @@ namespace JSIL {
                 invocationExpressionArguments = new[]
                 {
                     thisReference,
-                    useRuntimeDispatch ? targetMethod : new JSNullLiteral(TypeSystem.Object), 
-                    new JSMethodPointerInfoExpression(
+                    useRuntimeDispatch ? targetMethod : new JSNullLiteral(TypeSystem.Object),
+                    useRuntimeDispatch ? (JSExpression)new JSNullLiteral(TypeSystem.Object) : new JSMethodPointerInfoExpression(
                         jsMethod.Reference,
                         jsMethod.Method,
                         jsMethod.MethodTypes,

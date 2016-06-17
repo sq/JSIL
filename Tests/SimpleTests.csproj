@@ -114,7 +114,7 @@
     <None Include="SimpleTestCasesForTranslatedBcl\FailsOnMono\Attributes.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />
     <None Include="SimpleTestCases\Int64ZeroComparion_Issue808.cs" />
-    <None Include="SimpleTestCases\DelegateOverload_Issue806.cs" />
+    <None Include="SimpleTestCases\FailsOnMono\DelegateOverload_Issue806.cs" />
     <None Include="SimpleTestCases\NullableByRef_Issue810.cs" />
     <None Include="SimpleTestCases\ListConstructor.cs" />
     <None Include="SimpleTestCases\ListICollection.cs" />
@@ -141,6 +141,8 @@
     <None Include="SimpleTestCases\ArrayCast.cs" />
     <None Include="SimpleTestCases\Issue913.cs" />
     <None Include="SimpleTestCases\BoxNumeric_Issue981.cs" />
+    <None Include="SimpleTestCases\InheritedAndNewMethod.cs" />
+    <None Include="SimpleTestCases\VirtualAndNewMethods.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />

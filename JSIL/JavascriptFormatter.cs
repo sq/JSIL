@@ -23,14 +23,14 @@ namespace JSIL.Internal {
     public class TypeReferenceContext {
         private struct _State {
             public bool EnclosingTypeSkipped;
-            public TypeReference EnclosingType;
-            public TypeReference DefiningType;
+            public TypeDefinition EnclosingType;
+            public TypeDefinition DefiningType;
 
-            public MethodReference EnclosingMethod;
-            public MethodReference DefiningMethod;
+            public MethodDefinition EnclosingMethod;
+            public MethodDefinition DefiningMethod;
             public MethodReference InvokingMethod;
             public MethodReference SignatureMethod;
-            public MethodReference AttributesMethod;
+            public MethodDefinition AttributesMethod;
         }
 
         private readonly Stack<_State> Stack = new Stack<_State>();
@@ -44,7 +44,7 @@ namespace JSIL.Internal {
             State = Stack.Pop();
         }
 
-        public TypeReference EnclosingType {
+        public TypeDefinition EnclosingType {
             get {
                 return State.EnclosingType;
             }
@@ -66,7 +66,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference DefiningType {
+        public TypeDefinition DefiningType {
             get {
                 return State.DefiningType;
             }
@@ -75,7 +75,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference EnclosingMethod {
+        public MethodDefinition EnclosingMethod {
             get {
                 return State.EnclosingMethod;
             }
@@ -84,7 +84,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference DefiningMethod {
+        public MethodDefinition DefiningMethod {
             get {
                 return State.DefiningMethod;
             }
@@ -111,7 +111,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public MethodReference AttributesMethod {
+        public MethodDefinition AttributesMethod {
             get {
                 return State.AttributesMethod;
             }
@@ -129,7 +129,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference DefiningMethodType {
+        public TypeDefinition DefiningMethodType {
             get {
                 if (DefiningMethod != null)
                     return DefiningMethod.DeclaringType;
@@ -156,7 +156,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference AttributesMethodType {
+        public TypeDefinition AttributesMethodType {
             get {
                 if (AttributesMethod != null)
                     return AttributesMethod.DeclaringType;
@@ -176,7 +176,7 @@ namespace JSIL.Internal {
         public readonly Configuration Configuration;
         public readonly SourceMapBuilder SourceMapBuilder;
 
-        public MethodReference CurrentMethod = null;
+        public MethodDefinition CurrentMethod = null;
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
         protected readonly bool Stubbed;
@@ -342,9 +342,9 @@ namespace JSIL.Internal {
                     else if (valueType == ListValueType.Identifier)
                         Identifier(value as dynamic, context);
                     else if (valueType == ListValueType.TypeIdentifier)
-                        TypeIdentifier(value as dynamic, context, false);
+                        TypeIdentifier(value as dynamic, context, false, false);
                     else if (valueType == ListValueType.TypeReference)
-                        TypeReference((TypeReference)value, context);
+                        TypeReference((TypeReference) value, context);
                     else
                         WriteRaw(value.ToString());
                 },
@@ -528,14 +528,14 @@ namespace JSIL.Internal {
                                 }
                                 return;
                             } else {
-                                TypeIdentifier(resolved, context, false);
+                                TypeIdentifier(resolved, context, false, true);
                                 return;
                             }
                         }
                     }
 
                     if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingMethodType)) {
-                        TypeIdentifier(gp, context, false);
+                        TypeIdentifier(gp, context, false, true);
                         return;
                     }
 
@@ -733,13 +733,7 @@ namespace JSIL.Internal {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {
-                        if (context.EnclosingMethod != null) {
-                            // $.Type is incorrect for generics because it will be the open form.
-                            // FIXME: Will this work for static methods?
-                            WriteRaw("this.__Type__");
-                        } else {
                             WriteRaw("$.Type");
-                        }
                         return;
                     }
                 }
@@ -788,7 +782,9 @@ namespace JSIL.Internal {
         public void MemberDescriptor (
             bool isPublic, bool isStatic, 
             bool isVirtual = false, bool isReadonly = false,
-            int? offset = null
+            int? offset = null,
+            bool isNewSlot = false,
+            bool isAbstract = false
         ) {
             WriteRaw("{");
 
@@ -829,6 +825,24 @@ namespace JSIL.Internal {
                 Value(offset.Value);
             }
 
+            if (isNewSlot)
+            {
+                Comma();
+
+                WriteRaw("NewSlot");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
+
+            if (isAbstract)
+            {
+                Comma();
+
+                WriteRaw("Abstract");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
+
             WriteRaw("}");
         }
 
@@ -857,11 +871,11 @@ namespace JSIL.Internal {
             if (type.FullName == "JSIL.Proxy.AnyType")
                 WriteRaw("JSIL.AnyType");
             else
-                TypeIdentifier(type as dynamic, context, includeParens);
+                TypeIdentifier(type as dynamic, context, includeParens, true);
         }
 
-        protected void TypeIdentifier (TypeInfo type, TypeReferenceContext context, bool includeParens) {
-            TypeIdentifier(type.Definition as dynamic, context, includeParens);
+        protected void TypeIdentifier (TypeInfo type, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
+            TypeIdentifier(type.Definition as dynamic, context, includeParens, usePublicInterface);
         }
 
         protected bool EmitThisForParameter (GenericParameter gp) {
@@ -877,7 +891,7 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void TypeIdentifier (TypeReference type, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (TypeReference type, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             if (SignatureCacher.IsTypeArgument(type)) {
                 WriteRaw(type.Name);
                 return;
@@ -925,7 +939,14 @@ namespace JSIL.Internal {
 
                     Identifier(type.FullName);
                 }
-            } else {
+
+                if (usePublicInterface)
+                {
+                    Dot();
+                    WriteRaw("__PublicInterface__");
+                }
+            }
+            else {
                 var info = TypeInfo.Get(type);
                 if ((info != null) && (info.Replacement != null)) {
                     WriteRaw(info.Replacement);
@@ -953,16 +974,21 @@ namespace JSIL.Internal {
                         type.FullName, EscapingMode.TypeIdentifier
                     ));
                 }
+
+                if (!usePublicInterface) {
+                    Dot();
+                    WriteRaw("__Type__");
+                }
             }
         }
 
-        protected void TypeIdentifier (ByReferenceType type, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (ByReferenceType type, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             if (includeParens)
                 LPar();
 
             WriteRaw("JSIL.Reference.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, context, false);
+            TypeIdentifier(type.ElementType as dynamic, context, false, true);
             RPar();
 
             if (includeParens) {
@@ -971,13 +997,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ArrayType type, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (ArrayType type, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             if (includeParens)
                 LPar();
 
             WriteRaw("System.Array.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, context, false);
+            TypeIdentifier(type.ElementType as dynamic, context, false, true);
             if (!type.IsVector)
             {
                 Comma();
@@ -987,6 +1013,10 @@ namespace JSIL.Internal {
                 RPar();
             }
             RPar();
+            if (!usePublicInterface) {
+                Dot();
+                WriteRaw("__Type__");
+            }
 
             if (includeParens) {
                 RPar();
@@ -994,22 +1024,22 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (OptionalModifierType modopt, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (OptionalModifierType modopt, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             Identifier(modopt.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (RequiredModifierType modreq, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (RequiredModifierType modreq, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             Identifier(modreq.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (PointerType ptr, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (PointerType ptr, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             WriteRaw("JSIL.Pointer.Of");
             LPar();
             Identifier(ptr.ElementType as dynamic, context, includeParens);
             RPar();
         }
 
-        protected void TypeIdentifier (GenericInstanceType type, TypeReferenceContext context, bool includeParens) {
+        protected void TypeIdentifier (GenericInstanceType type, TypeReferenceContext context, bool includeParens, bool usePublicInterface) {
             if (includeParens)
                 LPar();
 
@@ -1020,6 +1050,10 @@ namespace JSIL.Internal {
             LPar();
             CommaSeparatedList(type.GenericArguments, context, ListValueType.TypeIdentifier);
             RPar();
+            if (!usePublicInterface) {
+                Dot();
+                WriteRaw("__Type__");
+            }
 
             if (includeParens) {
                 RPar();
@@ -1316,7 +1350,7 @@ namespace JSIL.Internal {
                             : signature.ReturnType;
 
                     if ((alwaysUseIdentifiers || context.EnclosingMethod != null) && !TypeUtil.IsOpenType(returnType, gp => !SignatureCacher.IsTypeArgument(gp)))
-                        TypeIdentifier(returnType as dynamic, context, false);
+                        TypeIdentifier(returnType as dynamic, context, false, true);
                     else
                         TypeReference(returnType, context);
 
@@ -1326,7 +1360,7 @@ namespace JSIL.Internal {
                         WriteRaw("null");
                     else {
                         if ((alwaysUseIdentifiers || context.EnclosingMethod != null) && !TypeUtil.IsOpenType(signature.ReturnType, gp => !SignatureCacher.IsTypeArgument(gp)))
-                            TypeIdentifier(signature.ReturnType as dynamic, context, false);
+                            TypeIdentifier(signature.ReturnType as dynamic, context, false, true);
                         else
                             TypeReference(signature.ReturnType, context);
                     }
@@ -1339,7 +1373,7 @@ namespace JSIL.Internal {
                     CommaSeparatedListCore(
                         signature.ParameterTypes, (pt) => {
                             if ((alwaysUseIdentifiers || context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt, gp => !SignatureCacher.IsTypeArgument(gp)))
-                                TypeIdentifier(pt as dynamic, context, false);
+                                TypeIdentifier(pt as dynamic, context, false, true);
                             else
                                 TypeReference(pt, context);
                         }

@@ -643,9 +643,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
         $.String, $xnaasms[5].TypeRef("System.Action`1", [$xnaasms[5].TypeRef("System.IDisposable")]), 
         $.Int32
       ], []), 
-    function _ctor (contentManager, input, assetName, recordDisposableObject, graphicsProfile) {
-      var signature = new JSIL.MethodSignature(null, [$xnaasms[5].TypeRef("System.IO.Stream")], []);
-      signature.Call(System.IO.BinaryReader.prototype, "_ctor", null, this, input);
+    function _ctor(contentManager, input, assetName, recordDisposableObject, graphicsProfile) {
+      var ctor = System.IO.BinaryReader.$Methods._ctor.InterfaceMethod.Of(new JSIL.MethodSignature(null, [$xnaasms[5].TypeRef("System.IO.Stream")], []));
+      ctor.Call(this, null, input);
 
       this.contentManager = contentManager;
       this.assetName = assetName;
@@ -750,9 +750,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
   var readObjectImpl = function (self, T, typeReader, existingInstance) {
     if ((typeReader !== null) && (typeReader.TargetIsValueType)) {
+      var method = typeReader.__ThisType__.$Methods.Read.InterfaceMethod.Of(new JSIL.MethodSignature(T, [self.__ThisType__, T]));
       var signature = new JSIL.MethodSignature(T, [self.__ThisType__, T]);
 
-      return signature.CallVirtual("Read", null, typeReader, self, existingInstance);
+      return method.Call(typeReader, null, self, existingInstance);
     }
 
     var typeId = self.Read7BitEncodedInt();

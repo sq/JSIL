@@ -58,7 +58,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Action<NonGenericClass, string, string>), null,
                     typeof(NonGenericClass).GetMethod("Run"));
         d(new NonGenericClass(1), "in", "in99");
-        d(null, "in", "in99");
+        //d(null, "in", "in99");
 
         var d_ =
             (Action<string, string>)
@@ -71,7 +71,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Action<NonGenericClass, string, string>), null,
                     typeof(NonGenericClass).GetMethod("RunGeneric").MakeGenericMethod(typeof(string)));
         d2(new NonGenericClass(1), "in", "in99");
-        d2(null, "in", "in99");
+        //d2(null, "in", "in99");
 
         var d2_ =
     (Action<string, string>)
@@ -84,7 +84,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Action<GenericClass<string>, string, string>), null,
                     typeof(GenericClass<string>).GetMethod("Run"));
         d3(new GenericClass<string>(1), "in", "in99");
-        d3(null, "in", "in99");
+        //d3(null, "in", "in99");
 
         var d3_ =
     (Action<string, string>)
@@ -97,7 +97,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Action<GenericClass<string>, string, string, string>), null,
                     typeof(GenericClass<string>).GetMethod("RunGeneric").MakeGenericMethod(typeof(string)));
         d4(new GenericClass<string>(1), "in", "in2", "in99");
-        d4(null, "in", "in2", "in99");
+        //d4(null, "in", "in2", "in99");
 
         var d4_ =
     (Action<string, string, string>)
@@ -110,7 +110,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Func<NonGenericClass, string, string, string>), null,
                     typeof(NonGenericClass).GetMethod("RunOutput"));
         Console.WriteLine(d5(new NonGenericClass(1), "in", "in99"));
-        Console.WriteLine(d5(null, "in", "in99"));
+        //Console.WriteLine(d5(null, "in", "in99"));
 
         var d5_ =
     (Func<string, string, string>)
@@ -123,7 +123,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Func<NonGenericClass, string, string, string>), null,
                     typeof(NonGenericClass).GetMethod("RunOutputGeneric").MakeGenericMethod(typeof(string)));
         Console.WriteLine(d6(new NonGenericClass(1), "in", "in99"));
-        Console.WriteLine(d6(null, "in", "in99"));
+        //Console.WriteLine(d6(null, "in", "in99"));
 
         var d6_ =
     (Func<string, string, string>)
@@ -136,7 +136,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Func<GenericClass<string>, string, string, string>), null,
                     typeof(GenericClass<string>).GetMethod("RunOutput"));
         Console.WriteLine(d7(new GenericClass<string>(1), "in", "in99"));
-        Console.WriteLine(d7(null, "in", "in99"));
+        //Console.WriteLine(d7(null, "in", "in99"));
 
         var d7_ =
     (Func<string, string, string>)
@@ -149,7 +149,7 @@ Delegate.CreateDelegate(typeof(Func<string, string, string>), null,
                 Delegate.CreateDelegate(typeof(Func<GenericClass<string>, string, string, string, string>), null,
                     typeof(GenericClass<string>).GetMethod("RunOutputGeneric").MakeGenericMethod(typeof(string)));
         Console.WriteLine(d8(new GenericClass<string>(1), "in", "in2", "in99"));
-        Console.WriteLine(d8(null, "in", "in2", "in99"));
+        //Console.WriteLine(d8(null, "in", "in2", "in99"));
 
         var d8_ =
     (Func<string, string, string, string>)

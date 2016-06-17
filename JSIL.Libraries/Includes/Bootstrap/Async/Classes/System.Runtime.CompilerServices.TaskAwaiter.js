@@ -30,8 +30,9 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter", function 
   $.Method({ Static: false, Public: true, Virtual: true }, "OnCompleted",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Action")], []),
     function MyTaskAwaiter_OnCompleted(continuation) {
-      var continueSignature = new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], []);
-      continueSignature.CallVirtual("ContinueWith", null, this._task, function (task) { continuation() });
+      System.Threading.Tasks.Task.$Methods.ContinueWith.InterfaceMethod.Of(
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], []))
+      .Call(this._task, null, function (task) { continuation() });
     }
   );
 });
@@ -68,8 +69,9 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter`1", functio
   $.Method({ Static: false, Public: true, Virtual: true }, "OnCompleted",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Action")], []),
     function MyTaskAwaiter_OnCompleted(continuation) {
-      var continueSignature = new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], []);
-      continueSignature.CallVirtual("ContinueWith", null, this._task, function (task) { continuation() });
+      System.Threading.Tasks.Task$b1.Of(this.TResult).$Methods.ContinueWith.InterfaceMethod.Of(
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], []))
+      .Call(this._task, null, function (task) { continuation() });
     }
   );
 });

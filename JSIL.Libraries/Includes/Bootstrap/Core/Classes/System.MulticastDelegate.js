@@ -31,6 +31,11 @@ JSIL.MulticastDelegate.New = function (delegates) {
   JSIL.SetValueProperty(resultDelegate, "Invoke", resultDelegate);
   JSIL.SetValueProperty(resultDelegate, "get_Method", function () { return delegatesCopy[delegateCount - 1].get_Method(); });
 
+  var invokeKeyes = Object.keys(delegatesCopy[0]).filter(function (item) { return item.indexOf("$Invoke$") > 0 });
+  for (var i = 0; i < invokeKeyes.length; i++) {
+    JSIL.SetValueProperty(resultDelegate, invokeKeyes[i], resultDelegate);
+  }
+
   return resultDelegate;
 };
 

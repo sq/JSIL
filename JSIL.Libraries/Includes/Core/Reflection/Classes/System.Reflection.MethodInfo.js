@@ -104,6 +104,8 @@
       var info = JSIL.CreateInstanceOfType(infoType, null);
       info._typeObject = this._typeObject;
       info._descriptor = this._descriptor;
+      info._interfaceMethod = this._interfaceMethod;
+
       info.__Attributes__ = this.__Attributes__;
       info.__Overrides__ = this.__Overrides__;
 

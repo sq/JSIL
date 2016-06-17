@@ -56,11 +56,11 @@ public static class Program
         dGenericBase = iObj.Method<object>;
 
         dIInterface(obj);
-        // Doesn't work due #892
-        //dBase(obj);
-        //dDerived(obj);
-        //dGenericDerived(obj);
-        //dGenericBase(obj);
+        //Fails on mono due https://bugzilla.xamarin.com/show_bug.cgi?id=41837
+        dBase(obj);
+        dDerived(obj);
+        dGenericDerived(obj);
+        dGenericBase(obj);
     }
 
     public static IMethodHolder GetInterfaceHolder()

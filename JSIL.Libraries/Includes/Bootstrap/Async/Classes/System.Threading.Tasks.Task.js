@@ -141,7 +141,7 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task`1", function ($) {
   }
 
   $.Method({ Static: false, Public: true }, "ContinueWith",
-    new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$.Type])], []),
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], []),
     function ContinueWith(continuationAction) {
       if (this.continuationActions === undefined) {
         this.continuationActions = [];

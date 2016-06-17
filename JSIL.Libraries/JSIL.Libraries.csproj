@@ -37,6 +37,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.MakeIConvertibleMethods.js" />
+    <Content Include="Includes\Bootstrap\Core\Interfaces\System.Collections.Generic.IEqualityComparer.js" />
     <Content Include="Includes\Bootstrap\Core\Interfaces\System.IConvertible.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Classes\Microsoft.CSharp.RuntimeBinder.Binder.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Enums\Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfoFlags.js" />
@@ -46,6 +47,9 @@
     <Content Include="Includes\Bootstrap\Dynamic\Classes\System.Runtime.CompilerServices.CallSiteBinder.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Classes\System.Runtime.CompilerServices.CallSite.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Main.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.CallingConventions.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.ParameterModifier.js" />
+    <Content Include="Includes\Core\Reflection\Classes\System.Reflection.Binder.js" />
     <Content Include="Includes\Core\Reflection\Classes\System.Reflection.IntrospectionExtensions.js" />
     <None Include=".bin\git.cmd" />
     <None Include=".bin\node.cmd" />
@@ -272,6 +276,7 @@
     <Content Include="Includes\Storage\Classes\VirtualJunction.js" />
     <Content Include="Includes\Storage\Classes\VirtualVolume.js" />
     <Content Include="Includes\Storage\Main.js" />
+    <Content Include="Includes\XML\Classes\Other.js" />
     <Content Include="Includes\XML\Classes\System.Xml.Serialization.XmlSerializationReader.js" />
     <Content Include="Includes\XML\Classes\System.Xml.Serialization.XmlSerializer.js" />
     <Content Include="Includes\XML\Classes\System.Xml.XmlConvert.js" />
@@ -285,6 +290,7 @@
     <Content Include="Sources\gamepad.js" />
     <Content Include="Sources\JSIL.Bootstrap.Dynamic.js" />
     <Content Include="Sources\JSIL.Bootstrap.Text.js" />
+    <Content Include="Sources\StubbedBCL\JSIL.Core.Reflection.js" />
     <Content Include="Sources\StubbedBCL\JSIL.IO.js" />
     <Content Include="Sources\StubbedBCL\JSIL.XML.js" />
     <Content Include="Sources\TranslatedBCL\JSIL.Bootstrap.js" />
@@ -301,7 +307,7 @@
     <Content Include="Sources\JSIL.Browser.Loaders.js" />
     <Content Include="Sources\JSIL.Browser.Touch.js" />
     <Content Include="Sources\JSIL.Core.js" />
-    <Content Include="Sources\JSIL.Core.Reflection.js" />
+    <Content Include="Sources\IgnoredBCL\JSIL.Core.Reflection.js" />
     <Content Include="Sources\JSIL.Core.Types.js" />
     <Content Include="Sources\JSIL.ExpressionInterpreter.js" />
     <Content Include="Sources\JSIL.Host.js" />
@@ -324,6 +330,7 @@
     <Content Include="Sources\printStackTrace.js" />
     <Content Include="Sources\System.Drawing.js" />
     <Content Include="Sources\System.Windows.js" />
+    <Content Include="Sources\TranslatedBCL\JSIL.Core.Reflection.js" />
     <Content Include="Sources\TranslatedBCL\JSIL.IO.js" />
     <Content Include="Sources\TranslatedBCL\JSIL.XML.js" />
     <Content Include="Sources\webgl-2d.js" />

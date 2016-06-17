@@ -63,12 +63,12 @@ $jsilcore.MemberInfoExternals = function ($) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "GetCustomAttributesData",
+  /*$.Method({ Static: false, Public: true }, "GetCustomAttributesData",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IList`1", [$jsilcore.TypeRef("System.Reflection.CustomAttributeData")]), [], [])),
     function GetCustomAttributesData() {
       throw new Error('Not implemented');
     }
-  );
+  );*/
 
   $.Method({ Public: true, Static: true }, "op_Equality",
     new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Reflection.MemberInfo"), $jsilcore.TypeRef("System.Reflection.MemberInfo")]),

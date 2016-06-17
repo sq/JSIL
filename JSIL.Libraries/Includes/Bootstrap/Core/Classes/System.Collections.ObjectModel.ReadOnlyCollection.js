@@ -53,3 +53,8 @@
 };
 
 JSIL.ImplementExternals("System.Collections.ObjectModel.ReadOnlyCollection`1", $jsilcore.$ReadOnlyCollectionExternals);
+
+//? if ('GENERATE_STUBS' in  __out) {
+JSIL.MakeClass("System.Object", "System.Collections.ObjectModel.ReadOnlyCollection`1", true, ["T"], function ($) {
+});
+//? }

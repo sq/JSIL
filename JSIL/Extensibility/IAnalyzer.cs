@@ -18,7 +18,7 @@ namespace JSIL.Compiler.Extensibility {
     public interface IFunctionTransformer {
         // This happens before the transform pipeline, during initial IL -> JSNode translation
         JSExpression MaybeReplaceMethodCall (
-            MethodReference caller,
+            MethodDefinition caller,
             MethodReference method, MethodInfo methodInfo, 
             JSExpression thisExpression, JSExpression[] arguments, 
             TypeReference resultType, bool explicitThis

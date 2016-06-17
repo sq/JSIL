@@ -348,7 +348,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 ProcessMetaAttributes();
             });
 
-            var methodsToRemove =
+            /*var methodsToRemove =
                 Methods
                     .Where(item => !item.Value.PresentRealMethodUsage)
                     .Select(item => item.Key)
@@ -356,7 +356,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
             foreach (var methodDefinition in methodsToRemove) {
                 Methods.Remove(methodDefinition);
-            }
+            }*/
         }
 
         private void RepeatUntilStable(Action action)

@@ -51,7 +51,7 @@ namespace JSIL {
 
         protected struct PopulatedCacheEntryArgs {
             public MethodInfo Info;
-            public MethodReference Method;
+            public MethodDefinition Method;
             public ILBlockTranslator Translator;
             public JSVariable[] Parameters;
             public JSBlockStatement Body;
@@ -59,7 +59,7 @@ namespace JSIL {
 
         protected struct NullCacheEntryArgs {
             public MethodInfo Info;
-            public MethodReference Method;
+            public MethodDefinition Method;
         }
 
         public readonly ITypeInfoSource TypeInfo;
@@ -278,13 +278,13 @@ namespace JSIL {
         }
 
         internal JSFunctionExpression Create (
-            MethodInfo info, MethodDefinition methodDef, MethodReference method, 
+            MethodInfo info, MethodDefinition methodDef,
             QualifiedMemberIdentifier identifier, ILBlockTranslator translator, 
             JSVariable[] parameters, JSBlockStatement body
         ) {
             var args = new PopulatedCacheEntryArgs {
                 Info = info,
-                Method = method,
+                Method = methodDef,
                 Translator = translator,
                 Parameters = parameters,
                 Body = body,
@@ -294,7 +294,7 @@ namespace JSIL {
         }
 
         internal void CreateNull (
-            MethodInfo info, MethodReference method, 
+            MethodInfo info, MethodDefinition method, 
             QualifiedMemberIdentifier identifier
         ) {
             var args = new NullCacheEntryArgs {

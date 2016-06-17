@@ -93,7 +93,7 @@
   );
 
   $.Method({ Static: false, Public: true }, "get_DefinedTypes",
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IEnumerable", [$jsilcore.TypeRef("System.TypeInfo")]), [], [])),
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Reflection.TypeInfo")]), [], [])),
     function get_DefinedTypes() {
         return JSIL.GetTypesFromAssembly(this.__PublicInterface__);
     }

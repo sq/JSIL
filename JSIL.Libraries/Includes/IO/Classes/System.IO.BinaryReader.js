@@ -277,7 +277,7 @@
       }
     );
 
-    $.Method({ Static: false, Public: true }, "Dispose",
+    $.Method({ Static: false, Public: true, Virtual: true }, "Dispose",
       (JSIL.MethodSignature.Void),
       function Dispose() {
           this.m_stream = null;
@@ -309,7 +309,7 @@ JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.IO.BinaryReader", tru
     JSIL.MethodSignature.Void
   );
 
-  $.ExternalMethod({ Static: false, Public: false }, "Dispose",
+  $.ExternalMethod({ Static: false, Public: false, Virtual: true }, "Dispose",
     new JSIL.MethodSignature(null, [$.Boolean], [])
   );
 

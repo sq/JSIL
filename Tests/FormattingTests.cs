@@ -467,12 +467,12 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was not called through the Foo prototype");
-                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func2.call"), "Func2 was not called through the Foo prototype");
+                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func1.InterfaceMethod.Of"), "Func1 was not called through the qualified method");
+                Assert.IsTrue(generatedJs.Contains("Foo.$Methods.Func2.InterfaceMethod.Of"), "Func2 was not called through the qualified method");
                 Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
                 Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
 
-                Assert.IsTrue(generatedJs.Contains("test.Func1()"), "Func1 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test2.Func1()"), "Func1 was not called directly on test2");
                 Assert.IsTrue(generatedJs.Contains("test.Func2()"), "Func2 was not called directly on test");
 
                 Assert.IsTrue(generatedJs.Contains("test2.Func1()"), "Func1 was not called directly on test");
@@ -528,9 +528,9 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("CallStatic($thisType, \"A\", "));
+                Assert.IsFalse(generatedJs.Contains("Program.$StaticMethods.A"));
                 Assert.IsTrue(generatedJs.Contains("$thisType.B();"));
-                Assert.IsTrue(generatedJs.Contains("CallStatic($thisType, \"B\", "));
+                Assert.IsTrue(generatedJs.Contains("Program.$StaticMethods.B"));
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -604,9 +604,9 @@ namespace JSIL.Tests {
                     Assert.IsTrue(generatedJs.Contains("this.Test("), "this.Test was not direct-dispatched");
                     // FIXME: Is this right?
                     Assert.IsTrue(
-                        generatedJs.Contains("Interface.Test2.Call(") ||
+                        generatedJs.Contains("Interface.$Methods.Test2.InterfaceMethod.Call(") ||
                         (
-                            generatedJs.ContainsRegex(@"\$IM([0-9]*) = JSIL.Memoize\(\$asm([0-9]*).Interface.Test2\)") &&
+                            generatedJs.ContainsRegex(@"\$IM([0-9]*) = JSIL.Memoize\(\$asm([0-9]*).Interface.\$Methods.Test2.InterfaceMethod\)") &&
                             generatedJs.ContainsRegex(@"\$IM([0-9]*)\(\).Call\(")
                         ), 
                     "test.Interface_Test2 was not direct-dispatched");
