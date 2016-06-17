@@ -10607,11 +10607,7 @@ JSIL.$GenerateVariantInvocationCandidates = function (interfaceObject, signature
     var candidate;
 
     if (signature != null) {
-      // FIXME: This is incredibly expensive.
-      var foundSignature = foundSignature = JSIL.$ResolveGenericMethodSignature(
-        record.interface, signature.openSignature, record.interface.__PublicInterface__
-      );
-
+      var foundSignature = JSIL.$ResolveGenericMethodSignature(record.interface, signature.openSignature || signature, record.interface.__PublicInterface__) || signature;
       candidate = JSIL.$GetSignaturePrefixForType(record.interface) + foundSignature.GetNamedKey(methodName, true);
     } else {
       candidate = JSIL.$GetSignaturePrefixForType(record.interface) + methodName;
