@@ -141,6 +141,7 @@
     <None Include="SimpleTestCases\ArrayCast.cs" />
     <None Include="SimpleTestCases\Issue913.cs" />
     <None Include="SimpleTestCases\BoxNumeric_Issue981.cs" />
+    <None Include="SimpleTestCases\NullableUnary_Issue997.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
