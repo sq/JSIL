@@ -1661,41 +1661,68 @@ namespace JSIL {
             nullableGenericType.GenericArguments.Add(innerType);
 
             var innerBoe = inner as JSBinaryOperatorExpression;
+            if (innerBoe != null) {
+                var left = innerBoe.Left;
+                var right = innerBoe.Right;
+                JSExpression conditional = null;
 
-            if (innerBoe == null)
-                return new JSUntranslatableExpression(node);
+                Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
+                    (expr) => new JSBinaryOperatorExpression(
+                        JSOperator.Equal, expr, new JSNullLiteral(nullableGenericType), TypeSystem.Boolean
+                        );
 
-            var left = innerBoe.Left;
-            var right = innerBoe.Right;
-            JSExpression conditional = null;
+                var unwrappedLeft = UnwrapValueOfExpression(ref left);
+                var unwrappedRight = UnwrapValueOfExpression(ref right);
 
-            Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
-                (expr) => new JSBinaryOperatorExpression(
-                    JSOperator.Equal, expr, new JSNullLiteral(nullableGenericType), TypeSystem.Boolean
-                );
+                if (unwrappedLeft && unwrappedRight)
+                    conditional = new JSBinaryOperatorExpression(
+                        JSOperator.LogicalOr, makeNullCheck(left), makeNullCheck(right), TypeSystem.Boolean
+                        );
+                else if (unwrappedLeft)
+                    conditional = makeNullCheck(left);
+                else if (unwrappedRight)
+                    conditional = makeNullCheck(right);
+                else
+                    return new JSUntranslatableExpression(node);
 
-            var unwrappedLeft = UnwrapValueOfExpression(ref left);
-            var unwrappedRight = UnwrapValueOfExpression(ref right);
+                var arithmeticExpression = new JSBinaryOperatorExpression(
+                    innerBoe.Operator, left, right, nullableGenericType
+                    );
+                var result = new JSTernaryOperatorExpression(
+                    conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableGenericType
+                    );
 
-            if (unwrappedLeft && unwrappedRight)
-                conditional = new JSBinaryOperatorExpression(
-                    JSOperator.LogicalOr, makeNullCheck(left), makeNullCheck(right), TypeSystem.Boolean
-                );
-            else if (unwrappedLeft)
-                conditional = makeNullCheck(left);
-            else if (unwrappedRight)
-                conditional = makeNullCheck(right);
-            else
-                return new JSUntranslatableExpression(node);
+                return result;
+            } else {
+                var innerUo = inner as JSUnaryOperatorExpression;
 
-            var arithmeticExpression = new JSBinaryOperatorExpression(
-                innerBoe.Operator, left, right, nullableGenericType
-            );
-            var result = new JSTernaryOperatorExpression(
-                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableGenericType
-            );
+                if (innerUo == null)
+                    return new JSUntranslatableExpression(node);
 
-            return result;
+                var operand = innerUo.Expression;
+                JSExpression conditional = null;
+
+                Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
+                    (expr) => new JSBinaryOperatorExpression(
+                        JSOperator.Equal, expr, new JSNullLiteral(nullableGenericType), TypeSystem.Boolean
+                        );
+
+                var unwrapped = UnwrapValueOfExpression(ref operand);
+
+                if (unwrapped)
+                    conditional = makeNullCheck(operand);
+                else
+                    return new JSUntranslatableExpression(node);
+
+                var arithmeticExpression = new JSUnaryOperatorExpression(
+                    innerUo.Operator, operand, nullableGenericType
+                    );
+                var result = new JSTernaryOperatorExpression(
+                    conditional, new JSNullLiteral(innerUo.ActualType), arithmeticExpression, nullableGenericType
+                    );
+
+                return result;
+            }
         }
 
         // Acts as a barrier to prevent this expression from being combined with its parent(s).
