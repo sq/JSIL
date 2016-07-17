@@ -26,7 +26,7 @@ namespace JSIL {
         }
 
         public override void EmitHeader (bool stubbed, bool iife) {
-            Formatter.WriteRaw("import {$private as $asmJsilCore, StaticTypePair as $StaticTypePair, TypePair as $TypePair, NullArg as $Null} from \"./JSIL.Core\"");
+            Formatter.WriteRaw("import {$private as $asmJsilCore, StaticType as $StaticType, Type as $Type, NullArg as $Null} from \"./JSIL.Core\"");
             Formatter.NewLine();
         }
 
@@ -61,7 +61,7 @@ namespace JSIL {
                 Formatter.Identifier(DefinitelyTypedUtilities.GetClassName(typedef));
                 Formatter.OpenBrace();
                 EmitClassInstance(typedef);
-                EmitClassType(typedef);
+                EmitClassInOutType(typedef);
                 EmitClassStatic(typedef);
                 EmitClassFactory(typedef);
                 Formatter.CloseBrace();
@@ -79,17 +79,26 @@ namespace JSIL {
             Formatter.Space();
             Formatter.OpenBrace();
 
-            Formatter.WriteRaw("private __$brand : any");
+            Formatter.WriteRaw("private __$brand_");
+            Formatter.Identifier(typedef.FullName);
+            Formatter.WriteRaw(" : any");
             Formatter.Semicolon();
 
             foreach (var genericParameter in DefinitelyTypedUtilities.BuildGenericParemetersMap(typedef.GenericParameters, null)) {
                 Formatter.WriteRaw("private");
                 Formatter.Space();
-                Formatter.Identifier("__$" + genericParameter + "_brand");
+                Formatter.WriteRaw("__$" + genericParameter.Value + "_brand_");
+                Formatter.Identifier(typedef.FullName);
                 Formatter.Space();
                 Formatter.WriteRaw(":");
                 Formatter.Space();
-                Formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterInParameterName(genericParameter.Value));
+                if (genericParameter.Key.IsCovariant) {
+                    Formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterOutParameterName(genericParameter.Value));
+                } else if (genericParameter.Key.IsContravariant) {
+                    Formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterInParameterName(genericParameter.Value));
+                } else {
+                    Formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterInstanceParameterName(genericParameter.Value));
+                }
                 Formatter.Semicolon();
             }
 
@@ -120,10 +129,41 @@ namespace JSIL {
             Formatter.CloseBrace();
         }
 
-        private void EmitClassType (TypeDefinition typedef) {
+        private void EmitClassInOutType (TypeDefinition typedef) {
+            /*In*/
             Formatter.WriteRaw("type");
             Formatter.Space();
-            Formatter.WriteSelfReference(typedef, Facade.Type);
+            Formatter.WriteSelfReference(typedef, Facade.TIn);
+
+            Formatter.Space();
+            Formatter.WriteRaw("=");
+            Formatter.Space();
+
+            Formatter.WriteSelfReference(typedef, Facade.Instance);
+
+            if (typedef.IsClass && typedef.BaseType != null)
+            {
+                Formatter.Space();
+                Formatter.WriteRaw("|");
+                Formatter.Space();
+                Formatter.WriteTypeReference(typedef.BaseType, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
+            }
+
+            var interfaces = typedef.Interfaces.Where(it => DefinitelyTypedUtilities.IsTypePublic(it) && !Translator.ShouldSkipMember(it));
+            foreach (var iface in interfaces)
+            {
+                Formatter.Space();
+                Formatter.WriteRaw("|");
+                Formatter.Space();
+                Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
+            }
+
+            Formatter.Semicolon();
+
+            /*Out*/
+            Formatter.WriteRaw("type");
+            Formatter.Space();
+            Formatter.WriteSelfReference(typedef, Facade.TOut);
 
             Formatter.Space();
             Formatter.WriteRaw("=");
@@ -135,15 +175,14 @@ namespace JSIL {
                 Formatter.Space();
                 Formatter.WriteRaw("&");
                 Formatter.Space();
-                Formatter.WriteTypeReference(typedef.BaseType, typedef, JavascriptFormatterHelper.ReplaceMode.Type, false);
+                Formatter.WriteTypeReference(typedef.BaseType, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
             }
 
-            var interfaces = typedef.Interfaces.Where(it => DefinitelyTypedUtilities.IsTypePublic(it) && !Translator.ShouldSkipMember(it));
             foreach (var iface in interfaces) {
                 Formatter.Space();
                 Formatter.WriteRaw("&");
                 Formatter.Space();
-                Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.Type, false);
+                Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
             }
 
             Formatter.Semicolon();
@@ -156,11 +195,13 @@ namespace JSIL {
             Formatter.Space();
             Formatter.WriteRaw("extends");
             Formatter.Space();
-            Formatter.WriteRaw(typedef.IsAbstract && typedef.IsSealed ? "$StaticTypePair" : "$TypePair");
+            Formatter.WriteRaw(typedef.IsAbstract && typedef.IsSealed ? "$StaticType" : "$Type");
             Formatter.WriteRaw("<");
             Formatter.WriteSelfReference(typedef, Facade.Instance);
             Formatter.Comma();
-            Formatter.WriteSelfReference(typedef, Facade.Type);
+            Formatter.WriteSelfReference(typedef, Facade.TIn);
+            Formatter.Comma();
+            Formatter.WriteSelfReference(typedef, Facade.TOut);
             Formatter.WriteRaw(">");
             Formatter.Space();
             Formatter.OpenBrace();
@@ -230,7 +271,7 @@ namespace JSIL {
             Formatter.Space();
             Formatter.WriteRaw(":");
             Formatter.Space();
-            Formatter.WriteTypeReference(field.FieldType, null, JavascriptFormatterHelper.ReplaceMode.Type);
+            Formatter.WriteTypeReference(field.FieldType, null, JavascriptFormatterHelper.ReplaceMode.Out);
             Formatter.Semicolon();
         }
 
@@ -240,7 +281,7 @@ namespace JSIL {
             Formatter.Space();
             Formatter.WriteRaw(":");
             Formatter.Space();
-            Formatter.WriteTypeReference(property.PropertyType, null, JavascriptFormatterHelper.ReplaceMode.Type);
+            Formatter.WriteTypeReference(property.PropertyType, null, JavascriptFormatterHelper.ReplaceMode.Out);
             Formatter.Semicolon();
         }
 
@@ -271,9 +312,9 @@ namespace JSIL {
             Formatter.Space();
 
             if (!method.IsConstructor) {
-                Formatter.WriteTypeReference(method.ReturnType, null, JavascriptFormatterHelper.ReplaceMode.Type);
+                Formatter.WriteTypeReference(method.ReturnType, null, JavascriptFormatterHelper.ReplaceMode.Out);
             } else {
-                Formatter.WriteSelfReference(method.DeclaringType, Facade.Type);
+                Formatter.WriteSelfReference(method.DeclaringType, Facade.TOut);
             }
 
             Formatter.Semicolon();
@@ -313,8 +354,8 @@ namespace JSIL {
                 Formatter.Space();
                 Formatter.OpenBracket();
                 Formatter.CommaSeparatedList(DefinitelyTypedUtilities.BuildGenericParemetersMap(method.GenericParameters, method.DeclaringType.GenericParameters), pair => {
-                    Formatter.WriteRaw("$TypePair");
-                    Formatter.WriteGenericArgumentsIfNeed(new[] { DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value) });
+                    Formatter.WriteRaw("$Type");
+                    Formatter.WriteGenericArgumentsIfNeed(new[] { DefinitelyTypedUtilities.GetGenericParameterInstanceParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value) });
                 });
                 Formatter.CloseBracket();
             } else {
@@ -324,20 +365,24 @@ namespace JSIL {
                 Formatter.Space();
                 Formatter.Identifier("$Null");
             }
-            Formatter.Comma();
 
-            Formatter.CommaSeparatedList(method.Parameters, item => {
-                Formatter.Identifier(item.Name);
-                Formatter.Space();
-                Formatter.WriteRaw(":");
-                Formatter.Space();
-                Formatter.WriteTypeReference(item.ParameterType, null, JavascriptFormatterHelper.ReplaceMode.Instance);
-            });
+            if (method.Parameters.Count > 0) {
+                Formatter.Comma();
+
+                Formatter.CommaSeparatedList(method.Parameters, item => {
+                    Formatter.Identifier(item.Name);
+                    Formatter.Space();
+                    Formatter.WriteRaw(":");
+                    Formatter.Space();
+                    Formatter.WriteTypeReference(item.ParameterType, null, JavascriptFormatterHelper.ReplaceMode.Instance);
+                });
+            }
+
             Formatter.WriteRaw(")");
             Formatter.Space();
             Formatter.WriteRaw(":");
             Formatter.Space();
-            Formatter.WriteTypeReference(method.ReturnType, null, JavascriptFormatterHelper.ReplaceMode.Type);
+            Formatter.WriteTypeReference(method.ReturnType, null, JavascriptFormatterHelper.ReplaceMode.Out);
             Formatter.Semicolon();
         }
     }
@@ -421,15 +466,17 @@ namespace JSIL {
 
     public enum Facade {
         Instance,
-        Type,
+        TIn,
+        TOut,
         Static,
         Factory
     }
 
     static class JavascriptFormatterHelper {
         public enum ReplaceMode {
-            Type,
             Instance,
+            In,
+            Out
         }
 
         private static Dictionary<string, string> _rawTypes = new Dictionary<string, string> {
@@ -453,9 +500,13 @@ namespace JSIL {
 
         private static void TRSuffix (this JavascriptFormatter formatter, ReplaceMode replaceMode) {
             switch (replaceMode) {
-                case ReplaceMode.Type:
+                case ReplaceMode.In:
                     formatter.Dot();
-                    formatter.Identifier("Type");
+                    formatter.Identifier("TIn");
+                    break;
+                case ReplaceMode.Out:
+                    formatter.Dot();
+                    formatter.Identifier("TOut");
                     break;
                 case ReplaceMode.Instance:
                     formatter.Dot();
@@ -475,7 +526,9 @@ namespace JSIL {
                 formatter.WriteRaw("<");
                 formatter.WriteTypeReference(arrayType.ElementType, context, ReplaceMode.Instance);
                 formatter.Comma();
-                formatter.WriteTypeReference(arrayType.ElementType, context, ReplaceMode.Type);
+                formatter.WriteTypeReference(arrayType.ElementType, context, ReplaceMode.In);
+                formatter.Comma();
+                formatter.WriteTypeReference(arrayType.ElementType, context, ReplaceMode.Out);
                 if (!arrayType.IsVector) {
                     formatter.Comma();
                     formatter.WriteRaw("\"");
@@ -490,7 +543,9 @@ namespace JSIL {
                 formatter.WriteRaw("<");
                 formatter.WriteTypeReference(byRefType.ElementType, context, ReplaceMode.Instance);
                 formatter.Comma();
-                formatter.WriteTypeReference(byRefType.ElementType, context, ReplaceMode.Type);
+                formatter.WriteTypeReference(byRefType.ElementType, context, ReplaceMode.In);
+                formatter.Comma();
+                formatter.WriteTypeReference(byRefType.ElementType, context, ReplaceMode.Out);
                 formatter.WriteRaw(">");
             } else if (typeReference is GenericParameter) {
                 var gp = (GenericParameter) typeReference;
@@ -506,10 +561,13 @@ namespace JSIL {
                 var name = map[gp].Value;
 
                 switch (replaceMode) {
-                    case ReplaceMode.Type:
+                    case ReplaceMode.Instance:
+                        formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterInstanceParameterName(name));
+                        break;
+                    case ReplaceMode.Out:
                         formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterOutParameterName(name));
                         break;
-                    case ReplaceMode.Instance:
+                    case ReplaceMode.In:
                         formatter.Identifier(DefinitelyTypedUtilities.GetGenericParameterInParameterName(name));
                         break;
                     default:
@@ -517,12 +575,14 @@ namespace JSIL {
                 }
             } else if (typeReference is GenericInstanceType) {
                 var genericType = (GenericInstanceType) typeReference;
-                if (formatter.WriteTypeReference(genericType.ElementType, context, ReplaceMode.Type)) {
+                if (formatter.WriteTypeReference(genericType.ElementType, context, replaceMode)) /*TODO*/ {
                     formatter.WriteRaw("<");
                     formatter.CommaSeparatedList(genericType.GenericArguments, genericArgument => {
                         formatter.WriteTypeReference(genericArgument, context, ReplaceMode.Instance);
                         formatter.Comma();
-                        formatter.WriteTypeReference(genericArgument, context, ReplaceMode.Type);
+                        formatter.WriteTypeReference(genericArgument, context, ReplaceMode.In);
+                        formatter.Comma();
+                        formatter.WriteTypeReference(genericArgument, context, ReplaceMode.Out);
                     });
                     formatter.WriteRaw(">");
                 }
@@ -564,11 +624,12 @@ namespace JSIL {
 
                         /* Hack to solve ciruclar refrence in generics. 
                          * It could be improved, by we really need generic variance support or support of:
-                         type T = something & I<T>
+                         type T = something & I<T> (see Microsoft/TypeScript#6230)
                          */
-                        var fixedMode = (replaceMode == ReplaceMode.Type && context == definition) ? ReplaceMode.Instance : replaceMode;
+                        var fixedMode = (replaceMode != ReplaceMode.Instance && context == definition) ? ReplaceMode.Instance : replaceMode;
                         formatter.TRSuffix(fixedMode);
-                    } else {
+                    }
+                    else {
                         //TODO: We was unable to resolve assembly. Think about JSIL Proxies
                         formatter.WriteRaw("Object");
                         return false;
@@ -597,8 +658,12 @@ namespace JSIL {
                     formatter.Identifier("Instance");
                     formatter.WriteGenericArgumentsIfNeed(typeDefinition.GenericParameters, null);
                     break;
-                case Facade.Type:
-                    formatter.Identifier("Type");
+                case Facade.TIn:
+                    formatter.Identifier("TIn");
+                    formatter.WriteGenericArgumentsIfNeed(typeDefinition.GenericParameters, null);
+                    break;
+                case Facade.TOut:
+                    formatter.Identifier("TOut");
                     formatter.WriteGenericArgumentsIfNeed(typeDefinition.GenericParameters, null);
                     break;
                 case Facade.Static:
@@ -622,8 +687,8 @@ namespace JSIL {
                 formatter.Space();
                 formatter.WriteRaw(":");
                 formatter.Space();
-                formatter.WriteRaw("$TypePair");
-                formatter.WriteGenericArgumentsIfNeed(new[] {DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value)});
+                formatter.WriteRaw("$Type");
+                formatter.WriteGenericArgumentsIfNeed(new[] { DefinitelyTypedUtilities.GetGenericParameterInstanceParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value)});
             });
             formatter.WriteRaw(")");
         }
@@ -631,7 +696,7 @@ namespace JSIL {
         public static void WriteGenericArgumentsIfNeed (this JavascriptFormatter formatter, IEnumerable<GenericParameter> args, IEnumerable<GenericParameter> additionalArgsForNameCalculation) {
             formatter.WriteGenericArgumentsIfNeed(
                 DefinitelyTypedUtilities.BuildGenericParemetersMap(args, additionalArgsForNameCalculation)
-                    .SelectMany(pair => new[] {DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value)}));
+                    .SelectMany(pair => new[] { DefinitelyTypedUtilities.GetGenericParameterInstanceParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterInParameterName(pair.Value), DefinitelyTypedUtilities.GetGenericParameterOutParameterName(pair.Value)}));
         }
 
         public static void WriteGenericArgumentsIfNeed (this JavascriptFormatter formatter, IEnumerable<string> genericParameterNames) {
@@ -724,12 +789,17 @@ namespace JSIL {
             return string.Join("_", listOfOuters);
         }
 
+        public static string GetGenericParameterInstanceParameterName(string parameterName)
+        {
+            return "$T_" + parameterName;
+        }
+
         public static string GetGenericParameterInParameterName (string parameterName) {
-            return "__$In_" + parameterName;
+            return "$In_" + parameterName;
         }
 
         public static string GetGenericParameterOutParameterName (string parameterName) {
-            return "__$Out_" + parameterName;
+            return "$Out_" + parameterName;
         }
 
         public static bool IsTypePublic (TypeReference typeReference) {
