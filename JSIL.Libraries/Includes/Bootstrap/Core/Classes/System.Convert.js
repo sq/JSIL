@@ -83,6 +83,15 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     return result;
   };
 
+  function toBase64CharArray(inArray, offsetIn, length, outArray, offsetOut, options) {
+      var tempArray = JSIL.StringToCharArray(toBase64StringImpl(inArray, offsetIn, length, options));
+      for (var i = 0, len = tempArray.length; i < len; ++i) {
+          outArray[i] = tempArray[i];
+      }
+      return tempArray.length;
+    }
+  
+
   $.Method({ Static: true, Public: true }, "ToBase64String",
     (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])),
     function ToBase64String(inArray) {
@@ -114,6 +123,26 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     ], [])),
     toBase64StringImpl
   );
+
+    $.Method({ Static: true, Public: true }, "ToBase64CharArray",
+        (new JSIL.MethodSignature($.Int32, [
+            $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32,
+            $.Int32, $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, $jsilcore.TypeRef("System.Base64FormattingOptions")
+        ], [])),
+        function(inArray, offsetIn, length, outArray, offsetOut, options) {
+            return toBase64CharArray(inArray, offsetIn, length, outArray, offsetOut, options);
+        }
+    );
+
+    $.Method({ Static: true, Public: true }, "ToBase64CharArray",
+        (new JSIL.MethodSignature($.Int32, [
+            $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32,
+            $.Int32, $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32
+        ], [])),
+        function(inArray, offsetIn, length, outArray, offsetOut) {
+            return toBase64CharArray(inArray, offsetIn, length, outArray, offsetOut, 0);
+        }
+    );
 
   $.Method({ Static: true, Public: true }, "FromBase64String",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.String], [])),
