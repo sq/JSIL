@@ -1,6 +1,8 @@
-JSIL.SplitString = function (str, separators, options) {
+JSIL.SplitString = function (str, separators, count, options) {
   if (options && options.value)
     JSIL.RuntimeError("StringSplitOptions other than None are not implemented");
+  if (count > 0 && separators.length > 1)
+    JSIL.RuntimeError("Split with count and multiple separators is not implemented");
 
   if (!separators) {
     // Whitespace characters from Unicode 6.0
@@ -13,7 +15,16 @@ JSIL.SplitString = function (str, separators, options) {
   }
 
   if (separators.length === 1) {
-    return str.split(separators[0]);
+    if (count > 0) {
+      var splits = str.split(separators[0]);
+      if (splits.length <= count)
+        return splits;
+      splits.splice(count - 1, splits.length,
+          splits.slice(count - 1).join(separators[0]));
+      return splits;
+    } else {
+      return str.split(separators[0]);
+    }
   } else {
     var regexText = "";
     for (var i = 0; i < separators.length; i++) {

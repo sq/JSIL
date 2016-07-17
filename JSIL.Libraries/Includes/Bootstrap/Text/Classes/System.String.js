@@ -210,6 +210,27 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({ Static: true, Public: true }, "Normalize",
+      new JSIL.MethodSignature("System.String", [
+          "System.String",
+          "System.Text.NormalizationForm"
+      ], [], $jsilcore),
+      function (str, form) {
+        if (!str.normalize)
+            return str;
+        switch (form.name) {
+            case "FormC":
+                return str.normalize("NFC");
+            case "FormD":
+                return str.normalize("NFD");
+            case "FormKC":
+                return str.Normalize("NFKC");
+            case "FormKD":
+                return str.Normalize("NFKD");
+        }
+      }
+    );
+
     $.Method({ Static: true, Public: true }, "Remove",
       new JSIL.MethodSignature($.String, [$.String, $.Int32, $.Int32], [], $jsilcore),
       function (str, start, count) {
@@ -228,6 +249,23 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String"], [], $jsilcore),
       function (str, text) {
         return str.indexOf(text) === 0;
+      }
+    );
+
+    $.Method({ Static: true, Public: true }, "StartsWith",
+      new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String", "System.StringComparison"], [], $jsilcore),
+      function (str, text, comp) {
+        // localeCompare is better for some of these, but inconsistent
+        // enough that it needs to be tested for corners at least first.
+        switch (comp) {
+          case System.StringComparison.CurrentCultureIgnoreCase:
+            return str.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) == 0;
+          case System.StringComparison.InvariantCultureIgnoreCase:
+          case System.StringComparison.OrdinalIgnoreCase:
+            return str.toLowerCase().indexOf(text.toLowerCase()) == 0;
+          default:
+            return str.indexOf(text) === 0;
+        }
       }
     );
 

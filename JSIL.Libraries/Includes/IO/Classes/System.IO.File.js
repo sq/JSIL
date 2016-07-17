@@ -57,6 +57,13 @@
       }
     );
 
+    $.Method({ Static: true, Public: true }, "OpenText",
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamReader"), [$.String], [])),
+      function OpenText(path) {
+          return new System.IO.StreamReader(path, false);
+      }
+    );
+
     var copyFileImpl = function Copy(from, to, overwrite) {
         var storageRoot = JSIL.Host.getStorageRoot();
 

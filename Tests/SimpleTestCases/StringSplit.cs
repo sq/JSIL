@@ -12,6 +12,13 @@ public static class Program {
     Console.WriteLine(split[0]);
     Console.WriteLine(split[1]);
 
+    s = "abc,def,ghi,jkl";
+    split = s.Split(new char[] { ',' }, 2);
+
+    Console.WriteLine(split.Length);
+    Console.WriteLine(split[0]);
+    Console.WriteLine(split[1]);
+
     ComplexTest(); // currently not supported: JSIL.Bootstrap.js:730: Error: Split cannot handle more than one separator
   }
 
