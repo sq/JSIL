@@ -13,6 +13,8 @@ build_script:
   - NuGet pack JSIL.nuspec -Version %JsilVersion%
 test_script:
   - nunit-console-x86 bin\Tests.DCE.dll bin\SimpleTests.dll bin\Tests.dll /include:"FailsOnMono|(FailsOnMonoWhenStubbed+Stubbed)|(FailsOnMonoWhenStubbed+Translated)"
+artifacts:
+  - path: '*.nupkg' 
 deploy:
   provider: NuGet
   server: https://www.myget.org/F/iskiselev/api/v2/package
