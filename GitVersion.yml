@@ -1,4 +1,4 @@
-assembly-versioning-scheme: None
+assembly-versioning-scheme: MajorMinorPatch
 mode: ContinuousDeployment
 next-version: 0.9.1
 branches: {}
