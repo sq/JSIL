@@ -5,12 +5,13 @@ cache:
 install:
   - git submodule update --init --recursive
   - nuget restore JSIL.sln
-  - choco install gitversion.portable
-  - GitVersion /output json /showvariable NuGetVersionV2 > version.log
-  - set /p JsilVersion= < version.log
+  - choco install gitversion.portable -pre -y
+  - ps: gitversion /l console /output buildserver /updateAssemblyInfo
 build_script:
   - msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
   - NuGet pack JSIL.nuspec -Version %JsilVersion%
+after_build:
+  - cmd: nuget pack JSIL.nuspec -version "%GitVersion_NuGetVersion%"
 test_script:
   - nunit-console-x86 bin\Tests.DCE.dll bin\SimpleTests.dll bin\Tests.dll /include:"FailsOnMono|(FailsOnMonoWhenStubbed+Stubbed)|(FailsOnMonoWhenStubbed+Translated)"
 artifacts:
