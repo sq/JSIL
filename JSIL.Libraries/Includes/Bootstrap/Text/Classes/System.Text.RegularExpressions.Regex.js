@@ -120,13 +120,13 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
     }
   );
 
-  $.Method({ Static: false, Public: true }, "IsMatch",
-	(new JSIL.MethodSignature($.Boolean, [$.String, $.String], [])),
-	function IsMatch(input, pattern) {
-		this._regex = makeRegex(pattern, System.Text.RegularExpressions.RegexOptions.None);
+  $.Method({ Static: true, Public: true }, "IsMatch",
+    (new JSIL.MethodSignature($.Boolean, [$.String, $.String], [])),
+    function IsMatch(input, pattern) {
+      var re = makeRegex(pattern, System.Text.RegularExpressions.RegexOptions.ECMAScript);
 
-		return this._regex.test(input);
-	}  
+      return re.test(input);
+    }
   );
 });
 
