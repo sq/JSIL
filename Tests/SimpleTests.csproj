@@ -110,6 +110,9 @@
     <None Include="SimpleTestCases\RawTypeIsObject_Issue754.cs" />
     <None Include="SimpleTestCases\HashSetSameHash_Issue752.cs" />
     <None Include="SimpleTestCases\ArrayClearGeneric.cs" />
+    <Compile Include="..\JSIL\Properties\GlobalAssemblyInfo.cs">
+      <Link>Properties\GlobalAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="SimpleTestCasesForStubbedBcl.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\FailsOnMono\Attributes.cs" />
     <Compile Include="SimpleTestCasesForTranslatedBcl.cs" />

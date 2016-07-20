@@ -6,7 +6,7 @@ install:
   - git submodule update --init --recursive
   - nuget restore JSIL.sln
   - choco install gitversion.portable -pre -y
-  - ps: gitversion /l console /output buildserver /updateAssemblyInfo
+  - ps: gitversion /l console /output buildserver /updateAssemblyInfo JSIL\Properties\GlobalAssemblyInfo.cs
 build_script:
   - msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
   - NuGet pack JSIL.nuspec -Version %JsilVersion%

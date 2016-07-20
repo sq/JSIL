@@ -36,6 +36,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\JSIL\Properties\GlobalAssemblyInfo.cs">
+      <Link>Properties\GlobalAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="JSIL.Async.cs" />
     <Compile Include="JSIL.Bootstrap.cs" />
     <Compile Include="JSIL.Bootstrap.DateTime.cs" />
