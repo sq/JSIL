@@ -7,32 +7,32 @@ public static class Program
     {
         Expression<Action> exp = () => Method1<Test>();
         var returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(Test) == returnType ? "true" : "false");
 
         exp = () => Method1<int>();
         returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(int) == returnType ? "true" : "false");
 
         exp = () => Method2<Test>();
         returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(Holder<Test>) == returnType ? "true" : "false");
 
         exp = () => Method2<int>();
         returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(Holder<int>) == returnType ? "true" : "false");
 
         exp = () => Method3<Test>();
         returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(Test[]) == returnType ? "true" : "false");
 
         exp = () => Method3<int>();
         returnType = ((MethodCallExpression)exp.Body).Method.ReturnType;
-        Console.WriteLine(returnType.GetType().FullName);
+        Console.WriteLine(returnType.GetType().IsSubclassOf(typeof(Type)) ? "true" : "false");
         Console.WriteLine(typeof(int[]) == returnType ? "true" : "false");
     }
 
