@@ -119,6 +119,15 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
       return (matchCount > 0);
     }
   );
+
+  $.Method({ Static: true, Public: true }, "IsMatch",
+    (new JSIL.MethodSignature($.Boolean, [$.String, $.String], [])),
+    function IsMatch(input, pattern) {
+      var re = makeRegex(pattern, System.Text.RegularExpressions.RegexOptions.ECMAScript);
+
+      return re.test(input);
+    }
+  );
 });
 
 JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.RegularExpressions.Regex", true, [], function ($) {
