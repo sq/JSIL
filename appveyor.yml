@@ -9,7 +9,6 @@ install:
   - ps: gitversion /l console /output buildserver /updateAssemblyInfo JSIL\Properties\GlobalAssemblyInfo.cs
 build_script:
   - msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
-  - NuGet pack JSIL.nuspec -Version %JsilVersion%
 after_build:
   - cmd: nuget pack JSIL.nuspec -version "%GitVersion_NuGetVersion%"
 test_script:
