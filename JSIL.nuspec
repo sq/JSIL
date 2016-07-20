@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>JSIL.Compiler</id>
+    <version>$version$</version>
+    <authors>Squared Interactive</authors>
+    <description>JSIL Command Line Compiler</description>
+    <language>en-US</language>
+    <projectUrl>https://github.com/sq/JSIL</projectUrl>
+    <licenseUrl>https://github.com/sq/JSIL/blob/master/LICENSE</licenseUrl>
+  </metadata>
+  <files>
+    <file src="bin\defaults.jsilconfig" target="tools" />
+    <file src="bin\ICSharpCode.Decompiler.dll" target="tools" />
+    <file src="bin\ICSharpCode.NRefactory.CSharp.dll" target="tools" />
+    <file src="bin\ICSharpCode.NRefactory.dll" target="tools" />
+    <file src="bin\JSIL.dll" target="tools" />
+    <file src="bin\JSIL.Meta.dll" target="tools" />
+    <file src="bin\JSIL.Proxies.4.0.dll" target="tools" />
+    <file src="bin\JSIL.Proxies.Bcl.dll" target="tools" />
+    <file src="bin\JSILc.exe" target="tools" />
+    <file src="bin\JSILc.exe.config" target="tools" />
+    <file src="bin\JSILc.AnyCPU.exe" target="tools" />
+    <file src="bin\JSILc.AnyCPU.exe.config" target="tools" />    
+    <file src="bin\JSIL.Analysis.DCE.dll" target="tools" />
+    <file src="bin\Mono.Cecil.dll" target="tools" />
+    <file src="bin\Mono.Cecil.Mdb.dll" target="tools" />
+    <file src="bin\Mono.Cecil.Pdb.dll" target="tools" />
+    <file src="bin\JSIL.ExpressionInterpreter.dll" target="tools" />
+    <file src="bin\JSIL.ExpressionInterpreter.pdb" target="tools" />
+  </files>
+</package>
