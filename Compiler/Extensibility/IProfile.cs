@@ -18,7 +18,7 @@ namespace JSIL.Compiler.Extensibility {
             Configuration configuration, string assemblyPath, bool scanForProxies
         );
         void WriteOutputs (
-            VariableSet variables, TranslationResultCollection result, string path, bool quiet
+            VariableSet variables, TranslationResultCollection result, Configuration path, bool quiet
         );
 
         void RegisterPostprocessors (IEnumerable<IEmitterGroupFactory> emitters, Configuration configuration, string assemblyPath, string[] skippedAssemblies);

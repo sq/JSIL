@@ -28,5 +28,7 @@
     <file src="bin\Mono.Cecil.Pdb.dll" target="tools" />
     <file src="bin\JSIL.ExpressionInterpreter.dll" target="tools" />
     <file src="bin\JSIL.ExpressionInterpreter.pdb" target="tools" />
+    <file src="bin\JS Libraries\**" target="tools\JS Libraries" />
+    <file src="Libraries\" target="tools\JS Libraries\JsLibraries" />
   </files>
 </package>
