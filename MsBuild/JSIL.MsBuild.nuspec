@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>JSIL.MsBuild</id>
+    <version>$version$</version>
+    <authors>Squared Interactive</authors>
+    <description>JSIL MsBuild Integration</description>
+    <language>en-US</language>
+    <projectUrl>https://github.com/sq/JSIL</projectUrl>
+    <licenseUrl>https://github.com/sq/JSIL/blob/master/LICENSE</licenseUrl>
+    <dependencies>
+      <dependency id="JSIL.Compiler" version="[$version$]" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="JSIL.targets" target="build" />
+  </files>
+</package>
