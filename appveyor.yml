@@ -19,8 +19,8 @@ artifacts:
   - path: '*.nupkg' 
 deploy:
   provider: NuGet
-  server: https://www.myget.org/F/iskiselev/api/v2/package
+  server: https://www.myget.org/F/jsil/api/v2/package
   api_key:
-    secure: WErGDvZpSSAr+nQs6+5K8wKAQkS7YKb56T8sJ7gCI85Rh8dlEnE6CiMQ5SyUjE69
+    secure: EBvntnmrV7ni1xQY8grb2sUAOeMlNqGkkqRSdMJrLPG5N42YRCxhZ7DT5Nor/l6k
   skip_symbols: true
   artifact: /.*\.nupkg/
