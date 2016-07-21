@@ -10,7 +10,7 @@ install:
 build_script:
   - msbuild "JSIL.sln" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /P:Platform=NoXNA
 after_build:
-  - ps: (gc MsBuild\JSIL.MsBuild.targets) -replace '%VERSION%', $Env:GitVersion_NuGetVersion | Out-File MsBuild\JSIL.MsBuild.targets
+  - ps: (gc MsBuild\JSIL.MsBuild.targets) -replace '%VERSION%', $Env:GitVersion_NuGetVersion | Out-File -Encoding "UTF8" MsBuild\JSIL.MsBuild.targets
   - cmd: nuget pack JSIL.nuspec -version "%GitVersion_NuGetVersion%"
   - cmd: nuget pack MsBuild\JSIL.MsBuild.nuspec -version "%GitVersion_NuGetVersion%"
 test_script:
