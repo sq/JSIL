@@ -341,9 +341,16 @@ namespace JSIL.Proxies {
         [JSIsPure]
         public string Remove (int startIndex) {
             throw new InvalidOperationException();
-        }
+		}
 
-        [JSReplacement("System.String.Remove($this, $startIndex, $count)")]
+		[JSReplacement("System.String.Insert($this, $index, $str)")]
+		[JSIsPure]
+		public string Insert(int index, string str)
+		{
+			throw new InvalidOperationException();
+		}
+
+		[JSReplacement("System.String.Remove($this, $startIndex, $count)")]
         [JSIsPure]
         public string Remove (int startIndex, int count) {
             throw new InvalidOperationException();
