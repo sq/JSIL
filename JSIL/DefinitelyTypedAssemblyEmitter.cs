@@ -626,7 +626,7 @@ namespace JSIL {
                          * It could be improved, by we really need generic variance support or support of:
                          type T = something & I<T> (see Microsoft/TypeScript#6230)
                          */
-                        var fixedMode = (replaceMode != ReplaceMode.Instance && context == definition) ? ReplaceMode.Instance : replaceMode;
+                        var fixedMode = (replaceMode != ReplaceMode.Instance && IsCircularRef(definition, context)) ? ReplaceMode.Instance : replaceMode;
                         formatter.TRSuffix(fixedMode);
                     }
                     else {
@@ -637,6 +637,27 @@ namespace JSIL {
                 }
             }
             return true;
+        }
+
+        public static bool IsCircularRef (TypeReference type, TypeDefinition context) {
+            if (type is GenericParameter) {
+                return false;
+            }
+            if (type is ArrayType) {
+                return IsCircularRef(((ArrayType) type).ElementType, context);
+            }
+            if (type is GenericInstanceType) {
+                var gt = (GenericInstanceType) type;
+                foreach (var genericArgument in gt.GenericArguments) {
+                    if (IsCircularRef(genericArgument, context)) {
+                        return true;
+                    }
+                }
+            }
+            if (type.Resolve() == context) {
+                return true;
+            };
+            return false;
         }
 
         public static void CommaSeparatedList<T> (this JavascriptFormatter formatter, IEnumerable<T> list, Action<T> process) {
