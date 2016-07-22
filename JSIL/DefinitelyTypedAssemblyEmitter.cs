@@ -626,7 +626,7 @@ namespace JSIL {
                          * It could be improved, by we really need generic variance support or support of:
                          type T = something & I<T> (see Microsoft/TypeScript#6230)
                          */
-                        var fixedMode = (replaceMode != ReplaceMode.Instance && IsCircularRef(definition, context)) ? ReplaceMode.Instance : replaceMode;
+                        var fixedMode = (replaceMode != ReplaceMode.Instance && IsCircularRef(definition, context, null)) ? ReplaceMode.Instance : replaceMode;
                         formatter.TRSuffix(fixedMode);
                     }
                     else {
@@ -639,24 +639,45 @@ namespace JSIL {
             return true;
         }
 
-        public static bool IsCircularRef (TypeReference type, TypeDefinition context) {
+        public static bool IsCircularRef (TypeReference type, TypeDefinition context, List<TypeDefinition> checkedList) {
+            if (checkedList == null) {
+                checkedList = new List<TypeDefinition>();
+            }
+
             if (type is GenericParameter) {
                 return false;
             }
             if (type is ArrayType) {
-                return IsCircularRef(((ArrayType) type).ElementType, context);
+                return IsCircularRef(((ArrayType) type).ElementType, context, checkedList);
             }
             if (type is GenericInstanceType) {
                 var gt = (GenericInstanceType) type;
                 foreach (var genericArgument in gt.GenericArguments) {
-                    if (IsCircularRef(genericArgument, context)) {
+                    if (IsCircularRef(genericArgument, context, checkedList)) {
                         return true;
                     }
                 }
             }
-            if (type.Resolve() == context) {
-                return true;
-            };
+
+            var resolvedType = type.Resolve();
+            if (resolvedType != null) {
+                if (checkedList.Contains(resolvedType)) {
+                    return false;
+                }
+                checkedList.Add(resolvedType);
+
+                if (resolvedType == context) {
+                    return true;
+                }
+                if (resolvedType.BaseType != null && IsCircularRef(resolvedType.BaseType, context, checkedList)) {
+                    return true;
+                }
+                foreach (var typeReference in resolvedType.Interfaces) {
+                    if (IsCircularRef(typeReference, context, checkedList)) {
+                        return true;
+                    }
+                }
+            }
             return false;
         }
 
