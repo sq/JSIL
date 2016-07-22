@@ -345,8 +345,7 @@ namespace JSIL.Proxies {
 
 		[JSReplacement("System.String.Insert($this, $index, $str)")]
 		[JSIsPure]
-		public string Insert(int index, string str)
-		{
+		public string Insert(int index, string str) {
 			throw new InvalidOperationException();
 		}
 
