@@ -640,12 +640,13 @@ namespace JSIL {
         }
 
         public static bool IsCircularRef (TypeReference type, TypeDefinition context, List<TypeDefinition> checkedList) {
-            if (checkedList == null) {
-                checkedList = new List<TypeDefinition>();
+            if (type is GenericParameter || context == null || type == null)
+            {
+                return false;
             }
 
-            if (type is GenericParameter) {
-                return false;
+            if (checkedList == null) {
+                checkedList = new List<TypeDefinition>();
             }
             if (type is ArrayType) {
                 return IsCircularRef(((ArrayType) type).ElementType, context, checkedList);
@@ -669,7 +670,7 @@ namespace JSIL {
                 if (resolvedType == context) {
                     return true;
                 }
-                if (resolvedType.BaseType != null && IsCircularRef(resolvedType.BaseType, context, checkedList)) {
+                if (IsCircularRef(resolvedType.BaseType, context, checkedList)) {
                     return true;
                 }
                 foreach (var typeReference in resolvedType.Interfaces) {
