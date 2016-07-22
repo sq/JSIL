@@ -163,13 +163,6 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.Method({ Static: true, Public: true }, "Insert",
-	  new JSIL.MethodSignature($.String, [$.String, $.Int32, $.String], [], $jsilcore),
-	  function (srcStr, index, str) {
-	  	return srcStr.substring(0, index) + str + srcStr.substring(index, srcStr.length);
-	  }
-	);
-
     $.Method({ Static: true, Public: true }, "IsNullOrEmpty",
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
       function (str) {
