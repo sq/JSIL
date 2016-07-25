@@ -168,6 +168,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <None Include="JS Libraries\DefinitelyTyped\module.JSIL.TypeScriptInterop.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Content Include="jsil.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -180,6 +183,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="JS Libraries\DefinitelyTyped\module.JSIL.Core.d.ts">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="JS Libraries\DefinitelyTyped\module.JSIL.TypeScriptInterop.d.ts">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
