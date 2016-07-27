@@ -158,6 +158,13 @@ namespace JSIL {
                 Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
             }
 
+            if (typedef.IsInterface) {
+                Formatter.Space();
+                Formatter.WriteRaw("|");
+                Formatter.Space();
+                Formatter.WriteTypeReference(typedef.Module.TypeSystem.Object, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
+            }
+
             Formatter.Semicolon();
 
             /*Out*/
@@ -183,6 +190,14 @@ namespace JSIL {
                 Formatter.WriteRaw("&");
                 Formatter.Space();
                 Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
+            }
+
+            if (typedef.IsInterface)
+            {
+                Formatter.Space();
+                Formatter.WriteRaw("&");
+                Formatter.Space();
+                Formatter.WriteTypeReference(typedef.Module.TypeSystem.Object, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
             }
 
             Formatter.Semicolon();
