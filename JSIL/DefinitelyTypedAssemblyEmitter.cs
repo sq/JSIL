@@ -245,7 +245,10 @@ namespace JSIL {
             }
 
             if (typedef.IsInterface) {
-                var instanceMethods = typedef.Methods.Where(it => it.IsPublic && !Translator.ShouldSkipMember(it)).GroupBy(method => method.Name).OrderBy(group => group.Key);
+                var instanceMethods = typedef.Methods
+                    .Where(it => it.IsPublic && !Translator.ShouldSkipMember(it))
+                    .GroupBy(method => method.Name + (method.HasGenericParameters ? "`" + method.GenericParameters.Count : string.Empty))
+                    .OrderBy(group => group.Key);
                 foreach (var instanceMethodGroup in instanceMethods)
                 {
                     EmitInterfaceMethodGroup(instanceMethodGroup.Key, instanceMethodGroup);
