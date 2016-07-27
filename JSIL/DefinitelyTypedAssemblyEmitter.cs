@@ -575,7 +575,10 @@ namespace JSIL {
                 }
             } else if (typeReference is GenericInstanceType) {
                 var genericType = (GenericInstanceType) typeReference;
-                if (formatter.WriteTypeReference(genericType.ElementType, context, replaceMode)) /*TODO*/ {
+                if (genericType.Resolve().FullName == "System.Nullable`1") {
+                    formatter.WriteTypeReference(genericType.GenericArguments[0], context, replaceMode);
+                }
+                else if (formatter.WriteTypeReference(genericType.ElementType, context, replaceMode)) /*TODO*/ {
                     formatter.WriteRaw("<");
                     formatter.CommaSeparatedList(genericType.GenericArguments, genericArgument => {
                         formatter.WriteTypeReference(genericArgument, context, ReplaceMode.Instance);
