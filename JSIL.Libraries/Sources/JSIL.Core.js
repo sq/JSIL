@@ -8492,7 +8492,7 @@ JSIL.InterfaceMethod.prototype.$MakeCallMethod = function () {
       var target = thisObject[key];
       var targetFunctionArgs = Array.prototype.slice.call(arguments, 2);
       if (genericArgs) {
-        resolvedTarget = target.apply(thisObject, genericArgs);
+        var resolvedTarget = target.apply(thisObject, genericArgs);
         return resolvedTarget(targetFunctionArgs);
       } else {
         return target.apply(thisObject, targetFunctionArgs);

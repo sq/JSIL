@@ -48,7 +48,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -59,7 +58,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -70,7 +68,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -81,7 +78,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -92,7 +88,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -103,7 +98,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & number;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -112,7 +106,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -121,7 +114,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance;
             interface Static extends Type<Instance, TIn, TOut> {
-                new(arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -130,7 +122,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance;
             interface Static extends Type<Instance, TIn, TOut> {
-                new(arg: number): TOut;
             }
             type Factory = Static;
         }
@@ -141,7 +132,6 @@ export declare namespace $private{
             type TIn = Instance;
             type TOut = Instance & string;
             interface Static extends Type<Instance, TIn, TOut> {
-                new (arg: number): TOut;
             }
             type Factory = Static;
         }
