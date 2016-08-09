@@ -33,7 +33,7 @@ namespace JSIL {
         public override void EmitAssemblyReferences (string assemblyDeclarationReplacement, Dictionary<AssemblyManifest.Token, string> assemblies) {
             if (assemblies != null) {
                 foreach (var referenceOverride in assemblies) {
-                    if (!Translator.IsIgnoredAssembly(referenceOverride.Value)) {
+                    if (!Translator.Configuration.IsIgnoredAssembly(referenceOverride.Value)) {
                         Formatter.WriteRaw(string.Format("import {{$private as {0}}} from \"./{1}\"", referenceOverride.Key.IDString, referenceOverride.Value));
                         Formatter.Semicolon();
                     }
@@ -625,6 +625,11 @@ namespace JSIL {
                     } else if (targetAssembly == formatter.Assembly.FullName) {
                         assemblyRef = string.Empty;
                     } else {
+                        if (formatter.Configuration.IsIgnoredAssembly(targetAssembly)) {
+                            formatter.WriteRaw("Object"); // TODO. Think what type use for ignored assemblies.
+                            return false;
+                        }
+
                         assemblyRef = formatter.Manifest.Entries.FirstOrDefault(item => item.Value == targetAssembly).Key;
                     }
                     if (definition != null && assemblyRef != null) {
