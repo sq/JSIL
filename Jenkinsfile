@@ -3,7 +3,6 @@
 stage('Windows') {
   node('windows') {
     checkout scm
-    bat 'build_windows.bat'
-    archiveArtifacts 'Windows.tar.lzma'
+    bat 'Protobuild.exe --automated-build'
   }
 }

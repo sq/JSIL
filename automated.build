@@ -1,0 +1,13 @@
+#version 1
+
+if host Windows
+
+  native-execute build_windows.bat
+
+  pack . Windows.tar.lzma Windows Publish\Publish.Windows.txt
+
+  if file-exists C:\Users\build\Documents\protobuild_api_key.txt
+    push C:\Users\build\Documents\protobuild_api_key.txt $TARGET_PLATFORM.tar.lzma http://protobuild.org/hach-que/JSIL $GIT_COMMIT $TARGET_PLATFORM master --ignore-on-existing
+  endif
+
+endif
