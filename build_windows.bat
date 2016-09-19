@@ -7,4 +7,4 @@ cd packages\Npm.3.5.2\node_modules\npm
 cmd /C "npm install"
 cd ..\..\..\..
 "C:\Program Files (x86)\MSBuild\14.0\Bin\amd64\msbuild.exe" "JSIL.sln" /m /verbosity:minimal /P:Platform=NoXNA
-Protobuild.exe --pack . Windows.tar.lzma Windows Publish.Windows.txt
+Protobuild.exe --pack . Windows.tar.lzma Windows Publish\Publish.Windows.txt
