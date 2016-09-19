@@ -1,0 +1,13 @@
+# Include Javascript runtime libraries
+include ^Libraries/(.*)$
+rewrite ^Libraries/(.*)$ JSIL.Compiler/Libraries/$1 
+
+# Include JSIL compiler
+include ^bin/(.*)$
+rewrite ^bin/(.*)$ JSIL.Compiler/$1
+
+# Include module + project
+include ^Publish/JSILc\.definition$
+rewrite ^Publish/JSILc\.definition$ Build/Projects/JSILc.definition
+include ^Publish/Module\.xml$
+rewrite ^Publish/Module\.xml$ Build/Module.xml
