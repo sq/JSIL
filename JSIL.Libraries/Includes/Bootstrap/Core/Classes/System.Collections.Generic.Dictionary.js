@@ -515,6 +515,10 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true,
   $.Property({ Public: true, Static: false }, "Keys");
   $.Property({ Public: true, Static: false }, "Values");
 
+  $.ExternalMethod({ Static: false, Public: true }, "get_Values",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.Dictionary`2+ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], []))
+  );
+
   $.ImplementInterfaces(
       $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])]),
       $jsilcore.TypeRef("System.Collections.IEnumerable"),
