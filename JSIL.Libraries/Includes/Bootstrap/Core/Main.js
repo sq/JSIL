@@ -44,6 +44,8 @@ JSIL.DeclareNamespace("System.Runtime.InteropServices");
 
 //? include("Classes/System.String.js"); writeln();
 
+//? include("Classes/System.Tuple.js"); writeln();
+
 //? include("Classes/System.Enum.js"); writeln();
 //? include("Classes/System.Activator.js"); writeln();
 //? include("Classes/System.Nullable.js"); writeln();
