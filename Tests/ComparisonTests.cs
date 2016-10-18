@@ -487,6 +487,22 @@ namespace JSIL.Tests {
             );
         }
 
+	    [Test]
+	    [TestCaseSource("TupleSource")]
+	    public void Tuple(object[] parameters)
+	    {
+		    RunSingleComparisonTestCase(parameters);
+	    }
+
+	    protected IEnumerable<TestCaseData> TupleSource()
+	    {
+		    return FilenameTestSource(
+			    new[] {
+				    @"TestCases\Tuple.cs"
+			    }, MakeDefaultProvider(), new AssemblyCache()
+			);
+	    }
+
         #region Folders
 
         [Test]
