@@ -1160,13 +1160,15 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       };
 
       if (existingAssembly != undefined) {
-        JSIL.WarningFormat(
-          "Public type '{0}' defined twice: {1} and {2}",
-          [name, existingAssembly.toString(), $private.toString()]
-        );
+        if (jsilConfig.suppressTypeDuplicatesReport !== true) {
+          JSIL.WarningFormat(
+            "Public type '{0}' defined twice: {1} and {2}",
+            [name, existingAssembly.toString(), $private.toString()]
+          );
+        }
 
         delete JSIL.$PublicTypeAssemblies[key];
-      } else {
+      } else if (jsilConfig.suppressTypeDuplicatesReport !== true) {
         JSIL.WarningFormat(
           "Public type '{0}' defined more than twice: {1} and several other assemblies",
           [name, $private.toString()]
@@ -1186,7 +1188,7 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       var existing = JSIL.$PrivateTypeAssemblies[key];
       
       if (existing !== undefined){
-        if (existing != $jsilcore) {
+        if (existing != $jsilcore && jsilConfig.suppressTypeDuplicatesReport !== true && jsilConfig.suppressPrivateTypeDuplicatesReport !== true) {
           JSIL.WarningFormat(
             "Private type '{0}' with external implementation defined more than twice: '{1}'", 
             [$private.toString(), existing.toString()]
@@ -1194,8 +1196,8 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
         }
 
         JSIL.$PrivateTypeAssemblies[key] = $private;
-      }      
-  }  
+      }
+  }
 
   var existing = $private.$typesByName[name];
   if (typeof (existing) === "function")
