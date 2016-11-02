@@ -159,7 +159,7 @@ namespace JSIL.SolutionBuilder {
                 pipeId, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous
             )) {
                 var psi = new ProcessStartInfo {
-                    FileName = JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()),
+                    FileName = Process.GetCurrentProcess().MainModule.FileName,
                     Arguments = String.Format("--buildSolution {0}", pipeId),
                     WorkingDirectory = Environment.CurrentDirectory,
                     CreateNoWindow = false,
