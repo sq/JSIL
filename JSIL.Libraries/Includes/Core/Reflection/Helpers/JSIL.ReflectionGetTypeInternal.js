@@ -1,10 +1,10 @@
-﻿JSIL.ReflectionGetTypeInternal = function (thisAssembly, name, throwOnFail, ignoreCase) {
+﻿JSIL.ReflectionGetTypeInternal = function (thisAssembly, name, throwOnFail, ignoreCase, onlySpecificAssembly) {
   var parsed = JSIL.ParseTypeName(name);
 
   var result = JSIL.GetTypeInternal(parsed, thisAssembly, false);
 
   // HACK: Emulate fallback to global namespace search.
-  if (!result) {
+  if (!result && !onlySpecificAssembly) {
     result = JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, false);
   }
 

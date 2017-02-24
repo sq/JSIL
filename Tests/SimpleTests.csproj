@@ -143,6 +143,7 @@
     <None Include="SimpleTestCases\BoxNumeric_Issue981.cs" />
     <None Include="SimpleTestCases\NullableUnary_Issue997.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Issue1008_MethodReturnType.cs" />
+    <None Include="SimpleTestCases\GetTypeFromAssembly_Issue1035.cs" />
     <Compile Include="SimpleTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
