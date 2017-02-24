@@ -54,14 +54,14 @@
   $.Method({ Static: false, Public: true }, "GetType",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$.String], [])),
     function GetType(name) {
-      return JSIL.GetTypeFromAssembly(this, name, null, false);
+      return JSIL.ReflectionGetTypeInternal(this, name, false, false);
     }
   );
 
   $.Method({ Static: false, Public: true }, "GetType",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [$.String, $.Boolean], [])),
     function GetType(name, throwOnError) {
-      return JSIL.GetTypeFromAssembly(this, name, null, throwOnError);
+      return JSIL.ReflectionGetTypeInternal(this, name, throwOnError, false);
     }
   );
 
@@ -81,7 +81,7 @@
       if (ignoreCase)
         throw new Error("ignoreCase not implemented");
 
-      return JSIL.GetTypeFromAssembly(this, name, null, throwOnError);
+      return JSIL.ReflectionGetTypeInternal(this, name, throwOnError, ignoreCase);
     }
   );
 
