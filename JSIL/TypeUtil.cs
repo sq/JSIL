@@ -163,6 +163,40 @@ namespace JSIL {
             }
         }
 
+        public static TypeReference GetUnsignedType(TypeReference type, TypeSystem typeSystem)
+        {
+            type = DereferenceType(type);
+
+            switch (type.MetadataType)
+            {
+                case MetadataType.UIntPtr:
+                case MetadataType.IntPtr:
+                    return typeSystem.UIntPtr;
+
+                case MetadataType.SByte:
+                case MetadataType.Byte:
+                    return typeSystem.Byte;
+
+                case MetadataType.Int16:
+                case MetadataType.UInt16:
+                    return typeSystem.UInt16;
+
+                case MetadataType.Int32:
+                case MetadataType.UInt32:
+                    return typeSystem.UInt32;
+
+                case MetadataType.Int64:
+                case MetadataType.UInt64:
+                    return typeSystem.UInt64;
+
+                case MetadataType.Char:
+                    return typeSystem.Char;
+
+                default:
+                    return type;
+            }
+        }
+
         public static bool? IsSigned (TypeReference type) {
             type = DereferenceType(type);
 

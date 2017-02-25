@@ -547,6 +547,23 @@ namespace JSIL {
                 AutoCastingState.Pop();
             }
 
+            if (node.Code.GetName().Contains(".un"))
+            {
+                var lType = lhs.GetActualType(TypeSystem);
+                var lUnsigned = TypeUtil.GetUnsignedType(lType, TypeSystem);
+                if (lType != lUnsigned)
+                {
+                    lhs = JSCastExpression.New(lhs, lUnsigned, TypeSystem, isCoercion: true);
+                }
+
+                var rType = rhs.GetActualType(TypeSystem);
+                var rUnsigned = TypeUtil.GetUnsignedType(rType, TypeSystem);
+                if (lType != rUnsigned)
+                {
+                    rhs = JSCastExpression.New(rhs, rUnsigned, TypeSystem, isCoercion: true);
+                }
+            }
+
             if (TypeUtil.IsPointer(lhs.GetActualType(TypeSystem)))
                 arePointersInvolved |= true;
             else if (TypeUtil.IsPointer(rhs.GetActualType(TypeSystem)))

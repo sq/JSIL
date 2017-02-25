@@ -66,6 +66,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <None Include="SimpleTestCases\ble.un.il" />
     <None Include="SimpleTestCases\Issue538.cs" />
     <None Include="SimpleTestCases\Issue567.cs" />
     <None Include="SimpleTestCasesForStubbedBcl\Issue585.cs" />
