@@ -547,23 +547,6 @@ namespace JSIL {
                 AutoCastingState.Pop();
             }
 
-            if (node.Code.GetName().Contains(".un"))
-            {
-                var lType = lhs.GetActualType(TypeSystem);
-                var lUnsigned = TypeUtil.GetUnsignedType(lType, TypeSystem);
-                if (lType != lUnsigned)
-                {
-                    lhs = JSCastExpression.New(lhs, lUnsigned, TypeSystem, isCoercion: true);
-                }
-
-                var rType = rhs.GetActualType(TypeSystem);
-                var rUnsigned = TypeUtil.GetUnsignedType(rType, TypeSystem);
-                if (lType != rUnsigned)
-                {
-                    rhs = JSCastExpression.New(rhs, rUnsigned, TypeSystem, isCoercion: true);
-                }
-            }
-
             if (TypeUtil.IsPointer(lhs.GetActualType(TypeSystem)))
                 arePointersInvolved |= true;
             else if (TypeUtil.IsPointer(rhs.GetActualType(TypeSystem)))
@@ -582,6 +565,22 @@ namespace JSIL {
             var resultType = node.InferredType ?? node.ExpectedType;
             var leftType = lhs.GetActualType(TypeSystem);
             var rightType = rhs.GetActualType(TypeSystem);
+
+            if (node.Code.GetName().Contains(".un"))
+            {
+                // We need emulate unsigned comaprison
+                var leftTypeUnsigned = TypeUtil.GetUnsignedType(leftType, TypeSystem);
+                if (leftType != leftTypeUnsigned)
+                {
+                    lhs = JSCastExpression.New(lhs, leftTypeUnsigned, TypeSystem, isCoercion: true);
+                }
+
+                var rightTypeUnsigned = TypeUtil.GetUnsignedType(rightType, TypeSystem);
+                if (rightType != rightTypeUnsigned)
+                {
+                    rhs = JSCastExpression.New(rhs, rightTypeUnsigned, TypeSystem, isCoercion: true);
+                }
+            }
 
             if (
                 TypeUtil.IsIntegral(leftType) && 
