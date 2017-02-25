@@ -566,6 +566,22 @@ namespace JSIL {
             var leftType = lhs.GetActualType(TypeSystem);
             var rightType = rhs.GetActualType(TypeSystem);
 
+            if (node.Code.GetName().Contains(".un"))
+            {
+                // We need emulate unsigned comaprison
+                var leftTypeUnsigned = TypeUtil.GetUnsignedType(leftType, TypeSystem);
+                if (leftType != leftTypeUnsigned)
+                {
+                    lhs = JSCastExpression.New(lhs, leftTypeUnsigned, TypeSystem, isCoercion: true);
+                }
+
+                var rightTypeUnsigned = TypeUtil.GetUnsignedType(rightType, TypeSystem);
+                if (rightType != rightTypeUnsigned)
+                {
+                    rhs = JSCastExpression.New(rhs, rightTypeUnsigned, TypeSystem, isCoercion: true);
+                }
+            }
+
             if (
                 TypeUtil.IsIntegral(leftType) && 
                 TypeUtil.IsIntegral(rightType) &&
