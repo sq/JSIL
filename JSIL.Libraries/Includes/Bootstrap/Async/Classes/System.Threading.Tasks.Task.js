@@ -123,6 +123,15 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
       return tcs.Task;
     }
   );
+
+  $.Method({ Static: true, Public: true }, "FromResult",
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", ["!!0"]), ["!!0"], ["TResult"])),
+    function FromResult(TResult, result) {
+        var tcs = new (System.Threading.Tasks.TaskCompletionSource$b1.Of(TResult.__PublicInterface__))();
+        tcs.TrySetResult(result);
+        return tcs.Task;
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.Threading.Tasks.Task`1", function ($) {
@@ -217,6 +226,10 @@ JSIL.MakeType({
 
   $.ExternalMethod({ Static: true, Public: true }, "Delay",
     new JSIL.MethodSignature($.Type, [$.Int32], [])
+  );
+
+  $.ExternalMethod({ Static: true, Public: true }, "FromResult",
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", ["!!0"]), ["!!0"], ["TResult"])
   );
 
   $.ExternalMethod({ Static: false, Public: true }, "get_Exception",
