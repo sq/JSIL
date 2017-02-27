@@ -36,6 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Includes\Bootstrap\Core\Classes\System.Tuple.js" />
     <Content Include="Includes\Bootstrap\Core\Helpers\JSIL.MakeIConvertibleMethods.js" />
     <Content Include="Includes\Bootstrap\Core\Interfaces\System.IConvertible.js" />
     <Content Include="Includes\Bootstrap\Dynamic\Classes\Microsoft.CSharp.RuntimeBinder.Binder.js" />
