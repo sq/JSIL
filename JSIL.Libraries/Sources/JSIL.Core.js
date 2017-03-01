@@ -331,6 +331,10 @@ JSIL.$GetSpecialType = function (name) {
       for (var i = 0, l = ga.length; i < l; i++) {
         var type = ga[i];
         result += "[" + type.get_AssemblyQualifiedName() + "]";
+        if(i<l-1)
+        {
+            result+=","
+        }
       }
 
       result += "]";
