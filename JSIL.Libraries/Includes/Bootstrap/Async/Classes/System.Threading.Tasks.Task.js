@@ -84,6 +84,20 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
     }
   );
 
+  $.Method({ Static: false, Public: true }, "get_IsCanceled",
+      (new JSIL.MethodSignature($.Boolean, [], [])),
+      function get_IsCanceled() {
+          return (this.status == System.Threading.Tasks.TaskStatus.Canceled);
+      }
+  );
+
+  $.Method({ Static: false, Public: true }, "get_IsFaulted",
+      (new JSIL.MethodSignature($.Boolean, [], [])),
+      function get_IsFaulted() {
+          return (this.status == System.Threading.Tasks.TaskStatus.Faulted);
+      }
+  );
+
   $.Method({ Static: false, Public: true }, "ContinueWith",
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task"), [$jsilcore.TypeRef("System.Action`1", [$jsilcore.TypeRef("System.Threading.Tasks.Task")])], [])),
     function ContinueWith(continuationAction) {
@@ -126,6 +140,13 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
 });
 
 JSIL.ImplementExternals("System.Threading.Tasks.Task`1", function ($) {
+  var $AggregateExceptionConstructorSignature = function () {
+    return ($AggregateExceptionConstructorSignature = JSIL.Memoize(new JSIL.ConstructorSignature($jsilcore.TypeRef("System.AggregateException"), [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Exception")])))();
+  };
+  var $TaskCanceledExceptionExceptionConstructorSignature = function () {
+    return ($TaskCanceledExceptionExceptionConstructorSignature = JSIL.Memoize(new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Threading.Tasks.TaskCanceledException"), [])))();
+  };
+
   var createTaskCommon = function (self) {
     self.$function = null;
     self.RunTask = function () {
@@ -174,6 +195,9 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task`1", function ($) {
       var taskException = this.get_Exception();
       if (taskException !== null) {
         throw taskException;
+      }
+      if (this.get_IsCanceled()) {
+          throw $AggregateExceptionConstructorSignature().Construct("One or more errors occured.", $TaskCanceledExceptionExceptionConstructorSignature().Construct());
       }
       return this.result;
     }
@@ -242,6 +266,8 @@ JSIL.MakeType({
   $.Property({ Static: false, Public: true }, "Exception", $jsilcore.TypeRef("System.AggregateException"));
 
   $.Property({ Static: false, Public: true, Virtual: true }, "IsCompleted", $.Boolean);
+  $.Property({ Static: false, Public: true, Virtual: true }, "IsFaulted", $.Boolean);
+  $.Property({ Static: false, Public: true, Virtual: true }, "IsCanceled", $.Boolean);
 
   $.Property({ Static: true, Public: true }, "Factory", $jsilcore.TypeRef("System.Threading.Tasks.TaskFactory"));
 

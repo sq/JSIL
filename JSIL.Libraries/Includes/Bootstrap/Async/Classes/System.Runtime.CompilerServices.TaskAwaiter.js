@@ -1,4 +1,8 @@
 JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter", function ($) {
+  var $TaskCanceledExceptionExceptionConstructorSignature = function () {
+    return ($TaskCanceledExceptionExceptionConstructorSignature = JSIL.Memoize(new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Threading.Tasks.TaskCanceledException"), [])))();
+  };
+
   $.Method({ Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Threading.Tasks.Task")], []),
       function TaskAwaiter__ctor(task) {
@@ -20,6 +24,9 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter", function 
       if (!this._task.get_IsCompleted()) {
         throw new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Exception"), [$jsilcore.TypeRef("System.String")]).Construct("TaskNotCompleted");
       }
+      if (this._task.get_IsCanceled()) {
+        throw $TaskCanceledExceptionExceptionConstructorSignature().Construct();
+      }
       var taskException = this._task.get_Exception();
       if (taskException !== null) {
         throw taskException.get_InnerException();
@@ -37,6 +44,10 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter", function 
 });
 
 JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter`1", function ($) {
+  var $TaskCanceledExceptionExceptionConstructorSignature = function () {
+    return ($TaskCanceledExceptionExceptionConstructorSignature = JSIL.Memoize(new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Threading.Tasks.TaskCanceledException"), [])))();
+  };
+
   $.Method({ Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Threading.Tasks.Task`1", [new JSIL.GenericParameter("TResult", "System.Runtime.CompilerServices.TaskAwaiter`1")])], []),
       function TaskAwaiter__ctor(task) {
@@ -56,6 +67,9 @@ JSIL.ImplementExternals("System.Runtime.CompilerServices.TaskAwaiter`1", functio
     function GetResult() {
       if (!this._task.get_IsCompleted()) {
         throw new JSIL.ConstructorSignature($jsilcore.TypeRef("System.Exception"), [$jsilcore.TypeRef("System.String")]).Construct("TaskNotCompleted");
+      }
+      if (this._task.get_IsCanceled()) {
+          throw $TaskCanceledExceptionExceptionConstructorSignature().Construct();
       }
       var taskException = this._task.get_Exception();
       if (taskException !== null) {

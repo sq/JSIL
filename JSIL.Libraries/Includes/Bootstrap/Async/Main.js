@@ -17,4 +17,6 @@ JSIL.DeclareNamespace("System.Threading.Tasks");
 //? include("Classes/System.Threading.Tasks.TaskStatus.js"); writeln();
 //? include("Interfaces/System.Runtime.CompilerServices.INotifyCompletion.js"); writeln();
 //? include("Classes/System.AggregateException.js"); writeln();
+//? include("Classes/System.Threading.Tasks.TaskCanceledException.js"); writeln();
+//? include("Classes/System.OperationCanceledException.js"); writeln();
 //? include("Classes/System.Threading.ManualResetEventSlim.js"); writeln();
