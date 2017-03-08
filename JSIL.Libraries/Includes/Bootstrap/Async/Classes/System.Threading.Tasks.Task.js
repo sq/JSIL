@@ -137,6 +137,16 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
       return tcs.Task;
     }
   );
+
+  $.Method({ Static: true, Public: true }, "FromResult",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", ["!!0"]), ["!!0"], ["TResult"]),
+      function(TResult, result) {
+          var task = new ($jsilcore.System.Threading.Tasks.Task$b1.Of(TResult));
+          task.status = $jsilcore.System.Threading.Tasks.TaskStatus.RanToCompletion;
+          task.result = result;
+          return task;
+      }
+  );
 });
 
 JSIL.ImplementExternals("System.Threading.Tasks.Task`1", function ($) {
@@ -261,6 +271,10 @@ JSIL.MakeType({
 
   $.ExternalMethod({ Static: false, Public: true }, "GetAwaiter",
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Runtime.CompilerServices.TaskAwaiter"), [], [])
+  );
+
+  $.ExternalMethod({ Static: true, Public: true }, "FromResult",
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", ["!!0"]), ["!!0"], ["TResult"])
   );
 
   $.Property({ Static: false, Public: true }, "Exception", $jsilcore.TypeRef("System.AggregateException"));

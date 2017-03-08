@@ -142,6 +142,7 @@
     <None Include="SimpleTestCases\ArrayCast.cs" />
     <None Include="SimpleTestCases\Issue913.cs" />
     <None Include="SimpleTestCases\BoxNumeric_Issue981.cs" />
+    <None Include="SimpleTestCases\Task_FromResult.cs" />
     <None Include="SimpleTestCases\NullableUnary_Issue997.cs" />
     <None Include="SimpleTestCasesForTranslatedBcl\Issue1008_MethodReturnType.cs" />
     <None Include="SimpleTestCases\GetTypeFromAssembly_Issue1035.cs" />
