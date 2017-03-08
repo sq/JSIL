@@ -142,8 +142,8 @@ JSIL.ImplementExternals("System.Threading.Tasks.Task", function ($) {
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Tasks.Task`1", ["!!0"]), ["!!0"], ["TResult"]),
       function(TResult, result) {
           var task = new ($jsilcore.System.Threading.Tasks.Task$b1.Of(TResult));
-          task.status = $jsilcore.System.Threading.Tasks.TaskStatus.RanToCompletion;
           task.result = result;
+          task.SetComplete();
           return task;
       }
   );
