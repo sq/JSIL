@@ -284,12 +284,7 @@ namespace JSIL {
         }
 
         protected bool IsIgnored (string assemblyName) {
-            foreach (var ia in Configuration.Assemblies.Ignored) {
-                if (Regex.IsMatch(assemblyName, ia, RegexOptions.IgnoreCase))
-                    return true;
-            }
-
-            return false;
+            return Configuration.IsIgnoredAssembly(assemblyName);
         }
 
         protected string ResolveRedirectedName (string assemblyName) {
@@ -841,20 +836,7 @@ namespace JSIL {
         }
 
         public bool IsIgnored (AssemblyDefinition assembly) {
-            return IsIgnoredAssembly(assembly.FullName);
-        }
-
-        public bool IsIgnoredAssembly(string assemblyName)
-        {
-            foreach (var sa in Configuration.Assemblies.Ignored)
-            {
-                if (Regex.IsMatch(assemblyName, sa, RegexOptions.IgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return IsIgnored(assembly.FullName);
         }
 
         public bool IsStubbed (AssemblyDefinition assembly) {

@@ -33,7 +33,7 @@ namespace JSIL {
         public override void EmitAssemblyReferences (string assemblyDeclarationReplacement, Dictionary<AssemblyManifest.Token, string> assemblies) {
             if (assemblies != null) {
                 foreach (var referenceOverride in assemblies) {
-                    if (!Translator.IsIgnoredAssembly(referenceOverride.Value)) {
+                    if (!Translator.Configuration.IsIgnoredAssembly(referenceOverride.Value)) {
                         Formatter.WriteRaw(string.Format("import {{$private as {0}}} from \"./{1}\"", referenceOverride.Key.IDString, referenceOverride.Value));
                         Formatter.Semicolon();
                     }
@@ -158,6 +158,13 @@ namespace JSIL {
                 Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
             }
 
+            if (typedef.IsInterface) {
+                Formatter.Space();
+                Formatter.WriteRaw("|");
+                Formatter.Space();
+                Formatter.WriteTypeReference(typedef.Module.TypeSystem.Object, typedef, JavascriptFormatterHelper.ReplaceMode.In, false);
+            }
+
             Formatter.Semicolon();
 
             /*Out*/
@@ -183,6 +190,14 @@ namespace JSIL {
                 Formatter.WriteRaw("&");
                 Formatter.Space();
                 Formatter.WriteTypeReference(iface, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
+            }
+
+            if (typedef.IsInterface)
+            {
+                Formatter.Space();
+                Formatter.WriteRaw("&");
+                Formatter.Space();
+                Formatter.WriteTypeReference(typedef.Module.TypeSystem.Object, typedef, JavascriptFormatterHelper.ReplaceMode.Out, false);
             }
 
             Formatter.Semicolon();
@@ -230,7 +245,10 @@ namespace JSIL {
             }
 
             if (typedef.IsInterface) {
-                var instanceMethods = typedef.Methods.Where(it => it.IsPublic && !Translator.ShouldSkipMember(it)).GroupBy(method => method.Name).OrderBy(group => group.Key);
+                var instanceMethods = typedef.Methods
+                    .Where(it => it.IsPublic && !Translator.ShouldSkipMember(it))
+                    .GroupBy(method => method.Name + (method.HasGenericParameters ? "`" + method.GenericParameters.Count : string.Empty))
+                    .OrderBy(group => group.Key);
                 foreach (var instanceMethodGroup in instanceMethods)
                 {
                     EmitInterfaceMethodGroup(instanceMethodGroup.Key, instanceMethodGroup);
@@ -575,7 +593,10 @@ namespace JSIL {
                 }
             } else if (typeReference is GenericInstanceType) {
                 var genericType = (GenericInstanceType) typeReference;
-                if (formatter.WriteTypeReference(genericType.ElementType, context, replaceMode)) /*TODO*/ {
+                if (genericType.Resolve().FullName == "System.Nullable`1") {
+                    formatter.WriteTypeReference(genericType.GenericArguments[0], context, replaceMode);
+                }
+                else if (formatter.WriteTypeReference(genericType.ElementType, context, replaceMode)) /*TODO*/ {
                     formatter.WriteRaw("<");
                     formatter.CommaSeparatedList(genericType.GenericArguments, genericArgument => {
                         formatter.WriteTypeReference(genericArgument, context, ReplaceMode.Instance);
@@ -604,6 +625,11 @@ namespace JSIL {
                     } else if (targetAssembly == formatter.Assembly.FullName) {
                         assemblyRef = string.Empty;
                     } else {
+                        if (formatter.Configuration.IsIgnoredAssembly(targetAssembly)) {
+                            formatter.WriteRaw("Object"); // TODO. Think what type use for ignored assemblies.
+                            return false;
+                        }
+
                         assemblyRef = formatter.Manifest.Entries.FirstOrDefault(item => item.Value == targetAssembly).Key;
                     }
                     if (definition != null && assemblyRef != null) {
@@ -626,7 +652,7 @@ namespace JSIL {
                          * It could be improved, by we really need generic variance support or support of:
                          type T = something & I<T> (see Microsoft/TypeScript#6230)
                          */
-                        var fixedMode = (replaceMode != ReplaceMode.Instance && context == definition) ? ReplaceMode.Instance : replaceMode;
+                        var fixedMode = (replaceMode != ReplaceMode.Instance && IsCircularRef(definition, context, null)) ? ReplaceMode.Instance : replaceMode;
                         formatter.TRSuffix(fixedMode);
                     }
                     else {
@@ -637,6 +663,49 @@ namespace JSIL {
                 }
             }
             return true;
+        }
+
+        public static bool IsCircularRef (TypeReference type, TypeDefinition context, List<TypeDefinition> checkedList) {
+            if (type is GenericParameter || context == null || type == null)
+            {
+                return false;
+            }
+
+            if (checkedList == null) {
+                checkedList = new List<TypeDefinition>();
+            }
+            if (type is ArrayType) {
+                return IsCircularRef(((ArrayType) type).ElementType, context, checkedList);
+            }
+            if (type is GenericInstanceType) {
+                var gt = (GenericInstanceType) type;
+                foreach (var genericArgument in gt.GenericArguments) {
+                    if (IsCircularRef(genericArgument, context, checkedList)) {
+                        return true;
+                    }
+                }
+            }
+
+            var resolvedType = type.Resolve();
+            if (resolvedType != null) {
+                if (checkedList.Contains(resolvedType)) {
+                    return false;
+                }
+                checkedList.Add(resolvedType);
+
+                if (resolvedType == context) {
+                    return true;
+                }
+                if (IsCircularRef(resolvedType.BaseType, context, checkedList)) {
+                    return true;
+                }
+                foreach (var typeReference in resolvedType.Interfaces) {
+                    if (IsCircularRef(typeReference, context, checkedList)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         public static void CommaSeparatedList<T> (this JavascriptFormatter formatter, IEnumerable<T> list, Action<T> process) {

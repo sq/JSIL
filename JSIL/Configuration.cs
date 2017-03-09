@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace JSIL.Translator {
     [Serializable]
@@ -154,7 +155,7 @@ namespace JSIL.Translator {
             if (UseThreads.HasValue)
                 result.UseThreads = UseThreads;
             if (UseDefaultProxies.HasValue)
-              result.UseDefaultProxies = UseDefaultProxies;
+                result.UseDefaultProxies = UseDefaultProxies;
 
             if (FrameworkVersion.HasValue)
                 result.FrameworkVersion = FrameworkVersion;
@@ -189,6 +190,18 @@ namespace JSIL.Translator {
 
             Assemblies.MergeInto(result.Assemblies);
             CodeGenerator.MergeInto(result.CodeGenerator);
+        }
+    }
+
+    public static class ConfigurationHelper {
+        public static bool IsIgnoredAssembly (this Configuration configurain, string assemblyName) {
+            foreach (var sa in configurain.Assemblies.Ignored) {
+                if (Regex.IsMatch(assemblyName, sa, RegexOptions.IgnoreCase)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
