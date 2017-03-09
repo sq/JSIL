@@ -287,6 +287,7 @@
     <Content Include="Sources\gamepad.js" />
     <Content Include="Sources\JSIL.Bootstrap.Dynamic.js" />
     <Content Include="Sources\JSIL.Bootstrap.Text.js" />
+    <Content Include="Sources\JSIL.IO.Compression.js" />
     <Content Include="Sources\StubbedBCL\JSIL.IO.js" />
     <Content Include="Sources\StubbedBCL\JSIL.XML.js" />
     <Content Include="Sources\TranslatedBCL\JSIL.Bootstrap.js" />

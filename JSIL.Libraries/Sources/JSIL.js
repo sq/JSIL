@@ -290,6 +290,11 @@ var $jsilloaderstate = {
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Async.js");
   environment.loadScript(libraryRoot + "JSIL.Bootstrap.Dynamic.js");
 
+  if (config.zip || environment.getUserSetting("zip")) {
+      environment.loadScript(libraryRoot + "jszip.min.js");
+      environment.loadScript(libraryRoot + "JSIL.IO.Compression.js");
+  }
+
   if (config.xml || environment.getUserSetting("xml"))
     environment.loadScript(libraryRoot + "JSIL.XML.js");
   
