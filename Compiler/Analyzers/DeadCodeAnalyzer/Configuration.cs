@@ -9,7 +9,8 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private readonly bool _DeadCodeElimination;
         private readonly bool _NonAggressiveVirtualMethodElimination;
         private readonly IList<string> _WhiteList;
-  
+        private readonly IList<string> _AssembliesWhiteList;
+
         public Configuration(IDictionary<string, object> configuration) {
             _DeadCodeElimination = configuration.ContainsKey("DeadCodeElimination") &&
                                   configuration["DeadCodeElimination"] is bool &&
@@ -22,6 +23,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
             if (configuration.ContainsKey("WhiteList") &&
                 configuration["WhiteList"] is IList) {
                 _WhiteList = ((IList) configuration["WhiteList"]).Cast<string>().ToList();
+            }
+
+            if (configuration.ContainsKey("AssembliesWhiteList") && configuration["AssembliesWhiteList"] is IList)
+            {
+                _AssembliesWhiteList = ((IList)configuration["AssembliesWhiteList"]).Cast<string>().ToList();
             }
         }
 
@@ -38,6 +44,11 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         public IList<string> WhiteList
         {
             get { return _WhiteList; }
+        }
+
+        public IList<string> AssembliesWhiteList
+        {
+            get { return _AssembliesWhiteList; }
         }
     }
 }

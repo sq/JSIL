@@ -117,6 +117,7 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
         private readonly HashSet<EventDefinition> Events = new HashSet<EventDefinition>();
 
         private readonly TypeMapStep TypeMapStep = new TypeMapStep();
+        private readonly List<Regex> AssembliesWhiteListCache;
         private readonly List<Regex> WhiteListCache;
         private readonly Configuration Configuration; 
 
@@ -128,6 +129,16 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
                 foreach (var pattern in configuration.WhiteList) {
                     var compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
                     WhiteListCache.Add(compiledRegex);
+                }
+            }
+
+            if (configuration.AssembliesWhiteList != null && configuration.AssembliesWhiteList.Count > 0)
+            {
+                AssembliesWhiteListCache = new List<Regex>(configuration.AssembliesWhiteList.Count);
+                foreach (var pattern in configuration.AssembliesWhiteList)
+                {
+                    var compiledRegex = new Regex(pattern, RegexOptions.ECMAScript | RegexOptions.Compiled);
+                    AssembliesWhiteListCache.Add(compiledRegex);
                 }
             }
         }
@@ -892,6 +903,14 @@ namespace JSIL.Compiler.Extensibility.DeadCodeAnalyzer {
 
         private bool IsMemberWhiteListed(MemberReference member)
         {
+            if (AssembliesWhiteListCache != null)
+            {
+                if (AssembliesWhiteListCache.Any(regex => regex.IsMatch(member.Module.Assembly.FullName)))
+                {
+                    return true;
+                }
+            }
+
             if (WhiteListCache != null) {
                 if (WhiteListCache.Any(regex => regex.IsMatch(member.FullName))) {
                     return true;
