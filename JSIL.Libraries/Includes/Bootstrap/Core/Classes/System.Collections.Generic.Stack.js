@@ -78,4 +78,19 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
     "System.Collections.IEnumerable"
 	);
 });
+
+JSIL.MakeType({
+    BaseType: $jsilcore.TypeRef("System.ValueType"),
+    Name: "System.Collections.Generic.Stack`1+Enumerator",
+    IsPublic: true,
+    IsReferenceType: false,
+    GenericParameters: ["T"],
+    MaximumConstructorArguments: 1,
+}, function ($) {
+    $.ImplementInterfaces(
+        $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1+Enumerator")]),
+        $jsilcore.TypeRef("System.IDisposable"),
+        $jsilcore.TypeRef("System.Collections.IEnumerator")
+    );
+});
 //? }

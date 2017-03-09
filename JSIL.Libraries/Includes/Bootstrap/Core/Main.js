@@ -120,6 +120,7 @@ JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.Exp
 
 JSIL.MakeDelegate("System.Action", true, [], JSIL.MethodSignature.Void);
 JSIL.MakeDelegate("System.Action`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Action`1").in()]));
+JSIL.MakeDelegate("System.EventHandler`1", true, ["T"], new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.EventHandler`1").in()]));
 JSIL.MakeDelegate("System.Func`1", true, ["TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`1").out(), null));
 JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"], new JSIL.MethodSignature(new JSIL.GenericParameter("TResult", "System.Func`2").out(), [new JSIL.GenericParameter("T", "System.Func`2").in()]));
 
