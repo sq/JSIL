@@ -161,6 +161,9 @@
     <None Include="EmscriptenTestCases\OutUnionParameter.cs" />
     <None Include="EmscriptenTestCases\OutComplexUnionParameter.cs" />
     <None Include="EmscriptenTestCases\ReturnEnum.cs" />
+    <Compile Include="..\JSIL\Properties\GlobalAssemblyInfo.cs">
+      <Link>Properties\GlobalAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="EmscriptenTestCases\ProxiedExternFunction.cs" />
     <None Include="EmscriptenTestCases\IntPtrZeroEquality.cs" />
     <None Include="EmscriptenTestCases\StringArrayParameter.cs" />

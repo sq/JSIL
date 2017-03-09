@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
@@ -8,10 +7,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("JSILc")]
 [assembly: AssemblyDescription("JSIL Command Line Compiler")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Squared Interactive")]
-[assembly: AssemblyProduct("JSIL")]
-[assembly: AssemblyCopyright("Copyright © Squared Interactive 2011")]
-[assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -21,15 +16,3 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("e2342fc2-c01e-470e-8191-fd22b94bb455")]
-
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version 
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers 
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.8.2.*")]

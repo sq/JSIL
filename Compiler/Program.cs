@@ -188,6 +188,9 @@ namespace JSIL.Compiler {
                     {"o=|out=", 
                         "Specifies the output directory for generated javascript and manifests.",
                         (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
+                    {"outLibraries=",
+                        "Specifies the output directory for JSIL Libraries.",
+                        (path) => commandLineConfig.JsLibrariesOutputDirectory = Path.GetFullPath(path) },
                     {"q|quiet",
                         "Suppresses non-error/non-warning stderr messages.",
                         (_) => commandLineConfig.Quiet = Quiet = true },
@@ -822,10 +825,16 @@ namespace JSIL.Compiler {
                         if (localConfig.OutputDirectory == null)
                             throw new Exception("No output directory was specified!");
 
-                        var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
-                        CopiedOutputGatherer.EnsureDirectoryExists(outputDir);
+                        localConfig.OutputDirectory = MapPath(localConfig.OutputDirectory, localVariables, false);
+                        CopiedOutputGatherer.EnsureDirectoryExists(localConfig.OutputDirectory);
 
-                        InformationWriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
+                        InformationWriteLine("// Saving output to '{0}'.", ShortenPath(localConfig.OutputDirectory) + Path.DirectorySeparatorChar);
+
+                        if (!string.IsNullOrEmpty(localConfig.JsLibrariesOutputDirectory))
+                        {
+                            localConfig.JsLibrariesOutputDirectory = MapPath(localConfig.JsLibrariesOutputDirectory, localVariables, false);
+                            CopiedOutputGatherer.EnsureDirectoryExists(localConfig.JsLibrariesOutputDirectory);
+                        }
 
                         // Ensures that the log file contains the name of the profile that was actually used.
                         localConfig.Profile = localProfile.GetType().Name;
@@ -833,9 +842,9 @@ namespace JSIL.Compiler {
                         if (ignoredMethods.Count > 0)
                             Console.Error.WriteLine("// {0} method(s) were ignored during translation. See the log for a list.", ignoredMethods.Count);
 
-                        EmitLog(outputDir, localConfig, filename, outputs, ignoredMethods);
+                        EmitLog(localConfig.OutputDirectory, localConfig, filename, outputs, ignoredMethods);
 
-                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Quiet);
+                        buildGroup.Profile.WriteOutputs(localVariables, outputs, localConfig, Quiet);
 
                         totalFailureCount += translator.Failures.Count;
                     }

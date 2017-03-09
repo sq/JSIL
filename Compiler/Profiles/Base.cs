@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using JSIL.Compiler.Extensibility;
 using JSIL.Utilities;
 
@@ -24,7 +25,7 @@ namespace JSIL.Compiler.Profiles {
         public virtual void RegisterPostprocessors (IEnumerable<IEmitterGroupFactory> emitters, Configuration configuration, string assemblyPath, string[] skippedAssemblies) {
         }
 
-        public virtual void WriteOutputs (VariableSet variables, TranslationResultCollection result, string path,bool quiet) {
+        public virtual void WriteOutputs (VariableSet variables, TranslationResultCollection result, Configuration configuration, bool quiet) {
             foreach (var translationResult in result.TranslationResults) {
                 if (!quiet)
                 {
@@ -32,7 +33,27 @@ namespace JSIL.Compiler.Profiles {
                         Console.WriteLine(fe.Filename);
                 }
 
-                translationResult.WriteToDirectory(path);
+                translationResult.WriteToDirectory(configuration.OutputDirectory);
+            }
+
+            var jsilPath = Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
+            var searchPath = Path.Combine(jsilPath, "JS Libraries\\JsLibraries\\");
+            if (!string.IsNullOrEmpty(configuration.JsLibrariesOutputDirectory) && Directory.Exists(searchPath))
+            {
+                foreach (var file in Directory.GetFiles(searchPath, "*", SearchOption.AllDirectories)) {
+                    var target = Uri.UnescapeDataString(Path.Combine(configuration.JsLibrariesOutputDirectory, new Uri(searchPath).MakeRelativeUri(new Uri(file)).ToString()))
+                        .Replace('/', Path.DirectorySeparatorChar);
+                    var directory = Path.GetDirectoryName(target);
+                    if (!Directory.Exists(directory))
+                        Directory.CreateDirectory(directory);
+
+                    File.Copy(file, target, true);
+
+                    if (!quiet)
+                    {
+                            Console.WriteLine(target);
+                    }
+                }
             }
         }
 
