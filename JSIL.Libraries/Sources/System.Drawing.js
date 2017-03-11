@@ -177,6 +177,29 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
     }
   );
 
+  $.Method({ Static: true, Public: true }, "FromArgb",
+    new JSIL.MethodSignature(systemDrawing.TypeRef("System.Drawing.Color"), [
+        mscorlib.TypeRef("System.Int32")
+    ], []),
+    function (value) {
+    	var hexStr = value.toString(16);
+    	var argb = [];
+		if (hexStr.Length === 6) {
+			argb.push(0);
+		}
+	    var tempStr = "";
+		for (var i = 0; i < hexStr.length; i++) {
+			if (i % 2 === 1) {
+				tempStr += hexStr[i];
+				argb.push(parseInt(tempStr, 16));
+			} else {
+				tempStr = hexStr[i];
+			}
+		}
+		return makeColor(argb[0], argb[1], argb[2], argb[3], null);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_A", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [], []),
     function () {
