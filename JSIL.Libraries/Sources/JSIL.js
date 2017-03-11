@@ -31,17 +31,26 @@
     globalNamespace.jsilConfig = {};
 
   if (typeof (globalNamespace.contentManifest) !== "object")
-    globalNamespace.contentManifest = {}; 
-})(this);
+      globalNamespace.contentManifest = {
+          "JSIL": []
+      };
 
-contentManifest["JSIL"] = [];
-
-var $jsilloaderstate = {
-  environment: null,
-  loadFailures: []
-};
+  globalNamespace.$jsilloaderstate = {
+    environment: null,
+    loadFailures: []
+  };
+})(typeof(self) !== "undefined" ? self : this);
 
 (function loadJSIL (config) {
+    function getLibraryPrefix(config) {
+        if (config.bclMode === "translated") {
+            return "TranslatedBCL/";
+        } else if (config.bclMode === "stubbed") {
+            return "StubbedBCL/";
+        }
+
+            return "IgnoredBCL/";
+    }
 
   function Environment_Browser (config) {
     var self = this;
@@ -67,14 +76,7 @@ var $jsilloaderstate = {
       }
     }
 
-    var libraryPrefix;
-    if (config.bclMode === "translated") {
-      libraryPrefix = "TranslatedBCL/";
-    } else if (config.bclMode === "stubbed") {
-      libraryPrefix = "StubbedBCL/";
-    } else {
-      libraryPrefix = "IgnoredBCL/";
-    }
+    var libraryPrefix = getLibraryPrefix(config);
 
     contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
     contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.IO.js"]);
@@ -130,14 +132,7 @@ var $jsilloaderstate = {
     var self = this;
     this.config = config;
 
-    var libraryPrefix;
-    if (config.bclMode === "translated") {
-      libraryPrefix = "TranslatedBCL/";
-    } else if (config.bclMode === "stubbed") {
-      libraryPrefix = "StubbedBCL/";
-    } else {
-      libraryPrefix = "IgnoredBCL/";
-    }
+    var libraryPrefix = getLibraryPrefix(config);
 
     contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
     contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.IO.js"]);
@@ -159,6 +154,31 @@ var $jsilloaderstate = {
   Environment_SpidermonkeyShell.prototype.loadEnvironmentScripts = function () {
     this.loadScript(libraryRoot + "JSIL.Shell.js");
     this.loadScript(libraryRoot + "JSIL.Shell.Loaders.js");
+  };
+
+
+  function Environment_WebWorker(config) {
+      var self = this;
+      this.config = config;
+
+      var libraryPrefix = getLibraryPrefix(config);
+
+      contentManifest["JSIL"].push(["Library", "JSIL.Storage.js"]);
+      contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.IO.js"]);
+      contentManifest["JSIL"].push(["Library", libraryPrefix + "JSIL.XML.js"]);
+  };
+
+  Environment_WebWorker.prototype.getUserSetting = function (key) {
+      return false;
+  };
+
+  Environment_WebWorker.prototype.loadScript = function (uri) {
+      importScripts(uri);
+  };
+
+  Environment_WebWorker.prototype.loadEnvironmentScripts = function () {
+      this.loadScript(libraryRoot + "JSIL.WebWorker.js");
+      this.loadScript(libraryRoot + "JSIL.WebWorker.Loaders.js");
   };
 
   var priorModule = JSIL.GlobalNamespace.Module;
@@ -202,7 +222,8 @@ var $jsilloaderstate = {
 
   var environments = {
     "browser": Environment_Browser,
-    "spidermonkey_shell": Environment_SpidermonkeyShell
+    "spidermonkey_shell": Environment_SpidermonkeyShell,
+    "webworker": Environment_WebWorker
   }
 
   if (!config.environment) {
