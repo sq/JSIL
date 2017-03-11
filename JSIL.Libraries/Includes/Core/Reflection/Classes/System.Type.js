@@ -71,6 +71,13 @@
       }
     );
 
+    $.Method({ Static: false, Public: true }, "get_GenericTypeArguments",
+        (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), [], [])),
+        function GetGenericArguments() {
+            return this.GetGenericArguments();
+        }
+    );
+
     $.Method({ Static: false, Public: true }, "MakeGenericType",
       (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Type])], [])),
       function (typeArguments) {
@@ -401,6 +408,13 @@
           this, flags | System.Reflection.BindingFlags.DeclaredOnly, "ConstructorInfo", null, false, $jsilcore.System.Array.Of($jsilcore.System.Reflection.ConstructorInfo).__Type__
         );
       }
+    );
+
+    $.Method({ Static: false, Public: true }, "get_DeclaredConstructors",
+        new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.Reflection.ConstructorInfo")]), []),
+        function () {
+            return this.GetConstructors();
+        }
     );
 
     $.Method({ Public: true, Static: false }, "GetFields",

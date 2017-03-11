@@ -8,3 +8,6 @@
     );
   }
 );
+
+JSIL.MakeStaticClass("System.Reflection.IntrospectionExtensions", true, [], function ($) {
+});
