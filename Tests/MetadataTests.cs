@@ -187,7 +187,7 @@ namespace JSIL.Tests {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\StubbedMethodBodies.cs",
                 "",
-                "The external method 'void Main(System.String[])' of type 'Program'",
+                "The external method 'Void Main(System.String[])' of type 'Program'",
                 new [] { ".*" }
             );
 
@@ -330,7 +330,7 @@ namespace JSIL.Tests {
         public void ExternalMethod () {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\ExternalMethod.cs",
-                "Method", "external method 'void Method()' of type 'Program' has not"
+                "Method", "external method 'Void Method()' of type 'Program' has not"
             );
 
             Assert.IsTrue(generatedJs.Contains("$thisType.Method("));
@@ -541,7 +541,7 @@ namespace JSIL.Tests {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\TranslateTypeInStubbedAssembly.cs",
                 "",
-                "method 'void Main(System.String[])' of type 'Program'",
+                "method 'Void Main(System.String[])' of type 'Program'",
                 new[] { ".*" }
             );
 
@@ -563,7 +563,7 @@ namespace JSIL.Tests {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\TranslateMethodInStubbedAssembly.cs",
                 expectedOutput,
-                "method 'void Main(System.String[])' of type 'Program'",
+                "method 'Void Main(System.String[])' of type 'Program'",
                 new[] { ".*" }
             );
 
