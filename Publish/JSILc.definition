@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalProject Name="JSILc">
+  <Tool Name="JSILc" Path="JSIL.Compiler\JSILc.AnyCPU.exe" />
+</ExternalProject>

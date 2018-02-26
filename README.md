@@ -1,6 +1,8 @@
 ![JSIL logo](http://jsil.org/images/jsil_48px.png) JSIL
 ====
 
+## **❗❗❗ Protogame has been sunset as of 1st Jan 2018 and is no longer supported or maintained. Please read the announcement for more information: [Sunsetting Protogame](https://medium.com/redpoint/sunsetting-protogame-a18e1f03af43). ❗❗❗**
+
 JSIL is a compiler that transforms .NET applications and libraries from their native executable format - CIL bytecode - into standards-compliant, cross-browser JavaScript. You can take this JavaScript and run it in a web browser or any other modern JavaScript runtime. Unlike other cross-compiler tools targeting JavaScript, JSIL produces readable, easy-to-debug JavaScript that resembles the code a developer might write by hand, while still maintaining the behavior and structure of the original .NET code.
 
 For live demos and code samples, [visit the website](http://jsil.org).

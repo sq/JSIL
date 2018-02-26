@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Module>
+  <Name>JSIL</Name>
+  <DefaultAction>resync</DefaultAction>
+  <DisableSynchronisation>false</DisableSynchronisation>
+  <GenerateNuGetRepositories>true</GenerateNuGetRepositories>
+</Module>
