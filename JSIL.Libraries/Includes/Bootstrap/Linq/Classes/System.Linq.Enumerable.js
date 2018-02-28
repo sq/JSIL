@@ -557,6 +557,32 @@
         }
       );
 
+      $.Method({ Static: true, Public: true }, "Repeat",
+        new JSIL.MethodSignature(
+          $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]),
+          ["!!0", "System.Int32"],
+          ["TResult"]),
+        function Repeat$b1(TResult, element, count) {
+            var i = 0;
+
+            return new (JSIL.AbstractEnumerable.Of(TResult))(
+              function getNext(result) {
+                  if (i < count) {
+                      i++;
+                      result.set(element);
+                      return true;
+                  }
+                  return false;
+              },
+              function reset() {
+                  i = 0;
+              },
+              function dispose() {
+              }
+            );
+        }
+      );
+
       $.Method({ Static: true, Public: true }, "Where",
         new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", $.Boolean])], ["TSource"]),
         function Where$b1(TSource, source, predicate) {
