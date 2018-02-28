@@ -311,6 +311,7 @@
     <None Include="SimpleTestCases\EnumInPlaceAdd.cs" />
     <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
     <None Include="SimpleTestCases\EnumerableSkip.cs" />
+    <None Include="SimpleTestCases\EnumerableRepeat.cs" />
     <None Include="SimpleTestCases\UnboxBoolean.cs" />
     <None Include="SimpleTestCases\MathIntrinsics.cs" />
     <None Include="SimpleTestCases\StringSplitDefaultSeparators.cs" />
